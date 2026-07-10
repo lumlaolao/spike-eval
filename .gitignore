@@ -1,0 +1,5 @@
+# build artifacts / local
+/tmp/
+*.class
+target/
+.DS_Store
