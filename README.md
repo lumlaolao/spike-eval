@@ -26,12 +26,27 @@ redistribute Forge itself (GPL).
 
 ## Decisions routed to the LLM
 
-| Decision | Forge hook | Notes |
-|---|---|---|
-| Mulligan | `mulliganKeepHand` | heuristic-gated (only escalates flood/screw hands) |
-| What to play | `chooseSpellAbilityToPlay()` | **not** `getAbilityToPlay` — the AI's own play loop lives here |
-| Attacks | `declareAttackers` | offered only engine-legal attackers (`CombatUtil.canAttack`) |
-| Blocks | `declareBlockers` | offered only legal blockers (`CombatUtil.canBlock`) |
+Nearly every strategic decision now flows through the model, split across two tiers — a **smart**
+model (`SMART_MODEL`, default opus) for load-bearing calls and a **fast** model (`FAST_MODEL`,
+default haiku) for high-frequency low-stakes spots.
+
+| Decision | Forge hook | Tier | Notes |
+|---|---|---|---|
+| Mulligan | `mulliganKeepHand` | smart | hard floor (never below 5 cards); auto-keeps 2–4 land openers; only flood/screw reach the model |
+| What to play / land drop | `chooseSpellAbilityToPlay()` | smart (own main) / fast (reactive) | offers each legal spell **and each distinct land** as a numbered option; **not** `getAbilityToPlay` |
+| Attacks | `declareAttackers` | smart | offered only engine-legal attackers (`CombatUtil.canAttack`) |
+| Blocks | `declareBlockers` | smart | offered only legal blockers (`CombatUtil.canBlock`) |
+| Discard | `chooseCardsToDiscardFrom` | smart | the Reanimator fix — pitch a fatty you can later reanimate |
+| Reanimate / tutor target | `chooseSingleCardForZoneChange` | smart | pick *which* card leaves the zone (Reanimate, Animate Dead, fetches) |
+| Single/multi entity pick | `chooseSingleEntityForEffect` | smart | AI loops this for multi-target, so one override covers both |
+| Cards for effect | `chooseCardsForEffect` | smart | min/max-bounded multi-pick |
+| Yes/No | `confirmAction` | fast | |
+| Numbers / X | `chooseNumber` | fast | |
+
+Every branch that can't reach the model (budget/parse/bridge failure) takes a **deterministic legal
+fallback** — PASS, develop a land, or the first legal option — *not* Forge's AI. A per-turn `[TALLY]`
+prints `smart/fast/auto/ai` counts and every genuine AI handoff logs `[FALLBACK->AI]`, so you can prove
+the LLM is really driving (validation runs show `ai=0`).
 
 ## Hard-won lessons (baked into the code)
 
@@ -44,9 +59,18 @@ redistribute Forge itself (GPL).
 3. **Structured answer channel.** Free-form replies leak: a model that decides "NONE" while *reasoning*
    about a creature made a naive name-match attack with it. Force a final line
    (`ATTACKERS: …`, `BLOCKS: a->b`, `CHOICE: n`) and parse only that.
-4. **`chooseSpellAbilityToPlay` fires on every priority** → a naive version hit the model ~102×/game.
-   Guards: main-phase-only gate, dedupe of identical repeated pass-spots, a per-turn hard cap
-   (→ fall back to AI), and try/catch → AI on any error. Never hangs, never crashes.
+4. **`chooseSpellAbilityToPlay` fires on every priority** → a naive version hits the model ~100×/game.
+   Guards: skip the model entirely on pointless instant-speed windows (empty stack, not in combat),
+   dedupe of identical repeated pass-spots, a per-turn hard cap, and try/catch on any error — each
+   falling to a deterministic legal PASS/land, never a hang or crash.
+5. **Pass priority with `null`, never an empty list.** `PhaseHandler.mainLoopStep` breaks the priority
+   loop only on `chosenSa == null`; returning an empty `List` means "play zero abilities, then ask
+   again" and spins the loop the full 999 iterations (`AI looped too much`) while the match crawls.
+   This one bug turned a clean game into 112 loop-warnings — the single highest-impact fix here.
+6. **Don't fall back to the AI brain for *strategy*.** Budget/parse/bridge failures take a
+   deterministic legal option (PASS, develop a land, first legal pick), so the engine AI never
+   quietly makes a load-bearing call. Only truly mechanical spots (mana payment, `chooseTargetsFor`)
+   still delegate — and every delegation is counted + logged.
 
 ## Cost / latency reality
 
@@ -90,5 +114,10 @@ bash ~/code/forge/run-llm-spike.sh
 
 ## Status
 
-Throwaway spike, not production. Next: route targeting (`chooseTargetsFor`) and `confirmAction`;
-put a cheaper model on the executor tier; measure win-rate vs the Forge AI.
+Spike, but a capable one. Nearly all strategic decisions are LLM-driven across a smart/fast tier
+split; `confirmAction`, discard, entity/card selection, reanimation targets, mulligan, and land choice
+are routed; deterministic legal fallbacks keep the engine AI out of load-bearing calls (`ai=0` in
+validation). Validated end-to-end with sonnet: mulligan → land sequencing → Faithless Looting →
+discard Griselbrand → Dark Ritual → Reanimate target → combat, with 0 priority-loops / 0 AI-fallbacks /
+0 exceptions. Next: hand-roll `chooseTargetsFor` for the rare multi-target spells that still delegate;
+measure win-rate; trim per-decision latency.
