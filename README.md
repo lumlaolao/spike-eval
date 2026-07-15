@@ -105,6 +105,23 @@ bash ~/code/forge/run-llm-spike.sh
 (both seats non-human → `HostedMatch` auto-opens a spectator view). Every decision prints a
 `[ROUTER]` / `[CLAUDE]` line to the console.
 
+## Recording the game (no screen-recording permission needed)
+
+Set `RECORD=1` and the launcher captures the Forge window straight to an H.264 mp4:
+
+```bash
+RECORD=1 RECORD_OUT=~/Downloads/game.mp4 RECORD_FPS=8 bash ~/code/forge/run-llm-spike.sh
+```
+
+- `RECORD` — any non-empty, non-`0` value enables recording.
+- `RECORD_OUT` — output path (default `~/Downloads/forge-game-<ts>.mp4`); an `<out>.ffmpeg.log` sits beside it.
+- `RECORD_FPS` — frame rate, clamped 1–30 (default 8).
+
+It works by painting the Swing `FFrame` into a `BufferedImage` on the EDT (`frame.printAll`) and piping
+PNG frames into `ffmpeg -f image2pipe` — the app renders *itself*, so this needs **no macOS Screen-Recording
+(TCC) permission** and captures only the Forge window. `ffmpeg` must be on `PATH`. A JVM shutdown hook
+closes the pipe so ffmpeg finalizes the moov atom cleanly on exit (including SIGINT/SIGTERM).
+
 ## Files
 
 - `forge-overlay/…/main/…/spike/LlmSpikeGui.java` — GUI launcher, persistent Claude bridge, the router.

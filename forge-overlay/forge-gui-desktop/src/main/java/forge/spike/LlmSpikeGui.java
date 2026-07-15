@@ -1,10 +1,15 @@
 package forge.spike;
 
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+
+import javax.imageio.ImageIO;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -49,6 +54,8 @@ import forge.game.spellability.TargetRestrictions;
 import forge.game.zone.ZoneType;
 import forge.gamemodes.match.HostedMatch;
 import forge.gui.GuiBase;
+import forge.view.FFrame;
+import forge.view.FView;
 import forge.util.ITriggerEvent;
 import forge.util.collect.FCollectionView;
 
@@ -896,6 +903,13 @@ public final class LlmSpikeGui {
         new Thread(() -> {
             try { Thread.sleep(3500); } catch (InterruptedException ignored) {}
             SwingUtilities.invokeLater(LlmSpikeGui::startSpectatorMatch);
+            // Opt-in autonomous window recording (no macOS Screen-Recording permission needed).
+            String rec = System.getenv("RECORD");
+            if (rec != null && !rec.trim().isEmpty() && !"0".equals(rec.trim())) {
+                try { Thread.sleep(5000); } catch (InterruptedException ignored) {} // let the match window render
+                WindowRecorder recorder = WindowRecorder.startFromEnv();
+                if (recorder != null) Runtime.getRuntime().addShutdownHook(new Thread(recorder::stop, "recorder-stop"));
+            }
         }, "llm-spike-launcher").start();
     }
 
@@ -933,5 +947,128 @@ public final class LlmSpikeGui {
         hosted.startMatch(GameType.Constructed, EnumSet.of(GameType.Constructed), players, null);
         System.out.println("[LLM-SEAM] Opus (" + nameA + ", smart=" + smartModel + ") vs Opus (" + nameB
                 + ") started; fast tier=" + fastModel + ". Watch the Forge window.");
+    }
+
+    /**
+     * Autonomous window recorder. Paints the Forge {@link FFrame} to a BufferedImage on a fixed-fps timer
+     * and pipes PNG frames straight into an ffmpeg subprocess (image2pipe -> H.264 mp4). Because the Swing
+     * app renders ITSELF into the image, this needs NO macOS Screen-Recording (TCC) permission and captures
+     * exactly the Forge window — nothing else on screen. Opt-in via env RECORD=1; RECORD_OUT sets the output
+     * path (default ~/Downloads/forge-game-<ts>.mp4), RECORD_FPS the frame rate (default 8, clamped 1..30).
+     */
+    static final class WindowRecorder {
+        private final int fps;
+        private final String outPath;
+        private volatile boolean running;
+        private Process ff;
+        private OutputStream ffIn;
+        private Thread thread;
+        private int w, h;
+
+        private WindowRecorder(int fps, String outPath) { this.fps = fps; this.outPath = outPath; }
+
+        static WindowRecorder startFromEnv() {
+            int fps = 8;
+            try { String f = System.getenv("RECORD_FPS"); if (f != null) fps = Math.max(1, Math.min(30, Integer.parseInt(f.trim()))); }
+            catch (Exception ignore) {}
+            String out = System.getenv("RECORD_OUT");
+            if (out == null || out.isEmpty())
+                out = System.getProperty("user.home") + "/Downloads/forge-game-" + System.currentTimeMillis() + ".mp4";
+            WindowRecorder r = new WindowRecorder(fps, out);
+            return r.start() ? r : null;
+        }
+
+        private boolean start() {
+            try {
+                FFrame frame = waitForFrame(20000);
+                if (frame == null) { System.out.println("[REC] no Forge frame appeared; recording disabled"); return false; }
+                int[] wh = sizeOf(frame);
+                w = wh[0]; h = wh[1];
+                ProcessBuilder pb = new ProcessBuilder("ffmpeg", "-y",
+                        "-f", "image2pipe", "-framerate", String.valueOf(fps), "-i", "-",
+                        "-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p", outPath);
+                pb.redirectErrorStream(true);
+                pb.redirectOutput(ProcessBuilder.Redirect.appendTo(new java.io.File(outPath + ".ffmpeg.log")));
+                ff = pb.start();
+                ffIn = ff.getOutputStream();
+                running = true;
+                thread = new Thread(this::loop, "window-recorder");
+                thread.setDaemon(true);
+                thread.start();
+                System.out.println("[REC] recording Forge window " + w + "x" + h + " @ " + fps + "fps -> " + outPath);
+                return true;
+            } catch (Exception e) {
+                System.out.println("[REC] failed to start: " + e);
+                return false;
+            }
+        }
+
+        private void loop() {
+            long frameNs = 1_000_000_000L / fps;
+            while (running && ff.isAlive()) {
+                long t0 = System.nanoTime();
+                try {
+                    BufferedImage img = capture();
+                    if (img != null) { ImageIO.write(img, "png", ffIn); ffIn.flush(); }
+                } catch (Exception e) { break; } // broken pipe / ffmpeg gone
+                long restMs = (frameNs - (System.nanoTime() - t0)) / 1_000_000L;
+                if (restMs > 0) { try { Thread.sleep(restMs); } catch (InterruptedException ie) { break; } }
+            }
+        }
+
+        private BufferedImage capture() throws Exception {
+            final FFrame frame = FView.SINGLETON_INSTANCE.getFrame();
+            if (frame == null || !frame.isShowing()) return null;
+            final BufferedImage[] out = new BufferedImage[1];
+            Runnable r = () -> {
+                try {
+                    int cw = Math.max(2, frame.getWidth() & ~1), ch = Math.max(2, frame.getHeight() & ~1);
+                    BufferedImage bi = new BufferedImage(cw, ch, BufferedImage.TYPE_INT_RGB);
+                    Graphics2D g = bi.createGraphics();
+                    frame.printAll(g); // render the whole frame (skinned title bar + match view) into the image
+                    g.dispose();
+                    out[0] = bi;
+                } catch (Exception ignore) {}
+            };
+            if (SwingUtilities.isEventDispatchThread()) r.run(); else SwingUtilities.invokeAndWait(r);
+            BufferedImage bi = out[0];
+            if (bi == null) return null;
+            if (bi.getWidth() != w || bi.getHeight() != h) { // window resized -> scale to the fixed encode size
+                BufferedImage fixed = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+                Graphics2D g = fixed.createGraphics();
+                g.drawImage(bi, 0, 0, w, h, null);
+                g.dispose();
+                return fixed;
+            }
+            return bi;
+        }
+
+        void stop() {
+            if (!running && ff == null) return;
+            running = false;
+            try { if (thread != null) thread.join(3000); } catch (Exception ignore) {}
+            try { if (ffIn != null) { ffIn.flush(); ffIn.close(); } } catch (Exception ignore) {} // EOF -> ffmpeg finalizes moov
+            try { if (ff != null) ff.waitFor(); } catch (Exception ignore) {}
+            System.out.println("[REC] recording finalized -> " + outPath);
+        }
+
+        private static int[] sizeOf(FFrame frame) throws Exception {
+            final int[] wh = new int[2];
+            Runnable r = () -> { wh[0] = Math.max(2, frame.getWidth() & ~1); wh[1] = Math.max(2, frame.getHeight() & ~1); };
+            if (SwingUtilities.isEventDispatchThread()) r.run(); else SwingUtilities.invokeAndWait(r);
+            return wh;
+        }
+
+        private static FFrame waitForFrame(long timeoutMs) {
+            long deadline = System.currentTimeMillis() + timeoutMs;
+            while (System.currentTimeMillis() < deadline) {
+                try {
+                    FFrame f = FView.SINGLETON_INSTANCE.getFrame();
+                    if (f != null && f.isShowing() && f.getWidth() > 0) return f;
+                } catch (Exception ignore) {}
+                try { Thread.sleep(200); } catch (InterruptedException ie) { return null; }
+            }
+            return null;
+        }
     }
 }
