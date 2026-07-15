@@ -45,6 +45,7 @@ import forge.game.player.Player;
 import forge.game.player.PlayerActionConfirmMode;
 import forge.game.player.RegisteredPlayer;
 import forge.game.spellability.SpellAbility;
+import forge.game.spellability.TargetRestrictions;
 import forge.game.zone.ZoneType;
 import forge.gamemodes.match.HostedMatch;
 import forge.gui.GuiBase;
@@ -499,6 +500,38 @@ public final class LlmSpikeGui {
                 return opts.get(c);
             } catch (Exception e) {
                 auto("zone-change(err)->first" + srcOf(sa)); return isOptional ? null : opts.get(0);
+            }
+        }
+
+        /** Route spell/ability TARGETING for the clean single-target case (removal, Reanimate, Thoughtseize...).
+         *  Heavily guarded: exactly one target, no chained sub-ability targets, >1 candidate. Anything else
+         *  delegates to Forge's targeting brain. Every candidate is pre-validated by sa.canTarget(). */
+        @Override
+        public boolean chooseTargetsFor(SpellAbility sa) {
+            try {
+                if (sa == null || !sa.usesTargeting() || sa.getMaxTargets() != 1 || sa.getSubAbility() != null)
+                    return super.chooseTargetsFor(sa);
+                TargetRestrictions tr = sa.getTargetRestrictions();
+                if (tr == null) return super.chooseTargetsFor(sa);
+                List<GameEntity> cands = tr.getAllCandidates(sa, false);
+                if (cands == null || cands.size() <= 1 || !smartOk()) return super.chooseTargetsFor(sa);
+                int min = sa.getMinTargets();
+                List<String> labels = new ArrayList<>();
+                for (GameEntity ge : cands) labels.add(entityLabel(ge));
+                String q = "Choose the TARGET for " + saLabel(sa) + " (the spell/ability resolves against whatever you pick).";
+                int c = decideOne(smart, q, labels, min == 0 ? "No target (decline)" : null);
+                if (c == -2) return super.chooseTargetsFor(sa);      // bridge dead -> AI targeting
+                if (c < 0) {                                          // decline / unparsed
+                    if (min == 0) { sa.resetTargets(); return true; } // optional -> legally choose no target
+                    return super.chooseTargetsFor(sa);
+                }
+                sa.resetTargets();
+                boolean added = sa.getTargets().add(cands.get(c));
+                if (!added || sa.getTargets().size() < Math.max(1, min)) return super.chooseTargetsFor(sa); // safety net
+                p("[ROUTER] target: " + labels.get(c) + " <- " + saLabel(sa));
+                return true;
+            } catch (Exception e) {
+                return super.chooseTargetsFor(sa);
             }
         }
 
