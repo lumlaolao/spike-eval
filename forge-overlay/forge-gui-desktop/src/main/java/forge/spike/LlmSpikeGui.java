@@ -449,6 +449,7 @@ public final class LlmSpikeGui {
                     return Lists.newArrayList(landPlays.get(li));
                 }
                 SpellAbility chosen = options.get(choice - 1);
+                ensureTargetsSet(chosen); // AI cast path won't target for us — set legal LLM-chosen targets now
                 p("[ROUTER] play: casts " + saLabel(chosen));
                 return Lists.newArrayList(chosen);
             } catch (Exception e) {
@@ -512,35 +513,77 @@ public final class LlmSpikeGui {
             }
         }
 
-        /** Route spell/ability TARGETING for the clean single-target case (removal, Reanimate, Thoughtseize...).
-         *  Heavily guarded: exactly one target, no chained sub-ability targets, >1 candidate. Anything else
-         *  delegates to Forge's targeting brain. Every candidate is pre-validated by sa.canTarget(). */
+        /** Route single-target spell/ability TARGETING (removal, Reanimate, Thoughtseize, Wasteland...).
+         *  Since WE already chose to cast the spell and the engine reports a legal target, we always SET one
+         *  (LLM picks when there's a real choice; auto-take the only candidate otherwise). We never hand it to
+         *  Forge's AI targeting brain, which sometimes DECLINES a legal target and fizzles the cast
+         *  ("Couldn't add to stack, failed to target"). Every candidate is pre-validated by sa.canTarget(). */
         @Override
         public boolean chooseTargetsFor(SpellAbility sa) {
             try {
-                if (sa == null || !sa.usesTargeting() || sa.getMaxTargets() != 1 || sa.getSubAbility() != null)
+                if (sa == null || !sa.usesTargeting() || sa.getMaxTargets() != 1)
                     return super.chooseTargetsFor(sa);
+                for (SpellAbility sub = sa.getSubAbility(); sub != null; sub = sub.getSubAbility())
+                    if (sub.usesTargeting()) return super.chooseTargetsFor(sa);
                 TargetRestrictions tr = sa.getTargetRestrictions();
                 if (tr == null) return super.chooseTargetsFor(sa);
                 List<GameEntity> cands = tr.getAllCandidates(sa, false);
-                if (cands == null || cands.size() <= 1 || !smartOk()) return super.chooseTargetsFor(sa);
                 int min = sa.getMinTargets();
-                List<String> labels = new ArrayList<>();
-                for (GameEntity ge : cands) labels.add(entityLabel(ge));
-                String q = "Choose the TARGET for " + saLabel(sa) + " (the spell/ability resolves against whatever you pick).";
-                int c = decideOne(smart, q, labels, min == 0 ? "No target (decline)" : null);
-                if (c == -2) return super.chooseTargetsFor(sa);      // bridge dead -> AI targeting
-                if (c < 0) {                                          // decline / unparsed
-                    if (min == 0) { sa.resetTargets(); return true; } // optional -> legally choose no target
-                    return super.chooseTargetsFor(sa);
+                if (cands == null || cands.isEmpty()) return super.chooseTargetsFor(sa); // truly no target -> engine cancels
+                int pick = 0; // default: the (only, or first) legal candidate — beats an AI decline
+                if (cands.size() > 1 && smartOk()) {
+                    List<String> labels = new ArrayList<>();
+                    for (GameEntity ge : cands) labels.add(entityLabel(ge));
+                    String q = "Choose the TARGET for " + saLabel(sa) + " (the spell/ability resolves against whatever you pick).";
+                    int c = decideOne(smart, q, labels, min == 0 ? "No target (decline)" : null);
+                    if (c == -2) return super.chooseTargetsFor(sa);          // bridge dead -> AI targeting
+                    if (c < 0) { if (min == 0) { sa.resetTargets(); return true; } /* optional: no target */ }
+                    else pick = c;                                            // required + unparsed falls to pick=0
                 }
                 sa.resetTargets();
-                boolean added = sa.getTargets().add(cands.get(c));
+                boolean added = sa.getTargets().add(cands.get(pick));
                 if (!added || sa.getTargets().size() < Math.max(1, min)) return super.chooseTargetsFor(sa); // safety net
-                p("[ROUTER] target: " + labels.get(c) + " <- " + saLabel(sa));
+                p("[ROUTER] target: " + entityLabel(cands.get(pick)) + " <- " + saLabel(sa)
+                        + (cands.size() == 1 ? " (only legal)" : ""));
                 return true;
             } catch (Exception e) {
                 return super.chooseTargetsFor(sa);
+            }
+        }
+
+        /** Set legal, LLM-chosen targets on a spell BEFORE handing it to the AI cast path. That path
+         *  (ComputerUtil.handlePlayingSpellAbility) does NOT run targeting for ordinary spells — so an
+         *  untargeted spell we picked would fail hasLegalTargeting and fizzle ("Couldn't add to stack").
+         *  We walk the ability chain and, for each targeting ability with no target yet, pick from the
+         *  engine's own canTarget-validated candidates (LLM chooses when there's a real choice). */
+        private void ensureTargetsSet(SpellAbility root) {
+            for (SpellAbility sa = root; sa != null; sa = sa.getSubAbility()) {
+                try {
+                    if (!sa.usesTargeting()) continue;
+                    if (sa.getTargets() != null && !sa.getTargets().isEmpty()) continue; // already targeted
+                    if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(getPlayer());
+                    TargetRestrictions tr = sa.getTargetRestrictions();
+                    if (tr == null) continue;
+                    List<GameEntity> cands = tr.getAllCandidates(sa, false);
+                    if (cands == null || cands.isEmpty()) continue; // no legal target -> let engine cancel/handle
+                    int min = Math.max(1, sa.getMinTargets());
+                    int pick = 0; // first legal candidate beats leaving it untargeted (which fizzles)
+                    if (cands.size() > 1 && smartOk()) {
+                        List<String> labels = new ArrayList<>();
+                        for (GameEntity ge : cands) labels.add(entityLabel(ge));
+                        int c = decideOne(smart, "Choose the TARGET for " + saLabel(sa)
+                                + " (the spell resolves against whatever you pick).", labels,
+                                sa.getMinTargets() == 0 ? "No target" : null);
+                        if (c == -1 && sa.getMinTargets() == 0) continue; // optional -> deliberately no target
+                        if (c >= 0) pick = c;                              // -2/unparsed fall to first legal
+                    }
+                    sa.resetTargets();
+                    sa.getTargets().add(cands.get(pick));
+                    for (int i = 0; sa.getTargets().size() < min && i < cands.size(); i++) // top up if it needs >1
+                        if (i != pick) sa.getTargets().add(cands.get(i));
+                    p("[ROUTER] target: " + entityLabel(cands.get(pick)) + " <- " + saLabel(sa)
+                            + (cands.size() == 1 ? " (only legal)" : ""));
+                } catch (Exception e) { /* leave targeting to the engine for this ability */ }
             }
         }
 
