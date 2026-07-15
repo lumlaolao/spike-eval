@@ -365,6 +365,15 @@ public final class LlmSpikeGui {
                     if (sa.isLandAbility() || sa.isManaAbility()) continue;
                     if (!sa.canPlay()) continue;
                     if (!ComputerUtilMana.canPayManaCost(sa, me, 0, false)) continue;
+                    // Skip a targeted spell that currently has NO legal target — casting it just fizzles
+                    // ("Couldn't add to stack, failed to target"), e.g. Animate Dead with an empty graveyard.
+                    if (sa.usesTargeting()) {
+                        try {
+                            if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(me);
+                            TargetRestrictions tr = sa.getTargetRestrictions();
+                            if (tr != null && tr.getAllCandidates(sa, false).size() < Math.max(1, sa.getMinTargets())) continue;
+                        } catch (Exception ignore) { /* can't evaluate -> offer it, prior behavior */ }
+                    }
                     options.add(sa);
                     if (options.size() >= 12) break;
                 }
