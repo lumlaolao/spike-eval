@@ -343,7 +343,10 @@ public final class LlmSpikeGui {
 
         @Override
         public List<SpellAbility> chooseSpellAbilityToPlay() {
-            final List<SpellAbility> PASS = java.util.Collections.emptyList();
+            // IMPORTANT: the engine passes priority ONLY on a null return (see PhaseHandler.mainLoopStep:
+            // `if (chosenSa == null) break;`). An EMPTY list means "play zero abilities, then ask again",
+            // which spins the priority loop ~999x ("AI looped too much"). So PASS must be null, never empty.
+            final List<SpellAbility> PASS = null;
             try {
                 Player me = getPlayer();
                 PhaseHandler phh = me.getGame().getPhaseHandler();
@@ -364,14 +367,26 @@ public final class LlmSpikeGui {
                     options.add(sa);
                     if (options.size() >= 12) break;
                 }
-                CardCollection lands = ownMain ? ComputerUtilAbility.getAvailableLandsToPlay(me.getGame(), me) : null;
-                SpellAbility landSa = null; Card landCard = null;
-                if (lands != null && !lands.isEmpty()) {
-                    landCard = lands.get(0);
-                    for (SpellAbility sa : landCard.getAllPossibleAbilities(me, true)) if (sa.isLandAbility()) { landSa = sa; break; }
+                // Distinct lands we could play this main phase (by name), each offered as its own option so the
+                // model chooses WHICH land — colored sources, fetchlands, painlands all matter for sequencing.
+                List<SpellAbility> landPlays = new ArrayList<>();
+                List<Card> landCards = new ArrayList<>();
+                if (ownMain) {
+                    CardCollection lands = ComputerUtilAbility.getAvailableLandsToPlay(me.getGame(), me);
+                    if (lands != null) {
+                        java.util.HashSet<String> seen = new java.util.HashSet<>();
+                        for (Card lc : lands) {
+                            if (!seen.add(lc.getName())) continue;
+                            SpellAbility lsa = null;
+                            for (SpellAbility sa : lc.getAllPossibleAbilities(me, true)) if (sa.isLandAbility()) { lsa = sa; break; }
+                            if (lsa != null) { landPlays.add(lsa); landCards.add(lc); }
+                            if (landPlays.size() >= 4) break;
+                        }
+                    }
                 }
+                boolean haveLand = !landPlays.isEmpty();
                 // Nothing to do -> pass (deterministic; never Forge's AI).
-                if (options.isEmpty() && landSa == null) return PASS;
+                if (options.isEmpty() && !haveLand) return PASS;
                 if (!ownMain && options.isEmpty()) return PASS;
 
                 // pick tier: own main phase = smart sequencing; reactive instant-speed window = fast
@@ -382,14 +397,14 @@ public final class LlmSpikeGui {
                 if (turn != lastPlayTurn) { lastPlayTurn = turn; playDecisionsThisTurn = 0; }
                 boolean overCap = playDecisionsThisTurn >= MAX_PLAY_DECISIONS_PER_TURN;
                 if (!haveBudget || overCap) { // exhausted -> develop mana if possible, else pass. Not the AI.
-                    if (landSa != null) { auto("play(no-budget): land " + landCard.getName()); return Lists.newArrayList(landSa); }
+                    if (haveLand) { auto("play(no-budget): land " + landCards.get(0).getName()); return Lists.newArrayList(landPlays.get(0)); }
                     return PASS;
                 }
 
                 StringBuilder menu = new StringBuilder(); int idx = 1;
                 for (SpellAbility sa : options) menu.append("  ").append(idx++).append(") CAST ").append(saLabel(sa)).append('\n');
-                int landIdx = -1;
-                if (landSa != null) { landIdx = idx; menu.append("  ").append(idx++).append(") PLAY LAND ").append(landCard.getName()).append('\n'); }
+                int landStart = idx;
+                for (int i = 0; i < landPlays.size(); i++) menu.append("  ").append(idx++).append(") PLAY LAND ").append(landCards.get(i).getName()).append('\n');
                 int passIdx = idx; menu.append("  ").append(idx).append(") PASS (do nothing)\n");
 
                 String sig = turn + "|" + phh.getPhase() + "|" + menu;
@@ -399,7 +414,7 @@ public final class LlmSpikeGui {
 
                 if (ownMain) p("[TALLY] smart=" + smartCalls + " fast=" + fastCalls + " auto=" + autoPicks + " ai=" + aiDelegations);
                 p("[ROUTER] play(" + (ownMain ? "main" : "react") + "): " + options.size() + " castable"
-                        + (landSa != null ? " + land" : "") + " -> asking " + b.model + "...");
+                        + (haveLand ? " + " + landPlays.size() + " land" : "") + " -> asking " + b.model + "...");
                 playDecisionsThisTurn++;
 
                 int choice = -1;
@@ -411,14 +426,18 @@ public final class LlmSpikeGui {
                             : "That reply had no parseable choice. Answer with ONE line only: CHOICE: <a number 1.." + passIdx + " from the list above>.";
                     String reply = b.ask(prompt);
                     if (reply == null) { // bridge dead -> develop or pass, not the AI
-                        if (landSa != null) { auto("play(bridge-down): land " + landCard.getName()); return Lists.newArrayList(landSa); }
+                        if (haveLand) { auto("play(bridge-down): land " + landCards.get(0).getName()); return Lists.newArrayList(landPlays.get(0)); }
                         return PASS;
                     }
                     choice = parseTagNumber(reply, "CHOICE:");
                 }
                 if (choice == passIdx || choice < 1 || choice > passIdx) { lastWasPass = true; p("[ROUTER] play: PASS"); return PASS; }
                 lastWasPass = false;
-                if (landIdx > 0 && choice == landIdx) { p("[ROUTER] play: land " + landCard.getName()); return Lists.newArrayList(landSa); }
+                if (haveLand && choice >= landStart && choice < passIdx) {
+                    int li = choice - landStart;
+                    p("[ROUTER] play: land " + landCards.get(li).getName());
+                    return Lists.newArrayList(landPlays.get(li));
+                }
                 SpellAbility chosen = options.get(choice - 1);
                 p("[ROUTER] play: casts " + saLabel(chosen));
                 return Lists.newArrayList(chosen);
