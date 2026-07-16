@@ -64,6 +64,7 @@ import forge.gui.GuiBase;
 import forge.view.FFrame;
 import forge.view.FView;
 import forge.util.ITriggerEvent;
+import forge.util.MyRandom;
 import forge.util.collect.FCollectionView;
 
 /**
@@ -90,6 +91,37 @@ import forge.util.collect.FCollectionView;
 public final class LlmSpikeGui {
     private LlmSpikeGui() {}
 
+    /** Eval-mode JSONL logger (opt-in via EVAL_OUT=<dir>). One file per game; every decision and the
+     *  final game summary land here so batch runs produce a dataset, not scrollback. */
+    static final class EvalLog {
+        private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
+        static synchronized void init(long seed) {
+            String dir = System.getenv("EVAL_OUT");
+            if (dir == null || dir.isEmpty() || out != null) return;
+            try {
+                java.io.File d = new java.io.File(dir);
+                d.mkdirs();
+                out = new java.io.PrintWriter(new java.io.FileWriter(
+                        new java.io.File(d, "game-" + seed + "-" + System.currentTimeMillis() + ".jsonl"), true), true);
+            } catch (Exception e) { System.out.println("[EVAL] log init failed: " + e); }
+        }
+        static synchronized void write(String json) { if (out != null) out.println(json); }
+        static boolean on() { return out != null; }
+    }
+
+    /** GAME_SEED env: seed Forge's global RNG (shuffles, coin flip) for reproducible games.
+     *  Returns the seed used (random if unset) so it can be recorded. */
+    static long applySeed() {
+        long seed;
+        try {
+            String v = System.getenv("GAME_SEED");
+            seed = (v == null || v.isEmpty()) ? new java.util.Random().nextLong() : Long.parseLong(v.trim());
+        } catch (Exception e) { seed = new java.util.Random().nextLong(); }
+        MyRandom.setRandom(new java.util.Random(seed));
+        System.out.println("[SEED] " + seed);
+        return seed;
+    }
+
     // Default strategy framings, shared with the headless runner (env PLAN_A/PLAN_B override both).
     static final String DEFAULT_PLAN_A =
             "Grixis Reanimator combo: mulligan aggressively toward a hand that can DISCARD a huge creature "
@@ -108,6 +140,11 @@ public final class LlmSpikeGui {
         private static final int MAX_PLAY_DECISIONS_PER_TURN = 25;
         private static final int SMART_BUDGET = envInt("SMART_BUDGET", 320); // per-game load-bearing LLM calls
         private static final int FAST_BUDGET  = envInt("FAST_BUDGET", 900);  // per-game cheap LLM calls
+        // Eval confound switches: MULLIGAN_HEURISTIC=0 -> the model decides ALL mulligans (no 2-4 land
+        // auto-keep); SKIP_HEURISTICS=0 -> no free-pass shortcuts (every priority window with options
+        // reaches the model). Defaults preserve the fast demo behavior.
+        private static final boolean MULL_HEURISTIC = !"0".equals(System.getenv("MULLIGAN_HEURISTIC"));
+        private static final boolean SKIP_HEUR = !"0".equals(System.getenv("SKIP_HEURISTICS"));
 
         private final String seat;        // player label (for logs)
         private final String deckPlan;    // strategy framing for this seat
@@ -144,13 +181,22 @@ public final class LlmSpikeGui {
             try { return getPlayer().getGame().getPhaseHandler().getTurn(); } catch (Exception e) { return 0; }
         }
 
+        // Baseline arms for eval runs (CONTROLLER_A/B): "llm" (default), "random" (uniform over the
+        // same legal menus — anchors the floor of the scale), "floor" (every decision takes the
+        // deterministic fallback path — quantifies how much play strength the HARNESS contributes).
+        private final String mode;
+        private final java.util.Random rnd; // non-null only in random mode
+
         PlayerControllerLLM(Game game, Player p, LobbyPlayer lp, String seat, String deckPlan,
-                            String smartModel, String fastModel) {
+                            String smartModel, String fastModel, String mode) {
             super(game, p, lp);
             this.seat = seat;
             this.deckPlan = deckPlan;
+            this.mode = mode == null || mode.isEmpty() ? "llm" : mode;
+            this.rnd = "random".equals(this.mode) ? new java.util.Random(MyRandom.getRandom().nextLong()) : null;
             this.smart = new ClaudeBridge(seat + "/smart", smartModel, framing(seat, deckPlan, false));
             this.fast  = new ClaudeBridge(seat + "/fast",  fastModel,  framing(seat, deckPlan, true));
+            if (!"llm".equals(this.mode)) p("[MODE] baseline arm: " + this.mode);
         }
 
         private void p(String s) { System.out.println("[" + seat + "] " + s); }
@@ -167,7 +213,8 @@ public final class LlmSpikeGui {
                       + "request (e.g. `CHOICE: 3` or `PICKS: 1,4`). I parse ONLY that final line — never write "
                       + "anything after it.";
             return "You are a world-class Magic: The Gathering (Legacy) player piloting \"" + seat + "\".\n"
-                    + "GAME PLAN: " + plan + "\n"
+                    // PLAN_A=""/PLAN_B="" gives a plan-free eval arm — no expert strategy injected.
+                    + (plan == null || plan.isEmpty() ? "" : "GAME PLAN: " + plan + "\n")
                     + "PROTOCOL: I am the Forge rules engine. Each message gives you the CURRENT game state and ONE "
                     + "decision with a numbered list of the ONLY legal options — every option is already "
                     + "engine-validated, so pick purely on strategy. The state snapshot in each message is "
@@ -185,6 +232,13 @@ public final class LlmSpikeGui {
         /** Ask a bridge to pick ONE option (1-based in the prompt); returns 0-based index, or -1 for
          *  none/parse-failure. `noneLabel` (nullable) adds an extra "decline" option. */
         private int decideOne(ClaudeBridge b, String question, List<String> options, String noneLabel) {
+            // RANDOM arm: uniform over the same legal menu (incl. the decline option when present).
+            if (rnd != null) {
+                int n = options.size() + (noneLabel != null ? 1 : 0);
+                if (n == 0) return -1;
+                int c = rnd.nextInt(n);
+                return c >= options.size() ? -1 : c;
+            }
             StringBuilder menu = new StringBuilder();
             int n = 1;
             for (String o : options) menu.append("  ").append(n++).append(") ").append(oneLine(o)).append('\n');
@@ -206,6 +260,15 @@ public final class LlmSpikeGui {
 
         /** Ask a bridge to pick BETWEEN min..max options; returns 0-based indices, or null on failure. */
         private List<Integer> decideMany(ClaudeBridge b, String question, List<String> options, int min, int max) {
+            // RANDOM arm: uniformly sized random subset of the same legal menu.
+            if (rnd != null) {
+                List<Integer> all = new ArrayList<>();
+                for (int i = 0; i < options.size(); i++) all.add(i);
+                java.util.Collections.shuffle(all, rnd);
+                int lo = Math.max(0, min), hi = Math.min(max, options.size());
+                if (hi < lo) return null;
+                return new ArrayList<>(all.subList(0, lo + (hi > lo ? rnd.nextInt(hi - lo + 1) : 0)));
+            }
             StringBuilder menu = new StringBuilder();
             int n = 1;
             for (String o : options) menu.append("  ").append(n++).append(") ").append(oneLine(o)).append('\n');
@@ -371,13 +434,15 @@ public final class LlmSpikeGui {
             // HARD FLOOR: never spiral below 5 cards. A functional 5-card hand beats mulliganing to oblivion —
             // this is the guardrail against a model that likes to ship every imperfect hand.
             if (size <= 5) { p("[ROUTER] mulligan: FLOOR keep (" + lands + "/" + size + ")"); return true; }
+            if (rnd != null) { auto("mulligan(random)->KEEP"); return true; } // random arm: keep 7 always
             // A 2-4 land opener is a routine, near-always-keepable hand -> keep deterministically, no LLM.
-            if (lands >= 2 && lands <= 4) {
+            // (Disabled by MULLIGAN_HEURISTIC=0 for confound-free eval runs — the model owns mulligans.)
+            if (MULL_HEURISTIC && lands >= 2 && lands <= 4) {
                 p("[ROUTER] mulligan: heuristic KEEP (" + lands + "/" + size + " lands)");
                 return true;
             }
             // Only the extremes (0-1 lands, or 5+ = flood) reach the model, and only above the 5-card floor.
-            if (!smartOk()) return aiDelegate("mulligan(no-budget)", super.mulliganKeepHand(firstPlayer, cardsToReturn));
+            if (!smartOk()) { auto("mulligan(no-model)->KEEP"); return true; } // deterministic legal, not the AI
             StringBuilder n = new StringBuilder();
             for (Card c : hand) { if (n.length() > 0) n.append(", "); n.append(c.getName()); }
             int afterKeep = size; // this Forge deals a shrinking hand each mulligan; you keep exactly what you see
@@ -393,6 +458,7 @@ public final class LlmSpikeGui {
             String r = reply.toUpperCase();
             int k = r.indexOf("KEEP"), mu = r.indexOf("MULLIGAN");
             boolean keep = k >= 0 && (mu < 0 || k < mu);
+            evalDec("mulligan", 2, keep ? 0 : 1, "smart", 0, null);
             p("[ROUTER] mulligan: " + (keep ? "KEEP" : "MULLIGAN"));
             return keep;
         }
@@ -411,7 +477,13 @@ public final class LlmSpikeGui {
                 CardCollection legal = new CardCollection();
                 for (Card c : attacker.getCreaturesInPlay()) if (CombatUtil.canAttack(c, defender)) legal.add(c);
                 if (legal.isEmpty()) return;
-                if (!smartOk()) { noteAi("declareAttackers(no-budget)"); super.declareAttackers(attacker, combat); return; }
+                // No model available (floor arm / budget) -> deterministic ALL-IN, the classic goldfish
+                // baseline. Never the engine AI.
+                if (!smartOk()) {
+                    for (Card c : legal) combat.addAttacker(c, defender);
+                    auto("attackers(no-model)->all-in x" + legal.size());
+                    return;
+                }
                 // Numbered subset pick, same PICKS router as discard: robust to duplicate creature names
                 // and substring collisions, and decideMany prepends the full game snapshot — the model sees
                 // opp life/board/untapped mana when deciding attacks, not just its own creature list.
@@ -424,13 +496,18 @@ public final class LlmSpikeGui {
                         + "weigh their untapped mana and possible blocks). COUNT LETHAL: if your unblocked/"
                         + "unstoppable damage meets their life total, attack with everything needed and WIN NOW.",
                         labels, 0, legal.size());
-                if (picks == null) { noteAi("declareAttackers(bridge-down)"); super.declareAttackers(attacker, combat); return; }
+                if (picks == null) { // bridge dead -> deterministic all-in, not the AI
+                    for (Card c : legal) combat.addAttacker(c, defender);
+                    auto("attackers(bridge-down)->all-in x" + legal.size());
+                    return;
+                }
                 StringBuilder chosen = new StringBuilder();
                 for (int i : picks) {
                     combat.addAttacker(legal.get(i), defender);
                     if (chosen.length() > 0) chosen.append(", ");
                     chosen.append(legal.get(i).getName());
                 }
+                evalDec("attackers", legal.size(), picks.size(), tierOf(true), 0, null); // choice = # declared
                 p("[ROUTER] attackers: " + (picks.isEmpty() ? "none" : chosen.toString()));
             } catch (Exception e) {
                 noteAi("declareAttackers(err " + e + ")");
@@ -447,7 +524,18 @@ public final class LlmSpikeGui {
                 for (Card c : defender.getCreaturesInPlay())
                     for (Card atk : attackers) if (CombatUtil.canBlock(atk, c, combat)) { blockers.add(c); break; }
                 if (blockers.isEmpty()) return;
-                if (!smartOk()) { noteAi("declareBlockers(no-budget)"); super.declareBlockers(defender, combat); return; }
+                if (rnd != null) { // random arm: each legal blocker blocks a random attacker or not, 50/50
+                    int assignedR = 0;
+                    for (Card b : blockers) {
+                        if (rnd.nextBoolean()) continue;
+                        Card a = attackers.get(rnd.nextInt(attackers.size()));
+                        if (CombatUtil.canBlock(a, b, combat)) { combat.addBlocker(a, b); assignedR++; }
+                    }
+                    auto("blockers(random)->" + assignedR);
+                    return;
+                }
+                // No model available -> deterministic NO BLOCKS (the fallback policy), never the engine AI.
+                if (!smartOk()) { auto("blockers(no-model)->none"); return; }
                 StringBuilder atk = new StringBuilder();
                 for (Card a : attackers) { if (atk.length() > 0) atk.append(", "); atk.append(a.getName()).append(" (").append(a.getNetPower()).append('/').append(a.getNetToughness()).append(')'); }
                 StringBuilder blk = new StringBuilder();
@@ -457,7 +545,7 @@ public final class LlmSpikeGui {
                         + "End with EXACTLY: BLOCKS: blocker->attacker, blocker->attacker   (or BLOCKS: NONE)";
                 p("[ROUTER] blockers: " + attackers.size() + " atk / " + blockers.size() + " blk -> asking " + smart.model + "...");
                 String reply = ask(smart, prompt);
-                if (reply == null) { noteAi("declareBlockers(bridge-down)"); super.declareBlockers(defender, combat); return; }
+                if (reply == null) { auto("blockers(bridge-down)->none"); return; }
                 String line = lastSegment(reply, "BLOCKS:");
                 if (line == null || line.toUpperCase().contains("NONE")) { p("[ROUTER] blockers: NONE"); return; }
                 int assigned = 0;
@@ -469,6 +557,7 @@ public final class LlmSpikeGui {
                         combat.addBlocker(a, b); assigned++; blockers.remove(b);
                     }
                 }
+                evalDec("blockers", blockers.size() + assigned, assigned, "smart", 0, null); // choice = # blocks
                 p("[ROUTER] blockers: assigned " + assigned);
             } catch (Exception e) {
                 noteAi("declareBlockers(err " + e + ")");
@@ -492,13 +581,13 @@ public final class LlmSpikeGui {
                 // opponent's end step (the classic instant-speed action window for flash/instant decks).
                 // Otherwise passing priority is virtually always correct, so pass WITHOUT an LLM call.
                 boolean oppEot = phh.is(PhaseType.END_OF_TURN) && !phh.isPlayerTurn(me);
-                if (!ownMain && me.getGame().getStack().isEmpty() && !phh.inCombat() && !oppEot) return PASS;
+                if (SKIP_HEUR && !ownMain && me.getGame().getStack().isEmpty() && !phh.inCombat() && !oppEot) return PASS;
 
                 // SPEED: the top of the stack is OUR OWN spell/ability — we just cast it. Don't burn a
                 // model call asking "respond to yourself?"; let it resolve. The engine gives us priority
                 // again with the updated state (and if the OPPONENT responds, their spell tops the stack
                 // and we DO get asked).
-                if (!me.getGame().getStack().isEmpty()) {
+                if (SKIP_HEUR && !me.getGame().getStack().isEmpty()) {
                     try {
                         SpellAbility top = me.getGame().getStack().peekAbility();
                         if (top != null && top.getActivatingPlayer() == me) return PASS;
@@ -573,7 +662,7 @@ public final class LlmSpikeGui {
                 // (e.g. "activate Wasteland?" at upkeep, draw, main, combat...). Once we decline a
                 // situation this turn, every identical recurrence passes free.
                 String reactSig = null;
-                if (!ownMain) {
+                if (SKIP_HEUR && !ownMain) {
                     reactSig = safeStackTop(me.getGame()) + "|" + me.getGame().getStack().size() + "|" + menuStr;
                     if (passedReactSigs.contains(reactSig)) return PASS;
                 }
@@ -586,7 +675,9 @@ public final class LlmSpikeGui {
                 playDecisionsThisTurn++;
 
                 int choice = -1;
-                for (int attempt = 0; attempt < 2 && choice < 1; attempt++) {
+                long tPlay = System.currentTimeMillis();
+                if (rnd != null) choice = 1 + rnd.nextInt(passIdx); // random arm: uniform incl. PASS
+                for (int attempt = 0; rnd == null && attempt < 2 && choice < 1; attempt++) {
                     String prompt = attempt == 0
                             ? snapshot() + "\nDECISION: You have priority (" + phh.getPhase()
                               + (ownMain ? ", your main phase" : ", instant-speed window") + "). Choose ONE action:\n" + menuStr
@@ -599,6 +690,8 @@ public final class LlmSpikeGui {
                     }
                     choice = parseTagNumber(reply, "CHOICE:");
                 }
+                evalDec("play", passIdx, (choice >= 1 && choice < passIdx) ? choice - 1 : -1,
+                        tierOf(ownMain), System.currentTimeMillis() - tPlay, null);
                 if (choice == passIdx || choice < 1 || choice > passIdx) {
                     lastWasPass = true;
                     if (reactSig != null) passedReactSigs.add(reactSig); // don't re-ask this situation this turn
@@ -744,6 +837,7 @@ public final class LlmSpikeGui {
                     sa.getTargets().add(cands.get(pick));
                     for (int i = 0; sa.getTargets().size() < min && i < cands.size(); i++) // top up if it needs >1
                         if (i != pick) sa.getTargets().add(cands.get(i));
+                    evalDec("target", cands.size(), pick, tierOf(true), 0, null);
                     p("[ROUTER] target: " + entityLabel(cands.get(pick)) + " <- " + saLabel(sa)
                             + (cands.size() == 1 ? " (only legal)" : ""));
                 } catch (Exception e) { /* leave targeting to the engine for this ability */ }
@@ -775,6 +869,7 @@ public final class LlmSpikeGui {
                 StringBuilder log = new StringBuilder();
                 for (int i : picks) { out.add(opts.get(i)); if (log.length() > 0) log.append(", "); log.append(opts.get(i).getName()); }
                 if (stripping) remember("saw " + p.getName() + " hand [" + names(opts, false, 10) + "], stripped " + log);
+                evalDec("discard", opts.size(), picks.size(), tierOf(true), 0, null);
                 p("[ROUTER] discard" + (stripping ? "(strip " + p.getName() + ")" : "") + ": " + log);
                 return out;
             } catch (Exception e) {
@@ -807,7 +902,7 @@ public final class LlmSpikeGui {
         @Override
         public boolean confirmAction(SpellAbility sa, PlayerActionConfirmMode mode, String message,
                 List<String> options, Card cardToShow, Map<String, Object> params) {
-            if (!fastOk()) return aiDelegate("confirm(no-budget)", super.confirmAction(sa, mode, message, options, cardToShow, params));
+            if (!fastOk()) { auto("confirm(no-model)->NO"); return false; } // deterministic decline, not the AI
             try {
                 String q = "Yes/No decision" + srcOf(sa) + ": " + (message == null ? String.valueOf(mode) : message);
                 List<String> yn = Lists.newArrayList("YES (do it)", "NO (decline)");
@@ -824,7 +919,7 @@ public final class LlmSpikeGui {
         @Override
         public int chooseNumber(SpellAbility sa, String title, int min, int max) {
             if (max <= min) return min; // forced, deterministic
-            if (!fastOk()) return aiDelegate("number(no-budget)", super.chooseNumber(sa, title, min, max));
+            if (!fastOk()) { auto("number(no-model)->" + min); return min; } // deterministic legal minimum
             try {
                 List<String> opts = new ArrayList<>();
                 if (max - min <= 12) { for (int v = min; v <= max; v++) opts.add(String.valueOf(v)); }
@@ -846,8 +941,17 @@ public final class LlmSpikeGui {
         @Override
         public String chooseCardName(SpellAbility sa, List<ICardFace> faces, String message) {
             try {
-                if (faces == null || faces.isEmpty() || !smartOk())
-                    return aiDelegate("card-name(list:no-budget/empty)", super.chooseCardName(sa, faces, message));
+                if (faces == null || faces.isEmpty())
+                    return aiDelegate("card-name(list:empty)", super.chooseCardName(sa, faces, message));
+                if (rnd != null) { // random arm: uniform over the list — never the model, never the AI
+                    String pick = faces.get(rnd.nextInt(faces.size())).getName();
+                    auto("card-name(random)->" + pick);
+                    return pick;
+                }
+                if (!smartOk()) { // floor arm / budget: first face, deterministic — not the AI brain
+                    auto("card-name(no-model)->" + faces.get(0).getName());
+                    return faces.get(0).getName();
+                }
                 if (faces.size() <= 20) {
                     List<String> labels = new ArrayList<>();
                     for (ICardFace f : faces) labels.add(f.getName());
@@ -872,7 +976,21 @@ public final class LlmSpikeGui {
         @Override
         public String chooseCardName(SpellAbility sa, java.util.function.Predicate<ICardFace> cpp, String valid, String message) {
             try {
-                if (!smartOk()) return aiDelegate("card-name(no-budget)", super.chooseCardName(sa, cpp, valid, message));
+                // random/floor arms: pick from the predicate-filtered card universe the same way the
+                // engine's own randomChoice path does — never the model, never the AI brain.
+                if (rnd != null || !smartOk()) {
+                    try {
+                        List<ICardFace> pool = new ArrayList<>();
+                        StaticData.instance().getCommonCards().streamAllFaces()
+                                .filter(cpp == null ? f -> true : cpp).limit(500).forEach(pool::add);
+                        if (!pool.isEmpty()) {
+                            String pick = (rnd != null ? pool.get(rnd.nextInt(pool.size())) : pool.get(0)).getName();
+                            auto("card-name(" + (rnd != null ? "random" : "no-model") + ")->" + pick);
+                            return pick;
+                        }
+                    } catch (Exception ignore) { }
+                    return aiDelegate("card-name(no-pool)", super.chooseCardName(sa, cpp, valid, message));
+                }
                 String want = askCardName(sa, message, valid);
                 if (want != null) {
                     ICardFace face = StaticData.instance().getCommonCards().getFaceByName(want);
@@ -935,8 +1053,9 @@ public final class LlmSpikeGui {
 
         // Pure budget PEEKS — no side effect. Counters are bumped in ask(), so [TALLY] counts
         // actual model calls, not budget checks (paths that check then dedupe/delegate don't inflate it).
-        private boolean smartOk() { return smartCalls < SMART_BUDGET; }
-        private boolean fastOk()  { return fastCalls  < FAST_BUDGET;  }
+        // FLOOR arm: budgets read as exhausted, so every site takes its deterministic fallback.
+        private boolean smartOk() { return !"floor".equals(mode) && smartCalls < SMART_BUDGET; }
+        private boolean fastOk()  { return !"floor".equals(mode) && fastCalls  < FAST_BUDGET;  }
         /** Every model call funnels through here. */
         private String ask(ClaudeBridge b, String prompt) {
             if (b == smart) smartCalls++; else fastCalls++;
@@ -948,9 +1067,30 @@ public final class LlmSpikeGui {
         private void noteAi(String where) {
             aiDelegations++;
             p("[FALLBACK->AI] " + where + "  (ai=" + aiDelegations + " smart=" + smartCalls + " fast=" + fastCalls + " auto=" + autoPicks + ")");
+            evalDec(firstWord(where), -1, -1, "ai", 0, where);
         }
         private <T> T aiDelegate(String where, T result) { noteAi(where); return result; }
-        private void auto(String what) { autoPicks++; p("[AUTO-LEGAL] " + what); }
+        private void auto(String what) { autoPicks++; p("[AUTO-LEGAL] " + what); evalDec(firstWord(what), -1, -1, "auto", 0, what); }
+        private static String firstWord(String s) {
+            if (s == null || s.isEmpty()) return "?";
+            int i = 0;
+            while (i < s.length() && (Character.isLetterOrDigit(s.charAt(i)) || s.charAt(i) == '-')) i++;
+            return i == 0 ? "?" : s.substring(0, i);
+        }
+        /** One JSONL line per decision when EVAL_OUT is set — the per-decision dataset for eval runs. */
+        private void evalDec(String type, int nOptions, int choice, String tier, long ms, String fallback) {
+            if (!EvalLog.on()) return;
+            try {
+                PhaseHandler ph = getPlayer().getGame().getPhaseHandler();
+                EvalLog.write("{\"t\":\"decision\",\"seat\":\"" + ClaudeBridge.jsonEscape(seat)
+                        + "\",\"turn\":" + ph.getTurn() + ",\"phase\":\"" + ph.getPhase()
+                        + "\",\"type\":\"" + type + "\",\"n_options\":" + nOptions + ",\"choice\":" + choice
+                        + ",\"tier\":\"" + tier + "\",\"latency_ms\":" + ms
+                        + ",\"fallback\":" + (fallback == null ? "null" : "\"" + ClaudeBridge.jsonEscape(fallback) + "\"") + "}");
+            } catch (Exception ignore) { }
+        }
+        /** Tier label for asked decisions: random arm decisions are harness-made, not model-made. */
+        private String tierOf(boolean smartTier) { return rnd != null ? "auto" : (smartTier ? "smart" : "fast"); }
         /** Deterministic legal fallback for "pick some cards": take the first n (a legal set), never the AI. */
         private CardCollection firstN(List<Card> opts, int n, String why) {
             CardCollection out = new CardCollection();
@@ -1021,18 +1161,60 @@ public final class LlmSpikeGui {
         }
     }
 
-    /** LobbyPlayer whose in-game Player uses OUR controller, carrying seat + plan + models. */
+    /** LobbyPlayer whose in-game Player uses OUR controller, carrying seat + plan + models + arm. */
     static class LobbyPlayerLLM extends LobbyPlayerAi {
-        private final String plan, smartModel, fastModel;
+        private final String plan, smartModel, fastModel, mode;
         LobbyPlayerLLM(String name, String plan, String smartModel, String fastModel) {
-            super(name, null); this.plan = plan; this.smartModel = smartModel; this.fastModel = fastModel;
+            this(name, plan, smartModel, fastModel, "llm");
+        }
+        LobbyPlayerLLM(String name, String plan, String smartModel, String fastModel, String mode) {
+            super(name, null); this.plan = plan; this.smartModel = smartModel; this.fastModel = fastModel; this.mode = mode;
         }
         @Override
         public Player createIngamePlayer(Game game, int id) {
             Player p = new Player(getName(), game, id);
-            p.setFirstController(new PlayerControllerLLM(game, p, this, getName(), plan, smartModel, fastModel));
+            p.setFirstController(new PlayerControllerLLM(game, p, this, getName(), plan, smartModel, fastModel, mode));
             return p;
         }
+    }
+
+    /** Shared seat construction for GUI + headless runners. Env:
+     *  DECK_A/B, DECK_A_NAME/B_NAME, PLAN_A/B ("" = plan-free arm),
+     *  SMART_MODEL_A/B + FAST_MODEL_A/B (fall back to SMART_MODEL/FAST_MODEL),
+     *  CONTROLLER_A/B = llm|random|floor|ai, SWAP_SEATS=1 (paired-design seat flip). */
+    static List<RegisteredPlayer> buildPlayers() {
+        String home = System.getProperty("user.home");
+        String pathA = System.getenv().getOrDefault("DECK_A", home + "/Downloads/Deck - Grixis Reanimator.txt");
+        String pathB = System.getenv().getOrDefault("DECK_B", home + "/Downloads/Deck - Mardu Energy.txt");
+        String nameA = System.getenv().getOrDefault("DECK_A_NAME", "Grixis Reanimator");
+        String nameB = System.getenv().getOrDefault("DECK_B_NAME", "Mardu Energy");
+        String smart = System.getenv().getOrDefault("SMART_MODEL", "opus");
+        String fast  = System.getenv().getOrDefault("FAST_MODEL", "haiku");
+        String smartA = System.getenv().getOrDefault("SMART_MODEL_A", smart);
+        String smartB = System.getenv().getOrDefault("SMART_MODEL_B", smart);
+        String fastA  = System.getenv().getOrDefault("FAST_MODEL_A", fast);
+        String fastB  = System.getenv().getOrDefault("FAST_MODEL_B", fast);
+        String planA = System.getenv().getOrDefault("PLAN_A", DEFAULT_PLAN_A);
+        String planB = System.getenv().getOrDefault("PLAN_B", DEFAULT_PLAN_B);
+        String ctlA = System.getenv().getOrDefault("CONTROLLER_A", "llm");
+        String ctlB = System.getenv().getOrDefault("CONTROLLER_B", "llm");
+
+        Deck deckA, deckB;
+        try { deckA = loadDeck(nameA, pathA); deckB = loadDeck(nameB, pathB); }
+        catch (Exception e) {
+            System.out.println("[DECK] failed to load decklists (" + e + ") -> random color decks");
+            deckA = DeckgenUtil.getRandomColorDeck(true); deckB = DeckgenUtil.getRandomColorDeck(true);
+        }
+
+        RegisteredPlayer a = new RegisteredPlayer(deckA).setPlayer(
+                "ai".equals(ctlA) ? new LobbyPlayerAi(nameA, null) : new LobbyPlayerLLM(nameA, planA, smartA, fastA, ctlA));
+        RegisteredPlayer b = new RegisteredPlayer(deckB).setPlayer(
+                "ai".equals(ctlB) ? new LobbyPlayerAi(nameB, null) : new LobbyPlayerLLM(nameB, planB, smartB, fastB, ctlB));
+        boolean swap = "1".equals(System.getenv("SWAP_SEATS"));
+        List<RegisteredPlayer> players = swap ? Lists.newArrayList(b, a) : Lists.newArrayList(a, b);
+        System.out.println("[SEATS] A=" + nameA + "(" + ctlA + "," + smartA + ") B=" + nameB + "(" + ctlB + "," + smartB
+                + ")" + (swap ? " [SWAPPED]" : ""));
+        return players;
     }
 
     /**
@@ -1060,7 +1242,7 @@ public final class LlmSpikeGui {
 
         ClaudeBridge(String label, String model, String preamble) {
             this.label = label;
-            this.model = System.getenv().getOrDefault("CLAUDE_MODEL", model);
+            this.model = model; // per-seat/per-tier; no global CLAUDE_MODEL clobber (it broke A/B comparisons)
             this.preamble = preamble;
         }
 
@@ -1127,7 +1309,7 @@ public final class LlmSpikeGui {
             proc = null; out = null; in = null; asksSinceStart = 0;
         }
 
-        private static String jsonEscape(String s) {
+        static String jsonEscape(String s) {
             StringBuilder b = new StringBuilder(s.length() + 16);
             for (int i = 0; i < s.length(); i++) {
                 char c = s.charAt(i);
@@ -1206,33 +1388,13 @@ public final class LlmSpikeGui {
     }
 
     private static void startSpectatorMatch() {
-        System.out.println("[LLM-SEAM] building Opus-vs-Opus spectator match...");
-        String home = System.getProperty("user.home");
-        String pathA = System.getenv().getOrDefault("DECK_A", home + "/Downloads/Deck - Grixis Reanimator.txt");
-        String pathB = System.getenv().getOrDefault("DECK_B", home + "/Downloads/Deck - Mardu Energy.txt");
-        String nameA = System.getenv().getOrDefault("DECK_A_NAME", "Grixis Reanimator");
-        String nameB = System.getenv().getOrDefault("DECK_B_NAME", "Mardu Energy");
-        String smartModel = System.getenv().getOrDefault("SMART_MODEL", "opus");
-        String fastModel  = System.getenv().getOrDefault("FAST_MODEL", "haiku");
-
-        String planA = System.getenv().getOrDefault("PLAN_A", DEFAULT_PLAN_A);
-        String planB = System.getenv().getOrDefault("PLAN_B", DEFAULT_PLAN_B);
-
-        Deck deckA, deckB;
-        try { deckA = loadDeck(nameA, pathA); deckB = loadDeck(nameB, pathB); }
-        catch (Exception e) {
-            System.out.println("[DECK] failed to load decklists (" + e + ") -> random color decks");
-            deckA = DeckgenUtil.getRandomColorDeck(true); deckB = DeckgenUtil.getRandomColorDeck(true);
-        }
-
-        List<RegisteredPlayer> players = Lists.newArrayList();
-        players.add(new RegisteredPlayer(deckA).setPlayer(new LobbyPlayerLLM(nameA, planA, smartModel, fastModel)));
-        players.add(new RegisteredPlayer(deckB).setPlayer(new LobbyPlayerLLM(nameB, planB, smartModel, fastModel)));
-
+        System.out.println("[LLM-SEAM] building LLM-vs-LLM spectator match...");
+        long seed = applySeed();
+        EvalLog.init(seed);
+        List<RegisteredPlayer> players = buildPlayers();
         HostedMatch hosted = GuiBase.getInterface().hostMatch();
         hosted.startMatch(GameType.Constructed, EnumSet.of(GameType.Constructed), players, null);
-        System.out.println("[LLM-SEAM] Opus (" + nameA + ", smart=" + smartModel + ") vs Opus (" + nameB
-                + ") started; fast tier=" + fastModel + ". Watch the Forge window.");
+        System.out.println("[LLM-SEAM] match started. Watch the Forge window.");
     }
 
     /**

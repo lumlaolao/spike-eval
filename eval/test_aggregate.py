@@ -1,0 +1,284 @@
+#!/usr/bin/env python3
+"""Self-test for aggregate.py: synthetic JSONL fixtures + math checks.
+
+Run: python3 eval/test_aggregate.py
+"""
+
+import json
+import random
+import sys
+import tempfile
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import aggregate  # noqa: E402
+
+FAILURES = []
+
+
+def check(name, cond, detail=""):
+    status = "ok" if cond else "FAIL"
+    print("[%s] %s%s" % (status, name, (" — " + detail) if detail and not cond else ""))
+    if not cond:
+        FAILURES.append(name)
+
+
+def approx(a, b, tol=1e-3):
+    return abs(a - b) <= tol
+
+
+# ------------------------------------------------------------- fixtures
+
+def game_line(seed, swap, winner, ctrl_a="llm", ctrl_b="random",
+              smart_a="haiku", smart_b=None):
+    # Matches the exact wire schema LlmSpikeHeadless.java emits (no more, no less).
+    return {"t": "game", "seed": seed, "swap": swap,
+            "deck_a": "mono-red", "deck_b": "mono-red",
+            "controller_a": ctrl_a, "controller_b": ctrl_b,
+            "smart_a": smart_a, "smart_b": smart_b,
+            "fast_a": "haiku", "fast_b": "haiku",
+            "winner": winner, "turns": 9, "win_condition": "life",
+            "duration_ms": 60000}
+
+
+def decision_line(tier, latency, dtype="play", fallback=None):
+    return {"t": "decision", "seat": "A", "turn": 3, "phase": "MAIN1",
+            "type": dtype, "n_options": 4, "choice": 2, "tier": tier,
+            "latency_ms": latency, "fallback": fallback}
+
+
+def write_jsonl(d, name, lines):
+    with open(Path(d) / name, "w") as f:
+        for ln in lines:
+            f.write((ln if isinstance(ln, str) else json.dumps(ln)) + "\n")
+
+
+def build_fixture(d):
+    """Paired mirror: focal arm = identity A = llm[haiku/haiku] vs random.
+
+    IDENTITY-KEYED contract: winner "A" means identity A won regardless of
+    swap, and controller_a/smart_a always carry identity A's raw config —
+    so the swapped game lines below have the SAME per-identity fields as
+    the unswapped ones, only swap:true differs.
+
+    Seeds 1-4: focal sweeps both variants. Seed 5: split. Seed 6: focal
+    loses both. Seed 7: one game is a draw (pair excluded from paired
+    analysis; decisive half still feeds unpaired arm stats). Plus one
+    invalid game, one crashed file with no game line, and one file with
+    malformed junk."""
+    millis = 1000
+    for seed in (1, 2, 3, 4):
+        write_jsonl(d, "game-%d-%d.jsonl" % (seed, millis), [game_line(seed, False, "A")])
+        write_jsonl(d, "game-%d-%d.jsonl" % (seed, millis + 1), [game_line(seed, True, "A")])
+    # seed 5: focal wins unswapped, loses swapped (identity B wins)
+    write_jsonl(d, "game-5-1000.jsonl", [game_line(5, False, "A")])
+    write_jsonl(d, "game-5-1001.jsonl", [game_line(5, True, "B")])
+    # seed 6: focal loses both
+    write_jsonl(d, "game-6-1000.jsonl", [game_line(6, False, "B")])
+    write_jsonl(d, "game-6-1001.jsonl", [game_line(6, True, "B")])
+    # seed 7: draw in one variant -> pair excluded, decisive half kept unpaired
+    write_jsonl(d, "game-7-1000.jsonl", [game_line(7, False, "draw")])
+    write_jsonl(d, "game-7-1001.jsonl", [game_line(7, True, "A")])
+    # seed 8: invalid (cap hit), unpaired
+    write_jsonl(d, "game-8-1000.jsonl", [game_line(8, False, "invalid")])
+    # seed 9: crashed — decisions but no game line
+    write_jsonl(d, "game-9-1000.jsonl",
+                [decision_line("smart", 8000), decision_line("smart", 12000)])
+    # seed 10: malformed junk lines around a valid decisive game + decisions
+    write_jsonl(d, "game-10-1000.jsonl", [
+        "{not json at all",
+        json.dumps(["a", "list", "not", "a", "dict"]),
+        decision_line("smart", 5000, dtype="mulligan"),
+        decision_line("fast", 900, dtype="blockers"),
+        decision_line("auto", 1, dtype="target", fallback="cli-timeout"),
+        json.dumps({"t": "decision"}),  # missing every optional field
+        game_line(10, False, "A"),
+    ])
+
+
+# ----------------------------------------------------------------- tests
+
+def test_wilson():
+    lo, hi = aggregate.wilson_ci(8, 10)
+    # Known Wilson interval for 8/10 at z=1.96: (0.4902, 0.9433)
+    check("wilson 8/10 lower", approx(lo, 0.4902), "got %.4f" % lo)
+    check("wilson 8/10 upper", approx(hi, 0.9433), "got %.4f" % hi)
+    check("wilson 0/0 is (0,1)", aggregate.wilson_ci(0, 0) == (0.0, 1.0))
+    lo0, hi0 = aggregate.wilson_ci(0, 20)
+    check("wilson 0/20 lower is 0", lo0 == 0.0, "got %.4f" % lo0)
+    check("wilson 0/20 upper sane", 0.0 < hi0 < 0.25, "got %.4f" % hi0)
+    lo1, hi1 = aggregate.wilson_ci(20, 20)
+    check("wilson 20/20 upper is 1", hi1 == 1.0)
+    check("wilson symmetric", approx(lo1, 1.0 - hi0) and approx(hi1, 1.0 - lo0))
+
+
+def test_p90():
+    check("p90 of 1..10 is 9", aggregate.p90(list(range(1, 11))) == 9)
+    check("p90 single", aggregate.p90([7]) == 7)
+    check("p90 empty", aggregate.p90([]) is None)
+
+
+def test_bootstrap_determinism():
+    outcomes = [(1, 1)] * 6 + [(1, 0), (0, 0), (0, 1), (1, 1)]
+    r1 = aggregate.paired_bootstrap(outcomes, 2000, random.Random(42))
+    r2 = aggregate.paired_bootstrap(outcomes, 2000, random.Random(42))
+    check("bootstrap deterministic with fixed seed", r1 == r2, "%s vs %s" % (r1, r2))
+    delta, lo, hi = r1
+    p = sum(a + b for a, b in outcomes) / (2.0 * len(outcomes))
+    check("bootstrap point = 2p-1", approx(delta, 2 * p - 1))
+    check("bootstrap CI ordered around point", lo <= delta <= hi,
+          "delta=%.3f ci=[%.3f,%.3f]" % (delta, lo, hi))
+    d3 = aggregate.paired_bootstrap(outcomes, 2000, random.Random(7))
+    check("different rng seed still same point estimate", approx(d3[0], delta))
+    # degenerate: all wins -> delta 1, zero-width CI
+    dw = aggregate.paired_bootstrap([(1, 1)] * 5, 500, random.Random(1))
+    check("all-wins bootstrap collapses to +1", dw == (1.0, 1.0, 1.0), str(dw))
+    check("empty outcomes safe", aggregate.paired_bootstrap([], 10) == (0.0, -1.0, 1.0))
+
+
+def test_fixture_summary():
+    with tempfile.TemporaryDirectory() as d:
+        build_fixture(d)
+        s = aggregate.build_summary(Path(d), resamples=2000, bootstrap_seed=99)
+
+        g = s["games"]
+        # 17 files: 14 games for seed pairs 1-7, then seed8 invalid,
+        # seed9 crashed (no game line), seed10 decisive-with-junk.
+        check("total games", g["total"] == 17, str(g))
+        check("decisive count", g["decisive"] == 14, str(g))
+        check("draw count", g["draw"] == 1, str(g))
+        check("invalid count (incl crash)", g["invalid"] == 2, str(g))
+        check("no_game_line count", g["no_game_line"] == 1, str(g))
+        # seat-1 wins = A-wins among swap=false + B-wins among swap=true:
+        # seeds1-4 unswapped (4) + seed5 both variants (2) + seed6 swapped
+        # (1) + seed10 (1) = 8 of 14 decisive.
+        check("seat 1 wins", g["seat1_wins"] == 8, str(g))
+
+        arms = s["arms"]
+        check("two arms found", set(arms) == {"llm[haiku/haiku]", "random"}, str(set(arms)))
+        # Focal decisive record: sweeps 8/8 + seed5 (1/2) + seed6 (0/2)
+        # + seed7 swapped win (1/1) + seed10 win (1/1) = 11 of 14.
+        check("focal wins", arms["llm[haiku/haiku]"]["wins"] == 11, str(arms["llm[haiku/haiku]"]))
+        check("focal games", arms["llm[haiku/haiku]"]["games"] == 14, str(arms["llm[haiku/haiku]"]))
+        check("random wins complement", arms["random"]["wins"] == 3
+              and arms["random"]["games"] == 14, str(arms["random"]))
+        lo, hi = arms["llm[haiku/haiku]"]["wilson95"]
+        wl, wh = aggregate.wilson_ci(11, 14)
+        check("arm CI matches wilson", approx(lo, wl) and approx(hi, wh))
+
+        p = s["paired"]
+        check("focal arm label", p["focal_arm"] == "llm[haiku/haiku]", str(p.get("focal_arm")))
+        check("opponent arm label", p["opponent_arm"] == "random", str(p.get("opponent_arm")))
+        check("pairs complete", p["n_pairs_complete"] == 7, str(p))
+        check("pairs used", p["n_pairs_used"] == 6, str(p))
+        check("pair excluded for draw", p["n_pairs_excluded_nondecisive"] == 1, str(p))
+        ps = p["per_seed"]
+        check("per-seed tallies", ps == {"focal_swept": 4, "split": 1,
+                                         "focal_lost_both": 1}, str(ps))
+        check("paired focal rate 9/12", approx(p["focal_win_rate"], 9 / 12.0))
+        check("paired delta 2p-1", approx(p["delta"], 2 * 9 / 12.0 - 1))
+        check("paired CI contains delta",
+              p["delta_ci95"][0] <= p["delta"] <= p["delta_ci95"][1], str(p["delta_ci95"]))
+
+        # Determinism of the whole summary path with the same bootstrap seed.
+        s2 = aggregate.build_summary(Path(d), resamples=2000, bootstrap_seed=99)
+        check("summary bootstrap CI reproducible",
+              s2["paired"]["delta_ci95"] == p["delta_ci95"])
+
+        dd = s["decisions"]
+        # seed9: 2 smart; seed10: 2 smart (one bare), 1 fast, 1 auto... the
+        # bare {"t":"decision"} has no tier -> "unknown".
+        check("decision total", dd["total"] == 6, str(dd["total"]))
+        check("smart calls", dd["by_tier"]["smart"]["calls"] == 3, str(dd["by_tier"]))
+        check("smart mean latency",
+              approx(dd["by_tier"]["smart"]["mean_latency_ms"], (8000 + 12000 + 5000) / 3.0, 0.1))
+        check("auto fallback rate 100%",
+              dd["by_tier"]["auto"]["fallback_rate"] == 1.0, str(dd["by_tier"].get("auto")))
+        check("unknown tier tolerated", dd["by_tier"]["unknown"]["calls"] == 1)
+        check("type volume", dd["by_type"].get("mulligan") == 1
+              and dd["by_type"].get("play") == 2, str(dd["by_type"]))
+
+        warns = "\n".join(s["warnings"])
+        check("malformed lines warned", "malformed" in warns, warns)
+        check("crash flagged as invalid", "no game line" in warns, warns)
+
+
+def test_identity_keyed_no_seat_flip():
+    """Core identity-keyed contract check: identity A wins EVERY game while
+    the seats alternate (swap toggles). If aggregate.py wrongly flipped arm
+    attribution on swap, half of A's wins would be credited to B and the
+    paired delta would collapse to 0. Correct behavior: paired delta = +1.0
+    strongly favoring A, while the seat-1 (first player) win rate sits at
+    exactly 50% because A won from each seat equally often."""
+    with tempfile.TemporaryDirectory() as d:
+        for seed in range(1, 7):
+            write_jsonl(d, "game-%d-1000.jsonl" % seed, [game_line(seed, False, "A")])
+            write_jsonl(d, "game-%d-1001.jsonl" % seed, [game_line(seed, True, "A")])
+        s = aggregate.build_summary(Path(d), resamples=500, bootstrap_seed=3)
+
+        g = s["games"]
+        check("identity fixture all decisive", g["decisive"] == 12, str(g))
+        check("seat-1 win rate is 50% when dominant arm alternates seats",
+              g["seat1_wins"] == 6, str(g))
+
+        arms = s["arms"]
+        check("identity A credited with every win (no swap flip)",
+              arms["llm[haiku/haiku]"]["wins"] == 12 and arms["llm[haiku/haiku]"]["games"] == 12,
+              str(arms))
+        check("identity B credited with none",
+              arms["random"]["wins"] == 0, str(arms))
+
+        p = s["paired"]
+        check("all pairs used", p["n_pairs_used"] == 6, str(p))
+        check("focal swept every pair",
+              p["per_seed"] == {"focal_swept": 6, "split": 0, "focal_lost_both": 0},
+              str(p["per_seed"]))
+        check("paired delta is +1.0 (strongly favors A)",
+              approx(p["delta"], 1.0), str(p["delta"]))
+
+
+def test_interleaved_and_duplicates():
+    """Two games interleaved into one file (same-millisecond parallel launch)
+    must both count; a rerun of the same seed/swap combo must dedupe to the
+    latest file."""
+    with tempfile.TemporaryDirectory() as d:
+        # seed 1: both swap variants landed in ONE file. Identity-keyed:
+        # winner "A" = identity A in both, config fields unchanged by swap.
+        write_jsonl(d, "game-1-1000.jsonl", [
+            game_line(1, False, "A"),
+            game_line(1, True, "A"),
+        ])
+        # seed 2 swap=false ran twice: older says B won, newer says A won
+        write_jsonl(d, "game-2-1000.jsonl", [game_line(2, False, "B")])
+        write_jsonl(d, "game-2-2000.jsonl", [game_line(2, False, "A")])
+        s = aggregate.build_summary(Path(d), resamples=200, bootstrap_seed=1)
+        g = s["games"]
+        check("interleaved file yields 2 games + 1 deduped", g["total"] == 3, str(g))
+        # focal: seed1 both wins + seed2 newer win = 3/3
+        arms = s["arms"]
+        check("dedupe kept the newer rerun",
+              arms["llm[haiku/haiku]"]["wins"] == 3 and arms["llm[haiku/haiku]"]["games"] == 3,
+              str(arms))
+        check("dedupe warned", any("duplicate game" in w for w in s["warnings"]),
+              str(s["warnings"]))
+        check("interleaved pair still paired", s["paired"]["n_pairs_used"] == 1,
+              str(s["paired"]))
+
+
+def main():
+    test_wilson()
+    test_p90()
+    test_bootstrap_determinism()
+    test_fixture_summary()
+    test_identity_keyed_no_seat_flip()
+    test_interleaved_and_duplicates()
+    print()
+    if FAILURES:
+        print("FAILED: %d check(s): %s" % (len(FAILURES), ", ".join(FAILURES)))
+        return 1
+    print("All checks passed.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

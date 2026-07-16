@@ -2,11 +2,7 @@ package forge.spike;
 
 import java.util.List;
 
-import com.google.common.collect.Lists;
-
 import forge.GuiDesktop;
-import forge.deck.Deck;
-import forge.deck.DeckgenUtil;
 import forge.game.Game;
 import forge.game.GameEndReason;
 import forge.game.GameLogEntry;
@@ -20,11 +16,14 @@ import forge.model.FModel;
 
 /**
  * HEADLESS runner: the same LLM-vs-LLM match as {@link LlmSpikeGui}, but no Forge window —
- * pure console. Uses the exact same PlayerControllerLLM / ClaudeBridge / deck plumbing, so a
- * headless game exercises identical decision paths to the GUI spectator match.
+ * pure console. Uses the exact same PlayerControllerLLM / ClaudeBridge / deck plumbing
+ * (via {@link LlmSpikeGui#buildPlayers()}), so a headless game exercises identical decision
+ * paths to the GUI spectator match.
  *
- * Env: SMART_MODEL / FAST_MODEL / DECK_A / DECK_B / PLAN_A / PLAN_B as in LlmSpikeGui, plus
- * GAME_CAP_MS (default 3h) — a hard wall-clock cap after which the game is ended as a draw.
+ * Eval features: GAME_SEED (reproducible shuffles), SWAP_SEATS=1 (paired seat flip),
+ * SMART_MODEL_A/B + FAST_MODEL_A/B, CONTROLLER_A/B = llm|random|floor|ai (baseline arms),
+ * EVAL_OUT=<dir> (per-decision + game-summary JSONL), GAME_CAP_MS (default 3h; a capped
+ * game is recorded as INVALID, not a draw — timeouts must not count as results).
  *
  * Run: bash run-llm-headless.sh  (from the forge repo root; installed by install.sh)
  */
@@ -43,33 +42,16 @@ public final class LlmSpikeHeadless {
             return null;
         });
 
-        String home = System.getProperty("user.home");
-        String pathA = System.getenv().getOrDefault("DECK_A", home + "/Downloads/Deck - Grixis Reanimator.txt");
-        String pathB = System.getenv().getOrDefault("DECK_B", home + "/Downloads/Deck - Mardu Energy.txt");
-        String nameA = System.getenv().getOrDefault("DECK_A_NAME", "Grixis Reanimator");
-        String nameB = System.getenv().getOrDefault("DECK_B_NAME", "Mardu Energy");
-        String smartModel = System.getenv().getOrDefault("SMART_MODEL", "opus");
-        String fastModel  = System.getenv().getOrDefault("FAST_MODEL", "haiku");
-        String planA = System.getenv().getOrDefault("PLAN_A", LlmSpikeGui.DEFAULT_PLAN_A);
-        String planB = System.getenv().getOrDefault("PLAN_B", LlmSpikeGui.DEFAULT_PLAN_B);
-
-        Deck deckA, deckB;
-        try { deckA = LlmSpikeGui.loadDeck(nameA, pathA); deckB = LlmSpikeGui.loadDeck(nameB, pathB); }
-        catch (Exception e) {
-            System.out.println("[DECK] failed to load decklists (" + e + ") -> random color decks");
-            deckA = DeckgenUtil.getRandomColorDeck(true); deckB = DeckgenUtil.getRandomColorDeck(true);
-        }
-
-        List<RegisteredPlayer> players = Lists.newArrayList();
-        players.add(new RegisteredPlayer(deckA).setPlayer(new LlmSpikeGui.LobbyPlayerLLM(nameA, planA, smartModel, fastModel)));
-        players.add(new RegisteredPlayer(deckB).setPlayer(new LlmSpikeGui.LobbyPlayerLLM(nameB, planB, smartModel, fastModel)));
+        long seed = LlmSpikeGui.applySeed(); // AFTER model init so nothing reseeds behind us
+        LlmSpikeGui.EvalLog.init(seed);
+        List<RegisteredPlayer> players = LlmSpikeGui.buildPlayers();
 
         GameRules rules = new GameRules(GameType.Constructed);
         Match match = new Match(rules, players, "LlmHeadless");
         final Game game = match.createGame();
 
-        System.out.println("[HEADLESS] " + nameA + " vs " + nameB + "  (smart=" + smartModel + ", fast=" + fastModel
-                + ", cap=" + (capMs / 60000) + "min)");
+        long t0 = System.currentTimeMillis();
+        System.out.println("[HEADLESS] game starting (cap=" + (capMs / 60000) + "min)");
         Thread worker = new Thread(() -> {
             try { match.startGame(game); }
             catch (Throwable t) { System.out.println("[HEADLESS] game thread threw: " + t); }
@@ -77,28 +59,56 @@ public final class LlmSpikeHeadless {
         worker.setDaemon(true);
         worker.start();
         worker.join(capMs);
-        if (worker.isAlive()) {
-            System.out.println("[HEADLESS] wall-clock cap reached; ending as draw");
+        boolean capped = worker.isAlive();
+        if (capped) {
+            System.out.println("[HEADLESS] wall-clock cap reached; game is INVALID for eval purposes");
             game.setGameOver(GameEndReason.Draw);
             worker.join(15000);
         }
+        long durMs = System.currentTimeMillis() - t0;
+
+        // Winner in DECK-IDENTITY terms (A/B), independent of seat swap.
+        String nameA = System.getenv().getOrDefault("DECK_A_NAME", "Grixis Reanimator");
+        String nameB = System.getenv().getOrDefault("DECK_B_NAME", "Mardu Energy");
+        String winner = "draw"; int turns = -1; String winCond = "?";
+        try {
+            if (game.getOutcome() != null) {
+                turns = game.getOutcome().getLastTurnNumber();
+                winCond = String.valueOf(game.getOutcome().getWinCondition());
+                var w = game.getOutcome().getWinningLobbyPlayer();
+                // unknown-name winner should be unreachable; map to "invalid" so aggregate.py's
+                // A|B|draw|invalid contract holds even if it happens
+                if (w != null) winner = nameA.equals(w.getName()) ? "A" : (nameB.equals(w.getName()) ? "B" : "invalid");
+            }
+        } catch (Exception ignore) { }
+        if (capped) winner = "invalid";
 
         System.out.println("========== GAME OVER ==========");
-        try {
-            if (game.getOutcome() == null) System.out.println("outcome: n/a");
-            else {
-                var w = game.getOutcome().getWinningLobbyPlayer();
-                System.out.println("outcome: " + (w == null ? "draw" : w.getName() + " WINS")
-                        + " after " + game.getOutcome().getLastTurnNumber() + " turns ("
-                        + game.getOutcome().getWinCondition() + ")");
-            }
-        } catch (Exception e) { System.out.println("outcome: (unprintable: " + e + ")"); }
+        System.out.println("outcome: " + winner + " after " + turns + " turns (" + winCond + ") in " + (durMs / 1000) + "s");
         System.out.println("--- full game log ---");
         try {
-            List<GameLogEntry> all = game.getGameLog().getAllEntries();
-            for (GameLogEntry e : all) System.out.println("  " + e.type() + ": " + e.message());
+            for (GameLogEntry e : game.getGameLog().getAllEntries())
+                System.out.println("  " + e.type() + ": " + e.message());
         } catch (Exception e) { System.out.println("  (log unavailable: " + e + ")"); }
         System.out.println("===============================");
+
+        // Machine-readable game summary — the batch driver keys off this line. Every interpolated
+        // string goes through jsonEscape; all per-identity fields are IDENTITY-keyed (never post-swap).
+        String smartDef = System.getenv().getOrDefault("SMART_MODEL", "opus");
+        String fastDef  = System.getenv().getOrDefault("FAST_MODEL", "haiku");
+        LlmSpikeGui.EvalLog.write("{\"t\":\"game\",\"seed\":" + seed
+                + ",\"swap\":" + "1".equals(System.getenv("SWAP_SEATS"))
+                + ",\"deck_a\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(nameA) + "\""
+                + ",\"deck_b\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(nameB) + "\""
+                + ",\"controller_a\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("CONTROLLER_A", "llm")) + "\""
+                + ",\"controller_b\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("CONTROLLER_B", "llm")) + "\""
+                + ",\"smart_a\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("SMART_MODEL_A", smartDef)) + "\""
+                + ",\"smart_b\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("SMART_MODEL_B", smartDef)) + "\""
+                + ",\"fast_a\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("FAST_MODEL_A", fastDef)) + "\""
+                + ",\"fast_b\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("FAST_MODEL_B", fastDef)) + "\""
+                + ",\"winner\":\"" + winner + "\",\"turns\":" + turns
+                + ",\"win_condition\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(winCond) + "\""
+                + ",\"duration_ms\":" + durMs + "}");
         System.exit(0); // bridges hold non-daemon subprocess pipes; exit explicitly
     }
 }

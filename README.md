@@ -106,6 +106,29 @@ the classic instant-speed action window). `[TALLY]` prints running `avgSmart`/`a
 | `DECK_A_NAME` / `DECK_B_NAME` | Grixis Reanimator / Mardu Energy | seat labels |
 | `PLAN_A` / `PLAN_B` | built-in | strategy framing per seat |
 | `RECORD` / `RECORD_OUT` / `RECORD_FPS` | off | window recording (see below) |
+| `GAME_SEED` | random | seeds Forge's RNG — same seed = same shuffles/coin flip (bit-reproducible with non-LLM arms) |
+| `SWAP_SEATS` | 0 | `1` seats identity B first — the paired-design flip |
+| `SMART_MODEL_A/B`, `FAST_MODEL_A/B` | inherit `SMART_MODEL`/`FAST_MODEL` | per-seat models for A/B comparisons |
+| `CONTROLLER_A/B` | `llm` | baseline arms: `random` (uniform over the same legal menus), `floor` (deterministic fallbacks only — measures the harness's own strength), `ai` (pure Forge AI) |
+| `EVAL_OUT` | off | directory for per-decision + game-summary JSONL (the eval dataset) |
+| `MULLIGAN_HEURISTIC` / `SKIP_HEURISTICS` | 1 | set `0` for confound-free eval runs (model owns all mulligans / no free-pass shortcuts) |
+| `GAME_CAP_MS` | 3h (headless) | wall-clock cap; a capped game is recorded **invalid**, never a draw |
+
+## Eval mode
+
+The review that motivated this (see git history) found the demo harness unsuitable as a model
+eval: no reproducibility, no baselines, no dataset, expert plans confounding the measurement.
+Those are now addressed: seeded games (floor-vs-floor at seed 42 reproduces **bit-identically**,
+106 turns / 12 seconds), identity-keyed A/B arms with seat-swapped pairing, per-decision JSONL,
+three cheap baseline anchors (a full `floor` game runs in ~12s, `random` in ~1min — anchor
+distributions are essentially free), plan-free / heuristic-free confound switches, and a pinned
+engine version (`FORGE_COMMIT`, checked by `install.sh`).
+
+Batch tooling lives in [`eval/`](eval/): `run_batch.py` (paired seat-swapped games, resumable)
+and `aggregate.py` (Wilson CIs, paired bootstrap on the win-rate delta, per-tier latency/fallback
+stats). See `eval/README.md` for the paired-mirror design and the statistical power math.
+Note: only the **headless** runner writes the game-summary line — `EVAL_OUT` on a GUI run yields
+decision lines only, which `aggregate.py` treats as a crashed/invalid game.
 
 ## Build & run
 
