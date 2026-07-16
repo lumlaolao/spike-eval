@@ -122,6 +122,8 @@ public final class LlmSpikeGui {
         private int playDecisionsThisTurn = 0;
         private String lastAskSig = "";
         private boolean lastWasPass = false;
+        // (stack, options) situations we already declined this turn — identical recurrences pass free.
+        private final java.util.HashSet<String> passedReactSigs = new java.util.HashSet<>();
 
         // Game-log types worth narrating to the model (skip PHASE/MANA/INFORMATION noise).
         private static final java.util.Set<GameLogEntryType> EVENT_TYPES = EnumSet.of(
@@ -492,6 +494,17 @@ public final class LlmSpikeGui {
                 boolean oppEot = phh.is(PhaseType.END_OF_TURN) && !phh.isPlayerTurn(me);
                 if (!ownMain && me.getGame().getStack().isEmpty() && !phh.inCombat() && !oppEot) return PASS;
 
+                // SPEED: the top of the stack is OUR OWN spell/ability — we just cast it. Don't burn a
+                // model call asking "respond to yourself?"; let it resolve. The engine gives us priority
+                // again with the updated state (and if the OPPONENT responds, their spell tops the stack
+                // and we DO get asked).
+                if (!me.getGame().getStack().isEmpty()) {
+                    try {
+                        SpellAbility top = me.getGame().getStack().peekAbility();
+                        if (top != null && top.getActivatingPlayer() == me) return PASS;
+                    } catch (Exception ignore) { }
+                }
+
                 // enumerate castable non-land, non-mana abilities
                 List<SpellAbility> options = new ArrayList<>();
                 for (SpellAbility sa : ComputerUtilAbility.getSpellAbilities(
@@ -538,7 +551,7 @@ public final class LlmSpikeGui {
                 boolean haveBudget = ownMain ? smartOk() : fastOk();
 
                 int turn = phh.getTurn();
-                if (turn != lastPlayTurn) { lastPlayTurn = turn; playDecisionsThisTurn = 0; }
+                if (turn != lastPlayTurn) { lastPlayTurn = turn; playDecisionsThisTurn = 0; passedReactSigs.clear(); }
                 boolean overCap = playDecisionsThisTurn >= MAX_PLAY_DECISIONS_PER_TURN;
                 if (!haveBudget || overCap) { // exhausted -> develop mana if possible, else pass. Not the AI.
                     if (haveLand) { auto("play(no-budget): land " + landCards.get(0).getName()); return Lists.newArrayList(landPlays.get(0)); }
@@ -555,6 +568,15 @@ public final class LlmSpikeGui {
                 if (sig.equals(lastAskSig) && lastWasPass) return PASS; // identical spot we already passed on
                 lastAskSig = sig;
                 String menuStr = menu.toString();
+
+                // SPEED: reactive windows recur across phases with the SAME stack and SAME options
+                // (e.g. "activate Wasteland?" at upkeep, draw, main, combat...). Once we decline a
+                // situation this turn, every identical recurrence passes free.
+                String reactSig = null;
+                if (!ownMain) {
+                    reactSig = safeStackTop(me.getGame()) + "|" + me.getGame().getStack().size() + "|" + menuStr;
+                    if (passedReactSigs.contains(reactSig)) return PASS;
+                }
 
                 if (ownMain) p("[TALLY] smart=" + smartCalls + " fast=" + fastCalls + " auto=" + autoPicks + " ai=" + aiDelegations
                         + (smart.calls > 0 ? " avgSmart=" + (smart.totalMs / smart.calls) + "ms" : "")
@@ -577,7 +599,12 @@ public final class LlmSpikeGui {
                     }
                     choice = parseTagNumber(reply, "CHOICE:");
                 }
-                if (choice == passIdx || choice < 1 || choice > passIdx) { lastWasPass = true; p("[ROUTER] play: PASS"); return PASS; }
+                if (choice == passIdx || choice < 1 || choice > passIdx) {
+                    lastWasPass = true;
+                    if (reactSig != null) passedReactSigs.add(reactSig); // don't re-ask this situation this turn
+                    p("[ROUTER] play: PASS");
+                    return PASS;
+                }
                 lastWasPass = false;
                 if (haveLand && choice >= landStart && choice < passIdx) {
                     int li = choice - landStart;
