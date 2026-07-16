@@ -34,12 +34,15 @@ default haiku) for high-frequency low-stakes spots.
 |---|---|---|---|
 | Mulligan | `mulliganKeepHand` | smart | hard floor (never below 5 cards); auto-keeps 2–4 land openers; only flood/screw reach the model |
 | What to play / land drop | `chooseSpellAbilityToPlay()` | smart (own main) / fast (reactive) | offers each legal spell **and each distinct land** as a numbered option; **not** `getAbilityToPlay` |
-| Attacks | `declareAttackers` | smart | offered only engine-legal attackers (`CombatUtil.canAttack`) |
-| Blocks | `declareBlockers` | smart | offered only legal blockers (`CombatUtil.canBlock`) |
-| Discard | `chooseCardsToDiscardFrom` | smart | the Reanimator fix — pitch a fatty you can later reanimate |
+| Attacks | `declareAttackers` | smart | numbered subset pick (`PICKS:`) over engine-legal attackers (`CombatUtil.canAttack`), with the full game snapshot — robust to duplicate names |
+| Blocks | `declareBlockers` | smart | only legal blockers (`CombatUtil.canBlock`), full snapshot, `BLOCKS: a->b` pairs |
+| Spell targets | `ensureTargetsSet` (pre-cast) + `chooseTargetsFor` | smart | engine-validated candidates only (`getAllCandidates`/`canTarget`); fixes the fizzle class ("Couldn't add to stack, failed to target") |
+| Discard | `chooseCardsToDiscardFrom` | smart | the Reanimator fix — pitch a fatty you can later reanimate; also covers **stripping the opponent's hand** (Thoughtseize/Cabal Therapy "you choose") |
 | Reanimate / tutor target | `chooseSingleCardForZoneChange` | smart | pick *which* card leaves the zone (Reanimate, Animate Dead, fetches) |
 | Single/multi entity pick | `chooseSingleEntityForEffect` | smart | AI loops this for multi-target, so one override covers both |
 | Cards for effect | `chooseCardsForEffect` | smart | min/max-bounded multi-pick |
+| Name a card | `chooseCardName` (both variants) | smart | Cabal Therapy / Pithing Needle — free-form name validated by the engine's face lookup + predicate; chat memory recalls earlier Thoughtseize reveals |
+| Modal spells | `chooseModeForAbility` | smart | numbered mode menu (`PICKS:`) |
 | Yes/No | `confirmAction` | fast | |
 | Numbers / X | `chooseNumber` | fast | |
 
@@ -69,8 +72,15 @@ the LLM is really driving (validation runs show `ai=0`).
    This one bug turned a clean game into 112 loop-warnings — the single highest-impact fix here.
 6. **Don't fall back to the AI brain for *strategy*.** Budget/parse/bridge failures take a
    deterministic legal option (PASS, develop a land, first legal pick), so the engine AI never
-   quietly makes a load-bearing call. Only truly mechanical spots (mana payment, `chooseTargetsFor`)
-   still delegate — and every delegation is counted + logged.
+   quietly makes a load-bearing call. Only truly mechanical spots (mana payment) still delegate —
+   and every delegation is counted + logged.
+7. **The AI cast path doesn't target for you.** `PlayerControllerAi.playChosenSpellAbility` →
+   `ComputerUtil.handlePlayingSpellAbility` runs no targeting for ordinary spells (the deferred
+   targeting runnable exists only for `TargetingPlayer` cards), so a spell you return untargeted
+   fails `hasLegalTargeting` at `MagicStack` and fizzles ("Couldn't add to stack, failed to
+   target"). Set engine-validated targets on the chosen `SpellAbility` (walk the sub-ability chain)
+   *before* returning it from `chooseSpellAbilityToPlay` — and don't offer spells with zero legal
+   targets in the first place.
 
 ## Cost / latency reality
 

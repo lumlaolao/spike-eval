@@ -26,6 +26,8 @@ import com.google.common.collect.Lists;
 import forge.GuiDesktop;
 import forge.LobbyPlayer;
 import forge.Singletons;
+import forge.StaticData;
+import forge.card.ICardFace;
 import forge.ai.ComputerUtilAbility;
 import forge.ai.ComputerUtilMana;
 import forge.ai.LobbyPlayerAi;
@@ -49,6 +51,7 @@ import forge.game.player.DelayedReveal;
 import forge.game.player.Player;
 import forge.game.player.PlayerActionConfirmMode;
 import forge.game.player.RegisteredPlayer;
+import forge.game.spellability.AbilitySub;
 import forge.game.spellability.SpellAbility;
 import forge.game.spellability.TargetRestrictions;
 import forge.game.zone.ZoneType;
@@ -70,9 +73,10 @@ import forge.util.collect.FCollectionView;
  *   2. ROUTE (NEARLY) ALL DECISIONS TO THE LLM — beyond mulligan/play/attack/block, a single
  *      generic decision router is adapted onto the high-value choice callbacks: discard
  *      (the Faithless-Looting / reanimator-fuel fix), single & multi entity selection,
- *      cards-for-effect, confirmAction, chooseNumber. Pure spell-target assignment
- *      (chooseTargetsFor) still delegates to Forge AI — but fixing discard makes the yard
- *      hold exactly the right fatty, so AI targeting picks it by construction.
+ *      cards-for-effect, confirmAction, chooseNumber. Spell TARGETING is routed too:
+ *      chosen spells get engine-validated, LLM-picked targets set BEFORE the AI cast path
+ *      (ensureTargetsSet — that path runs no targeting for ordinary spells and would fizzle),
+ *      and a chooseTargetsFor override covers the remaining engine-initiated targeting paths.
  *   3. MODEL TIERING — a fast model (haiku) handles high-frequency low-stakes spots; the
  *      smart model (opus) handles load-bearing sequencing/combat/targets. A per-game call
  *      budget and try/catch->AI on every override guarantee it never hangs or crashes.
@@ -118,12 +122,18 @@ public final class LlmSpikeGui {
             catch (Exception e) { return def; }
         }
         private static String framing(String seat, String plan, String model) {
-            return "You are a world-class Magic: The Gathering (Legacy) player piloting the \"" + seat
-                    + "\" deck in a game inside the Forge engine. GAME PLAN: " + plan + "\n"
-                    + "I am the engine. For each decision I will send you the current game state and a question with a "
-                    + "NUMBERED list of the ONLY legal options. Think about your game plan, then choose. "
-                    + "Reply with at most two short sentences of reasoning, then end your message with a final line in EXACTLY "
-                    + "the format I request (e.g. `CHOICE: 3` or `PICKS: 1,4`). I parse ONLY that final line, so never put "
+            return "You are a world-class Magic: The Gathering (Legacy) player piloting \"" + seat + "\".\n"
+                    + "GAME PLAN: " + plan + "\n"
+                    + "PROTOCOL: I am the Forge rules engine. Each message gives you the CURRENT game state and ONE "
+                    + "decision with a numbered list of the ONLY legal options — every option is already "
+                    + "engine-validated, so pick purely on strategy. The state snapshot in each message is "
+                    + "authoritative: trust it over your memory of earlier turns.\n"
+                    + "PRINCIPLES: (1) Sequence toward your game plan, not the shiniest single play. "
+                    + "(2) At instant speed with nothing to gain, PASS. "
+                    + "(3) In combat, count damage and their untapped mana before committing. "
+                    + "(4) Life, cards, and tempo are resources — spend them to win, not to feel safe.\n"
+                    + "FORMAT: at most two short sentences of reasoning, then a final line in EXACTLY the format I "
+                    + "request (e.g. `CHOICE: 3` or `PICKS: 1,4`). I parse ONLY that final line — never write "
                     + "anything after it. Play to WIN the game, not just the current decision.";
         }
 
@@ -142,7 +152,7 @@ public final class LlmSpikeGui {
             for (int attempt = 0; attempt < 2; attempt++) {
                 String prompt = attempt == 0 ? base
                         : "That reply had no parseable choice. Answer with ONE line only, nothing else: CHOICE: <a number from the list above>.";
-                String reply = b.ask(prompt);
+                String reply = ask(b, prompt);
                 if (reply == null) return -2;              // bridge dead -> caller decides
                 int c = parseTagNumber(reply, "CHOICE:");
                 if (c == noneIdx && noneIdx > 0) return -1; // explicit decline
@@ -163,7 +173,7 @@ public final class LlmSpikeGui {
                 String prompt = attempt == 0 ? base
                         : "That reply had no parseable PICKS line. Answer with ONE line only, nothing else: PICKS: <"
                           + min + " to " + max + " numbers from the list above, comma-separated>.";
-                String reply = b.ask(prompt);
+                String reply = ask(b, prompt);
                 if (reply == null) return null;
                 String seg = lastSegment(reply, "PICKS:");
                 if (seg == null) continue;
@@ -189,22 +199,21 @@ public final class LlmSpikeGui {
                 PhaseHandler ph = g.getPhaseHandler();
                 Player opp = null;
                 for (Player o : me.getOpponents()) { opp = o; break; }
-                int untapped = 0, totalLands = 0;
-                for (Card c : me.getCardsIn(ZoneType.Battlefield)) {
-                    if (c.isLand()) { totalLands++; if (!c.isTapped()) untapped++; }
-                }
                 StringBuilder s = new StringBuilder();
                 s.append("== Turn ").append(ph.getTurn()).append(' ').append(ph.getPhase())
                         .append(" (active: ").append(ph.getPlayerTurn() != null ? ph.getPlayerTurn().getName() : "?").append(") ==\n");
                 s.append("YOU [").append(seat).append("] life ").append(me.getLife()).append('\n');
-                s.append("  hand(").append(me.getCardsIn(ZoneType.Hand).size()).append("): ").append(names(me.getCardsIn(ZoneType.Hand), false, 40)).append('\n');
+                s.append("  hand(").append(me.getCardsIn(ZoneType.Hand).size()).append("): ").append(handList(me.getCardsIn(ZoneType.Hand))).append('\n');
                 s.append("  board: ").append(perms(me)).append('\n');
-                s.append("  lands: ").append(untapped).append(" untapped / ").append(totalLands).append(" total\n");
-                s.append("  yard(").append(me.getCardsIn(ZoneType.Graveyard).size()).append("): ").append(names(me.getCardsIn(ZoneType.Graveyard), false, 30)).append('\n');
+                s.append("  lands: ").append(landSummary(me)).append('\n');
+                s.append("  yard(").append(me.getCardsIn(ZoneType.Graveyard).size()).append("): ").append(names(me.getCardsIn(ZoneType.Graveyard), true, 30)).append('\n');
                 if (opp != null) {
                     s.append("OPP [").append(opp.getName()).append("] life ").append(opp.getLife()).append('\n');
                     s.append("  board: ").append(perms(opp)).append('\n');
-                    s.append("  yard(").append(opp.getCardsIn(ZoneType.Graveyard).size()).append("): ").append(names(opp.getCardsIn(ZoneType.Graveyard), false, 30)).append('\n');
+                    // Opp lands are public info and load-bearing: untapped mana = removal/counter risk,
+                    // and utility lands (Wasteland, Karakas) are threats worth playing around.
+                    s.append("  lands: ").append(landSummary(opp)).append('\n');
+                    s.append("  yard(").append(opp.getCardsIn(ZoneType.Graveyard).size()).append("): ").append(names(opp.getCardsIn(ZoneType.Graveyard), true, 30)).append('\n');
                     s.append("  hand: ").append(opp.getCardsIn(ZoneType.Hand).size()).append(" cards\n");
                 }
                 int stackSize = g.getStack().size();
@@ -215,7 +224,40 @@ public final class LlmSpikeGui {
             }
         }
         private static String safeStackTop(Game g) {
-            try { return g.getStack().peekAbility().getHostCard().getName(); } catch (Exception e) { return "?"; }
+            try {
+                SpellAbility top = g.getStack().peekAbility();
+                String who = top.getActivatingPlayer() != null ? top.getActivatingPlayer().getName() : "?";
+                return top.getHostCard().getName() + " (" + who + ")";
+            } catch (Exception e) { return "?"; }
+        }
+        /** "2 untapped / 4 total (Wasteland, Badlands)" — count + distinct names. */
+        private static String landSummary(Player pl) {
+            int untapped = 0, total = 0;
+            java.util.LinkedHashSet<String> kinds = new java.util.LinkedHashSet<>();
+            for (Card c : pl.getCardsIn(ZoneType.Battlefield)) {
+                if (!c.isLand()) continue;
+                total++;
+                if (!c.isTapped()) untapped++;
+                kinds.add(c.getName());
+            }
+            return untapped + " untapped / " + total + " total"
+                    + (kinds.isEmpty() ? "" : " (" + String.join(", ", kinds) + ")");
+        }
+        /** Hand listing with mana cost + P/T — the model may not know newer cards (post-training-cutoff
+         *  sets), and cost-at-a-glance is what sequencing decisions actually run on. */
+        private static String handList(Iterable<Card> cards) {
+            StringBuilder b = new StringBuilder(); int i = 0;
+            for (Card c : cards) {
+                if (i++ >= 40) { b.append(", ..."); break; }
+                if (b.length() > 0) b.append(", ");
+                b.append(c.getName());
+                try {
+                    String mc = costStr(c);
+                    if (mc != null && !c.isLand()) b.append(' ').append(mc);
+                } catch (Exception ignore) { }
+                if (c.isCreature()) b.append(' ').append(c.getNetPower()).append('/').append(c.getNetToughness());
+            }
+            return b.length() == 0 ? "(empty)" : b.toString();
         }
         private static String names(Iterable<Card> cards, boolean withPT, int cap) {
             StringBuilder b = new StringBuilder(); int i = 0;
@@ -268,7 +310,7 @@ public final class LlmSpikeGui {
                     + "For a combo deck, a hand with your enablers + a payoff is a KEEP even on few lands; only ship a hand "
                     + "that genuinely cannot function. Keep or mulligan? End with EXACTLY one word: KEEP or MULLIGAN.";
             p("[ROUTER] mulligan: " + lands + "/" + size + " lands -> asking " + smart.model + "...");
-            String reply = smart.ask(prompt);
+            String reply = ask(smart, prompt);
             if (reply == null) return aiDelegate("mulligan(bridge-down)", super.mulliganKeepHand(firstPlayer, cardsToReturn));
             String r = reply.toUpperCase();
             int k = r.indexOf("KEEP"), mu = r.indexOf("MULLIGAN");
@@ -284,31 +326,36 @@ public final class LlmSpikeGui {
 
         @Override
         public void declareAttackers(Player attacker, Combat combat) {
-            Player defender = null;
-            for (Player pl : combat.getDefendingPlayers()) { defender = pl; break; }
-            if (defender == null) { super.declareAttackers(attacker, combat); return; }
-            CardCollection legal = new CardCollection();
-            for (Card c : attacker.getCreaturesInPlay()) if (CombatUtil.canAttack(c, defender)) legal.add(c);
-            if (legal.isEmpty()) return;
-            if (!smartOk()) { noteAi("declareAttackers(no-budget)"); super.declareAttackers(attacker, combat); return; }
-            StringBuilder mine = new StringBuilder();
-            for (Card c : legal) { if (mine.length() > 0) mine.append(", "); mine.append(c.getName()).append(" (").append(c.getNetPower()).append('/').append(c.getNetToughness()).append(')'); }
-            String prompt = "COMBAT — declare attackers. Attackers available: " + mine + ". "
-                    + "Which attack? End with EXACTLY: ATTACKERS: <comma-separated names, or NONE>";
-            p("[ROUTER] attackers: " + legal.size() + " can attack -> asking " + smart.model + "...");
-            String reply = smart.ask(prompt);
-            if (reply == null) { noteAi("declareAttackers(bridge-down)"); super.declareAttackers(attacker, combat); return; }
-            String decision = lastSegment(reply, "ATTACKERS:");
-            if (decision == null) decision = "";
-            String d = decision.toUpperCase();
-            int declared = 0; StringBuilder chosen = new StringBuilder();
-            if (!d.contains("NONE")) {
-                for (Card c : legal) if (d.contains(c.getName().toUpperCase())) {
-                    combat.addAttacker(c, defender); declared++;
-                    if (chosen.length() > 0) chosen.append(", "); chosen.append(c.getName());
+            try {
+                Player defender = null;
+                for (Player pl : combat.getDefendingPlayers()) { defender = pl; break; }
+                if (defender == null) { noteAi("declareAttackers(no-defender)"); super.declareAttackers(attacker, combat); return; }
+                CardCollection legal = new CardCollection();
+                for (Card c : attacker.getCreaturesInPlay()) if (CombatUtil.canAttack(c, defender)) legal.add(c);
+                if (legal.isEmpty()) return;
+                if (!smartOk()) { noteAi("declareAttackers(no-budget)"); super.declareAttackers(attacker, combat); return; }
+                // Numbered subset pick, same PICKS router as discard: robust to duplicate creature names
+                // and substring collisions, and decideMany prepends the full game snapshot — the model sees
+                // opp life/board/untapped mana when deciding attacks, not just its own creature list.
+                List<String> labels = new ArrayList<>();
+                for (Card c : legal) labels.add(c.getName() + " (" + c.getNetPower() + "/" + c.getNetToughness() + ")");
+                p("[ROUTER] attackers: " + legal.size() + " can attack -> asking " + smart.model + "...");
+                List<Integer> picks = decideMany(smart,
+                        "COMBAT — declare attackers vs " + defender.getName() + " (life " + defender.getLife()
+                        + "). Pick which creatures attack (attacking with 0 is legal and sometimes correct — "
+                        + "weigh their untapped mana and possible blocks).", labels, 0, legal.size());
+                if (picks == null) { noteAi("declareAttackers(bridge-down)"); super.declareAttackers(attacker, combat); return; }
+                StringBuilder chosen = new StringBuilder();
+                for (int i : picks) {
+                    combat.addAttacker(legal.get(i), defender);
+                    if (chosen.length() > 0) chosen.append(", ");
+                    chosen.append(legal.get(i).getName());
                 }
+                p("[ROUTER] attackers: " + (picks.isEmpty() ? "none" : chosen.toString()));
+            } catch (Exception e) {
+                noteAi("declareAttackers(err " + e + ")");
+                super.declareAttackers(attacker, combat);
             }
-            p("[ROUTER] attackers: " + (declared == 0 ? "none" : chosen.toString()));
         }
 
         @Override
@@ -325,11 +372,11 @@ public final class LlmSpikeGui {
                 for (Card a : attackers) { if (atk.length() > 0) atk.append(", "); atk.append(a.getName()).append(" (").append(a.getNetPower()).append('/').append(a.getNetToughness()).append(')'); }
                 StringBuilder blk = new StringBuilder();
                 for (Card b : blockers) { if (blk.length() > 0) blk.append(", "); blk.append(b.getName()).append(" (").append(b.getNetPower()).append('/').append(b.getNetToughness()).append(')'); }
-                String prompt = "COMBAT — declare blockers. Incoming: " + atk + ". Your blockers: " + blk + ". "
-                        + "Assign blocks (each blocker blocks one attacker). End with EXACTLY: "
-                        + "BLOCKS: blocker->attacker, blocker->attacker   (or BLOCKS: NONE)";
+                String prompt = snapshot() + "\nCOMBAT — declare blockers. Incoming: " + atk + ". Your blockers: " + blk + ". "
+                        + "Assign blocks (each blocker blocks one attacker). Weigh your life total vs losing blockers. "
+                        + "End with EXACTLY: BLOCKS: blocker->attacker, blocker->attacker   (or BLOCKS: NONE)";
                 p("[ROUTER] blockers: " + attackers.size() + " atk / " + blockers.size() + " blk -> asking " + smart.model + "...");
-                String reply = smart.ask(prompt);
+                String reply = ask(smart, prompt);
                 if (reply == null) { noteAi("declareBlockers(bridge-down)"); super.declareBlockers(defender, combat); return; }
                 String line = lastSegment(reply, "BLOCKS:");
                 if (line == null || line.toUpperCase().contains("NONE")) { p("[ROUTER] blockers: NONE"); return; }
@@ -441,7 +488,7 @@ public final class LlmSpikeGui {
                               + (ownMain ? ", your main phase" : ", instant-speed window") + "). Choose ONE action:\n" + menuStr
                               + "Reason briefly, then end with EXACTLY: CHOICE: <number>"
                             : "That reply had no parseable choice. Answer with ONE line only: CHOICE: <a number 1.." + passIdx + " from the list above>.";
-                    String reply = b.ask(prompt);
+                    String reply = ask(b, prompt);
                     if (reply == null) { // bridge dead -> develop or pass, not the AI
                         if (haveLand) { auto("play(bridge-down): land " + landCards.get(0).getName()); return Lists.newArrayList(landPlays.get(0)); }
                         return PASS;
@@ -599,22 +646,26 @@ public final class LlmSpikeGui {
                 int min, int max, CardCollectionView visibleToChooser) {
             if (validCards == null || validCards.isEmpty())
                 return super.chooseCardsToDiscardFrom(p, sa, validCards, min, max, visibleToChooser);
-            if (p != getPlayer()) // someone else is discarding under our control window — defer to engine
-                return aiDelegate("discard(other-player)", super.chooseCardsToDiscardFrom(p, sa, validCards, min, max, visibleToChooser));
+            // p != getPlayer() means WE choose what SOMEONE ELSE discards (Thoughtseize / Cabal Therapy
+            // "RevealYouChoose") — one of the most load-bearing picks in the matchup. Route it, don't delegate.
+            boolean stripping = p != getPlayer();
             List<Card> opts = new ArrayList<>(validCards);
             if (opts.size() <= min) return firstN(opts, min, "discard(forced)"); // whole hand forced
             try {
                 if (!smartOk()) return firstN(opts, min, "discard(no-budget)");
                 List<String> labels = new ArrayList<>();
                 for (Card c : opts) labels.add(c.getName());
-                String q = "You must DISCARD from your hand" + srcOf(sa) + ". Pick which card(s) to discard "
-                        + "(remember your game plan — e.g. discarding a huge creature you can later reanimate is often correct).";
+                String q = stripping
+                        ? "You are choosing which card(s) " + p.getName() + " must DISCARD from their revealed hand"
+                          + srcOf(sa) + ". Strip whatever most threatens your game plan (their removal/disruption/payoff)."
+                        : "You must DISCARD from your hand" + srcOf(sa) + ". Pick which card(s) to discard "
+                          + "(remember your game plan — e.g. discarding a huge creature you can later reanimate is often correct).";
                 List<Integer> picks = decideMany(smart, q, labels, min, max);
                 if (picks == null) return firstN(opts, min, "discard(unparsed)");
                 CardCollection out = new CardCollection();
                 StringBuilder log = new StringBuilder();
                 for (int i : picks) { out.add(opts.get(i)); if (log.length() > 0) log.append(", "); log.append(opts.get(i).getName()); }
-                p("[ROUTER] discard: " + log);
+                p("[ROUTER] discard" + (stripping ? "(strip " + p.getName() + ")" : "") + ": " + log);
                 return out;
             } catch (Exception e) {
                 return firstN(opts, min, "discard(err)");
@@ -680,10 +731,106 @@ public final class LlmSpikeGui {
             }
         }
 
+        /** Route "name a card" from an explicit list (Alhammarret, ChooseFromList effects).
+         *  Small list -> numbered menu; big list -> free-form name validated against it. */
+        @Override
+        public String chooseCardName(SpellAbility sa, List<ICardFace> faces, String message) {
+            try {
+                if (faces == null || faces.isEmpty() || !smartOk())
+                    return aiDelegate("card-name(list:no-budget/empty)", super.chooseCardName(sa, faces, message));
+                if (faces.size() <= 20) {
+                    List<String> labels = new ArrayList<>();
+                    for (ICardFace f : faces) labels.add(f.getName());
+                    int c = decideOne(smart, "NAME A CARD" + srcOf(sa) + ": " + oneLine(message), labels, null);
+                    if (c >= 0) { p("[ROUTER] card-name: " + labels.get(c) + srcOf(sa)); return labels.get(c); }
+                    return aiDelegate("card-name(list:unparsed)", super.chooseCardName(sa, faces, message));
+                }
+                String want = askCardName(sa, message, null);
+                if (want != null) {
+                    for (ICardFace f : faces)
+                        if (f.getName().equalsIgnoreCase(want)) { p("[ROUTER] card-name: " + f.getName() + srcOf(sa)); return f.getName(); }
+                }
+                return aiDelegate("card-name(list:no-match)", super.chooseCardName(sa, faces, message));
+            } catch (Exception e) {
+                return aiDelegate("card-name(list:err)", super.chooseCardName(sa, faces, message));
+            }
+        }
+
+        /** Route "name a card" against a predicate — THE Cabal Therapy path ("name a nonland card").
+         *  Free-form LLM answer, validated by the engine's own face lookup + predicate. The persistent
+         *  conversation means the model remembers what it saw with an earlier Thoughtseize/Therapy. */
+        @Override
+        public String chooseCardName(SpellAbility sa, java.util.function.Predicate<ICardFace> cpp, String valid, String message) {
+            try {
+                if (!smartOk()) return aiDelegate("card-name(no-budget)", super.chooseCardName(sa, cpp, valid, message));
+                String want = askCardName(sa, message, valid);
+                if (want != null) {
+                    ICardFace face = StaticData.instance().getCommonCards().getFaceByName(want);
+                    if (face != null && (cpp == null || cpp.test(face))) {
+                        p("[ROUTER] card-name: " + face.getName() + srcOf(sa));
+                        return face.getName();
+                    }
+                }
+                return aiDelegate("card-name(no-match)", super.chooseCardName(sa, cpp, valid, message));
+            } catch (Exception e) {
+                return aiDelegate("card-name(err)", super.chooseCardName(sa, cpp, valid, message));
+            }
+        }
+
+        /** Shared free-form "CARD: <name>" ask (one retry). Returns the raw name or null. */
+        private String askCardName(SpellAbility sa, String message, String valid) {
+            String q = snapshot() + "\nDECISION: NAME A CARD" + srcOf(sa) + ": " + oneLine(message)
+                    + (valid != null && !valid.isEmpty() ? " (must match: " + oneLine(valid) + ")" : "")
+                    + ". Use everything you've seen this game — revealed hands, their deck's archetype — to name "
+                    + "the card most likely there / most dangerous to your plan. "
+                    + "End with EXACTLY: CARD: <exact English card name>";
+            for (int attempt = 0; attempt < 2; attempt++) {
+                String reply = ask(smart, attempt == 0 ? q
+                        : "That was not a legal or recognizable card name here. Answer with ONE line only: CARD: <exact card name>");
+                if (reply == null) return null;
+                String seg = lastSegment(reply, "CARD:");
+                if (seg != null) {
+                    String want = seg.replace("\"", "").replace("`", "").trim();
+                    if (!want.isEmpty()) return want;
+                }
+            }
+            return null;
+        }
+
+        /** Route modal spells ("choose one —") through the numbered menu. */
+        @Override
+        public List<AbilitySub> chooseModeForAbility(SpellAbility sa, List<AbilitySub> possible, int min, int num, boolean allowRepeat) {
+            try {
+                if (possible == null || possible.isEmpty() || allowRepeat || !smartOk())
+                    return aiDelegate("modes(repeat/no-budget)", super.chooseModeForAbility(sa, possible, min, num, allowRepeat));
+                if (possible.size() == 1 && min >= 1) return Lists.newArrayList(possible.get(0)); // forced
+                List<String> labels = new ArrayList<>();
+                for (AbilitySub ab : possible) labels.add(oneLine(ab.getDescription()));
+                List<Integer> picks = decideMany(smart, "MODAL SPELL — choose mode(s) for " + saLabel(sa) + ".",
+                        labels, Math.max(0, min), Math.min(num, possible.size()));
+                if (picks == null || picks.size() < min)
+                    return aiDelegate("modes(unparsed)", super.chooseModeForAbility(sa, possible, min, num, allowRepeat));
+                List<AbilitySub> out = new ArrayList<>();
+                StringBuilder log = new StringBuilder();
+                for (int i : picks) { out.add(possible.get(i)); if (log.length() > 0) log.append(" + "); log.append(labels.get(i)); }
+                p("[ROUTER] modes: " + log);
+                return out;
+            } catch (Exception e) {
+                return aiDelegate("modes(err)", super.chooseModeForAbility(sa, possible, min, num, allowRepeat));
+            }
+        }
+
         // ---------------- budget + parse helpers ----------------
 
-        private boolean smartOk() { if (smartCalls >= SMART_BUDGET) return false; smartCalls++; return true; }
-        private boolean fastOk()  { if (fastCalls  >= FAST_BUDGET)  return false; fastCalls++;  return true; }
+        // Pure budget PEEKS — no side effect. Counters are bumped in ask(), so [TALLY] counts
+        // actual model calls, not budget checks (paths that check then dedupe/delegate don't inflate it).
+        private boolean smartOk() { return smartCalls < SMART_BUDGET; }
+        private boolean fastOk()  { return fastCalls  < FAST_BUDGET;  }
+        /** Every model call funnels through here. */
+        private String ask(ClaudeBridge b, String prompt) {
+            if (b == smart) smartCalls++; else fastCalls++;
+            return b.ask(prompt);
+        }
 
         /** Record + loudly log a genuine handoff to Forge's built-in AI. Grep "[FALLBACK->AI]" to audit how
          *  often the engine brain — not the LLM — actually made a call. Goal: keep this near zero. */
@@ -701,6 +848,15 @@ public final class LlmSpikeGui {
             return out;
         }
 
+        /** "{2}{B}{B}"-style cost, or null if none. getShortString() already includes braces. */
+        private static String costStr(Card c) {
+            try {
+                if (c.getManaCost() == null) return null;
+                String mc = c.getManaCost().getShortString();
+                if (mc == null || mc.isEmpty() || "-1".equals(mc) || "0".equals(mc)) return null;
+                return mc.startsWith("{") ? mc : "{" + mc + "}";
+            } catch (Exception e) { return null; }
+        }
         private static String srcOf(SpellAbility sa) {
             try { return sa != null && sa.getHostCard() != null ? " [" + sa.getHostCard().getName() + "]" : ""; }
             catch (Exception e) { return ""; }
@@ -721,11 +877,16 @@ public final class LlmSpikeGui {
         }
         private static String saLabel(SpellAbility sa) {
             String host = sa.getHostCard() != null ? sa.getHostCard().getName() : "?";
+            String cost = "";
+            try {
+                String mc = sa.getHostCard() != null ? costStr(sa.getHostCard()) : null;
+                if (mc != null) cost = " " + mc;
+            } catch (Exception ignore) { }
             String desc = sa.getDescription();
             if (desc == null || desc.isEmpty()) desc = String.valueOf(sa);
             desc = desc.replaceAll("\\s+", " ").trim();
             if (desc.length() > 70) desc = desc.substring(0, 70);
-            return host + " [" + desc + "]";
+            return host + cost + (desc.isEmpty() ? "" : " [" + desc + "]");
         }
         private static String lastSegment(String reply, String key) {
             String found = null;
