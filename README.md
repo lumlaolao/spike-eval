@@ -87,6 +87,26 @@ the LLM is really driving (validation runs show `ai=0`).
 Even gated, a full Opus game is dozens of calls × ~$0.06 × ~3–8s. For volume, put a cheaper model
 on the executor tier (`CLAUDE_MODEL=haiku`) and reserve the strong model for genuinely close spots.
 
+Speed levers baked in: the fast tier replies with **only** the final line (zero reasoning tokens),
+bridge sessions auto-refresh every `CLAUDE_RESET_EVERY` asks (default 40) so the conversation's
+prefill doesn't grow unboundedly (an `INTEL:` line in every snapshot carries revealed-hand/named-card
+memory across the reset), MCP servers are excluded from bridge sessions (`--strict-mcp-config`),
+and empty reactive priority windows pass without any model call (except the opponent's end step —
+the classic instant-speed action window). `[TALLY]` prints running `avgSmart`/`avgFast` latency.
+
+## Tuning (env vars)
+
+| Var | Default | What |
+|---|---|---|
+| `SMART_MODEL` / `FAST_MODEL` | `opus` / `haiku` | model per tier |
+| `SMART_BUDGET` / `FAST_BUDGET` | 320 / 900 | per-game call caps |
+| `CLAUDE_DEADLINE_MS` | 90000 | per-call timeout |
+| `CLAUDE_RESET_EVERY` | 40 | bridge session refresh cadence (0 = never) |
+| `DECK_A` / `DECK_B` | Downloads decklists | decklist paths ("N Cardname" format) |
+| `DECK_A_NAME` / `DECK_B_NAME` | Grixis Reanimator / Mardu Energy | seat labels |
+| `PLAN_A` / `PLAN_B` | built-in | strategy framing per seat |
+| `RECORD` / `RECORD_OUT` / `RECORD_FPS` | off | window recording (see below) |
+
 ## Build & run
 
 Requires JDK 17 (Forge targets 17) and the [`claude`](https://claude.com/claude-code) CLI logged in.

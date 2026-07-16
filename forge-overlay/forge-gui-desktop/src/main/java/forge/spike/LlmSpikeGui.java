@@ -43,6 +43,8 @@ import forge.game.card.CardCollection;
 import forge.game.card.CardCollectionView;
 import forge.game.card.CardLists;
 import forge.game.card.CardPredicates;
+import forge.game.card.CounterEnumType;
+import forge.game.card.CounterType;
 import forge.game.combat.Combat;
 import forge.game.combat.CombatUtil;
 import forge.game.phase.PhaseHandler;
@@ -107,13 +109,25 @@ public final class LlmSpikeGui {
         private String lastAskSig = "";
         private boolean lastWasPass = false;
 
+        // Rolling strategic intel (revealed hands, cards we named). Included in every snapshot so it
+        // survives the periodic bridge-session refresh — the model keeps what it LEARNED even when the
+        // conversation restarts for speed.
+        private final java.util.ArrayDeque<String> intel = new java.util.ArrayDeque<>();
+        private void remember(String fact) {
+            intel.addLast("T" + safeTurn() + ": " + fact);
+            while (intel.size() > 8) intel.removeFirst();
+        }
+        private int safeTurn() {
+            try { return getPlayer().getGame().getPhaseHandler().getTurn(); } catch (Exception e) { return 0; }
+        }
+
         PlayerControllerLLM(Game game, Player p, LobbyPlayer lp, String seat, String deckPlan,
                             String smartModel, String fastModel) {
             super(game, p, lp);
             this.seat = seat;
             this.deckPlan = deckPlan;
-            this.smart = new ClaudeBridge(seat + "/smart", smartModel, framing(seat, deckPlan, smartModel));
-            this.fast  = new ClaudeBridge(seat + "/fast",  fastModel,  framing(seat, deckPlan, fastModel));
+            this.smart = new ClaudeBridge(seat + "/smart", smartModel, framing(seat, deckPlan, false));
+            this.fast  = new ClaudeBridge(seat + "/fast",  fastModel,  framing(seat, deckPlan, true));
         }
 
         private void p(String s) { System.out.println("[" + seat + "] " + s); }
@@ -121,20 +135,26 @@ public final class LlmSpikeGui {
             try { String v = System.getenv(k); return v == null ? def : Integer.parseInt(v.trim()); }
             catch (Exception e) { return def; }
         }
-        private static String framing(String seat, String plan, String model) {
+        private static String framing(String seat, String plan, boolean terse) {
+            String format = terse
+                    // fast tier answers high-frequency low-stakes spots: reasoning tokens are pure latency there
+                    ? "FORMAT: reply with ONLY the final line in EXACTLY the format I request (e.g. `CHOICE: 3`). "
+                      + "NO reasoning, no other text — every extra token slows the game down."
+                    : "FORMAT: at most two short sentences of reasoning, then a final line in EXACTLY the format I "
+                      + "request (e.g. `CHOICE: 3` or `PICKS: 1,4`). I parse ONLY that final line — never write "
+                      + "anything after it.";
             return "You are a world-class Magic: The Gathering (Legacy) player piloting \"" + seat + "\".\n"
                     + "GAME PLAN: " + plan + "\n"
                     + "PROTOCOL: I am the Forge rules engine. Each message gives you the CURRENT game state and ONE "
                     + "decision with a numbered list of the ONLY legal options — every option is already "
                     + "engine-validated, so pick purely on strategy. The state snapshot in each message is "
-                    + "authoritative: trust it over your memory of earlier turns.\n"
+                    + "authoritative: trust it over your memory of earlier turns. You have NO tools and cannot "
+                    + "inspect anything yourself — everything you need is in the message; answer directly.\n"
                     + "PRINCIPLES: (1) Sequence toward your game plan, not the shiniest single play. "
                     + "(2) At instant speed with nothing to gain, PASS. "
                     + "(3) In combat, count damage and their untapped mana before committing. "
                     + "(4) Life, cards, and tempo are resources — spend them to win, not to feel safe.\n"
-                    + "FORMAT: at most two short sentences of reasoning, then a final line in EXACTLY the format I "
-                    + "request (e.g. `CHOICE: 3` or `PICKS: 1,4`). I parse ONLY that final line — never write "
-                    + "anything after it. Play to WIN the game, not just the current decision.";
+                    + format + " Play to WIN the game, not just the current decision.";
         }
 
         // ---------------- generic decision router ----------------
@@ -202,13 +222,13 @@ public final class LlmSpikeGui {
                 StringBuilder s = new StringBuilder();
                 s.append("== Turn ").append(ph.getTurn()).append(' ').append(ph.getPhase())
                         .append(" (active: ").append(ph.getPlayerTurn() != null ? ph.getPlayerTurn().getName() : "?").append(") ==\n");
-                s.append("YOU [").append(seat).append("] life ").append(me.getLife()).append('\n');
+                s.append("YOU [").append(seat).append("] life ").append(me.getLife()).append(playerCounters(me)).append('\n');
                 s.append("  hand(").append(me.getCardsIn(ZoneType.Hand).size()).append("): ").append(handList(me.getCardsIn(ZoneType.Hand))).append('\n');
                 s.append("  board: ").append(perms(me)).append('\n');
                 s.append("  lands: ").append(landSummary(me)).append('\n');
                 s.append("  yard(").append(me.getCardsIn(ZoneType.Graveyard).size()).append("): ").append(names(me.getCardsIn(ZoneType.Graveyard), true, 30)).append('\n');
                 if (opp != null) {
-                    s.append("OPP [").append(opp.getName()).append("] life ").append(opp.getLife()).append('\n');
+                    s.append("OPP [").append(opp.getName()).append("] life ").append(opp.getLife()).append(playerCounters(opp)).append('\n');
                     s.append("  board: ").append(perms(opp)).append('\n');
                     // Opp lands are public info and load-bearing: untapped mana = removal/counter risk,
                     // and utility lands (Wasteland, Karakas) are threats worth playing around.
@@ -217,7 +237,8 @@ public final class LlmSpikeGui {
                     s.append("  hand: ").append(opp.getCardsIn(ZoneType.Hand).size()).append(" cards\n");
                 }
                 int stackSize = g.getStack().size();
-                s.append("stack: ").append(stackSize == 0 ? "(empty)" : (stackSize + " pending; top=" + safeStackTop(g)));
+                s.append("stack: ").append(stackSize == 0 ? "(empty)" : (stackSize + " pending; top=" + safeStackTop(g))).append('\n');
+                if (!intel.isEmpty()) s.append("INTEL: ").append(String.join(" | ", intel));
                 return s.toString();
             } catch (Exception e) {
                 return "== (state unavailable) ==";
@@ -269,7 +290,18 @@ public final class LlmSpikeGui {
             }
             return b.length() == 0 ? "(none)" : b.toString();
         }
-        /** permanents with P/T + tapped/sick flags. */
+        /** " | energy 3, poison 1" for player-level counters the model must see (Mardu ENERGY runs on them). */
+        private static String playerCounters(Player pl) {
+            StringBuilder b = new StringBuilder();
+            try {
+                int en = pl.getCounters(CounterEnumType.ENERGY);
+                if (en > 0) b.append("energy ").append(en);
+                int po = pl.getCounters(CounterEnumType.POISON);
+                if (po > 0) { if (b.length() > 0) b.append(", "); b.append("poison ").append(po); }
+            } catch (Exception ignore) { }
+            return b.length() == 0 ? "" : " | " + b;
+        }
+        /** permanents with P/T, tapped/sick flags, loyalty, and counters (+1/+1 etc.). */
         private static String perms(Player pl) {
             StringBuilder b = new StringBuilder();
             for (Card c : pl.getCardsIn(ZoneType.Battlefield)) {
@@ -277,8 +309,21 @@ public final class LlmSpikeGui {
                 if (b.length() > 0) b.append(", ");
                 b.append(c.getName());
                 if (c.isCreature()) b.append('(').append(c.getNetPower()).append('/').append(c.getNetToughness()).append(')');
+                if (c.isPlaneswalker()) { try { b.append("[loyalty ").append(c.getCurrentLoyalty()).append(']'); } catch (Exception ignore) { } }
                 if (c.isTapped()) b.append("[T]");
                 if (c.isSick() && c.isCreature()) b.append("[sick]");
+                try { // non-loyalty counters: "+1/+1 x2" etc. — P/T above already includes them, but the model should see WHY
+                    com.google.common.collect.Multiset<CounterType> cts = c.getCounters();
+                    if (cts != null && !cts.isEmpty()) {
+                        StringBuilder cb = new StringBuilder();
+                        for (com.google.common.collect.Multiset.Entry<CounterType> e : cts.entrySet()) {
+                            if (e.getElement().is(CounterEnumType.LOYALTY) || e.getCount() <= 0) continue;
+                            if (cb.length() > 0) cb.append(", ");
+                            cb.append(e.getElement().getName()).append(" x").append(e.getCount());
+                        }
+                        if (cb.length() > 0) b.append('[').append(cb).append(']');
+                    }
+                } catch (Exception ignore) { }
             }
             return b.length() == 0 ? "(no nonland permanents)" : b.toString();
         }
@@ -343,7 +388,9 @@ public final class LlmSpikeGui {
                 List<Integer> picks = decideMany(smart,
                         "COMBAT — declare attackers vs " + defender.getName() + " (life " + defender.getLife()
                         + "). Pick which creatures attack (attacking with 0 is legal and sometimes correct — "
-                        + "weigh their untapped mana and possible blocks).", labels, 0, legal.size());
+                        + "weigh their untapped mana and possible blocks). COUNT LETHAL: if your unblocked/"
+                        + "unstoppable damage meets their life total, attack with everything needed and WIN NOW.",
+                        labels, 0, legal.size());
                 if (picks == null) { noteAi("declareAttackers(bridge-down)"); super.declareAttackers(attacker, combat); return; }
                 StringBuilder chosen = new StringBuilder();
                 for (int i : picks) {
@@ -408,9 +455,11 @@ public final class LlmSpikeGui {
                 boolean ownMain = phh.isPlayerTurn(me) && (phh.is(PhaseType.MAIN1) || phh.is(PhaseType.MAIN2));
 
                 // SPEED: on a reactive (not-our-main) priority window, only think when something can
-                // actually matter — a spell/ability is on the stack, or we're in combat (tricks/removal).
-                // Otherwise passing priority is virtually always correct, so pass WITHOUT spending an LLM call.
-                if (!ownMain && me.getGame().getStack().isEmpty() && !phh.inCombat()) return PASS;
+                // actually matter — a spell/ability on the stack, combat (tricks/removal), or the
+                // opponent's end step (the classic instant-speed action window for flash/instant decks).
+                // Otherwise passing priority is virtually always correct, so pass WITHOUT an LLM call.
+                boolean oppEot = phh.is(PhaseType.END_OF_TURN) && !phh.isPlayerTurn(me);
+                if (!ownMain && me.getGame().getStack().isEmpty() && !phh.inCombat() && !oppEot) return PASS;
 
                 // enumerate castable non-land, non-mana abilities
                 List<SpellAbility> options = new ArrayList<>();
@@ -476,7 +525,9 @@ public final class LlmSpikeGui {
                 lastAskSig = sig;
                 String menuStr = menu.toString();
 
-                if (ownMain) p("[TALLY] smart=" + smartCalls + " fast=" + fastCalls + " auto=" + autoPicks + " ai=" + aiDelegations);
+                if (ownMain) p("[TALLY] smart=" + smartCalls + " fast=" + fastCalls + " auto=" + autoPicks + " ai=" + aiDelegations
+                        + (smart.calls > 0 ? " avgSmart=" + (smart.totalMs / smart.calls) + "ms" : "")
+                        + (fast.calls > 0 ? " avgFast=" + (fast.totalMs / fast.calls) + "ms" : ""));
                 p("[ROUTER] play(" + (ownMain ? "main" : "react") + "): " + options.size() + " castable"
                         + (haveLand ? " + " + landPlays.size() + " land" : "") + " -> asking " + b.model + "...");
                 playDecisionsThisTurn++;
@@ -665,6 +716,7 @@ public final class LlmSpikeGui {
                 CardCollection out = new CardCollection();
                 StringBuilder log = new StringBuilder();
                 for (int i : picks) { out.add(opts.get(i)); if (log.length() > 0) log.append(", "); log.append(opts.get(i).getName()); }
+                if (stripping) remember("saw " + p.getName() + " hand [" + names(opts, false, 10) + "], stripped " + log);
                 p("[ROUTER] discard" + (stripping ? "(strip " + p.getName() + ")" : "") + ": " + log);
                 return out;
             } catch (Exception e) {
@@ -767,6 +819,7 @@ public final class LlmSpikeGui {
                 if (want != null) {
                     ICardFace face = StaticData.instance().getCommonCards().getFaceByName(want);
                     if (face != null && (cpp == null || cpp.test(face))) {
+                        remember("named " + face.getName() + srcOf(sa));
                         p("[ROUTER] card-name: " + face.getName() + srcOf(sa));
                         return face.getName();
                     }
@@ -932,6 +985,10 @@ public final class LlmSpikeGui {
     static final class ClaudeBridge {
         private static final String BIN = System.getenv().getOrDefault("CLAUDE_BIN", "claude");
         private static final long DEADLINE_MS = parseLong(System.getenv("CLAUDE_DEADLINE_MS"), 90000);
+        // SPEED: the persistent conversation's prefill grows with every ask, so calls get slower as the
+        // game goes on. Restart the CLI session every N asks (re-priming the preamble); the per-message
+        // snapshot + the controller's INTEL line carry the state that matters across the reset.
+        private static final int RESET_EVERY = (int) parseLong(System.getenv("CLAUDE_RESET_EVERY"), 40);
         private static long parseLong(String v, long def) { try { return v == null ? def : Long.parseLong(v.trim()); } catch (Exception e) { return def; } }
         final String label;
         final String model;
@@ -940,6 +997,8 @@ public final class LlmSpikeGui {
         private Process proc;
         private BufferedReader out;
         private BufferedWriter in;
+        private int asksSinceStart = 0;
+        long totalMs = 0; int calls = 0; // latency accounting, read by [TALLY]
 
         ClaudeBridge(String label, String model, String preamble) {
             this.label = label;
@@ -950,7 +1009,9 @@ public final class LlmSpikeGui {
         private void ensureStarted() throws Exception {
             if (proc != null && proc.isAlive()) return;
             System.out.println("[CLAUDE " + label + "] starting persistent " + model + " session...");
-            ProcessBuilder pb = new ProcessBuilder(BIN, "-p", "--model", model,
+            // --strict-mcp-config: don't load the user's MCP servers into the bridge session — they add
+            // startup time and system-prompt tokens that get re-processed on EVERY call, for zero benefit.
+            ProcessBuilder pb = new ProcessBuilder(BIN, "-p", "--model", model, "--strict-mcp-config",
                     "--input-format", "stream-json", "--output-format", "stream-json", "--verbose");
             pb.redirectErrorStream(false);
             proc = pb.start();
@@ -970,7 +1031,12 @@ public final class LlmSpikeGui {
         synchronized String ask(String prompt) {
             long t0 = System.currentTimeMillis();
             try {
+                if (RESET_EVERY > 0 && asksSinceStart >= RESET_EVERY) {
+                    System.out.println("[CLAUDE " + label + "] refreshing session after " + asksSinceStart + " asks (bounds context growth)");
+                    reset();
+                }
                 ensureStarted();
+                asksSinceStart++;
                 String full = (!primed && preamble != null) ? (preamble + "\n\n" + prompt) : prompt;
                 primed = true;
                 in.write("{\"type\":\"user\",\"message\":{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\""
@@ -986,7 +1052,9 @@ public final class LlmSpikeGui {
                     if (line == null) { reset(); return null; }
                     if (line.contains("\"type\":\"result\"")) {
                         String r = extractJsonString(line, "\"result\":\"");
-                        System.out.println("[CLAUDE " + label + "] replied in " + (System.currentTimeMillis() - t0) + " ms");
+                        long dur = System.currentTimeMillis() - t0;
+                        totalMs += dur; calls++;
+                        System.out.println("[CLAUDE " + label + "] replied in " + dur + " ms");
                         return r;
                     }
                 }
@@ -996,7 +1064,10 @@ public final class LlmSpikeGui {
             }
         }
 
-        private void reset() { try { if (proc != null) proc.destroyForcibly(); } catch (Exception ignore) { } proc = null; out = null; in = null; }
+        private void reset() {
+            try { if (proc != null) proc.destroyForcibly(); } catch (Exception ignore) { }
+            proc = null; out = null; in = null; asksSinceStart = 0;
+        }
 
         private static String jsonEscape(String s) {
             StringBuilder b = new StringBuilder(s.length() + 16);
@@ -1086,14 +1157,16 @@ public final class LlmSpikeGui {
         String smartModel = System.getenv().getOrDefault("SMART_MODEL", "opus");
         String fastModel  = System.getenv().getOrDefault("FAST_MODEL", "haiku");
 
-        String planA = "Grixis Reanimator combo: mulligan aggressively toward a hand that can DISCARD a huge creature "
+        String planA = System.getenv().getOrDefault("PLAN_A",
+                "Grixis Reanimator combo: mulligan aggressively toward a hand that can DISCARD a huge creature "
                 + "(Griselbrand, Atraxa Grand Unifier, Archon of Cruelty) via Faithless Looting / Cabal Therapy / Unmask, "
                 + "then REANIMATE it turn 1-2 with Reanimate / Animate Dead / Shallow Grave (use Dark Ritual + Lotus Petal for speed). "
-                + "Griselbrand's draw-7 refuels and protects. Strip disruption with Thoughtseize/Cabal Therapy. Win fast before they set up.";
-        String planB = "Mardu Energy aggro-disruption: deploy efficient threats (Ajani, Ocelot Pride, Guide of Souls, Amped Raptor, "
+                + "Griselbrand's draw-7 refuels and protects. Strip disruption with Thoughtseize/Cabal Therapy. Win fast before they set up.");
+        String planB = System.getenv().getOrDefault("PLAN_B",
+                "Mardu Energy aggro-disruption: deploy efficient threats (Ajani, Ocelot Pride, Guide of Souls, Amped Raptor, "
                 + "Voice of Victory), attack every turn and race their life total. Disrupt the combo with Thoughtseize, Cabal Therapy, "
                 + "Orcish Bowmasters, and Swords to Plowshares; Wasteland/Karakas hit their mana. Against Reanimator, prioritize stripping "
-                + "or removing their fatty and pressuring life so they can't durdle.";
+                + "or removing their fatty and pressuring life so they can't durdle.");
 
         Deck deckA, deckB;
         try { deckA = loadDeck(nameA, pathA); deckB = loadDeck(nameB, pathB); }
