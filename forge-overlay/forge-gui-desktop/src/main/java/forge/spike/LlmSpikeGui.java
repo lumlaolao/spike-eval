@@ -854,7 +854,9 @@ public final class LlmSpikeGui {
                 if (c.getManaCost() == null) return null;
                 String mc = c.getManaCost().getShortString();
                 if (mc == null || mc.isEmpty() || "-1".equals(mc) || "0".equals(mc)) return null;
-                return mc.startsWith("{") ? mc : "{" + mc + "}";
+                // getShortString mixes formats ("1 {W}", "{B}", "4BBBB") — normalize to compact "{1}{W}" style
+                mc = mc.replace(" ", "");
+                return mc.startsWith("{") || mc.contains("{") ? mc : "{" + mc + "}";
             } catch (Exception e) { return null; }
         }
         private static String srcOf(SpellAbility sa) {
