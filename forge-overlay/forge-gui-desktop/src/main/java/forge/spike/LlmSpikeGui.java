@@ -40,6 +40,7 @@ import forge.game.GameEntity;
 import forge.game.GameLogEntry;
 import forge.game.GameLogEntryType;
 import forge.game.GameType;
+import forge.game.ability.ApiType;
 import forge.game.card.Card;
 import forge.game.card.CardCollection;
 import forge.game.card.CardCollectionView;
@@ -161,6 +162,10 @@ public final class LlmSpikeGui {
         private boolean lastWasPass = false;
         // (stack, options) situations we already declined this turn — identical recurrences pass free.
         private final java.util.HashSet<String> passedReactSigs = new java.util.HashSet<>();
+        // Turn plan: stated by the model at its first main-phase decision of the turn, injected into
+        // every later prompt that turn — so targets/discards/follow-ups execute ONE line, not myopic picks.
+        private String turnPlan = "";
+        private int planTurn = -1;
 
         // Game-log types worth narrating to the model (skip PHASE/MANA/INFORMATION noise).
         private static final java.util.Set<GameLogEntryType> EVENT_TYPES = EnumSet.of(
@@ -223,7 +228,11 @@ public final class LlmSpikeGui {
                     + "PRINCIPLES: (1) Sequence toward your game plan, not the shiniest single play. "
                     + "(2) At instant speed with nothing to gain, PASS. "
                     + "(3) In combat, count damage and their untapped mana before committing. "
-                    + "(4) Life, cards, and tempo are resources — spend them to win, not to feel safe.\n"
+                    + "(4) Life, cards, and tempo are resources — spend them to win, not to feel safe. "
+                    + "(5) Card selection is fuel: with spare mana, a draw/loot/dig spell, and no better line, "
+                    + "CAST IT — repeatedly passing while holding cantrips is how combo decks lose. "
+                    + "(6) If your key piece is gone (stripped/bounced), your plan is to FIND another (dig), "
+                    + "not to accumulate mana with nothing to spend it on.\n"
                     + format + " Play to WIN the game, not just the current decision.";
         }
 
@@ -334,7 +343,10 @@ public final class LlmSpikeGui {
                         for (int i = n - 1; i >= 0; i--) s.append("  - ").append(oneLine(ev.get(i).message())).append('\n');
                     }
                 } catch (Exception ignore) { }
-                if (!intel.isEmpty()) s.append("INTEL: ").append(String.join(" | ", intel));
+                if (!intel.isEmpty()) s.append("INTEL: ").append(String.join(" | ", intel)).append('\n');
+                // Same-turn plan continuity: the line the model declared at its first main-phase decision.
+                if (planTurn == ph.getTurn() && ph.isPlayerTurn(me) && !turnPlan.isEmpty())
+                    s.append("YOUR TURN PLAN (stated earlier this turn — execute it or consciously deviate): ").append(turnPlan);
                 return s.toString();
             } catch (Exception e) {
                 return "== (state unavailable) ==";
@@ -581,13 +593,13 @@ public final class LlmSpikeGui {
                 // opponent's end step (the classic instant-speed action window for flash/instant decks).
                 // Otherwise passing priority is virtually always correct, so pass WITHOUT an LLM call.
                 boolean oppEot = phh.is(PhaseType.END_OF_TURN) && !phh.isPlayerTurn(me);
-                if (SKIP_HEUR && !ownMain && me.getGame().getStack().isEmpty() && !phh.inCombat() && !oppEot) return PASS;
+                if (SKIP_HEUR && rnd == null && !ownMain && me.getGame().getStack().isEmpty() && !phh.inCombat() && !oppEot) return PASS;
 
                 // SPEED: the top of the stack is OUR OWN spell/ability — we just cast it. Don't burn a
                 // model call asking "respond to yourself?"; let it resolve. The engine gives us priority
                 // again with the updated state (and if the OPPONENT responds, their spell tops the stack
                 // and we DO get asked).
-                if (SKIP_HEUR && !me.getGame().getStack().isEmpty()) {
+                if (SKIP_HEUR && rnd == null && !me.getGame().getStack().isEmpty()) {
                     try {
                         SpellAbility top = me.getGame().getStack().peekAbility();
                         if (top != null && top.getActivatingPlayer() == me) return PASS;
@@ -635,9 +647,32 @@ public final class LlmSpikeGui {
                 if (options.isEmpty() && !haveLand) return PASS;
                 if (!ownMain && options.isEmpty()) return PASS;
 
-                // pick tier: own main phase = smart sequencing; reactive instant-speed window = fast
-                ClaudeBridge b = ownMain ? smart : fast;
-                boolean haveBudget = ownMain ? smartOk() : fastOk();
+                // SPEED (interaction filter): on a mid-turn reactive window (not opp EOT, not combat),
+                // only think if we hold something that can actually INTERACT with what's happening —
+                // a targeting spell (removal/trick) or a counter. Rituals/eggs/mana spells cast in
+                // response to an opponent's play achieve nothing; measured 66% of all play-asks were
+                // PASS results, ~15 min/game of declining. Opp EOT and combat still always ask.
+                // (rnd == null: the random eval arm bypasses speed filters so its baseline stays a true
+                // uniform over the unpruned menu — filters exist to save model calls, which random has none of.)
+                if (SKIP_HEUR && rnd == null && !ownMain && !oppEot && !phh.inCombat()) {
+                    boolean anyInteractive = false;
+                    for (SpellAbility sa : options) {
+                        try { // walk the whole ability chain — Counter/targeting often lives on a sub
+                            for (SpellAbility part = sa; part != null; part = part.getSubAbility()) {
+                                if (part.usesTargeting() || part.getApi() == ApiType.Counter) { anyInteractive = true; break; }
+                            }
+                        } catch (Exception e) { anyInteractive = true; } // can't classify -> keep asking
+                        if (anyInteractive) break;
+                    }
+                    if (!anyInteractive) return PASS;
+                }
+
+                // pick tier: own main phase = smart sequencing; reactive instant-speed window = fast.
+                // Exception: a main with ZERO castable spells (just land-or-pass) is a fast-tier question —
+                // measured 15-30s smart calls deciding "play the land". Which land still gets picked by a model.
+                boolean landOnly = ownMain && options.isEmpty();
+                ClaudeBridge b = (ownMain && !landOnly) ? smart : fast;
+                boolean haveBudget = (b == smart) ? smartOk() : fastOk();
 
                 int turn = phh.getTurn();
                 if (turn != lastPlayTurn) { lastPlayTurn = turn; playDecisionsThisTurn = 0; passedReactSigs.clear(); }
@@ -662,7 +697,7 @@ public final class LlmSpikeGui {
                 // (e.g. "activate Wasteland?" at upkeep, draw, main, combat...). Once we decline a
                 // situation this turn, every identical recurrence passes free.
                 String reactSig = null;
-                if (SKIP_HEUR && !ownMain) {
+                if (SKIP_HEUR && rnd == null && !ownMain) {
                     reactSig = safeStackTop(me.getGame()) + "|" + me.getGame().getStack().size() + "|" + menuStr;
                     if (passedReactSigs.contains(reactSig)) return PASS;
                 }
@@ -676,14 +711,31 @@ public final class LlmSpikeGui {
 
                 int choice = -1;
                 long tPlay = System.currentTimeMillis();
+                // First main-phase decision of OUR turn: also ask for a one-line turn plan (piggybacked —
+                // costs zero extra calls). It rides in the snapshot for every later decision this turn.
+                boolean askPlan = ownMain && !landOnly && planTurn != turn && b == smart; // fast tier is terse-only
                 if (rnd != null) choice = 1 + rnd.nextInt(passIdx); // random arm: uniform incl. PASS
                 for (int attempt = 0; rnd == null && attempt < 2 && choice < 1; attempt++) {
                     String prompt = attempt == 0
                             ? snapshot() + "\nDECISION: You have priority (" + phh.getPhase()
                               + (ownMain ? ", your main phase" : ", instant-speed window") + "). Choose ONE action:\n" + menuStr
-                              + "Reason briefly, then end with EXACTLY: CHOICE: <number>"
+                              + (askPlan
+                                 ? "First state your plan for THIS TURN as `PLAN: <one short line>` (the sequence you intend, e.g. 'ritual into Reanimate on Griselbrand, hold Petal'), then end with EXACTLY: CHOICE: <number>"
+                                 : "Reason briefly, then end with EXACTLY: CHOICE: <number>")
                             : "That reply had no parseable choice. Answer with ONE line only: CHOICE: <a number 1.." + passIdx + " from the list above>.";
                     String reply = ask(b, prompt);
+                    if (reply != null && askPlan && attempt == 0) {
+                        String pl = lastSegment(reply, "PLAN:");
+                        if (pl != null) { // models sometimes co-mingle "PLAN: ... CHOICE: 3" — cut at the tag
+                            int cut = pl.toUpperCase().indexOf("CHOICE:");
+                            if (cut >= 0) pl = pl.substring(0, cut);
+                            if (!pl.trim().isEmpty()) {
+                                turnPlan = oneLine(pl);
+                                planTurn = turn;
+                                p("[ROUTER] plan: " + turnPlan);
+                            }
+                        }
+                    }
                     if (reply == null) { // bridge dead -> develop or pass, not the AI
                         if (haveLand) { auto("play(bridge-down): land " + landCards.get(0).getName()); return Lists.newArrayList(landPlays.get(0)); }
                         return PASS;
