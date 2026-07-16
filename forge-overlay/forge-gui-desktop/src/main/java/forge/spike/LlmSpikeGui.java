@@ -37,6 +37,8 @@ import forge.deck.DeckSection;
 import forge.deck.DeckgenUtil;
 import forge.game.Game;
 import forge.game.GameEntity;
+import forge.game.GameLogEntry;
+import forge.game.GameLogEntryType;
 import forge.game.GameType;
 import forge.game.card.Card;
 import forge.game.card.CardCollection;
@@ -108,6 +110,13 @@ public final class LlmSpikeGui {
         private int playDecisionsThisTurn = 0;
         private String lastAskSig = "";
         private boolean lastWasPass = false;
+
+        // Game-log types worth narrating to the model (skip PHASE/MANA/INFORMATION noise).
+        private static final java.util.Set<GameLogEntryType> EVENT_TYPES = EnumSet.of(
+                GameLogEntryType.TURN, GameLogEntryType.MULLIGAN, GameLogEntryType.ZONE_CHANGE,
+                GameLogEntryType.DAMAGE, GameLogEntryType.LIFE, GameLogEntryType.LAND,
+                GameLogEntryType.DISCARD, GameLogEntryType.COMBAT, GameLogEntryType.STACK_ADD,
+                GameLogEntryType.STACK_RESOLVE, GameLogEntryType.GAME_OUTCOME);
 
         // Rolling strategic intel (revealed hands, cards we named). Included in every snapshot so it
         // survives the periodic bridge-session refresh — the model keeps what it LEARNED even when the
@@ -238,6 +247,16 @@ public final class LlmSpikeGui {
                 }
                 int stackSize = g.getStack().size();
                 s.append("stack: ").append(stackSize == 0 ? "(empty)" : (stackSize + " pending; top=" + safeStackTop(g))).append('\n');
+                // HISTORY: the engine's own game log — narrates what happened BETWEEN this seat's
+                // decisions (opponent's plays, combat results, discards) and survives session refreshes.
+                try {
+                    List<GameLogEntry> ev = g.getGameLog().getLogEntriesForTypes(EVENT_TYPES); // newest-first
+                    int n = Math.min(10, ev.size());
+                    if (n > 0) {
+                        s.append("RECENT EVENTS (oldest->newest):\n");
+                        for (int i = n - 1; i >= 0; i--) s.append("  - ").append(oneLine(ev.get(i).message())).append('\n');
+                    }
+                } catch (Exception ignore) { }
                 if (!intel.isEmpty()) s.append("INTEL: ").append(String.join(" | ", intel));
                 return s.toString();
             } catch (Exception e) {
