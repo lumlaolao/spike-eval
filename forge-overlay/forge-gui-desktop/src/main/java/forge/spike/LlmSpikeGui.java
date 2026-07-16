@@ -90,6 +90,18 @@ import forge.util.collect.FCollectionView;
 public final class LlmSpikeGui {
     private LlmSpikeGui() {}
 
+    // Default strategy framings, shared with the headless runner (env PLAN_A/PLAN_B override both).
+    static final String DEFAULT_PLAN_A =
+            "Grixis Reanimator combo: mulligan aggressively toward a hand that can DISCARD a huge creature "
+            + "(Griselbrand, Atraxa Grand Unifier, Archon of Cruelty) via Faithless Looting / Cabal Therapy / Unmask, "
+            + "then REANIMATE it turn 1-2 with Reanimate / Animate Dead / Shallow Grave (use Dark Ritual + Lotus Petal for speed). "
+            + "Griselbrand's draw-7 refuels and protects. Strip disruption with Thoughtseize/Cabal Therapy. Win fast before they set up.";
+    static final String DEFAULT_PLAN_B =
+            "Mardu Energy aggro-disruption: deploy efficient threats (Ajani, Ocelot Pride, Guide of Souls, Amped Raptor, "
+            + "Voice of Victory), attack every turn and race their life total. Disrupt the combo with Thoughtseize, Cabal Therapy, "
+            + "Orcish Bowmasters, and Swords to Plowshares; Wasteland/Karakas hit their mana. Against Reanimator, prioritize stripping "
+            + "or removing their fatty and pressuring life so they can't durdle.";
+
     /** Our agent's controller: extend the AI, route decisions to Claude, delegate to super on
      *  anything we don't handle or that fails. One instance per seat — all state is per-instance. */
     static class PlayerControllerLLM extends PlayerControllerAi {
@@ -1176,16 +1188,8 @@ public final class LlmSpikeGui {
         String smartModel = System.getenv().getOrDefault("SMART_MODEL", "opus");
         String fastModel  = System.getenv().getOrDefault("FAST_MODEL", "haiku");
 
-        String planA = System.getenv().getOrDefault("PLAN_A",
-                "Grixis Reanimator combo: mulligan aggressively toward a hand that can DISCARD a huge creature "
-                + "(Griselbrand, Atraxa Grand Unifier, Archon of Cruelty) via Faithless Looting / Cabal Therapy / Unmask, "
-                + "then REANIMATE it turn 1-2 with Reanimate / Animate Dead / Shallow Grave (use Dark Ritual + Lotus Petal for speed). "
-                + "Griselbrand's draw-7 refuels and protects. Strip disruption with Thoughtseize/Cabal Therapy. Win fast before they set up.");
-        String planB = System.getenv().getOrDefault("PLAN_B",
-                "Mardu Energy aggro-disruption: deploy efficient threats (Ajani, Ocelot Pride, Guide of Souls, Amped Raptor, "
-                + "Voice of Victory), attack every turn and race their life total. Disrupt the combo with Thoughtseize, Cabal Therapy, "
-                + "Orcish Bowmasters, and Swords to Plowshares; Wasteland/Karakas hit their mana. Against Reanimator, prioritize stripping "
-                + "or removing their fatty and pressuring life so they can't durdle.");
+        String planA = System.getenv().getOrDefault("PLAN_A", DEFAULT_PLAN_A);
+        String planB = System.getenv().getOrDefault("PLAN_B", DEFAULT_PLAN_B);
 
         Deck deckA, deckB;
         try { deckA = loadDeck(nameA, pathA); deckB = loadDeck(nameB, pathB); }

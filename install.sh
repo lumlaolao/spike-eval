@@ -15,5 +15,6 @@ fi
 echo "Overlaying spike files into $FORGE_HOME ..."
 cp -Rv "$HERE/forge-overlay/." "$FORGE_HOME/"
 cp -v  "$HERE/run-llm-spike.sh" "$FORGE_HOME/run-llm-spike.sh"
-chmod +x "$FORGE_HOME/run-llm-spike.sh"
+cp -v  "$HERE/run-llm-headless.sh" "$FORGE_HOME/run-llm-headless.sh"
+chmod +x "$FORGE_HOME/run-llm-spike.sh" "$FORGE_HOME/run-llm-headless.sh"
 echo "Done. See README.md for build & run steps."
