@@ -32,6 +32,35 @@ from pathlib import Path
 
 DEFAULT_RESAMPLES = 10_000
 DEFAULT_BOOTSTRAP_SEED = 20260715  # fixed for reproducible CIs
+DEFAULT_MAX_FALLBACK_RATE = 0.10
+
+# Self-describing provenance fields appended to the game line (see spec B).
+# (game-line key, display default when the field is absent on legacy lines)
+PROVENANCE_FIELDS = (
+    ("discipline", "unspecified"),
+    ("engine_sha", "unknown"),
+    ("overlay_sha", "unknown"),
+    ("deck_sha", "unknown"),
+    ("mulligan_heuristic", "unknown"),
+    ("skip_heuristics", "unknown"),
+    ("plan_a", "unknown"),
+    ("plan_b", "unknown"),
+    ("smart_budget", "unknown"),
+    ("fast_budget", "unknown"),
+    ("claude_deadline_ms", "unknown"),
+    ("game_cap_ms", "unknown"),
+)
+
+# The ai tier only counts fallbacks INSIDE overridden methods; several decision
+# points are un-overridden and always run on Forge AI invisibly. ai=0 therefore
+# does NOT mean the model drove every decision.
+AI_PARTIAL_CAVEAT = (
+    "NOTE (ai tier is PARTIAL): the ai counter only sees fallbacks inside "
+    "overridden methods. Combat damage order, X announcement, edict sacrifices, "
+    "mana tapping and mulligan bottoming are un-overridden and always run on "
+    "Forge AI invisibly, emitting no decision line. ai=0 does NOT mean the "
+    "model drove every decision."
+)
 
 
 # ---------------------------------------------------------------- parsing
@@ -331,14 +360,103 @@ def summarize_decisions(decisions):
             "by_type": dict(types.most_common())}
 
 
-def build_summary(path, resamples, bootstrap_seed):
+def summarize_provenance(games):
+    """Collect the self-describing provenance fields across real game lines.
+
+    A field with more than one distinct value across the directory means the
+    batch mixes runs that are not comparable (different engine, decklist,
+    discipline, budgets, ...): we flag that as MIXED-PROVENANCE. Legacy game
+    lines without the fields fall back to the documented default, so an old
+    dir reports 'unknown' rather than crashing."""
+    real = [g for g in games if not g.get("_no_game_line")]
+    fields = {}
+    mixed_fields = []
+    for name, default in PROVENANCE_FIELDS:
+        distinct, seen = [], set()
+        for g in real:
+            v = g.get(name, default)
+            if v is None:
+                v = default
+            key = repr(v)
+            if key not in seen:
+                seen.add(key)
+                distinct.append(v)
+        fields[name] = distinct
+        if len(distinct) > 1:
+            mixed_fields.append(name)
+    return {
+        "n_games": len(real),
+        "mixed": bool(mixed_fields),
+        "mixed_fields": mixed_fields,
+        "fields": fields,
+    }
+
+
+def summarize_fallback_gate(games, decisions, max_rate):
+    """Fallback gate over decisions of LLM-controlled identities only.
+
+    Decisions are attributed by seat: a decision's `seat` is the player/deck
+    NAME, which we map to an identity via the game line's deck_a/deck_b names
+    and then to controller_a/controller_b. Only decisions whose identity has
+    controller == 'llm' count. A decision is a fallback if its tier is auto or
+    ai, or if it is smart/fast with a non-null fallback reason.
+
+    rate = fallbacks / all-decisions-of-llm-identities. If any llm arm exists
+    and the rate exceeds the ceiling, the gate FAILS (caller exits 2). With no
+    llm arm the gate is vacuous (never fails)."""
+    # A name that is llm in any game is treated as llm (identity-keyed config
+    # is stable within a batch; mixed config is surfaced by provenance).
+    llm_names = set()
+    any_llm_arm = False
+    for g in games:
+        for ident in ("a", "b"):
+            ctrl = g.get("controller_%s" % ident)
+            name = g.get("deck_%s" % ident)
+            if ctrl == "llm":
+                any_llm_arm = True
+                if name is not None:
+                    llm_names.add(name)
+
+    denom = numer = 0
+    for d in decisions:
+        seat = d.get("seat")
+        if seat not in llm_names:
+            continue
+        denom += 1
+        tier = d.get("tier")
+        if tier in ("auto", "ai"):
+            numer += 1
+        elif tier in ("smart", "fast") and d.get("fallback") is not None:
+            numer += 1
+    rate = (numer / denom) if denom else None
+    failed = bool(any_llm_arm and rate is not None and rate > max_rate)
+    return {
+        "max_fallback_rate": max_rate,
+        "any_llm_arm": any_llm_arm,
+        "vacuous": not any_llm_arm,
+        "llm_identities": sorted(llm_names),
+        "n_llm_decisions": denom,
+        "n_fallback": numer,
+        "fallback_rate": rate,
+        "failed": failed,
+    }
+
+
+def build_summary(path, resamples, bootstrap_seed,
+                  max_fallback_rate=DEFAULT_MAX_FALLBACK_RATE):
     games, decisions, warnings = parse_dir(path)
+    prov = summarize_provenance(games)
     return {
         "dir": str(path),
         "games": summarize_games(games),
         "arms": summarize_arms(games),
         "paired": summarize_paired(games, resamples, bootstrap_seed),
-        "decisions": summarize_decisions(decisions),
+        # ai tier counts are PARTIAL — carry the caveat in machine output too.
+        "decisions": dict(summarize_decisions(decisions),
+                          ai_partial_caveat=AI_PARTIAL_CAVEAT),
+        "provenance": prov,
+        "provenance_mixed": prov["mixed"],
+        "fallback_gate": summarize_fallback_gate(games, decisions, max_fallback_rate),
         "warnings": warnings,
     }
 
@@ -349,7 +467,57 @@ def fmt_pct(x):
     return "-" if x is None else "%.1f%%" % (100.0 * x)
 
 
+def _prov_val(distinct):
+    """Render one provenance field's distinct value(s) for humans."""
+    if not distinct:
+        return "unknown"
+    if len(distinct) == 1:
+        return str(distinct[0])
+    return "MIXED {%s}" % ", ".join(str(v) for v in distinct)
+
+
+def print_provenance(s):
+    p = s["provenance"]
+    if p["mixed"]:
+        print("!!! MIXED-PROVENANCE WARNING !!! these games do NOT share the same "
+              "run configuration and are NOT comparable as one batch.")
+        print("    differing fields: %s" % ", ".join(p["mixed_fields"]))
+    print("=== provenance (%d game line(s)) ===" % p["n_games"])
+    f = p["fields"]
+    print("discipline:  %s" % _prov_val(f.get("discipline", [])))
+    print("engine_sha:  %s   overlay_sha: %s   deck_sha: %s"
+          % (_prov_val(f.get("engine_sha", [])), _prov_val(f.get("overlay_sha", [])),
+             _prov_val(f.get("deck_sha", []))))
+    print("heuristics:  mulligan_heuristic=%s  skip_heuristics=%s"
+          % (_prov_val(f.get("mulligan_heuristic", [])),
+             _prov_val(f.get("skip_heuristics", []))))
+    print("plans:       plan_a=%s  plan_b=%s"
+          % (_prov_val(f.get("plan_a", [])), _prov_val(f.get("plan_b", []))))
+    print("budgets:     smart_budget=%s  fast_budget=%s  claude_deadline_ms=%s"
+          % (_prov_val(f.get("smart_budget", [])), _prov_val(f.get("fast_budget", [])),
+             _prov_val(f.get("claude_deadline_ms", []))))
+    print("caps:        game_cap_ms=%s" % _prov_val(f.get("game_cap_ms", [])))
+
+
+def print_fallback_gate(s):
+    fg = s["fallback_gate"]
+    print("\n=== fallback gate (ceiling %s) ===" % fmt_pct(fg["max_fallback_rate"]))
+    if fg["vacuous"]:
+        print("no llm arm in this dir -> gate vacuous (nothing to enforce).")
+        return
+    print("llm identities: %s" % (", ".join(fg["llm_identities"]) or "(none matched)"))
+    if fg["fallback_rate"] is None:
+        print("no decisions attributed to llm identities -> gate passes.")
+    else:
+        print("fallbacks: %d/%d = %s of llm-identity decisions (auto+ai plus "
+              "smart/fast with a fallback reason)"
+              % (fg["n_fallback"], fg["n_llm_decisions"], fmt_pct(fg["fallback_rate"])))
+    print("gate: %s" % ("FAILED" if fg["failed"] else "passed"))
+
+
 def print_human(s):
+    print_provenance(s)
+    print()
     g = s["games"]
     print("=== games (%s) ===" % s["dir"])
     print("total: %d   decisive: %d   draws: %d   invalid: %d (of which %d crashed with no game line)"
@@ -408,6 +576,9 @@ def print_human(s):
     if d["by_type"]:
         print("by type: " + "  ".join("%s=%d" % (k, v)
                                       for k, v in d["by_type"].items()))
+    print(AI_PARTIAL_CAVEAT)
+
+    print_fallback_gate(s)
 
     if s["warnings"]:
         print("\n=== warnings ===")
@@ -425,18 +596,33 @@ def main():
                     help="bootstrap resamples (default %d)" % DEFAULT_RESAMPLES)
     ap.add_argument("--bootstrap-seed", type=int, default=DEFAULT_BOOTSTRAP_SEED,
                     help="RNG seed for the bootstrap (default %d)" % DEFAULT_BOOTSTRAP_SEED)
+    ap.add_argument("--max-fallback-rate", type=float, default=DEFAULT_MAX_FALLBACK_RATE,
+                    help="fallback-gate ceiling over llm-identity decisions; exceeding "
+                         "it exits 2 (default %.2f)" % DEFAULT_MAX_FALLBACK_RATE)
     args = ap.parse_args()
 
     path = Path(args.dir).expanduser()
     if not path.is_dir():
         raise SystemExit("not a directory: %s" % path)
 
-    summary = build_summary(path, args.resamples, args.bootstrap_seed)
+    summary = build_summary(path, args.resamples, args.bootstrap_seed,
+                            args.max_fallback_rate)
     if args.json:
         json.dump(summary, sys.stdout, indent=2)
         print()
     else:
         print_human(summary)
+
+    # Fallback gate is enforced AFTER the full report is printed.
+    fg = summary["fallback_gate"]
+    if fg["failed"]:
+        print("\n" + "!" * 60, file=sys.stderr)
+        print("FAILED FALLBACK GATE: %s of llm-identity decisions were fallbacks "
+              "(ceiling %s). These games are too degraded to cite."
+              % (fmt_pct(fg["fallback_rate"]), fmt_pct(fg["max_fallback_rate"])),
+              file=sys.stderr)
+        print("!" * 60, file=sys.stderr)
+        sys.exit(2)
 
 
 if __name__ == "__main__":

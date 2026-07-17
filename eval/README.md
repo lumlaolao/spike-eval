@@ -71,31 +71,69 @@ look at the CI width, and extrapolate (CI width shrinks ~1/√n in pairs).
 Practical upshot: 20–50 paired seeds tells you about big gaps (random vs
 llm); separating two decent models by a few points needs hundreds of pairs.
 
-## Example: haiku-tier mirror run
+## Cited vs exploratory runs
+
+`run_batch.py` defaults to **cited** mode — the only mode whose numbers may be
+quoted. Before launching anything (and before any directory is created) it
+enforces:
+
+1. **Mirror deck** — `DECK_A` and `DECK_B` must resolve to the *same*
+   non-empty file (pass `--deck PATH` to set both), and the two identity names
+   must differ (`--name-a`/`--name-b`, default `Identity-A`/`Identity-B`). A
+   mirror cancels deck strength so the delta is pure pilot skill.
+2. **Confounds off** — forces `MULLIGAN_HEURISTIC=0`, `SKIP_HEURISTICS=0`, and
+   empty `PLAN_A`/`PLAN_B` (plans inject expert knowledge). Overriding any of
+   these via `--env`, or passing `--plan-a/--plan-b`, is refused.
+3. **`--jobs 1`** — parallel JVMs starve the `claude` CLI and inflate fallbacks.
+4. **Per-tier cap** — if `--cap-minutes` is omitted it is derived: no llm seat
+   → 15 min, all-haiku llm → 120, any opus → 240.
+5. **Provenance + drift** — stamps `ENGINE_SHA` (forge `HEAD`), `OVERLAY_SHA`
+   (sha256[:12] of the two *installed* spike files), `DECK_SHA`, and
+   `RUN_DISCIPLINE` onto every game line, and refuses to run if the installed
+   spike files have drifted from this checkout's `forge-overlay/` copies
+   (`run bash install.sh first`).
+6. **`--out` optional** — defaults to `runs/<UTC-timestamp>-<label>` under the
+   repo root; the resolved dir is printed first thing.
+
+Any violation exits **2** with a clear message. `--exploratory` skips guards
+1–3 for quick pokes: it still stamps provenance (`discipline=exploratory`) but
+prints a loud banner that the numbers are **not citable**.
+
+The canonical mirror decks live in this repo:
+`eval/decks/mardu-energy.txt` and `eval/decks/grixis-reanimator.txt` — pass one
+of them to `--deck` for a citable mirror run.
+
+## Example: cited haiku-tier mirror run
 
 ```bash
-# 20 seeds x 2 seat orders = 40 games, one JVM at a time (claude CLI rate
-# limits usually make --jobs > 2 counterproductive: decisions time out and
-# fall back to auto, polluting the eval).
+# 20 seeds x 2 seat orders = 40 games, one JVM at a time. --out is derived,
+# the cap is derived (120 min for all-haiku), provenance is stamped.
 python3 eval/run_batch.py \
     --seeds 1..20 --pairs \
-    --out runs/haiku-mirror-01 \
+    --deck eval/decks/mardu-energy.txt \
     --controller-a llm --controller-b llm \
     --smart-a haiku --smart-b haiku \
-    --fast-a haiku --fast-b haiku \
-    --cap-minutes 30
+    --fast-a haiku --fast-b haiku
 
-# Interrupted? Re-run the same command — completed seed/swap combos are
-# skipped (a combo counts as done once its JSONL has a final game line).
+# Interrupted? Re-run the same command with the same --out — completed
+# seed/swap combos are skipped (a combo is done once its JSONL has a game line).
 
-python3 eval/aggregate.py runs/haiku-mirror-01           # human-readable
-python3 eval/aggregate.py runs/haiku-mirror-01 --json    # machine-readable
+python3 eval/aggregate.py runs/<the-printed-dir>            # human-readable
+python3 eval/aggregate.py runs/<the-printed-dir> --json     # machine-readable
 ```
 
-Baseline arm example (llm vs random):
+`aggregate.py` prints a **provenance block** (and a loud MIXED-PROVENANCE
+warning if the dir blends incompatible runs), and enforces a **fallback gate**:
+`--max-fallback-rate` (default 0.10) over decisions of llm-controlled
+identities; exceeding it prints `FAILED FALLBACK GATE` and exits **2** after the
+report. The `ai` tier count is **partial** (un-overridden decisions run on
+Forge AI invisibly), so `ai=0` never means "the model drove everything".
+
+Baseline / exploratory arm example (not citable — mismatched decks, plans):
 
 ```bash
-python3 eval/run_batch.py --seeds 1..30 --pairs --out runs/llm-vs-random \
+python3 eval/run_batch.py --seeds 1..30 --pairs --exploratory \
+    --deck-a eval/decks/grixis-reanimator.txt --deck-b eval/decks/mardu-energy.txt \
     --controller-a llm --smart-a haiku --controller-b random
 ```
 

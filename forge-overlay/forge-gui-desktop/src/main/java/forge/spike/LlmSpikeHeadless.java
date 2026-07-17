@@ -108,7 +108,22 @@ public final class LlmSpikeHeadless {
                 + ",\"fast_b\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("FAST_MODEL_B", fastDef)) + "\""
                 + ",\"winner\":\"" + winner + "\",\"turns\":" + turns
                 + ",\"win_condition\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(winCond) + "\""
-                + ",\"duration_ms\":" + durMs + "}");
+                + ",\"duration_ms\":" + durMs
+                // Self-describing provenance: heuristic switches / plans / budgets / caps / SHAs / discipline,
+                // all read as the JVM actually saw them so the batch is reconstructable from a single line.
+                + ",\"mulligan_heuristic\":" + (LlmSpikeGui.PlayerControllerLLM.mullHeuristic() ? 1 : 0)
+                + ",\"skip_heuristics\":" + (LlmSpikeGui.PlayerControllerLLM.skipHeuristics() ? 1 : 0)
+                + ",\"plan_a\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("PLAN_A", LlmSpikeGui.DEFAULT_PLAN_A)) + "\""
+                + ",\"plan_b\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("PLAN_B", LlmSpikeGui.DEFAULT_PLAN_B)) + "\""
+                + ",\"smart_budget\":" + LlmSpikeGui.PlayerControllerLLM.smartBudget()
+                + ",\"fast_budget\":" + LlmSpikeGui.PlayerControllerLLM.fastBudget()
+                + ",\"claude_deadline_ms\":" + LlmSpikeGui.ClaudeBridge.deadlineMs()
+                + ",\"game_cap_ms\":" + capMs
+                + ",\"engine_sha\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("ENGINE_SHA", "unknown")) + "\""
+                + ",\"overlay_sha\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("OVERLAY_SHA", "unknown")) + "\""
+                + ",\"deck_sha\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("DECK_SHA", "unknown")) + "\""
+                + ",\"discipline\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("RUN_DISCIPLINE", "unspecified")) + "\""
+                + "}");
         System.exit(0); // bridges hold non-daemon subprocess pipes; exit explicitly
     }
 }
