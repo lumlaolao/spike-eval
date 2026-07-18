@@ -1,0 +1,653 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 9
+[DECK] loaded 'Identity-A': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[DECK] loaded 'Identity-B': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[SEATS] A=Identity-A(floor,opus) B=Identity-B(random,opus)
+[Identity-A] [MODE] baseline arm: floor
+[Identity-B] [MODE] baseline arm: random
+[HEADLESS] game starting (cap=15min)
+[Identity-A] [AUTO-LEGAL] mulligan(no-model)->KEEP
+[Identity-B] [AUTO-LEGAL] mulligan(random)->KEEP
+[Identity-A] [AUTO-LEGAL] play(no-budget): land Wasteland
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 0 castable + 4 land -> asking haiku...
+[Identity-B] [ROUTER] play: land Karakas
+[Identity-A] [AUTO-LEGAL] play(no-budget): land Marsh Flats
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 1 castable + 4 land -> asking opus...
+[Identity-B] [ROUTER] play: casts Guide of Souls {W} [Guide of Souls - Creature 1 / 2]
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 0 castable + 4 land -> asking haiku...
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 0 castable + 4 land -> asking haiku...
+[Identity-B] [ROUTER] play: land Shadowy Backstreet
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 4 castable + 3 land -> asking opus...
+[Identity-B] [ROUTER] play: land Plateau
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 4 castable -> asking opus...
+[Identity-B] [ROUTER] target: Identity-A <- Thoughtseize {B} [Target player reveals their hand. You choose a nonland card from it. T]
+[Identity-B] [ROUTER] play: casts Thoughtseize {B} [Target player reveals their hand. You choose a nonland card from it. T]
+[Identity-B] [ROUTER] discard(strip Identity-A): Amped Raptor
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 3 castable -> asking opus...
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] attackers: 1 can attack -> asking opus...
+[Identity-B] [ROUTER] attackers: Guide of Souls
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 3 castable -> asking opus...
+[Identity-B] [ROUTER] play: casts Voice of Victory 1{W} [Voice of Victory - Creature 1 / 3]
+[Identity-A] [AUTO-LEGAL] play(no-budget): land Arid Mesa
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 2 castable + 2 land -> asking opus...
+[Identity-B] [ROUTER] play: casts Ajani, Nacatl Pariah 1{W} [Ajani, Nacatl Pariah - Creature 1 / 2]
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 1 castable -> asking opus...
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 1 castable + 2 land -> asking opus...
+[Identity-B] [ROUTER] play: land Wasteland
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 3 castable -> asking opus...
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 2 castable -> asking haiku...
+[Identity-B] [ROUTER] target: Plateau [Identity-B's Battlefield] <- Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Identity-B] [ROUTER] play: casts Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Identity-B] [ROUTER] play(react): 1 castable -> asking haiku...
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] attackers: 2 can attack -> asking opus...
+[Identity-B] [ROUTER] attackers: Guide of Souls, Voice of Victory
+[Identity-B] [ROUTER] play(react): 1 castable -> asking haiku...
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 1 castable -> asking haiku...
+[Identity-B] [ROUTER] target: Ajani, Nacatl Pariah (1/2) [Identity-B's Battlefield] <- Karakas [{T}: Return target legendary creature to its owner's hand.] (only legal)
+[Identity-B] [ROUTER] play: casts Karakas [{T}: Return target legendary creature to its owner's hand.]
+[Identity-A] [AUTO-LEGAL] play(no-budget): land Elegant Parlor
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 3 castable + 2 land -> asking opus...
+[Identity-B] [ROUTER] play: land Badlands
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 3 castable -> asking opus...
+[Identity-B] [ROUTER] play: casts Ajani, Nacatl Pariah 1{W} [Ajani, Nacatl Pariah - Creature 1 / 2]
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 1 castable -> asking opus...
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 2 castable -> asking opus...
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 1 castable -> asking haiku...
+[Identity-B] [ROUTER] target: Ajani, Nacatl Pariah (1/2) [Identity-B's Battlefield] <- Karakas [{T}: Return target legendary creature to its owner's hand.] (only legal)
+[Identity-B] [ROUTER] play: casts Karakas [{T}: Return target legendary creature to its owner's hand.]
+[Identity-B] [ROUTER] attackers: 3 can attack -> asking opus...
+[Identity-B] [ROUTER] attackers: Voice of Victory
+[Identity-A] [AUTO-LEGAL] play(no-budget): land Wasteland
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 4 castable + 1 land -> asking opus...
+[Identity-B] [ROUTER] play: casts Ajani, Nacatl Pariah 1{W} [Ajani, Nacatl Pariah - Creature 1 / 2]
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 1 castable -> asking opus...
+[Identity-B] [ROUTER] target: Ajani, Nacatl Pariah (1/2) [Identity-B's Battlefield] <- Karakas [{T}: Return target legendary creature to its owner's hand.] (only legal)
+[Identity-B] [ROUTER] play: casts Karakas [{T}: Return target legendary creature to its owner's hand.]
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] attackers: 4 can attack -> asking opus...
+[Identity-B] [ROUTER] attackers: Voice of Victory, Cat Warrior Token
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[Identity-B] [ROUTER] play: land Wasteland
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 1 castable -> asking opus...
+[Identity-B] [ROUTER] target: Wasteland [Identity-B's Battlefield] <- Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Identity-B] [ROUTER] play: casts Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Identity-A] [AUTO-LEGAL] play(no-budget): land Shadowy Backstreet
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 4 castable + 1 land -> asking opus...
+[Identity-B] [ROUTER] play: casts Ocelot Pride {W} [Ocelot Pride - Creature 1 / 1]
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 3 castable + 1 land -> asking opus...
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] attackers: 5 can attack -> asking opus...
+[Identity-B] [ROUTER] attackers: Cat Warrior Token, Guide of Souls, Cat Warrior Token
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 3 castable + 1 land -> asking opus...
+[Identity-B] [ROUTER] play: casts Ajani, Nacatl Pariah 1{W} [Ajani, Nacatl Pariah - Creature 1 / 2]
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[Identity-B] [ROUTER] play: PASS
+[Identity-A] [AUTO-LEGAL] play(no-budget): land Marsh Flats
+[Identity-B] [ROUTER] play(react): 1 castable -> asking haiku...
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 1 castable -> asking haiku...
+[Identity-B] [ROUTER] target: Ajani, Nacatl Pariah (1/2) [Identity-B's Battlefield] <- Karakas [{T}: Return target legendary creature to its owner's hand.] (only legal)
+[Identity-B] [ROUTER] play: casts Karakas [{T}: Return target legendary creature to its owner's hand.]
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 4 castable + 1 land -> asking opus...
+[Identity-B] [ROUTER] play: casts Goblin Bombardment 1{R} [Goblin Bombardment]
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 1 castable + 1 land -> asking opus...
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 1 castable -> asking haiku...
+[Identity-B] [ROUTER] target: Cat Warrior Token (2/1) [Identity-B's Battlefield] <- Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-B] [ROUTER] play: casts Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-B] [ROUTER] play(react): 1 castable -> asking haiku...
+[Identity-B] [ROUTER] target: Cat Warrior Token (2/1) [Identity-B's Battlefield] <- Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-B] [ROUTER] play: casts Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-B] [ROUTER] play(react): 1 castable -> asking haiku...
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] attackers: 7 can attack -> asking opus...
+[Identity-B] [ROUTER] attackers: Cat Warrior Token, Cat Token, Cat Warrior Token, Voice of Victory, Cat Warrior Token, Guide of Souls
+[Identity-B] [ROUTER] play(react): 1 castable -> asking haiku...
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 1 castable -> asking haiku...
+[Identity-B] [ROUTER] target: Cat Token (1/1) [Identity-B's Battlefield] <- Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-B] [ROUTER] play: casts Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-B] [ROUTER] play(react): 1 castable -> asking haiku...
+[Identity-B] [ROUTER] play: PASS
+========== GAME OVER ==========
+outcome: B after 16 turns (AllOpponentsLost) in 1s
+--- full game log ---
+  MULLIGAN: Identity-A has kept a hand of 7 cards
+  MULLIGAN: Identity-B has kept a hand of 7 cards
+  TURN: Turn 1 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Wasteland (54)
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 2 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Karakas (91)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 3 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Marsh Flats (23)
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 4 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  MANA: Karakas (91) - {T}: Add {W}.
+  STACK_ADD: Identity-B cast Guide of Souls
+  STACK_RESOLVE: Guide of Souls - Creature 1 / 2
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  EFFECT_REPLACED: Shadowy Backstreet enters tapped.
+  LAND: Identity-B played Shadowy Backstreet (131)
+  STACK_ADD: Identity-B triggered Shadowy Backstreet
+  STACK_RESOLVE: Identity-B surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: When Shadowy Backstreet enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Shadowy Backstreet (131)]
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 5 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 6 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Plateau (114)
+  MANA: Shadowy Backstreet (131) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Thoughtseize targeting [Identity-A]
+  DISCARD: Identity-A discards Amped Raptor (51).
+  LIFE: Life: Identity-B 20 > 18
+  STACK_RESOLVE: Thoughtseize (120) - Identity-A reveals their hand. Identity-B chooses a nonland card from it. Identity-A discards that card. Identity-B loses 2 life.
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Guide of Souls (87) to attack Identity-A.
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Guide of Souls (87)]]
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Guide of Souls (87).
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Guide of Souls (87) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 20 > 19
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Plateau (114) - {T}: Add {W}.
+  MANA: Karakas (91) - {T}: Add {W}.
+  STACK_ADD: Identity-B cast Voice of Victory
+  STACK_RESOLVE: Voice of Victory - Creature 1 / 3
+  STACK_ADD: Identity-B triggered Guide of Souls
+  LIFE: Life: Identity-B 18 > 19
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Voice of Victory (107)]
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 7 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Arid Mesa (9)
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 8 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  MANA: Shadowy Backstreet (131) - {T}: Add {W}.
+  MANA: Plateau (114) - {T}: Add {R}.
+  STACK_ADD: Identity-B cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (132)]
+  STACK_ADD: Identity-B triggered Guide of Souls
+  LIFE: Life: Identity-B 19 > 20
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Warrior Token (153)]
+  LIFE: Life: Identity-B 20 > 21
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Ajani, Nacatl Pariah (132)]
+  LAND: Identity-B played Wasteland (128)
+  PHASE: Identity-B's Beginning of Combat Step
+  ZONE_CHANGE: Wasteland (128) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B activated Wasteland targeting [Plateau (114)]
+  ZONE_CHANGE: Plateau (114) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (128) - Destroy Plateau (114).
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Guide of Souls (87) and Voice of Victory (107) to attack Identity-A.
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Voice of Victory
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (107)]
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Guide of Souls
+  LIFE: Life: Identity-B 21 > 22
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (157)]
+  LIFE: Life: Identity-B 22 > 23
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (156)]
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Guide of Souls (87), Voice of Victory (107)]]
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Guide of Souls (87).
+Identity-A didn't block Voice of Victory (107).
+Identity-A didn't block Warrior Token (156).
+Identity-A didn't block Warrior Token (157).
+  STACK_ADD: Identity-B activated Karakas targeting [Ajani, Nacatl Pariah (132)]
+  STACK_RESOLVE: Karakas (91) - Return Ajani, Nacatl Pariah (132) to its owner's hand.
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Guide of Souls (87) deals 1 combat damage to Identity-A.
+  DAMAGE: Voice of Victory (107) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (156) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (157) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 19 > 15
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  STACK_ADD: Identity-B triggered Voice of Victory
+  ZONE_CHANGE: Warrior Token (156) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Warrior Token (157) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Sacrifice Warrior Token (156) and Warrior Token (157) at the beginning of the next end step. ([Warrior Token (156), Warrior Token (157)]) [Phase: Identity-B]
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 9 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  EFFECT_REPLACED: Elegant Parlor enters tapped.
+  LAND: Identity-A played Elegant Parlor (15)
+  STACK_ADD: Identity-A triggered Elegant Parlor
+  STACK_RESOLVE: Identity-A surveiled 1 card(s) to the graveyard
+  STACK_RESOLVE: When Elegant Parlor enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Elegant Parlor (15)]
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 10 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Badlands (76)
+  MANA: Shadowy Backstreet (131) - {T}: Add {W}.
+  MANA: Badlands (76) - {T}: Add {R}.
+  STACK_ADD: Identity-B cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (132)]
+  STACK_ADD: Identity-B triggered Guide of Souls
+  LIFE: Life: Identity-B 23 > 24
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Warrior Token (160)]
+  LIFE: Life: Identity-B 24 > 25
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Ajani, Nacatl Pariah (132)]
+  PHASE: Identity-B's Beginning of Combat Step
+  STACK_ADD: Identity-B activated Karakas targeting [Ajani, Nacatl Pariah (132)]
+  STACK_RESOLVE: Karakas (91) - Return Ajani, Nacatl Pariah (132) to its owner's hand.
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Voice of Victory (107) to attack Identity-A.
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Voice of Victory
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (107)]
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Guide of Souls
+  LIFE: Life: Identity-B 25 > 26
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (164)]
+  LIFE: Life: Identity-B 26 > 27
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (163)]
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Voice of Victory (107)]]
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Voice of Victory (107).
+Identity-A didn't block Warrior Token (163).
+Identity-A didn't block Warrior Token (164).
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Voice of Victory (107) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (163) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (164) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 15 > 12
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  STACK_ADD: Identity-B triggered Voice of Victory
+  ZONE_CHANGE: Warrior Token (163) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Warrior Token (164) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Sacrifice Warrior Token (163) and Warrior Token (164) at the beginning of the next end step. ([Warrior Token (163), Warrior Token (164)]) [Phase: Identity-B]
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 11 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Wasteland (52)
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 12 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  MANA: Shadowy Backstreet (131) - {T}: Add {W}.
+  MANA: Badlands (76) - {T}: Add {R}.
+  STACK_ADD: Identity-B cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Ajani, Nacatl Pariah
+  STACK_ADD: Identity-B activated Karakas targeting [Ajani, Nacatl Pariah (133)]
+  STACK_RESOLVE: Karakas (91) - Return Ajani, Nacatl Pariah (133) to its owner's hand.
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (133)]
+  STACK_ADD: Identity-B triggered Guide of Souls
+  LIFE: Life: Identity-B 27 > 28
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Warrior Token (167)]
+  LIFE: Life: Identity-B 28 > 29
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Ajani, Nacatl Pariah (133)]
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Voice of Victory (107) and Cat Warrior Token (160) to attack Identity-A.
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Voice of Victory
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (107)]
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Guide of Souls
+  LIFE: Life: Identity-B 29 > 30
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (171)]
+  LIFE: Life: Identity-B 30 > 31
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (170)]
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Voice of Victory (107), Cat Warrior Token (160)]]
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Voice of Victory (107).
+Identity-A didn't block Cat Warrior Token (160).
+Identity-A didn't block Warrior Token (170).
+Identity-A didn't block Warrior Token (171).
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Voice of Victory (107) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Warrior Token (160) deals 2 combat damage to Identity-A.
+  DAMAGE: Warrior Token (170) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (171) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 12 > 7
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  LAND: Identity-B played Wasteland (127)
+  ZONE_CHANGE: Wasteland (127) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B activated Wasteland targeting [Wasteland (127)]
+  STACK_RESOLVE: Wasteland ability fizzles.
+  PHASE: Identity-B's End step
+  STACK_ADD: Identity-B triggered Voice of Victory
+  ZONE_CHANGE: Warrior Token (170) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Warrior Token (171) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Sacrifice Warrior Token (170) and Warrior Token (171) at the beginning of the next end step. ([Warrior Token (170), Warrior Token (171)]) [Phase: Identity-B]
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 13 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  EFFECT_REPLACED: Shadowy Backstreet enters tapped.
+  LAND: Identity-A played Shadowy Backstreet (56)
+  STACK_ADD: Identity-A triggered Shadowy Backstreet
+  STACK_RESOLVE: Identity-A surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: When Shadowy Backstreet enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Shadowy Backstreet (56)]
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 14 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  MANA: Shadowy Backstreet (131) - {T}: Add {W}.
+  STACK_ADD: Identity-B cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  STACK_ADD: Identity-B triggered Guide of Souls
+  LIFE: Life: Identity-B 31 > 32
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Ocelot Pride (100)]
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Cat Warrior Token (153), Guide of Souls (87) and Cat Warrior Token (167) to attack Identity-A.
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Cat Warrior Token (153), Guide of Souls (87), Cat Warrior Token (167)]]
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Cat Warrior Token (153).
+Identity-A didn't block Guide of Souls (87).
+Identity-A didn't block Cat Warrior Token (167).
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Cat Warrior Token (153) deals 2 combat damage to Identity-A.
+  DAMAGE: Guide of Souls (87) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Warrior Token (167) deals 2 combat damage to Identity-A.
+  LIFE: Life: Identity-A 7 > 2
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Karakas (91) - {T}: Add {W}.
+  MANA: Badlands (76) - {T}: Add {R}.
+  STACK_ADD: Identity-B cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (132)]
+  STACK_ADD: Identity-B triggered Guide of Souls
+  LIFE: Life: Identity-B 32 > 33
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Warrior Token (175)]
+  LIFE: Life: Identity-B 33 > 34
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Ajani, Nacatl Pariah (132)]
+  PHASE: Identity-B's End step
+  STACK_ADD: Identity-B triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-B]
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Guide of Souls
+  LIFE: Life: Identity-B 34 > 35
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (182)]
+  LIFE: Life: Identity-B 35 > 36
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Warrior Token (181)]
+  LIFE: Life: Identity-B 36 > 37
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (178)]
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 15 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Marsh Flats (21)
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 16 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  STACK_ADD: Identity-B activated Karakas targeting [Ajani, Nacatl Pariah (132)]
+  STACK_RESOLVE: Karakas (91) - Return Ajani, Nacatl Pariah (132) to its owner's hand.
+  PHASE: Identity-B's Main phase, precombat
+  MANA: Badlands (76) - {T}: Add {R}.
+  MANA: Shadowy Backstreet (131) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Goblin Bombardment
+  STACK_RESOLVE: Goblin Bombardment
+  PHASE: Identity-B's Beginning of Combat Step
+  ZONE_CHANGE: Cat Token (182) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B activated Goblin Bombardment targeting [Cat Warrior Token (181)]
+  ZONE_CHANGE: Cat Warrior Token (181) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B activated Goblin Bombardment targeting [Cat Warrior Token (160)]
+  DAMAGE: Goblin Bombardment (94) deals 1 damage to Cat Warrior Token (160).
+  STACK_RESOLVE: Goblin Bombardment (94) - Goblin Bombardment (94) deals 1 damage to Cat Warrior Token (160).
+  ZONE_CHANGE: Cat Warrior Token (160) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Goblin Bombardment ability fizzles.
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Cat Warrior Token (153), Cat Token (178), Cat Warrior Token (167), Voice of Victory (107), Cat Warrior Token (175) and Guide of Souls (87) to attack Identity-A.
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Voice of Victory
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (107)]
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Guide of Souls
+  LIFE: Life: Identity-B 37 > 38
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (186)]
+  LIFE: Life: Identity-B 38 > 39
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (185)]
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Cat Warrior Token (153), Cat Token (178), Cat Warrior Token (167), Voice of Victory (107), Cat Warrior Token (175), Guide of Souls (87)]]
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Cat Warrior Token (153).
+Identity-A didn't block Cat Token (178).
+Identity-A didn't block Cat Warrior Token (167).
+Identity-A didn't block Voice of Victory (107).
+Identity-A didn't block Cat Warrior Token (175).
+Identity-A didn't block Guide of Souls (87).
+Identity-A didn't block Warrior Token (185).
+Identity-A didn't block Warrior Token (186).
+  ZONE_CHANGE: Warrior Token (186) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B activated Goblin Bombardment targeting [Cat Token (178)]
+  DAMAGE: Goblin Bombardment (94) deals 1 damage to Cat Token (178).
+  STACK_RESOLVE: Goblin Bombardment (94) - Goblin Bombardment (94) deals 1 damage to Cat Token (178).
+  ZONE_CHANGE: Cat Token (178) was put into Graveyard from Battlefield.
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Cat Warrior Token (153) deals 2 combat damage to Identity-A.
+  DAMAGE: Cat Warrior Token (167) deals 2 combat damage to Identity-A.
+  DAMAGE: Voice of Victory (107) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Warrior Token (175) deals 2 combat damage to Identity-A.
+  DAMAGE: Guide of Souls (87) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (185) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 2 > -7
+  PLAYER_CONTROL: Identity-A has restored control over themself
+  PLAYER_CONTROL: Identity-B has restored control over themself
+  GAME_OUTCOME: Turn 8
+  GAME_OUTCOME: Identity-A has lost because life total reached 0
+  GAME_OUTCOME: Identity-B has won because all opponents have lost
+  MATCH_RESULTS: Identity-A: 0 Identity-B: 1 
+===============================

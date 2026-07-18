@@ -1,0 +1,802 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 7
+[DECK] loaded 'Identity-A': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[DECK] loaded 'Identity-B': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[SEATS] A=Identity-A(llm,haiku) B=Identity-B(floor,opus) [SWAPPED]
+[Identity-B] [MODE] baseline arm: floor
+[HEADLESS] game starting (cap=120min)
+[Identity-B] [AUTO-LEGAL] mulligan(no-model)->KEEP
+[Identity-A] [ROUTER] mulligan: 3/7 lands -> asking haiku...
+[CLAUDE Identity-A/smart] starting persistent haiku session...
+[CLAUDE Identity-A/smart] replied in 11625 ms
+[Identity-A] [ROUTER] mulligan: KEEP
+[Identity-B] [AUTO-LEGAL] play(no-budget): land Arid Mesa
+[Identity-A] [TALLY] smart=1 fast=0 auto=0 ai=0 avgSmart=11625ms
+[Identity-A] [ROUTER] play(main): 0 castable + 3 land -> asking haiku...
+[CLAUDE Identity-A/fast] starting persistent haiku session...
+[CLAUDE Identity-A/fast] replied in 24463 ms
+[Identity-A] [ROUTER] play: land Scrubland
+[Identity-A] [TALLY] smart=1 fast=1 auto=0 ai=0 avgSmart=11625ms avgFast=24463ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 31657 ms
+[Identity-A] [ROUTER] plan: Cast Ocelot Pride to start building board toward Bombardment synergies.
+[Identity-A] [ROUTER] play: casts Ocelot Pride {W} [Ocelot Pride - Creature 1 / 1]
+[Identity-B] [AUTO-LEGAL] play(no-budget): land Wasteland
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 13848 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4612 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=2 fast=3 auto=0 ai=0 avgSmart=21641ms avgFast=14307ms
+[Identity-A] [ROUTER] play(main): 1 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 52247 ms
+[Identity-A] [ROUTER] plan: Play Marsh Flats to develop mana for creature spells next turn.
+[Identity-A] [ROUTER] play: land Marsh Flats
+[Identity-A] [TALLY] smart=3 fast=3 auto=0 ai=0 avgSmart=31843ms avgFast=14307ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 50850 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 40892 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 1 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 31515 ms
+[Identity-A] [ROUTER] attackers: none
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 6349 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 9672 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=5 fast=6 auto=0 ai=0 avgSmart=35578ms avgFast=16639ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 34201 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 13671 ms
+[Identity-A] [ROUTER] play: casts Marsh Flats [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Plains ]
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 5849 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 16625 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2026 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2070 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1845 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2291 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1441 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2057 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2648 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2753 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2036 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=6 fast=18 auto=0 ai=0 avgSmart=35349ms avgFast=8619ms
+[Identity-A] [ROUTER] play(main): 5 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 36872 ms
+[Identity-A] [ROUTER] plan: Cast Goblin Bombardment to enable creature-sacrifice synergies; build board next turn.
+[Identity-A] [ROUTER] play: casts Goblin Bombardment 1{R} [Goblin Bombardment]
+[Identity-A] [TALLY] smart=7 fast=18 auto=0 ai=0 avgSmart=35566ms avgFast=8619ms
+[Identity-A] [ROUTER] play(main): 1 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 29176 ms
+[Identity-A] [ROUTER] play: land Marsh Flats
+[Identity-A] [TALLY] smart=8 fast=18 auto=0 ai=0 avgSmart=34767ms avgFast=8619ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 25606 ms
+[Identity-A] [ROUTER] play: casts Marsh Flats [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Plains ]
+[Identity-A] [TALLY] smart=9 fast=18 auto=0 ai=0 avgSmart=33749ms avgFast=8619ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 10204 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 10333 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 1 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 13051 ms
+[Identity-A] [ROUTER] attackers: Ocelot Pride
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3240 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2491 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2798 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2994 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=11 fast=23 auto=0 ai=0 avgSmart=29727ms avgFast=7695ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 25366 ms
+[CLAUDE Identity-A/smart] replied in 5775 ms
+[Identity-A] [ROUTER] target: Identity-B <- Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-A] [ROUTER] play: casts Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-B] [AUTO-LEGAL] play(no-budget): land Plains
+[Identity-A] [TALLY] smart=13 fast=23 auto=0 ai=0 avgSmart=27549ms avgFast=7695ms
+[Identity-A] [ROUTER] play(main): 3 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 29800 ms
+[Identity-A] [ROUTER] plan: Cast Amped Raptor, then Guide of Souls, sacrifice both with Bombardment for 2 damage.
+[Identity-A] [ROUTER] play: casts Amped Raptor 1{R} [Amped Raptor - Creature 2 / 1]
+[Identity-A] [TALLY] smart=14 fast=23 auto=0 ai=0 avgSmart=27710ms avgFast=7695ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 12668 ms
+[Identity-A] [ROUTER] play: PASS
+[CLAUDE Identity-A/fast] replied in 20338 ms
+[Identity-A] [ROUTER] confirm(Do you want to play Voice of Victory?): YES
+[Identity-A] [TALLY] smart=15 fast=24 auto=0 ai=0 avgSmart=26707ms avgFast=8222ms
+[Identity-A] [ROUTER] play(main): 3 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 7426 ms
+[Identity-A] [ROUTER] play: casts Guide of Souls {W} [Guide of Souls - Creature 1 / 2]
+[Identity-A] [TALLY] smart=16 fast=24 auto=0 ai=0 avgSmart=25502ms avgFast=8222ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 4033 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=17 fast=24 auto=0 ai=0 avgSmart=24239ms avgFast=8222ms
+[Identity-A] [ROUTER] play(main): 1 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 16362 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 9951 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2123 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2276 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=18 fast=27 auto=0 ai=0 avgSmart=23801ms avgFast=7840ms
+[Identity-A] [ROUTER] play(main): 1 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 12480 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 6445 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2366 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2077 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2026 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2679 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2214 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3186 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2619 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2607 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 13338 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 5330 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=19 fast=38 auto=0 ai=0 avgSmart=23206ms avgFast=6752ms
+[Identity-A] [ROUTER] play(main): 4 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 25234 ms
+[Identity-A] [ROUTER] plan: Cast Voice of Victory to build toward sacrificing multiple creatures; activate Bombardment
+[Identity-A] [ROUTER] play: casts Voice of Victory 1{W} [Voice of Victory - Creature 1 / 3]
+[Identity-A] [TALLY] smart=20 fast=38 auto=0 ai=0 avgSmart=23307ms avgFast=6752ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 5749 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=21 fast=38 auto=0 ai=0 avgSmart=22471ms avgFast=6752ms
+[Identity-A] [ROUTER] play(main): 2 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 8607 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 11880 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 2 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 11552 ms
+[Identity-A] [ROUTER] attackers: Amped Raptor, Guide of Souls
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4480 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] refreshing session after 40 asks (bounds context growth)
+[CLAUDE Identity-A/fast] starting persistent haiku session...
+[CLAUDE Identity-A/fast] replied in 44104 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 18030 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] timed out
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] timed out
+[Identity-A] [TALLY] smart=23 fast=44 auto=0 ai=0 avgSmart=21393ms avgFast=7977ms
+[Identity-A] [ROUTER] play(main): 2 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/smart] timed out
+[Identity-A] [AUTO-LEGAL] play(bridge-down): land Wasteland
+[Identity-A] [TALLY] smart=24 fast=44 auto=1 ai=0 avgSmart=21393ms avgFast=7977ms
+[Identity-A] [ROUTER] play(main): 3 castable -> asking haiku...
+[CLAUDE Identity-A/smart] timed out
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 22931 ms
+[CLAUDE Identity-A/smart] replied in 0 ms
+[Identity-A] [ROUTER] target: Wasteland [Identity-B's Battlefield] <- Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Identity-A] [ROUTER] play: casts Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] timed out
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] timed out
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] timed out
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] timed out
+[Identity-B] [AUTO-LEGAL] play(no-budget): land Wasteland
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] timed out
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] timed out
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] timed out
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] timed out
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] timed out
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] timed out
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] timed out
+[Identity-A] [ROUTER] play(react): 4 castable -> asking haiku...
+[CLAUDE Identity-A/fast] timed out
+[Identity-A] [TALLY] smart=26 fast=57 auto=1 ai=0 avgSmart=20502ms avgFast=8325ms
+[Identity-A] [ROUTER] play(main): 4 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/smart] timed out
+[Identity-A] [AUTO-LEGAL] play(bridge-down): land Karakas
+[Identity-A] [TALLY] smart=27 fast=57 auto=2 ai=0 avgSmart=20502ms avgFast=8325ms
+[Identity-A] [ROUTER] play(main): 4 castable -> asking haiku...
+[CLAUDE Identity-A/smart] timed out
+[Identity-A] [ROUTER] play(react): 4 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 23179 ms
+[CLAUDE Identity-A/smart] timed out
+[Identity-A] [ROUTER] target: Identity-B <- Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-A] [ROUTER] play: casts Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-A] [ROUTER] play(react): 4 castable -> asking haiku...
+[CLAUDE Identity-A/fast] timed out
+[Identity-A] [ROUTER] play(react): 4 castable -> asking haiku...
+[CLAUDE Identity-A/fast] timed out
+[Identity-A] [ROUTER] attackers: 2 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] timed out
+[Identity-A] [AUTO-LEGAL] attackers(bridge-down)->all-in x2
+[Identity-A] [ROUTER] play(react): 4 castable -> asking haiku...
+[CLAUDE Identity-A/fast] timed out
+[Identity-A] [ROUTER] play(react): 4 castable -> asking haiku...
+[CLAUDE Identity-A/fast] timed out
+[Identity-A] [ROUTER] play(react): 4 castable -> asking haiku...
+[CLAUDE Identity-A/fast] timed out
+[Identity-A] [ROUTER] play(react): 4 castable -> asking haiku...
+[CLAUDE Identity-A/fast] timed out
+[Identity-A] [ROUTER] play(react): 4 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 16237 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 4 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4948 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=30 fast=66 auto=3 ai=0 avgSmart=20502ms avgFast=8747ms
+[Identity-A] [ROUTER] play(main): 4 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 0 ms
+[Identity-A] [ROUTER] play: casts Orcish Bowmasters 1{B} [Orcish Bowmasters - Creature 1 / 1]
+[Identity-A] [TALLY] smart=31 fast=66 auto=3 ai=0 avgSmart=19682ms avgFast=8747ms
+[Identity-A] [ROUTER] play(main): 3 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 1732 ms
+[CLAUDE Identity-A/smart] timed out
+[Identity-A] [TALLY] smart=33 fast=66 auto=3 ai=0 avgSmart=18991ms avgFast=8747ms
+[Identity-A] [ROUTER] play(main): 3 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 25289 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 5108 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4499 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2836 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2108 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2029 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1920 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1900 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2801 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2281 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3490 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=34 fast=77 auto=3 ai=0 avgSmart=19225ms avgFast=7567ms
+[Identity-A] [ROUTER] play(main): 4 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 1 ms
+[Identity-A] [ROUTER] play: casts Hexing Squelcher 1{R} [Hexing Squelcher - Creature 2 / 2]
+[Identity-A] [TALLY] smart=35 fast=77 auto=3 ai=0 avgSmart=18538ms avgFast=7567ms
+[Identity-A] [ROUTER] play(main): 3 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 9042 ms
+[Identity-A] [ROUTER] plan: Cast Hexing Squelcher, then sacrifice all creatures with Bombardment for 6 damage to reach
+[CLAUDE Identity-A/smart] replied in 3118 ms
+[Identity-A] [ROUTER] target: Voice of Victory (1/3) [Identity-A's Battlefield] <- Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-A] [ROUTER] play: casts Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-A] [TALLY] smart=37 fast=77 auto=3 ai=0 avgSmart=17707ms avgFast=7567ms
+[Identity-A] [ROUTER] play(main): 3 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 5035 ms
+[CLAUDE Identity-A/smart] replied in 7056 ms
+[Identity-A] [ROUTER] target: Orcish Bowmasters (1/1) [Identity-A's Battlefield] <- Swords to Plowshares {W} [Exile target creature.]
+[Identity-A] [ROUTER] play: casts Swords to Plowshares {W} [Exile target creature.]
+[Identity-A] [TALLY] smart=39 fast=77 auto=3 ai=0 avgSmart=16979ms avgFast=7567ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 6755 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 0 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 2 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] refreshing session after 40 asks (bounds context growth)
+[CLAUDE Identity-A/smart] starting persistent haiku session...
+[CLAUDE Identity-A/smart] replied in 56137 ms
+[Identity-A] [ROUTER] attackers: Amped Raptor, Voice of Victory
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 0 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 5721 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] refreshing session after 40 asks (bounds context growth)
+[CLAUDE Identity-A/fast] starting persistent haiku session...
+[CLAUDE Identity-A/fast] replied in 64514 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 33647 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4456 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=41 fast=83 auto=3 ai=0 avgSmart=17830ms avgFast=8566ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 67816 ms
+[CLAUDE Identity-A/smart] replied in 8823 ms
+[Identity-A] [ROUTER] target: Identity-B <- Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-A] [ROUTER] play: casts Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-A] [TALLY] smart=43 fast=83 auto=3 ai=0 avgSmart=18968ms avgFast=8566ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 7901 ms
+[CLAUDE Identity-A/smart] replied in 12197 ms
+[Identity-A] [ROUTER] target: Identity-B <- Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-A] [ROUTER] play: casts Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-A] [TALLY] smart=45 fast=83 auto=3 ai=0 avgSmart=18498ms avgFast=8566ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 6030 ms
+[CLAUDE Identity-A/smart] replied in 2523 ms
+[Identity-A] [ROUTER] target: Identity-B <- Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-A] [ROUTER] play: casts Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-A] [TALLY] smart=47 fast=83 auto=3 ai=0 avgSmart=17787ms avgFast=8566ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 3164 ms
+[CLAUDE Identity-A/smart] replied in 1823 ms
+[Identity-A] [ROUTER] target: Identity-B <- Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-A] [ROUTER] play: casts Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-A] [TALLY] smart=49 fast=83 auto=3 ai=0 avgSmart=17059ms avgFast=8566ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 3915 ms
+[CLAUDE Identity-A/smart] replied in 3112 ms
+[Identity-A] [ROUTER] target: Identity-B <- Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-A] [ROUTER] play: casts Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+========== GAME OVER ==========
+outcome: A after 14 turns (AllOpponentsLost) in 24509s
+--- full game log ---
+  MULLIGAN: Identity-B has kept a hand of 7 cards
+  MULLIGAN: Identity-A has kept a hand of 7 cards
+  TURN: Turn 1 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Arid Mesa (8)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 2 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Scrubland (118)
+  MANA: Scrubland (118) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 3 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Wasteland (54)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 4 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Marsh Flats (96)
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  LIFE: Life: Identity-A 20 > 19
+  ZONE_CHANGE: Marsh Flats (96) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Marsh Flats
+  EFFECT_REPLACED: Elegant Parlor enters tapped.
+  STACK_RESOLVE: Marsh Flats (96) - Identity-A searches their library for a Plains or Swamp card, puts it onto the battlefield, then shuffles.
+  STACK_ADD: Identity-A triggered Elegant Parlor
+  STACK_RESOLVE: Identity-A surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: When Elegant Parlor enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Elegant Parlor (90)]
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 5 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 6 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Elegant Parlor (90) - {T}: Add {R}.
+  MANA: Scrubland (118) - {T}: Add {B}.
+  STACK_ADD: Identity-A cast Goblin Bombardment
+  STACK_RESOLVE: Goblin Bombardment
+  LAND: Identity-A played Marsh Flats (98)
+  LIFE: Life: Identity-A 19 > 18
+  ZONE_CHANGE: Marsh Flats (98) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Marsh Flats
+  STACK_RESOLVE: Marsh Flats (98) - Identity-A searches their library for a Plains or Swamp card, puts it onto the battlefield, then shuffles.
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Ocelot Pride (101) to attack Identity-B.
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B didn't block Ocelot Pride (101).
+  PHASE: Identity-A's First Strike Damage Step
+  DAMAGE: Ocelot Pride (101) deals 1 combat damage to Identity-B.
+  LIFE: Life: Identity-A 18 > 19
+  LIFE: Life: Identity-B 20 > 19
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  ZONE_CHANGE: Ocelot Pride (101) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Goblin Bombardment targeting [Identity-B]
+  DAMAGE: Goblin Bombardment (94) deals 1 non-combat damage to Identity-B.
+  LIFE: Life: Identity-B 19 > 18
+  STACK_RESOLVE: Goblin Bombardment (94) - Goblin Bombardment (94) deals 1 damage to Identity-B.
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 7 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Plains (40)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 8 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Elegant Parlor (90) - {T}: Add {R}.
+  MANA: Badlands (76) - {T}: Add {R}.
+  STACK_ADD: Identity-A cast Amped Raptor
+  STACK_RESOLVE: Amped Raptor - Creature 2 / 1
+  STACK_ADD: Identity-A triggered Amped Raptor
+  STACK_RESOLVE: When Amped Raptor enters, you get {E}{E} (two energy counters). Then if you cast it from your hand, exile cards from the top of your library until you exile a nonland card. You may cast that card by paying an amount of {E} equal to its mana value rather than paying its mana cost. [Zone Changer: Amped Raptor (124)]
+  MANA: Scrubland (118) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Guide of Souls
+  STACK_RESOLVE: Guide of Souls - Creature 1 / 2
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 9 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  DISCARD: Identity-B discards Orcish Bowmasters (35).
+  TURN: Turn 10 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Scrubland (118) - {T}: Add {W}.
+  MANA: Badlands (76) - {T}: Add {R}.
+  STACK_ADD: Identity-A cast Voice of Victory
+  STACK_RESOLVE: Voice of Victory - Creature 1 / 3
+  STACK_ADD: Identity-A triggered Guide of Souls
+  LIFE: Life: Identity-A 19 > 20
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Voice of Victory (109)]
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Amped Raptor (124) and Guide of Souls (88) to attack Identity-B.
+  STACK_ADD: Identity-A triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Amped Raptor (124), Guide of Souls (88)]]
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B didn't block Amped Raptor (124).
+Identity-B didn't block Guide of Souls (88).
+  PHASE: Identity-A's First Strike Damage Step
+  DAMAGE: Amped Raptor (124) deals 2 combat damage to Identity-B.
+  LIFE: Life: Identity-B 18 > 16
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Guide of Souls (88) deals 1 combat damage to Identity-B.
+  LIFE: Life: Identity-B 16 > 15
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  LAND: Identity-A played Wasteland (130)
+  PHASE: Identity-A's End step
+  ZONE_CHANGE: Wasteland (130) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Wasteland targeting [Wasteland (54)]
+  ZONE_CHANGE: Wasteland (54) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (130) - Destroy Wasteland (54).
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 11 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Wasteland (55)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 12 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Karakas (92)
+  PHASE: Identity-A's Beginning of Combat Step
+  ZONE_CHANGE: Guide of Souls (88) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Goblin Bombardment targeting [Identity-B]
+  DAMAGE: Goblin Bombardment (94) deals 1 non-combat damage to Identity-B.
+  LIFE: Life: Identity-B 15 > 14
+  STACK_RESOLVE: Goblin Bombardment (94) - Goblin Bombardment (94) deals 1 damage to Identity-B.
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Amped Raptor (124) and Voice of Victory (109) to attack Identity-B.
+  STACK_ADD: Identity-A triggered Voice of Victory
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (109)]
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B didn't block Amped Raptor (124).
+Identity-B didn't block Voice of Victory (109).
+Identity-B didn't block Warrior Token (153).
+Identity-B didn't block Warrior Token (154).
+  PHASE: Identity-A's First Strike Damage Step
+  DAMAGE: Amped Raptor (124) deals 2 combat damage to Identity-B.
+  LIFE: Life: Identity-B 14 > 12
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Voice of Victory (109) deals 1 combat damage to Identity-B.
+  DAMAGE: Warrior Token (153) deals 1 combat damage to Identity-B.
+  DAMAGE: Warrior Token (154) deals 1 combat damage to Identity-B.
+  LIFE: Life: Identity-B 12 > 9
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  MANA: Scrubland (118) - {T}: Add {B}.
+  MANA: Badlands (76) - {T}: Add {R}.
+  STACK_ADD: Identity-A cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Identity-A triggered Orcish Bowmasters targeting [Identity-B]
+  DAMAGE: Orcish Bowmasters (112) deals 1 non-combat damage to Identity-B.
+  LIFE: Life: Identity-B 9 > 8
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Identity-B]]) [Zone Changer: Orcish Bowmasters (112)]
+  PHASE: Identity-A's End step
+  STACK_ADD: Identity-A triggered Voice of Victory
+  ZONE_CHANGE: Warrior Token (153) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Warrior Token (154) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Sacrifice Warrior Token (153) and Warrior Token (154) at the beginning of the next end step. ([Warrior Token (153), Warrior Token (154)]) [Phase: Identity-A]
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 13 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  DISCARD: Identity-B discards Guide of Souls (12).
+  TURN: Turn 14 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Elegant Parlor (90) - {T}: Add {R}.
+  MANA: Badlands (76) - {T}: Add {R}.
+  STACK_ADD: Identity-A cast Hexing Squelcher
+  ZONE_CHANGE: Orc Army Token (156) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Goblin Bombardment targeting [Voice of Victory (109)]
+  MANA: Scrubland (118) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Swords to Plowshares targeting [Orcish Bowmasters (112)]
+  ZONE_CHANGE: Orcish Bowmasters (112) was put into Exile from Battlefield.
+  LIFE: Life: Identity-A 20 > 21
+  STACK_RESOLVE: Swords to Plowshares (103) - Exile Orcish Bowmasters (112). Identity-A gains life equal to its power.
+  DAMAGE: Goblin Bombardment (94) deals 1 damage to Voice of Victory (109).
+  STACK_RESOLVE: Goblin Bombardment (94) - Goblin Bombardment (94) deals 1 damage to Voice of Victory (109).
+  STACK_RESOLVE: Hexing Squelcher - Creature 2 / 2
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Amped Raptor (124) and Voice of Victory (109) to attack Identity-B.
+  STACK_ADD: Identity-A triggered Voice of Victory
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (109)]
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B didn't block Amped Raptor (124).
+Identity-B didn't block Voice of Victory (109).
+Identity-B didn't block Warrior Token (159).
+Identity-B didn't block Warrior Token (160).
+  PHASE: Identity-A's First Strike Damage Step
+  DAMAGE: Amped Raptor (124) deals 2 combat damage to Identity-B.
+  LIFE: Life: Identity-B 8 > 6
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Voice of Victory (109) deals 1 combat damage to Identity-B.
+  DAMAGE: Warrior Token (159) deals 1 combat damage to Identity-B.
+  DAMAGE: Warrior Token (160) deals 1 combat damage to Identity-B.
+  LIFE: Life: Identity-B 6 > 3
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  ZONE_CHANGE: Warrior Token (160) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Goblin Bombardment targeting [Identity-B]
+  ZONE_CHANGE: Warrior Token (159) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Goblin Bombardment targeting [Identity-B]
+  ZONE_CHANGE: Voice of Victory (109) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Goblin Bombardment targeting [Identity-B]
+  ZONE_CHANGE: Hexing Squelcher (81) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Goblin Bombardment targeting [Identity-B]
+  ZONE_CHANGE: Amped Raptor (124) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Goblin Bombardment targeting [Identity-B]
+  DAMAGE: Goblin Bombardment (94) deals 1 non-combat damage to Identity-B.
+  LIFE: Life: Identity-B 3 > 2
+  STACK_RESOLVE: Goblin Bombardment (94) - Goblin Bombardment (94) deals 1 damage to Identity-B.
+  DAMAGE: Goblin Bombardment (94) deals 1 non-combat damage to Identity-B.
+  LIFE: Life: Identity-B 2 > 1
+  STACK_RESOLVE: Goblin Bombardment (94) - Goblin Bombardment (94) deals 1 damage to Identity-B.
+  DAMAGE: Goblin Bombardment (94) deals 1 non-combat damage to Identity-B.
+  LIFE: Life: Identity-B 1 > 0
+  STACK_RESOLVE: Goblin Bombardment (94) - Goblin Bombardment (94) deals 1 damage to Identity-B.
+  PLAYER_CONTROL: Identity-B has restored control over themself
+  PLAYER_CONTROL: Identity-A has restored control over themself
+  GAME_OUTCOME: Turn 7
+  GAME_OUTCOME: Identity-B has lost because life total reached 0
+  GAME_OUTCOME: Identity-A has won because all opponents have lost
+  MATCH_RESULTS: Identity-B: 0 Identity-A: 1 
+===============================

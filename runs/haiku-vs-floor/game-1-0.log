@@ -1,0 +1,619 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 1
+[DECK] loaded 'Identity-A': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[DECK] loaded 'Identity-B': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[SEATS] A=Identity-A(llm,haiku) B=Identity-B(floor,opus)
+[Identity-B] [MODE] baseline arm: floor
+[HEADLESS] game starting (cap=120min)
+[Identity-A] [ROUTER] mulligan: 1/7 lands -> asking haiku...
+[CLAUDE Identity-A/smart] starting persistent haiku session...
+[CLAUDE Identity-A/smart] replied in 17273 ms
+[Identity-A] [ROUTER] mulligan: MULLIGAN
+[Identity-B] [AUTO-LEGAL] mulligan(no-model)->KEEP
+[Identity-A] [ROUTER] mulligan: 1/6 lands -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 18687 ms
+[Identity-A] [ROUTER] mulligan: KEEP
+[Identity-A] [TALLY] smart=2 fast=0 auto=0 ai=0 avgSmart=17980ms
+[Identity-A] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/fast] starting persistent haiku session...
+[CLAUDE Identity-A/fast] replied in 7993 ms
+[Identity-A] [ROUTER] play: land Elegant Parlor
+[Identity-B] [AUTO-LEGAL] play(no-budget): land Wasteland
+[Identity-A] [TALLY] smart=2 fast=1 auto=0 ai=0 avgSmart=17980ms avgFast=7993ms
+[Identity-A] [ROUTER] play(main): 3 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 44813 ms
+[Identity-A] [ROUTER] plan: Cast Ocelot Pride to start developing board.
+[Identity-A] [ROUTER] play: casts Ocelot Pride {W} [Ocelot Pride - Creature 1 / 1]
+[Identity-B] [AUTO-LEGAL] play(no-budget): land Plains
+[Identity-A] [TALLY] smart=3 fast=1 auto=0 ai=0 avgSmart=26924ms avgFast=7993ms
+[Identity-A] [ROUTER] play(main): 2 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 40068 ms
+[Identity-A] [ROUTER] plan: Play Marsh Flats to enable Bowmasters or Amped Raptor next turn.
+[Identity-A] [ROUTER] play: land Marsh Flats
+[Identity-A] [TALLY] smart=4 fast=1 auto=0 ai=0 avgSmart=30210ms avgFast=7993ms
+[Identity-A] [ROUTER] play(main): 3 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 26782 ms
+[Identity-A] [ROUTER] play: casts Ocelot Pride {W} [Ocelot Pride - Creature 1 / 1]
+[Identity-A] [TALLY] smart=5 fast=1 auto=0 ai=0 avgSmart=29524ms avgFast=7993ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 14610 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 22280 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 1 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 10963 ms
+[Identity-A] [ROUTER] attackers: Ocelot Pride
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 13730 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 6580 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 8001 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 19761 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=7 fast=6 auto=0 ai=0 avgSmart=24742ms avgFast=13057ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 10358 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 11694 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3740 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2686 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2671 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3463 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2484 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2071 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1805 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3220 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 8727 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2635 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=8 fast=17 auto=0 ai=0 avgSmart=22944ms avgFast=7267ms
+[Identity-A] [ROUTER] play(main): 2 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 22064 ms
+[Identity-A] [ROUTER] plan: Cast Guide of Souls to trigger both Ocelot Prides, generate more tokens, snowball board.
+[Identity-A] [ROUTER] play: casts Guide of Souls {W} [Guide of Souls - Creature 1 / 2]
+[Identity-A] [TALLY] smart=9 fast=17 auto=0 ai=0 avgSmart=22846ms avgFast=7267ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 8078 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=10 fast=17 auto=0 ai=0 avgSmart=21369ms avgFast=7267ms
+[Identity-A] [ROUTER] play(main): 1 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 12375 ms
+[Identity-A] [ROUTER] play: land Wasteland
+[Identity-A] [TALLY] smart=11 fast=17 auto=0 ai=0 avgSmart=20551ms avgFast=7267ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 19514 ms
+[CLAUDE Identity-A/smart] replied in 3945 ms
+[Identity-A] [ROUTER] target: Wasteland [Identity-B's Battlefield] <- Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Identity-A] [ROUTER] play: casts Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Identity-A] [TALLY] smart=13 fast=17 auto=0 ai=0 avgSmart=19194ms avgFast=7267ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 6736 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 6585 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 4 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 8820 ms
+[Identity-A] [ROUTER] attackers: Ocelot Pride, Ocelot Pride, Cat Token, Cat Token
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 5731 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3638 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3883 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2100 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2231 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=15 fast=23 auto=0 ai=0 avgSmart=17672ms avgFast=6422ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 8476 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 5399 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4599 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2021 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1665 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2023 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1903 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1268 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1190 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1360 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3517 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3309 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=16 fast=34 auto=0 ai=0 avgSmart=17097ms avgFast=5175ms
+[Identity-A] [ROUTER] play(main): 1 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 15069 ms
+[Identity-A] [ROUTER] plan: Play Badlands to unlock black mana, then cast Bowmasters.
+[Identity-A] [ROUTER] play: land Badlands
+[Identity-A] [TALLY] smart=17 fast=34 auto=0 ai=0 avgSmart=16978ms avgFast=5175ms
+[Identity-A] [ROUTER] play(main): 4 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 12272 ms
+[Identity-A] [ROUTER] play: casts Orcish Bowmasters 1{B} [Orcish Bowmasters - Creature 1 / 1]
+[Identity-A] [TALLY] smart=18 fast=34 auto=0 ai=0 avgSmart=16716ms avgFast=5175ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 6265 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 5814 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 7 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 8674 ms
+[Identity-A] [ROUTER] attackers: Ocelot Pride, Ocelot Pride, Cat Token, Cat Token, Guide of Souls, Cat Token, Cat Token
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 6647 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2723 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2630 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2142 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2590 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=20 fast=40 auto=0 ai=0 avgSmart=15792ms avgFast=4962ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 7209 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] refreshing session after 40 asks (bounds context growth)
+[CLAUDE Identity-A/fast] starting persistent haiku session...
+[CLAUDE Identity-A/fast] replied in 18618 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 9236 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4868 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3098 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2326 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1549 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1678 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2720 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1880 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 5021 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2022 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=21 fast=51 auto=0 ai=0 avgSmart=15383ms avgFast=4931ms
+[Identity-A] [ROUTER] play(main): 4 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 13701 ms
+[Identity-A] [ROUTER] plan: Pass to combat, attack for lethal, win.
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3267 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 15 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 5804 ms
+[Identity-A] [ROUTER] attackers: Ocelot Pride, Ocelot Pride, Cat Token, Cat Token, Guide of Souls, Cat Token, Cat Token, Orcish Bowmasters, Orc Army Token, Cat Token, Cat Token, Cat Token, Cat Token, Cat Token, Cat Token
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2873 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1829 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2132 ms
+[Identity-A] [ROUTER] play: PASS
+========== GAME OVER ==========
+outcome: A after 11 turns (AllOpponentsLost) in 605s
+--- full game log ---
+  MULLIGAN: Identity-A has mulliganed down to 6 cards.
+  MULLIGAN: Identity-A has kept a hand of 6 cards
+  MULLIGAN: Identity-B has kept a hand of 7 cards
+  TURN: Turn 1 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  EFFECT_REPLACED: Elegant Parlor enters tapped.
+  LAND: Identity-A played Elegant Parlor (15)
+  STACK_ADD: Identity-A triggered Elegant Parlor
+  STACK_RESOLVE: Identity-A surveiled 1 card(s) to the graveyard
+  STACK_RESOLVE: When Elegant Parlor enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Elegant Parlor (15)]
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 2 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Wasteland (128)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 3 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Elegant Parlor (15) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 4 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Plains (116)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 5 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Marsh Flats (21)
+  MANA: Elegant Parlor (15) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Ocelot Pride (26) to attack Identity-B.
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B didn't block Ocelot Pride (26).
+  PHASE: Identity-A's First Strike Damage Step
+  DAMAGE: Ocelot Pride (26) deals 1 combat damage to Identity-B.
+  LIFE: Life: Identity-A 20 > 21
+  LIFE: Life: Identity-B 20 > 19
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  STACK_ADD: Identity-A triggered Ocelot Pride
+  STACK_ADD: Identity-A triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-A]
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-A]
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 6 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  DISCARD: Identity-B discards Cabal Therapy (77).
+  TURN: Turn 7 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Elegant Parlor (15) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Guide of Souls
+  STACK_RESOLVE: Guide of Souls - Creature 1 / 2
+  LAND: Identity-A played Wasteland (55)
+  ZONE_CHANGE: Wasteland (55) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Wasteland targeting [Wasteland (128)]
+  ZONE_CHANGE: Wasteland (128) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (55) - Destroy Wasteland (128).
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Ocelot Pride (26), Ocelot Pride (27), Cat Token (154) and Cat Token (156) to attack Identity-B.
+  STACK_ADD: Identity-A triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Ocelot Pride (26), Ocelot Pride (27), Cat Token (154), Cat Token (156)]]
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B didn't block Ocelot Pride (26).
+Identity-B didn't block Ocelot Pride (27).
+Identity-B didn't block Cat Token (154).
+Identity-B didn't block Cat Token (156).
+  PHASE: Identity-A's First Strike Damage Step
+  DAMAGE: Ocelot Pride (26) deals 1 combat damage to Identity-B.
+  LIFE: Life: Identity-A 21 > 22
+  DAMAGE: Ocelot Pride (27) deals 1 combat damage to Identity-B.
+  LIFE: Life: Identity-A 22 > 23
+  LIFE: Life: Identity-B 19 > 17
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Cat Token (154) deals 1 combat damage to Identity-B.
+  DAMAGE: Cat Token (156) deals 1 combat damage to Identity-B.
+  LIFE: Life: Identity-B 17 > 15
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  STACK_ADD: Identity-A triggered Ocelot Pride
+  STACK_ADD: Identity-A triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-A]
+  STACK_ADD: Identity-A triggered Guide of Souls
+  LIFE: Life: Identity-A 23 > 24
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (160)]
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-A]
+  STACK_ADD: Identity-A triggered Guide of Souls
+  LIFE: Life: Identity-A 24 > 25
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (162)]
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 8 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  DISCARD: Identity-B discards Cabal Therapy (78).
+  TURN: Turn 9 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Badlands (1)
+  MANA: Badlands (1) - {T}: Add {B}.
+  MANA: Elegant Parlor (15) - {T}: Add {R}.
+  STACK_ADD: Identity-A cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Identity-A triggered Guide of Souls
+  STACK_ADD: Identity-A triggered Orcish Bowmasters targeting [Identity-B]
+  DAMAGE: Orcish Bowmasters (37) deals 1 non-combat damage to Identity-B.
+  LIFE: Life: Identity-B 15 > 14
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Identity-B]]) [Zone Changer: Orcish Bowmasters (37)]
+  STACK_ADD: Identity-A triggered Guide of Souls
+  LIFE: Life: Identity-A 25 > 26
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Orc Army Token (165)]
+  LIFE: Life: Identity-A 26 > 27
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Orcish Bowmasters (37)]
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Ocelot Pride (26), Ocelot Pride (27), Cat Token (154), Cat Token (156), Guide of Souls (14), Cat Token (160) and Cat Token (162) to attack Identity-B.
+  STACK_ADD: Identity-A triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Ocelot Pride (26), Ocelot Pride (27), Cat Token (154), Cat Token (156), Guide of Souls (14), Cat Token (160), Cat Token (162)]]
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B didn't block Ocelot Pride (26).
+Identity-B didn't block Ocelot Pride (27).
+Identity-B didn't block Cat Token (154).
+Identity-B didn't block Cat Token (156).
+Identity-B didn't block Guide of Souls (14).
+Identity-B didn't block Cat Token (160).
+Identity-B didn't block Cat Token (162).
+  PHASE: Identity-A's First Strike Damage Step
+  DAMAGE: Ocelot Pride (26) deals 1 combat damage to Identity-B.
+  LIFE: Life: Identity-A 27 > 28
+  DAMAGE: Ocelot Pride (27) deals 1 combat damage to Identity-B.
+  LIFE: Life: Identity-A 28 > 29
+  LIFE: Life: Identity-B 14 > 12
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Cat Token (154) deals 1 combat damage to Identity-B.
+  DAMAGE: Cat Token (156) deals 1 combat damage to Identity-B.
+  DAMAGE: Guide of Souls (14) deals 1 combat damage to Identity-B.
+  DAMAGE: Cat Token (160) deals 1 combat damage to Identity-B.
+  DAMAGE: Cat Token (162) deals 1 combat damage to Identity-B.
+  LIFE: Life: Identity-B 12 > 7
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  STACK_ADD: Identity-A triggered Ocelot Pride
+  STACK_ADD: Identity-A triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-A]
+  ZONE_CHANGE: Orc Army Token (172) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A triggered Guide of Souls
+  STACK_ADD: Identity-A triggered Guide of Souls
+  STACK_ADD: Identity-A triggered Guide of Souls
+  LIFE: Life: Identity-A 29 > 30
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (173)]
+  LIFE: Life: Identity-A 30 > 31
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Orc Army Token (172)]
+  LIFE: Life: Identity-A 31 > 32
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (169)]
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-A]
+  ZONE_CHANGE: Orc Army Token (180) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A triggered Guide of Souls
+  STACK_ADD: Identity-A triggered Guide of Souls
+  STACK_ADD: Identity-A triggered Guide of Souls
+  STACK_ADD: Identity-A triggered Guide of Souls
+  STACK_ADD: Identity-A triggered Guide of Souls
+  LIFE: Life: Identity-A 32 > 33
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (183)]
+  LIFE: Life: Identity-A 33 > 34
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (182)]
+  LIFE: Life: Identity-A 34 > 35
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (181)]
+  LIFE: Life: Identity-A 35 > 36
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Orc Army Token (180)]
+  LIFE: Life: Identity-A 36 > 37
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (175)]
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 10 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  DISCARD: Identity-B discards Ajani, Nacatl Pariah (133).
+  TURN: Turn 11 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Ocelot Pride (26), Ocelot Pride (27), Cat Token (154), Cat Token (156), Guide of Souls (14), Cat Token (160), Cat Token (162), Orcish Bowmasters (37), Orc Army Token (165), Cat Token (169), Cat Token (173), Cat Token (175), Cat Token (181), Cat Token (182) and Cat Token (183) to attack Identity-B.
+  STACK_ADD: Identity-A triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Ocelot Pride (26), Ocelot Pride (27), Cat Token (154), Cat Token (156), Guide of Souls (14), Cat Token (160), Cat Token (162), Orcish Bowmasters (37), Orc Army Token (165), Cat Token (169), Cat Token (173), Cat Token (175), Cat Token (181), Cat Token (182), Cat Token (183)]]
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B didn't block Ocelot Pride (26).
+Identity-B didn't block Ocelot Pride (27).
+Identity-B didn't block Cat Token (154).
+Identity-B didn't block Cat Token (156).
+Identity-B didn't block Guide of Souls (14).
+Identity-B didn't block Cat Token (160).
+Identity-B didn't block Cat Token (162).
+Identity-B didn't block Orcish Bowmasters (37).
+Identity-B didn't block Orc Army Token (165).
+Identity-B didn't block Cat Token (169).
+Identity-B didn't block Cat Token (173).
+Identity-B didn't block Cat Token (175).
+Identity-B didn't block Cat Token (181).
+Identity-B didn't block Cat Token (182).
+Identity-B didn't block Cat Token (183).
+  PHASE: Identity-A's First Strike Damage Step
+  DAMAGE: Ocelot Pride (26) deals 1 combat damage to Identity-B.
+  LIFE: Life: Identity-A 37 > 38
+  DAMAGE: Ocelot Pride (27) deals 1 combat damage to Identity-B.
+  LIFE: Life: Identity-A 38 > 39
+  LIFE: Life: Identity-B 7 > 5
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Cat Token (154) deals 1 combat damage to Identity-B.
+  DAMAGE: Cat Token (156) deals 1 combat damage to Identity-B.
+  DAMAGE: Guide of Souls (14) deals 1 combat damage to Identity-B.
+  DAMAGE: Cat Token (160) deals 1 combat damage to Identity-B.
+  DAMAGE: Cat Token (162) deals 1 combat damage to Identity-B.
+  DAMAGE: Orcish Bowmasters (37) deals 1 combat damage to Identity-B.
+  DAMAGE: Orc Army Token (165) deals 1 combat damage to Identity-B.
+  DAMAGE: Cat Token (169) deals 1 combat damage to Identity-B.
+  DAMAGE: Cat Token (173) deals 1 combat damage to Identity-B.
+  DAMAGE: Cat Token (175) deals 1 combat damage to Identity-B.
+  DAMAGE: Cat Token (181) deals 1 combat damage to Identity-B.
+  DAMAGE: Cat Token (182) deals 1 combat damage to Identity-B.
+  DAMAGE: Cat Token (183) deals 1 combat damage to Identity-B.
+  LIFE: Life: Identity-B 5 > -8
+  PLAYER_CONTROL: Identity-A has restored control over themself
+  PLAYER_CONTROL: Identity-B has restored control over themself
+  GAME_OUTCOME: Turn 6
+  GAME_OUTCOME: Identity-A has won because all opponents have lost
+  GAME_OUTCOME: Identity-B has lost because life total reached 0
+  MATCH_RESULTS: Identity-A: 1 Identity-B: 0 
+===============================
