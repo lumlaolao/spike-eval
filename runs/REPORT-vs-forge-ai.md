@@ -16,8 +16,9 @@ Two overlays are involved; the report is honest about which batch used which:
 
 - **floor-vs-ai** (20 games): same engine/deck/discipline, but
   `overlay_sha=3ca3280e1fc2` (post-instrumentation overlay with log-only AI
-  surface observation, choose-entity routing, and bridge retry-on-dead-bridge),
-  `game_cap_ms=900000`.
+  surface observation, choose-entity routing, bridge retry-on-dead-bridge, and
+  the `isNonAnswer` non-answer filter that rejects rate-limit/error text at the
+  bridge before it can be logged as a model decision), `game_cap_ms=900000`.
 
 Identity names `Identity-A`/`Identity-B`; winner is identity-keyed (never
 seat-keyed); every seed is played twice with seats swapped. Wilson 95% CIs;
@@ -77,9 +78,14 @@ routes them through the honest `bridge-down` fallback path instead.
 
 ## Dataset additions
 
-- `runs/floor-vs-ai/`: 20 games, 93 decision lines, 0 malformed, all with the
-  new log-only AI-surface observation lines (mulligan bottoming, damage order,
-  announce-x, sacrifice).
+- `runs/floor-vs-ai/`: 20 games, 93 decision lines, 0 malformed. The new
+  log-only AI-surface observation emitters (mulligan bottoming, damage order,
+  announce-x, sacrifice) were **wired in but never fired** in this batch —
+  0 of the 93 lines carry those types (only `play`, `mulligan`,
+  `choose-entity`), because floor games end fast without multi-blocker combat,
+  X-spells, edicts, or mulligan bottoming. This batch therefore does NOT
+  runtime-validate the instrumentation; the first data exercising it will be
+  the clean haiku-vs-ai re-run.
 - `runs/haiku-vs-ai/`: 20 games, 405 decision lines, preserved for diagnosis.
   Marked contaminated; do not use for win-rate claims.
 
@@ -93,5 +99,6 @@ python3 eval/run_batch.py --seeds 1..10 --pairs --deck eval/decks/mardu-energy.t
 # DO NOT reproduce haiku-vs-ai without first confirming claude CLI quota:
 # the recorded batch was rate-limited and the result is invalid.
 python3 eval/aggregate.py runs/floor-vs-ai
+# NOTE: exits 2 (data-quality failure) because runs/haiku-vs-ai is contaminated:
 python3 eval/analyze_corpus.py runs/haiku-vs-ai runs/floor-vs-ai
 ```

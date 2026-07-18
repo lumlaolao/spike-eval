@@ -123,7 +123,7 @@ The harness is no longer Claude-CLI-only. `SMART_MODEL` / `FAST_MODEL` (and the 
 | `haiku`, `opus`, `sonnet` | Claude CLI (`claude -p`) | `SMART_MODEL=opus` |
 | `openrouter:<model>` | OpenRouter API | `SMART_MODEL=openrouter:anthropic/claude-3.5-sonnet` |
 
-For OpenRouter, set `OPENROUTER_API_KEY`. Optional tuning: `OPENROUTER_BASE_URL` (default `https://openrouter.ai/api/v1`), `OPENROUTER_TIMEOUT_MS` (default 90000), `OPENROUTER_HTTP_REFERER`, `OPENROUTER_HTTP_TITLE`.
+For OpenRouter, set `OPENROUTER_API_KEY` **and** `OPENROUTER_ALLOW_EGRESS=1`. The second flag is a deliberate consent gate: every OpenRouter call ships the full game snapshot (board, both players' known state, deck plan) to a third-party API, and having a key configured is not the same as agreeing to send this session's data. The factory throws at startup if the flag is missing. Optional tuning: `OPENROUTER_BASE_URL` (default `https://openrouter.ai/api/v1`), `OPENROUTER_TIMEOUT_MS` (default 90000), `OPENROUTER_HTTP_REFERER`, `OPENROUTER_HTTP_TITLE`.
 
 **Memory / state:** every ask still sends the full game snapshot plus the `INTEL` line, so API backends can be stateless. No conversation history is required for the model to play coherently — the prompt already contains the board, hands, graveyards, stack, recent events, and remembered reveals.
 
@@ -132,7 +132,7 @@ This makes mixed-model tournaments straightforward, e.g.:
 ```bash
 SMART_MODEL_A=openrouter:anthropic/claude-3.5-sonnet \
 SMART_MODEL_B=openrouter:openai/gpt-4o \
-OPENROUTER_API_KEY=... bash run-llm-headless.sh
+OPENROUTER_API_KEY=... OPENROUTER_ALLOW_EGRESS=1 bash run-llm-headless.sh
 ```
 
 ## Eval mode

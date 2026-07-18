@@ -84,8 +84,8 @@ interface LLMBridge {
     String getModel();
     long getTotalMs();
     int getCalls();
-    /** Best-effort cleanup of any underlying process/session. */
-    void close();
+    // No close(): there is no game-end teardown site — both launchers rely on JVM exit
+    // to reap CLI subprocesses (see the System.exit comment in LlmSpikeHeadless.main).
     /** One-shot reset for stateful bridges (CLI); stateless backends (API) can no-op. */
     default void restart() { }
 }
@@ -1368,7 +1368,9 @@ public final class LlmSpikeGui {
                 // parse failure returns text, never null): restart stateful backends ONCE and re-ask
                 // before letting callers take their deterministic fallback. restart() matters most for
                 // the CLI timeout path, where the old process is still alive and may later emit a stale
-                // result line a naive re-ask would misread as the new answer. API backends no-op it.
+                // result line a naive re-ask would misread as the new answer. API backends no-op the
+                // restart, so for them this is deliberately just a second HTTP attempt (no backoff,
+                // never loops — exactly one retry, mirroring the CLI semantics).
                 // Budget-wise this counts as the one call bumped above (two round-trips, one decision).
                 p("[BRIDGE " + b.getLabel() + "] no reply -> restarting session, retrying once");
                 b.restart();
@@ -1668,7 +1670,6 @@ public final class LlmSpikeGui {
         @Override public String getModel() { return model; }
         @Override public long getTotalMs() { return totalMs; }
         @Override public int getCalls() { return calls; }
-        @Override public synchronized void close() { reset(); }
 
         private void reset() {
             try { if (proc != null) proc.destroyForcibly(); } catch (Exception ignore) { }
@@ -1820,7 +1821,6 @@ public final class LlmSpikeGui {
         @Override public String getModel() { return model; }
         @Override public long getTotalMs() { return totalMs; }
         @Override public int getCalls() { return calls; }
-        @Override public void close() { }
     }
 
     /** Factory: parses a model spec like "haiku" (Claude CLI) or
@@ -1830,6 +1830,13 @@ public final class LlmSpikeGui {
             if (spec == null || spec.isEmpty())
                 throw new IllegalArgumentException("model spec required for " + label);
             if (spec.startsWith("openrouter:")) {
+                // Explicit egress consent: every OpenRouter call ships the full game snapshot
+                // (board, hand, deck plan) to a third-party API. Holding an API key is a
+                // configuration fact, not consent — require the dedicated opt-in flag too.
+                if (!"1".equals(System.getenv("OPENROUTER_ALLOW_EGRESS")))
+                    throw new IllegalStateException(
+                            "openrouter: backend sends full game state to openrouter.ai; "
+                            + "set OPENROUTER_ALLOW_EGRESS=1 to consent (" + label + ")");
                 String model = spec.substring("openrouter:".length());
                 return new OpenRouterBridge(label, model, preamble);
             }

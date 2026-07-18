@@ -487,6 +487,68 @@ def test_exit_codes_and_render():
           analyze_corpus._AI_PARTIAL_FALLBACK == aggregate.AI_PARTIAL_CAVEAT)
 
 
+def test_contamination_detector():
+    """Verifier HIGH findings: the rate-limit contamination detector needs
+    hermetic coverage (fixture + exit code) and a parity guard against the
+    bridge-level isNonAnswer() list in LlmSpikeGui.java."""
+    limit_msg = "You've hit your session limit · resets 3pm (America/Los_Angeles)"
+    check("is_contaminated_reply catches session-limit text",
+          analyze_corpus.is_contaminated_reply(limit_msg))
+    check("is_contaminated_reply is case-insensitive",
+          analyze_corpus.is_contaminated_reply("RATE LIMIT exceeded"))
+    check("is_contaminated_reply rejects non-strings",
+          not analyze_corpus.is_contaminated_reply(None)
+          and not analyze_corpus.is_contaminated_reply(3))
+    check("is_contaminated_reply passes real replies",
+          not analyze_corpus.is_contaminated_reply("2 — attack with both"))
+
+    with tempfile.TemporaryDirectory() as d:
+        write_jsonl(d, "game-1-1000.jsonl", [
+            game_line(),
+            dec(raw_reply="1"),                       # clean model line
+            dec(raw_reply=limit_msg, choice=1),       # the poisoned line
+        ])
+        rep = analyze_corpus.build_report([Path(d)])
+        cov = rep["combined"]["coverage"]
+        check("contaminated_replies counts poisoned line",
+              cov["contaminated_replies"] == 1, str(cov))
+        check("contamination attributed to session-limit pattern",
+              cov["contaminated_by_pattern"].get(
+                  "you've hit your session limit") == 1, str(cov))
+
+        p = subprocess.run([sys.executable, SCRIPT, d],
+                           capture_output=True, text=True)
+        check("exit 2 on contaminated batch", p.returncode == 2,
+              str(p.returncode))
+        check("contamination message on stderr",
+              "contaminated batch" in p.stderr, p.stderr[-300:])
+        check("contamination WARNING in report body",
+              "contaminated" in p.stdout, p.stdout[-500:])
+
+    # Parity guard: the Python pattern list must stay in sync with the Java
+    # bridge filter (isNonAnswer in LlmSpikeGui.java) — the analyzer is the
+    # post-hoc detector for exactly the strings the bridge should reject live.
+    java = (Path(__file__).resolve().parent.parent
+            / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
+            / "LlmSpikeGui.java")
+    if java.exists():
+        import re as _re
+        src = java.read_text(encoding="utf-8")
+        m = _re.search(r"private static boolean isNonAnswer.*?return false;",
+                       src, _re.S)
+        java_pats = set()
+        if m:
+            java_pats = {s.lower()
+                         for s in _re.findall(r'u\.contains\("([^"]+)"\)',
+                                              m.group(0))}
+        check("pattern list matches Java isNonAnswer()",
+              java_pats == set(analyze_corpus._NON_ANSWER_PATTERNS),
+              "java=%s python=%s" % (sorted(java_pats),
+                                     sorted(analyze_corpus._NON_ANSWER_PATTERNS)))
+    else:
+        check("LlmSpikeGui.java present for parity check", False, str(java))
+
+
 def main():
     test_normalize_fallback()
     test_malformed_and_truncated_tolerance()
@@ -505,6 +567,7 @@ def main():
     test_ai_partial_caveat_placement()
     test_duplicate_dirs_and_glob()
     test_exit_codes_and_render()
+    test_contamination_detector()
     print()
     if FAILURES:
         print("FAILED: %d check(s): %s" % (len(FAILURES), ", ".join(FAILURES)))

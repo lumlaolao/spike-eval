@@ -27,6 +27,10 @@ are only comparable within one engine version.
   `WindowRecorder` (in-JVM mp4 capture), `EvalLog` (JSONL), seat construction, deck plans.
   Model specs are `backend:model` strings, e.g. `haiku` (Claude CLI) or
   `openrouter:anthropic/claude-3.5-sonnet` (OpenRouter API).
+  **Egress boundary:** any `openrouter:` spec sends the full game snapshot (board,
+  hands, deck plan) to openrouter.ai on every call. Holding an API key is not
+  consent — the factory refuses to start unless `OPENROUTER_ALLOW_EGRESS=1` is
+  set explicitly. Never set that flag on the user's behalf.
 - `forge-overlay/.../spike/LlmSpikeHeadless.java` — same match, no GUI; emits the
   eval game-summary JSONL line. Use for all eval/batch work.
 - `run-llm-spike.sh` / `run-llm-headless.sh` — launchers (installed into the forge repo root).
@@ -42,8 +46,11 @@ are only comparable within one engine version.
    — zero model calls, ~12s per full game, bit-reproducible. Seed 42 floor mirror
    is the regression canary: identity A wins after 106 turns, every time.
 2. **LLM code paths** (routing, parsing, prompts): `SMART_MODEL=haiku FAST_MODEL=haiku`
-   — never test with opus. For OpenRouter-backed validation, use a small exploratory
-   game with `SMART_MODEL=openrouter:<cheap-model>` first.
+   — never test with opus. For OpenRouter-backed validation, run one exploratory
+   game with a cheap model first, e.g.
+   `GAME_SEED=42 SMART_MODEL=openrouter:meta-llama/llama-3.1-8b-instruct FAST_MODEL=openrouter:meta-llama/llama-3.1-8b-instruct OPENROUTER_ALLOW_EGRESS=1 bash run-llm-headless.sh`
+   (requires `OPENROUTER_API_KEY`; the `OPENROUTER_ALLOW_EGRESS=1` opt-in is
+   mandatory — see the egress boundary note above).
 3. **Opus / frontier API models** only for user-requested showcases/recordings
    (a full game ≈ 35-45 min).
 
