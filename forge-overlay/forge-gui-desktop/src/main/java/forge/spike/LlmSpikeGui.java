@@ -15,6 +15,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -822,11 +823,15 @@ public final class LlmSpikeGui {
                         super.chooseSingleEntityForEffect(optionList, delayedReveal, sa, title, isOptional, relatedPlayer, params));
             if (opts.size() == 1 && !isOptional) return opts.get(0); // forced, no need to ask
             try {
-                if (!smartOk()) { auto("choose-entity(no-budget)->first" + srcOf(sa)); return isOptional ? null : opts.get(0); }
+                // Smart budget exhausted is NOT a reason to pick blind: fall to the fast tier so this
+                // site stays model-routed (runs showed every "choose-entity(no-budget)" fired only after
+                // budget exhaustion). The deterministic auto path remains for floor arms / both budgets gone.
+                if (!smartOk() && !fastOk()) { auto("choose-entity(no-budget)->first" + srcOf(sa)); return isOptional ? null : opts.get(0); }
+                ClaudeBridge b = smartOk() ? smart : fast;
                 List<String> labels = new ArrayList<>();
                 for (T t : opts) labels.add(entityLabel(t));
                 String q = (title == null || title.isEmpty() ? "Choose one" : title) + srcOf(sa);
-                int c = decideOne(smart, "entity", q, labels, isOptional ? "Decline / none" : null);
+                int c = decideOne(b, "entity", q, labels, isOptional ? "Decline / none" : null);
                 if (c == -2) { auto("choose-entity(bridge-down)->first" + srcOf(sa)); return isOptional ? null : opts.get(0); }
                 if (c < 0) { if (isOptional) return null; auto("choose-entity(unparsed)->first" + srcOf(sa)); return opts.get(0); }
                 p("[ROUTER] choose-entity: " + labels.get(c) + srcOf(sa));
@@ -1175,6 +1180,153 @@ public final class LlmSpikeGui {
             }
         }
 
+        // ---------------- Goal A: log-only observation of decisions Forge's AI makes ----------------
+        // These surfaces previously emitted NO eval line and ran invisibly on the engine AI (super).
+        // Each override below calls super, OBSERVES the result, emits an evalDec line with tier "ai",
+        // and returns super's result object UNCHANGED — behavior is bit-identical; only the JSONL gains
+        // lines. They deliberately do NOT call noteAi()/bump aiDelegations: these are observations of
+        // pre-existing AI behavior, not new fallbacks, so "[TALLY] ai=0" stays a meaningful invariant.
+        // REMAINING INVISIBLE SURFACE (documented, not logged): mana tapping/payment. The per-source
+        // which-land-to-tap choices happen entirely inside ComputerUtilMana (forge-ai) and never cross
+        // the PlayerController boundary — the controller only sees payManaCost(cost)->boolean — so they
+        // cannot be surfaced without modifying the pinned engine.
+
+        /** Emit a log-only "AI observed" decision line. Never throws, never alters game flow. */
+        private void observeAiDec(String type, int nOptions, int choice, long t0, String desc, List<String> labels) {
+            try {
+                clearLast(); // no model was consulted for this decision — prompt/raw_reply must log null
+                evalDec(type, nOptions, choice, "ai", System.currentTimeMillis() - t0, desc, labels);
+            } catch (Exception ignore) { }
+        }
+        /** Null-safe label snapshot (take it BEFORE calling super when super may mutate/reorder). */
+        private static List<String> cardLabels(Iterable<Card> cards) {
+            List<String> out = new ArrayList<>();
+            try { if (cards != null) for (Card c : cards) out.add(c == null ? "(null)" : entityLabel(c)); }
+            catch (Exception ignore) { }
+            return out;
+        }
+        private static String safeName(Card c) {
+            try { return c == null ? "?" : c.getName(); } catch (Exception e) { return "?"; }
+        }
+        /** "A > B > C" summary of an ordered card sequence (null-safe). */
+        private static String orderSummary(Iterable<Card> cards) {
+            try {
+                StringBuilder b = new StringBuilder();
+                if (cards != null) for (Card c : cards) { if (b.length() > 0) b.append(" > "); b.append(safeName(c)); }
+                return b.length() == 0 ? "(none)" : b.toString();
+            } catch (Exception e) { return "?"; }
+        }
+
+        /** Mulligan bottoming (London/Houston tuck) — ran invisibly after EVERY model mulligan.
+         *  CRITICAL: super MUTATES `hand` (removeAll of the tucked cards, on a caller-owned copy),
+         *  so labels are snapshotted BEFORE the super call. choice = count of bottomed cards
+         *  (COUNT-style, like discard/attackers). cardsToReturn == 0 (the first, free draw) is a
+         *  no-op loop inside super — skip the line to avoid noise. */
+        @Override
+        public CardCollectionView tuckCardsViaMulligan(CardCollectionView hand, int cardsToReturn) {
+            List<String> labels = cardsToReturn > 0 ? cardLabels(hand) : null;
+            long t0 = System.currentTimeMillis();
+            CardCollectionView r = super.tuckCardsViaMulligan(hand, cardsToReturn);
+            if (labels != null)
+                observeAiDec("mulligan-bottom", labels.size(), r == null ? -1 : r.size(), t0,
+                        "mulligan-bottom(ai) -> " + orderSummary(r), labels);
+            return r;
+        }
+
+        /** Damage-assignment order among multiple blockers of one attacker. choice = 0 by convention
+         *  (no menu index exists — the AI's chosen ORDER is summarized in the fallback field). Input
+         *  labels snapshotted pre-super: AiBlockController may reorder into a new list. */
+        @Override
+        public CardCollection orderBlockers(Card attacker, CardCollection blockers) {
+            List<String> labels = cardLabels(blockers);
+            long t0 = System.currentTimeMillis();
+            CardCollection r = super.orderBlockers(attacker, blockers);
+            observeAiDec("damage-order", labels.size(), 0, t0,
+                    "damage-order(ai) blockers of " + safeName(attacker) + " -> " + orderSummary(r), labels);
+            return r;
+        }
+
+        /** A blocker added mid-combat gets inserted into an existing damage order. */
+        @Override
+        public CardCollection orderBlocker(Card attacker, Card blocker, CardCollection oldBlockers) {
+            List<String> labels = cardLabels(oldBlockers);
+            try { labels.add(0, "(new blocker) " + safeName(blocker)); } catch (Exception ignore) { }
+            long t0 = System.currentTimeMillis();
+            CardCollection r = super.orderBlocker(attacker, blocker, oldBlockers);
+            observeAiDec("damage-order", labels.size(), 0, t0,
+                    "damage-order(ai) insert " + safeName(blocker) + " vs " + safeName(attacker) + " -> " + orderSummary(r), labels);
+            return r;
+        }
+
+        /** Damage-assignment order when one blocker blocks multiple attackers. */
+        @Override
+        public CardCollection orderAttackers(Card blocker, CardCollection attackers) {
+            List<String> labels = cardLabels(attackers);
+            long t0 = System.currentTimeMillis();
+            CardCollection r = super.orderAttackers(blocker, attackers);
+            observeAiDec("damage-order", labels.size(), 0, t0,
+                    "damage-order(ai) attackers on " + safeName(blocker) + " -> " + orderSummary(r), labels);
+            return r;
+        }
+
+        /** Combat damage distribution (per creature per damage step). Hazards handled: super may
+         *  return null ("re-queue this attacker; assign another first" — Combat.java:882) and map keys
+         *  may be null (damage assigned to the defender, e.g. Butcher Orgg) — both are the AI's real
+         *  decision, logged null-safely and returned unchanged. choice = 0 by convention; the actual
+         *  split is summarized in the fallback field. */
+        @Override
+        public Map<Card, Integer> assignCombatDamage(Card attacker, CardCollectionView blockers, CardCollectionView remaining,
+                int damageDealt, GameEntity defender, boolean overrideOrder) {
+            List<String> labels = cardLabels(blockers);
+            long t0 = System.currentTimeMillis();
+            Map<Card, Integer> r = super.assignCombatDamage(attacker, blockers, remaining, damageDealt, defender, overrideOrder);
+            try {
+                StringBuilder d = new StringBuilder();
+                if (r == null) d.append("(null -> engine re-queues attacker)");
+                else for (Map.Entry<Card, Integer> e : r.entrySet()) {
+                    if (d.length() > 0) d.append(", ");
+                    d.append(e.getKey() == null ? "defender" : safeName(e.getKey())).append('=').append(e.getValue());
+                }
+                observeAiDec("damage-assign", labels.size(), 0, t0,
+                        "damage-assign(ai) " + safeName(attacker) + " dmg=" + damageDealt + " -> " + d, labels);
+            } catch (Exception ignore) { }
+            return r;
+        }
+
+        /** X / Multikicker / BidLife announcement. VALUE semantics: choice carries the announced
+         *  NUMBER itself (not a menu index); -1 when super returns null — and that null is itself the
+         *  AI's decision (it aborts the cast, PlaySpellAbility.java:757), so it is returned unchanged.
+         *  Options enumerate min..max only when the range is small; max can be Integer.MAX_VALUE. */
+        @Override
+        public Integer announceRequirements(SpellAbility ability, int min, int max, String announce) {
+            long t0 = System.currentTimeMillis();
+            Integer v = super.announceRequirements(ability, min, max, announce);
+            try {
+                long span = (long) max - (long) min + 1L;
+                List<String> labels = new ArrayList<>();
+                if (span >= 1 && span <= 12) { for (int i = min; i <= max; i++) labels.add(String.valueOf(i)); }
+                else labels.add("announce " + announce + " [" + min + ".." + (max == Integer.MAX_VALUE ? "unbounded" : String.valueOf(max)) + "]");
+                int nOpts = (span >= 1 && span <= 10000) ? (int) span : -1;
+                observeAiDec("announce-x", nOpts, v == null ? -1 : v.intValue(), t0,
+                        "announce-x(ai) " + announce + "=" + v + " [" + min + ".." + max + "]" + srcOf(ability), labels);
+            } catch (Exception ignore) { }
+            return v;
+        }
+
+        /** Edict-style sacrifice (Sacrifice/Balance effects, Emerge/Offering costs) — each affected
+         *  player's controller picks; ours ran invisibly on the AI. choice = count picked
+         *  (COUNT-style); candidates are not mutated by super. */
+        @Override
+        public CardCollectionView choosePermanentsToSacrifice(SpellAbility sa, int min, int max,
+                CardCollectionView validTargets, String message) {
+            List<String> labels = cardLabels(validTargets);
+            long t0 = System.currentTimeMillis();
+            CardCollectionView r = super.choosePermanentsToSacrifice(sa, min, max, validTargets, message);
+            observeAiDec("sacrifice", labels.size(), r == null ? -1 : r.size(), t0,
+                    "sacrifice(ai)" + srcOf(sa) + " -> " + orderSummary(r), labels);
+            return r;
+        }
+
         // ---------------- budget + parse helpers ----------------
 
         // Pure budget PEEKS — no side effect. Counters are bumped in ask(), so [TALLY] counts
@@ -1190,6 +1342,17 @@ public final class LlmSpikeGui {
             lastPrompt = prompt;
             lastTier = (b == smart) ? "smart" : "fast";
             String reply = b.ask(prompt);
+            if (reply == null) {
+                // Dead/unresponsive bridge (process exit, stream EOF, deadline timeout, IO error — a
+                // parse failure returns text, never null): restart the CLI session ONCE and re-ask
+                // before letting callers take their deterministic fallback. restart() matters most on
+                // the timeout path, where the old process is still alive and may later emit a stale
+                // result line a naive re-ask would misread as the new answer. Budget-wise this counts
+                // as the one call bumped above (two CLI round-trips, one decision).
+                p("[BRIDGE " + b.label + "] no reply -> restarting session, retrying once");
+                b.restart();
+                reply = b.ask(prompt);
+            }
             lastReply = reply;
             return reply;
         }
@@ -1463,6 +1626,10 @@ public final class LlmSpikeGui {
                     if (line == null) { reset(); return null; }
                     if (line.contains("\"type\":\"result\"")) {
                         String r = extractJsonString(line, "\"result\":\"");
+                        if (isNonAnswer(r)) {
+                            System.out.println("[CLAUDE " + label + "] non-answer result -> treating as bridge-down");
+                            return null; // caller's retry/fallback path will log an honest bridge-down reason
+                        }
                         long dur = System.currentTimeMillis() - t0;
                         totalMs += dur; calls++;
                         System.out.println("[CLAUDE " + label + "] replied in " + dur + " ms");
@@ -1474,6 +1641,12 @@ public final class LlmSpikeGui {
                 System.out.println("[CLAUDE " + label + "] error: " + e); reset(); return null;
             }
         }
+
+        /** Force a fresh CLI session (controller's one-shot dead-bridge retry). Necessary because
+         *  ask()'s TIMEOUT path deliberately does NOT reset() — the process stays alive with a reply
+         *  possibly still coming, so re-asking that same session could read the stale prior result
+         *  line. The next ask() after this respawns the process and re-primes the preamble. */
+        synchronized void restart() { reset(); }
 
         private void reset() {
             try { if (proc != null) proc.destroyForcibly(); } catch (Exception ignore) { }
@@ -1518,6 +1691,19 @@ public final class LlmSpikeGui {
                 else b.append(c);
             }
             return b.toString();
+        }
+
+        /** True if the CLI returned a null/empty string or a known non-answer (rate-limit message,
+         *  auth error, etc.). These must NOT be parsed as model decisions; returning null routes
+         *  them through the honest bridge-down fallback path instead of logging a fake smart/fast
+         *  decision. Keep the pattern list minimal and literal to avoid false positives. */
+        private static boolean isNonAnswer(String r) {
+            if (r == null || r.isEmpty()) return true;
+            String u = r.toUpperCase(Locale.ROOT);
+            if (u.contains("YOU'VE HIT YOUR SESSION LIMIT")) return true;
+            if (u.contains("RATE LIMIT") || u.contains("RATE-LIMIT")) return true;
+            if (u.contains("UNABLE TO LOCATE A JAVA RUNTIME")) return true; // env/launch failure, not a Magic decision
+            return false;
         }
     }
 
