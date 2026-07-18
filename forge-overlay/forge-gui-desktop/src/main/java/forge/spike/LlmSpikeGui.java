@@ -7,7 +7,12 @@ import java.io.BufferedWriter;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 
 import javax.imageio.ImageIO;
 import java.nio.file.Files;
@@ -68,6 +73,22 @@ import forge.view.FView;
 import forge.util.ITriggerEvent;
 import forge.util.MyRandom;
 import forge.util.collect.FCollectionView;
+
+/** Backend-agnostic LLM bridge. The controller sends a full snapshot on every ask,
+ *  so implementations may be stateless (API) or persistent (CLI) — correctness does
+ *  not depend on the bridge remembering prior turns. */
+interface LLMBridge {
+    /** Send a prompt, return the model's text reply, or null on failure/non-answer. */
+    String ask(String prompt);
+    String getLabel();
+    String getModel();
+    long getTotalMs();
+    int getCalls();
+    /** Best-effort cleanup of any underlying process/session. */
+    void close();
+    /** One-shot reset for stateful bridges (CLI); stateless backends (API) can no-op. */
+    default void restart() { }
+}
 
 /**
  * SPIKE (throwaway): launch the real Forge desktop window and WATCH two custom
@@ -150,8 +171,8 @@ public final class LlmSpikeGui {
 
         private final String seat;        // player label (for logs)
         private final String deckPlan;    // strategy framing for this seat
-        private final ClaudeBridge smart; // opus — sequencing, combat, targets
-        private final ClaudeBridge fast;  // haiku — confirms, numbers, cleanup
+        private final LLMBridge smart;    // smart tier — sequencing, combat, targets
+        private final LLMBridge fast;     // fast tier — confirms, numbers, cleanup
         private int smartCalls = 0, fastCalls = 0;
         private int autoPicks = 0;      // deterministic LEGAL fallback (a sane engine-supplied option, NOT Forge's AI brain)
         private int aiDelegations = 0;  // true handoff to Forge's AI for a mechanic we don't model — we want this ~0
@@ -209,8 +230,8 @@ public final class LlmSpikeGui {
             this.deckPlan = deckPlan;
             this.mode = mode == null || mode.isEmpty() ? "llm" : mode;
             this.rnd = "random".equals(this.mode) ? new java.util.Random(MyRandom.getRandom().nextLong()) : null;
-            this.smart = new ClaudeBridge(seat + "/smart", smartModel, framing(seat, deckPlan, false));
-            this.fast  = new ClaudeBridge(seat + "/fast",  fastModel,  framing(seat, deckPlan, true));
+            this.smart = LLMBridgeFactory.create(seat + "/smart", smartModel, framing(seat, deckPlan, false));
+            this.fast  = LLMBridgeFactory.create(seat + "/fast",  fastModel,  framing(seat, deckPlan, true));
             if (!"llm".equals(this.mode)) p("[MODE] baseline arm: " + this.mode);
         }
 
@@ -250,7 +271,7 @@ public final class LlmSpikeGui {
 
         /** Ask a bridge to pick ONE option (1-based in the prompt); returns 0-based index, or -1 for
          *  none/parse-failure. `noneLabel` (nullable) adds an extra "decline" option. */
-        private int decideOne(ClaudeBridge b, String type, String question, List<String> options, String noneLabel) {
+        private int decideOne(LLMBridge b, String type, String question, List<String> options, String noneLabel) {
             clearLast();
             long t0 = System.currentTimeMillis();
             // RANDOM arm: uniform over the same legal menu (incl. the decline option when present).
@@ -288,7 +309,7 @@ public final class LlmSpikeGui {
         }
 
         /** Ask a bridge to pick BETWEEN min..max options; returns 0-based indices, or null on failure. */
-        private List<Integer> decideMany(ClaudeBridge b, String type, String question, List<String> options, int min, int max) {
+        private List<Integer> decideMany(LLMBridge b, String type, String question, List<String> options, int min, int max) {
             clearLast();
             long t0 = System.currentTimeMillis();
             // RANDOM arm: uniformly sized random subset of the same legal menu.
@@ -492,7 +513,7 @@ public final class LlmSpikeGui {
                     + afterKeep + "-card hand as-is. Keeping a workable hand almost always beats shrinking it. "
                     + "For a combo deck, a hand with your enablers + a payoff is a KEEP even on few lands; only ship a hand "
                     + "that genuinely cannot function. Keep or mulligan? End with EXACTLY one word: KEEP or MULLIGAN.";
-            p("[ROUTER] mulligan: " + lands + "/" + size + " lands -> asking " + smart.model + "...");
+            p("[ROUTER] mulligan: " + lands + "/" + size + " lands -> asking " + smart.getModel() + "...");
             String reply = ask(smart, prompt);
             if (reply == null) return aiDelegate("mulligan(bridge-down)", super.mulliganKeepHand(firstPlayer, cardsToReturn));
             String r = reply.toUpperCase();
@@ -530,7 +551,7 @@ public final class LlmSpikeGui {
                 // opp life/board/untapped mana when deciding attacks, not just its own creature list.
                 List<String> labels = new ArrayList<>();
                 for (Card c : legal) labels.add(c.getName() + " (" + c.getNetPower() + "/" + c.getNetToughness() + ")");
-                p("[ROUTER] attackers: " + legal.size() + " can attack -> asking " + smart.model + "...");
+                p("[ROUTER] attackers: " + legal.size() + " can attack -> asking " + smart.getModel() + "...");
                 List<Integer> picks = decideMany(smart, null,
                         "COMBAT — declare attackers vs " + defender.getName() + " (life " + defender.getLife()
                         + "). Pick which creatures attack (attacking with 0 is legal and sometimes correct — "
@@ -590,7 +611,7 @@ public final class LlmSpikeGui {
                 String prompt = snapshot() + "\nCOMBAT — declare blockers. Incoming: " + atk + ". Your blockers: " + blk + ". "
                         + "Assign blocks (each blocker blocks one attacker). Weigh your life total vs losing blockers. "
                         + "End with EXACTLY: BLOCKS: blocker->attacker, blocker->attacker   (or BLOCKS: NONE)";
-                p("[ROUTER] blockers: " + attackers.size() + " atk / " + blockers.size() + " blk -> asking " + smart.model + "...");
+                p("[ROUTER] blockers: " + attackers.size() + " atk / " + blockers.size() + " blk -> asking " + smart.getModel() + "...");
                 String reply = ask(smart, prompt);
                 if (reply == null) { auto("blockers(bridge-down)->none"); return; }
                 String line = lastSegment(reply, "BLOCKS:");
@@ -707,7 +728,7 @@ public final class LlmSpikeGui {
                 // Exception: a main with ZERO castable spells (just land-or-pass) is a fast-tier question —
                 // measured 15-30s smart calls deciding "play the land". Which land still gets picked by a model.
                 boolean landOnly = ownMain && options.isEmpty();
-                ClaudeBridge b = (ownMain && !landOnly) ? smart : fast;
+                LLMBridge b = (ownMain && !landOnly) ? smart : fast;
                 boolean haveBudget = (b == smart) ? smartOk() : fastOk();
 
                 int turn = phh.getTurn();
@@ -744,10 +765,10 @@ public final class LlmSpikeGui {
                 }
 
                 if (ownMain) p("[TALLY] smart=" + smartCalls + " fast=" + fastCalls + " auto=" + autoPicks + " ai=" + aiDelegations
-                        + (smart.calls > 0 ? " avgSmart=" + (smart.totalMs / smart.calls) + "ms" : "")
-                        + (fast.calls > 0 ? " avgFast=" + (fast.totalMs / fast.calls) + "ms" : ""));
+                        + (smart.getCalls() > 0 ? " avgSmart=" + (smart.getTotalMs() / smart.getCalls()) + "ms" : "")
+                        + (fast.getCalls() > 0 ? " avgFast=" + (fast.getTotalMs() / fast.getCalls()) + "ms" : ""));
                 p("[ROUTER] play(" + (ownMain ? "main" : "react") + "): " + options.size() + " castable"
-                        + (haveLand ? " + " + landPlays.size() + " land" : "") + " -> asking " + b.model + "...");
+                        + (haveLand ? " + " + landPlays.size() + " land" : "") + " -> asking " + b.getModel() + "...");
                 playDecisionsThisTurn++;
 
                 int choice = -1;
@@ -827,7 +848,7 @@ public final class LlmSpikeGui {
                 // site stays model-routed (runs showed every "choose-entity(no-budget)" fired only after
                 // budget exhaustion). The deterministic auto path remains for floor arms / both budgets gone.
                 if (!smartOk() && !fastOk()) { auto("choose-entity(no-budget)->first" + srcOf(sa)); return isOptional ? null : opts.get(0); }
-                ClaudeBridge b = smartOk() ? smart : fast;
+                LLMBridge b = smartOk() ? smart : fast;
                 List<String> labels = new ArrayList<>();
                 for (T t : opts) labels.add(entityLabel(t));
                 String q = (title == null || title.isEmpty() ? "Choose one" : title) + srcOf(sa);
@@ -1337,19 +1358,19 @@ public final class LlmSpikeGui {
         /** Every model call funnels through here — also the single capture point for the decision record:
          *  store the full prompt/reply/tier so evalDec can attach them (a retry overwrites, so the LAST
          *  attempt's prompt/raw_reply are what get logged). */
-        private String ask(ClaudeBridge b, String prompt) {
+        private String ask(LLMBridge b, String prompt) {
             if (b == smart) smartCalls++; else fastCalls++;
             lastPrompt = prompt;
             lastTier = (b == smart) ? "smart" : "fast";
             String reply = b.ask(prompt);
             if (reply == null) {
                 // Dead/unresponsive bridge (process exit, stream EOF, deadline timeout, IO error — a
-                // parse failure returns text, never null): restart the CLI session ONCE and re-ask
-                // before letting callers take their deterministic fallback. restart() matters most on
-                // the timeout path, where the old process is still alive and may later emit a stale
-                // result line a naive re-ask would misread as the new answer. Budget-wise this counts
-                // as the one call bumped above (two CLI round-trips, one decision).
-                p("[BRIDGE " + b.label + "] no reply -> restarting session, retrying once");
+                // parse failure returns text, never null): restart stateful backends ONCE and re-ask
+                // before letting callers take their deterministic fallback. restart() matters most for
+                // the CLI timeout path, where the old process is still alive and may later emit a stale
+                // result line a naive re-ask would misread as the new answer. API backends no-op it.
+                // Budget-wise this counts as the one call bumped above (two round-trips, one decision).
+                p("[BRIDGE " + b.getLabel() + "] no reply -> restarting session, retrying once");
                 b.restart();
                 reply = b.ask(prompt);
             }
@@ -1395,24 +1416,24 @@ public final class LlmSpikeGui {
             try {
                 PhaseHandler ph = getPlayer().getGame().getPhaseHandler();
                 StringBuilder sb = new StringBuilder(256);
-                sb.append("{\"t\":\"decision\",\"seat\":\"").append(ClaudeBridge.jsonEscape(seat))
+                sb.append("{\"t\":\"decision\",\"seat\":\"").append(jsonEscape(seat))
                         .append("\",\"turn\":").append(ph.getTurn()).append(",\"phase\":\"").append(ph.getPhase())
                         .append("\",\"type\":\"").append(type).append("\",\"n_options\":").append(nOptions)
                         .append(",\"choice\":").append(choice)
                         .append(",\"tier\":\"").append(tier).append("\",\"latency_ms\":").append(ms)
                         .append(",\"fallback\":")
-                        .append(fallback == null ? "null" : "\"" + ClaudeBridge.jsonEscape(fallback) + "\"")
+                        .append(fallback == null ? "null" : "\"" + jsonEscape(fallback) + "\"")
                         .append(",\"options\":[");
                 if (options != null) {
                     for (int i = 0; i < options.size(); i++) {
                         if (i > 0) sb.append(',');
-                        sb.append('"').append(ClaudeBridge.jsonEscape(options.get(i))).append('"');
+                        sb.append('"').append(jsonEscape(options.get(i))).append('"');
                     }
                 }
                 sb.append("],\"prompt\":")
-                        .append(lastPrompt == null ? "null" : "\"" + ClaudeBridge.jsonEscape(lastPrompt) + "\"")
+                        .append(lastPrompt == null ? "null" : "\"" + jsonEscape(lastPrompt) + "\"")
                         .append(",\"raw_reply\":")
-                        .append(lastReply == null ? "null" : "\"" + ClaudeBridge.jsonEscape(lastReply) + "\"")
+                        .append(lastReply == null ? "null" : "\"" + jsonEscape(lastReply) + "\"")
                         .append('}');
                 EvalLog.write(sb.toString());
             } catch (Exception ignore) { }
@@ -1450,11 +1471,6 @@ public final class LlmSpikeGui {
                 return s + " [" + c.getZone() + "]";
             }
             return e.getName();
-        }
-        private static String oneLine(String s) {
-            if (s == null) return "";
-            s = s.replaceAll("\\s+", " ").trim();
-            return s.length() > 90 ? s.substring(0, 90) : s;
         }
         private static String saLabel(SpellAbility sa) {
             String host = sa.getHostCard() != null ? sa.getHostCard().getName() : "?";
@@ -1555,7 +1571,7 @@ public final class LlmSpikeGui {
      * `claude -p --model <model> ...` process per instance, its own conversation (chat memory).
      * A one-time `preamble` (persona + deck plan + output contract) is prepended to the first ask.
      */
-    static final class ClaudeBridge {
+    static final class ClaudeBridge implements LLMBridge {
         private static final String BIN = System.getenv().getOrDefault("CLAUDE_BIN", "claude");
         private static final long DEADLINE_MS = parseLong(System.getenv("CLAUDE_DEADLINE_MS"), 90000);
         // SPEED: the persistent conversation's prefill grows with every ask, so calls get slower as the
@@ -1564,15 +1580,15 @@ public final class LlmSpikeGui {
         private static final int RESET_EVERY = (int) parseLong(System.getenv("CLAUDE_RESET_EVERY"), 40);
         private static long parseLong(String v, long def) { try { return v == null ? def : Long.parseLong(v.trim()); } catch (Exception e) { return def; } }
         static long deadlineMs() { return DEADLINE_MS; } // in-JVM value for the game-summary provenance line
-        final String label;
-        final String model;
+        private final String label;
+        private final String model;
         private final String preamble;
         private boolean primed = false;
         private Process proc;
         private BufferedReader out;
         private BufferedWriter in;
         private int asksSinceStart = 0;
-        long totalMs = 0; int calls = 0; // latency accounting, read by [TALLY]
+        private long totalMs = 0; private int calls = 0; // latency accounting, read by [TALLY]
 
         ClaudeBridge(String label, String model, String preamble) {
             this.label = label;
@@ -1602,7 +1618,7 @@ public final class LlmSpikeGui {
             errDrain.start();
         }
 
-        synchronized String ask(String prompt) {
+        @Override public synchronized String ask(String prompt) {
             long t0 = System.currentTimeMillis();
             try {
                 if (RESET_EVERY > 0 && asksSinceStart >= RESET_EVERY) {
@@ -1646,64 +1662,179 @@ public final class LlmSpikeGui {
          *  ask()'s TIMEOUT path deliberately does NOT reset() — the process stays alive with a reply
          *  possibly still coming, so re-asking that same session could read the stale prior result
          *  line. The next ask() after this respawns the process and re-primes the preamble. */
-        synchronized void restart() { reset(); }
+        @Override public synchronized void restart() { reset(); }
+
+        @Override public String getLabel() { return label; }
+        @Override public String getModel() { return model; }
+        @Override public long getTotalMs() { return totalMs; }
+        @Override public int getCalls() { return calls; }
+        @Override public synchronized void close() { reset(); }
 
         private void reset() {
             try { if (proc != null) proc.destroyForcibly(); } catch (Exception ignore) { }
             proc = null; out = null; in = null; asksSinceStart = 0;
         }
+    }
 
-        static String jsonEscape(String s) {
-            StringBuilder b = new StringBuilder(s.length() + 16);
-            for (int i = 0; i < s.length(); i++) {
-                char c = s.charAt(i);
-                switch (c) {
-                    case '"':  b.append("\\\""); break;
-                    case '\\': b.append("\\\\"); break;
-                    case '\n': b.append("\\n"); break;
-                    case '\r': b.append("\\r"); break;
-                    case '\t': b.append("\\t"); break;
-                    default: if (c < 0x20) b.append(String.format("\\u%04x", (int) c)); else b.append(c);
+    /** Collapse whitespace and truncate for compact logging. */
+    private static String oneLine(String s) {
+        if (s == null) return "";
+        s = s.replaceAll("\\s+", " ").trim();
+        return s.length() > 90 ? s.substring(0, 90) : s;
+    }
+
+    /** JSON string escape (minimal, no Unicode escapes above U+001F). */
+    static String jsonEscape(String s) {
+        StringBuilder b = new StringBuilder(s.length() + 16);
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            switch (c) {
+                case '"':  b.append("\\\""); break;
+                case '\\': b.append("\\\\"); break;
+                case '\n': b.append("\\n"); break;
+                case '\r': b.append("\\r"); break;
+                case '\t': b.append("\\t"); break;
+                default: if (c < 0x20) b.append(String.format("\\u%04x", (int) c)); else b.append(c);
+            }
+        }
+        return b.toString();
+    }
+
+    /** Extract the string value after `key` in a JSON-like line, honoring simple backslash escapes.
+     *  Not a full parser — sufficient for the single-string fields we care about. */
+    private static String extractJsonString(String line, String key) {
+        int k = line.indexOf(key);
+        if (k < 0) return null;
+        int i = k + key.length();
+        StringBuilder b = new StringBuilder();
+        while (i < line.length()) {
+            char c = line.charAt(i++);
+            if (c == '\\' && i < line.length()) {
+                char n = line.charAt(i++);
+                switch (n) {
+                    case 'n': b.append('\n'); break;
+                    case 'r': b.append('\r'); break;
+                    case 't': b.append('\t'); break;
+                    case '"': b.append('"'); break;
+                    case '\\': b.append('\\'); break;
+                    case '/': b.append('/'); break;
+                    case 'u': if (i + 4 <= line.length()) { b.append((char) Integer.parseInt(line.substring(i, i + 4), 16)); i += 4; } break;
+                    default: b.append(n);
                 }
-            }
-            return b.toString();
+            } else if (c == '"') break;
+            else b.append(c);
         }
-        private static String extractJsonString(String line, String key) {
-            int k = line.indexOf(key);
-            if (k < 0) return null;
-            int i = k + key.length();
-            StringBuilder b = new StringBuilder();
-            while (i < line.length()) {
-                char c = line.charAt(i++);
-                if (c == '\\' && i < line.length()) {
-                    char n = line.charAt(i++);
-                    switch (n) {
-                        case 'n': b.append('\n'); break;
-                        case 'r': b.append('\r'); break;
-                        case 't': b.append('\t'); break;
-                        case '"': b.append('"'); break;
-                        case '\\': b.append('\\'); break;
-                        case '/': b.append('/'); break;
-                        case 'u': if (i + 4 <= line.length()) { b.append((char) Integer.parseInt(line.substring(i, i + 4), 16)); i += 4; } break;
-                        default: b.append(n);
-                    }
-                } else if (c == '"') break;
-                else b.append(c);
-            }
-            return b.toString();
+        return b.toString();
+    }
+
+    /** True if the backend returned a null/empty string or a known non-answer (rate-limit message,
+     *  auth error, etc.). These must NOT be parsed as model decisions; returning null routes them
+     *  through the honest bridge-down fallback path instead of logging a fake smart/fast decision.
+     *  Keep the pattern list minimal and literal to avoid false positives. */
+    private static boolean isNonAnswer(String r) {
+        if (r == null || r.isEmpty()) return true;
+        String u = r.toUpperCase(Locale.ROOT);
+        if (u.contains("YOU'VE HIT YOUR SESSION LIMIT")) return true;
+        if (u.contains("RATE LIMIT") || u.contains("RATE-LIMIT")) return true;
+        if (u.contains("UNABLE TO LOCATE A JAVA RUNTIME")) return true; // env/launch failure, not a Magic decision
+        return false;
+    }
+
+    /** Stateless HTTP bridge to any model reachable through OpenRouter (or any
+     *  OpenAI-compatible chat-completions endpoint). Each ask sends the preamble
+     *  as a system message and the full snapshot as a user message — no conversation
+     *  history is maintained because the controller's prompt already contains the
+     *  entire game state. */
+    static final class OpenRouterBridge implements LLMBridge {
+        private static final String API_KEY = System.getenv("OPENROUTER_API_KEY");
+        private static final String BASE_URL = System.getenv().getOrDefault("OPENROUTER_BASE_URL",
+                "https://openrouter.ai/api/v1");
+        private static final long TIMEOUT_MS = parseLong(System.getenv("OPENROUTER_TIMEOUT_MS"), 90000);
+        private static final String HTTP_REFERER = System.getenv("OPENROUTER_HTTP_REFERER");
+        private static final String HTTP_TITLE = System.getenv("OPENROUTER_HTTP_TITLE");
+        private static long parseLong(String v, long def) {
+            try { return v == null ? def : Long.parseLong(v.trim()); } catch (Exception e) { return def; }
         }
 
-        /** True if the CLI returned a null/empty string or a known non-answer (rate-limit message,
-         *  auth error, etc.). These must NOT be parsed as model decisions; returning null routes
-         *  them through the honest bridge-down fallback path instead of logging a fake smart/fast
-         *  decision. Keep the pattern list minimal and literal to avoid false positives. */
-        private static boolean isNonAnswer(String r) {
-            if (r == null || r.isEmpty()) return true;
-            String u = r.toUpperCase(Locale.ROOT);
-            if (u.contains("YOU'VE HIT YOUR SESSION LIMIT")) return true;
-            if (u.contains("RATE LIMIT") || u.contains("RATE-LIMIT")) return true;
-            if (u.contains("UNABLE TO LOCATE A JAVA RUNTIME")) return true; // env/launch failure, not a Magic decision
-            return false;
+        private final String label;
+        private final String model;
+        private final String preamble;
+        private final HttpClient client;
+        private long totalMs = 0;
+        private int calls = 0;
+
+        OpenRouterBridge(String label, String model, String preamble) {
+            if (API_KEY == null || API_KEY.isEmpty())
+                throw new IllegalStateException("OPENROUTER_API_KEY env var is required for OpenRouter backend");
+            this.label = label;
+            this.model = model;
+            this.preamble = preamble;
+            this.client = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofMillis(TIMEOUT_MS))
+                    .build();
+        }
+
+        @Override public String ask(String prompt) {
+            long t0 = System.currentTimeMillis();
+            try {
+                StringBuilder body = new StringBuilder();
+                body.append("{\"model\":\"").append(jsonEscape(model)).append("\",");
+                body.append("\"messages\":[");
+                if (preamble != null && !preamble.isEmpty()) {
+                    body.append("{\"role\":\"system\",\"content\":\"").append(jsonEscape(preamble)).append("\"},");
+                }
+                body.append("{\"role\":\"user\",\"content\":\"").append(jsonEscape(prompt)).append("\"}");
+                body.append("],\"max_tokens\":2048}");
+
+                HttpRequest.Builder rb = HttpRequest.newBuilder()
+                        .uri(URI.create(BASE_URL + "/chat/completions"))
+                        .header("Authorization", "Bearer " + API_KEY)
+                        .header("Content-Type", "application/json");
+                if (HTTP_REFERER != null && !HTTP_REFERER.isEmpty()) rb.header("HTTP-Referer", HTTP_REFERER);
+                if (HTTP_TITLE != null && !HTTP_TITLE.isEmpty()) rb.header("X-Title", HTTP_TITLE);
+
+                HttpRequest req = rb.POST(HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8))
+                        .timeout(Duration.ofMillis(TIMEOUT_MS))
+                        .build();
+                HttpResponse<String> resp = client.send(req, HttpResponse.BodyHandlers.ofString());
+                if (resp.statusCode() != 200) {
+                    System.out.println("[OPENROUTER " + label + "] HTTP " + resp.statusCode() + ": " + oneLine(resp.body()));
+                    return null;
+                }
+                String content = extractJsonString(resp.body(), "\"content\":\"");
+                if (isNonAnswer(content)) {
+                    System.out.println("[OPENROUTER " + label + "] non-answer -> treating as bridge-down");
+                    return null;
+                }
+                long dur = System.currentTimeMillis() - t0;
+                totalMs += dur; calls++;
+                System.out.println("[OPENROUTER " + label + "] replied in " + dur + " ms");
+                return content;
+            } catch (Exception e) {
+                System.out.println("[OPENROUTER " + label + "] error: " + e);
+                return null;
+            }
+        }
+
+        @Override public String getLabel() { return label; }
+        @Override public String getModel() { return model; }
+        @Override public long getTotalMs() { return totalMs; }
+        @Override public int getCalls() { return calls; }
+        @Override public void close() { }
+    }
+
+    /** Factory: parses a model spec like "haiku" (Claude CLI) or
+     *  "openrouter:anthropic/claude-3.5-sonnet" (OpenRouter API). */
+    static final class LLMBridgeFactory {
+        static LLMBridge create(String label, String spec, String preamble) {
+            if (spec == null || spec.isEmpty())
+                throw new IllegalArgumentException("model spec required for " + label);
+            if (spec.startsWith("openrouter:")) {
+                String model = spec.substring("openrouter:".length());
+                return new OpenRouterBridge(label, model, preamble);
+            }
+            // Legacy/default: bare model name -> Claude CLI bridge.
+            return new ClaudeBridge(label, spec, preamble);
         }
     }
 

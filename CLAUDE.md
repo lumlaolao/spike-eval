@@ -23,8 +23,10 @@ are only comparable within one engine version.
 ## Key files
 
 - `forge-overlay/.../spike/LlmSpikeGui.java` — everything: `PlayerControllerLLM` (the
-  router), `ClaudeBridge` (persistent CLI sessions), `WindowRecorder` (in-JVM mp4
-  capture), `EvalLog` (JSONL), seat construction, deck plans.
+  router), `LLMBridge` interface + `ClaudeBridge` / `OpenRouterBridge` backends,
+  `WindowRecorder` (in-JVM mp4 capture), `EvalLog` (JSONL), seat construction, deck plans.
+  Model specs are `backend:model` strings, e.g. `haiku` (Claude CLI) or
+  `openrouter:anthropic/claude-3.5-sonnet` (OpenRouter API).
 - `forge-overlay/.../spike/LlmSpikeHeadless.java` — same match, no GUI; emits the
   eval game-summary JSONL line. Use for all eval/batch work.
 - `run-llm-spike.sh` / `run-llm-headless.sh` — launchers (installed into the forge repo root).
@@ -40,8 +42,10 @@ are only comparable within one engine version.
    — zero model calls, ~12s per full game, bit-reproducible. Seed 42 floor mirror
    is the regression canary: identity A wins after 106 turns, every time.
 2. **LLM code paths** (routing, parsing, prompts): `SMART_MODEL=haiku FAST_MODEL=haiku`
-   — never test with opus.
-3. **Opus** only for user-requested showcases/recordings (a full game ≈ 35-45 min).
+   — never test with opus. For OpenRouter-backed validation, use a small exploratory
+   game with `SMART_MODEL=openrouter:<cheap-model>` first.
+3. **Opus / frontier API models** only for user-requested showcases/recordings
+   (a full game ≈ 35-45 min).
 
 Watchdog every GUI validation run — `( sleep N; pkill -INT -f LlmSpikeGui ) &` — and
 `pkill -f 'sleep [0-9]'` before each relaunch (stale watchdogs kill fresh games).
