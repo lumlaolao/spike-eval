@@ -16,7 +16,7 @@ import forge.model.FModel;
 
 /**
  * HEADLESS runner: the same LLM-vs-LLM match as {@link LlmSpikeGui}, but no Forge window —
- * pure console. Uses the exact same PlayerControllerLLM / ClaudeBridge / deck plumbing
+ * pure console. Uses the exact same PlayerControllerLLM / LLMBridge / deck plumbing
  * (via {@link LlmSpikeGui#buildPlayers()}), so a headless game exercises identical decision
  * paths to the GUI spectator match.
  *
@@ -98,31 +98,31 @@ public final class LlmSpikeHeadless {
         String fastDef  = System.getenv().getOrDefault("FAST_MODEL", "haiku");
         LlmSpikeGui.EvalLog.write("{\"t\":\"game\",\"seed\":" + seed
                 + ",\"swap\":" + "1".equals(System.getenv("SWAP_SEATS"))
-                + ",\"deck_a\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(nameA) + "\""
-                + ",\"deck_b\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(nameB) + "\""
-                + ",\"controller_a\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("CONTROLLER_A", "llm")) + "\""
-                + ",\"controller_b\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("CONTROLLER_B", "llm")) + "\""
-                + ",\"smart_a\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("SMART_MODEL_A", smartDef)) + "\""
-                + ",\"smart_b\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("SMART_MODEL_B", smartDef)) + "\""
-                + ",\"fast_a\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("FAST_MODEL_A", fastDef)) + "\""
-                + ",\"fast_b\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("FAST_MODEL_B", fastDef)) + "\""
+                + ",\"deck_a\":\"" + LlmSpikeGui.jsonEscape(nameA) + "\""
+                + ",\"deck_b\":\"" + LlmSpikeGui.jsonEscape(nameB) + "\""
+                + ",\"controller_a\":\"" + LlmSpikeGui.jsonEscape(System.getenv().getOrDefault("CONTROLLER_A", "llm")) + "\""
+                + ",\"controller_b\":\"" + LlmSpikeGui.jsonEscape(System.getenv().getOrDefault("CONTROLLER_B", "llm")) + "\""
+                + ",\"smart_a\":\"" + LlmSpikeGui.jsonEscape(System.getenv().getOrDefault("SMART_MODEL_A", smartDef)) + "\""
+                + ",\"smart_b\":\"" + LlmSpikeGui.jsonEscape(System.getenv().getOrDefault("SMART_MODEL_B", smartDef)) + "\""
+                + ",\"fast_a\":\"" + LlmSpikeGui.jsonEscape(System.getenv().getOrDefault("FAST_MODEL_A", fastDef)) + "\""
+                + ",\"fast_b\":\"" + LlmSpikeGui.jsonEscape(System.getenv().getOrDefault("FAST_MODEL_B", fastDef)) + "\""
                 + ",\"winner\":\"" + winner + "\",\"turns\":" + turns
-                + ",\"win_condition\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(winCond) + "\""
+                + ",\"win_condition\":\"" + LlmSpikeGui.jsonEscape(winCond) + "\""
                 + ",\"duration_ms\":" + durMs
                 // Self-describing provenance: heuristic switches / plans / budgets / caps / SHAs / discipline,
                 // all read as the JVM actually saw them so the batch is reconstructable from a single line.
                 + ",\"mulligan_heuristic\":" + (LlmSpikeGui.PlayerControllerLLM.mullHeuristic() ? 1 : 0)
                 + ",\"skip_heuristics\":" + (LlmSpikeGui.PlayerControllerLLM.skipHeuristics() ? 1 : 0)
-                + ",\"plan_a\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("PLAN_A", LlmSpikeGui.DEFAULT_PLAN_A)) + "\""
-                + ",\"plan_b\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("PLAN_B", LlmSpikeGui.DEFAULT_PLAN_B)) + "\""
+                + ",\"plan_a\":\"" + LlmSpikeGui.jsonEscape(System.getenv().getOrDefault("PLAN_A", LlmSpikeGui.DEFAULT_PLAN_A)) + "\""
+                + ",\"plan_b\":\"" + LlmSpikeGui.jsonEscape(System.getenv().getOrDefault("PLAN_B", LlmSpikeGui.DEFAULT_PLAN_B)) + "\""
                 + ",\"smart_budget\":" + LlmSpikeGui.PlayerControllerLLM.smartBudget()
                 + ",\"fast_budget\":" + LlmSpikeGui.PlayerControllerLLM.fastBudget()
                 + ",\"claude_deadline_ms\":" + LlmSpikeGui.ClaudeBridge.deadlineMs()
                 + ",\"game_cap_ms\":" + capMs
-                + ",\"engine_sha\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("ENGINE_SHA", "unknown")) + "\""
-                + ",\"overlay_sha\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("OVERLAY_SHA", "unknown")) + "\""
-                + ",\"deck_sha\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("DECK_SHA", "unknown")) + "\""
-                + ",\"discipline\":\"" + LlmSpikeGui.ClaudeBridge.jsonEscape(System.getenv().getOrDefault("RUN_DISCIPLINE", "unspecified")) + "\""
+                + ",\"engine_sha\":\"" + LlmSpikeGui.jsonEscape(System.getenv().getOrDefault("ENGINE_SHA", "unknown")) + "\""
+                + ",\"overlay_sha\":\"" + LlmSpikeGui.jsonEscape(System.getenv().getOrDefault("OVERLAY_SHA", "unknown")) + "\""
+                + ",\"deck_sha\":\"" + LlmSpikeGui.jsonEscape(System.getenv().getOrDefault("DECK_SHA", "unknown")) + "\""
+                + ",\"discipline\":\"" + LlmSpikeGui.jsonEscape(System.getenv().getOrDefault("RUN_DISCIPLINE", "unspecified")) + "\""
                 + "}");
         System.exit(0); // bridges hold non-daemon subprocess pipes; exit explicitly
     }

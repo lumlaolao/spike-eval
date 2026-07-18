@@ -114,6 +114,27 @@ the classic instant-speed action window). `[TALLY]` prints running `avgSmart`/`a
 | `MULLIGAN_HEURISTIC` / `SKIP_HEURISTICS` | 1 | set `0` for confound-free eval runs (model owns all mulligans / no free-pass shortcuts) |
 | `GAME_CAP_MS` | 3h (headless) | wall-clock cap; a capped game is recorded **invalid**, never a draw |
 
+## Multi-backend models (OpenRouter and beyond)
+
+The harness is no longer Claude-CLI-only. `SMART_MODEL` / `FAST_MODEL` (and the per-seat `_A`/`_B` variants) accept backend-prefixed specs:
+
+| Spec | Backend | Example |
+|---|---|---|
+| `haiku`, `opus`, `sonnet` | Claude CLI (`claude -p`) | `SMART_MODEL=opus` |
+| `openrouter:<model>` | OpenRouter API | `SMART_MODEL=openrouter:anthropic/claude-3.5-sonnet` |
+
+For OpenRouter, set `OPENROUTER_API_KEY`. Optional tuning: `OPENROUTER_BASE_URL` (default `https://openrouter.ai/api/v1`), `OPENROUTER_TIMEOUT_MS` (default 90000), `OPENROUTER_HTTP_REFERER`, `OPENROUTER_HTTP_TITLE`.
+
+**Memory / state:** every ask still sends the full game snapshot plus the `INTEL` line, so API backends can be stateless. No conversation history is required for the model to play coherently — the prompt already contains the board, hands, graveyards, stack, recent events, and remembered reveals.
+
+This makes mixed-model tournaments straightforward, e.g.:
+
+```bash
+SMART_MODEL_A=openrouter:anthropic/claude-3.5-sonnet \
+SMART_MODEL_B=openrouter:openai/gpt-4o \
+OPENROUTER_API_KEY=... bash run-llm-headless.sh
+```
+
 ## Eval mode
 
 The review that motivated this (see git history) found the demo harness unsuitable as a model
