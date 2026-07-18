@@ -1,0 +1,571 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 1
+[DECK] loaded 'Identity-A': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[DECK] loaded 'Identity-B': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[SEATS] A=Identity-A(llm,haiku) B=Identity-B(random,opus)
+[Identity-B] [MODE] baseline arm: random
+[HEADLESS] game starting (cap=120min)
+[Identity-A] [ROUTER] mulligan: 2/7 lands -> asking haiku...
+[CLAUDE Identity-A/smart] starting persistent haiku session...
+[CLAUDE Identity-A/smart] replied in 14464 ms
+[Identity-A] [ROUTER] mulligan: MULLIGAN
+[Identity-B] [AUTO-LEGAL] mulligan(random)->KEEP
+[Identity-A] [ROUTER] mulligan: 2/6 lands -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 8008 ms
+[Identity-A] [ROUTER] mulligan: KEEP
+[Identity-A] [TALLY] smart=2 fast=0 auto=0 ai=0 avgSmart=11236ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] starting persistent haiku session...
+[CLAUDE Identity-A/fast] replied in 10614 ms
+[Identity-A] [ROUTER] play: land Scrubland
+[Identity-A] [TALLY] smart=2 fast=1 auto=0 ai=0 avgSmart=11236ms avgFast=10614ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 10983 ms
+[Identity-A] [ROUTER] plan: Thoughtseize to survey and strip their best card.
+[CLAUDE Identity-A/smart] replied in 2170 ms
+[Identity-A] [ROUTER] target: Identity-B <- Thoughtseize {B} [Target player reveals their hand. You choose a nonland card from it. T]
+[Identity-A] [ROUTER] play: casts Thoughtseize {B} [Target player reveals their hand. You choose a nonland card from it. T]
+[CLAUDE Identity-A/smart] replied in 9778 ms
+[Identity-A] [ROUTER] discard(strip Identity-B): Orcish Bowmasters
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 0 castable + 3 land -> asking haiku...
+[Identity-B] [ROUTER] play: land Arid Mesa
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 1 castable -> asking opus...
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 1 castable -> asking haiku...
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 1 castable -> asking haiku...
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 1 castable -> asking haiku...
+[Identity-B] [ROUTER] play: casts Arid Mesa [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Mountai]
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 1 castable -> asking opus...
+[Identity-B] [ROUTER] target: Identity-B <- Thoughtseize {B} [Target player reveals their hand. You choose a nonland card from it. T]
+[Identity-B] [ROUTER] play: casts Thoughtseize {B} [Target player reveals their hand. You choose a nonland card from it. T]
+[Identity-B] [ROUTER] discard: Ajani, Nacatl Pariah
+[Identity-A] [TALLY] smart=5 fast=1 auto=0 ai=0 avgSmart=9080ms avgFast=10614ms
+[Identity-A] [ROUTER] play(main): 1 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 30277 ms
+[Identity-A] [ROUTER] plan: Cabal Therapy naming Guide of Souls to further empty their hand.
+[CLAUDE Identity-A/smart] replied in 2637 ms
+[Identity-A] [ROUTER] target: Identity-B <- Cabal Therapy {B}
+[Identity-A] [ROUTER] play: casts Cabal Therapy {B} [Choose a nonland card name. Target player reveals their hand and disca]
+[CLAUDE Identity-A/smart] replied in 15810 ms
+[Identity-A] [ROUTER] card-name: Guide of Souls [Cabal Therapy]
+[Identity-A] [TALLY] smart=8 fast=1 auto=0 ai=0 avgSmart=11765ms avgFast=10614ms
+[Identity-A] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 10177 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=8 fast=2 auto=0 ai=0 avgSmart=11765ms avgFast=10395ms
+[Identity-A] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4201 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 0 castable + 3 land -> asking haiku...
+[Identity-B] [ROUTER] play: land Karakas
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 1 castable -> asking opus...
+[Identity-B] [ROUTER] play: casts Amped Raptor 1{R} [Amped Raptor - Creature 2 / 1]
+[Identity-B] [ROUTER] confirm(Do you want to play Thoughtseize?): NO
+[Identity-A] [TALLY] smart=8 fast=3 auto=0 ai=0 avgSmart=11765ms avgFast=8330ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 31440 ms
+[Identity-A] [ROUTER] play: land Scrubland
+[Identity-A] [TALLY] smart=8 fast=4 auto=0 ai=0 avgSmart=11765ms avgFast=14108ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 45996 ms
+[Identity-A] [ROUTER] plan: Cast Ajani, Nacatl Pariah to block their incoming threat and establish a 1-drop.
+[Identity-A] [ROUTER] play: casts Ajani, Nacatl Pariah 1{W} [Ajani, Nacatl Pariah - Creature 1 / 2]
+[Identity-A] [TALLY] smart=9 fast=4 auto=0 ai=0 avgSmart=15569ms avgFast=14108ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 50769 ms
+[CLAUDE Identity-A/smart] replied in 2416 ms
+[Identity-A] [ROUTER] target: Identity-B <- Cabal Therapy {B}
+[Identity-A] [ROUTER] play: casts Cabal Therapy {B} [Choose a nonland card name. Target player reveals their hand and disca]
+[CLAUDE Identity-A/smart] replied in 18994 ms
+[Identity-A] [ROUTER] card-name: Thoughtseize [Cabal Therapy]
+[Identity-A] [TALLY] smart=12 fast=4 auto=0 ai=0 avgSmart=17691ms avgFast=14108ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 27773 ms
+[Identity-A] [ROUTER] play: casts Ajani, Nacatl Avenger [0: Create a 2/1 white Cat Warrior creature token. When you do, if you ]
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 1 castable + 2 land -> asking opus...
+[Identity-B] [ROUTER] play: land Plateau
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 1 castable -> asking opus...
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] attackers: 1 can attack -> asking opus...
+[Identity-B] [ROUTER] attackers: none
+[Identity-B] [TALLY] smart=0 fast=0 auto=1 ai=0
+[Identity-B] [ROUTER] play(main): 1 castable -> asking opus...
+[Identity-B] [ROUTER] play: casts Hexing Squelcher 1{R} [Hexing Squelcher - Creature 2 / 2]
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 17880 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 8880 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=13 fast=6 auto=0 ai=0 avgSmart=18467ms avgFast=13865ms
+[Identity-A] [ROUTER] play(main): 4 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 35186 ms
+[Identity-A] [ROUTER] plan: Cast both Orcish Bowmasters to build board and set up value generation.
+[Identity-A] [ROUTER] play: casts Orcish Bowmasters 1{B} [Orcish Bowmasters - Creature 1 / 1]
+[Identity-A] [TALLY] smart=14 fast=6 auto=0 ai=0 avgSmart=19661ms avgFast=13865ms
+[Identity-A] [ROUTER] play(main): 2 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 38081 ms
+[Identity-A] [ROUTER] play: casts Ajani, Nacatl Avenger [+2: Put a +1/+1 counter on each Cat you control.]
+[Identity-A] [TALLY] smart=15 fast=6 auto=0 ai=0 avgSmart=20889ms avgFast=13865ms
+[Identity-A] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 10552 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 1 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 15016 ms
+[Identity-A] [ROUTER] attackers: Cat Warrior Token
+[Identity-B] [AUTO-LEGAL] blockers(random)->0
+[Identity-A] [TALLY] smart=16 fast=7 auto=0 ai=0 avgSmart=20522ms avgFast=13392ms
+[Identity-A] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4897 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 1 castable -> asking haiku...
+[Identity-B] [ROUTER] target: Cat Warrior Token (3/2) [Identity-A's Battlefield] <- Swords to Plowshares {W} [Exile target creature.]
+[Identity-B] [ROUTER] play: casts Swords to Plowshares {W} [Exile target creature.]
+[Identity-B] [TALLY] smart=0 fast=0 auto=2 ai=0
+[Identity-B] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[Identity-B] [ROUTER] play: land Wasteland
+[Identity-B] [TALLY] smart=0 fast=0 auto=2 ai=0
+[Identity-B] [ROUTER] play(main): 1 castable -> asking opus...
+[Identity-B] [ROUTER] target: Karakas [Identity-B's Battlefield] <- Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Identity-B] [ROUTER] play: casts Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Identity-B] [ROUTER] attackers: 1 can attack -> asking opus...
+[Identity-B] [ROUTER] attackers: none
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 8651 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 5458 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=16 fast=10 auto=0 ai=0 avgSmart=20522ms avgFast=11275ms
+[Identity-A] [ROUTER] play(main): 5 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 22886 ms
+[Identity-A] [ROUTER] plan: Cast both Orcish Bowmasters back-to-back to build a token engine.
+[Identity-A] [ROUTER] play: casts Orcish Bowmasters 1{B} [Orcish Bowmasters - Creature 1 / 1]
+[Identity-A] [TALLY] smart=17 fast=10 auto=0 ai=0 avgSmart=20661ms avgFast=11275ms
+[Identity-A] [ROUTER] play(main): 3 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 31757 ms
+[Identity-A] [ROUTER] play: casts Ajani, Nacatl Avenger [0: Create a 2/1 white Cat Warrior creature token. When you do, if you ]
+[Identity-A] [TALLY] smart=18 fast=10 auto=0 ai=0 avgSmart=21277ms avgFast=11275ms
+[Identity-A] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 6807 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 2 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 12076 ms
+[Identity-A] [ROUTER] attackers: Orcish Bowmasters, Orc Army Token
+[Identity-B] [AUTO-LEGAL] blockers(random)->0
+[Identity-A] [TALLY] smart=19 fast=11 auto=0 ai=0 avgSmart=20793ms avgFast=10868ms
+[Identity-A] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 5202 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-B] [TALLY] smart=0 fast=0 auto=3 ai=0
+[Identity-B] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] attackers: 1 can attack -> asking opus...
+[Identity-B] [ROUTER] attackers: none
+[Identity-B] [TALLY] smart=0 fast=0 auto=3 ai=0
+[Identity-B] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[Identity-B] [ROUTER] play: land Wasteland
+[Identity-B] [TALLY] smart=0 fast=0 auto=3 ai=0
+[Identity-B] [ROUTER] play(main): 1 castable -> asking opus...
+[Identity-B] [ROUTER] target: Plateau [Identity-B's Battlefield] <- Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Identity-B] [ROUTER] play: casts Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 9038 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2698 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=19 fast=14 auto=0 ai=0 avgSmart=20793ms avgFast=9749ms
+[Identity-A] [ROUTER] play(main): 4 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 17298 ms
+[Identity-A] [ROUTER] plan: Cast Orcish Bowmasters to tighten lethal and add board presence.
+[Identity-A] [ROUTER] play: casts Orcish Bowmasters 1{B} [Orcish Bowmasters - Creature 1 / 1]
+[Identity-A] [TALLY] smart=20 fast=14 auto=0 ai=0 avgSmart=20618ms avgFast=9749ms
+[Identity-A] [ROUTER] play(main): 3 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 15796 ms
+[Identity-A] [ROUTER] play: casts Ajani, Nacatl Avenger [0: Create a 2/1 white Cat Warrior creature token. When you do, if you ]
+[Identity-A] [TALLY] smart=21 fast=14 auto=0 ai=0 avgSmart=20389ms avgFast=9749ms
+[Identity-A] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 6196 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 4 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 27994 ms
+[Identity-A] [ROUTER] attackers: Orcish Bowmasters, Orc Army Token, Orcish Bowmasters, Cat Warrior Token
+[Identity-B] [AUTO-LEGAL] blockers(random)->0
+[Identity-A] [TALLY] smart=22 fast=15 auto=0 ai=0 avgSmart=20734ms avgFast=9512ms
+[Identity-A] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4826 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-B] [ROUTER] attackers: 1 can attack -> asking opus...
+[Identity-B] [ROUTER] attackers: Hexing Squelcher
+[Identity-A] [ROUTER] blockers: 1 atk / 2 blk -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 14499 ms
+[Identity-A] [ROUTER] blockers: NONE
+[Identity-A] [TALLY] smart=23 fast=16 auto=0 ai=0 avgSmart=20463ms avgFast=9219ms
+[Identity-A] [ROUTER] play(main): 3 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 10123 ms
+[Identity-A] [ROUTER] plan: Pass and attack for lethal with my 7 creatures.
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 6 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 5101 ms
+[Identity-A] [ROUTER] attackers: Orcish Bowmasters, Orc Army Token, Orcish Bowmasters, Cat Warrior Token, Orcish Bowmasters, Cat Warrior Token
+========== GAME OVER ==========
+outcome: A after 13 turns (AllOpponentsLost) in 635s
+--- full game log ---
+  MULLIGAN: Identity-A has mulliganed down to 6 cards.
+  MULLIGAN: Identity-A has kept a hand of 6 cards
+  MULLIGAN: Identity-B has kept a hand of 7 cards
+  TURN: Turn 1 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Scrubland (43)
+  MANA: Scrubland (43) - {T}: Add {B}.
+  STACK_ADD: Identity-A cast Thoughtseize targeting [Identity-B]
+  DISCARD: Identity-B discards Orcish Bowmasters (112).
+  LIFE: Life: Identity-A 20 > 18
+  STACK_RESOLVE: Thoughtseize (47) - Identity-B reveals their hand. Identity-A chooses a nonland card from it. Identity-B discards that card. Identity-A loses 2 life.
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 2 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Arid Mesa (85)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  LIFE: Life: Identity-B 20 > 19
+  ZONE_CHANGE: Arid Mesa (85) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B activated Arid Mesa
+  STACK_RESOLVE: Arid Mesa (85) - Identity-B searches their library for a Mountain or Plains card, puts it onto the battlefield, then shuffles.
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Badlands (76) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Thoughtseize targeting [Identity-B]
+  DISCARD: Identity-B discards Ajani, Nacatl Pariah (133).
+  LIFE: Life: Identity-B 19 > 17
+  STACK_RESOLVE: Thoughtseize (120) - Identity-B reveals their hand. Identity-B chooses a nonland card from it. Identity-B discards that card. Identity-B loses 2 life.
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 3 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Scrubland (43) - {T}: Add {B}.
+  STACK_ADD: Identity-A cast Cabal Therapy
+  DISCARD: Identity-B discards Guide of Souls (89).
+  STACK_RESOLVE: Cabal Therapy (2) - Identity-A names a card. Identity-B reveals their hand. They discard all of type: Card.NamedCard card.
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 4 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Karakas (92)
+  MANA: Badlands (76) - {T}: Add {R}.
+  MANA: Karakas (92) - {T}: Add {W}.
+  STACK_ADD: Identity-B cast Amped Raptor
+  STACK_RESOLVE: Amped Raptor - Creature 2 / 1
+  STACK_ADD: Identity-B triggered Amped Raptor
+  STACK_RESOLVE: When Amped Raptor enters, you get {E}{E} (two energy counters). Then if you cast it from your hand, exile cards from the top of your library until you exile a nonland card. You may cast that card by paying an amount of {E} equal to its mana value rather than paying its mana cost. [Zone Changer: Amped Raptor (123)]
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 5 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Scrubland (42)
+  MANA: Scrubland (43) - {T}: Add {W}.
+  MANA: Scrubland (42) - {T}: Add {B}.
+  STACK_ADD: Identity-A cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Identity-A triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (57)]
+  ZONE_CHANGE: Cat Warrior Token (153) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A cast Cabal Therapy
+  STACK_ADD: Identity-A triggered Ajani, Nacatl Pariah
+  ZONE_CHANGE: Ajani, Nacatl Pariah (57) was put into Exile from Battlefield.
+  EFFECT_REPLACED: Ajani, Nacatl Avenger enters with three loyalty counters on it.
+  STACK_RESOLVE: Whenever one or more other Cats you control die, you may exile Ajani, then return him to the battlefield transformed under his owner's control. [Amount: 1]
+  STACK_RESOLVE: Cabal Therapy (2) - Identity-A names a card. Identity-B reveals their hand. They discard all of type: Card.NamedCard card.
+  EFFECT_REPLACED: Flashback—Sacrifice a creature. (You may cast this card from your graveyard for its flashback cost. Then exile it.)
+  STACK_ADD: Identity-A activated Ajani, Nacatl Avenger
+  STACK_RESOLVE: Ajani, Nacatl Avenger (57) - Identity-A creates a 2/1 white Cat Warrior creature token. When you do, if they control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures they control to any target. When you do, if you control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures you control to any target. 
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 6 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Plateau (113)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Badlands (76) - {T}: Add {R}.
+  MANA: Plateau (113) - {T}: Add {R}.
+  STACK_ADD: Identity-B cast Hexing Squelcher
+  STACK_RESOLVE: Hexing Squelcher - Creature 2 / 2
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 7 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Scrubland (43) - {T}: Add {B}.
+  MANA: Scrubland (42) - {T}: Add {B}.
+  STACK_ADD: Identity-A cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Identity-A triggered Orcish Bowmasters targeting [Amped Raptor (123)]
+  STACK_ADD: Identity-B triggered Amped Raptor
+  LIFE: Life: Identity-A 18 > 16
+  STACK_RESOLVE: Ward—Pay 2 life. (Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player pays 2 life.) [Source: Orcish Bowmasters (37), Target: Amped Raptor (123)]
+  DAMAGE: Orcish Bowmasters (37) deals 1 damage to Amped Raptor (123).
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Amped Raptor (123)]]) [Zone Changer: Orcish Bowmasters (37)]
+  ZONE_CHANGE: Amped Raptor (123) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Ajani, Nacatl Avenger
+  STACK_RESOLVE: Ajani, Nacatl Avenger (57) - Put a +1/+1 counter on each valid permanent.
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Cat Warrior Token (155) to attack Identity-B.
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B didn't block Cat Warrior Token (155).
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Cat Warrior Token (155) deals 3 combat damage to Identity-B.
+  LIFE: Life: Identity-B 17 > 14
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 8 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  MANA: Plateau (113) - {T}: Add {W}.
+  STACK_ADD: Identity-B cast Swords to Plowshares targeting [Cat Warrior Token (155)]
+  ZONE_CHANGE: Cat Warrior Token (155) was put into Exile from Battlefield.
+  LIFE: Life: Identity-A 16 > 19
+  STACK_RESOLVE: Swords to Plowshares (106) - Exile Cat Warrior Token (155). Identity-A gains life equal to its power.
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Wasteland (127)
+  ZONE_CHANGE: Wasteland (127) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B activated Wasteland targeting [Karakas (92)]
+  ZONE_CHANGE: Karakas (92) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (127) - Destroy Karakas (92).
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 9 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Scrubland (43) - {T}: Add {B}.
+  MANA: Scrubland (42) - {T}: Add {B}.
+  STACK_ADD: Identity-A cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Identity-A triggered Orcish Bowmasters targeting [Identity-B]
+  DAMAGE: Orcish Bowmasters (36) deals 1 non-combat damage to Identity-B.
+  LIFE: Life: Identity-B 14 > 13
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Identity-B]]) [Zone Changer: Orcish Bowmasters (36)]
+  STACK_ADD: Identity-A activated Ajani, Nacatl Avenger
+  STACK_RESOLVE: Ajani, Nacatl Avenger (57) - Identity-A creates a 2/1 white Cat Warrior creature token. When you do, if they control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures they control to any target. When you do, if you control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures you control to any target. 
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Orcish Bowmasters (37) and Orc Army Token (157) to attack Identity-B.
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B didn't block Orcish Bowmasters (37).
+Identity-B didn't block Orc Army Token (157).
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Orcish Bowmasters (37) deals 1 combat damage to Identity-B.
+  DAMAGE: Orc Army Token (157) deals 2 combat damage to Identity-B.
+  LIFE: Life: Identity-B 13 > 10
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 10 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  LAND: Identity-B played Wasteland (130)
+  ZONE_CHANGE: Wasteland (130) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B activated Wasteland targeting [Plateau (113)]
+  ZONE_CHANGE: Plateau (113) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (130) - Destroy Plateau (113).
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 11 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Scrubland (43) - {T}: Add {B}.
+  MANA: Scrubland (42) - {T}: Add {B}.
+  STACK_ADD: Identity-A cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Identity-A triggered Orcish Bowmasters targeting [Identity-B]
+  DAMAGE: Orcish Bowmasters (35) deals 1 non-combat damage to Identity-B.
+  LIFE: Life: Identity-B 10 > 9
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Identity-B]]) [Zone Changer: Orcish Bowmasters (35)]
+  STACK_ADD: Identity-A activated Ajani, Nacatl Avenger
+  STACK_RESOLVE: Ajani, Nacatl Avenger (57) - Identity-A creates a 2/1 white Cat Warrior creature token. When you do, if they control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures they control to any target. When you do, if you control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures you control to any target. 
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Orcish Bowmasters (37), Orc Army Token (157), Orcish Bowmasters (36) and Cat Warrior Token (159) to attack Identity-B.
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B didn't block Orcish Bowmasters (37).
+Identity-B didn't block Orc Army Token (157).
+Identity-B didn't block Orcish Bowmasters (36).
+Identity-B didn't block Cat Warrior Token (159).
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Orcish Bowmasters (37) deals 1 combat damage to Identity-B.
+  DAMAGE: Orc Army Token (157) deals 3 combat damage to Identity-B.
+  DAMAGE: Orcish Bowmasters (36) deals 1 combat damage to Identity-B.
+  DAMAGE: Cat Warrior Token (159) deals 2 combat damage to Identity-B.
+  LIFE: Life: Identity-B 9 > 2
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 12 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Hexing Squelcher (81) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Hexing Squelcher (81).
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Hexing Squelcher (81) deals 2 combat damage to Identity-A.
+  LIFE: Life: Identity-A 19 > 17
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 13 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Orcish Bowmasters (37), Orc Army Token (157), Orcish Bowmasters (36), Cat Warrior Token (159), Orcish Bowmasters (35) and Cat Warrior Token (161) to attack Identity-B.
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B didn't block Orcish Bowmasters (37).
+Identity-B didn't block Orc Army Token (157).
+Identity-B didn't block Orcish Bowmasters (36).
+Identity-B didn't block Cat Warrior Token (159).
+Identity-B didn't block Orcish Bowmasters (35).
+Identity-B didn't block Cat Warrior Token (161).
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Orcish Bowmasters (37) deals 1 combat damage to Identity-B.
+  DAMAGE: Orc Army Token (157) deals 3 combat damage to Identity-B.
+  DAMAGE: Orcish Bowmasters (36) deals 1 combat damage to Identity-B.
+  DAMAGE: Cat Warrior Token (159) deals 2 combat damage to Identity-B.
+  DAMAGE: Orcish Bowmasters (35) deals 1 combat damage to Identity-B.
+  DAMAGE: Cat Warrior Token (161) deals 2 combat damage to Identity-B.
+  LIFE: Life: Identity-B 2 > -8
+  PLAYER_CONTROL: Identity-A has restored control over themself
+  PLAYER_CONTROL: Identity-B has restored control over themself
+  GAME_OUTCOME: Turn 7
+  GAME_OUTCOME: Identity-A has won because all opponents have lost
+  GAME_OUTCOME: Identity-B has lost because life total reached 0
+  MATCH_RESULTS: Identity-A: 1 Identity-B: 0 
+===============================

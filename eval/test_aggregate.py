@@ -265,6 +265,122 @@ def test_interleaved_and_duplicates():
               str(s["paired"]))
 
 
+def test_decision_round_trip():
+    """A decision line carrying options/prompt/raw_reply with quotes, tabs,
+    newlines and non-ASCII (JSON \\uXXXX escapes) must survive serialize ->
+    parse_dir -> parse unchanged, field for field."""
+    opts = ["YES", "NO", 'label with "quotes"', "tab\tand\nnewline",
+            "café ♠ ☃ ♠"]
+    prompt = ('SNAPSHOT:\n{"hand":["Lightning Bolt"],"life":20}\n'
+              'Confirm "attack with all"?\n\tunicode: ☃ é ♠ 日本語')
+    raw = 'final answer: "NO"\n\tbecause ♠ is blocked\ndone é'
+    dec = {"t": "decision", "seat": "Identity-A", "turn": 7, "phase": "COMBAT",
+           "type": "confirm", "n_options": 5, "choice": 1, "tier": "smart",
+           "latency_ms": 1234, "fallback": None,
+           "options": opts, "prompt": prompt, "raw_reply": raw}
+    with tempfile.TemporaryDirectory() as d:
+        # json.dumps (ensure_ascii=True) emits \uXXXX for the non-ASCII chars;
+        # parse_dir -> json.loads must decode them back exactly.
+        write_jsonl(d, "game-1-1000.jsonl", [dec, game_line(1, False, "A")])
+        _, decisions, _ = aggregate.parse_dir(Path(d))
+        got = [x for x in decisions if x.get("seat") == "Identity-A"]
+        check("round-trip: exactly one decision parsed", len(got) == 1, str(len(got)))
+        r = got[0] if got else {}
+        check("round-trip: options (quotes/tab/newline/unicode)",
+              r.get("options") == opts, repr(r.get("options")))
+        check("round-trip: prompt full text preserved",
+              r.get("prompt") == prompt, repr(r.get("prompt")))
+        check("round-trip: raw_reply full text preserved",
+              r.get("raw_reply") == raw, repr(r.get("raw_reply")))
+        for k in ("t", "seat", "turn", "phase", "type", "n_options", "choice",
+                  "tier", "latency_ms", "fallback"):
+            check("round-trip: field %s" % k, r.get(k) == dec[k],
+                  "%r vs %r" % (r.get(k), dec[k]))
+
+
+def test_fallback_gate():
+    """Gate fires above the ceiling and passes below, counting only decisions
+    of llm-controlled identities; vacuous when no llm arm exists."""
+    with tempfile.TemporaryDirectory() as d:
+        g = game_line(1, False, "A")  # controller_a=llm, controller_b=random
+        g["deck_a"], g["deck_b"] = "Identity-A", "Identity-B"
+        lines = [g]
+        # 5 clean smart + 5 auto fallbacks on the llm identity -> rate 0.5
+        for _ in range(5):
+            lines.append({"t": "decision", "seat": "Identity-A", "tier": "smart",
+                          "type": "play", "latency_ms": 100, "fallback": None})
+        for _ in range(5):
+            lines.append({"t": "decision", "seat": "Identity-A", "tier": "auto",
+                          "type": "play", "latency_ms": 1, "fallback": "cli-timeout"})
+        # A fallback on the NON-llm identity must be ignored by the gate.
+        lines.append({"t": "decision", "seat": "Identity-B", "tier": "auto",
+                      "type": "play", "latency_ms": 1, "fallback": "x"})
+        write_jsonl(d, "game-1-1000.jsonl", lines)
+
+        fg_hi = aggregate.build_summary(Path(d), 200, 1,
+                                        max_fallback_rate=0.10)["fallback_gate"]
+        check("gate fires above ceiling", fg_hi["failed"] is True, str(fg_hi))
+        check("gate rate is 5/10", approx(fg_hi["fallback_rate"], 0.5), str(fg_hi))
+        check("gate denom excludes non-llm identity",
+              fg_hi["n_llm_decisions"] == 10, str(fg_hi))
+        check("gate llm identity listed",
+              fg_hi["llm_identities"] == ["Identity-A"], str(fg_hi))
+
+        fg_lo = aggregate.build_summary(Path(d), 200, 1,
+                                        max_fallback_rate=0.90)["fallback_gate"]
+        check("gate passes below ceiling", fg_lo["failed"] is False, str(fg_lo))
+
+    # Vacuous: no llm arm -> gate never fails even with fallbacks present.
+    with tempfile.TemporaryDirectory() as d:
+        g = game_line(2, False, "A")
+        g["controller_a"], g["controller_b"] = "floor", "random"
+        g["deck_a"], g["deck_b"] = "Identity-A", "Identity-B"
+        write_jsonl(d, "game-2-1000.jsonl", [g,
+            {"t": "decision", "seat": "Identity-A", "tier": "auto",
+             "type": "play", "latency_ms": 1, "fallback": "x"}])
+        fg = aggregate.build_summary(Path(d), 200, 1)["fallback_gate"]
+        check("no llm arm -> gate vacuous", fg["vacuous"] is True, str(fg))
+        check("vacuous gate never fails", fg["failed"] is False, str(fg))
+
+
+def test_mixed_provenance():
+    """Two games with differing engine_sha must trip the mixed-provenance flag
+    and name engine_sha as a differing field."""
+    with tempfile.TemporaryDirectory() as d:
+        g1 = game_line(1, False, "A")
+        g1["engine_sha"], g1["discipline"] = "aaaaaaaaaaaa", "cited"
+        g2 = game_line(1, True, "A")
+        g2["engine_sha"], g2["discipline"] = "bbbbbbbbbbbb", "cited"
+        write_jsonl(d, "game-1-1000.jsonl", [g1])
+        write_jsonl(d, "game-1-1001.jsonl", [g2])
+        s = aggregate.build_summary(Path(d), 200, 1)
+        check("mixed-provenance flagged", s["provenance_mixed"] is True,
+              str(s["provenance"]))
+        check("engine_sha named as differing",
+              "engine_sha" in s["provenance"]["mixed_fields"],
+              str(s["provenance"]["mixed_fields"]))
+        check("shared discipline not flagged mixed",
+              "discipline" not in s["provenance"]["mixed_fields"],
+              str(s["provenance"]["mixed_fields"]))
+
+
+def test_provenance_legacy_unknown():
+    """Legacy game lines with no provenance fields resolve to the documented
+    defaults ('unknown'/'unspecified'), no crash, not mixed."""
+    with tempfile.TemporaryDirectory() as d:
+        write_jsonl(d, "game-1-1000.jsonl", [game_line(1, False, "A")])
+        write_jsonl(d, "game-1-1001.jsonl", [game_line(1, True, "A")])
+        p = aggregate.build_summary(Path(d), 200, 1)["provenance"]
+        check("legacy provenance not mixed", p["mixed"] is False, str(p))
+        check("legacy engine_sha -> unknown",
+              p["fields"]["engine_sha"] == ["unknown"], str(p["fields"]["engine_sha"]))
+        check("legacy deck_sha -> unknown",
+              p["fields"]["deck_sha"] == ["unknown"], str(p["fields"]["deck_sha"]))
+        check("legacy discipline -> unspecified",
+              p["fields"]["discipline"] == ["unspecified"],
+              str(p["fields"]["discipline"]))
+
+
 def main():
     test_wilson()
     test_p90()
@@ -272,6 +388,10 @@ def main():
     test_fixture_summary()
     test_identity_keyed_no_seat_flip()
     test_interleaved_and_duplicates()
+    test_decision_round_trip()
+    test_fallback_gate()
+    test_mixed_provenance()
+    test_provenance_legacy_unknown()
     print()
     if FAILURES:
         print("FAILED: %d check(s): %s" % (len(FAILURES), ", ".join(FAILURES)))
