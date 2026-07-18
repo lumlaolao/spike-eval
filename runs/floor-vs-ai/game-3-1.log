@@ -1,0 +1,338 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 3
+[DECK] loaded 'Identity-A': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[DECK] loaded 'Identity-B': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[SEATS] A=Identity-A(floor,haiku) B=Identity-B(ai,opus) [SWAPPED]
+[Identity-A] [MODE] baseline arm: floor
+[HEADLESS] game starting (cap=15min)
+[Identity-A] [AUTO-LEGAL] mulligan(no-model)->KEEP
+[Identity-A] [AUTO-LEGAL] play(no-budget): land Shadowy Backstreet
+[Identity-A] [AUTO-LEGAL] play(no-budget): land Karakas
+[Identity-A] [AUTO-LEGAL] play(no-budget): land Wasteland
+[Identity-A] [AUTO-LEGAL] play(no-budget): land Marsh Flats
+[Identity-A] [AUTO-LEGAL] play(no-budget): land Wasteland
+========== GAME OVER ==========
+outcome: B after 12 turns (AllOpponentsLost) in 1s
+--- full game log ---
+  MULLIGAN: Identity-A has kept a hand of 7 cards
+  MULLIGAN: Identity-B has kept a hand of 7 cards
+  TURN: Turn 1 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  EFFECT_REPLACED: Shadowy Backstreet enters tapped.
+  LAND: Identity-A played Shadowy Backstreet (131)
+  STACK_ADD: Identity-A triggered Shadowy Backstreet
+  STACK_RESOLVE: Identity-A surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: When Shadowy Backstreet enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Shadowy Backstreet (131)]
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 2 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Scrubland (43)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Scrubland (43) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Thoughtseize targeting [Identity-A]
+  DISCARD: Identity-A discards Goblin Bombardment (94).
+  LIFE: Life: Identity-B 20 > 18
+  STACK_RESOLVE: Thoughtseize (45) - Identity-A reveals their hand. Identity-B chooses a nonland card from it. Identity-A discards that card. Identity-B loses 2 life.
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 3 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Karakas (92)
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 4 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Wasteland (53)
+  MANA: Scrubland (43) - {T}: Add {B}.
+  MANA: Wasteland (53) - {T}: Add {C}.
+  STACK_ADD: Identity-B cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Identity-B triggered Orcish Bowmasters targeting [Identity-A]
+  DAMAGE: Orcish Bowmasters (37) deals 1 non-combat damage to Identity-A.
+  LIFE: Life: Identity-A 20 > 19
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Identity-A]]) [Zone Changer: Orcish Bowmasters (37)]
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 5 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Wasteland (128)
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 6 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Wasteland (55)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Orcish Bowmasters (37) and Orc Army Token (154) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Orcish Bowmasters (37).
+Identity-A didn't block Orc Army Token (154).
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Orcish Bowmasters (37) deals 1 combat damage to Identity-A.
+  DAMAGE: Orc Army Token (154) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 19 > 17
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Scrubland (43) - {T}: Add {W}.
+  MANA: Wasteland (53) - {T}: Add {C}.
+  STACK_ADD: Identity-B cast Voice of Victory
+  STACK_RESOLVE: Voice of Victory - Creature 1 / 3
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 7 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Marsh Flats (96)
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 8 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Voice of Victory (34), Orcish Bowmasters (37) and Orc Army Token (154) to attack Identity-A.
+  STACK_ADD: Identity-B triggered Voice of Victory
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (34)]
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Voice of Victory (34).
+Identity-A didn't block Orcish Bowmasters (37).
+Identity-A didn't block Orc Army Token (154).
+Identity-A didn't block Warrior Token (159).
+Identity-A didn't block Warrior Token (160).
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Voice of Victory (34) deals 1 combat damage to Identity-A.
+  DAMAGE: Orcish Bowmasters (37) deals 1 combat damage to Identity-A.
+  DAMAGE: Orc Army Token (154) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (159) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (160) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 17 > 12
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Scrubland (43) - {T}: Add {W}.
+  MANA: Wasteland (53) - {T}: Add {C}.
+  STACK_ADD: Identity-B cast Voice of Victory
+  STACK_RESOLVE: Voice of Victory - Creature 1 / 3
+  PHASE: Identity-B's End step
+  STACK_ADD: Identity-B triggered Voice of Victory
+  ZONE_CHANGE: Warrior Token (159) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Warrior Token (160) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Sacrifice Warrior Token (159) and Warrior Token (160) at the beginning of the next end step. ([Warrior Token (159), Warrior Token (160)]) [Phase: Identity-B]
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 9 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Wasteland (130)
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 10 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Voice of Victory (34), Voice of Victory (33), Orcish Bowmasters (37) and Orc Army Token (154) to attack Identity-A.
+  STACK_ADD: Identity-B triggered Voice of Victory
+  STACK_ADD: Identity-B triggered Voice of Victory
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (33)]
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (34)]
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Voice of Victory (34).
+Identity-A didn't block Voice of Victory (33).
+Identity-A didn't block Orcish Bowmasters (37).
+Identity-A didn't block Orc Army Token (154).
+Identity-A didn't block Warrior Token (165).
+Identity-A didn't block Warrior Token (166).
+Identity-A didn't block Warrior Token (168).
+Identity-A didn't block Warrior Token (169).
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Voice of Victory (34) deals 1 combat damage to Identity-A.
+  DAMAGE: Voice of Victory (33) deals 1 combat damage to Identity-A.
+  DAMAGE: Orcish Bowmasters (37) deals 1 combat damage to Identity-A.
+  DAMAGE: Orc Army Token (154) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (165) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (166) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (168) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (169) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 12 > 4
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Scrubland (43) - {T}: Add {W}.
+  STACK_ADD: Identity-B cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  PHASE: Identity-B's End step
+  STACK_ADD: Identity-B triggered Voice of Victory
+  STACK_ADD: Identity-B triggered Voice of Victory
+  ZONE_CHANGE: Warrior Token (168) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Warrior Token (169) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Sacrifice Warrior Token (168) and Warrior Token (169) at the beginning of the next end step. ([Warrior Token (168), Warrior Token (169)]) [Phase: Identity-B]
+  ZONE_CHANGE: Warrior Token (165) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Warrior Token (166) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Sacrifice Warrior Token (165) and Warrior Token (166) at the beginning of the next end step. ([Warrior Token (165), Warrior Token (166)]) [Phase: Identity-B]
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 11 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 12 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  MANA: Scrubland (43) - {T}: Add {B}.
+  MANA: Wasteland (53) - {T}: Add {C}.
+  STACK_ADD: Identity-B cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Identity-B triggered Orcish Bowmasters targeting [Identity-A]
+  DAMAGE: Orcish Bowmasters (35) deals 1 non-combat damage to Identity-A.
+  LIFE: Life: Identity-A 4 > 3
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Identity-A]]) [Zone Changer: Orcish Bowmasters (35)]
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Orc Army Token (154), Orcish Bowmasters (37), Voice of Victory (34), Voice of Victory (33) and Ocelot Pride (27) to attack Identity-A.
+  STACK_ADD: Identity-B triggered Voice of Victory
+  STACK_ADD: Identity-B triggered Voice of Victory
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (33)]
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (34)]
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Orc Army Token (154).
+Identity-A didn't block Orcish Bowmasters (37).
+Identity-A didn't block Voice of Victory (34).
+Identity-A didn't block Voice of Victory (33).
+Identity-A didn't block Ocelot Pride (27).
+Identity-A didn't block Warrior Token (175).
+Identity-A didn't block Warrior Token (176).
+Identity-A didn't block Warrior Token (178).
+Identity-A didn't block Warrior Token (179).
+  PHASE: Identity-B's First Strike Damage Step
+  DAMAGE: Ocelot Pride (27) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-B 18 > 19
+  LIFE: Life: Identity-A 3 > 2
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Orc Army Token (154) deals 2 combat damage to Identity-A.
+  DAMAGE: Orcish Bowmasters (37) deals 1 combat damage to Identity-A.
+  DAMAGE: Voice of Victory (34) deals 1 combat damage to Identity-A.
+  DAMAGE: Voice of Victory (33) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (175) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (176) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (178) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (179) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 2 > -7
+  PLAYER_CONTROL: Identity-B has restored control over themself
+  PLAYER_CONTROL: Identity-A has restored control over themself
+  GAME_OUTCOME: Turn 6
+  GAME_OUTCOME: Identity-B has won because all opponents have lost
+  GAME_OUTCOME: Identity-A has lost because life total reached 0
+  MATCH_RESULTS: Identity-B: 1 Identity-A: 0 
+===============================

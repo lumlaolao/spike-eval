@@ -1,0 +1,416 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 8
+[DECK] loaded 'Identity-A': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[DECK] loaded 'Identity-B': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[SEATS] A=Identity-A(llm,haiku) B=Identity-B(ai,opus) [SWAPPED]
+[HEADLESS] game starting (cap=120min)
+[Identity-A] [ROUTER] mulligan: 2/7 lands -> asking haiku...
+[CLAUDE Identity-A/smart] starting persistent haiku session...
+[CLAUDE Identity-A/smart] replied in 1416 ms
+[Identity-A] [ROUTER] mulligan: MULLIGAN
+[Identity-A] [ROUTER] mulligan: 2/6 lands -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 1317 ms
+[Identity-A] [ROUTER] mulligan: MULLIGAN
+[Identity-A] [ROUTER] mulligan: FLOOR keep (2/5)
+[Identity-A] [TALLY] smart=2 fast=0 auto=0 ai=0 avgSmart=1366ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] starting persistent haiku session...
+[CLAUDE Identity-A/fast] replied in 1655 ms
+[CLAUDE Identity-A/fast] replied in 483 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=2 fast=2 auto=0 ai=0 avgSmart=1366ms avgFast=1069ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 683 ms
+[CLAUDE Identity-A/fast] replied in 449 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=2 fast=4 auto=0 ai=0 avgSmart=1366ms avgFast=817ms
+[Identity-A] [ROUTER] play(main): 0 castable + 3 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 380 ms
+[CLAUDE Identity-A/fast] replied in 778 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=2 fast=6 auto=0 ai=0 avgSmart=1366ms avgFast=738ms
+[Identity-A] [ROUTER] play(main): 0 castable + 3 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 338 ms
+[CLAUDE Identity-A/fast] replied in 383 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=2 fast=8 auto=0 ai=0 avgSmart=1366ms avgFast=643ms
+[Identity-A] [ROUTER] play(main): 0 castable + 3 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 320 ms
+[CLAUDE Identity-A/fast] replied in 362 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=2 fast=10 auto=0 ai=0 avgSmart=1366ms avgFast=583ms
+[Identity-A] [ROUTER] play(main): 0 castable + 3 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 395 ms
+[CLAUDE Identity-A/fast] replied in 339 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=2 fast=12 auto=0 ai=0 avgSmart=1366ms avgFast=547ms
+[Identity-A] [ROUTER] play(main): 0 castable + 3 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 338 ms
+[CLAUDE Identity-A/fast] replied in 358 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=2 fast=14 auto=0 ai=0 avgSmart=1366ms avgFast=518ms
+[Identity-A] [ROUTER] play(main): 0 castable + 3 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 771 ms
+[CLAUDE Identity-A/fast] replied in 287 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=2 fast=16 auto=0 ai=0 avgSmart=1366ms avgFast=519ms
+[Identity-A] [ROUTER] play(main): 0 castable + 4 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 327 ms
+[CLAUDE Identity-A/fast] replied in 312 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=2 fast=18 auto=0 ai=0 avgSmart=1366ms avgFast=497ms
+[Identity-A] [ROUTER] play(main): 0 castable + 4 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 462 ms
+[CLAUDE Identity-A/fast] replied in 438 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=2 fast=20 auto=0 ai=0 avgSmart=1366ms avgFast=492ms
+[Identity-A] [ROUTER] play(main): 0 castable + 3 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 365 ms
+[CLAUDE Identity-A/fast] replied in 305 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=2 fast=22 auto=0 ai=0 avgSmart=1366ms avgFast=478ms
+[Identity-A] [ROUTER] play(main): 0 castable + 3 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 818 ms
+[CLAUDE Identity-A/fast] replied in 307 ms
+[Identity-A] [ROUTER] play: PASS
+SVar 'ConvertedManaCost' not defined in Card (Hexing Squelcher)
+[Identity-A] [TALLY] smart=2 fast=24 auto=0 ai=0 avgSmart=1366ms avgFast=485ms
+[Identity-A] [ROUTER] play(main): 0 castable + 3 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 438 ms
+[CLAUDE Identity-A/fast] replied in 328 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=2 fast=26 auto=0 ai=0 avgSmart=1366ms avgFast=477ms
+[Identity-A] [ROUTER] play(main): 0 castable + 3 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 655 ms
+[CLAUDE Identity-A/fast] replied in 523 ms
+[Identity-A] [ROUTER] play: PASS
+========== GAME OVER ==========
+outcome: B after 14 turns (AllOpponentsLost) in 17s
+--- full game log ---
+  MULLIGAN: Identity-A has mulliganed down to 6 cards.
+  MULLIGAN: Identity-A has mulliganed down to 5 cards.
+  MULLIGAN: Identity-A has kept a hand of 5 cards
+  MULLIGAN: Identity-B has kept a hand of 7 cards
+  TURN: Turn 1 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 2 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Scrubland (42)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 3 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 4 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Wasteland (54)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Scrubland (42) - {T}: Add {W}.
+  MANA: Wasteland (54) - {T}: Add {C}.
+  STACK_ADD: Identity-B cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Identity-B triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (59)]
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 5 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 6 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  EFFECT_REPLACED: Shadowy Backstreet enters tapped.
+  LAND: Identity-B played Shadowy Backstreet (56)
+  STACK_ADD: Identity-B triggered Shadowy Backstreet
+  STACK_RESOLVE: Identity-B surveiled 1 card(s) to the graveyard
+  STACK_RESOLVE: When Shadowy Backstreet enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Shadowy Backstreet (56)]
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Cat Warrior Token (155) and Ajani, Nacatl Pariah (59) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Cat Warrior Token (155).
+Identity-A didn't block Ajani, Nacatl Pariah (59).
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Cat Warrior Token (155) deals 2 combat damage to Identity-A.
+  DAMAGE: Ajani, Nacatl Pariah (59) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 20 > 17
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Scrubland (42) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Thoughtseize targeting [Identity-A]
+  DISCARD: Identity-A discards Amped Raptor (125).
+  LIFE: Life: Identity-B 20 > 18
+  STACK_RESOLVE: Thoughtseize (46) - Identity-A reveals their hand. Identity-B chooses a nonland card from it. Identity-A discards that card. Identity-B loses 2 life.
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 7 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 8 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Wasteland (52)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Cat Warrior Token (155) and Ajani, Nacatl Pariah (59) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Cat Warrior Token (155).
+Identity-A didn't block Ajani, Nacatl Pariah (59).
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Cat Warrior Token (155) deals 2 combat damage to Identity-A.
+  DAMAGE: Ajani, Nacatl Pariah (59) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 17 > 14
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 9 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  DISCARD: Identity-A discards Plateau (113).
+  TURN: Turn 10 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Arid Mesa (8)
+  LIFE: Life: Identity-B 18 > 17
+  ZONE_CHANGE: Arid Mesa (8) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B activated Arid Mesa
+  STACK_RESOLVE: Arid Mesa (8) - Identity-B searches their library for a Mountain or Plains card, puts it onto the battlefield, then shuffles.
+  MANA: Plateau (38) - {T}: Add {R}.
+  MANA: Scrubland (42) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Hexing Squelcher
+  STACK_RESOLVE: Hexing Squelcher - Creature 2 / 2
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Cat Warrior Token (155) and Ajani, Nacatl Pariah (59) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Cat Warrior Token (155).
+Identity-A didn't block Ajani, Nacatl Pariah (59).
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Cat Warrior Token (155) deals 2 combat damage to Identity-A.
+  DAMAGE: Ajani, Nacatl Pariah (59) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 14 > 11
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Shadowy Backstreet (56) - {T}: Add {W}.
+  STACK_ADD: Identity-B cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 11 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  DISCARD: Identity-A discards Hexing Squelcher (82).
+  TURN: Turn 12 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  EFFECT_REPLACED: Elegant Parlor enters tapped.
+  LAND: Identity-B played Elegant Parlor (15)
+  STACK_ADD: Identity-B triggered Elegant Parlor
+  STACK_RESOLVE: Identity-B surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: When Elegant Parlor enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Elegant Parlor (15)]
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Cat Warrior Token (155), Hexing Squelcher (7), Ajani, Nacatl Pariah (59) and Ocelot Pride (27) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Cat Warrior Token (155).
+Identity-A didn't block Hexing Squelcher (7).
+Identity-A didn't block Ajani, Nacatl Pariah (59).
+Identity-A didn't block Ocelot Pride (27).
+  PHASE: Identity-B's First Strike Damage Step
+  DAMAGE: Ocelot Pride (27) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-B 17 > 18
+  LIFE: Life: Identity-A 11 > 10
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Cat Warrior Token (155) deals 2 combat damage to Identity-A.
+  DAMAGE: Hexing Squelcher (7) deals 2 combat damage to Identity-A.
+  DAMAGE: Ajani, Nacatl Pariah (59) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 10 > 5
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Plateau (38) - {T}: Add {R}.
+  MANA: Scrubland (42) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Amped Raptor
+  STACK_RESOLVE: Amped Raptor - Creature 2 / 1
+  STACK_ADD: Identity-B triggered Amped Raptor
+  STACK_ADD: Identity-B cast Hexing Squelcher
+  STACK_RESOLVE: When Amped Raptor enters, you get {E}{E} (two energy counters). Then if you cast it from your hand, exile cards from the top of your library until you exile a nonland card. You may cast that card by paying an amount of {E} equal to its mana value rather than paying its mana cost. [Zone Changer: Amped Raptor (49)]
+  STACK_RESOLVE: Hexing Squelcher - Creature 2 / 2
+  PHASE: Identity-B's End step
+  STACK_ADD: Identity-B triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-B]
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 13 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  DISCARD: Identity-A discards Scrubland (117).
+  TURN: Turn 14 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Cat Warrior Token (155), Hexing Squelcher (7), Amped Raptor (49), Hexing Squelcher (5), Ajani, Nacatl Pariah (59), Ocelot Pride (27), Cat Token (159) and Cat Token (161) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Cat Warrior Token (155).
+Identity-A didn't block Hexing Squelcher (7).
+Identity-A didn't block Amped Raptor (49).
+Identity-A didn't block Hexing Squelcher (5).
+Identity-A didn't block Ajani, Nacatl Pariah (59).
+Identity-A didn't block Ocelot Pride (27).
+Identity-A didn't block Cat Token (159).
+Identity-A didn't block Cat Token (161).
+  PHASE: Identity-B's First Strike Damage Step
+  DAMAGE: Amped Raptor (49) deals 2 combat damage to Identity-A.
+  DAMAGE: Ocelot Pride (27) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-B 18 > 19
+  LIFE: Life: Identity-A 5 > 2
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Cat Warrior Token (155) deals 2 combat damage to Identity-A.
+  DAMAGE: Hexing Squelcher (7) deals 2 combat damage to Identity-A.
+  DAMAGE: Hexing Squelcher (5) deals 2 combat damage to Identity-A.
+  DAMAGE: Ajani, Nacatl Pariah (59) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Token (159) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Token (161) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 2 > -7
+  PLAYER_CONTROL: Identity-B has restored control over themself
+  PLAYER_CONTROL: Identity-A has restored control over themself
+  GAME_OUTCOME: Turn 7
+  GAME_OUTCOME: Identity-B has won because all opponents have lost
+  GAME_OUTCOME: Identity-A has lost because life total reached 0
+  MATCH_RESULTS: Identity-B: 1 Identity-A: 0 
+===============================

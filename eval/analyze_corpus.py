@@ -200,6 +200,26 @@ def is_num(x):
     return isinstance(x, (int, float)) and not isinstance(x, bool)
 
 
+# Known non-answer strings that claude -p may emit when the CLI session is
+# rate-limited, auth-blocked, or otherwise unable to produce a real model reply.
+# These should be logged as bridge-down fallbacks by the emitter; the analyzer
+# surfaces them as a data-quality warning when they appear as raw_reply.
+_NON_ANSWER_PATTERNS = (
+    "you've hit your session limit",
+    "rate limit",
+    "rate-limit",
+    "unable to locate a java runtime",
+)
+
+
+def is_contaminated_reply(raw):
+    """True if raw_reply is a non-answer/error instead of a model decision."""
+    if not isinstance(raw, str):
+        return False
+    u = raw.lower()
+    return any(p in u for p in _NON_ANSWER_PATTERNS)
+
+
 # ------------------------------------------------------------- summaries
 
 def summarize(parse_results):
@@ -372,8 +392,19 @@ def summarize(parse_results):
                  and d.get("raw_reply") is not None)
     n_dead = sum(1 for d in decisions
                  if d.get("prompt") is not None and d.get("raw_reply") is None)
+    contaminated = [d for d in decisions if is_contaminated_reply(d.get("raw_reply"))]
+    n_contaminated = len(contaminated)
+    contam_by_pattern = Counter()
+    for d in contaminated:
+        raw = (d.get("raw_reply") or "").lower()
+        for p in _NON_ANSWER_PATTERNS:
+            if p in raw:
+                contam_by_pattern[p] += 1
+                break
     cov_out = {"model_consulted": n_model, "full_round_trip": n_full,
-               "prompt_without_reply_bridge_death": n_dead}
+               "prompt_without_reply_bridge_death": n_dead,
+               "contaminated_replies": n_contaminated,
+               "contaminated_by_pattern": dict(contam_by_pattern)}
 
     # --- un-routed surface: types never seen with a model tier
     any_model_tier = any(t in tiers_seen for t in ("smart", "fast"))
@@ -579,9 +610,19 @@ def _scope_lines(name, s):
     L.append("--- prompt/raw_reply coverage ---")
     L.append("model-consulted (prompt!=null): %d   full round-trip "
              "(prompt+raw_reply): %d   prompt-without-reply (bridge died "
-             "mid-call): %d"
+             "mid-call): %d   contaminated replies: %d"
              % (c["model_consulted"], c["full_round_trip"],
-                c["prompt_without_reply_bridge_death"]))
+                c["prompt_without_reply_bridge_death"],
+                c["contaminated_replies"]))
+    if c["contaminated_replies"]:
+        L.append("WARNING: %d model-consulted line(s) carry a non-answer "
+                 "raw_reply (e.g. rate-limit message). These decisions were "
+                 "NOT driven by the model; the batch is contaminated. "
+                 "Patterns: %s"
+                 % (c["contaminated_replies"],
+                    ", ".join("%s=%d" % kv
+                              for kv in sorted(
+                                  c["contaminated_by_pattern"].items()))))
 
     # ai audit
     L.append("")

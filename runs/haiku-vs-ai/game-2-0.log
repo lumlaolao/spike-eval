@@ -1,0 +1,333 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 2
+[DECK] loaded 'Identity-A': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[DECK] loaded 'Identity-B': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[SEATS] A=Identity-A(llm,haiku) B=Identity-B(ai,opus)
+[HEADLESS] game starting (cap=120min)
+[Identity-A] [ROUTER] mulligan: 3/7 lands -> asking haiku...
+[CLAUDE Identity-A/smart] starting persistent haiku session...
+[CLAUDE Identity-A/smart] replied in 1961 ms
+[Identity-A] [ROUTER] mulligan: MULLIGAN
+[Identity-A] [ROUTER] mulligan: 4/6 lands -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 388 ms
+[Identity-A] [ROUTER] mulligan: MULLIGAN
+[Identity-A] [ROUTER] mulligan: FLOOR keep (1/5)
+[Identity-A] [TALLY] smart=2 fast=0 auto=0 ai=0 avgSmart=1174ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] starting persistent haiku session...
+[CLAUDE Identity-A/fast] replied in 1235 ms
+[CLAUDE Identity-A/fast] replied in 671 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=2 fast=2 auto=0 ai=0 avgSmart=1174ms avgFast=953ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 390 ms
+[CLAUDE Identity-A/fast] replied in 310 ms
+[Identity-A] [ROUTER] play: PASS
+SVar 'ConvertedManaCost' not defined in Card (Amped Raptor)
+[Identity-A] [TALLY] smart=2 fast=4 auto=0 ai=0 avgSmart=1174ms avgFast=651ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 413 ms
+[CLAUDE Identity-A/fast] replied in 594 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=2 fast=6 auto=0 ai=0 avgSmart=1174ms avgFast=602ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 354 ms
+[CLAUDE Identity-A/fast] replied in 371 ms
+[Identity-A] [ROUTER] play: PASS
+SVar 'ConvertedManaCost' not found in ability, fallback to Card (Thoughtseize). Ability is (Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life. )
+SVar 'ConvertedManaCost' not defined in Card (Thoughtseize)
+[Identity-A] [TALLY] smart=2 fast=8 auto=0 ai=0 avgSmart=1174ms avgFast=542ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 382 ms
+[CLAUDE Identity-A/fast] replied in 323 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=2 fast=10 auto=0 ai=0 avgSmart=1174ms avgFast=504ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 360 ms
+[CLAUDE Identity-A/fast] replied in 408 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=2 fast=12 auto=0 ai=0 avgSmart=1174ms avgFast=484ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 825 ms
+[CLAUDE Identity-A/fast] replied in 332 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=2 fast=14 auto=0 ai=0 avgSmart=1174ms avgFast=497ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 308 ms
+[CLAUDE Identity-A/fast] replied in 333 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=2 fast=16 auto=0 ai=0 avgSmart=1174ms avgFast=475ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 322 ms
+[CLAUDE Identity-A/fast] replied in 621 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=2 fast=18 auto=0 ai=0 avgSmart=1174ms avgFast=475ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 380 ms
+[CLAUDE Identity-A/fast] replied in 344 ms
+[Identity-A] [ROUTER] play: PASS
+========== GAME OVER ==========
+outcome: B after 11 turns (AllOpponentsLost) in 13s
+--- full game log ---
+  MULLIGAN: Identity-B has mulliganed down to 6 cards.
+  MULLIGAN: Identity-A has mulliganed down to 6 cards.
+  MULLIGAN: Identity-B has mulliganed down to 5 cards.
+  MULLIGAN: Identity-A has mulliganed down to 5 cards.
+  MULLIGAN: Identity-B has kept a hand of 5 cards
+  MULLIGAN: Identity-A has kept a hand of 5 cards
+  TURN: Turn 1 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Badlands (76)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Badlands (76) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Thoughtseize targeting [Identity-A]
+  DISCARD: Identity-A discards Voice of Victory (33).
+  LIFE: Life: Identity-B 20 > 18
+  STACK_RESOLVE: Thoughtseize (119) - Identity-A reveals their hand. Identity-B chooses a nonland card from it. Identity-A discards that card. Identity-B loses 2 life.
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 2 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 3 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Arid Mesa (85)
+  LIFE: Life: Identity-B 18 > 17
+  ZONE_CHANGE: Arid Mesa (85) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B activated Arid Mesa
+  STACK_RESOLVE: Arid Mesa (85) - Identity-B searches their library for a Mountain or Plains card, puts it onto the battlefield, then shuffles.
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Badlands (76) - {T}: Add {R}.
+  MANA: Scrubland (117) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Amped Raptor
+  STACK_RESOLVE: Amped Raptor - Creature 2 / 1
+  STACK_ADD: Identity-B triggered Amped Raptor
+  STACK_ADD: Identity-B cast Amped Raptor
+  STACK_RESOLVE: When Amped Raptor enters, you get {E}{E} (two energy counters). Then if you cast it from your hand, exile cards from the top of your library until you exile a nonland card. You may cast that card by paying an amount of {E} equal to its mana value rather than paying its mana cost. [Zone Changer: Amped Raptor (123)]
+  STACK_RESOLVE: Amped Raptor - Creature 2 / 1
+  STACK_ADD: Identity-B triggered Amped Raptor
+  STACK_RESOLVE: When Amped Raptor enters, you get {E}{E} (two energy counters). Then if you cast it from your hand, exile cards from the top of your library until you exile a nonland card. You may cast that card by paying an amount of {E} equal to its mana value rather than paying its mana cost. [Zone Changer: Amped Raptor (126)]
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 4 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 5 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Amped Raptor (123) and Amped Raptor (126) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Amped Raptor (123).
+Identity-A didn't block Amped Raptor (126).
+  PHASE: Identity-B's First Strike Damage Step
+  DAMAGE: Amped Raptor (123) deals 2 combat damage to Identity-A.
+  DAMAGE: Amped Raptor (126) deals 2 combat damage to Identity-A.
+  LIFE: Life: Identity-A 20 > 16
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Badlands (76) - {T}: Add {R}.
+  MANA: Scrubland (117) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Amped Raptor
+  STACK_RESOLVE: Amped Raptor - Creature 2 / 1
+  STACK_ADD: Identity-B triggered Amped Raptor
+  STACK_ADD: Identity-B cast Thoughtseize targeting [Identity-A]
+  STACK_RESOLVE: When Amped Raptor enters, you get {E}{E} (two energy counters). Then if you cast it from your hand, exile cards from the top of your library until you exile a nonland card. You may cast that card by paying an amount of {E} equal to its mana value rather than paying its mana cost. [Zone Changer: Amped Raptor (125)]
+  DISCARD: Identity-A discards Amped Raptor (51).
+  LIFE: Life: Identity-B 17 > 15
+  STACK_RESOLVE: Thoughtseize (122) - Identity-A reveals their hand. Identity-B chooses a nonland card from it. Identity-A discards that card. Identity-B loses 2 life.
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 6 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 7 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Amped Raptor (123), Amped Raptor (126) and Amped Raptor (125) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Amped Raptor (123).
+Identity-A didn't block Amped Raptor (126).
+Identity-A didn't block Amped Raptor (125).
+  PHASE: Identity-B's First Strike Damage Step
+  DAMAGE: Amped Raptor (123) deals 2 combat damage to Identity-A.
+  DAMAGE: Amped Raptor (126) deals 2 combat damage to Identity-A.
+  DAMAGE: Amped Raptor (125) deals 2 combat damage to Identity-A.
+  LIFE: Life: Identity-A 16 > 10
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 8 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 9 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Amped Raptor (123), Amped Raptor (126) and Amped Raptor (125) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Amped Raptor (123).
+Identity-A didn't block Amped Raptor (126).
+Identity-A didn't block Amped Raptor (125).
+  PHASE: Identity-B's First Strike Damage Step
+  DAMAGE: Amped Raptor (123) deals 2 combat damage to Identity-A.
+  DAMAGE: Amped Raptor (126) deals 2 combat damage to Identity-A.
+  DAMAGE: Amped Raptor (125) deals 2 combat damage to Identity-A.
+  LIFE: Life: Identity-A 10 > 4
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Scrubland (117) - {T}: Add {W}.
+  MANA: Badlands (76) - {T}: Add {R}.
+  STACK_ADD: Identity-B cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Identity-B triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (135)]
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 10 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  DISCARD: Identity-A discards Cabal Therapy (2).
+  TURN: Turn 11 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Marsh Flats (98)
+  LIFE: Life: Identity-B 15 > 14
+  ZONE_CHANGE: Marsh Flats (98) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B activated Marsh Flats
+  STACK_RESOLVE: Marsh Flats (98) - Identity-B searches their library for a Plains or Swamp card, puts it onto the battlefield, then shuffles.
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Amped Raptor (123), Amped Raptor (126), Amped Raptor (125), Cat Warrior Token (154) and Ajani, Nacatl Pariah (135) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Amped Raptor (123).
+Identity-A didn't block Amped Raptor (126).
+Identity-A didn't block Amped Raptor (125).
+Identity-A didn't block Cat Warrior Token (154).
+Identity-A didn't block Ajani, Nacatl Pariah (135).
+  PHASE: Identity-B's First Strike Damage Step
+  DAMAGE: Amped Raptor (123) deals 2 combat damage to Identity-A.
+  DAMAGE: Amped Raptor (126) deals 2 combat damage to Identity-A.
+  DAMAGE: Amped Raptor (125) deals 2 combat damage to Identity-A.
+  LIFE: Life: Identity-A 4 > -2
+  PLAYER_CONTROL: Identity-A has restored control over themself
+  PLAYER_CONTROL: Identity-B has restored control over themself
+  GAME_OUTCOME: Turn 6
+  GAME_OUTCOME: Identity-A has lost because life total reached 0
+  GAME_OUTCOME: Identity-B has won because all opponents have lost
+  MATCH_RESULTS: Identity-A: 0 Identity-B: 1 
+===============================
