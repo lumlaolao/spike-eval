@@ -518,8 +518,13 @@ public final class LlmSpikeGui {
             String reply = ask(smart, prompt);
             if (reply == null) return aiDelegate("mulligan(bridge-down)", super.mulliganKeepHand(firstPlayer, cardsToReturn));
             String r = reply.toUpperCase();
-            int k = r.indexOf("KEEP"), mu = r.indexOf("MULLIGAN");
-            boolean keep = k >= 0 && (mu < 0 || k < mu);
+            // Read the LAST keyword, not the first: the prompt demands the decision be the final word,
+            // and the reasoning body routinely contains "mulligan"/"mulliganing" (e.g. "no reason to
+            // mulligan ... KEEP"). First-indexOf matched that prose token and inverted the model's
+            // actual choice — observed on 10/31 mulligans in haiku-vs-ai-2, every one a KEEP shipped as
+            // a mulligan (manufactured pre-game card disadvantage). lastIndexOf recovers all 10.
+            int k = r.lastIndexOf("KEEP"), mu = r.lastIndexOf("MULLIGAN");
+            boolean keep = k >= 0 && (mu < 0 || k > mu);
             evalDec("mulligan", 2, keep ? 0 : 1, "smart", 0, null, java.util.Arrays.asList("KEEP", "MULLIGAN"));
             p("[ROUTER] mulligan: " + (keep ? "KEEP" : "MULLIGAN"));
             return keep;
