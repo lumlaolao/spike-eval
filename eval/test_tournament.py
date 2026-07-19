@@ -31,21 +31,29 @@ def test_snake_single_round():
     ok("_snake order")
 
 
-def test_seed_bracket_pairings():
+def test_draw_bracket_is_permutation_and_pairs_adjacent():
+    import random
     picks = [{"seed": i + 1, "label": "s%d" % (i + 1)} for i in range(8)]
-    qf = T.seed_bracket(picks)
-    # standard seeding: 1v8, 4v5, 2v7, 3v6 so seeds 1 and 2 can only meet in the final
-    got = [(a["label"], b["label"]) for a, b in qf]
-    assert got == [("s1", "s8"), ("s4", "s5"), ("s2", "s7"), ("s3", "s6")], got
-    ok("seed_bracket standard 8-seed pairings")
+    draw = T.draw_bracket(picks, random.Random(3))
+    # a draw is a permutation of all 8 players (no drops, no dupes)
+    assert sorted(p["label"] for p in draw) == sorted(p["label"] for p in picks)
+    qf = T.qf_pairs_from_draw(draw)
+    # 4 QF pairs from adjacent slots (1v2, 3v4, 5v6, 7v8); all 8 appear exactly once
+    assert len(qf) == 4
+    flat = [x["label"] for pair in qf for x in pair]
+    assert sorted(flat) == sorted(p["label"] for p in picks)
+    # deterministic for a fixed rng seed
+    assert [p["label"] for p in draw] == [p["label"] for p in T.draw_bracket(picks, random.Random(3))]
+    ok("draw_bracket permutation + adjacent QF pairing + seed-deterministic")
 
 
-def test_seed_bracket_requires_8():
+def test_draw_bracket_requires_8():
+    import random
     try:
-        T.seed_bracket([{"seed": 1, "label": "x"}])
+        T.draw_bracket([{"seed": 1, "label": "x"}], random.Random(0))
         assert False, "should have exited"
     except SystemExit:
-        ok("seed_bracket refuses != 8 models")
+        ok("draw_bracket refuses != 8 models")
 
 
 def test_match_id_hash_deterministic():
@@ -141,8 +149,8 @@ def _fake_forge_home(d):
 
 def main():
     test_snake_single_round()
-    test_seed_bracket_pairings()
-    test_seed_bracket_requires_8()
+    test_draw_bracket_is_permutation_and_pairs_adjacent()
+    test_draw_bracket_requires_8()
     test_match_id_hash_deterministic()
     test_label()
     test_read_winner_identity_keyed()

@@ -291,13 +291,31 @@ def _label(model):
 
 # ----------------------------------------------------------------- bracket
 
-def seed_bracket(picks):
-    """Standard 8-seed single-elim QF pairings (1v8,4v5,2v7,3v6) so seeds 1 and 2
-    can only meet in the final. picks are seed-ordered (index 0 = seed 1)."""
+def draw_bracket(picks, rng):
+    """Random draw: shuffle the 8 players into bracket slots 1-8. QF pairs are adjacent
+    slots (1v2, 3v4, 5v6, 7v8); winners flow QF1/QF2 -> SF1, QF3/QF4 -> SF2, SF1/SF2 -> F.
+    Returns the 8 picks in slot order (the drawn bracket)."""
     if len(picks) != 8:
         die("bracket needs exactly 8 models (got %d)." % len(picks))
-    s = picks
-    return [(s[0], s[7]), (s[3], s[4]), (s[1], s[6]), (s[2], s[5])]
+    slots = list(picks)
+    rng.shuffle(slots)
+    return slots
+
+
+def qf_pairs_from_draw(draw):
+    return [(draw[0], draw[1]), (draw[2], draw[3]), (draw[4], draw[5]), (draw[6], draw[7])]
+
+
+def _print_bracket(draw):
+    qf = qf_pairs_from_draw(draw)
+    log("\n=== BRACKET DRAW ===")
+    for i, (a, b) in enumerate(qf):
+        log("  QF-%d:  %-16s (%s)  vs  %-16s (%s)"
+            % (i + 1, a["label"], a["deck"], b["label"], b["deck"]))
+    log("  SF-1:  winner QF-1  vs  winner QF-2")
+    log("  SF-2:  winner QF-3  vs  winner QF-4")
+    log("  F-1 :  winner SF-1  vs  winner SF-2")
+    log("====================\n")
 
 
 # ------------------------------------------------------------- match runner
@@ -407,36 +425,74 @@ def match_id_hash(mid):
 
 # -------------------------------------------------------------------- main
 
-def run_bracket(picks, out_dir, args, rng):
-    state_path = out_dir / "bracket.json"
-    state = json.loads(state_path.read_text()) if state_path.is_file() else {"rounds": {}}
+def _ensure_draw(picks, state, state_path, rng, args):
+    """Load the persisted random draw, or make (and save) one. Returns picks in slot
+    order. --redraw forces a new draw."""
+    by_label = {p["label"]: p for p in picks}
+    if state.get("draw") and not args.redraw:
+        try:
+            return [by_label[lbl] for lbl in state["draw"]]
+        except KeyError:
+            log("[draw] saved draw doesn't match --models; re-drawing")
+    draw = draw_bracket(picks, rng)
+    state["draw"] = [p["label"] for p in draw]
+    if not args.dry_run:
+        state_path.write_text(json.dumps(state, indent=2))
+    log("[draw] new random bracket draw saved")
+    return draw
 
-    def play(pairs, round_name):
-        results = state["rounds"].get(round_name, {})
-        winners = []
+
+def run_bracket(picks, out_dir, args, rng):
+    """Play the bracket from the persisted random draw. Plays at most args.max_matches
+    NEW matches this invocation (0 = all remaining), so callers can go one game at a
+    time. Returns (state, champion-or-None). champion is None until the Final is done."""
+    state_path = out_dir / "bracket.json"
+    state = json.loads(state_path.read_text()) if state_path.is_file() else {}
+    state.setdefault("rounds", {})
+    draw = _ensure_draw(picks, state, state_path, rng, args)
+
+    if args.draw_only:
+        _print_bracket(draw)
+        return state, None
+
+    budget = [args.max_matches if args.max_matches and args.max_matches > 0 else 10 ** 9]
+
+    def play_round(name, pairs):
+        """Play this round's not-yet-decided matches, up to the remaining budget.
+        Returns True iff every match in the round is now recorded."""
+        results = state["rounds"].setdefault(name, {})
         for i, (a, b) in enumerate(pairs):
-            mid = "%s-%d" % (round_name, i + 1)
-            if mid in results and not args.dry_run:
-                w = results[mid]["winner_label"]
-                log("[resume] %s already decided -> %s" % (mid, w))
-                winners.append(_by_label(pairs, w))
+            mid = "%s-%d" % (name, i + 1)
+            if mid in results:
+                continue
+            if budget[0] <= 0:
                 continue
             w, l, info = run_match(a, b, mid, out_dir, args, rng)
             results[mid] = {"a": a["label"], "b": b["label"],
                             "a_deck": a["deck"], "b_deck": b["deck"],
                             "winner_label": w["label"], **info}
-            winners.append(w)
-            state["rounds"][round_name] = results
+            budget[0] -= 1
             if not args.dry_run:
                 state_path.write_text(json.dumps(state, indent=2))
-        return winners
+        return all(("%s-%d" % (name, i + 1)) in results for i in range(len(pairs)))
 
-    qf = seed_bracket(picks)
-    sf_w = play(qf, "QF")
-    sf = [(sf_w[0], sf_w[1]), (sf_w[2], sf_w[3])]
-    f_w = play(sf, "SF")
-    final = [(f_w[0], f_w[1])]
-    champ = play(final, "F")[0]
+    def winners(name, pairs):
+        r = state["rounds"][name]
+        return [_by_label(pairs, r["%s-%d" % (name, i + 1)]["winner_label"])
+                for i in range(len(pairs))]
+
+    qf = qf_pairs_from_draw(draw)
+    if not play_round("QF", qf):
+        return state, None
+    qf_w = winners("QF", qf)
+    sf = [(qf_w[0], qf_w[1]), (qf_w[2], qf_w[3])]
+    if not play_round("SF", sf):
+        return state, None
+    sf_w = winners("SF", sf)
+    final = [(sf_w[0], sf_w[1])]
+    if not play_round("F", final):
+        return state, None
+    champ = winners("F", final)[0]
     state["champion"] = champ["label"]
     state["champion_deck"] = champ["deck"]
     if not args.dry_run:
@@ -461,24 +517,35 @@ def write_report(state, picks, out_dir, args):
              "## Draft\n", "| seed | model | deck |", "|---|---|---|"]
     for p in picks:
         lines.append("| %d | `%s` | %s |" % (p["seed"], p["model"], p["deck"]))
+    if state.get("draw"):
+        by_label = {p["label"]: p for p in picks}
+        slots = [by_label[l] for l in state["draw"] if l in by_label]
+        if len(slots) == 8:
+            lines.append("\n## Bracket draw (random)\n")
+            for i, (a, b) in enumerate(qf_pairs_from_draw(slots)):
+                lines.append("- QF-%d: %s (%s) vs %s (%s)"
+                             % (i + 1, a["label"], a["deck"], b["label"], b["deck"]))
     lines.append("\n## Results\n")
+    total = 0
     for rnd in ("QF", "SF", "F"):
-        r = state["rounds"].get(rnd, {})
+        r = state.get("rounds", {}).get(rnd, {})
         if not r:
             continue
         lines.append("### %s" % {"QF": "Quarterfinals", "SF": "Semifinals",
                                  "F": "Final"}[rnd])
         for mid in sorted(r):
             m = r[mid]
-            lines.append("- **%s** (%s) def. %s (%s)%s" % (
+            total += 1
+            lines.append("- **%s** (%s) def. %s (%s)" % (
                 m["winner_label"],
                 m["a_deck"] if m["winner_label"] == m["a"] else m["b_deck"],
                 m["b"] if m["winner_label"] == m["a"] else m["a"],
-                m["b_deck"] if m["winner_label"] == m["a"] else m["a_deck"],
-                "" if "attempt" not in m else " · seed %s" % m.get("seed", "?")))
+                m["b_deck"] if m["winner_label"] == m["a"] else m["a_deck"]))
     lines.append("\n## Champion\n")
-    lines.append("🏆 **%s** with %s" % (state.get("champion", "?"),
-                                        state.get("champion_deck", "?")))
+    if state.get("champion"):
+        lines.append("🏆 **%s** with %s" % (state["champion"], state.get("champion_deck", "?")))
+    else:
+        lines.append("_Tournament in progress — %d/7 matches played._" % total)
     (out_dir / "REPORT.md").write_text("\n".join(lines) + "\n")
     log("[report] wrote %s" % (out_dir / "REPORT.md"))
 
@@ -501,6 +568,13 @@ def main():
     ap.add_argument("--draft-only", action="store_true", help="draft, then stop")
     ap.add_argument("--redraft", action="store_true",
                     help="force a fresh draft even if --out already has a draft.json")
+    ap.add_argument("--draw-only", action="store_true",
+                    help="draft + make the random bracket draw, print it, then stop")
+    ap.add_argument("--redraw", action="store_true",
+                    help="force a fresh random draw even if bracket.json already has one")
+    ap.add_argument("--max-matches", type=int, default=0,
+                    help="play at most N NEW matches this invocation (0 = all remaining). "
+                         "Use 1 to go one game at a time.")
     ap.add_argument("--mock-draft", action="store_true",
                     help="assign decks with the seeded RNG (no OpenRouter calls)")
     ap.add_argument("--dry-run", action="store_true",
@@ -588,8 +662,15 @@ def main():
         return 0
 
     state, champ = run_bracket(picks, out_dir, args, rng)
+    if args.draw_only:
+        return 0
     write_report(state, picks, out_dir, args)
-    log("\n=== CHAMPION: %s (%s) ===" % (champ["label"], champ["deck"]))
+    if champ:
+        log("\n=== CHAMPION: %s (%s) ===" % (champ["label"], champ["deck"]))
+    else:
+        done = sum(len(state.get("rounds", {}).get(r, {})) for r in ("QF", "SF", "F"))
+        log("\n=== %d/7 matches played — run again to continue (bracket.json saved) ==="
+            % done)
     return 0
 
 
