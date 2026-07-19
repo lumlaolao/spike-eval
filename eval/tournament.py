@@ -96,58 +96,99 @@ def load_pool():
 
 # ------------------------------------------------------------- openrouter
 
-def openrouter_chat(model, system, user, timeout=90, retries=2):
-    """One OpenRouter chat completion. Proper JSON parsing (not the Java bridge's
-    naive scan). Returns assistant text, or None on failure after retries."""
+def _append_jsonl(path, rec):
+    if path is None:
+        return
+    try:
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    except OSError as e:
+        log("[log] failed to append %s: %s" % (path, e))
+
+
+def openrouter_chat(model, system, user, timeout=180, retries=2, log_path=None, tag=None):
+    """One OpenRouter chat completion. Proper JSON parsing (not the Java bridge's naive
+    scan). Returns assistant text, or None on failure after retries. When log_path is
+    given, appends one JSONL record per attempt capturing the full request AND the full
+    raw response (content + any separate `reasoning` field + usage) so nothing the model
+    said is lost."""
     key = os.environ.get("OPENROUTER_API_KEY")
     if not key:
         die("OPENROUTER_API_KEY is required for the draft/games.")
-    body = json.dumps({
+    body_obj = {
         "model": model,
         "messages": [{"role": "system", "content": system},
                      {"role": "user", "content": user}],
-        "max_tokens": 512,
-    }).encode("utf-8")
+        "max_tokens": 2048,
+    }
+    body = json.dumps(body_obj).encode("utf-8")
     for attempt in range(retries + 1):
+        rec = {"tag": tag, "model": model, "attempt": attempt + 1, "request": body_obj}
         req = urllib.request.Request(OPENROUTER_URL, data=body, method="POST")
         req.add_header("Authorization", "Bearer " + key)
         req.add_header("Content-Type", "application/json")
+        raw = None
         try:
             with urllib.request.urlopen(req, timeout=timeout) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-            return data["choices"][0]["message"]["content"]
+                raw = resp.read().decode("utf-8")
+                status = resp.status
+            data = json.loads(raw)
+            msg = data["choices"][0]["message"]
+            content = msg["content"]
+            rec.update({"status": status, "response": data, "content": content,
+                        "reasoning": msg.get("reasoning"), "usage": data.get("usage")})
+            _append_jsonl(log_path, rec)
+            return content, msg.get("reasoning")
         except (urllib.error.URLError, KeyError, ValueError, IndexError) as e:
+            rec.update({"error": repr(e), "raw": raw})
+            _append_jsonl(log_path, rec)
             log("[draft] %s call failed (attempt %d/%d): %s"
                 % (model, attempt + 1, retries + 1, e))
-    return None
+    return None, None
 
 
 # ---------------------------------------------------------------- drafting
 
-def draft(models, pool, rng, mock=False):
+def draft(models, pool, rng, mock=False, log_dir=None):
     """Snake-order draft: each model picks a UNIQUE deck from the remaining pool.
-    Returns (assignments: list of {model,label,deck,path,blurb}, transcript)."""
+    Returns (assignments: list of {model,label,deck,path,blurb,reasoning}, transcript).
+    When log_dir is given, every model's full request/response goes to raw.jsonl and a
+    readable <seed>-<label>.md per model."""
     remaining = {d["key"]: d for d in pool}
     order = list(range(len(models)))          # seed order = listed order
     # snake so a late seed sometimes picks earlier across (hypothetical) rounds;
     # with one pick each it's a single pass, but keep the structure explicit.
+    raw_log = (log_dir / "raw.jsonl") if log_dir else None
     picks, transcript = [], []
     for rnd, idx in enumerate(_snake(order, rounds=1)):
         model = models[idx]
         opts = list(remaining.values())
         if mock:
-            choice = rng.choice(opts)
+            choice, reasoning = rng.choice(opts), "(mock draft — no model call)"
         else:
-            choice = _ask_pick(model, opts, rng)
+            choice, reasoning = _ask_pick(model, opts, rng, idx + 1, raw_log)
+            if log_dir:
+                _write_pick_md(log_dir, idx + 1, model, opts, choice, reasoning)
         del remaining[choice["key"]]
         picks.append({"seed": idx + 1, "model": model, "label": _label(model),
                       "deck": choice["key"], "path": choice["path"],
-                      "blurb": choice["blurb"]})
+                      "blurb": choice["blurb"], "reasoning": reasoning})
         transcript.append("seed %d %s -> %s" % (idx + 1, _label(model), choice["key"]))
         log("[draft] " + transcript[-1])
     # restore listed/seed order
     picks.sort(key=lambda p: p["seed"])
     return picks, transcript
+
+
+def _write_pick_md(log_dir, seed, model, opts, choice, reasoning):
+    menu = "\n".join("%d. %s — %s" % (i + 1, o["key"], o["blurb"]) for i, o in enumerate(opts))
+    md = ("# Draft pick — seed %d: `%s`\n\n**Chose:** %s\n\n## Menu shown\n%s\n\n"
+          "## Model's full response / reasoning\n\n%s\n"
+          % (seed, model, choice["key"], menu, reasoning or "(no reasoning returned)"))
+    try:
+        (log_dir / ("%d-%s.md" % (seed, _label(model)))).write_text(md, encoding="utf-8")
+    except OSError as e:
+        log("[log] failed to write pick md: %s" % e)
 
 
 def _snake(order, rounds):
@@ -157,25 +198,91 @@ def _snake(order, rounds):
     return seq
 
 
-def _ask_pick(model, opts, rng):
-    menu = "\n".join("%d. %s — %s" % (i + 1, o["key"], o["blurb"])
-                     for i, o in enumerate(opts))
-    system = ("You are a competitive Magic: The Gathering (Legacy) player choosing "
-              "which deck to bring to a tournament. Pick the deck you would play to "
-              "win. Reply with ONLY the number of your choice on the final line, "
-              "e.g. `PICK: 3`.")
-    user = ("Available decks (each already unavailable to later drafters once "
-            "taken):\n%s\n\nWhich deck do you choose? Reply `PICK: <number>`." % menu)
-    reply = openrouter_chat(model, system, user)
-    if reply:
-        nums = re.findall(r"\b(\d+)\b", reply)
-        if nums:
-            n = int(nums[-1])
+# Archetype nicknames -> deck key, so a pick stated by name (not menu number) still
+# resolves. Matching is on normalized substrings; the LAST-occurring alias in the text
+# wins (models typically name their final choice last).
+_DECK_ALIASES = {
+    "ur-delver": ["ur-delver", "izzet delver", "izzet tempo", "delver"],
+    "grixis-reanimator": ["grixis-reanimator", "grixis reanimator", "reanimator", "reanimate"],
+    "mardu-energy": ["mardu-energy", "mardu energy", "mardu", "energy"],
+    "death-and-taxes": ["death-and-taxes", "death and taxes", "death & taxes", "d&t", "taxes"],
+    "sneak-and-show": ["sneak-and-show", "sneak and show", "sneak & show", "sneak show", "sneak attack"],
+    "lands": ["lands", "aggro loam", "loam"],
+    "elves": ["elves", "elfball"],
+    "ant-storm": ["ant-storm", "ad nauseam tendrils", "tendrils", " ant ", "storm"],
+    "miracles": ["miracles", "miracle", "counterbalance"],
+    "goblins": ["goblins", "goblin"],
+    "burn": ["burn", "rdw"],
+    "infect": ["infect"],
+}
+
+
+def _norm(s):
+    return re.sub(r"[^a-z0-9 ]", "", (s or "").lower().replace("&", "and"))
+
+
+def _parse_number_pick(text, opts):
+    """Explicit menu-number pick only (`PICK: N`, then 'option/deck/number N').
+    This is the authoritative signal — the number indexes the menu as shown."""
+    if not text:
+        return None
+    for pat in (r"pick[:\s#]*(\d+)", r"(?:option|deck|number|choice)\s*#?\s*(\d+)"):
+        m = re.findall(pat, text, re.I)
+        if m:
+            n = int(m[-1])
             if 1 <= n <= len(opts):
                 return opts[n - 1]
-    # unparseable / failed -> deterministic fallback so the draft never stalls
+    return None
+
+
+def _alias_pick(text, opts):
+    """Last-resort: the last-mentioned deck name/alias in the text. Used only when no
+    explicit number was given anywhere; run on content+reasoning combined so the
+    concluding choice (usually stated last) beats decks merely discussed earlier."""
+    nt = " " + _norm(text) + " "
+    best, best_pos = None, -1
+    for o in opts:
+        for alias in [o["key"]] + _DECK_ALIASES.get(o["key"], []):
+            pos = nt.rfind(_norm(alias))
+            if pos > best_pos:
+                best, best_pos = o, pos
+    return best
+
+
+def _resolve_pick(content, reasoning, opts):
+    """Explicit number in content wins; then explicit number in reasoning; then, only if
+    neither gave a number, alias-match the combined text (concluding choice last)."""
+    return (_parse_number_pick(content, opts)
+            or _parse_number_pick(reasoning, opts)
+            or _alias_pick((content or "") + "\n" + (reasoning or ""), opts))
+
+
+def _ask_pick(model, opts, rng, seed, raw_log):
+    """Ask one model to pick a deck. Returns (choice_dict, reasoning_text)."""
+    menu = "\n".join("%d. %s — %s" % (i + 1, o["key"], o["blurb"])
+                     for i, o in enumerate(opts))
+    system = ("You are a competitive Magic: The Gathering (Legacy) player about to enter "
+              "an 8-player single-elimination tournament against seven other AI models. "
+              "You must choose ONE deck to pilot for the whole event. Think it through: "
+              "weigh the archetypes' power, the likely metagame, and how each deck suits "
+              "aggressive vs. controlling play. Explain your reasoning in a few sentences, "
+              "then end your reply with your choice on its own final line as `PICK: <number>`.")
+    user = ("Available decks (each becomes unavailable once an earlier drafter takes it):\n"
+            "%s\n\nWhich deck do you choose, and why? End with `PICK: <number>`." % menu)
+    content, reasoning = openrouter_chat(model, system, user, log_path=raw_log,
+                                         tag="draft-seed-%d-%s" % (seed, _label(model)))
+    # explicit number wins (content, then reasoning); alias-match combined text only if
+    # neither gave a number — recovers content-filtered models that state the choice only
+    # in their reasoning field before truncation.
+    choice = _resolve_pick(content, reasoning, opts)
+    saved = (content or "").strip()
+    if reasoning:
+        saved += ("\n\n---\n[reasoning field]\n" + reasoning.strip())
+    if choice:
+        return choice, (saved or "(empty response)")
+    # nothing parseable anywhere -> deterministic fallback so the draft never stalls
     log("[draft] %s gave no usable pick; assigning random remaining deck" % model)
-    return rng.choice(opts)
+    return rng.choice(opts), (saved or "(no response from model — random fallback)")
 
 
 def _label(model):
@@ -392,6 +499,8 @@ def main():
     ap.add_argument("--no-record", dest="record", action="store_false")
     ap.add_argument("--record-fps", type=int, default=8)
     ap.add_argument("--draft-only", action="store_true", help="draft, then stop")
+    ap.add_argument("--redraft", action="store_true",
+                    help="force a fresh draft even if --out already has a draft.json")
     ap.add_argument("--mock-draft", action="store_true",
                     help="assign decks with the seeded RNG (no OpenRouter calls)")
     ap.add_argument("--dry-run", action="store_true",
@@ -454,10 +563,27 @@ def main():
     if len(args.models) != 8:
         die("need exactly 8 --models (got %d)." % len(args.models))
 
-    # --dry-run implies an offline draft too (no OpenRouter calls), same as --mock-draft.
-    picks, transcript = draft(args.models, pool, rng, mock=args.mock_draft or args.dry_run)
-    (out_dir / "draft.json").write_text(json.dumps(picks, indent=2))
-    log("[draft] complete: " + " | ".join(transcript))
+    # Draft reuse: if this --out already has a draft.json for the SAME models, reuse it
+    # (don't re-call OpenRouter) — so `--draft-only` now and the bracket later use the
+    # SAME picks. --redraft forces a fresh draft.
+    draft_path = out_dir / "draft.json"
+    picks = None
+    if draft_path.is_file() and not args.redraft:
+        prior = json.loads(draft_path.read_text())
+        if [p["model"] for p in prior] == list(args.models):
+            picks = prior
+            log("[draft] reusing existing draft.json (%s)" % draft_path)
+        else:
+            log("[draft] draft.json models differ from --models; re-drafting")
+    if picks is None:
+        # --dry-run implies an offline draft too (no OpenRouter calls), same as --mock-draft.
+        draft_logs = out_dir / "draft-logs"
+        draft_logs.mkdir(parents=True, exist_ok=True)
+        picks, transcript = draft(args.models, pool, rng,
+                                  mock=args.mock_draft or args.dry_run, log_dir=draft_logs)
+        draft_path.write_text(json.dumps(picks, indent=2))
+        log("[draft] complete: " + " | ".join(transcript))
+        log("[draft] per-model reasoning saved to %s" % draft_logs)
     if args.draft_only:
         return 0
 
