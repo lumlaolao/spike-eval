@@ -2065,6 +2065,17 @@ public final class LlmSpikeGui {
                 try { writeGameSummary(g, seed, dur, capMs, capped); }
                 catch (Exception e) { System.out.println("[AUTO_EXIT] summary failed: " + e); }
                 System.out.println("[AUTO_EXIT] match over (capped=" + capped + ") -> exiting for driver");
+                // Force-halt backstop: System.exit runs shutdown hooks (incl. the recorder's mp4
+                // finalize). A buggy JVM hook — observed: ImageIO StreamCloser throwing during
+                // teardown — can hang the exit indefinitely, stranding the JVM and blocking the
+                // driver. Give the hooks 12s (the recorder finalizes in ~1-2s) then hard-halt.
+                Thread forceHalt = new Thread(() -> {
+                    try { Thread.sleep(12000); } catch (InterruptedException ignore) {}
+                    System.out.println("[AUTO_EXIT] shutdown stalled >12s -> Runtime.halt(0)");
+                    Runtime.getRuntime().halt(0);
+                }, "force-halt");
+                forceHalt.setDaemon(true);
+                forceHalt.start();
                 System.exit(0);
             }, "auto-exit-monitor");
             mon.setDaemon(true);
