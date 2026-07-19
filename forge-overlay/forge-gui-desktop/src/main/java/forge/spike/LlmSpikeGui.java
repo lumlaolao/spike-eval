@@ -1239,20 +1239,37 @@ public final class LlmSpikeGui {
             } catch (Exception e) { return "?"; }
         }
 
-        /** Mulligan bottoming (London/Houston tuck) — ran invisibly after EVERY model mulligan.
-         *  CRITICAL: super MUTATES `hand` (removeAll of the tucked cards, on a caller-owned copy),
-         *  so labels are snapshotted BEFORE the super call. choice = count of bottomed cards
-         *  (COUNT-style, like discard/attackers). cardsToReturn == 0 (the first, free draw) is a
-         *  no-op loop inside super — skip the line to avoid noise. */
+        /** Mulligan bottoming (London/Houston tuck) — MODEL-ROUTED. This used to run invisibly on
+         *  Forge AI after EVERY model mulligan, which could silently bottom the exact cards the
+         *  model's keep-decision was based on (observed: AI bottoming Orcish Bowmasters to keep
+         *  filler). Now the same brain that chose the mulligan chooses what goes under.
+         *  choice = count of bottomed cards (COUNT-style, like discard/attackers). Failure branches
+         *  bottom the FIRST cardsToReturn cards — deterministic legal, never super (= Forge AI).
+         *  cardsToReturn == 0 (the kept 7 / free first draw) is a no-op — skip the line as noise. */
         @Override
         public CardCollectionView tuckCardsViaMulligan(CardCollectionView hand, int cardsToReturn) {
-            List<String> labels = cardsToReturn > 0 ? cardLabels(hand) : null;
-            long t0 = System.currentTimeMillis();
-            CardCollectionView r = super.tuckCardsViaMulligan(hand, cardsToReturn);
-            if (labels != null)
-                observeAiDec("mulligan-bottom", labels.size(), r == null ? -1 : r.size(), t0,
-                        "mulligan-bottom(ai) -> " + orderSummary(r), labels);
-            return r;
+            if (cardsToReturn <= 0 || hand == null) return super.tuckCardsViaMulligan(hand, cardsToReturn);
+            clearLast();
+            List<Card> opts = new ArrayList<>(hand);
+            if (opts.size() <= cardsToReturn) return firstN(opts, cardsToReturn, "mulligan-bottom(forced-all)");
+            try {
+                if (!smartOk()) return firstN(opts, cardsToReturn, "mulligan-bottom(no-model)");
+                List<String> labels = cardLabels(hand);
+                String q = "You mulliganed and must put EXACTLY " + cardsToReturn + " card(s) from this hand on the "
+                        + "BOTTOM of your library. Pick what to bottom so the kept cards match why you kept this hand "
+                        + "(mana balance + your game plan; excess/duplicate lands and the least castable spells usually go under).";
+                List<Integer> picks = decideMany(smart, null, q, labels, cardsToReturn, cardsToReturn);
+                if (picks == null || picks.size() != cardsToReturn)
+                    return firstN(opts, cardsToReturn, "mulligan-bottom(unparsed)");
+                CardCollection out = new CardCollection();
+                StringBuilder log = new StringBuilder();
+                for (int i : picks) { out.add(opts.get(i)); if (log.length() > 0) log.append(", "); log.append(opts.get(i).getName()); }
+                evalDec("mulligan-bottom", labels.size(), picks.size(), tierOf(true), 0, null, labels);
+                p("[ROUTER] mulligan-bottom: " + log);
+                return out;
+            } catch (Exception e) {
+                return firstN(opts, cardsToReturn, "mulligan-bottom(err)");
+            }
         }
 
         /** Damage-assignment order among multiple blockers of one attacker. choice = 0 by convention
