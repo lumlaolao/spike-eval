@@ -140,6 +140,63 @@ def test_dry_run_makes_no_network_or_game_calls():
     ok("--dry-run: 0 network calls, 0 game launches (with API key present)")
 
 
+def test_parser_number_and_alias():
+    opts = [{"key": "burn"}, {"key": "elves"}, {"key": "sneak-and-show"}]
+    # explicit number, in range / out of range
+    assert T._parse_number_pick("blah\nPICK: 2", opts)["key"] == "elves"
+    assert T._parse_number_pick("PICK: 9", opts) is None
+    # anchored 'PICK: N' on its own line beats a stray 'pick 1' in prose
+    assert T._parse_number_pick("i'd pick 1 in another meta\nPICK: 3", opts)["key"] == "sneak-and-show"
+    # alias: last-mentioned deck name wins; only ever returns something in opts
+    assert T._alias_pick("considered burn but going Sneak and Show", opts)["key"] == "sneak-and-show"
+    assert T._alias_pick("no deck named here", opts) is None or \
+        T._alias_pick("no deck named here", opts)["key"] in {o["key"] for o in opts}
+    # resolve: explicit number in CONTENT wins over a different choice in reasoning
+    assert T._resolve_pick("PICK: 1", "I really want Sneak and Show", opts)["key"] == "burn"
+    # resolve: content truncated with no number -> reasoning's stated choice recovers it
+    assert T._resolve_pick("Fair decks like burn are risky, so",
+                           "I'll go with Sneak and Show", opts)["key"] == "sneak-and-show"
+    ok("pick parser: number wins, bounds-checked, alias fallback, reasoning recovery")
+
+
+def test_run_bracket_one_at_a_time():
+    """--max-matches 1 plays exactly one NEW match per call, resumes, never replays,
+    and produces the correct champion. run_match is stubbed (seat A always wins)."""
+    import types
+    picks = [{"seed": i + 1, "model": "m%d" % i, "label": "m%d" % i,
+              "deck": "d%d" % i, "path": "/x", "blurb": "b"} for i in range(8)]
+    with tempfile.TemporaryDirectory() as d:
+        out = Path(d)
+        args = types.SimpleNamespace(max_matches=1, dry_run=False, redraw=False,
+                                     draw_only=False, record=False, retries=0,
+                                     seed=5, cap_minutes=1, forge_home=Path(d))
+        real_run_match = T.run_match
+        calls = []
+
+        def stub(a, b, mid, out_dir, ag, rng):
+            calls.append(mid)
+            return a, b, {"winner": "A", "mp4": "x"}   # seat A (first of pair) wins
+
+        T.run_match = stub
+        try:
+            import random as _r
+            champ = None
+            counts = []
+            for i in range(8):   # 7 matches; the 8th call is a harmless no-op
+                state, champ = T.run_bracket(picks, out, args, _r.Random(5))
+                total = sum(len(state["rounds"].get(r, {})) for r in ("QF", "SF", "F"))
+                counts.append(total)
+            # exactly one new match per call until all 7 are done, then it stays 7
+            assert counts == [1, 2, 3, 4, 5, 6, 7, 7], counts
+            assert len(calls) == 7, calls              # never launched an 8th/duplicate
+            # champion is slot-0's lineage (seat A always wins): QF1->SF1->F winner = draw[0]
+            draw0 = state["draw"][0]
+            assert champ["label"] == draw0, (champ["label"], draw0)
+        finally:
+            T.run_match = real_run_match
+    ok("run_bracket: one match per call, resumes, no replay, correct champion")
+
+
 def _fake_forge_home(d):
     fh = Path(d) / "forge"
     fh.mkdir(parents=True, exist_ok=True)
@@ -155,6 +212,8 @@ def main():
     test_label()
     test_read_winner_identity_keyed()
     test_mock_draft_unique_decks()
+    test_parser_number_and_alias()
+    test_run_bracket_one_at_a_time()
     test_dry_run_makes_no_network_or_game_calls()
     print("\nAll checks passed.")
     return 0

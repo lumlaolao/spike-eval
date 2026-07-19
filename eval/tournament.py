@@ -96,6 +96,15 @@ def load_pool():
 
 # ------------------------------------------------------------- openrouter
 
+def _atomic_write(path, text):
+    """Write via a temp file + os.replace so an interrupt can never leave a half-written
+    (corrupt) bracket.json/draft.json — the whole bracket's recorded results depend on it."""
+    path = Path(path)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(tmp, path)
+
+
 def _append_jsonl(path, rec):
     if path is None:
         return
@@ -226,10 +235,15 @@ def _parse_number_pick(text, opts):
     This is the authoritative signal — the number indexes the menu as shown."""
     if not text:
         return None
-    for pat in (r"pick[:\s#]*(\d+)", r"(?:option|deck|number|choice)\s*#?\s*(\d+)"):
-        m = re.findall(pat, text, re.I)
-        if m:
-            n = int(m[-1])
+    # Prefer the prompted format: `PICK: N` alone on a line. Only if that's absent fall
+    # back to a looser scan (last "pick/option/deck/number N" anywhere), which can be
+    # tripped by unrelated numbered prose.
+    anchored = re.findall(r"(?im)^\s*pick[:\s#]*(\d+)\s*$", text)
+    for cand in (anchored,
+                 re.findall(r"pick[:\s#]*(\d+)", text, re.I),
+                 re.findall(r"(?:option|deck|number|choice)\s*#?\s*(\d+)", text, re.I)):
+        if cand:
+            n = int(cand[-1])
             if 1 <= n <= len(opts):
                 return opts[n - 1]
     return None
@@ -387,6 +401,14 @@ def _match_env(a, b, seed, swap, mp4, jdir, args):
 
 def _launch_and_read(env, jdir, seed, swap, args):
     log_path = jdir / ("game-%d-%d.log" % (seed, 1 if swap else 0))
+    # Clear any stale game-summary JSONL for THIS seed from an abandoned prior attempt
+    # (crash before bracket.json was persisted): the JVM writes a fresh unique file, so a
+    # leftover could otherwise be returned by _read_winner and misattribute the winner.
+    for stale in jdir.glob("game-%d-*.jsonl" % seed):
+        try:
+            stale.unlink()
+        except OSError:
+            pass
     backstop = args.cap_minutes * 60 * 2 + 300
     try:
         with open(log_path, "w", encoding="utf-8") as lf:
@@ -437,7 +459,7 @@ def _ensure_draw(picks, state, state_path, rng, args):
     draw = draw_bracket(picks, rng)
     state["draw"] = [p["label"] for p in draw]
     if not args.dry_run:
-        state_path.write_text(json.dumps(state, indent=2))
+        _atomic_write(state_path, json.dumps(state, indent=2))
     log("[draw] new random bracket draw saved")
     return draw
 
@@ -447,7 +469,13 @@ def run_bracket(picks, out_dir, args, rng):
     NEW matches this invocation (0 = all remaining), so callers can go one game at a
     time. Returns (state, champion-or-None). champion is None until the Final is done."""
     state_path = out_dir / "bracket.json"
-    state = json.loads(state_path.read_text()) if state_path.is_file() else {}
+    state = {}
+    if state_path.is_file():
+        try:
+            state = json.loads(state_path.read_text())
+        except (ValueError, OSError) as e:
+            die("bracket.json is unreadable (%s). It holds every recorded match result; "
+                "fix or remove it before continuing rather than risk overwriting results." % e)
     state.setdefault("rounds", {})
     draw = _ensure_draw(picks, state, state_path, rng, args)
 
@@ -455,7 +483,9 @@ def run_bracket(picks, out_dir, args, rng):
         _print_bracket(draw)
         return state, None
 
-    budget = [args.max_matches if args.max_matches and args.max_matches > 0 else 10 ** 9]
+    if args.max_matches < 0:
+        die("--max-matches must be >= 0 (0 = all remaining).")
+    budget = [args.max_matches if args.max_matches > 0 else 10 ** 9]
 
     def play_round(name, pairs):
         """Play this round's not-yet-decided matches, up to the remaining budget.
@@ -473,7 +503,7 @@ def run_bracket(picks, out_dir, args, rng):
                             "winner_label": w["label"], **info}
             budget[0] -= 1
             if not args.dry_run:
-                state_path.write_text(json.dumps(state, indent=2))
+                _atomic_write(state_path, json.dumps(state, indent=2))
         return all(("%s-%d" % (name, i + 1)) in results for i in range(len(pairs)))
 
     def winners(name, pairs):
@@ -496,7 +526,7 @@ def run_bracket(picks, out_dir, args, rng):
     state["champion"] = champ["label"]
     state["champion_deck"] = champ["deck"]
     if not args.dry_run:
-        state_path.write_text(json.dumps(state, indent=2))
+        _atomic_write(state_path, json.dumps(state, indent=2))
     return state, champ
 
 
@@ -655,7 +685,7 @@ def main():
         draft_logs.mkdir(parents=True, exist_ok=True)
         picks, transcript = draft(args.models, pool, rng,
                                   mock=args.mock_draft or args.dry_run, log_dir=draft_logs)
-        draft_path.write_text(json.dumps(picks, indent=2))
+        _atomic_write(draft_path, json.dumps(picks, indent=2))
         log("[draft] complete: " + " | ".join(transcript))
         log("[draft] per-model reasoning saved to %s" % draft_logs)
     if args.draft_only:
