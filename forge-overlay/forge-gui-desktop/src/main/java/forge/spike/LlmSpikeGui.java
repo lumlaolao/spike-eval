@@ -508,26 +508,37 @@ public final class LlmSpikeGui {
             StringBuilder n = new StringBuilder();
             for (Card c : hand) { if (n.length() > 0) n.append(", "); n.append(c.getName()); }
             int afterKeep = size; // this Forge deals a shrinking hand each mulligan; you keep exactly what you see
-            String prompt = "MULLIGAN DECISION. This is a " + size + "-card hand with " + lands + " land(s): " + n
+            String basePrompt = "MULLIGAN DECISION. This is a " + size + "-card hand with " + lands + " land(s): " + n
                     + ". If you MULLIGAN you will look at a NEW hand of only " + Math.max(0, size - 1)
                     + " cards (each mulligan costs you a card), and you can never go below 5. If you KEEP you play this "
                     + afterKeep + "-card hand as-is. Keeping a workable hand almost always beats shrinking it. "
                     + "For a combo deck, a hand with your enablers + a payoff is a KEEP even on few lands; only ship a hand "
                     + "that genuinely cannot function. Keep or mulligan? End with EXACTLY one word: KEEP or MULLIGAN.";
             p("[ROUTER] mulligan: " + lands + "/" + size + " lands -> asking " + smart.getModel() + "...");
-            String reply = ask(smart, prompt);
-            if (reply == null) return aiDelegate("mulligan(bridge-down)", super.mulliganKeepHand(firstPlayer, cardsToReturn));
-            String r = reply.toUpperCase();
-            // Read the LAST keyword, not the first: the prompt demands the decision be the final word,
-            // and the reasoning body routinely contains "mulligan"/"mulliganing" (e.g. "no reason to
-            // mulligan ... KEEP"). First-indexOf matched that prose token and inverted the model's
-            // actual choice — observed on 10/31 mulligans in haiku-vs-ai-2, every one a KEEP shipped as
-            // a mulligan (manufactured pre-game card disadvantage). lastIndexOf recovers all 10.
-            int k = r.lastIndexOf("KEEP"), mu = r.lastIndexOf("MULLIGAN");
-            boolean keep = k >= 0 && (mu < 0 || k > mu);
-            evalDec("mulligan", 2, keep ? 0 : 1, "smart", 0, null, java.util.Arrays.asList("KEEP", "MULLIGAN"));
-            p("[ROUTER] mulligan: " + (keep ? "KEEP" : "MULLIGAN"));
-            return keep;
+            List<String> mullOpts = java.util.Arrays.asList("KEEP", "MULLIGAN");
+            // Retry once on an unparseable reply (matching every decideOne/decideMany site). Read the
+            // LAST keyword, not the first: the prompt demands the decision be the final word, and the
+            // reasoning body routinely contains "mulligan"/"mulliganing" (e.g. "no reason to mulligan
+            // ... KEEP"). First-indexOf matched that prose token and inverted the model's actual choice
+            // — observed on 10/31 mulligans in haiku-vs-ai-2, every one a KEEP shipped as a mulligan.
+            for (int attempt = 0; attempt < 2; attempt++) {
+                String prompt = attempt == 0 ? basePrompt
+                        : "That reply contained neither KEEP nor MULLIGAN. Answer with ONE word only: KEEP or MULLIGAN.";
+                String reply = ask(smart, prompt);
+                if (reply == null) return aiDelegate("mulligan(bridge-down)", super.mulliganKeepHand(firstPlayer, cardsToReturn));
+                String r = reply.toUpperCase();
+                int k = r.lastIndexOf("KEEP"), mu = r.lastIndexOf("MULLIGAN");
+                if (k < 0 && mu < 0) continue; // no decision token -> retry, then deterministic fallback below
+                boolean keep = k >= 0 && (mu < 0 || k > mu);
+                evalDec("mulligan", 2, keep ? 0 : 1, "smart", 0, null, mullOpts);
+                p("[ROUTER] mulligan: " + (keep ? "KEEP" : "MULLIGAN"));
+                return keep;
+            }
+            // Unparseable after retry: deterministic KEEP (never Forge AI), logged visibly so the
+            // analyzer counts it — matches the no-model default at the top of this method.
+            evalDec("mulligan", 2, 0, "auto", 0, "mulligan(unparsed)->KEEP", mullOpts);
+            p("[ROUTER] mulligan: KEEP (unparsed after retry)");
+            return true;
         }
 
         @Override
@@ -1443,8 +1454,11 @@ public final class LlmSpikeGui {
             // Many call sites pass ms=0 because their timing happens inside ask(); when a model
             // round-trip WAS captured for this decision (lastPrompt != null — clearLast() guards
             // every path), substitute the summed ask() wall-clock so real model calls never log
-            // latency_ms=0 (which the analyzer excludes from latency stats).
-            if (ms <= 0 && lastPrompt != null) ms = lastAskMs;
+            // latency_ms=0 (which the analyzer excludes from latency stats). Restrict this to the
+            // model tiers: an auto/ai fallback that fires AFTER a failed ask() also has lastPrompt
+            // set, but its row means "deterministic/Forge-AI decision" and must not inherit the
+            // wasted model round-trip's latency (it would pollute the ai/auto latency stats).
+            if (ms <= 0 && lastPrompt != null && ("smart".equals(tier) || "fast".equals(tier))) ms = lastAskMs;
             try {
                 PhaseHandler ph = getPlayer().getGame().getPhaseHandler();
                 StringBuilder sb = new StringBuilder(256);

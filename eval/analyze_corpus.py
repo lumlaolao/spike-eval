@@ -223,6 +223,26 @@ def is_contaminated_reply(raw):
     return any(p in u for p in _NON_ANSWER_PATTERNS)
 
 
+def mulligan_inverted(d):
+    """True if a model mulligan decision's recorded choice contradicts the LAST
+    KEEP/MULLIGAN keyword in its raw_reply. Detects the parser-inversion bug
+    (fixed in overlay 4fe27fcead9c: a first-indexOf read matched the word
+    'mulligan' in the reasoning body and flipped the model's actual answer).
+    A nonzero count in a POST-fix corpus is a regression; in pre-fix corpora it
+    quantifies the historical bug. choice 0 == KEEP, 1 == MULLIGAN."""
+    if d.get("type") != "mulligan" or d.get("tier") not in ("smart", "fast"):
+        return False
+    raw = d.get("raw_reply")
+    if not isinstance(raw, str):
+        return False
+    toks = re.findall(r"KEEP|MULLIGAN", raw.upper())
+    if not toks:
+        return False
+    last = toks[-1]
+    choice = d.get("choice")
+    return (last == "KEEP" and choice == 1) or (last == "MULLIGAN" and choice == 0)
+
+
 # ------------------------------------------------------------- summaries
 
 def summarize(parse_results):
@@ -404,10 +424,12 @@ def summarize(parse_results):
             if p in raw:
                 contam_by_pattern[p] += 1
                 break
+    n_mull_inv = sum(1 for d in decisions if mulligan_inverted(d))
     cov_out = {"model_consulted": n_model, "full_round_trip": n_full,
                "prompt_without_reply_bridge_death": n_dead,
                "contaminated_replies": n_contaminated,
-               "contaminated_by_pattern": dict(contam_by_pattern)}
+               "contaminated_by_pattern": dict(contam_by_pattern),
+               "mulligan_inversions": n_mull_inv}
 
     # --- un-routed surface: types never seen with a model tier
     any_model_tier = any(t in tiers_seen for t in ("smart", "fast"))
@@ -626,6 +648,12 @@ def _scope_lines(name, s):
                     ", ".join("%s=%d" % kv
                               for kv in sorted(
                                   c["contaminated_by_pattern"].items()))))
+    if c.get("mulligan_inversions"):
+        L.append("WARNING: %d model mulligan(s) recorded a choice that "
+                 "CONTRADICTS the final KEEP/MULLIGAN keyword in the reply — "
+                 "the parser-inversion bug (overlay <4fe27fcead9c). Expected in "
+                 "pre-fix corpora; a REGRESSION if this is a post-fix run."
+                 % c["mulligan_inversions"])
 
     # ai audit
     L.append("")

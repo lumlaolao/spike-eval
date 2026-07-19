@@ -549,6 +549,40 @@ def test_contamination_detector():
         check("LlmSpikeGui.java present for parity check", False, str(java))
 
 
+def test_mulligan_inversion_detector():
+    """Regression guard for the parser-inversion bug (overlay <4fe27fcead9c):
+    a model mulligan whose recorded choice contradicts the final KEEP/MULLIGAN
+    keyword in raw_reply. Would have caught the 10/31 haiku-vs-ai-2 inversions."""
+    # KEEP is the last keyword but recorded as mulligan (choice=1) -> inverted
+    inv = dec(dtype="mulligan", tier="smart", choice=1,
+              raw_reply="No reason to mulligan this workable hand.\n\nKEEP")
+    check("inversion: last=KEEP recorded mulligan", analyze_corpus.mulligan_inverted(inv))
+    # MULLIGAN last, recorded keep (choice=0) -> inverted
+    inv2 = dec(dtype="mulligan", tier="smart", choice=0,
+               raw_reply="I could keep but it's too greedy.\n\nMULLIGAN")
+    check("inversion: last=MULLIGAN recorded keep", analyze_corpus.mulligan_inverted(inv2))
+    # correct keep: mentions mulligan in prose, ends KEEP, recorded keep(0)
+    ok = dec(dtype="mulligan", tier="smart", choice=0,
+             raw_reply="Only mulligan if it cannot function.\n\nKEEP")
+    check("no inversion: prose 'mulligan' but KEEP kept", not analyze_corpus.mulligan_inverted(ok))
+    # non-mulligan and fallback tiers are ignored
+    check("inversion ignores non-mulligan",
+          not analyze_corpus.mulligan_inverted(dec(dtype="play", choice=1, raw_reply="KEEP")))
+    check("inversion ignores auto tier",
+          not analyze_corpus.mulligan_inverted(dec(dtype="mulligan", tier="auto", choice=1, raw_reply="KEEP")))
+
+    with tempfile.TemporaryDirectory() as d:
+        write_jsonl(d, "game-1-1000.jsonl", [game_line(), inv, ok])
+        rep = analyze_corpus.build_report([Path(d)])
+        check("mulligan_inversions counted in coverage",
+              rep["combined"]["coverage"]["mulligan_inversions"] == 1,
+              str(rep["combined"]["coverage"]))
+        p = subprocess.run([sys.executable, SCRIPT, d], capture_output=True, text=True)
+        check("inversion WARNING in report", "CONTRADICTS" in p.stdout, p.stdout[-400:])
+        # inversion is a WARNING, not a gate failure (pre-fix corpora legitimately have them)
+        check("inversion does not fail exit code", p.returncode == 0, str(p.returncode))
+
+
 def main():
     test_normalize_fallback()
     test_malformed_and_truncated_tolerance()
@@ -568,6 +602,7 @@ def main():
     test_duplicate_dirs_and_glob()
     test_exit_codes_and_render()
     test_contamination_detector()
+    test_mulligan_inversion_detector()
     print()
     if FAILURES:
         print("FAILED: %d check(s): %s" % (len(FAILURES), ", ".join(FAILURES)))
