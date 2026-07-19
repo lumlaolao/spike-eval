@@ -1,0 +1,1260 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 2
+[DECK] loaded 'Identity-A': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[DECK] loaded 'Identity-B': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[SEATS] A=Identity-A(llm,haiku) B=Identity-B(ai,opus)
+[HEADLESS] game starting (cap=120min)
+[Identity-A] [ROUTER] mulligan: 3/7 lands -> asking haiku...
+[CLAUDE Identity-A/smart] starting persistent haiku session...
+[CLAUDE Identity-A/smart] replied in 8352 ms
+[Identity-A] [ROUTER] mulligan: KEEP
+[Identity-A] [TALLY] smart=1 fast=0 auto=0 ai=0 avgSmart=8352ms
+[Identity-A] [ROUTER] play(main): 0 castable + 3 land -> asking haiku...
+[CLAUDE Identity-A/fast] starting persistent haiku session...
+[CLAUDE Identity-A/fast] replied in 31452 ms
+[Identity-A] [ROUTER] play: land Shadowy Backstreet
+[Identity-A] [TALLY] smart=1 fast=1 auto=0 ai=0 avgSmart=8352ms avgFast=31452ms
+[Identity-A] [ROUTER] play(main): 2 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 52214 ms
+[Identity-A] [ROUTER] plan: Cabal Therapy to strip a key threat, then land-cycle into creatures.
+[CLAUDE Identity-A/smart] replied in 3652 ms
+[Identity-A] [ROUTER] target: Identity-B <- Cabal Therapy {B}
+[Identity-A] [ROUTER] play: casts Cabal Therapy {B} [Choose a nonland card name. Target player reveals their hand and disca]
+[CLAUDE Identity-A/smart] replied in 15026 ms
+[Identity-A] [ROUTER] card-name: Lightning Bolt [Cabal Therapy]
+[Identity-A] [TALLY] smart=4 fast=1 auto=0 ai=0 avgSmart=19811ms avgFast=31452ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 17237 ms
+[Identity-A] [ROUTER] play: land Karakas
+[Identity-A] [TALLY] smart=4 fast=2 auto=0 ai=0 avgSmart=19811ms avgFast=24344ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 11033 ms
+[Identity-A] [ROUTER] play: casts Guide of Souls {W} [Guide of Souls - Creature 1 / 2]
+[Identity-A] [TALLY] smart=5 fast=2 auto=0 ai=0 avgSmart=18055ms avgFast=24344ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 26615 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=6 fast=2 auto=0 ai=0 avgSmart=19482ms avgFast=24344ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 26249 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] blockers: 1 atk / 1 blk -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 30035 ms
+[Identity-A] [ROUTER] blockers: NONE
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 26717 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 8614 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=8 fast=4 auto=0 ai=0 avgSmart=21647ms avgFast=21005ms
+[Identity-A] [ROUTER] play(main): 6 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 34052 ms
+[Identity-A] [ROUTER] plan: Cast Ajani for the token, build toward an attack next phase.
+[Identity-A] [ROUTER] play: casts Ajani, Nacatl Pariah 1{W} [Ajani, Nacatl Pariah - Creature 1 / 2]
+[Identity-A] [TALLY] smart=9 fast=4 auto=0 ai=0 avgSmart=23025ms avgFast=21005ms
+[Identity-A] [ROUTER] play(main): 1 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 23360 ms
+[Identity-A] [ROUTER] play: land Wasteland
+[Identity-A] [TALLY] smart=10 fast=4 auto=0 ai=0 avgSmart=23058ms avgFast=21005ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 21796 ms
+[CLAUDE Identity-A/smart] replied in 4740 ms
+[Identity-A] [ROUTER] target: Identity-B <- Cabal Therapy {B}
+[Identity-A] [ROUTER] play: casts Cabal Therapy {B} [Choose a nonland card name. Target player reveals their hand and disca]
+[Identity-A] [TALLY] smart=12 fast=4 auto=0 ai=0 avgSmart=21427ms avgFast=21005ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 20209 ms
+[Identity-A] [ROUTER] play: PASS
+[CLAUDE Identity-A/smart] replied in 20495 ms
+[Identity-A] [ROUTER] card-name: Swords to Plowshares [Cabal Therapy]
+[Identity-A] [TALLY] smart=14 fast=4 auto=0 ai=0 avgSmart=21273ms avgFast=21005ms
+[Identity-A] [ROUTER] play(main): 3 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 13434 ms
+[Identity-A] [ROUTER] play: casts Ajani, Nacatl Avenger [0: Create a 2/1 white Cat Warrior creature token. When you do, if you ]
+[Identity-A] [TALLY] smart=15 fast=4 auto=0 ai=0 avgSmart=20750ms avgFast=21005ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 4965 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 12492 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 1 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 7302 ms
+[Identity-A] [ROUTER] attackers: Guide of Souls
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3610 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 7891 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2866 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3662 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=17 fast=9 auto=0 ai=0 avgSmart=19031ms avgFast=12726ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 12764 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 8354 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 13670 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2445 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4095 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 8228 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2745 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] blockers: 3 atk / 1 blk -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 18469 ms
+[Identity-A] [ROUTER] blockers: assigned 1
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2223 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 12129 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 10513 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 6168 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2487 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3951 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 8714 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2405 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=19 fast=23 auto=0 ai=0 avgSmart=18671ms avgFast=8811ms
+[Identity-A] [ROUTER] play(main): 6 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 14534 ms
+[Identity-A] [ROUTER] plan: Cast Ajani for the token, rebuild board versus their creature swarm.
+[Identity-A] [ROUTER] play: casts Ajani, Nacatl Pariah 1{W} [Ajani, Nacatl Pariah - Creature 1 / 2]
+[Identity-A] [TALLY] smart=20 fast=23 auto=0 ai=0 avgSmart=18464ms avgFast=8811ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 8589 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=21 fast=23 auto=0 ai=0 avgSmart=17994ms avgFast=8811ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 21950 ms
+[Identity-A] [ROUTER] play: casts Ocelot Pride {W} [Ocelot Pride - Creature 1 / 1]
+[Identity-A] [ROUTER] attackers: 1 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 6594 ms
+[Identity-A] [ROUTER] attackers: Guide of Souls
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 5987 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1917 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=23 fast=25 auto=0 ai=0 avgSmart=17670ms avgFast=8422ms
+[Identity-A] [ROUTER] play(main): 4 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 13379 ms
+[Identity-A] [ROUTER] plan: Cast Ajani for the token, build to lethal board.
+[Identity-A] [ROUTER] play: casts Ajani, Nacatl Pariah 1{W} [Ajani, Nacatl Pariah - Creature 1 / 2]
+[Identity-A] [TALLY] smart=24 fast=25 auto=0 ai=0 avgSmart=17492ms avgFast=8422ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 10252 ms
+[Identity-A] [ROUTER] play: PASS
+[CLAUDE Identity-A/smart] replied in 9576 ms
+[Identity-A] [ROUTER] choose-entity: Ajani, Nacatl Pariah (1/2) [Identity-A's Battlefield] []
+[Identity-A] [TALLY] smart=26 fast=25 auto=0 ai=0 avgSmart=16909ms avgFast=8422ms
+[Identity-A] [ROUTER] play(main): 3 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 10617 ms
+[Identity-A] [ROUTER] play: casts Ajani, Nacatl Avenger [+2: Put a +1/+1 counter on each Cat you control.]
+[Identity-A] [TALLY] smart=27 fast=25 auto=0 ai=0 avgSmart=16676ms avgFast=8422ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 4582 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 9470 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 4 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 18578 ms
+[Identity-A] [ROUTER] attackers: Guide of Souls, Cat Warrior Token, Ocelot Pride, Cat Token
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3361 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 10323 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3677 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2248 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2168 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=29 fast=31 auto=0 ai=0 avgSmart=16324ms avgFast=7800ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 30106 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1873 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2667 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2815 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2413 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1642 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 10019 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] blockers: 1 atk / 2 blk -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 11499 ms
+[Identity-A] [ROUTER] blockers: assigned 1
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2761 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 6236 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1862 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] refreshing session after 40 asks (bounds context growth)
+[CLAUDE Identity-A/fast] starting persistent haiku session...
+[CLAUDE Identity-A/fast] replied in 33951 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 13114 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 21783 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 5604 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=31 fast=44 auto=0 ai=0 avgSmart=16613ms avgFast=7921ms
+[Identity-A] [ROUTER] play(main): 7 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 34876 ms
+[Identity-A] [ROUTER] plan: Ajani +2 to strengthen board toward lethal.
+[Identity-A] [ROUTER] play: casts Ajani, Nacatl Avenger [+2: Put a +1/+1 counter on each Cat you control.]
+[Identity-A] [TALLY] smart=32 fast=44 auto=0 ai=0 avgSmart=17184ms avgFast=7921ms
+[Identity-A] [ROUTER] play(main): 3 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 15111 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=33 fast=44 auto=0 ai=0 avgSmart=17121ms avgFast=7921ms
+[Identity-A] [ROUTER] play(main): 4 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 17571 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 18379 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 3 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 7321 ms
+[Identity-A] [ROUTER] attackers: Ocelot Pride, Cat Token, Cat Token
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 5131 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 16135 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 7084 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 6562 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 6483 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 8492 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=35 fast=51 auto=0 ai=0 avgSmart=16854ms avgFast=8173ms
+[Identity-A] [ROUTER] play(main): 3 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 14352 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3474 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 6484 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2294 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2049 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1697 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 10288 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2338 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 5172 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 8832 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3633 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1660 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=36 fast=62 auto=0 ai=0 avgSmart=16784ms avgFast=7495ms
+[Identity-A] [ROUTER] play(main): 6 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 7879 ms
+[Identity-A] [ROUTER] plan: Pass to combat, attack for lethal.
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3160 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 3 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 24858 ms
+[Identity-A] [ROUTER] attackers: Ocelot Pride, Cat Token, Cat Token
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3255 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4050 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3993 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 32624 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3100 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=38 fast=68 auto=0 ai=0 avgSmart=16762ms avgFast=7572ms
+[Identity-A] [ROUTER] play(main): 6 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 26685 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2342 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1630 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2009 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4019 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1755 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3215 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1759 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2699 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2803 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3565 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2287 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=39 fast=79 auto=0 ai=0 avgSmart=17017ms avgFast=6873ms
+[Identity-A] [ROUTER] play(main): 6 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 15432 ms
+[Identity-A] [ROUTER] plan: Pass to combat, attack all three for guaranteed lethal.
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2210 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 3 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] refreshing session after 40 asks (bounds context growth)
+[CLAUDE Identity-A/smart] starting persistent haiku session...
+[CLAUDE Identity-A/smart] replied in 15122 ms
+[Identity-A] [ROUTER] attackers: Ocelot Pride, Cat Token, Cat Token
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] refreshing session after 40 asks (bounds context growth)
+[CLAUDE Identity-A/fast] starting persistent haiku session...
+[CLAUDE Identity-A/fast] replied in 10725 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 6334 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 5447 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 6487 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4307 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=41 fast=85 auto=0 ai=0 avgSmart=16932ms avgFast=6806ms
+[Identity-A] [ROUTER] play(main): 6 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 39673 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4736 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4278 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2561 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2020 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2282 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1917 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4106 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3867 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3066 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2805 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2038 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=42 fast=96 auto=0 ai=0 avgSmart=17473ms avgFast=6377ms
+[Identity-A] [ROUTER] play(main): 7 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 15496 ms
+[Identity-A] [ROUTER] plan: Pass to combat, attack for lethal (11 damage vs 1 life).
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3588 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 3 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 5704 ms
+[Identity-A] [ROUTER] attackers: Ocelot Pride, Cat Token, Cat Token
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3138 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 7489 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4312 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 12620 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2903 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=44 fast=102 auto=0 ai=0 avgSmart=17161ms avgFast=6335ms
+[Identity-A] [ROUTER] play(main): 7 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 47985 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2564 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1893 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1699 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1950 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1958 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 1817 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2007 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2743 ms
+[Identity-A] [ROUTER] play: PASS
+SVar 'ConvertedManaCost' not defined in Card (Orcish Bowmasters)
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 6787 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2940 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2133 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=45 fast=113 auto=0 ai=0 avgSmart=17846ms avgFast=5971ms
+[Identity-A] [ROUTER] play(main): 6 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 25548 ms
+[Identity-A] [ROUTER] plan: Pass to combat, attack all creatures for lethal.
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2438 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 4 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 3432 ms
+[Identity-A] [ROUTER] attackers: Ocelot Pride, Cat Token, Cat Token, Cat Token
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2701 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3506 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 8127 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 38450 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2764 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=47 fast=119 auto=0 ai=0 avgSmart=17703ms avgFast=6157ms
+[Identity-A] [ROUTER] play(main): 6 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 22330 ms
+[Identity-A] [ROUTER] play: casts Ajani, Nacatl Avenger [0: Create a 2/1 white Cat Warrior creature token. When you do, if you ]
+[Identity-A] [TALLY] smart=48 fast=119 auto=0 ai=0 avgSmart=17799ms avgFast=6157ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 4400 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=49 fast=119 auto=0 ai=0 avgSmart=17526ms avgFast=6157ms
+[Identity-A] [ROUTER] play(main): 4 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 17222 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2934 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] refreshing session after 40 asks (bounds context growth)
+[CLAUDE Identity-A/fast] starting persistent haiku session...
+[CLAUDE Identity-A/fast] replied in 43615 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4397 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2566 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3399 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2745 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 2371 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 6082 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 5975 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 2 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4145 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 6005 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=50 fast=130 auto=0 ai=0 avgSmart=17520ms avgFast=6284ms
+[Identity-A] [ROUTER] play(main): 7 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 16511 ms
+[Identity-A] [ROUTER] plan: Pass to combat, attack all creatures for lethal.
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3181 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 4 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 4902 ms
+[Identity-A] [ROUTER] attackers: Ocelot Pride, Cat Token, Cat Warrior Token, Cat Token
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3523 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 5295 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 3 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 5161 ms
+[Identity-A] [ROUTER] play: PASS
+========== GAME OVER ==========
+outcome: A after 22 turns (AllOpponentsLost) in 1737s
+--- full game log ---
+  MULLIGAN: Identity-B has mulliganed down to 6 cards.
+  MULLIGAN: Identity-B has mulliganed down to 5 cards.
+  MULLIGAN: Identity-B has kept a hand of 5 cards
+  MULLIGAN: Identity-A has kept a hand of 7 cards
+  TURN: Turn 1 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Plateau (114)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 2 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  EFFECT_REPLACED: Shadowy Backstreet enters tapped.
+  LAND: Identity-A played Shadowy Backstreet (56)
+  STACK_ADD: Identity-A triggered Shadowy Backstreet
+  STACK_RESOLVE: Identity-A surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: When Shadowy Backstreet enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Shadowy Backstreet (56)]
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 3 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Wasteland (127)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Plateau (114) - {T}: Add {R}.
+  MANA: Wasteland (127) - {T}: Add {C}.
+  STACK_ADD: Identity-B cast Amped Raptor
+  STACK_RESOLVE: Amped Raptor - Creature 2 / 1
+  STACK_ADD: Identity-B triggered Amped Raptor
+  STACK_RESOLVE: When Amped Raptor enters, you get {E}{E} (two energy counters). Then if you cast it from your hand, exile cards from the top of your library until you exile a nonland card. You may cast that card by paying an amount of {E} equal to its mana value rather than paying its mana cost. [Zone Changer: Amped Raptor (123)]
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 4 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Shadowy Backstreet (56) - {T}: Add {B}.
+  STACK_ADD: Identity-A cast Cabal Therapy
+  STACK_RESOLVE: Cabal Therapy (2) - Identity-A names a card. Identity-B reveals their hand. They discard all of type: Card.NamedCard card.
+  LAND: Identity-A played Karakas (16)
+  MANA: Karakas (16) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Guide of Souls
+  STACK_RESOLVE: Guide of Souls - Creature 1 / 2
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 5 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Wasteland (129)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Amped Raptor (123) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Amped Raptor (123).
+  PHASE: Identity-B's First Strike Damage Step
+  DAMAGE: Amped Raptor (123) deals 2 combat damage to Identity-A.
+  LIFE: Life: Identity-A 20 > 18
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Plateau (114) - {T}: Add {W}.
+  MANA: Wasteland (127) - {T}: Add {C}.
+  STACK_ADD: Identity-B cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Identity-B triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (135)]
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 6 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Shadowy Backstreet (56) - {T}: Add {W}.
+  MANA: Karakas (16) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Identity-A triggered Guide of Souls
+  STACK_ADD: Identity-A triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (58)]
+  STACK_ADD: Identity-A triggered Guide of Souls
+  LIFE: Life: Identity-A 18 > 19
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Warrior Token (157)]
+  LIFE: Life: Identity-A 19 > 20
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Ajani, Nacatl Pariah (58)]
+  LAND: Identity-A played Wasteland (54)
+  ZONE_CHANGE: Cat Warrior Token (157) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A cast Cabal Therapy
+  STACK_ADD: Identity-A triggered Ajani, Nacatl Pariah
+  ZONE_CHANGE: Ajani, Nacatl Pariah (58) was put into Exile from Battlefield.
+  EFFECT_REPLACED: Ajani, Nacatl Avenger enters with three loyalty counters on it.
+  STACK_RESOLVE: Whenever one or more other Cats you control die, you may exile Ajani, then return him to the battlefield transformed under his owner's control. [Amount: 1]
+  STACK_RESOLVE: Cabal Therapy (2) - Identity-A names a card. Identity-B reveals their hand. They discard all of type: Card.NamedCard card.
+  EFFECT_REPLACED: Flashback—Sacrifice a creature. (You may cast this card from your graveyard for its flashback cost. Then exile it.)
+  STACK_ADD: Identity-A activated Ajani, Nacatl Avenger
+  STACK_RESOLVE: Ajani, Nacatl Avenger (58) - Identity-A creates a 2/1 white Cat Warrior creature token. When you do, if they control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures they control to any target. When you do, if you control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures you control to any target. 
+  STACK_ADD: Identity-A triggered Guide of Souls
+  LIFE: Life: Identity-A 20 > 21
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Warrior Token (159)]
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Guide of Souls (13) to attack Identity-B.
+  STACK_ADD: Identity-A triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Guide of Souls (13)]]
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B assigned Ajani, Nacatl Pariah (135) to block Guide of Souls (13).
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Guide of Souls (13) deals 1 damage to Ajani, Nacatl Pariah (135).
+  DAMAGE: Ajani, Nacatl Pariah (135) deals 1 damage to Guide of Souls (13).
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 7 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Marsh Flats (95)
+  LIFE: Life: Identity-B 20 > 19
+  ZONE_CHANGE: Marsh Flats (95) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B activated Marsh Flats
+  STACK_RESOLVE: Marsh Flats (95) - Identity-B searches their library for a Plains or Swamp card, puts it onto the battlefield, then shuffles.
+  MANA: Scrubland (117) - {T}: Add {B}.
+  MANA: Plateau (114) - {T}: Add {R}.
+  STACK_ADD: Identity-B cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Identity-B triggered Orcish Bowmasters targeting [Ajani, Nacatl Avenger (58)]
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Ajani, Nacatl Avenger (58)]]) [Zone Changer: Orcish Bowmasters (110)]
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Ajani, Nacatl Pariah (135) to attack Identity-A.
+Identity-B assigned Amped Raptor (123) and Cat Warrior Token (154) to attack Ajani, Nacatl Avenger (58).
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Ajani, Nacatl Pariah (135).
+Identity-A assigned Cat Warrior Token (159) to block Amped Raptor (123).
+Identity-A didn't block Cat Warrior Token (154).
+  PHASE: Identity-B's First Strike Damage Step
+  DAMAGE: Amped Raptor (123) deals 2 damage to Cat Warrior Token (159).
+  ZONE_CHANGE: Cat Warrior Token (159) was put into Graveyard from Battlefield.
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Ajani, Nacatl Pariah (135) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 21 > 20
+  ZONE_CHANGE: Ajani, Nacatl Avenger (58) was put into Graveyard from Battlefield.
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 8 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Shadowy Backstreet (56) - {T}: Add {W}.
+  MANA: Wasteland (54) - {T}: Add {C}.
+  STACK_ADD: Identity-A cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Identity-A triggered Guide of Souls
+  STACK_ADD: Identity-A triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (57)]
+  STACK_ADD: Identity-A triggered Guide of Souls
+  LIFE: Life: Identity-A 20 > 21
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Warrior Token (164)]
+  LIFE: Life: Identity-A 21 > 22
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Ajani, Nacatl Pariah (57)]
+  MANA: Karakas (16) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  STACK_ADD: Identity-A triggered Guide of Souls
+  LIFE: Life: Identity-A 22 > 23
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Ocelot Pride (26)]
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Guide of Souls (13) to attack Identity-B.
+  STACK_ADD: Identity-A triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Guide of Souls (13)]]
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B didn't block Guide of Souls (13).
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Guide of Souls (13) deals 1 combat damage to Identity-B.
+  LIFE: Life: Identity-B 19 > 18
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  STACK_ADD: Identity-A triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-A]
+  STACK_ADD: Identity-A triggered Guide of Souls
+  LIFE: Life: Identity-A 23 > 24
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (167)]
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 9 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Scrubland (117) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Thoughtseize targeting [Identity-A]
+  DISCARD: Identity-A discards Hexing Squelcher (7).
+  LIFE: Life: Identity-B 18 > 16
+  STACK_RESOLVE: Thoughtseize (120) - Identity-A reveals their hand. Identity-B chooses a nonland card from it. Identity-A discards that card. Identity-B loses 2 life.
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 10 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Shadowy Backstreet (56) - {T}: Add {W}.
+  MANA: Wasteland (54) - {T}: Add {C}.
+  STACK_ADD: Identity-A cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  ZONE_CHANGE: Ajani, Nacatl Pariah (60) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A triggered Guide of Souls
+  STACK_ADD: Identity-A triggered Ajani, Nacatl Pariah
+  STACK_ADD: Identity-A triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (60)]
+  STACK_ADD: Identity-A triggered Guide of Souls
+  LIFE: Life: Identity-A 24 > 25
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Warrior Token (170)]
+  ZONE_CHANGE: Ajani, Nacatl Pariah (57) was put into Exile from Battlefield.
+  EFFECT_REPLACED: Ajani, Nacatl Avenger enters with three loyalty counters on it.
+  STACK_RESOLVE: Whenever one or more other Cats you control die, you may exile Ajani, then return him to the battlefield transformed under his owner's control. [Amount: 1]
+  LIFE: Life: Identity-A 25 > 26
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Ajani, Nacatl Pariah (60)]
+  STACK_ADD: Identity-A activated Ajani, Nacatl Avenger
+  STACK_RESOLVE: Ajani, Nacatl Avenger (57) - Put a +1/+1 counter on each valid permanent.
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Guide of Souls (13), Cat Warrior Token (164), Ocelot Pride (26) and Cat Token (167) to attack Identity-B.
+  STACK_ADD: Identity-A triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Guide of Souls (13), Cat Warrior Token (164), Ocelot Pride (26), Cat Token (167)]]
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B assigned Ajani, Nacatl Pariah (135) and Orc Army Token (161) to block Guide of Souls (13).
+Identity-B assigned Amped Raptor (123) to block Cat Warrior Token (164).
+Identity-B didn't block Ocelot Pride (26).
+Identity-B didn't block Cat Token (167).
+  PHASE: Identity-A's First Strike Damage Step
+  DAMAGE: Ocelot Pride (26) deals 2 combat damage to Identity-B.
+  LIFE: Life: Identity-A 26 > 28
+  DAMAGE: Amped Raptor (123) deals 2 damage to Cat Warrior Token (164).
+  LIFE: Life: Identity-B 16 > 14
+  ZONE_CHANGE: Cat Warrior Token (164) was put into Graveyard from Battlefield.
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Guide of Souls (13) deals 1 damage to Orc Army Token (161).
+  DAMAGE: Cat Token (167) deals 2 combat damage to Identity-B.
+  DAMAGE: Ajani, Nacatl Pariah (135) deals 1 damage to Guide of Souls (13).
+  DAMAGE: Orc Army Token (161) deals 1 damage to Guide of Souls (13).
+  LIFE: Life: Identity-B 14 > 12
+  ZONE_CHANGE: Guide of Souls (13) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Orc Army Token (161) was put into Graveyard from Battlefield.
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  STACK_ADD: Identity-A triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-A]
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 11 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Amped Raptor (123) to attack Ajani, Nacatl Avenger (57).
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A assigned Cat Warrior Token (170) to block Amped Raptor (123).
+  PHASE: Identity-B's First Strike Damage Step
+  DAMAGE: Amped Raptor (123) deals 2 damage to Cat Warrior Token (170).
+  ZONE_CHANGE: Cat Warrior Token (170) was put into Graveyard from Battlefield.
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Scrubland (117) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Thoughtseize targeting [Identity-A]
+  DISCARD: Identity-A discards Hexing Squelcher (5).
+  LIFE: Life: Identity-B 12 > 10
+  STACK_RESOLVE: Thoughtseize (121) - Identity-A reveals their hand. Identity-B chooses a nonland card from it. Identity-A discards that card. Identity-B loses 2 life.
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 12 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  STACK_ADD: Identity-A activated Ajani, Nacatl Avenger
+  STACK_RESOLVE: Ajani, Nacatl Avenger (57) - Put a +1/+1 counter on each valid permanent.
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Ocelot Pride (26), Cat Token (167) and Cat Token (173) to attack Identity-B.
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B didn't block Ocelot Pride (26).
+Identity-B didn't block Cat Token (167).
+Identity-B assigned Cat Warrior Token (154) to block Cat Token (173).
+  PHASE: Identity-A's First Strike Damage Step
+  DAMAGE: Ocelot Pride (26) deals 3 combat damage to Identity-B.
+  LIFE: Life: Identity-A 28 > 31
+  LIFE: Life: Identity-B 10 > 7
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Cat Token (167) deals 3 combat damage to Identity-B.
+  DAMAGE: Cat Token (173) deals 2 damage to Cat Warrior Token (154).
+  DAMAGE: Cat Warrior Token (154) deals 2 damage to Cat Token (173).
+  LIFE: Life: Identity-B 7 > 4
+  ZONE_CHANGE: Cat Token (173) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Cat Warrior Token (154) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B triggered Ajani, Nacatl Pariah
+  ZONE_CHANGE: Ajani, Nacatl Pariah (135) was put into Exile from Battlefield.
+  EFFECT_REPLACED: Ajani, Nacatl Avenger enters with three loyalty counters on it.
+  STACK_RESOLVE: Whenever one or more other Cats you control die, you may exile Ajani, then return him to the battlefield transformed under his owner's control. [Amount: 1]
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  STACK_ADD: Identity-A triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-A]
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 13 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  STACK_ADD: Identity-B activated Ajani, Nacatl Avenger
+  STACK_RESOLVE: Ajani, Nacatl Avenger (135) - Identity-B creates a 2/1 white Cat Warrior creature token. When you do, if they control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures they control to any target. When you do, if you control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures you control to any target. 
+  STACK_ADD: Identity-B triggered Ajani, Nacatl Avenger targeting [Ajani, Nacatl Avenger (57)]
+  STACK_RESOLVE: When you do, if you control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures you control to any target. (Targeting: [[Ajani, Nacatl Avenger (57)]])
+  MANA: Plateau (114) - {T}: Add {W}.
+  MANA: Scrubland (117) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Voice of Victory
+  STACK_RESOLVE: Voice of Victory - Creature 1 / 3
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 14 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Ocelot Pride (26), Cat Token (167) and Cat Token (176) to attack Identity-B.
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B assigned Cat Warrior Token (181) and Amped Raptor (123) to block Ocelot Pride (26).
+Identity-B assigned Orcish Bowmasters (110) to block Cat Token (167).
+Identity-B assigned Voice of Victory (109) to block Cat Token (176).
+  PHASE: Identity-A's First Strike Damage Step
+  DAMAGE: Ocelot Pride (26) deals 2 damage to Cat Warrior Token (181).
+  DAMAGE: Ocelot Pride (26) deals 1 damage to Amped Raptor (123).
+  LIFE: Life: Identity-A 31 > 34
+  DAMAGE: Amped Raptor (123) deals 2 damage to Ocelot Pride (26).
+  ZONE_CHANGE: Amped Raptor (123) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Cat Warrior Token (181) was put into Graveyard from Battlefield.
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Cat Token (167) deals 3 damage to Orcish Bowmasters (110).
+  DAMAGE: Cat Token (176) deals 1 damage to Voice of Victory (109).
+  DAMAGE: Voice of Victory (109) deals 1 damage to Cat Token (176).
+  DAMAGE: Orcish Bowmasters (110) deals 1 damage to Cat Token (167).
+  ZONE_CHANGE: Cat Token (176) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Orcish Bowmasters (110) was put into Graveyard from Battlefield.
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  STACK_ADD: Identity-A triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-A]
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 15 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  STACK_ADD: Identity-B activated Ajani, Nacatl Avenger
+  STACK_RESOLVE: Ajani, Nacatl Avenger (135) - Identity-B creates a 2/1 white Cat Warrior creature token. When you do, if they control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures they control to any target. When you do, if you control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures you control to any target. 
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 16 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Ocelot Pride (26), Cat Token (167) and Cat Token (184) to attack Identity-B.
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B assigned Voice of Victory (109) to block Ocelot Pride (26).
+Identity-B didn't block Cat Token (167).
+Identity-B assigned Cat Warrior Token (189) to block Cat Token (184).
+  PHASE: Identity-A's First Strike Damage Step
+  DAMAGE: Ocelot Pride (26) deals 3 damage to Voice of Victory (109).
+  LIFE: Life: Identity-A 34 > 37
+  ZONE_CHANGE: Voice of Victory (109) was put into Graveyard from Battlefield.
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Cat Token (167) deals 3 combat damage to Identity-B.
+  DAMAGE: Cat Token (184) deals 1 damage to Cat Warrior Token (189).
+  DAMAGE: Cat Warrior Token (189) deals 2 damage to Cat Token (184).
+  LIFE: Life: Identity-B 4 > 1
+  ZONE_CHANGE: Cat Token (184) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Cat Warrior Token (189) was put into Graveyard from Battlefield.
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  STACK_ADD: Identity-A triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-A]
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 17 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  STACK_ADD: Identity-B activated Ajani, Nacatl Avenger
+  STACK_RESOLVE: Ajani, Nacatl Avenger (135) - Identity-B creates a 2/1 white Cat Warrior creature token. When you do, if they control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures they control to any target. When you do, if you control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures you control to any target. 
+  MANA: Plateau (114) - {T}: Add {W}.
+  STACK_ADD: Identity-B cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 18 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Ocelot Pride (26), Cat Token (167) and Cat Token (192) to attack Identity-B.
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B assigned Cat Warrior Token (197) to block Ocelot Pride (26).
+Identity-B assigned Ocelot Pride (102) to block Cat Token (167).
+Identity-B didn't block Cat Token (192).
+  PHASE: Identity-A's First Strike Damage Step
+  DAMAGE: Ocelot Pride (26) deals 3 damage to Cat Warrior Token (197).
+  LIFE: Life: Identity-A 37 > 40
+  DAMAGE: Ocelot Pride (102) deals 1 damage to Cat Token (167).
+  LIFE: Life: Identity-B 1 > 2
+  ZONE_CHANGE: Cat Warrior Token (197) was put into Graveyard from Battlefield.
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Cat Token (167) deals 3 damage to Ocelot Pride (102).
+  DAMAGE: Cat Token (192) deals 1 combat damage to Identity-B.
+  LIFE: Life: Identity-B 2 > 1
+  ZONE_CHANGE: Ocelot Pride (102) was put into Graveyard from Battlefield.
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  STACK_ADD: Identity-A triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-A]
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 19 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  STACK_ADD: Identity-B activated Ajani, Nacatl Avenger
+  STACK_RESOLVE: Ajani, Nacatl Avenger (135) - Identity-B creates a 2/1 white Cat Warrior creature token. When you do, if they control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures they control to any target. When you do, if you control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures you control to any target. 
+  MANA: Plateau (114) - {T}: Add {R}.
+  MANA: Scrubland (117) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Amped Raptor
+  STACK_RESOLVE: Amped Raptor - Creature 2 / 1
+  STACK_ADD: Identity-B triggered Amped Raptor
+  STACK_ADD: Identity-B cast Orcish Bowmasters
+  STACK_RESOLVE: When Amped Raptor enters, you get {E}{E} (two energy counters). Then if you cast it from your hand, exile cards from the top of your library until you exile a nonland card. You may cast that card by paying an amount of {E} equal to its mana value rather than paying its mana cost. [Zone Changer: Amped Raptor (125)]
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Identity-B triggered Orcish Bowmasters targeting [Ajani, Nacatl Avenger (57)]
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Ajani, Nacatl Avenger (57)]]) [Zone Changer: Orcish Bowmasters (112)]
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 20 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Ocelot Pride (26), Cat Token (167), Cat Token (192) and Cat Token (200) to attack Identity-B.
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B assigned Cat Warrior Token (205) to block Ocelot Pride (26).
+Identity-B assigned Orcish Bowmasters (112) to block Cat Token (167).
+Identity-B assigned Amped Raptor (125) to block Cat Token (192).
+Identity-B assigned Orc Army Token (207) to block Cat Token (200).
+  PHASE: Identity-A's First Strike Damage Step
+  DAMAGE: Ocelot Pride (26) deals 3 damage to Cat Warrior Token (205).
+  LIFE: Life: Identity-A 40 > 43
+  DAMAGE: Amped Raptor (125) deals 2 damage to Cat Token (192).
+  ZONE_CHANGE: Cat Token (192) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Cat Warrior Token (205) was put into Graveyard from Battlefield.
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Cat Token (167) deals 3 damage to Orcish Bowmasters (112).
+  DAMAGE: Cat Token (200) deals 1 damage to Orc Army Token (207).
+  DAMAGE: Orc Army Token (207) deals 1 damage to Cat Token (200).
+  DAMAGE: Orcish Bowmasters (112) deals 1 damage to Cat Token (167).
+  ZONE_CHANGE: Cat Token (200) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Orcish Bowmasters (112) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Orc Army Token (207) was put into Graveyard from Battlefield.
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  STACK_ADD: Identity-A activated Ajani, Nacatl Avenger
+  STACK_RESOLVE: Ajani, Nacatl Avenger (57) - Identity-A creates a 2/1 white Cat Warrior creature token. When you do, if they control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures they control to any target. When you do, if you control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures you control to any target. 
+  PHASE: Identity-A's End step
+  STACK_ADD: Identity-A triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-A]
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 21 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  STACK_ADD: Identity-B activated Ajani, Nacatl Avenger
+  STACK_RESOLVE: Ajani, Nacatl Avenger (135) - Identity-B creates a 2/1 white Cat Warrior creature token. When you do, if they control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures they control to any target. When you do, if you control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures you control to any target. 
+  STACK_ADD: Identity-B triggered Ajani, Nacatl Avenger targeting [Ajani, Nacatl Avenger (57)]
+  STACK_RESOLVE: When you do, if you control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures you control to any target. (Targeting: [[Ajani, Nacatl Avenger (57)]])
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 22 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Ocelot Pride (26), Cat Token (167), Cat Warrior Token (209) and Cat Token (212) to attack Identity-B.
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B assigned Cat Warrior Token (217) to block Ocelot Pride (26).
+Identity-B assigned Amped Raptor (125) to block Cat Token (167).
+Identity-B didn't block Cat Warrior Token (209).
+Identity-B didn't block Cat Token (212).
+  PHASE: Identity-A's First Strike Damage Step
+  DAMAGE: Ocelot Pride (26) deals 3 damage to Cat Warrior Token (217).
+  LIFE: Life: Identity-A 43 > 46
+  DAMAGE: Amped Raptor (125) deals 2 damage to Cat Token (167).
+  ZONE_CHANGE: Cat Warrior Token (217) was put into Graveyard from Battlefield.
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Cat Token (167) deals 3 damage to Amped Raptor (125).
+  DAMAGE: Cat Warrior Token (209) deals 2 combat damage to Identity-B.
+  DAMAGE: Cat Token (212) deals 1 combat damage to Identity-B.
+  LIFE: Life: Identity-B 1 > -2
+  PLAYER_CONTROL: Identity-A has restored control over themself
+  PLAYER_CONTROL: Identity-B has restored control over themself
+  GAME_OUTCOME: Turn 11
+  GAME_OUTCOME: Identity-A has won because all opponents have lost
+  GAME_OUTCOME: Identity-B has lost because life total reached 0
+  MATCH_RESULTS: Identity-A: 1 Identity-B: 0 
+===============================

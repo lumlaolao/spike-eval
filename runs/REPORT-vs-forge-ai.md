@@ -7,9 +7,17 @@ its own deterministic fallback (19/19); neither says whether the agent plays
 built-in AI is a decades-tuned, genuinely competent opponent. This is the first
 citable answer to "how good is the LLM pilot, actually?"
 
-**Headline: haiku loses to Forge AI 1/20 (5.0%), Wilson 95% [0.9%, 23.6%].**
-That is not a failure of the experiment — it is the experiment working. We now
-have a real gap with a confidence interval, and a clean, learning-usable corpus
+> **UPDATE 2026-07-19 — a parser bug was suppressing the win rate.** After this
+> campaign, a loss-diagnosis of the games found the mulligan parser was inverting
+> ~a third of the model's KEEP decisions (see "Parser-inversion bug" below). A
+> debugged re-run on the same seeds roughly **tripled** haiku's wins: **1/10 →
+> 3/10** on seeds 1-5. The 1/20 headline here is a *bugged* baseline; the current
+> best estimate is **haiku ≈ 30% vs Forge AI**, though on only 10 games (wide CI).
+> See "Debugged re-measurement (haiku-vs-ai-3)" at the bottom.
+
+**Headline (bugged baseline): haiku loses to Forge AI 1/20 (5.0%), Wilson 95%
+[0.9%, 23.6%].** That is not a failure of the experiment — it is the experiment
+working. We now have a real gap with a confidence interval, and a clean corpus
 of the games that produced it.
 
 ## The citable batch: `haiku-vs-ai-2`
@@ -122,3 +130,58 @@ python3 eval/analyze_corpus.py runs/haiku-vs-ai-2   # exits 2 if any reply is co
 - `runs/haiku-vs-ai/`: 20 games, **contaminated** (rate-limit strings parsed as
   replies); retained for diagnosis only. Do NOT use for win-rate claims —
   `analyze_corpus.py` exits 2 on it.
+- `runs/haiku-vs-ai-3/`: 10 games (5 seed-pairs), the **debugged re-measurement**
+  (see below). `overlay_sha=4fe27fcead9c`, 0 contaminated, 0 mulligan inversions.
+
+---
+
+## Parser-inversion bug (found 2026-07-19)
+
+A forensic diagnosis of the haiku-vs-ai-2 losses (7 games read decision-by-decision,
+reasoning included) surfaced a **game-losing parser bug**, not just play weakness.
+`mulliganKeepHand` uppercased the whole reply and took the *first*
+`indexOf("KEEP")` vs `indexOf("MULLIGAN")`. The reasoning body routinely contains
+the word "mulligan" ("*no reason to mulligan this ... KEEP*"), so that prose token
+matched first and **inverted the model's actual decision**.
+
+Measured across the committed corpora, this was systemic:
+
+| campaign | model mulligans inverted |
+|---|---|
+| haiku-vs-random | 9/31 (29%) |
+| haiku-vs-floor | 7/28 (25%) |
+| haiku-vs-ai-2 | 10/31 (32%) |
+
+Every one was a hand the model ended its reasoning by saying KEEP, shipped to a
+mulligan — manufacturing pre-game card disadvantage. It does **not** overturn the
+floor/random sweeps (haiku wins those regardless of a free mulligan a third of the
+time), but against a competent opponent a free mulligan swings games. Fixed in
+`5afff27` (read the *last* keyword, `lastIndexOf`); verified correct on all 31
+real replies (old parser wrong on 10, new on 0). A regression detector now runs in
+`analyze_corpus.py` (`mulligan_inverted`) and would have caught it.
+
+## Debugged re-measurement (`haiku-vs-ai-3`)
+
+Same cited discipline, same 5 seed-pairs as haiku-vs-ai-2 seeds 1-5,
+`overlay_sha=4fe27fcead9c` (parser fix + model-routed mulligan bottoming + latency
+logging). Data clean: 858/858 full round-trips, 0 contaminated, **0 mulligan
+inversions**.
+
+| | seeds 1-5 (10 games) | Wilson 95% CI |
+|---|---|---|
+| haiku-vs-ai-2 (bugged, `762aca814fdf`) | haiku **1/10 = 10%** | — |
+| haiku-vs-ai-3 (debugged, `4fe27fcead9c`) | haiku **3/10 = 30%** | [10.8%, 60.3%] |
+
+Apples-to-apples on identical seeds, the fix **tripled** haiku's wins (1 → 3):
+seed 2 swap 0 and seed 4 swap 1 both flipped from losses to wins, and the existing
+seed 2 swap 1 win held. Paired delta −40 pts, 95% CI [−100, +40] — with only 5
+pairs the interval is wide and now spans zero, so this is an **encouraging but
+underpowered** estimate, not a precise rate. The honest current best guess is
+haiku ≈ 30% vs Forge AI. (The mulligan-bottom routing that also entered this build
+fired only once in 10 games, so the improvement is effectively all parser fix.)
+
+Note: strategy-level fixes the diagnosis also recommended (aggressor framing, no
+off-list Cabal Therapy names, Wasteland-target guard) are **expert-strategy
+injection** — exactly what cited mode strips via `PLAN_A=""`. They are deliberately
+NOT in this baseline; if pursued they belong in a separately-labeled "coached" arm
+so the cited baseline stays honest.
