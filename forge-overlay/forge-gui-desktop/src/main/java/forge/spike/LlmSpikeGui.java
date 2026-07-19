@@ -184,7 +184,8 @@ public final class LlmSpikeGui {
         private String lastPrompt = null;
         private String lastReply  = null;
         private String lastTier   = null; // "smart"|"fast" of the captured call (informational)
-        private void clearLast() { lastPrompt = null; lastReply = null; lastTier = null; }
+        private long lastAskMs = 0; // wall-clock summed over ask() calls since clearLast(); see evalDec
+        private void clearLast() { lastPrompt = null; lastReply = null; lastTier = null; lastAskMs = 0; }
 
         // per-turn play-loop state (was static in v1 — now per-instance so two seats don't collide)
         private int lastPlayTurn = -1;
@@ -1359,6 +1360,7 @@ public final class LlmSpikeGui {
          *  store the full prompt/reply/tier so evalDec can attach them (a retry overwrites, so the LAST
          *  attempt's prompt/raw_reply are what get logged). */
         private String ask(LLMBridge b, String prompt) {
+            long tAsk = System.currentTimeMillis();
             if (b == smart) smartCalls++; else fastCalls++;
             lastPrompt = prompt;
             lastTier = (b == smart) ? "smart" : "fast";
@@ -1377,6 +1379,7 @@ public final class LlmSpikeGui {
                 reply = b.ask(prompt);
             }
             lastReply = reply;
+            lastAskMs += System.currentTimeMillis() - tAsk; // summed: a decision may ask more than once
             return reply;
         }
 
@@ -1415,6 +1418,11 @@ public final class LlmSpikeGui {
          *  or null when no model was consulted. */
         private void evalDec(String type, int nOptions, int choice, String tier, long ms, String fallback, List<String> options) {
             if (!EvalLog.on()) return;
+            // Many call sites pass ms=0 because their timing happens inside ask(); when a model
+            // round-trip WAS captured for this decision (lastPrompt != null — clearLast() guards
+            // every path), substitute the summed ask() wall-clock so real model calls never log
+            // latency_ms=0 (which the analyzer excludes from latency stats).
+            if (ms <= 0 && lastPrompt != null) ms = lastAskMs;
             try {
                 PhaseHandler ph = getPlayer().getGame().getPhaseHandler();
                 StringBuilder sb = new StringBuilder(256);
