@@ -26,7 +26,8 @@ Single-elimination, best-of-1, recorded. Each model drafted its own deck from a 
 
 ### Quarterfinals
 - **claude-opus-4.8** (ur-delver) def. gemini-3.5-flash (miracles)
+- **deepseek-v4-pro** (infect) def. qwen3.7-max (ant-storm)
 
 ## Champion
 
-_Tournament in progress — 1/7 matches played._
+_Tournament in progress — 2/7 matches played._
