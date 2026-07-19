@@ -45,6 +45,7 @@ import forge.game.Game;
 import forge.game.GameEntity;
 import forge.game.GameLogEntry;
 import forge.game.GameLogEntryType;
+import forge.game.GameRules;
 import forge.game.GameType;
 import forge.game.ability.ApiType;
 import forge.game.card.Card;
@@ -156,6 +157,12 @@ public final class LlmSpikeGui {
             + "Voice of Victory), attack every turn and race their life total. Disrupt the combo with Thoughtseize, Cabal Therapy, "
             + "Orcish Bowmasters, and Swords to Plowshares; Wasteland/Karakas hit their mana. Against Reanimator, prioritize stripping "
             + "or removing their fatty and pressuring life so they can't durdle.";
+
+    // The plans actually injected this run (env override > per-deck <deck>.plan sidecar > default above),
+    // stashed by buildPlayers so the game-summary provenance records what the model really saw — not a
+    // re-derivation that would miss the sidecar. See loadPlanSidecar / writeGameSummary.
+    static volatile String lastPlanA = DEFAULT_PLAN_A;
+    static volatile String lastPlanB = DEFAULT_PLAN_B;
 
     /** Our agent's controller: extend the AI, route decisions to Claude, delegate to super on
      *  anything we don't handle or that fails. One instance per seat — all state is per-instance. */
@@ -1584,8 +1591,14 @@ public final class LlmSpikeGui {
         String smartB = System.getenv().getOrDefault("SMART_MODEL_B", smart);
         String fastA  = System.getenv().getOrDefault("FAST_MODEL_A", fast);
         String fastB  = System.getenv().getOrDefault("FAST_MODEL_B", fast);
-        String planA = System.getenv().getOrDefault("PLAN_A", DEFAULT_PLAN_A);
-        String planB = System.getenv().getOrDefault("PLAN_B", DEFAULT_PLAN_B);
+        // Per-deck strategy resolution: an explicit PLAN_A/B env wins if SET (PLAN_A="" is the
+        // deliberate plan-free cited arm); otherwise each deck's own <deck>.plan sidecar drives its
+        // seat, so strategy generalizes per deck-identity instead of being hardcoded per seat.
+        String planA = System.getenv("PLAN_A");
+        if (planA == null) planA = loadPlanSidecar(pathA, DEFAULT_PLAN_A);
+        String planB = System.getenv("PLAN_B");
+        if (planB == null) planB = loadPlanSidecar(pathB, DEFAULT_PLAN_B);
+        lastPlanA = planA; lastPlanB = planB;
         String ctlA = System.getenv().getOrDefault("CONTROLLER_A", "llm");
         String ctlB = System.getenv().getOrDefault("CONTROLLER_B", "llm");
 
@@ -1909,6 +1922,82 @@ public final class LlmSpikeGui {
         return deck;
     }
 
+    /** Per-deck strategy sidecar: for deck file foo.txt, read foo.plan (or foo.txt.plan) if present.
+     *  Lets each deck-identity carry its own game plan WITHOUT polluting the decklist parser, where a
+     *  leading '#'/blank line is a section marker (see loadDeck). Env PLAN_A/B still overrides, and
+     *  PLAN_A="" still yields the plan-free cited arm — this only governs the unset case. */
+    static String loadPlanSidecar(String deckPath, String fallback) {
+        if (deckPath == null) return fallback;
+        for (String cand : new String[]{ deckPath.replaceFirst("\\.txt$", "") + ".plan", deckPath + ".plan" }) {
+            try {
+                var pp = Paths.get(cand);
+                if (Files.exists(pp)) {
+                    String s = new String(Files.readAllBytes(pp), StandardCharsets.UTF_8).trim();
+                    if (!s.isEmpty()) { System.out.println("[PLAN] sidecar -> " + cand); return s; }
+                }
+            } catch (Exception e) { System.out.println("[PLAN] sidecar read failed (" + cand + "): " + e); }
+        }
+        return fallback;
+    }
+
+    /** Machine-readable game-summary JSONL line + human GAME OVER block, shared by the headless and GUI
+     *  runners so both emit the IDENTICAL identity-keyed record the eval/tournament drivers parse. All
+     *  per-identity fields (deck/controller/model/plan) are keyed to deck-identity A/B, never post-swap. */
+    static void writeGameSummary(Game game, long seed, long durMs, long capMs, boolean capped) {
+        String nameA = System.getenv().getOrDefault("DECK_A_NAME", "Grixis Reanimator");
+        String nameB = System.getenv().getOrDefault("DECK_B_NAME", "Mardu Energy");
+        String winner = "draw"; int turns = -1; String winCond = "?";
+        try {
+            if (game != null && game.getOutcome() != null) {
+                turns = game.getOutcome().getLastTurnNumber();
+                winCond = String.valueOf(game.getOutcome().getWinCondition());
+                var w = game.getOutcome().getWinningLobbyPlayer();
+                // unknown-name winner should be unreachable; map to "invalid" so the A|B|draw|invalid contract holds
+                if (w != null) winner = nameA.equals(w.getName()) ? "A" : (nameB.equals(w.getName()) ? "B" : "invalid");
+            }
+        } catch (Exception ignore) { }
+        if (capped) winner = "invalid";
+
+        System.out.println("========== GAME OVER ==========");
+        System.out.println("outcome: " + winner + " after " + turns + " turns (" + winCond + ") in " + (durMs / 1000) + "s");
+        System.out.println("--- full game log ---");
+        try {
+            if (game != null)
+                for (GameLogEntry e : game.getGameLog().getAllEntries())
+                    System.out.println("  " + e.type() + ": " + e.message());
+        } catch (Exception e) { System.out.println("  (log unavailable: " + e + ")"); }
+        System.out.println("===============================");
+
+        String smartDef = System.getenv().getOrDefault("SMART_MODEL", "opus");
+        String fastDef  = System.getenv().getOrDefault("FAST_MODEL", "haiku");
+        EvalLog.write("{\"t\":\"game\",\"seed\":" + seed
+                + ",\"swap\":" + "1".equals(System.getenv("SWAP_SEATS"))
+                + ",\"deck_a\":\"" + jsonEscape(nameA) + "\""
+                + ",\"deck_b\":\"" + jsonEscape(nameB) + "\""
+                + ",\"controller_a\":\"" + jsonEscape(System.getenv().getOrDefault("CONTROLLER_A", "llm")) + "\""
+                + ",\"controller_b\":\"" + jsonEscape(System.getenv().getOrDefault("CONTROLLER_B", "llm")) + "\""
+                + ",\"smart_a\":\"" + jsonEscape(System.getenv().getOrDefault("SMART_MODEL_A", smartDef)) + "\""
+                + ",\"smart_b\":\"" + jsonEscape(System.getenv().getOrDefault("SMART_MODEL_B", smartDef)) + "\""
+                + ",\"fast_a\":\"" + jsonEscape(System.getenv().getOrDefault("FAST_MODEL_A", fastDef)) + "\""
+                + ",\"fast_b\":\"" + jsonEscape(System.getenv().getOrDefault("FAST_MODEL_B", fastDef)) + "\""
+                + ",\"winner\":\"" + winner + "\",\"turns\":" + turns
+                + ",\"win_condition\":\"" + jsonEscape(winCond) + "\""
+                + ",\"duration_ms\":" + durMs
+                + ",\"mulligan_heuristic\":" + (PlayerControllerLLM.mullHeuristic() ? 1 : 0)
+                + ",\"skip_heuristics\":" + (PlayerControllerLLM.skipHeuristics() ? 1 : 0)
+                + ",\"plan_a\":\"" + jsonEscape(lastPlanA) + "\""
+                + ",\"plan_b\":\"" + jsonEscape(lastPlanB) + "\""
+                + ",\"smart_budget\":" + PlayerControllerLLM.smartBudget()
+                + ",\"fast_budget\":" + PlayerControllerLLM.fastBudget()
+                + ",\"claude_deadline_ms\":" + ClaudeBridge.deadlineMs()
+                + ",\"game_cap_ms\":" + capMs
+                + ",\"engine_sha\":\"" + jsonEscape(System.getenv().getOrDefault("ENGINE_SHA", "unknown")) + "\""
+                + ",\"overlay_sha\":\"" + jsonEscape(System.getenv().getOrDefault("OVERLAY_SHA", "unknown")) + "\""
+                + ",\"deck_sha\":\"" + jsonEscape(System.getenv().getOrDefault("DECK_SHA", "unknown")) + "\""
+                + ",\"discipline\":\"" + jsonEscape(System.getenv().getOrDefault("RUN_DISCIPLINE", "unspecified")) + "\""
+                + "}");
+    }
+
     public static void main(String[] args) {
         GuiBase.setInterface(new GuiDesktop());
         Singletons.initializeOnce(true);
@@ -1928,12 +2017,59 @@ public final class LlmSpikeGui {
 
     private static void startSpectatorMatch() {
         System.out.println("[LLM-SEAM] building LLM-vs-LLM spectator match...");
-        long seed = applySeed();
+        final long seed = applySeed();
         EvalLog.init(seed);
         List<RegisteredPlayer> players = buildPlayers();
-        HostedMatch hosted = GuiBase.getInterface().hostMatch();
-        hosted.startMatch(GameType.Constructed, EnumSet.of(GameType.Constructed), players, null);
-        System.out.println("[LLM-SEAM] match started. Watch the Forge window.");
+        // MATCH_GAMES sets games-per-match (default 3 = watch/demo best-of-3; tournament sets 1 for bo1).
+        int gpm = 3;
+        try { String g = System.getenv("MATCH_GAMES"); if (g != null && !g.trim().isEmpty()) gpm = Math.max(1, Integer.parseInt(g.trim())); }
+        catch (Exception ignore) {}
+        final boolean bo1 = gpm == 1;
+        // Canonical Constructed rules built explicitly (mana-burn off, no ante, gamesPerMatch as set) rather
+        // than HostedMatch.getDefaultRules(), which reads the local desktop FModel prefs. This matches what
+        // the headless eval runner already does (LlmSpikeHeadless: `new GameRules(GameType.Constructed)`),
+        // so a GUI match is reproducible and independent of whatever prefs the desktop install happens to have.
+        GameRules rules = new GameRules(GameType.Constructed);
+        rules.setGamesPerMatch(gpm);
+        final HostedMatch hosted = GuiBase.getInterface().hostMatch();
+        hosted.startMatch(rules, EnumSet.of(GameType.Constructed), players, (RegisteredPlayer) null, null);
+        System.out.println("[LLM-SEAM] match started (games-per-match=" + gpm + "). Watch the Forge window.");
+
+        // Tournament / automation: with AUTO_EXIT=1, watch the match and when it ends emit the identity-keyed
+        // game-summary line (same one headless writes), give the recorder a beat to capture the final board,
+        // then exit(0) so the driver can parse the winner and launch the next match. SIGINT-safe: the recorder
+        // shutdown hook still finalizes the mp4 on exit.
+        if ("1".equals(System.getenv("AUTO_EXIT"))) {
+            // Backstop cap only (drivers set GAME_CAP_MS explicitly per game); 2h default just bounds a
+            // wedged manual run. The headless runner defaults 3h — both are overridable, drivers set both.
+            long capEnv = 7200000L;
+            try { String c = System.getenv("GAME_CAP_MS"); if (c != null && !c.trim().isEmpty()) capEnv = Long.parseLong(c.trim()); }
+            catch (Exception ignore) {}
+            final long capMs = capEnv;
+            final long t0 = System.currentTimeMillis();
+            Thread mon = new Thread(() -> {
+                Game g = null;
+                boolean over = false;
+                while (System.currentTimeMillis() - t0 < capMs) {
+                    try { over = hosted.isMatchOver(); } catch (Exception e) { over = false; }
+                    // The single-game-outcome fallback is only a valid "match over" signal in bo1; in a
+                    // multi-game match game 1's outcome must NOT trigger exit, so gate it on bo1.
+                    if (!over && bo1) { try { g = hosted.getGame(); over = g != null && g.getOutcome() != null; } catch (Exception e) {} }
+                    if (over) break;
+                    try { Thread.sleep(1500); } catch (InterruptedException e) { break; }
+                }
+                boolean capped = !over;
+                long dur = System.currentTimeMillis() - t0;
+                try { g = hosted.getGame(); } catch (Exception e) {}
+                try { Thread.sleep(4000); } catch (InterruptedException ignore) {} // let the recorder capture the result screen
+                try { writeGameSummary(g, seed, dur, capMs, capped); }
+                catch (Exception e) { System.out.println("[AUTO_EXIT] summary failed: " + e); }
+                System.out.println("[AUTO_EXIT] match over (capped=" + capped + ") -> exiting for driver");
+                System.exit(0);
+            }, "auto-exit-monitor");
+            mon.setDaemon(true);
+            mon.start();
+        }
     }
 
     /**
