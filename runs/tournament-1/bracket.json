@@ -1,5 +1,20 @@
 {
-  "rounds": {},
+  "rounds": {
+    "QF": {
+      "QF-1": {
+        "a": "claude-opus-4.8",
+        "b": "gemini-3.5-flash",
+        "a_deck": "ur-delver",
+        "b_deck": "miracles",
+        "winner_label": "claude-opus-4.8",
+        "winner": "A",
+        "seed": 345,
+        "swap": true,
+        "mp4": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/tournament-1/QF-1__claude-opus-4.8_vs_gemini-3.5-flash.mp4",
+        "attempt": 1
+      }
+    }
+  },
   "draw": [
     "claude-opus-4.8",
     "gemini-3.5-flash",
