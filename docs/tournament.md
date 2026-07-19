@@ -46,6 +46,16 @@ is present. The driver never sets that flag for you — you set it explicitly. O
 full `--dry-run` is offline and skips the gate; `--mock-draft` alone skips just the
 draft-phase calls — the bo1 games are still real, so the gate still applies.
 
+**Where the key goes.** Put your key (from https://openrouter.ai/keys) in
+`secrets.env` at the repo root — it's git-ignored and auto-loaded by the driver:
+
+```
+OPENROUTER_API_KEY=sk-or-...
+OPENROUTER_ALLOW_EGRESS=1        # uncomment this line to consent
+```
+
+Inline env (`OPENROUTER_API_KEY=... python3 ...`) still works and overrides the file.
+
 ## Running it
 
 ```bash

@@ -53,6 +53,24 @@ DECKS_DIR = REPO_ROOT / "eval" / "decks"
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 
+def load_secrets_file():
+    """Load KEY=VALUE lines from <repo>/secrets.env into the environment (git-ignored;
+    never overrides a value already in the env, so inline `VAR=... python3 ...` wins).
+    This is where the user drops their OPENROUTER_API_KEY. Consent (OPENROUTER_ALLOW_EGRESS)
+    is a deliberate uncomment in that file — the driver still refuses without it."""
+    path = REPO_ROOT / "secrets.env"
+    if not path.is_file():
+        return
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, _, v = line.partition("=")
+        k, v = k.strip(), v.strip().strip('"').strip("'")
+        if k and v and k not in os.environ:   # non-empty, don't clobber inline env
+            os.environ[k] = v
+
+
 def log(msg):
     print(msg, flush=True)
 
@@ -383,6 +401,8 @@ def main():
                          "validate the OpenRouter+GUI+recording path end to end")
     args = ap.parse_args()
 
+    load_secrets_file()   # pull OPENROUTER_* from <repo>/secrets.env if present
+
     args.forge_home = Path(args.forge_home).expanduser().resolve()
     if not (args.forge_home / "run-llm-spike.sh").is_file():
         die("run-llm-spike.sh not found in --forge-home: %s" % args.forge_home)
@@ -393,9 +413,12 @@ def main():
     # exempt the gate. Only a full --dry-run is truly offline.
     launches_games = not args.dry_run
     if launches_games and os.environ.get("OPENROUTER_ALLOW_EGRESS") != "1":
-        die("real games/draft ship the full game state to openrouter.ai. Set "
-            "OPENROUTER_ALLOW_EGRESS=1 to consent (this driver will NOT set it for "
-            "you). Use --dry-run for a fully offline check.")
+        die("real games/draft ship the full game state to openrouter.ai. Consent by "
+            "uncommenting OPENROUTER_ALLOW_EGRESS=1 in secrets.env (or exporting it) — "
+            "this driver will NOT set it for you. Use --dry-run for a fully offline check.")
+    if launches_games and not os.environ.get("OPENROUTER_API_KEY"):
+        die("OPENROUTER_API_KEY not found. Put your key in secrets.env "
+            "(from https://openrouter.ai/keys) or export it, then re-run.")
 
     rng = random.Random(args.seed)
     pool = load_pool()
