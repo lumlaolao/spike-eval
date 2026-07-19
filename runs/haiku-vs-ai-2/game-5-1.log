@@ -1,0 +1,510 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 5
+[DECK] loaded 'Identity-A': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[DECK] loaded 'Identity-B': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[SEATS] A=Identity-A(llm,haiku) B=Identity-B(ai,opus) [SWAPPED]
+[HEADLESS] game starting (cap=120min)
+[Identity-A] [ROUTER] mulligan: 4/7 lands -> asking haiku...
+[CLAUDE Identity-A/smart] starting persistent haiku session...
+[CLAUDE Identity-A/smart] replied in 11134 ms
+[Identity-A] [ROUTER] mulligan: MULLIGAN
+[Identity-A] [ROUTER] mulligan: 3/6 lands -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 6674 ms
+[Identity-A] [ROUTER] mulligan: KEEP
+[Identity-A] [TALLY] smart=2 fast=0 auto=0 ai=0 avgSmart=8904ms
+[Identity-A] [ROUTER] play(main): 0 castable + 3 land -> asking haiku...
+[CLAUDE Identity-A/fast] starting persistent haiku session...
+[CLAUDE Identity-A/fast] replied in 18630 ms
+[Identity-A] [ROUTER] play: land Marsh Flats
+[Identity-A] [TALLY] smart=2 fast=1 auto=0 ai=0 avgSmart=8904ms avgFast=18630ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 51932 ms
+[Identity-A] [ROUTER] plan: Fetch Plains with Marsh Flats, then cast Ajani for early threat.
+[Identity-A] [ROUTER] play: casts Marsh Flats [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Plains ]
+[Identity-A] [TALLY] smart=3 fast=1 auto=0 ai=0 avgSmart=23246ms avgFast=18630ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 39941 ms
+[Identity-A] [ROUTER] play: land Scrubland
+[Identity-A] [TALLY] smart=3 fast=2 auto=0 ai=0 avgSmart=23246ms avgFast=29285ms
+[Identity-A] [ROUTER] play(main): 4 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 44663 ms
+[Identity-A] [ROUTER] plan: Cast Amped Raptor for tempo, follow with Cabal Therapy.
+[Identity-A] [ROUTER] play: casts Amped Raptor 1{R} [Amped Raptor - Creature 2 / 1]
+[CLAUDE Identity-A/fast] replied in 10677 ms
+[Identity-A] [ROUTER] confirm(Do you want to play Ocelot Pride?): YES
+[Identity-A] [TALLY] smart=4 fast=3 auto=0 ai=0 avgSmart=28600ms avgFast=23082ms
+[Identity-A] [ROUTER] play(main): 3 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 37957 ms
+[Identity-A] [ROUTER] plan: Cast Cabal Therapy to disrupt hand, then attack.
+[CLAUDE Identity-A/smart] replied in 3543 ms
+[Identity-A] [ROUTER] target: Identity-B <- Cabal Therapy {B}
+[Identity-A] [ROUTER] play: casts Cabal Therapy {B} [Choose a nonland card name. Target player reveals their hand and disca]
+[CLAUDE Identity-A/smart] replied in 19746 ms
+[Identity-A] [ROUTER] card-name: Counterspell [Cabal Therapy]
+[Identity-A] [TALLY] smart=7 fast=3 auto=0 ai=0 avgSmart=25092ms avgFast=23082ms
+[Identity-A] [ROUTER] play(main): 1 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 25439 ms
+[CLAUDE Identity-A/smart] replied in 9788 ms
+[Identity-A] [ROUTER] target: Identity-B <- Cabal Therapy {B}
+[Identity-A] [ROUTER] play: casts Cabal Therapy {B} [Choose a nonland card name. Target player reveals their hand and disca]
+[CLAUDE Identity-A/smart] replied in 18339 ms
+[Identity-A] [ROUTER] card-name: Force of Will [Cabal Therapy]
+[Identity-A] [TALLY] smart=10 fast=3 auto=0 ai=0 avgSmart=22921ms avgFast=23082ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 44386 ms
+[Identity-A] [ROUTER] play: land Wasteland
+[Identity-A] [TALLY] smart=10 fast=4 auto=0 ai=0 avgSmart=22921ms avgFast=28408ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 27475 ms
+[Identity-A] [ROUTER] play: casts Ajani, Nacatl Pariah 1{W} [Ajani, Nacatl Pariah - Creature 1 / 2]
+[Identity-A] [ROUTER] blockers: 1 atk / 1 blk -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 11999 ms
+[Identity-A] [ROUTER] blockers: assigned 1
+SVar 'ConvertedManaCost' not defined in Card (Voice of Victory)
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 14507 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 15370 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=12 fast=6 auto=0 ai=0 avgSmart=22390ms avgFast=23918ms
+[Identity-A] [ROUTER] play(main): 4 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 25418 ms
+[Identity-A] [ROUTER] plan: Thoughtseize to see hand and discard their key threat.
+[CLAUDE Identity-A/smart] replied in 2592 ms
+[Identity-A] [ROUTER] target: Identity-B <- Thoughtseize {B} [Target player reveals their hand. You choose a nonland card from it. T]
+[Identity-A] [ROUTER] play: casts Thoughtseize {B} [Target player reveals their hand. You choose a nonland card from it. T]
+[Identity-A] [TALLY] smart=14 fast=6 auto=0 ai=0 avgSmart=21192ms avgFast=23918ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 12246 ms
+[Identity-A] [ROUTER] play: PASS
+[CLAUDE Identity-A/smart] replied in 19928 ms
+[Identity-A] [ROUTER] discard(strip Identity-B): Ajani, Nacatl Pariah
+[Identity-A] [TALLY] smart=16 fast=6 auto=0 ai=0 avgSmart=20554ms avgFast=23918ms
+[Identity-A] [ROUTER] play(main): 2 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 13323 ms
+[Identity-A] [ROUTER] play: casts Ajani, Nacatl Pariah 1{W} [Ajani, Nacatl Pariah - Creature 1 / 2]
+[Identity-A] [TALLY] smart=17 fast=6 auto=0 ai=0 avgSmart=20129ms avgFast=23918ms
+[Identity-A] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 30309 ms
+[Identity-A] [ROUTER] play: land Plains
+[Identity-A] [ROUTER] blockers: 7 atk / 1 blk -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 16868 ms
+[Identity-A] [ROUTER] blockers: assigned 1
+SVar 'ConvertedManaCost' not found in ability, fallback to Card (Thoughtseize). Ability is (Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life. )
+SVar 'ConvertedManaCost' not defined in Card (Thoughtseize)
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 17549 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3746 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=18 fast=9 auto=0 ai=0 avgSmart=19948ms avgFast=21679ms
+[Identity-A] [ROUTER] play(main): 2 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 18898 ms
+[Identity-A] [ROUTER] plan: Cast Cabal Therapy to disrupt their hand before lethal.
+[CLAUDE Identity-A/smart] replied in 2452 ms
+[Identity-A] [ROUTER] target: Identity-B <- Cabal Therapy {B}
+[Identity-A] [ROUTER] play: casts Cabal Therapy {B} [Choose a nonland card name. Target player reveals their hand and disca]
+[Identity-A] [TALLY] smart=20 fast=9 auto=0 ai=0 avgSmart=19020ms avgFast=21679ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 10648 ms
+[Identity-A] [ROUTER] play: PASS
+[CLAUDE Identity-A/smart] replied in 12302 ms
+[Identity-A] [ROUTER] card-name: Cabal Therapy [Cabal Therapy]
+[Identity-A] [TALLY] smart=22 fast=9 auto=0 ai=0 avgSmart=18334ms avgFast=21679ms
+[Identity-A] [ROUTER] play(main): 1 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 7341 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 7704 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 15395 ms
+[CLAUDE Identity-A/smart] replied in 11903 ms
+[Identity-A] [ROUTER] target: Elegant Parlor [Identity-B's Battlefield] <- Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Identity-A] [ROUTER] play: casts Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Identity-A] [TALLY] smart=24 fast=11 auto=0 ai=0 avgSmart=17608ms avgFast=19837ms
+[Identity-A] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 11307 ms
+[Identity-A] [ROUTER] play: PASS
+========== GAME OVER ==========
+outcome: B after 10 turns (AllOpponentsLost) in 654s
+--- full game log ---
+  MULLIGAN: Identity-A has mulliganed down to 6 cards.
+  MULLIGAN: Identity-A has kept a hand of 6 cards
+  MULLIGAN: Identity-B has kept a hand of 7 cards
+  TURN: Turn 1 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Marsh Flats (96)
+  LIFE: Life: Identity-A 20 > 19
+  ZONE_CHANGE: Marsh Flats (96) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Marsh Flats
+  STACK_RESOLVE: Marsh Flats (96) - Identity-A searches their library for a Plains or Swamp card, puts it onto the battlefield, then shuffles.
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 2 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Karakas (17)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Karakas (17) - {T}: Add {W}.
+  STACK_ADD: Identity-B cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 3 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Scrubland (117)
+  MANA: Plateau (113) - {T}: Add {R}.
+  MANA: Scrubland (117) - {T}: Add {B}.
+  STACK_ADD: Identity-A cast Amped Raptor
+  STACK_RESOLVE: Amped Raptor - Creature 2 / 1
+  STACK_ADD: Identity-A triggered Amped Raptor
+  STACK_RESOLVE: When Amped Raptor enters, you get {E}{E} (two energy counters). Then if you cast it from your hand, exile cards from the top of your library until you exile a nonland card. You may cast that card by paying an amount of {E} equal to its mana value rather than paying its mana cost. [Zone Changer: Amped Raptor (123)]
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 4 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  EFFECT_REPLACED: Elegant Parlor enters tapped.
+  LAND: Identity-B played Elegant Parlor (15)
+  STACK_ADD: Identity-B triggered Elegant Parlor
+  STACK_RESOLVE: Identity-B surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: When Elegant Parlor enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Elegant Parlor (15)]
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 5 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Scrubland (117) - {T}: Add {B}.
+  STACK_ADD: Identity-A cast Cabal Therapy
+  STACK_RESOLVE: Cabal Therapy (78) - Identity-A names a card. Identity-B reveals their hand. They discard all of type: Card.NamedCard card.
+  ZONE_CHANGE: Amped Raptor (123) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A cast Cabal Therapy
+  STACK_RESOLVE: Cabal Therapy (78) - Identity-A names a card. Identity-B reveals their hand. They discard all of type: Card.NamedCard card.
+  EFFECT_REPLACED: Flashback—Sacrifice a creature. (You may cast this card from your graveyard for its flashback cost. Then exile it.)
+  LAND: Identity-A played Wasteland (128)
+  MANA: Plateau (113) - {T}: Add {W}.
+  MANA: Wasteland (128) - {T}: Add {C}.
+  STACK_ADD: Identity-A cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Identity-A triggered Ajani, Nacatl Pariah
+  STACK_ADD: Identity-B activated Karakas targeting [Ajani, Nacatl Pariah (134)]
+  STACK_RESOLVE: Karakas (17) - Return Ajani, Nacatl Pariah (134) to its owner's hand.
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (134)]
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 6 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Marsh Flats (21)
+  LIFE: Life: Identity-B 20 > 19
+  ZONE_CHANGE: Marsh Flats (21) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B activated Marsh Flats
+  STACK_RESOLVE: Marsh Flats (21) - Identity-B searches their library for a Plains or Swamp card, puts it onto the battlefield, then shuffles.
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Ocelot Pride (26) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A assigned Cat Warrior Token (154) to block Ocelot Pride (26).
+  PHASE: Identity-B's First Strike Damage Step
+  DAMAGE: Ocelot Pride (26) deals 1 damage to Cat Warrior Token (154).
+  LIFE: Life: Identity-B 19 > 20
+  ZONE_CHANGE: Cat Warrior Token (154) was put into Graveyard from Battlefield.
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Elegant Parlor (15) - {T}: Add {R}.
+  MANA: Scrubland (42) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Amped Raptor
+  STACK_RESOLVE: Amped Raptor - Creature 2 / 1
+  STACK_ADD: Identity-B triggered Amped Raptor
+  STACK_ADD: Identity-B cast Voice of Victory
+  STACK_RESOLVE: When Amped Raptor enters, you get {E}{E} (two energy counters). Then if you cast it from your hand, exile cards from the top of your library until you exile a nonland card. You may cast that card by paying an amount of {E} equal to its mana value rather than paying its mana cost. [Zone Changer: Amped Raptor (50)]
+  STACK_RESOLVE: Voice of Victory - Creature 1 / 3
+  MANA: Karakas (17) - {T}: Add {W}.
+  STACK_ADD: Identity-B cast Guide of Souls
+  STACK_RESOLVE: Guide of Souls - Creature 1 / 2
+  PHASE: Identity-B's End step
+  STACK_ADD: Identity-B triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-B]
+  STACK_ADD: Identity-B triggered Guide of Souls
+  LIFE: Life: Identity-B 20 > 21
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (159)]
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 7 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Scrubland (117) - {T}: Add {B}.
+  STACK_ADD: Identity-A cast Thoughtseize targeting [Identity-B]
+  DISCARD: Identity-B discards Ajani, Nacatl Pariah (58).
+  LIFE: Life: Identity-A 19 > 17
+  STACK_RESOLVE: Thoughtseize (121) - Identity-B reveals their hand. Identity-A chooses a nonland card from it. Identity-B discards that card. Identity-A loses 2 life.
+  MANA: Plateau (113) - {T}: Add {W}.
+  MANA: Wasteland (128) - {T}: Add {C}.
+  STACK_ADD: Identity-A cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Identity-A triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (134)]
+  LAND: Identity-A played Plains (116)
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 8 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  STACK_ADD: Identity-B activated Karakas targeting [Ajani, Nacatl Pariah (134)]
+  STACK_RESOLVE: Karakas (17) - Return Ajani, Nacatl Pariah (134) to its owner's hand.
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Arid Mesa (10)
+  LIFE: Life: Identity-B 21 > 20
+  ZONE_CHANGE: Arid Mesa (10) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B activated Arid Mesa
+  EFFECT_REPLACED: Shadowy Backstreet enters tapped.
+  STACK_RESOLVE: Arid Mesa (10) - Identity-B searches their library for a Mountain or Plains card, puts it onto the battlefield, then shuffles.
+  STACK_ADD: Identity-B triggered Shadowy Backstreet
+  STACK_RESOLVE: Identity-B surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: When Shadowy Backstreet enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Shadowy Backstreet (56)]
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Voice of Victory (32), Amped Raptor (50), Ocelot Pride (26), Guide of Souls (12) and Cat Token (159) to attack Identity-A.
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Voice of Victory
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (32)]
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Guide of Souls
+  LIFE: Life: Identity-B 20 > 21
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (167)]
+  LIFE: Life: Identity-B 21 > 22
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (165)]
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Voice of Victory (32), Amped Raptor (50), Ocelot Pride (26), Guide of Souls (12), Cat Token (159)]]
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Voice of Victory (32).
+Identity-A assigned Cat Warrior Token (162) to block Amped Raptor (50).
+Identity-A didn't block Ocelot Pride (26).
+Identity-A didn't block Guide of Souls (12).
+Identity-A didn't block Cat Token (159).
+Identity-A didn't block Warrior Token (165).
+Identity-A didn't block Warrior Token (167).
+  PHASE: Identity-B's First Strike Damage Step
+  DAMAGE: Amped Raptor (50) deals 2 damage to Cat Warrior Token (162).
+  DAMAGE: Ocelot Pride (26) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-B 22 > 23
+  LIFE: Life: Identity-A 17 > 16
+  ZONE_CHANGE: Cat Warrior Token (162) was put into Graveyard from Battlefield.
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Voice of Victory (32) deals 1 combat damage to Identity-A.
+  DAMAGE: Guide of Souls (12) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Token (159) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (165) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (167) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 16 > 11
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Elegant Parlor (15) - {T}: Add {R}.
+  MANA: Scrubland (42) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Amped Raptor
+  STACK_RESOLVE: Amped Raptor - Creature 2 / 1
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Amped Raptor
+  STACK_ADD: Identity-B cast Thoughtseize targeting [Identity-A]
+  STACK_RESOLVE: When Amped Raptor enters, you get {E}{E} (two energy counters). Then if you cast it from your hand, exile cards from the top of your library until you exile a nonland card. You may cast that card by paying an amount of {E} equal to its mana value rather than paying its mana cost. [Zone Changer: Amped Raptor (48)]
+  DISCARD: Identity-A discards Ajani, Nacatl Pariah (134).
+  LIFE: Life: Identity-B 23 > 21
+  STACK_RESOLVE: Thoughtseize (45) - Identity-A reveals their hand. Identity-B chooses a nonland card from it. Identity-A discards that card. Identity-B loses 2 life.
+  LIFE: Life: Identity-B 21 > 22
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Amped Raptor (48)]
+  PHASE: Identity-B's End step
+  STACK_ADD: Identity-B triggered Voice of Victory
+  STACK_ADD: Identity-B triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-B]
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Guide of Souls
+  LIFE: Life: Identity-B 22 > 23
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (176)]
+  LIFE: Life: Identity-B 23 > 24
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (175)]
+  LIFE: Life: Identity-B 24 > 25
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (174)]
+  LIFE: Life: Identity-B 25 > 26
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (170)]
+  ZONE_CHANGE: Warrior Token (165) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Warrior Token (167) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Sacrifice Warrior Token (165) and Warrior Token (167) at the beginning of the next end step. ([Warrior Token (165), Warrior Token (167)]) [Phase: Identity-B]
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 9 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Scrubland (117) - {T}: Add {B}.
+  STACK_ADD: Identity-A cast Cabal Therapy
+  DISCARD: Identity-B discards Cabal Therapy (4).
+  STACK_RESOLVE: Cabal Therapy (79) - Identity-A names a card. Identity-B reveals their hand. They discard all of type: Card.NamedCard card.
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  ZONE_CHANGE: Wasteland (128) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Wasteland targeting [Elegant Parlor (15)]
+  ZONE_CHANGE: Elegant Parlor (15) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (128) - Destroy Elegant Parlor (15).
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 10 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  MANA: Scrubland (42) - {T}: Add {B}.
+  MANA: Shadowy Backstreet (56) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Orcish Bowmasters targeting [Identity-A]
+  DAMAGE: Orcish Bowmasters (36) deals 1 non-combat damage to Identity-A.
+  LIFE: Life: Identity-A 11 > 10
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Identity-A]]) [Zone Changer: Orcish Bowmasters (36)]
+  STACK_ADD: Identity-B triggered Guide of Souls
+  LIFE: Life: Identity-B 26 > 27
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Orc Army Token (178)]
+  LIFE: Life: Identity-B 27 > 28
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Orcish Bowmasters (36)]
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Amped Raptor (50), Amped Raptor (48), Ocelot Pride (26), Voice of Victory (32), Guide of Souls (12), Cat Token (159), Cat Token (170), Warrior Token (174), Warrior Token (175) and Cat Token (176) to attack Identity-A.
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Voice of Victory
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (32)]
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Guide of Souls
+  LIFE: Life: Identity-B 28 > 29
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (182)]
+  LIFE: Life: Identity-B 29 > 30
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (181)]
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Amped Raptor (50), Amped Raptor (48), Ocelot Pride (26), Voice of Victory (32), Guide of Souls (12), Cat Token (159), Cat Token (170), Warrior Token (174), Warrior Token (175), Cat Token (176)]]
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Amped Raptor (50).
+Identity-A didn't block Amped Raptor (48).
+Identity-A didn't block Ocelot Pride (26).
+Identity-A didn't block Voice of Victory (32).
+Identity-A didn't block Guide of Souls (12).
+Identity-A didn't block Cat Token (159).
+Identity-A didn't block Cat Token (170).
+Identity-A didn't block Warrior Token (174).
+Identity-A didn't block Warrior Token (175).
+Identity-A didn't block Cat Token (176).
+Identity-A didn't block Warrior Token (181).
+Identity-A didn't block Warrior Token (182).
+  PHASE: Identity-B's First Strike Damage Step
+  DAMAGE: Amped Raptor (50) deals 2 combat damage to Identity-A.
+  DAMAGE: Amped Raptor (48) deals 2 combat damage to Identity-A.
+  DAMAGE: Ocelot Pride (26) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-B 30 > 31
+  LIFE: Life: Identity-A 10 > 5
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Voice of Victory (32) deals 1 combat damage to Identity-A.
+  DAMAGE: Guide of Souls (12) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Token (159) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Token (170) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (174) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (175) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Token (176) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (181) deals 1 combat damage to Identity-A.
+  DAMAGE: Warrior Token (182) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 5 > -4
+  PLAYER_CONTROL: Identity-B has restored control over themself
+  PLAYER_CONTROL: Identity-A has restored control over themself
+  GAME_OUTCOME: Turn 5
+  GAME_OUTCOME: Identity-B has won because all opponents have lost
+  GAME_OUTCOME: Identity-A has lost because life total reached 0
+  MATCH_RESULTS: Identity-B: 1 Identity-A: 0 
+===============================

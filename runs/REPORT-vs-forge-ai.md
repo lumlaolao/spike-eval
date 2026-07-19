@@ -1,104 +1,124 @@
 # Eval campaign 2: LLM vs Forge AI — 2026-07-18
 
-A second cited-discipline campaign on the Mardu Energy mirror
-(`eval/decks/mardu-energy.txt`), run sequentially with `jobs=1`.
+The first honest measurement of the haiku pilot against a *competent* opponent.
+Campaigns 1 measured haiku against weak bars — uniform-random play (20/20) and
+its own deterministic fallback (19/19); neither says whether the agent plays
+*good* Magic, because random and first-legal-option are both bad Magic. Forge's
+built-in AI is a decades-tuned, genuinely competent opponent. This is the first
+citable answer to "how good is the LLM pilot, actually?"
 
-## Provenance
+**Headline: haiku loses to Forge AI 1/20 (5.0%), Wilson 95% [0.9%, 23.6%].**
+That is not a failure of the experiment — it is the experiment working. We now
+have a real gap with a confidence interval, and a clean, learning-usable corpus
+of the games that produced it.
 
-Two overlays are involved; the report is honest about which batch used which:
-
-- **haiku-vs-ai** (attempted 20 games): `discipline=cited`,
-  `engine_sha=c1c64a53586459cd0d4c70f27abd1aa8bbc92891`,
-  `overlay_sha=532c01a82b16`, `deck_sha=4e7be5785b40`,
-  `mulligan_heuristic=0`, `skip_heuristics=0`, `plan_a=""`, `plan_b=""`,
-  `smart_budget=320`, `fast_budget=900`, `claude_deadline_ms=90000`,
-  `game_cap_ms=7200000`.
-
-- **floor-vs-ai** (20 games): same engine/deck/discipline, but
-  `overlay_sha=3ca3280e1fc2` (post-instrumentation overlay with log-only AI
-  surface observation, choose-entity routing, bridge retry-on-dead-bridge, and
-  the `isNonAnswer` non-answer filter that rejects rate-limit/error text at the
-  bridge before it can be logged as a model decision), `game_cap_ms=900000`.
-
-Identity names `Identity-A`/`Identity-B`; winner is identity-keyed (never
-seat-keyed); every seed is played twice with seats swapped. Wilson 95% CIs;
-paired bootstrap at the seed level (10,000 resamples, seed 20260715).
-
-## Results
-
-| batch | dir | games | result | Wilson 95% CI | paired delta [95% CI] | seat-1 bias | fallback gate |
-|---|---|---|---|---|---|---|---|
-| haiku vs ai | `haiku-vs-ai` | 20/20 decisive | haiku 0/20 = **0.0%** | [0.0%, 16.1%] | −100 pts [−100, −100] | 50.0% | passed (gate vacuously true, but see contamination note) |
-| floor vs ai | `floor-vs-ai` | 20/20 decisive | floor 0/20 = **0.0%** | [0.0%, 16.1%] | −100 pts [−100, −100] | 50.0% | vacuous (no llm arm) |
-
-## Why the haiku-vs-ai number is NOT citable
-
-The haiku batch completed, but **the raw replies are contaminated by a Claude CLI
-session-rate-limit**. `analyze_corpus.py` now flags this explicitly:
+## The citable batch: `haiku-vs-ai-2`
 
 ```
-model-consulted (prompt!=null): 405
-full round-trip (prompt+raw_reply): 405
-prompt-without-reply (bridge died mid-call): 0
-contaminated replies: 324
-WARNING: 324 model-consulted line(s) carry a non-answer raw_reply
+discipline=cited  engine_sha=c1c64a53586459cd0d4c70f27abd1aa8bbc92891
+overlay_sha=762aca814fdf  deck_sha=4e7be5785b40
+mulligan_heuristic=0  skip_heuristics=0  plan_a=""  plan_b=""
+smart_budget=320  fast_budget=900  claude_deadline_ms=90000  game_cap_ms=7200000
 ```
 
-That is **80% of model-consulted decisions** across the 20 games. Most games are
-100% contaminated; game 1 (the 14.5-minute game) is ~46% contaminated. The
-contaminated replies contain strings such as:
+10 seed-pairs, seats swapped, identity-keyed winner, `jobs=1`. Wilson 95% CIs;
+paired bootstrap at the seed level (10,000 resamples, seed 20260715). Both
+seats of both decks ran the Mardu Energy mirror (`eval/decks/mardu-energy.txt`);
+`Identity-A` = haiku (`CONTROLLER_A=llm SMART_A=FAST_A=haiku`), `Identity-B` =
+Forge AI (`CONTROLLER_B=ai`).
 
-> "You've hit your session limit · resets 3pm (America/Los_Angeles)"
+| arm | result | Wilson 95% CI | paired delta [95% CI] | seat-1 bias | data integrity |
+|---|---|---|---|---|---|
+| haiku[haiku/haiku] vs ai | haiku **1/20 = 5.0%** | [0.9%, 23.6%] | −90 pts [−100, −70] | 45.0% | 20/20 decisive, 0 invalid, **0 contaminated** |
 
-The pre-instrumentation bridge treated these non-answers as ordinary replies and
-parsed/defaulted them into choices, logging them as tier `smart` with
-`fallback=null`. They were **not** real haiku decisions. The 0/20 result is
-therefore **not a measurement of haiku vs Forge AI**; it is a measurement of the
-deterministic fallback path (plus a small amount of genuine but overwhelmed
-haiku play in game 1) against Forge AI.
+Per-seed: focal (haiku) swept both 0 · split 1 · lost both 9. The single win
+was seed 2 (swapped seat), a 17-turn game. Games ran 44 s–30 min wall-clock
+(median ~13 min); every game reached a decisive result — no draws, no caps, no
+crashes.
 
-A post-campaign bridge hardening change now detects these non-answer results and
-routes them through the honest `bridge-down` fallback path instead.
+### This result is trustworthy (the contamination bug is fixed)
 
-## Honest read of what we did learn
+The **first** attempt at this batch (`runs/haiku-vs-ai/`, `overlay_sha=532c01a82b16`)
+was poisoned: mid-run the Claude CLI began returning
+`"You've hit your session limit · resets 3pm"`, and the pre-fix bridge parsed
+that error text as a model reply — 324 of 405 model-consulted decisions (80%)
+were rate-limit strings logged as tier `smart`, `fallback=null`. That 0/20 was
+noise, not a measurement, and is retained only for diagnosis.
 
-1. **When the model is unavailable, the harness loses to Forge AI every game.**
-   The floor-vs-ai batch is clean: 20/20 decisive, AI wins all 20, paired delta
-   −100 pts. This is expected — the deterministic fallback plays first-legal
-   options and is not a Magic strategy — but it is now measured rather than
-   assumed.
+The re-run closes the hole at three layers, and the corpus proves it held:
 
-2. **The first campaign's headline is unchanged.** Haiku still sweeps random
-   20/20 and its own fallback 19/19. The floor is weaker than random (12.5% vs
-   random) and vastly weaker than Forge AI (0% vs AI).
+- **Bridge (`isNonAnswer`)** rejects rate-limit/error strings before they can be
+  logged as a decision → they route through the honest bridge-down fallback.
+- **Analyzer (`analyze_corpus.py`)** now exits 2 (data-quality failure) on *any*
+  contaminated reply, with a hermetic test fixture and a Java/Python pattern-list
+  parity test.
+- **Result**: `analyze_corpus.py runs/haiku-vs-ai-2` exits 0. Coverage:
+  model-consulted 1363, full round-trip (prompt+reply) 1363, prompt-without-reply
+  (bridge died) 0, **contaminated 0**. The session limit had reset and every
+  reply is genuine haiku reasoning (smart p50 16.0 s, p90 34.7 s, max 85.7 s —
+  under the 90 s deadline, so no decision was lost to timeout).
 
-3. **The rate-limit contamination is a data-quality bug, not a model-evaluation
-   result.** The fix is in the bridge; a re-run with budgeted CLI usage is
-   needed before we can quote a true haiku-vs-Forge-AI number.
+## The floor-vs-ai baseline (`floor-vs-ai`, `overlay_sha=3ca3280e1fc2`)
 
-## Dataset additions
+Same engine/deck/discipline, `game_cap_ms=900000`, no model arm. floor **0/20 =
+0.0%** vs Forge AI [0.0%, 16.1%]. This is the deterministic-fallback anchor: when
+no model drives the seat, the harness's legal-move plumbing loses every game to
+Forge AI. It is the floor of the scale the LLM result sits above — barely, but
+measurably (5.0% vs 0.0%).
 
-- `runs/floor-vs-ai/`: 20 games, 93 decision lines, 0 malformed. The new
-  log-only AI-surface observation emitters (mulligan bottoming, damage order,
-  announce-x, sacrifice) were **wired in but never fired** in this batch —
-  0 of the 93 lines carry those types (only `play`, `mulligan`,
-  `choose-entity`), because floor games end fast without multi-blocker combat,
-  X-spells, edicts, or mulligan bottoming. This batch therefore does NOT
-  runtime-validate the instrumentation; the first data exercising it will be
-  the clean haiku-vs-ai re-run.
-- `runs/haiku-vs-ai/`: 20 games, 405 decision lines, preserved for diagnosis.
-  Marked contaminated; do not use for win-rate claims.
+## What the corpus says (1,441 decisions, all clean)
+
+- **Volume is dominated by `play`** (1,122 of 1,441; 78%). The rest:
+  attackers 73, target 71, damage-assign 54, mulligan 31, blockers 25,
+  card-name 21, mulligan-bottom 16, confirm 14, discard 9, entity 5.
+- **The routed strategic surfaces were ~100% model-driven.** Zero smart/fast-tier
+  fallbacks across the whole batch. Of the 72 fallback-gate lines (5.0%, gate
+  ceiling 10%), **70 are structurally-Forge-AI surfaces, not haiku failures**:
+  54 `damage-assign` (combat damage-assignment order) and 16 `mulligan-bottom`,
+  both of which this binary still runs on Forge AI by construction. The only
+  genuinely-routed fallbacks were 1 `card-name(no-match)` and 1 `auto`.
+- **Why the fallback rate looks higher than campaign 1 (0.4% → 5.0%).** It is not
+  regression — it is *honesty*. The new instrumentation makes previously-invisible
+  Forge-AI surfaces (`damage-assign`, `mulligan-bottom`) emit decision lines for
+  the first time. Campaign 1's 0.4% simply never counted them.
+
+## Instrumentation: first runtime validation
+
+This batch is the first to actually *exercise* the invisible-surface emitters
+(campaign 1's floor-vs-ai never triggered them — floor games end before
+multi-blocker combat or mulligan bottoming). Confirmed firing: 54 `damage-assign`,
+16 `mulligan-bottom`, and 5 `entity` (the choose-entity routing change). The
+`mulligan-bottom` observer immediately earned its keep: it caught Forge AI
+**bottoming premium cards** (e.g. Orcish Bowmasters) out of hands haiku had just
+reasoned into keeping — the keep-decision and the bottom-decision were being made
+by different brains. That surface is now model-routed on `main` (commit
+`6eb9e56`); it takes effect at the next install+compile and will move those 16
+lines from the `ai` column into the model column.
 
 ## Reproduce
 
 ```bash
 # clean floor-vs-ai baseline (no model cost, ~3 minutes)
 python3 eval/run_batch.py --seeds 1..10 --pairs --deck eval/decks/mardu-energy.txt \
-  --controller-a floor --controller-b ai --smart-a haiku --smart-b opus
+  --controller-a floor --controller-b ai
 
-# DO NOT reproduce haiku-vs-ai without first confirming claude CLI quota:
-# the recorded batch was rate-limited and the result is invalid.
-python3 eval/aggregate.py runs/floor-vs-ai
-# NOTE: exits 2 (data-quality failure) because runs/haiku-vs-ai is contaminated:
-python3 eval/analyze_corpus.py runs/haiku-vs-ai runs/floor-vs-ai
+# the citable haiku-vs-ai batch (needs claude CLI quota; ~4-5 h)
+python3 eval/run_batch.py --seeds 1..10 --pairs --deck eval/decks/mardu-energy.txt \
+  --controller-a llm --smart-a haiku --fast-a haiku --controller-b ai \
+  --out runs/haiku-vs-ai-2
+
+python3 eval/aggregate.py runs/haiku-vs-ai-2
+python3 eval/analyze_corpus.py runs/haiku-vs-ai-2   # exits 2 if any reply is contaminated
 ```
+
+## Dataset additions
+
+- `runs/haiku-vs-ai-2/`: 20 games, 1,441 decision lines, 0 malformed, 0
+  contaminated. The first clean haiku-vs-Forge-AI corpus; the first to exercise
+  the `damage-assign` / `mulligan-bottom` / `entity` instrumentation at runtime.
+- `runs/floor-vs-ai/`: 20 games, 93 decision lines, deterministic-fallback anchor.
+  The new AI-surface emitters were wired but never fired here (floor games end
+  before the relevant board states occur).
+- `runs/haiku-vs-ai/`: 20 games, **contaminated** (rate-limit strings parsed as
+  replies); retained for diagnosis only. Do NOT use for win-rate claims —
+  `analyze_corpus.py` exits 2 on it.

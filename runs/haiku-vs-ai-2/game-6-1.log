@@ -1,0 +1,509 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 6
+[DECK] loaded 'Identity-A': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[DECK] loaded 'Identity-B': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[SEATS] A=Identity-A(llm,haiku) B=Identity-B(ai,opus) [SWAPPED]
+[HEADLESS] game starting (cap=120min)
+[Identity-A] [ROUTER] mulligan: 2/7 lands -> asking haiku...
+[CLAUDE Identity-A/smart] starting persistent haiku session...
+[CLAUDE Identity-A/smart] replied in 11903 ms
+[Identity-A] [ROUTER] mulligan: KEEP
+[Identity-A] [TALLY] smart=1 fast=0 auto=0 ai=0 avgSmart=11903ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] starting persistent haiku session...
+[CLAUDE Identity-A/fast] replied in 29958 ms
+[Identity-A] [ROUTER] play: land Plains
+[Identity-A] [TALLY] smart=1 fast=1 auto=0 ai=0 avgSmart=11903ms avgFast=29958ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 24141 ms
+[Identity-A] [ROUTER] plan: Play Ocelot Pride to begin creature development.
+[Identity-A] [ROUTER] play: casts Ocelot Pride {W} [Ocelot Pride - Creature 1 / 1]
+[Identity-A] [TALLY] smart=2 fast=1 auto=0 ai=0 avgSmart=18022ms avgFast=29958ms
+[Identity-A] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 31891 ms
+[Identity-A] [ROUTER] play: land Marsh Flats
+[Identity-A] [TALLY] smart=2 fast=2 auto=0 ai=0 avgSmart=18022ms avgFast=30924ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 38749 ms
+[Identity-A] [ROUTER] plan: Hold resources, develop board threat next turn.
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 24436 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 1 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 13146 ms
+[Identity-A] [ROUTER] attackers: Ocelot Pride
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 8835 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4134 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4990 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 3770 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=4 fast=7 auto=0 ai=0 avgSmart=21984ms avgFast=15430ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 26689 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 5353 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 33862 ms
+[Identity-A] [ROUTER] play: casts Marsh Flats [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Plains ]
+[Identity-A] [ROUTER] blockers: 1 atk / 1 blk -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 39285 ms
+[Identity-A] [ROUTER] blockers: assigned 1
+[Identity-A] [TALLY] smart=6 fast=9 auto=0 ai=0 avgSmart=25652ms avgFast=16358ms
+[Identity-A] [ROUTER] play(main): 3 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 38723 ms
+[Identity-A] [ROUTER] plan: Cast Voice of Victory, establish creature presence for Bombardment synergy.
+[Identity-A] [ROUTER] play: casts Voice of Victory 1{W} [Voice of Victory - Creature 1 / 3]
+[Identity-A] [TALLY] smart=7 fast=9 auto=0 ai=0 avgSmart=27519ms avgFast=16358ms
+[Identity-A] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 19047 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=7 fast=10 auto=0 ai=0 avgSmart=27519ms avgFast=16627ms
+[Identity-A] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 5161 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=7 fast=11 auto=0 ai=0 avgSmart=27519ms avgFast=15585ms
+[Identity-A] [ROUTER] play(main): 2 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 27901 ms
+[Identity-A] [ROUTER] plan: Cast Thoughtseize to disrupt tapped-out opponent's hand.
+[CLAUDE Identity-A/smart] replied in 2896 ms
+[Identity-A] [ROUTER] target: Identity-B <- Thoughtseize {B} [Target player reveals their hand. You choose a nonland card from it. T]
+[Identity-A] [ROUTER] play: casts Thoughtseize {B} [Target player reveals their hand. You choose a nonland card from it. T]
+[Identity-A] [AUTO-LEGAL] discard(forced) -> Cabal Therapy
+[Identity-A] [TALLY] smart=9 fast=11 auto=1 ai=0 avgSmart=24825ms avgFast=15585ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 45803 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 1 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 20735 ms
+[Identity-A] [ROUTER] attackers: Voice of Victory
+[Identity-A] [TALLY] smart=10 fast=12 auto=1 ai=0 avgSmart=24416ms avgFast=18103ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 7986 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=10 fast=13 auto=1 ai=0 avgSmart=24416ms avgFast=17325ms
+[Identity-A] [ROUTER] play(main): 0 castable + 3 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 23433 ms
+[Identity-A] [ROUTER] play: land Elegant Parlor
+[Identity-A] [ROUTER] attackers: 1 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 18851 ms
+[Identity-A] [ROUTER] attackers: Voice of Victory
+[Identity-A] [TALLY] smart=11 fast=14 auto=1 ai=0 avgSmart=23910ms avgFast=17761ms
+[Identity-A] [ROUTER] play(main): 3 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 24616 ms
+[Identity-A] [ROUTER] plan: Cast Voice of Victory to establish survival blocker.
+[Identity-A] [ROUTER] play: casts Voice of Victory 1{W} [Voice of Victory - Creature 1 / 3]
+[Identity-A] [TALLY] smart=12 fast=14 auto=1 ai=0 avgSmart=23969ms avgFast=17761ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 13474 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=12 fast=15 auto=1 ai=0 avgSmart=23969ms avgFast=17475ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 4166 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] blockers: 15 atk / 1 blk -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 28929 ms
+[Identity-A] [ROUTER] blockers: assigned 1
+========== GAME OVER ==========
+outcome: B after 12 turns (AllOpponentsLost) in 584s
+--- full game log ---
+  MULLIGAN: Identity-A has kept a hand of 7 cards
+  MULLIGAN: Identity-B has kept a hand of 7 cards
+  TURN: Turn 1 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Plains (115)
+  MANA: Plains (115) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 2 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Scrubland (42)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Scrubland (42) - {T}: Add {W}.
+  STACK_ADD: Identity-B cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 3 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Marsh Flats (95)
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Ocelot Pride (101) to attack Identity-B.
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B didn't block Ocelot Pride (101).
+  PHASE: Identity-A's First Strike Damage Step
+  DAMAGE: Ocelot Pride (101) deals 1 combat damage to Identity-B.
+  LIFE: Life: Identity-A 20 > 21
+  LIFE: Life: Identity-B 20 > 19
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  STACK_ADD: Identity-A triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-A]
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 4 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  MANA: Scrubland (42) - {T}: Add {W}.
+  STACK_ADD: Identity-B cast Swords to Plowshares targeting [Ocelot Pride (101)]
+  LIFE: Life: Identity-A 21 > 20
+  ZONE_CHANGE: Marsh Flats (95) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Marsh Flats
+  STACK_RESOLVE: Marsh Flats (95) - Identity-A searches their library for a Plains or Swamp card, puts it onto the battlefield, then shuffles.
+  ZONE_CHANGE: Ocelot Pride (101) was put into Exile from Battlefield.
+  LIFE: Life: Identity-A 20 > 21
+  STACK_RESOLVE: Swords to Plowshares (28) - Exile Ocelot Pride (101). Identity-A gains life equal to its power.
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Badlands (1)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Ocelot Pride (26) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A assigned Cat Token (153) to block Ocelot Pride (26).
+  PHASE: Identity-B's First Strike Damage Step
+  DAMAGE: Ocelot Pride (26) deals 1 damage to Cat Token (153).
+  LIFE: Life: Identity-B 19 > 20
+  ZONE_CHANGE: Cat Token (153) was put into Graveyard from Battlefield.
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  STACK_ADD: Identity-B triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-B]
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 5 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Plains (115) - {T}: Add {W}.
+  MANA: Scrubland (117) - {T}: Add {B}.
+  STACK_ADD: Identity-A cast Voice of Victory
+  STACK_RESOLVE: Voice of Victory - Creature 1 / 3
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 6 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Karakas (17)
+  MANA: Scrubland (42) - {T}: Add {B}.
+  MANA: Badlands (1) - {T}: Add {R}.
+  STACK_ADD: Identity-B cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Identity-B triggered Orcish Bowmasters targeting [Identity-A]
+  DAMAGE: Orcish Bowmasters (37) deals 1 non-combat damage to Identity-A.
+  LIFE: Life: Identity-A 21 > 20
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Identity-A]]) [Zone Changer: Orcish Bowmasters (37)]
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Karakas (17) - {T}: Add {W}.
+  STACK_ADD: Identity-B cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 7 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Scrubland (117) - {T}: Add {B}.
+  STACK_ADD: Identity-A cast Thoughtseize targeting [Identity-B]
+  DISCARD: Identity-B discards Cabal Therapy (4).
+  LIFE: Life: Identity-A 20 > 18
+  STACK_RESOLVE: Thoughtseize (122) - Identity-B reveals their hand. Identity-A chooses a nonland card from it. Identity-B discards that card. Identity-A loses 2 life.
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Voice of Victory (109) to attack Identity-B.
+  STACK_ADD: Identity-A triggered Voice of Victory
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (109)]
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B didn't block Voice of Victory (109).
+Identity-B assigned Ocelot Pride (26) to block Warrior Token (161).
+Identity-B assigned Ocelot Pride (27) to block Warrior Token (162).
+  PHASE: Identity-A's First Strike Damage Step
+  DAMAGE: Ocelot Pride (26) deals 1 damage to Warrior Token (161).
+  LIFE: Life: Identity-B 20 > 21
+  DAMAGE: Ocelot Pride (27) deals 1 damage to Warrior Token (162).
+  LIFE: Life: Identity-B 21 > 22
+  ZONE_CHANGE: Warrior Token (161) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Warrior Token (162) was put into Graveyard from Battlefield.
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Voice of Victory (109) deals 1 combat damage to Identity-B.
+  LIFE: Life: Identity-B 22 > 21
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  STACK_ADD: Identity-A triggered Voice of Victory
+  STACK_RESOLVE: Sacrifice Warrior Token (161) and Warrior Token (162) at the beginning of the next end step. ([Warrior Token (161), Warrior Token (162)]) [Phase: Identity-A]
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 8 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Wasteland (54)
+  ZONE_CHANGE: Wasteland (54) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B activated Wasteland targeting [Scrubland (117)]
+  ZONE_CHANGE: Scrubland (117) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (54) - Destroy Scrubland (117).
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Ocelot Pride (26), Cat Token (156), Orcish Bowmasters (37), Orc Army Token (158) and Ocelot Pride (27) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Ocelot Pride (26).
+Identity-A didn't block Cat Token (156).
+Identity-A didn't block Orcish Bowmasters (37).
+Identity-A didn't block Orc Army Token (158).
+Identity-A didn't block Ocelot Pride (27).
+  PHASE: Identity-B's First Strike Damage Step
+  DAMAGE: Ocelot Pride (26) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-B 21 > 22
+  DAMAGE: Ocelot Pride (27) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-B 22 > 23
+  LIFE: Life: Identity-A 18 > 16
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Cat Token (156) deals 1 combat damage to Identity-A.
+  DAMAGE: Orcish Bowmasters (37) deals 1 combat damage to Identity-A.
+  DAMAGE: Orc Army Token (158) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 16 > 13
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  STACK_ADD: Identity-B triggered Ocelot Pride
+  STACK_ADD: Identity-B triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-B]
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-B]
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 9 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  EFFECT_REPLACED: Elegant Parlor enters tapped.
+  LAND: Identity-A played Elegant Parlor (90)
+  STACK_ADD: Identity-A triggered Elegant Parlor
+  STACK_RESOLVE: Identity-A surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: When Elegant Parlor enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Elegant Parlor (90)]
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Voice of Victory (109) to attack Identity-B.
+  STACK_ADD: Identity-A triggered Voice of Victory
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (109)]
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B assigned Cat Token (172), Cat Token (168) and Cat Token (166) to block Voice of Victory (109).
+Identity-B didn't block Warrior Token (176).
+Identity-B didn't block Warrior Token (177).
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Voice of Victory (109) deals 1 damage to Cat Token (172).
+  DAMAGE: Warrior Token (176) deals 1 combat damage to Identity-B.
+  DAMAGE: Warrior Token (177) deals 1 combat damage to Identity-B.
+  DAMAGE: Cat Token (172) deals 1 damage to Voice of Victory (109).
+  DAMAGE: Cat Token (168) deals 1 damage to Voice of Victory (109).
+  DAMAGE: Cat Token (166) deals 1 damage to Voice of Victory (109).
+  LIFE: Life: Identity-B 23 > 21
+  ZONE_CHANGE: Voice of Victory (109) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Cat Token (172) was put into Graveyard from Battlefield.
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  STACK_ADD: Identity-A triggered Voice of Victory
+  ZONE_CHANGE: Warrior Token (176) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Warrior Token (177) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Sacrifice Warrior Token (176) and Warrior Token (177) at the beginning of the next end step. ([Warrior Token (176), Warrior Token (177)]) [Phase: Identity-A]
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 10 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  MANA: Scrubland (42) - {T}: Add {B}.
+  MANA: Badlands (1) - {T}: Add {R}.
+  STACK_ADD: Identity-B cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Identity-B triggered Orcish Bowmasters targeting [Identity-A]
+  DAMAGE: Orcish Bowmasters (36) deals 1 non-combat damage to Identity-A.
+  LIFE: Life: Identity-A 13 > 12
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Identity-A]]) [Zone Changer: Orcish Bowmasters (36)]
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Plateau (39)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Orc Army Token (158), Ocelot Pride (26), Cat Token (156), Orcish Bowmasters (37), Ocelot Pride (27), Cat Token (166), Cat Token (168) and Cat Token (173) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Orc Army Token (158).
+Identity-A didn't block Ocelot Pride (26).
+Identity-A didn't block Cat Token (156).
+Identity-A didn't block Orcish Bowmasters (37).
+Identity-A didn't block Ocelot Pride (27).
+Identity-A didn't block Cat Token (166).
+Identity-A didn't block Cat Token (168).
+Identity-A didn't block Cat Token (173).
+  PHASE: Identity-B's First Strike Damage Step
+  DAMAGE: Ocelot Pride (26) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-B 21 > 22
+  DAMAGE: Ocelot Pride (27) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-B 22 > 23
+  LIFE: Life: Identity-A 12 > 10
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Orc Army Token (158) deals 2 combat damage to Identity-A.
+  DAMAGE: Cat Token (156) deals 1 combat damage to Identity-A.
+  DAMAGE: Orcish Bowmasters (37) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Token (166) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Token (168) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Token (173) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 10 > 3
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  STACK_ADD: Identity-B triggered Ocelot Pride
+  STACK_ADD: Identity-B triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-B]
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-B]
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 11 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Plains (115) - {T}: Add {W}.
+  MANA: Elegant Parlor (90) - {T}: Add {R}.
+  STACK_ADD: Identity-A cast Voice of Victory
+  STACK_RESOLVE: Voice of Victory - Creature 1 / 3
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 12 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Plains (41)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Orc Army Token (158), Ocelot Pride (26), Cat Token (156), Orcish Bowmasters (37), Ocelot Pride (27), Cat Token (166), Cat Token (168), Cat Token (173), Orcish Bowmasters (36), Cat Token (181), Cat Token (183), Cat Token (185), Cat Token (189), Cat Token (190) and Cat Token (191) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A assigned Voice of Victory (108) to block Orc Army Token (158).
+Identity-A didn't block Ocelot Pride (26).
+Identity-A didn't block Cat Token (156).
+Identity-A didn't block Orcish Bowmasters (37).
+Identity-A didn't block Ocelot Pride (27).
+Identity-A didn't block Cat Token (166).
+Identity-A didn't block Cat Token (168).
+Identity-A didn't block Cat Token (173).
+Identity-A didn't block Orcish Bowmasters (36).
+Identity-A didn't block Cat Token (181).
+Identity-A didn't block Cat Token (183).
+Identity-A didn't block Cat Token (185).
+Identity-A didn't block Cat Token (189).
+Identity-A didn't block Cat Token (190).
+Identity-A didn't block Cat Token (191).
+  PHASE: Identity-B's First Strike Damage Step
+  DAMAGE: Ocelot Pride (26) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-B 23 > 24
+  DAMAGE: Ocelot Pride (27) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-B 24 > 25
+  LIFE: Life: Identity-A 3 > 1
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Orc Army Token (158) deals 2 damage to Voice of Victory (108).
+  DAMAGE: Cat Token (156) deals 1 combat damage to Identity-A.
+  DAMAGE: Orcish Bowmasters (37) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Token (166) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Token (168) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Token (173) deals 1 combat damage to Identity-A.
+  DAMAGE: Orcish Bowmasters (36) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Token (181) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Token (183) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Token (185) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Token (189) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Token (190) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Token (191) deals 1 combat damage to Identity-A.
+  DAMAGE: Voice of Victory (108) deals 1 damage to Orc Army Token (158).
+  LIFE: Life: Identity-A 1 > -11
+  PLAYER_CONTROL: Identity-B has restored control over themself
+  PLAYER_CONTROL: Identity-A has restored control over themself
+  GAME_OUTCOME: Turn 6
+  GAME_OUTCOME: Identity-B has won because all opponents have lost
+  GAME_OUTCOME: Identity-A has lost because life total reached 0
+  MATCH_RESULTS: Identity-B: 1 Identity-A: 0 
+===============================
