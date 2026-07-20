@@ -62,6 +62,18 @@
         "swap": true,
         "mp4": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/tournament-1/SF-1__claude-opus-4.8_vs_deepseek-v4-pro.mp4",
         "attempt": 1
+      },
+      "SF-2": {
+        "a": "claude-fable-5",
+        "b": "grok-4.5",
+        "a_deck": "sneak-and-show",
+        "b_deck": "grixis-reanimator",
+        "winner_label": "claude-fable-5",
+        "winner": "A",
+        "seed": 348,
+        "swap": true,
+        "mp4": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/tournament-1/SF-2__claude-fable-5_vs_grok-4.5.mp4",
+        "attempt": 1
       }
     }
   },

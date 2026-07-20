@@ -31,7 +31,8 @@ Single-elimination, best-of-1, recorded. Each model drafted its own deck from a 
 - **grok-4.5** (grixis-reanimator) def. gpt-5 (lands)
 ### Semifinals
 - **deepseek-v4-pro** (infect) def. claude-opus-4.8 (ur-delver)
+- **claude-fable-5** (sneak-and-show) def. grok-4.5 (grixis-reanimator)
 
 ## Champion
 
-_Tournament in progress — 5/7 matches played._
+_Tournament in progress — 6/7 matches played._
