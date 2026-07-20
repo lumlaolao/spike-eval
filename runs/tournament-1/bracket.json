@@ -24,6 +24,18 @@
         "swap": true,
         "mp4": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/tournament-1/QF-2__deepseek-v4-pro_vs_qwen3.7-max.mp4",
         "attempt": 1
+      },
+      "QF-3": {
+        "a": "claude-fable-5",
+        "b": "kimi-k3",
+        "a_deck": "sneak-and-show",
+        "b_deck": "goblins",
+        "winner_label": "claude-fable-5",
+        "winner": "A",
+        "seed": 347,
+        "swap": true,
+        "mp4": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/tournament-1/QF-3__claude-fable-5_vs_kimi-k3.mp4",
+        "attempt": 1
       }
     }
   },
