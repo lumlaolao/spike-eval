@@ -49,6 +49,20 @@
         "mp4": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/tournament-1/QF-4__grok-4.5_vs_gpt-5.mp4",
         "attempt": 1
       }
+    },
+    "SF": {
+      "SF-1": {
+        "a": "claude-opus-4.8",
+        "b": "deepseek-v4-pro",
+        "a_deck": "ur-delver",
+        "b_deck": "infect",
+        "winner_label": "deepseek-v4-pro",
+        "winner": "B",
+        "seed": 347,
+        "swap": true,
+        "mp4": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/tournament-1/SF-1__claude-opus-4.8_vs_deepseek-v4-pro.mp4",
+        "attempt": 1
+      }
     }
   },
   "draw": [

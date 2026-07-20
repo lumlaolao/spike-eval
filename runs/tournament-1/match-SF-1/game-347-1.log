@@ -1,0 +1,544 @@
+FSkin > can't find skins directory!
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[LLM-SEAM] building LLM-vs-LLM spectator match...
+[SEED] 347
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/ur-delver.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/infect.plan
+[DECK] loaded 'claude-opus-4.8': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/ur-delver.txt)
+[DECK] loaded 'deepseek-v4-pro': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/infect.txt)
+[SEATS] A=claude-opus-4.8(llm,openrouter:anthropic/claude-opus-4.8) B=deepseek-v4-pro(llm,openrouter:deepseek/deepseek-v4-pro) [SWAPPED]
+[LLM-SEAM] match started (games-per-match=1). Watch the Forge window.
+[claude-opus-4.8] [ROUTER] mulligan: heuristic KEEP (3/7 lands)
+[deepseek-v4-pro] [ROUTER] mulligan: heuristic KEEP (3/7 lands)
+[claude-opus-4.8] [TALLY] smart=0 fast=0 auto=0 ai=0
+[claude-opus-4.8] [ROUTER] play(main): 0 castable + 2 land -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/fast] replied in 1825 ms
+[claude-opus-4.8] [ROUTER] play: land Volcanic Island
+[claude-opus-4.8] [TALLY] smart=0 fast=1 auto=0 ai=0 avgFast=1825ms
+[claude-opus-4.8] [ROUTER] play(main): 2 castable -> asking anthropic/claude-opus-4.8...
+[REC] recording Forge window 1514x826 @ 8fps -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/tournament-1/SF-1__claude-opus-4.8_vs_deepseek-v4-pro.mp4
+[OPENROUTER claude-opus-4.8/smart] replied in 4006 ms
+[claude-opus-4.8] [ROUTER] plan: Deploy DRC now (it triggers more reliably and grows), hold Delver/Daze.
+[claude-opus-4.8] [ROUTER] play: casts Dragon's Rage Channeler {R} [Dragon's Rage Channeler - Creature 1 / 1]
+[deepseek-v4-pro] [TALLY] smart=0 fast=0 auto=0 ai=0
+[deepseek-v4-pro] [ROUTER] play(main): 0 castable + 3 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/fast] replied in 32609 ms
+[deepseek-v4-pro] [ROUTER] play: land Windswept Heath
+[deepseek-v4-pro] [TALLY] smart=0 fast=1 auto=0 ai=0 avgFast=32609ms
+[deepseek-v4-pro] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/smart] replied in 1708 ms
+[deepseek-v4-pro] [ROUTER] plan: Play Forest, cast Glistener Elf, hold up Vines of Vastwood for protection.
+[deepseek-v4-pro] [ROUTER] play: PASS
+[deepseek-v4-pro] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/fast] replied in 5423 ms
+[deepseek-v4-pro] [ROUTER] play: casts Windswept Heath [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Forest ]
+[deepseek-v4-pro] [ROUTER] play(react): 3 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/fast] replied in 24335 ms
+[deepseek-v4-pro] [ROUTER] play: casts Brainstorm {U} [Draw three cards, then put two cards from your hand on top of your lib]
+[OPENROUTER deepseek-v4-pro/smart] replied in 90845 ms
+[deepseek-v4-pro] [ROUTER] zone-change: Forest [deepseek-v4-pro's Hand] -> Library [Brainstorm]
+[OPENROUTER deepseek-v4-pro/smart] replied in 37223 ms
+[OPENROUTER deepseek-v4-pro/smart] replied in 13757 ms
+[deepseek-v4-pro] [ROUTER] zone-change: Berserk [deepseek-v4-pro's Hand] -> Library [Brainstorm]
+[claude-opus-4.8] [TALLY] smart=1 fast=1 auto=0 ai=0 avgSmart=4006ms avgFast=1825ms
+[claude-opus-4.8] [ROUTER] play(main): 2 castable + 2 land -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/smart] replied in 3213 ms
+[claude-opus-4.8] [ROUTER] plan: Play Flooded Strand, then cast Delver with the other mana available.
+[claude-opus-4.8] [ROUTER] play: land Flooded Strand
+[claude-opus-4.8] [TALLY] smart=2 fast=1 auto=0 ai=0 avgSmart=3609ms avgFast=1825ms
+[claude-opus-4.8] [ROUTER] play(main): 3 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/smart] replied in 2619 ms
+[claude-opus-4.8] [ROUTER] play: casts Delver of Secrets {U} [Delver of Secrets - Creature 1 / 1]
+[claude-opus-4.8] [TALLY] smart=3 fast=1 auto=0 ai=0 avgSmart=3279ms avgFast=1825ms
+[claude-opus-4.8] [ROUTER] play(main): 1 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/smart] replied in 3061 ms
+[claude-opus-4.8] [ROUTER] play: PASS
+[claude-opus-4.8] [ROUTER] play(react): 1 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/fast] replied in 1422 ms
+[claude-opus-4.8] [ROUTER] play: PASS
+[claude-opus-4.8] [ROUTER] attackers: 1 can attack -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/smart] replied in 2234 ms
+[claude-opus-4.8] [ROUTER] attackers: Dragon's Rage Channeler
+[claude-opus-4.8] [TALLY] smart=5 fast=2 auto=0 ai=0 avgSmart=3026ms avgFast=1623ms
+[claude-opus-4.8] [ROUTER] play(main): 1 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/smart] replied in 2964 ms
+[claude-opus-4.8] [ROUTER] play: PASS
+[deepseek-v4-pro] [TALLY] smart=4 fast=3 auto=0 ai=0 avgSmart=35883ms avgFast=20789ms
+[deepseek-v4-pro] [ROUTER] play(main): 4 castable + 2 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/smart] replied in 30513 ms
+[deepseek-v4-pro] [ROUTER] plan: Play Forest, then cast Glistener Elf with Vines of Vastwood backup to protect against remo
+[deepseek-v4-pro] [ROUTER] play: land Forest
+[deepseek-v4-pro] [TALLY] smart=5 fast=3 auto=0 ai=0 avgSmart=34809ms avgFast=20789ms
+[deepseek-v4-pro] [ROUTER] play(main): 5 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/smart] non-answer -> treating as bridge-down
+[deepseek-v4-pro] [BRIDGE deepseek-v4-pro/smart] no reply -> restarting session, retrying once
+[OPENROUTER deepseek-v4-pro/smart] replied in 7292 ms
+[deepseek-v4-pro] [ROUTER] play: casts Glistener Elf {G} [Glistener Elf - Creature 1 / 1]
+[deepseek-v4-pro] [TALLY] smart=6 fast=3 auto=0 ai=0 avgSmart=30223ms avgFast=20789ms
+[deepseek-v4-pro] [ROUTER] play(main): 3 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/smart] replied in 11299 ms
+[deepseek-v4-pro] [ROUTER] play: PASS
+[deepseek-v4-pro] [ROUTER] play(react): 3 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/fast] replied in 9594 ms
+[deepseek-v4-pro] [ROUTER] play: PASS
+[claude-opus-4.8] [ROUTER] play(react): 1 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/fast] replied in 1343 ms
+[claude-opus-4.8] [ROUTER] play: PASS
+[deepseek-v4-pro] [TALLY] smart=7 fast=4 auto=0 ai=0 avgSmart=27519ms avgFast=17990ms
+[deepseek-v4-pro] [ROUTER] play(main): 3 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/smart] replied in 12044 ms
+[deepseek-v4-pro] [ROUTER] play: PASS
+[deepseek-v4-pro] [ROUTER] play(react): 3 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/fast] replied in 11522 ms
+[deepseek-v4-pro] [ROUTER] play: PASS
+[OPENROUTER claude-opus-4.8/fast] replied in 1461 ms
+[claude-opus-4.8] [ROUTER] confirm(Reveal cards to other players?): YES
+[claude-opus-4.8] [TALLY] smart=6 fast=4 auto=0 ai=0 avgSmart=3016ms avgFast=1512ms
+[claude-opus-4.8] [ROUTER] play(main): 3 castable + 1 land -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/smart] replied in 2324 ms
+[claude-opus-4.8] [ROUTER] plan: Play land, attack for 4, hold Daze; don't overcommit into Infect. Land first so I can deve
+[claude-opus-4.8] [ROUTER] play: land Volcanic Island
+[claude-opus-4.8] [TALLY] smart=7 fast=4 auto=0 ai=0 avgSmart=2917ms avgFast=1512ms
+[claude-opus-4.8] [ROUTER] play(main): 3 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/smart] replied in 2702 ms
+[claude-opus-4.8] [ROUTER] play: PASS
+[claude-opus-4.8] [ROUTER] play(react): 2 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/fast] replied in 1889 ms
+[claude-opus-4.8] [ROUTER] play: PASS
+[deepseek-v4-pro] [ROUTER] play(react): 3 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/fast] replied in 11843 ms
+[deepseek-v4-pro] [ROUTER] play: PASS
+[claude-opus-4.8] [ROUTER] attackers: 2 can attack -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/smart] replied in 2457 ms
+[claude-opus-4.8] [ROUTER] attackers: Dragon's Rage Channeler, Insectile Aberration
+[deepseek-v4-pro] [ROUTER] blockers: 2 atk / 1 blk -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/smart] replied in 18995 ms
+[deepseek-v4-pro] [ROUTER] blockers: assigned 1
+[claude-opus-4.8] [TALLY] smart=9 fast=5 auto=0 ai=0 avgSmart=2842ms avgFast=1588ms
+[claude-opus-4.8] [ROUTER] play(main): 3 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/smart] replied in 4628 ms
+[claude-opus-4.8] [ROUTER] play: PASS
+[deepseek-v4-pro] [TALLY] smart=9 fast=6 auto=0 ai=0 avgSmart=24852ms avgFast=15887ms
+[deepseek-v4-pro] [ROUTER] play(main): 5 castable + 2 land -> asking deepseek/deepseek-v4-pro...
+Attempting to fetch: https://api.scryfall.com/cards/plst/ZEN-193/en?format=image&version=normal
+Saved image to /Users/lumlumlam/Library/Caches/Forge/pics/cards/PLIST/Vines of Vastwood.fullborder.jpg
+[OPENROUTER deepseek-v4-pro/smart] replied in 31752 ms
+[deepseek-v4-pro] [ROUTER] plan: Play Forest to hit three lands, then cast Blighted Agent leaving green up for Vines protec
+[deepseek-v4-pro] [ROUTER] play: land Forest
+[deepseek-v4-pro] [TALLY] smart=10 fast=6 auto=0 ai=0 avgSmart=25542ms avgFast=15887ms
+[deepseek-v4-pro] [ROUTER] play(main): 5 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/smart] replied in 7990 ms
+[deepseek-v4-pro] [ROUTER] play: casts Blighted Agent 1{U} [Blighted Agent - Creature 1 / 1]
+[deepseek-v4-pro] [TALLY] smart=11 fast=6 auto=0 ai=0 avgSmart=23947ms avgFast=15887ms
+[deepseek-v4-pro] [ROUTER] play(main): 4 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/smart] replied in 27420 ms
+[deepseek-v4-pro] [ROUTER] play: PASS
+[deepseek-v4-pro] [ROUTER] play(react): 4 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/fast] replied in 7589 ms
+[deepseek-v4-pro] [ROUTER] play: PASS
+[claude-opus-4.8] [ROUTER] play(react): 2 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/fast] replied in 1689 ms
+[claude-opus-4.8] [ROUTER] play: PASS
+[deepseek-v4-pro] [ROUTER] play(react): 3 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/fast] replied in 3323 ms
+[deepseek-v4-pro] [ROUTER] play: PASS
+[deepseek-v4-pro] [TALLY] smart=12 fast=8 auto=0 ai=0 avgSmart=24236ms avgFast=13279ms
+[deepseek-v4-pro] [ROUTER] play(main): 3 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/smart] replied in 5148 ms
+[deepseek-v4-pro] [ROUTER] play: PASS
+[claude-opus-4.8] [TALLY] smart=10 fast=6 auto=0 ai=0 avgSmart=3020ms avgFast=1604ms
+[claude-opus-4.8] [ROUTER] play(main): 3 castable + 1 land -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/smart] replied in 3618 ms
+[claude-opus-4.8] [ROUTER] plan: Play Island, then cast Brainstorm/Ponder to dig, attack with Aberration, hold Daze.
+[claude-opus-4.8] [ROUTER] play: land Island
+[claude-opus-4.8] [TALLY] smart=11 fast=6 auto=0 ai=0 avgSmart=3075ms avgFast=1604ms
+[claude-opus-4.8] [ROUTER] play(main): 3 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/smart] replied in 3813 ms
+[claude-opus-4.8] [ROUTER] play: casts Brainstorm {U} [Draw three cards, then put two cards from your hand on top of your lib]
+[deepseek-v4-pro] [ROUTER] play(react): 4 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/fast] replied in 3362 ms
+[deepseek-v4-pro] [ROUTER] play: PASS
+[OPENROUTER claude-opus-4.8/smart] replied in 3878 ms
+[claude-opus-4.8] [ROUTER] zone-change: Island [claude-opus-4.8's Hand] -> Library [Brainstorm]
+[OPENROUTER claude-opus-4.8/smart] replied in 2392 ms
+[claude-opus-4.8] [ROUTER] zone-change: Island [claude-opus-4.8's Hand] -> Library [Brainstorm]
+[claude-opus-4.8] [TALLY] smart=14 fast=6 auto=0 ai=0 avgSmart=3136ms avgFast=1604ms
+[claude-opus-4.8] [ROUTER] play(main): 3 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/smart] replied in 2317 ms
+[claude-opus-4.8] [ROUTER] play: casts Delver of Secrets {U} [Delver of Secrets - Creature 1 / 1]
+[claude-opus-4.8] [TALLY] smart=15 fast=6 auto=0 ai=0 avgSmart=3081ms avgFast=1604ms
+[claude-opus-4.8] [ROUTER] play(main): 2 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/smart] replied in 9200 ms
+[claude-opus-4.8] [ROUTER] play: PASS
+[claude-opus-4.8] [ROUTER] play(react): 1 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/fast] replied in 1546 ms
+[claude-opus-4.8] [ROUTER] play: PASS
+[deepseek-v4-pro] [ROUTER] play(react): 4 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/fast] replied in 15257 ms
+[deepseek-v4-pro] [ROUTER] play: PASS
+[claude-opus-4.8] [ROUTER] attackers: 1 can attack -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/smart] replied in 2493 ms
+[claude-opus-4.8] [ROUTER] attackers: Insectile Aberration
+[deepseek-v4-pro] [ROUTER] play(react): 3 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/fast] replied in 675 ms
+[deepseek-v4-pro] [ROUTER] play: PASS
+[claude-opus-4.8] [TALLY] smart=17 fast=7 auto=0 ai=0 avgSmart=3407ms avgFast=1596ms
+[claude-opus-4.8] [ROUTER] play(main): 2 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/smart] replied in 2690 ms
+[claude-opus-4.8] [ROUTER] play: PASS
+[deepseek-v4-pro] [TALLY] smart=13 fast=11 auto=0 ai=0 avgSmart=22768ms avgFast=11412ms
+[deepseek-v4-pro] [ROUTER] play(main): 5 castable + 1 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/smart] non-answer -> treating as bridge-down
+[deepseek-v4-pro] [BRIDGE deepseek-v4-pro/smart] no reply -> restarting session, retrying once
+[OPENROUTER deepseek-v4-pro/smart] replied in 23870 ms
+[deepseek-v4-pro] [ROUTER] plan: Play land for 4 mana, then cast Might main phase to make Agent 5/5, attack unblockable, pr
+[deepseek-v4-pro] [ROUTER] play: land Tropical Island
+[deepseek-v4-pro] [TALLY] smart=14 fast=11 auto=0 ai=0 avgSmart=22846ms avgFast=11412ms
+[deepseek-v4-pro] [ROUTER] play(main): 5 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/smart] replied in 2663 ms
+[OPENROUTER deepseek-v4-pro/smart] replied in 6203 ms
+[deepseek-v4-pro] [ROUTER] target: Blighted Agent (1/1) [deepseek-v4-pro's Battlefield] <- Might of Old Krosa {G} [Target creature gets +2/+2 until end of turn. If you cast this spell d]
+[deepseek-v4-pro] [ROUTER] play: casts Might of Old Krosa {G} [Target creature gets +2/+2 until end of turn. If you cast this spell d]
+[deepseek-v4-pro] [TALLY] smart=16 fast=11 auto=0 ai=0 avgSmart=20545ms avgFast=11412ms
+[deepseek-v4-pro] [ROUTER] play(main): 4 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/smart] replied in 96138 ms
+[deepseek-v4-pro] [ROUTER] play: PASS
+[deepseek-v4-pro] [ROUTER] play(react): 4 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/fast] non-answer -> treating as bridge-down
+[deepseek-v4-pro] [BRIDGE deepseek-v4-pro/fast] no reply -> restarting session, retrying once
+[OPENROUTER deepseek-v4-pro/fast] replied in 28382 ms
+[deepseek-v4-pro] [ROUTER] play: PASS
+[claude-opus-4.8] [ROUTER] play(react): 1 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/fast] replied in 2983 ms
+[claude-opus-4.8] [ROUTER] play: PASS
+[deepseek-v4-pro] [ROUTER] attackers: 1 can attack -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/smart] replied in 12054 ms
+[deepseek-v4-pro] [ROUTER] attackers: Blighted Agent
+[deepseek-v4-pro] [ROUTER] play(react): 3 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/fast] replied in 12091 ms
+[deepseek-v4-pro] [ROUTER] play: PASS
+[deepseek-v4-pro] [TALLY] smart=18 fast=13 auto=0 ai=0 avgSmart=24273ms avgFast=12769ms
+[deepseek-v4-pro] [ROUTER] play(main): 3 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/smart] replied in 9681 ms
+[deepseek-v4-pro] [ROUTER] play: PASS
+[deepseek-v4-pro] [ROUTER] play(react): 4 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/fast] replied in 1104 ms
+[deepseek-v4-pro] [ROUTER] play: PASS
+[OPENROUTER claude-opus-4.8/fast] replied in 1724 ms
+[claude-opus-4.8] [ROUTER] confirm(Reveal cards to other players?): YES
+[claude-opus-4.8] [TALLY] smart=18 fast=9 auto=0 ai=0 avgSmart=3367ms avgFast=1764ms
+[claude-opus-4.8] [ROUTER] play(main): 2 castable + 1 land -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/smart] replied in 3634 ms
+[claude-opus-4.8] [ROUTER] plan: Play Island, attack with both, hold Daze; next turn cast Murktide to close.
+[claude-opus-4.8] [ROUTER] play: land Island
+[claude-opus-4.8] [TALLY] smart=19 fast=9 auto=0 ai=0 avgSmart=3381ms avgFast=1764ms
+[claude-opus-4.8] [ROUTER] play(main): 2 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/smart] replied in 4939 ms
+[claude-opus-4.8] [ROUTER] play: PASS
+[claude-opus-4.8] [ROUTER] play(react): 1 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/fast] replied in 2269 ms
+[claude-opus-4.8] [ROUTER] play: PASS
+[deepseek-v4-pro] [ROUTER] play(react): 4 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/fast] replied in 11401 ms
+[deepseek-v4-pro] [ROUTER] play: PASS
+[claude-opus-4.8] [ROUTER] attackers: 2 can attack -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/smart] replied in 9716 ms
+[claude-opus-4.8] [ROUTER] attackers: Insectile Aberration, Delver of Secrets
+[deepseek-v4-pro] [ROUTER] play(react): 3 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/fast] replied in 5562 ms
+[deepseek-v4-pro] [ROUTER] play: PASS
+[claude-opus-4.8] [TALLY] smart=21 fast=10 auto=0 ai=0 avgSmart=3757ms avgFast=1815ms
+[claude-opus-4.8] [ROUTER] play(main): 2 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/smart] replied in 4123 ms
+[claude-opus-4.8] [ROUTER] play: casts Ponder {U} [Look at the top three cards of your library, then put them back in any]
+[deepseek-v4-pro] [ROUTER] play(react): 3 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/fast] replied in 18139 ms
+[deepseek-v4-pro] [ROUTER] play: PASS
+[OPENROUTER claude-opus-4.8/fast] replied in 1876 ms
+[claude-opus-4.8] [ROUTER] confirm(Do you want to shuffle the library?): NO
+[claude-opus-4.8] [TALLY] smart=22 fast=11 auto=0 ai=0 avgSmart=3773ms avgFast=1820ms
+[claude-opus-4.8] [ROUTER] play(main): 1 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/smart] replied in 5499 ms
+[claude-opus-4.8] [ROUTER] play: PASS
+[deepseek-v4-pro] [TALLY] smart=19 fast=17 auto=0 ai=0 avgSmart=23505ms avgFast=11894ms
+[deepseek-v4-pro] [ROUTER] play(main): 5 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/smart] replied in 1610 ms
+[deepseek-v4-pro] [ROUTER] plan: Cast Invigorate for its alternative cost (no mana, opponent gains 3 life), then pump with 
+[OPENROUTER deepseek-v4-pro/smart] replied in 1506 ms
+[deepseek-v4-pro] [ROUTER] target: Blighted Agent (1/1) [deepseek-v4-pro's Battlefield] <- Invigorate 2{G} [Target creature gets +4/+4 until end of turn.]
+[deepseek-v4-pro] [ROUTER] play: casts Invigorate 2{G} [Target creature gets +4/+4 until end of turn.]
+[claude-opus-4.8] [ROUTER] play(react): 2 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/fast] replied in 3098 ms
+[claude-opus-4.8] [ROUTER] target: Invigorate [Stack] <- Daze 1{U} [Counter target spell unless its controller pays {1}.] (only legal)
+[claude-opus-4.8] [ROUTER] play: casts Daze 1{U} [Counter target spell unless its controller pays {1}.]
+[deepseek-v4-pro] [TALLY] smart=21 fast=17 auto=0 ai=0 avgSmart=21414ms avgFast=11894ms
+[deepseek-v4-pro] [ROUTER] play(main): 4 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/smart] non-answer -> treating as bridge-down
+[deepseek-v4-pro] [BRIDGE deepseek-v4-pro/smart] no reply -> restarting session, retrying once
+[OPENROUTER deepseek-v4-pro/smart] non-answer -> treating as bridge-down
+[claude-opus-4.8] [ROUTER] play(react): 1 castable -> asking anthropic/claude-opus-4.8...
+[OPENROUTER claude-opus-4.8/fast] replied in 2487 ms
+[claude-opus-4.8] [ROUTER] play: PASS
+[deepseek-v4-pro] [ROUTER] attackers: 1 can attack -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER deepseek-v4-pro/smart] replied in 5613 ms
+[deepseek-v4-pro] [ROUTER] attackers: Blighted Agent
+========== GAME OVER ==========
+outcome: B after 10 turns (AllOpponentsLost) in 1018s
+--- full game log ---
+  MULLIGAN: claude-opus-4.8 has kept a hand of 7 cards
+  MULLIGAN: deepseek-v4-pro has kept a hand of 7 cards
+  TURN: Turn 1 (claude-opus-4.8)
+  PHASE: claude-opus-4.8's Untap step
+  PHASE: claude-opus-4.8's Upkeep step
+  PHASE: claude-opus-4.8's Draw step
+  PHASE: claude-opus-4.8's Main phase, precombat
+  LAND: claude-opus-4.8 played Volcanic Island (71)
+  MANA: Volcanic Island (71) - {T}: Add {R}.
+  STACK_ADD: claude-opus-4.8 cast Dragon's Rage Channeler
+  STACK_RESOLVE: Dragon's Rage Channeler - Creature 1 / 1
+  PHASE: claude-opus-4.8's Beginning of Combat Step
+  PHASE: claude-opus-4.8's Declare Attackers Step
+  PHASE: claude-opus-4.8's Declare Blockers Step
+  PHASE: claude-opus-4.8's First Strike Damage Step
+  PHASE: claude-opus-4.8's Combat Damage Step
+  PHASE: claude-opus-4.8's End of Combat Step
+  PHASE: claude-opus-4.8's Main phase, postcombat
+  PHASE: claude-opus-4.8's End step
+  PHASE: claude-opus-4.8's Cleanup step
+  TURN: Turn 2 (deepseek-v4-pro)
+  PHASE: deepseek-v4-pro's Untap step
+  PHASE: deepseek-v4-pro's Upkeep step
+  PHASE: deepseek-v4-pro's Draw step
+  PHASE: deepseek-v4-pro's Main phase, precombat
+  LAND: deepseek-v4-pro played Windswept Heath (54)
+  PHASE: deepseek-v4-pro's Beginning of Combat Step
+  LIFE: Life: deepseek-v4-pro 20 > 19
+  ZONE_CHANGE: Windswept Heath (54) was put into Graveyard from Battlefield.
+  STACK_ADD: deepseek-v4-pro activated Windswept Heath
+  STACK_RESOLVE: Windswept Heath (54) - deepseek-v4-pro searches their library for a Forest or Plains card, puts it onto the battlefield, then shuffles.
+  MANA: Tropical Island (12) - {T}: Add {U}.
+  STACK_ADD: deepseek-v4-pro cast Brainstorm
+  STACK_RESOLVE: Brainstorm (21) - deepseek-v4-pro draws three cards, then puts two cards from their hand on top of their library in any order.
+  PHASE: deepseek-v4-pro's Declare Attackers Step
+  PHASE: deepseek-v4-pro's Declare Blockers Step
+  PHASE: deepseek-v4-pro's First Strike Damage Step
+  PHASE: deepseek-v4-pro's Combat Damage Step
+  PHASE: deepseek-v4-pro's End of Combat Step
+  PHASE: deepseek-v4-pro's Main phase, postcombat
+  PHASE: deepseek-v4-pro's End step
+  PHASE: deepseek-v4-pro's Cleanup step
+  TURN: Turn 3 (claude-opus-4.8)
+  PHASE: claude-opus-4.8's Untap step
+  PHASE: claude-opus-4.8's Upkeep step
+  PHASE: claude-opus-4.8's Draw step
+  PHASE: claude-opus-4.8's Main phase, precombat
+  LAND: claude-opus-4.8 played Flooded Strand (63)
+  MANA: Volcanic Island (71) - {T}: Add {U}.
+  STACK_ADD: claude-opus-4.8 cast Delver of Secrets
+  STACK_RESOLVE: Delver of Secrets - Creature 1 / 1
+  PHASE: claude-opus-4.8's Beginning of Combat Step
+  PHASE: claude-opus-4.8's Declare Attackers Step
+  COMBAT: claude-opus-4.8 assigned Dragon's Rage Channeler (88) to attack deepseek-v4-pro.
+  PHASE: claude-opus-4.8's Declare Blockers Step
+  COMBAT: deepseek-v4-pro didn't block Dragon's Rage Channeler (88).
+  PHASE: claude-opus-4.8's First Strike Damage Step
+  PHASE: claude-opus-4.8's Combat Damage Step
+  DAMAGE: Dragon's Rage Channeler (88) deals 1 combat damage to deepseek-v4-pro.
+  LIFE: Life: deepseek-v4-pro 19 > 18
+  PHASE: claude-opus-4.8's End of Combat Step
+  PHASE: claude-opus-4.8's Main phase, postcombat
+  PHASE: claude-opus-4.8's End step
+  PHASE: claude-opus-4.8's Cleanup step
+  TURN: Turn 4 (deepseek-v4-pro)
+  PHASE: deepseek-v4-pro's Untap step
+  PHASE: deepseek-v4-pro's Upkeep step
+  PHASE: deepseek-v4-pro's Draw step
+  PHASE: deepseek-v4-pro's Main phase, precombat
+  LAND: deepseek-v4-pro played Forest (39)
+  MANA: Forest (39) - {T}: Add {G}.
+  STACK_ADD: deepseek-v4-pro cast Glistener Elf
+  STACK_RESOLVE: Glistener Elf - Creature 1 / 1
+  PHASE: deepseek-v4-pro's Beginning of Combat Step
+  PHASE: deepseek-v4-pro's Declare Attackers Step
+  PHASE: deepseek-v4-pro's Declare Blockers Step
+  PHASE: deepseek-v4-pro's First Strike Damage Step
+  PHASE: deepseek-v4-pro's Combat Damage Step
+  PHASE: deepseek-v4-pro's End of Combat Step
+  PHASE: deepseek-v4-pro's Main phase, postcombat
+  PHASE: deepseek-v4-pro's End step
+  PHASE: deepseek-v4-pro's Cleanup step
+  TURN: Turn 5 (claude-opus-4.8)
+  PHASE: claude-opus-4.8's Untap step
+  PHASE: claude-opus-4.8's Upkeep step
+  STACK_ADD: claude-opus-4.8 triggered Delver of Secrets
+  STACK_RESOLVE: At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets. [Phase: claude-opus-4.8]
+  PHASE: claude-opus-4.8's Draw step
+  PHASE: claude-opus-4.8's Main phase, precombat
+  LAND: claude-opus-4.8 played Volcanic Island (74)
+  PHASE: claude-opus-4.8's Beginning of Combat Step
+  PHASE: claude-opus-4.8's Declare Attackers Step
+  COMBAT: claude-opus-4.8 assigned Dragon's Rage Channeler (88) and Insectile Aberration (69) to attack deepseek-v4-pro.
+  PHASE: claude-opus-4.8's Declare Blockers Step
+  COMBAT: deepseek-v4-pro assigned Glistener Elf (15) to block Dragon's Rage Channeler (88).
+deepseek-v4-pro didn't block Insectile Aberration (69).
+  PHASE: claude-opus-4.8's First Strike Damage Step
+  PHASE: claude-opus-4.8's Combat Damage Step
+  DAMAGE: Dragon's Rage Channeler (88) deals 1 damage to Glistener Elf (15).
+  DAMAGE: Insectile Aberration (69) deals 3 combat damage to deepseek-v4-pro.
+  DAMAGE: Glistener Elf (15) deals 1 damage (As -1/-1 Counters) to Dragon's Rage Channeler (88).
+  LIFE: Life: deepseek-v4-pro 18 > 15
+  ZONE_CHANGE: Dragon's Rage Channeler (88) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Glistener Elf (15) was put into Graveyard from Battlefield.
+  PHASE: claude-opus-4.8's End of Combat Step
+  PHASE: claude-opus-4.8's Main phase, postcombat
+  PHASE: claude-opus-4.8's End step
+  PHASE: claude-opus-4.8's Cleanup step
+  TURN: Turn 6 (deepseek-v4-pro)
+  PHASE: deepseek-v4-pro's Untap step
+  PHASE: deepseek-v4-pro's Upkeep step
+  PHASE: deepseek-v4-pro's Draw step
+  PHASE: deepseek-v4-pro's Main phase, precombat
+  LAND: deepseek-v4-pro played Forest (38)
+  MANA: Tropical Island (12) - {T}: Add {U}.
+  MANA: Forest (39) - {T}: Add {G}.
+  STACK_ADD: deepseek-v4-pro cast Blighted Agent
+  STACK_RESOLVE: Blighted Agent - Creature 1 / 1
+  PHASE: deepseek-v4-pro's Beginning of Combat Step
+  PHASE: deepseek-v4-pro's Declare Attackers Step
+  PHASE: deepseek-v4-pro's Declare Blockers Step
+  PHASE: deepseek-v4-pro's First Strike Damage Step
+  PHASE: deepseek-v4-pro's Combat Damage Step
+  PHASE: deepseek-v4-pro's End of Combat Step
+  PHASE: deepseek-v4-pro's Main phase, postcombat
+  PHASE: deepseek-v4-pro's End step
+  PHASE: deepseek-v4-pro's Cleanup step
+  TURN: Turn 7 (claude-opus-4.8)
+  PHASE: claude-opus-4.8's Untap step
+  PHASE: claude-opus-4.8's Upkeep step
+  PHASE: claude-opus-4.8's Draw step
+  PHASE: claude-opus-4.8's Main phase, precombat
+  LAND: claude-opus-4.8 played Island (102)
+  MANA: Island (102) - {T}: Add {U}.
+  STACK_ADD: claude-opus-4.8 cast Brainstorm
+  STACK_RESOLVE: Brainstorm (75) - claude-opus-4.8 draws three cards, then puts two cards from their hand on top of their library in any order.
+  MANA: Volcanic Island (71) - {T}: Add {U}.
+  STACK_ADD: claude-opus-4.8 cast Delver of Secrets
+  STACK_RESOLVE: Delver of Secrets - Creature 1 / 1
+  PHASE: claude-opus-4.8's Beginning of Combat Step
+  PHASE: claude-opus-4.8's Declare Attackers Step
+  COMBAT: claude-opus-4.8 assigned Insectile Aberration (69) to attack deepseek-v4-pro.
+  PHASE: claude-opus-4.8's Declare Blockers Step
+  COMBAT: deepseek-v4-pro didn't block Insectile Aberration (69).
+  PHASE: claude-opus-4.8's First Strike Damage Step
+  PHASE: claude-opus-4.8's Combat Damage Step
+  DAMAGE: Insectile Aberration (69) deals 3 combat damage to deepseek-v4-pro.
+  LIFE: Life: deepseek-v4-pro 15 > 12
+  PHASE: claude-opus-4.8's End of Combat Step
+  PHASE: claude-opus-4.8's Main phase, postcombat
+  PHASE: claude-opus-4.8's End step
+  PHASE: claude-opus-4.8's Cleanup step
+  TURN: Turn 8 (deepseek-v4-pro)
+  PHASE: deepseek-v4-pro's Untap step
+  PHASE: deepseek-v4-pro's Upkeep step
+  PHASE: deepseek-v4-pro's Draw step
+  PHASE: deepseek-v4-pro's Main phase, precombat
+  LAND: deepseek-v4-pro played Tropical Island (14)
+  MANA: Forest (39) - {T}: Add {G}.
+  STACK_ADD: deepseek-v4-pro cast Might of Old Krosa targeting [Blighted Agent (59)]
+  STACK_RESOLVE: Might of Old Krosa (4) - Blighted Agent (59) gets +4/+4  until end of turn.
+  PHASE: deepseek-v4-pro's Beginning of Combat Step
+  PHASE: deepseek-v4-pro's Declare Attackers Step
+  COMBAT: deepseek-v4-pro assigned Blighted Agent (59) to attack claude-opus-4.8.
+  PHASE: deepseek-v4-pro's Declare Blockers Step
+  COMBAT: claude-opus-4.8 didn't block Blighted Agent (59).
+  PHASE: deepseek-v4-pro's First Strike Damage Step
+  PHASE: deepseek-v4-pro's Combat Damage Step
+  DAMAGE: Blighted Agent (59) deals 5 combat damage to claude-opus-4.8(as poison counters).
+  DAMAGE: claude-opus-4.8 receives 5 poison counter from deepseek-v4-pro
+  PHASE: deepseek-v4-pro's End of Combat Step
+  PHASE: deepseek-v4-pro's Main phase, postcombat
+  PHASE: deepseek-v4-pro's End step
+  PHASE: deepseek-v4-pro's Cleanup step
+  TURN: Turn 9 (claude-opus-4.8)
+  PHASE: claude-opus-4.8's Untap step
+  PHASE: claude-opus-4.8's Upkeep step
+  STACK_ADD: claude-opus-4.8 triggered Delver of Secrets
+  STACK_RESOLVE: At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets. [Phase: claude-opus-4.8]
+  PHASE: claude-opus-4.8's Draw step
+  PHASE: claude-opus-4.8's Main phase, precombat
+  LAND: claude-opus-4.8 played Island (100)
+  PHASE: claude-opus-4.8's Beginning of Combat Step
+  PHASE: claude-opus-4.8's Declare Attackers Step
+  COMBAT: claude-opus-4.8 assigned Insectile Aberration (69) and Delver of Secrets (68) to attack deepseek-v4-pro.
+  PHASE: claude-opus-4.8's Declare Blockers Step
+  COMBAT: deepseek-v4-pro didn't block Insectile Aberration (69).
+deepseek-v4-pro didn't block Delver of Secrets (68).
+  PHASE: claude-opus-4.8's First Strike Damage Step
+  PHASE: claude-opus-4.8's Combat Damage Step
+  DAMAGE: Insectile Aberration (69) deals 3 combat damage to deepseek-v4-pro.
+  DAMAGE: Delver of Secrets (68) deals 1 combat damage to deepseek-v4-pro.
+  LIFE: Life: deepseek-v4-pro 12 > 8
+  PHASE: claude-opus-4.8's End of Combat Step
+  PHASE: claude-opus-4.8's Main phase, postcombat
+  MANA: Island (102) - {T}: Add {U}.
+  STACK_ADD: claude-opus-4.8 cast Ponder
+  STACK_RESOLVE: Ponder (92) - Look at the top 3 cards of claude-opus-4.8's library. Then put them back in any order.You may have that player shuffle their library. claude-opus-4.8 draws a card.
+  PHASE: claude-opus-4.8's End step
+  PHASE: claude-opus-4.8's Cleanup step
+  TURN: Turn 10 (deepseek-v4-pro)
+  PHASE: deepseek-v4-pro's Untap step
+  PHASE: deepseek-v4-pro's Upkeep step
+  PHASE: deepseek-v4-pro's Draw step
+  PHASE: deepseek-v4-pro's Main phase, precombat
+  MANA: Forest (39) - {T}: Add {G}.
+  MANA: Forest (38) - {T}: Add {G}.
+  MANA: Tropical Island (12) - {T}: Add {G}.
+  STACK_ADD: deepseek-v4-pro cast Invigorate targeting [Blighted Agent (59)]
+  MANA: Island (100) - {T}: Add {U}.
+  MANA: Volcanic Island (71) - {T}: Add {R}.
+  STACK_ADD: claude-opus-4.8 cast Daze targeting [Invigorate (49)]
+  MANA: Tropical Island (14) - {T}: Add {G}.
+  STACK_RESOLVE: Daze (109) - Counter unless its controller pays {1}.
+  STACK_RESOLVE: Invigorate (49) - Blighted Agent (59) gets +4/+4  until end of turn.
+  PHASE: deepseek-v4-pro's Beginning of Combat Step
+  PHASE: deepseek-v4-pro's Declare Attackers Step
+  COMBAT: deepseek-v4-pro assigned Blighted Agent (59) to attack claude-opus-4.8.
+  PHASE: deepseek-v4-pro's Declare Blockers Step
+  COMBAT: claude-opus-4.8 didn't block Blighted Agent (59).
+  PHASE: deepseek-v4-pro's First Strike Damage Step
+  PHASE: deepseek-v4-pro's Combat Damage Step
+  DAMAGE: Blighted Agent (59) deals 5 combat damage to claude-opus-4.8(as poison counters).
+  DAMAGE: claude-opus-4.8 receives 5 poison counter from deepseek-v4-pro
+  PLAYER_CONTROL: deepseek-v4-pro has restored control over themself
+  PLAYER_CONTROL: claude-opus-4.8 has restored control over themself
+  GAME_OUTCOME: Turn 5
+  GAME_OUTCOME: deepseek-v4-pro has won because all opponents have lost
+  GAME_OUTCOME: claude-opus-4.8 has lost because of obtaining 10 poison counters
+  MATCH_RESULTS: deepseek-v4-pro: 1 claude-opus-4.8: 0 
+===============================
+[AUTO_EXIT] match over (capped=false) -> exiting for driver
+[REC] recording finalized -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/tournament-1/SF-1__claude-opus-4.8_vs_deepseek-v4-pro.mp4
