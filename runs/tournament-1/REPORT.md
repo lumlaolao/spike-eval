@@ -32,7 +32,9 @@ Single-elimination, best-of-1, recorded. Each model drafted its own deck from a 
 ### Semifinals
 - **deepseek-v4-pro** (infect) def. claude-opus-4.8 (ur-delver)
 - **claude-fable-5** (sneak-and-show) def. grok-4.5 (grixis-reanimator)
+### Final
+- **claude-fable-5** (sneak-and-show) def. deepseek-v4-pro (infect)
 
 ## Champion
 
-_Tournament in progress — 6/7 matches played._
+🏆 **claude-fable-5** with sneak-and-show

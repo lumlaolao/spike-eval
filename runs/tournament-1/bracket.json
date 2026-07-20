@@ -75,6 +75,20 @@
         "mp4": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/tournament-1/SF-2__claude-fable-5_vs_grok-4.5.mp4",
         "attempt": 1
       }
+    },
+    "F": {
+      "F-1": {
+        "a": "deepseek-v4-pro",
+        "b": "claude-fable-5",
+        "a_deck": "infect",
+        "b_deck": "sneak-and-show",
+        "winner_label": "claude-fable-5",
+        "winner": "B",
+        "seed": 264,
+        "swap": true,
+        "mp4": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/tournament-1/F-1__deepseek-v4-pro_vs_claude-fable-5.mp4",
+        "attempt": 1
+      }
     }
   },
   "draw": [
@@ -86,5 +100,7 @@
     "kimi-k3",
     "grok-4.5",
     "gpt-5"
-  ]
+  ],
+  "champion": "claude-fable-5",
+  "champion_deck": "sneak-and-show"
 }
