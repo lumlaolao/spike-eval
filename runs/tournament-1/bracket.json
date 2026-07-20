@@ -36,6 +36,18 @@
         "swap": true,
         "mp4": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/tournament-1/QF-3__claude-fable-5_vs_kimi-k3.mp4",
         "attempt": 1
+      },
+      "QF-4": {
+        "a": "grok-4.5",
+        "b": "gpt-5",
+        "a_deck": "grixis-reanimator",
+        "b_deck": "lands",
+        "winner_label": "grok-4.5",
+        "winner": "A",
+        "seed": 348,
+        "swap": true,
+        "mp4": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/tournament-1/QF-4__grok-4.5_vs_gpt-5.mp4",
+        "attempt": 1
       }
     }
   },

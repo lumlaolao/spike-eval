@@ -28,7 +28,8 @@ Single-elimination, best-of-1, recorded. Each model drafted its own deck from a 
 - **claude-opus-4.8** (ur-delver) def. gemini-3.5-flash (miracles)
 - **deepseek-v4-pro** (infect) def. qwen3.7-max (ant-storm)
 - **claude-fable-5** (sneak-and-show) def. kimi-k3 (goblins)
+- **grok-4.5** (grixis-reanimator) def. gpt-5 (lands)
 
 ## Champion
 
-_Tournament in progress — 3/7 matches played._
+_Tournament in progress — 4/7 matches played._
