@@ -8,6 +8,8 @@ import java.util.regex.Pattern;
 
 import com.google.common.collect.Lists;
 
+import org.apache.commons.lang3.tuple.ImmutablePair;
+
 import forge.GuiDesktop;
 import forge.LobbyPlayer;
 import forge.StaticData;
@@ -26,6 +28,7 @@ import forge.game.card.CardCollection;
 import forge.game.combat.Combat;
 import forge.game.phase.PhaseType;
 import forge.game.player.Player;
+import forge.game.player.PlayerActionConfirmMode;
 import forge.game.player.RegisteredPlayer;
 import forge.game.spellability.SpellAbility;
 import forge.game.zone.ZoneType;
@@ -529,5 +532,132 @@ public class LlmSpikeTest {
         int total = 0;
         for (int v : result.values()) total += v;
         Assert.assertEquals(total, 3, "all combat damage must be accounted for, none silently lost");
+    }
+
+    // ================================================================================
+    // Fix-cycle regression coverage (2026-07-21 harness-fixes pass):
+    //   - DEFECT 1: confirmAction's bridge-down path used to hand off to Forge's AI (the hard-invariant
+    //     violation: 6 tier=ai rows in the gpt-5 model-sweep, every one confirm(bridge-down)). It must
+    //     now take the same deterministic NO the unparsed branch already used.
+    //   - DEFECT 2: declareAttackers/arrangeTopN (scry/surveil) used to fall through to the model even
+    //     at n_options==1, mislabeling a forced pick as tier=smart. Both must now short-circuit to
+    //     tier=auto without ever consulting the model, same convention as choose-entity/zone-change/
+    //     targets.
+    // DeadBridge lets these exercise the real bridge-down code path deterministically (ask() always
+    // returns null, exactly what a real dead ClaudeBridge/OpenRouterBridge returns after its own
+    // internal retries are exhausted) without spawning a process or making a network call.
+    // ================================================================================
+
+    /** Fake LLMBridge for tests: ask() always returns null (bridge-down), never touching a real
+     *  CLI/API backend. LLMBridge is package-visible (not public) precisely so an in-package test
+     *  double like this one can implement it directly. */
+    static final class DeadBridge implements LLMBridge {
+        private final String label;
+        DeadBridge(String label) { this.label = label; }
+        @Override public String ask(String prompt) { return null; }
+        @Override public String getLabel() { return label; }
+        @Override public String getModel() { return "dead-bridge"; }
+        @Override public long getTotalMs() { return 0; }
+        @Override public int getCalls() { return 0; }
+    }
+
+    @Test(timeOut = 30000)
+    public void confirmAction_bridgeDown_deterministicNoNeverDelegatesToForgeAi() throws Exception {
+        Game game = buildBareGame();
+        Player p = game.getPlayers().get(0);
+        LobbyPlayer lp = new LobbyPlayerAi("seat-x", null);
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(
+                game, p, lp, "seat-x", "",
+                new DeadBridge("seat-x/smart"), new DeadBridge("seat-x/fast"), "llm");
+
+        boolean result = ctrl.confirmAction(null, PlayerActionConfirmMode.OptionalChoose,
+                "Do you want to shuffle the library?", null, null, null);
+
+        Assert.assertFalse(result,
+                "a dead bridge must take the same deterministic NO the unparsed branch already uses, "
+                + "never a Forge-AI coinflip");
+        // confirm's fallback path logs via evalDec() directly rather than the auto() helper (true both
+        // before and after this fix — the confirm(unparsed) branch it now mirrors always worked this
+        // way), so aiDelegationsCount is the metric that actually captures the hard-invariant defect.
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0,
+                "confirm(bridge-down) must never hand off to Forge's AI (this was the hard-invariant defect: "
+                + "6 tier=ai rows in the gpt-5 model-sweep, every one confirm(bridge-down))");
+    }
+
+    @Test
+    public void declareAttackers_singleLegalAttacker_forcedOnlyLegalNeverAsksModel() throws Exception {
+        Game game = buildBareGame();
+        Player attackerOwner = game.getPlayers().get(1);
+        Player defenderPlayer = game.getPlayers().get(0);
+        Card onlyAttacker = addBattlefieldCard("Craw Wurm", attackerOwner);
+        onlyAttacker.setSickness(false); // make sure it's actually legal to attack with
+        game.getPhaseHandler().devModeSet(PhaseType.MAIN1, attackerOwner);
+        game.getAction().checkStateEffects(true);
+
+        LobbyPlayer lp = new LobbyPlayerAi("seat-x", null);
+        // mode="llm" with a real (nonzero) SMART_BUDGET -- proves the forced-only-legal short-circuit
+        // fires BEFORE any budget/model check, not merely because the floor arm has no budget.
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(
+                game, attackerOwner, lp, "seat-x", "",
+                new DeadBridge("seat-x/smart"), new DeadBridge("seat-x/fast"), "llm");
+
+        Combat combat = new Combat(attackerOwner);
+        ctrl.declareAttackers(attackerOwner, combat);
+
+        Assert.assertEquals(combat.getAttackers().size(), 1, "the sole legal attacker should be declared");
+        Assert.assertTrue(combat.getAttackers().contains(onlyAttacker));
+        Assert.assertEquals(ctrl.autoPicksCount(), 1,
+                "n_options==1 must be a deterministic auto-pick, never a model call (the forced-pick mislabel)");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "must never hand off to Forge's AI");
+    }
+
+    @Test
+    public void arrangeForSurveil_singleCardPeek_forcedOnlyLegalKeepsItOnTop() throws Exception {
+        Game game = buildBareGame();
+        Player p = game.getPlayers().get(0);
+        Card seen = addBattlefieldCard("Craw Wurm", p);
+        CardCollection topN = new CardCollection();
+        topN.add(seen);
+
+        LobbyPlayer lp = new LobbyPlayerAi("seat-x", null);
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(
+                game, p, lp, "seat-x", "",
+                new DeadBridge("seat-x/smart"), new DeadBridge("seat-x/fast"), "llm");
+
+        ImmutablePair<CardCollection, CardCollection> result = ctrl.arrangeForSurveil(topN);
+
+        Assert.assertEquals(result.getLeft().size(), 1, "the single peeked card should stay on top");
+        Assert.assertTrue(result.getLeft().contains(seen));
+        Assert.assertEquals(result.getRight().size(), 0, "nothing should be sent to the graveyard");
+        Assert.assertEquals(ctrl.autoPicksCount(), 1,
+                "n_options==1 must be a deterministic auto-pick, never a model call (the surveil forced-pick mislabel)");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "must never hand off to Forge's AI");
+    }
+
+    // ================================================================================
+    // INVESTIGATION 3 (truncation/bridge-down root cause): gpt-5 and deepseek's fast-tier decisions
+    // (confirm/play) were losing their entire token budget to hidden reasoning at the flat
+    // DEFAULT_FAST_MAX_TOKENS=512 every model shares, leaving zero room for the actual answer. The fix
+    // gives ONLY the reasoning-heavy row (matched by substring "deepseek"/"gpt") a larger fastMaxTokens/
+    // fastTimeoutMs; models with no evidence of this failure mode keep the flat default.
+    // ================================================================================
+
+    @Test
+    public void modelCfg_reasoningModelsGetLargerFastTierBudgetThanFlatDefault() {
+        LlmSpikeGui.ModelCfg gpt = LlmSpikeGui.ModelCfg.forModel("openai/gpt-5");
+        LlmSpikeGui.ModelCfg deepseek = LlmSpikeGui.ModelCfg.forModel("deepseek/deepseek-v4-pro");
+        LlmSpikeGui.ModelCfg other = LlmSpikeGui.ModelCfg.forModel("some/other-model");
+
+        Assert.assertTrue(gpt.fastMaxTokens > LlmSpikeGui.ModelCfg.DEFAULT_FAST_MAX_TOKENS,
+                "gpt-5 is a reasoning model that burns hidden reasoning tokens even on the fast tier -- "
+                + "the flat 512-token default left zero room for the final CHOICE/PICKS line every time "
+                + "(8/8 finish_reason=length events had empty content in the gpt-5 model-sweep game)");
+        Assert.assertEquals(deepseek.fastMaxTokens, gpt.fastMaxTokens,
+                "gpt and deepseek share the same ModelCfg row (both matched the same evidence)");
+        Assert.assertTrue(gpt.fastTimeoutMs > LlmSpikeGui.ModelCfg.DEFAULT_FAST_TIMEOUT_MS,
+                "a larger token budget needs more time to generate");
+        Assert.assertEquals(other.fastMaxTokens, LlmSpikeGui.ModelCfg.DEFAULT_FAST_MAX_TOKENS,
+                "models without evidence of this failure mode (kimi/grok/default) must keep the flat default");
+        Assert.assertEquals(other.fastTimeoutMs, LlmSpikeGui.ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
     }
 }

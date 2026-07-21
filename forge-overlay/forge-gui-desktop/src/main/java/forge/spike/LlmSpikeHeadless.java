@@ -62,7 +62,18 @@ public final class LlmSpikeHeadless {
         if (capped) {
             System.out.println("[HEADLESS] wall-clock cap reached; game is INVALID for eval purposes");
             game.setGameOver(GameEndReason.Draw);
-            worker.join(15000);
+            // Grace must outlast the slowest configured model's own per-request HTTP timeout
+            // (LlmSpikeGui.ModelCfg.maxConfiguredTimeoutMs(), e.g. 150s for kimi's smart tier), not
+            // a flat guess: the router logs "[ROUTER] ... -> asking ..." BEFORE the blocking call, so
+            // if the cap fires mid-call and this join returns too soon, System.exit() below kills the
+            // JVM before the reply lands and the decision's jsonl row (written after the reply, in
+            // PlayerControllerLLM.evalDec()) never gets written — a defect_analyzer.py silent-drop
+            // gap (log claims an ask that has no matching jsonl row). A flat 15s grace was far
+            // shorter than gpt-5's real reply latencies (routinely 20-70s+) and dropped exactly one
+            // decision's row in runs/improve/model-sweep-r2/gpt-5/game-216-0.log (line 265: the
+            // final "play" ask, immediately followed by this cap message with no intervening
+            // "replied in ...ms" line).
+            worker.join(LlmSpikeGui.ModelCfg.maxConfiguredTimeoutMs() + 10_000L);
         }
         long durMs = System.currentTimeMillis() - t0;
 

@@ -276,13 +276,26 @@ public final class LlmSpikeGui {
 
         PlayerControllerLLM(Game game, Player p, LobbyPlayer lp, String seat, String deckPlan,
                             String smartModel, String fastModel, String mode) {
+            this(game, p, lp, seat, deckPlan,
+                    LLMBridgeFactory.create(seat + "/smart", smartModel, framing(seat, deckPlan, false)),
+                    LLMBridgeFactory.create(seat + "/fast",  fastModel,  framing(seat, deckPlan, true)),
+                    mode);
+        }
+
+        /** Package-private test seam: inject bridges directly instead of building them via
+         *  LLMBridgeFactory from a model spec string. Lets LlmSpikeTest exercise decision-routing logic
+         *  (e.g. the bridge-down fallback ladder) against a fake in-package LLMBridge deterministically,
+         *  without spawning a real CLI process or making a real network call. Production code always
+         *  goes through the String-model constructor above, which just delegates here. */
+        PlayerControllerLLM(Game game, Player p, LobbyPlayer lp, String seat, String deckPlan,
+                            LLMBridge smartBridge, LLMBridge fastBridge, String mode) {
             super(game, p, lp);
             this.seat = seat;
             this.deckPlan = deckPlan;
             this.mode = mode == null || mode.isEmpty() ? "llm" : mode;
             this.rnd = "random".equals(this.mode) ? new java.util.Random(MyRandom.getRandom().nextLong()) : null;
-            this.smart = LLMBridgeFactory.create(seat + "/smart", smartModel, framing(seat, deckPlan, false));
-            this.fast  = LLMBridgeFactory.create(seat + "/fast",  fastModel,  framing(seat, deckPlan, true));
+            this.smart = smartBridge;
+            this.fast  = fastBridge;
             if (!"llm".equals(this.mode)) p("[MODE] baseline arm: " + this.mode);
         }
 
@@ -743,7 +756,14 @@ public final class LlmSpikeGui {
                 String prompt = attempt == 0 ? basePrompt
                         : "That reply contained neither KEEP nor MULLIGAN. Answer with ONE word only: KEEP or MULLIGAN.";
                 String reply = ask(smart, prompt);
-                if (reply == null) return aiDelegate("mulligan(bridge-down)", super.mulliganKeepHand(firstPlayer, cardsToReturn));
+                // Bridge dead -> the SAME deterministic KEEP the unparsed-after-retry branch below
+                // uses, never Forge AI (this file's blanket hard invariant: a dead bridge always takes
+                // the deterministic legal default, same ladder as confirm/attackers/surveil).
+                if (reply == null) {
+                    evalDec("mulligan", 2, 0, "auto", 0, "mulligan(bridge-down)->KEEP", mullOpts);
+                    p("[ROUTER] mulligan: KEEP (bridge-down)");
+                    return true;
+                }
                 String r = reply.toUpperCase();
                 int k = r.lastIndexOf("KEEP"), mu = r.lastIndexOf("MULLIGAN");
                 if (k < 0 && mu < 0) continue; // no decision token -> retry, then deterministic fallback below
@@ -774,6 +794,20 @@ public final class LlmSpikeGui {
                 CardCollection legal = new CardCollection();
                 for (Card c : attacker.getCreaturesInPlay()) if (CombatUtil.canAttack(c, defender)) legal.add(c);
                 if (legal.isEmpty()) return;
+                // Exactly one legal attacker: forced-only-legal, same convention as every other
+                // single-candidate site in this file (choose-entity/zone-change/targets all short-circuit
+                // to tier=auto without ever calling the model when only one candidate exists). This site
+                // used to fall through to decideMany even at n_options==1, logging tier=smart — the
+                // forced-pick mislabel the defect_analyzer's forced_pick_mislabels check flagged in every
+                // one of the 8 model-sweep games (always at this exact site, e.g. gpt-5 turn 4).
+                if (legal.size() == 1) {
+                    Card only = legal.getFirst();
+                    combat.addAttacker(only, defender);
+                    lastDeclaredAttackerNames.clear();
+                    lastDeclaredAttackerNames.add(only.getName());
+                    auto("attackers(forced-only-legal)->attack " + only.getName());
+                    return;
+                }
                 // No model available (floor arm / budget) -> deterministic ALL-IN, the classic goldfish
                 // baseline. Never the engine AI.
                 if (!smartOk()) {
@@ -1413,6 +1447,15 @@ public final class LlmSpikeGui {
             if (topN == null || topN.isEmpty()) return ImmutablePair.of(new CardCollection(), new CardCollection());
             List<Card> opts = new ArrayList<>(topN);
             try {
+                // Exactly one card peeked: forced-only-legal, same convention as every other
+                // single-candidate site (choose-entity/zone-change/targets/attackers) — never call the
+                // model at n_options==1. This was the surveil forced-pick mislabel the defect_analyzer
+                // flagged (tier=smart at n_options==1) in every model-sweep game that surveiled a
+                // single card; scry shares this method so it's covered too.
+                if (opts.size() == 1) {
+                    auto(verb + "(forced-only-legal)->keep-all-top");
+                    return ImmutablePair.of(new CardCollection(opts), new CardCollection());
+                }
                 if (!smartOk()) { auto(verb + "(no-model)->keep-all-top"); return ImmutablePair.of(new CardCollection(opts), new CardCollection()); }
                 List<String> labels = new ArrayList<>();
                 for (Card c : opts) labels.add(candidateLabel(c));
@@ -1481,9 +1524,14 @@ public final class LlmSpikeGui {
                 String q = "Yes/No decision" + srcOf(sa) + ": " + (message == null ? String.valueOf(mode) : message);
                 List<String> yn = Lists.newArrayList("YES (do it)", "NO (decline)");
                 int c = decideOne(fast, "confirm", q, yn, null);
-                if (c == -2) return aiDelegate("confirm(bridge-down)", super.confirmAction(sa, mode, message, options, cardToShow, params));
-                // unparsed -> decline, a safe legal default; make the fallback VISIBLE to the gate
+                // UNPARSED and BRIDGE-DOWN both take the same deterministic decline default — a dead
+                // bridge must never fall through to Forge's AI here (this was the hard-invariant
+                // violation: 6 tier=ai rows in the gpt-5 model-sweep, every single one confirm(bridge-down)
+                // — the fast-tier bridge going dark mid-game and this site being the one place left that
+                // still asked super for a real decision instead of taking the same safe default the
+                // unparsed branch already used). Make the fallback VISIBLE to the gate either way.
                 if (c == -1) evalDec("confirm", 2, 1, tierOf(false), 0, "confirm(unparsed)->NO", yn);
+                else if (c == -2) evalDec("confirm", 2, 1, "auto", 0, "confirm(bridge-down)->NO", yn);
                 boolean yes = (c == 0);
                 p("[ROUTER] confirm(" + oneLine(message == null ? String.valueOf(mode) : message) + "): " + (yes ? "YES" : "NO"));
                 return yes;
@@ -1504,8 +1552,10 @@ public final class LlmSpikeGui {
                 else { opts.add(String.valueOf(min)); opts.add(String.valueOf((min + max) / 2)); opts.add(String.valueOf(max)); }
                 String q = (title == null ? "Choose a number" : title) + " (" + min + ".." + max + ")" + srcOf(sa);
                 int c = decideOne(fast, "number", q, opts, null);
-                if (c == -2) return aiDelegate("number(bridge-down)", super.chooseNumber(sa, title, min, max));
-                if (c < 0) return aiDelegate("number(unparsed)", super.chooseNumber(sa, title, min, max));
+                // Bridge-down AND still-unparseable-after-retry both take the deterministic legal
+                // minimum — same default as the no-budget branch above, never Forge AI.
+                if (c == -2) { auto("number(bridge-down)->" + min); return min; }
+                if (c < 0) { auto("number(unparsed)->" + min); return min; }
                 int val = Integer.parseInt(opts.get(c));
                 p("[ROUTER] number(" + oneLine(title) + "): " + val);
                 return val;
@@ -1536,7 +1586,10 @@ public final class LlmSpikeGui {
                     for (ICardFace f : faces) labels.add(f.getName());
                     int c = decideOne(smart, "card-name", "NAME A CARD" + srcOf(sa) + ": " + oneLine(message), labels, null);
                     if (c >= 0) { p("[ROUTER] card-name: " + labels.get(c) + srcOf(sa)); return labels.get(c); }
-                    return aiDelegate("card-name(list:unparsed)", super.chooseCardName(sa, faces, message));
+                    // Bridge-down (c==-2) or still-unparseable-after-retry (c==-1): same deterministic
+                    // first-face default the no-model branch above uses, never Forge AI.
+                    auto("card-name(list:unparsed)->" + faces.get(0).getName());
+                    return faces.get(0).getName();
                 }
                 String want = askCardName(sa, message, null);
                 if (want != null) {
@@ -1547,7 +1600,10 @@ public final class LlmSpikeGui {
                             p("[ROUTER] card-name: " + f.getName() + srcOf(sa)); return f.getName();
                         }
                 }
-                return aiDelegate("card-name(list:no-match)", super.chooseCardName(sa, faces, message));
+                // want==null (bridge-down/unparsed) or no face matched it: same deterministic first-face
+                // default, never Forge AI.
+                auto("card-name(list:no-match)->" + faces.get(0).getName());
+                return faces.get(0).getName();
             } catch (Exception e) {
                 return aiDelegate("card-name(list:err)", super.chooseCardName(sa, faces, message));
             }
@@ -1586,7 +1642,22 @@ public final class LlmSpikeGui {
                         return face.getName();
                     }
                 }
-                return aiDelegate("card-name(no-match)", super.chooseCardName(sa, cpp, valid, message));
+                // Bridge-down (want==null), unparseable, or the named card didn't match the predicate:
+                // same deterministic pool-first pick as the no-model branch above, never Forge AI. Only
+                // a genuinely empty pool (no card in the whole database matches the predicate — should
+                // not happen for any real "name a nonland card"-style effect) falls through to
+                // card-name(no-pool)'s AI delegation below.
+                try {
+                    List<ICardFace> pool = new ArrayList<>();
+                    StaticData.instance().getCommonCards().streamAllFaces()
+                            .filter(cpp == null ? f -> true : cpp).limit(500).forEach(pool::add);
+                    if (!pool.isEmpty()) {
+                        String pick = pool.get(0).getName();
+                        auto("card-name(no-match)->" + pick);
+                        return pick;
+                    }
+                } catch (Exception ignore) { }
+                return aiDelegate("card-name(no-pool)", super.chooseCardName(sa, cpp, valid, message));
             } catch (Exception e) {
                 return aiDelegate("card-name(err)", super.chooseCardName(sa, cpp, valid, message));
             }
@@ -1617,15 +1688,32 @@ public final class LlmSpikeGui {
         public List<AbilitySub> chooseModeForAbility(SpellAbility sa, List<AbilitySub> possible, int min, int num, boolean allowRepeat) {
             clearLast();
             try {
-                if (possible == null || possible.isEmpty() || allowRepeat || !smartOk())
-                    return aiDelegate("modes(repeat/no-budget)", super.chooseModeForAbility(sa, possible, min, num, allowRepeat));
+                // allowRepeat (choose the same mode more than once) is a mechanic this router does not
+                // model — an intentional, documented scope-out, same shape as chooseSingleEntityForEffect's
+                // delayedReveal exception above. possible==null/empty is a degenerate engine state (a
+                // modal ability with nothing to choose from) with no legal candidate to default to either.
+                if (possible == null || possible.isEmpty() || allowRepeat)
+                    return aiDelegate("modes(repeat/empty)", super.chooseModeForAbility(sa, possible, min, num, allowRepeat));
                 if (possible.size() == 1 && min >= 1) { auto("modes(forced-only-legal)"); return Lists.newArrayList(possible.get(0)); } // forced
+                // No budget: deterministic first-`min` modes, never Forge AI.
+                if (!smartOk()) {
+                    List<AbilitySub> defPick = new ArrayList<>();
+                    for (int i = 0; i < Math.min(Math.max(min, 0), possible.size()); i++) defPick.add(possible.get(i));
+                    auto("modes(no-budget)->first" + defPick.size());
+                    return defPick;
+                }
                 List<String> labels = new ArrayList<>();
                 for (AbilitySub ab : possible) labels.add(oneLine(ab.getDescription()));
                 List<Integer> picks = decideMany(smart, "modes", "MODAL SPELL — choose mode(s) for " + saLabel(sa) + ".",
                         labels, Math.max(0, min), Math.min(num, possible.size()));
-                if (picks == null || picks.size() < min)
-                    return aiDelegate("modes(unparsed)", super.chooseModeForAbility(sa, possible, min, num, allowRepeat));
+                // decideMany's null covers BOTH bridge-down and still-unparseable-after-retry — same
+                // deterministic first-`min` default as the no-budget branch above, never Forge AI.
+                if (picks == null || picks.size() < min) {
+                    List<AbilitySub> defPick = new ArrayList<>();
+                    for (int i = 0; i < Math.min(Math.max(min, 0), possible.size()); i++) defPick.add(possible.get(i));
+                    auto("modes(unparsed)->first" + defPick.size());
+                    return defPick;
+                }
                 List<AbilitySub> out = new ArrayList<>();
                 StringBuilder log = new StringBuilder();
                 for (int i : picks) { out.add(possible.get(i)); if (log.length() > 0) log.append(" + "); log.append(labels.get(i)); }
@@ -2032,6 +2120,11 @@ public final class LlmSpikeGui {
         static int fastBudget()  { return FAST_BUDGET; }
         static boolean mullHeuristic() { return MULL_HEURISTIC; }
         static boolean skipHeuristics() { return SKIP_HEUR; }
+        // Package-private instance accessors (mirrors the static ones above) so LlmSpikeTest can assert
+        // a decision took the deterministic-fallback/never-Forge-AI path without needing EVAL_OUT wired
+        // up to inspect jsonl output.
+        int autoPicksCount() { return autoPicks; }
+        int aiDelegationsCount() { return aiDelegations; }
 
         /** Record + loudly log a genuine handoff to Forge's built-in AI. Grep "[FALLBACK->AI]" to audit how
          *  often the engine brain — not the LLM — actually made a call. Goal: keep this near zero. */
@@ -2353,8 +2446,33 @@ public final class LlmSpikeGui {
      * 2048-tok/90s/1-retry config applied uniformly starves verbose reasoners (deepseek, gpt, kimi)
      * while being needlessly generous for terse ones, cleanly splitting the field into models that
      * never fail and models that fail constantly on IDENTICAL infra. `fastMaxTokens`/`fastTimeoutMs`
-     * are the separate, much smaller caps the "fast" tier (confirms/numbers/cleanup) uses regardless
-     * of model — only the smart-tier fields above them vary per row.
+     * are the separate, smaller caps the "fast" tier (confirms/numbers/cleanup) uses; they default to
+     * the same flat value for every row, but a row MAY override them (see deepseekGpt below) when
+     * evidence shows the flat default starves that model even on the fast tier.
+     *
+     * Investigation (2026-07-21, gpt-5/deepseek model-sweep games): every finish_reason=length ->
+     * bridge-down conversion for both models (8 for gpt-5, 10 for deepseek — matching sweep-verdicts.json
+     * exactly) was on the FAST tier (type=confirm, type=play), NEVER the smart tier (0 non-answers there
+     * across both games' full logs). The OpenRouterBridge.ask() [TRUNCATED->RETRY] doubling path never
+     * fired even once (grep the .log: zero occurrences) despite 8-10 finish_reason=length events per
+     * game, because isNonAnswer(r.content) runs BEFORE the truncation-retry check and a fully-empty
+     * `content` (finish_reason=length with the reasoning budget exhausted before any output token) is
+     * indistinguishable from a plain non-answer — it short-circuits to bridge-down first, so the retry
+     * is dead code for exactly the case it exists to handle. That ordering is an architecture bug, out
+     * of scope for a config-table-only fix. What IS fixable here: the fast tier's request never sends a
+     * `reasoning` hint at all for ANY model (OpenRouterBridge.ask() unconditionally nulls it out for
+     * fastTier — "the fast tier's contract is terse, no extended reasoning"), yet gpt-5/deepseek are
+     * native reasoning models that still spend hidden reasoning tokens server-side by default even
+     * with no explicit reasoning param. At the flat DEFAULT_FAST_MAX_TOKENS=512 that hidden reasoning
+     * alone exhausts the whole budget, leaving zero tokens for the one-line CHOICE/PICKS answer, every
+     * time. kimi (no reasoning-effort row value either) and grok show far fewer/zero such fast-tier
+     * failures at the same flat 512 cap, so the fix is model-specific: give ONLY the reasoning-heavy
+     * deepseek/gpt row a much larger fastMaxTokens (enough headroom to survive the hidden reasoning
+     * burn and still emit the final line) and a longer fastTimeoutMs to match the larger generation.
+     * Reasoning-effort tuning was the other evidence-supported option, but is not reachable from this
+     * table alone: fast-tier calls null out reasoningEffort unconditionally regardless of what a
+     * ModelCfg row sets, so "set effort low for fast-tier decisions" would require touching
+     * OpenRouterBridge.ask() itself — an architecture change explicitly out of scope for this pass.
      *
      * Env OPENROUTER_MODEL_CFG (JSON) can add rows or override individual fields on existing ones
      * without a rebuild, e.g. {@code {"mistral":{"maxTokens":6000},"deepseek":{"timeoutMs":150000}}}.
@@ -2390,7 +2508,13 @@ public final class LlmSpikeGui {
             // 2048-token cap hard and need reasoning headroom; kimi's own median latency already
             // exceeds the flat 90s deadline; grok needs more room than the default but not as much as
             // the worst reasoners; everything else keeps the original flat config.
-            ModelCfg deepseekGpt = new ModelCfg(16000, 90000, "medium", null, ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
+            // fastMaxTokens=4000/fastTimeoutMs=60000 (vs. the flat 512/30000 default): gpt-5 and deepseek
+            // are native reasoning models that burn hidden reasoning tokens on the FAST tier too, even
+            // though the fast-tier request never sends a `reasoning` hint — at 512 tokens that reasoning
+            // alone ate the whole budget every time (8/8 gpt-5 and 10/10 deepseek finish_reason=length
+            // fast-tier events came back with EMPTY content), so no room was ever left for the one-line
+            // CHOICE/PICKS answer. See the class javadoc above for the full investigation.
+            ModelCfg deepseekGpt = new ModelCfg(16000, 90000, "medium", null, 4000, 60000);
             ModelCfg kimi        = new ModelCfg(16000, 150000, null, null, ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
             ModelCfg grok        = new ModelCfg(8000, 90000, null, null, ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
             ModelCfg dflt        = new ModelCfg(4000, 90000, null, null, ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
@@ -2451,6 +2575,21 @@ public final class LlmSpikeGui {
                 }
             }
             return TABLE.get("default");
+        }
+
+        /** Largest per-request timeout configured for any known model, either tier (e.g. 150s for
+         *  kimi's smart tier). Used by LlmSpikeHeadless to size its post-wall-clock-cap shutdown
+         *  grace window: a "-> asking" line is logged BEFORE the blocking HTTP call, so if the cap
+         *  fires while that call is still in flight and the grace window is shorter than the call's
+         *  own timeout, System.exit() kills the JVM before the reply lands and PlayerControllerLLM
+         *  .evalDec() ever runs for it — a real ask the log claims happened with no jsonl row to
+         *  match, i.e. exactly the defect_analyzer.py silent-drop reconciliation gap. Does NOT
+         *  account for the flat OPENROUTER_TIMEOUT_MS / CLAUDE_DEADLINE_MS operator overrides
+         *  (out of scope here); a run using one of those above this value can still race the cap. */
+        static long maxConfiguredTimeoutMs() {
+            long max = 0;
+            for (ModelCfg c : TABLE.values()) max = Math.max(max, Math.max(c.timeoutMs, c.fastTimeoutMs));
+            return max;
         }
     }
 
