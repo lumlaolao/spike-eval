@@ -1,0 +1,2649 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 42
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/burn.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/elves.plan
+[DECK] loaded 'Burn': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/burn.txt)
+[DECK] loaded 'Elves': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/elves.txt)
+[SEATS] A=Burn(floor,opus) B=Elves(floor,opus)
+[Burn] [MODE] baseline arm: floor
+[Elves] [MODE] baseline arm: floor
+[HEADLESS] game starting (cap=10min)
+[Burn] [ROUTER] mulligan: heuristic KEEP (2/7 lands)
+[Elves] [ROUTER] mulligan: heuristic KEEP (3/7 lands)
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Forest
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Verdant Catacombs
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Bloodstained Mire
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Verdant Catacombs
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Forest
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Forest
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Arid Mesa
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Windswept Heath
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Sunbaked Canyon
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Sunbaked Canyon
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Windswept Heath
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Arid Mesa
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Forest
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Forest
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Forest
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Bloodstained Mire
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Verdant Catacombs
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Forest
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Forest
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Windswept Heath
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Verdant Catacombs
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Bayou
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Windswept Heath
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Forest
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Gaea's Cradle
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Bayou
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Gaea's Cradle
+[Elves] [AUTO-LEGAL] choose-entity(no-budget)->first []
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Forest
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget): land Forest
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Elves] [AUTO-LEGAL] play(no-budget)->PASS
+========== GAME OVER ==========
+outcome: A after 108 turns (AllOpponentsLost) in 13s
+--- full game log ---
+  MULLIGAN: Burn has kept a hand of 7 cards
+  MULLIGAN: Elves has kept a hand of 7 cards
+  TURN: Turn 1 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (35)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 2 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (95)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 3 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (34)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 4 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Verdant Catacombs (105)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 5 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Bloodstained Mire (21)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 6 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Verdant Catacombs (106)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 7 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (32)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 8 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (100)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 9 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 10 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Elvish Visionary (67).
+  TURN: Turn 11 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Fireblast (46).
+  TURN: Turn 12 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (94)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 13 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (23)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 14 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Wirewood Symbiote (77).
+  TURN: Turn 15 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Eidolon of the Great Revel (57).
+  TURN: Turn 16 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Wirewood Symbiote (75).
+  TURN: Turn 17 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Eidolon of the Great Revel (58).
+  TURN: Turn 18 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Nettle Sentinel (87).
+  TURN: Turn 19 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Arid Mesa (10)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 20 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Windswept Heath (120)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 21 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Sunbaked Canyon (19)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 22 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Quirion Ranger (84).
+  TURN: Turn 23 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Lava Spike (14).
+  TURN: Turn 24 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Quirion Ranger (85).
+  TURN: Turn 25 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Chain Lightning (56).
+  TURN: Turn 26 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Quirion Ranger (83).
+  TURN: Turn 27 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Sunbaked Canyon (20)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 28 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Elvish Visionary (69).
+  TURN: Turn 29 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Goblin Guide (7).
+  TURN: Turn 30 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Windswept Heath (118)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 31 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Chain Lightning (55).
+  TURN: Turn 32 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Heritage Druid (72).
+  TURN: Turn 33 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Arid Mesa (9)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 34 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Fyndhorn Elves (108).
+  TURN: Turn 35 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Lava Spike (12).
+  TURN: Turn 36 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Heritage Druid (71).
+  TURN: Turn 37 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (28)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 38 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Fyndhorn Elves (109).
+  TURN: Turn 39 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Eidolon of the Great Revel (59).
+  TURN: Turn 40 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (97)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 41 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (36)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 42 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Heritage Druid (73).
+  TURN: Turn 43 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Monastery Swiftspear (3).
+  TURN: Turn 44 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (101)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 45 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Monastery Swiftspear (2).
+  TURN: Turn 46 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (93)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 47 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Lava Spike (11).
+  TURN: Turn 48 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Reclamation Sage (116).
+  TURN: Turn 49 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Bloodstained Mire (22)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 50 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Quirion Ranger (86).
+  TURN: Turn 51 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Goblin Guide (6).
+  TURN: Turn 52 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Verdant Catacombs (103)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 53 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (29)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 54 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Fyndhorn Elves (107).
+  TURN: Turn 55 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (25)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 56 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Wirewood Symbiote (78).
+  TURN: Turn 57 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (38)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 58 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (98)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 59 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (24)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 60 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (102)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 61 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (26)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 62 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Llanowar Elves (63).
+  TURN: Turn 63 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Chain Lightning (53).
+  TURN: Turn 64 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Nettle Sentinel (88).
+  TURN: Turn 65 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Searing Blaze (47).
+  TURN: Turn 66 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Heritage Druid (74).
+  TURN: Turn 67 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Searing Blaze (48).
+  TURN: Turn 68 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Windswept Heath (117)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 69 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Monastery Swiftspear (1).
+  TURN: Turn 70 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Nettle Sentinel (89).
+  TURN: Turn 71 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Goblin Guide (8).
+  TURN: Turn 72 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Craterhoof Behemoth (91).
+  TURN: Turn 73 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Lightning Bolt (41).
+  TURN: Turn 74 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Green Sun's Zenith (80).
+  TURN: Turn 75 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Goblin Guide (5).
+  TURN: Turn 76 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Verdant Catacombs (104)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 77 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Price of Progress (18).
+  TURN: Turn 78 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Bayou (62)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 79 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (37)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 80 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Windswept Heath (119)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 81 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Price of Progress (17).
+  TURN: Turn 82 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Nettle Sentinel (90).
+  TURN: Turn 83 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Lava Spike (13).
+  TURN: Turn 84 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (92)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 85 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Lightning Bolt (40).
+  TURN: Turn 86 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Gaea's Cradle (110)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 87 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (33)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 88 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Bayou (61)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 89 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Chain Lightning (54).
+  TURN: Turn 90 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Wirewood Symbiote (76).
+  TURN: Turn 91 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Monastery Swiftspear (4).
+  TURN: Turn 92 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Elvish Visionary (68).
+  TURN: Turn 93 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (30)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 94 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Gaea's Cradle (111)
+  ZONE_CHANGE: Gaea's Cradle (111) was put into Graveyard from Battlefield.
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 95 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Lightning Bolt (42).
+  TURN: Turn 96 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Llanowar Elves (65).
+  TURN: Turn 97 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (31)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 98 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Elvish Visionary (70).
+  TURN: Turn 99 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (27)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 100 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (99)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 101 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Price of Progress (16).
+  TURN: Turn 102 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (96)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 103 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Lightning Bolt (39).
+  TURN: Turn 104 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Green Sun's Zenith (82).
+  TURN: Turn 105 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Eidolon of the Great Revel (60).
+  TURN: Turn 106 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  DISCARD: Elves discards Llanowar Elves (64).
+  TURN: Turn 107 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  DISCARD: Burn discards Price of Progress (15).
+  TURN: Turn 108 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PLAYER_CONTROL: Burn has restored control over themself
+  PLAYER_CONTROL: Elves has restored control over themself
+  GAME_OUTCOME: Turn 54
+  GAME_OUTCOME: Burn has won because all opponents have lost
+  GAME_OUTCOME: Elves has lost trying to draw cards from empty library
+  MATCH_RESULTS: Burn: 1 Elves: 0 
+===============================

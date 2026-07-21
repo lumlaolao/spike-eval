@@ -158,3 +158,61 @@ Ground truth is `LlmSpikeHeadless.java`; the game line is keyed by
   dedupes reruns of the same seed/swap combo by keeping the newest.
 - A `.jsonl` file with no game line is a crashed game and counts as
   `invalid`. Malformed lines are skipped with a warning.
+
+## Improvement loop
+
+Two more stdlib-only scripts close the loop between "harness has a defect"
+and "harness is fixed, verify it stayed fixed":
+
+- `improve_loop.py` — plays a small, cheap batch (default: 2 games,
+  `--controller floor` — deterministic legal-fallback controller, free, no
+  API key needed) by shelling out to `run_batch.py` in `--exploratory` mode,
+  then runs `defect_analyzer.py` over the fresh output directory and writes
+  `metrics.json` + `summary.txt` next to the game files.
+- `defect_analyzer.py` — reads a directory of `game-*.jsonl` / `game-*.log`
+  pairs and reports: fallback counts by kind, the `tier=ai` hard invariant
+  (C1 — sacrifice/combat-damage delegated to Forge AI, MUST be 0), silent
+  decision-drop reconciliation (C5 — counts each log-side `-> asking` window
+  against its matching jsonl row over mulligan/attackers/blockers/play and
+  flags any gap; this is exactly the bridge-down→PASS branch that skips
+  `evalDec()`), no-CHOICE/parse-fail counts by seat, latency percentiles by
+  tier/seat, `finish_reason=length` counts, forced single-legal picks
+  mislabeled `tier!=auto` (C6), and per-seat mulligan-row coverage (C7 —
+  `MULLIGAN_HEURISTIC` auto-keeps that never call `evalDec()`). Exits 1 if
+  `tier=ai` count > 0 or any silent-drop gap > 0 anywhere in the corpus.
+- `test_defect_analyzer.py` — synthetic-fixture self-test
+  (`python3 eval/test_defect_analyzer.py`).
+
+### The iterate cycle
+
+```bash
+# 1. Run one iteration (floor mode: free, deterministic, no API key).
+python3 eval/improve_loop.py --games 2 --controller floor
+# prints the output dir, e.g. runs/improve/20260721-120000/, then writes
+# runs/improve/20260721-120000/{metrics.json,summary.txt}
+
+# 2. Read the metrics: any hard-invariant failure (tier=ai>0, silent drops>0)
+# exits 1 and is spelled out in summary.txt with file/seat/turn detail.
+cat runs/improve/20260721-120000/summary.txt
+
+# 3. Fix the harness (forge-overlay/.../LlmSpikeGui.java), citing the exact
+# defect class the summary flagged.
+
+# 4. Rebuild (see the repo-root build/deploy cycle: copy the overlay spike
+# files into the forge checkout, then `mvn -pl forge-gui-desktop -am
+# -DskipTests compile`).
+
+# 5. Rerun the same iteration and diff the two summary.txt files — a real
+# fix drives the flagged count (or the whole hard-invariant gate) to zero;
+# an unrelated regression shows up as a NEW count that wasn't there before.
+python3 eval/improve_loop.py --games 2 --controller floor
+```
+
+`--controller llm` runs real model calls (`--seat-a`/`--seat-b`, default
+`openrouter:google/gemini-3.5-flash` both — cheap) and refuses with a clear
+message if `OPENROUTER_API_KEY` is unset; `--dry-run` prints the exact
+`run_batch.py`/`defect_analyzer.py` commands it would run without launching
+anything, useful for checking flags before spending API budget or JVM time.
+`defect_analyzer.py` is also runnable standalone against any existing batch
+(including `runs/tournament-1/match-*/`) for one-off defect audits outside
+the loop.
