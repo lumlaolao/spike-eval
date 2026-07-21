@@ -189,6 +189,48 @@ def test_ai_tier_forced_pick_and_missing_mulligan():
               report["hard_invariants"]["pass"] is False)
 
 
+def test_has_choice_tag_accepts_non_digit_reply_shapes():
+    """Regression for iter-1's 14/14 false-positive parse_fail_by_model count:
+    the tag-presence check must not require a digit immediately after
+    CHOICE:/PICKS:/BLOCKS: — declareBlockers's real reply format is card NAME
+    pairs (never digits), and a legitimate empty PICKS: (decideMany's "decline
+    everything", min==0) has no digits either. Both were successfully parsed
+    by the harness (fallback=None) in the real iter-1 corpus; a genuinely
+    tag-less reply must still be flagged."""
+    # BLOCKS: name->name pairs (declareBlockers's actual wire format) -> tag present.
+    check("BLOCKS name-pair reply recognized",
+          da.has_choice_tag(dec(dtype="blockers",
+              raw_reply="Trading is good here.\n\nBLOCKS: Cat Warrior Token->Guide of Souls")))
+    check("BLOCKS: NONE recognized", da.has_choice_tag(dec(dtype="blockers", raw_reply="BLOCKS: NONE")))
+    # PICKS: with zero picks (legitimate decline, e.g. attackers/surveil) -> tag present.
+    check("empty PICKS: (decline) recognized",
+          da.has_choice_tag(dec(dtype="attackers", raw_reply="Holding back is correct here.\n\nPICKS:")))
+    check("PICKS: with a placeholder and no digits recognized",
+          da.has_choice_tag(dec(dtype="surveil", raw_reply="Bin this one.\n\nPICKS: _")))
+    # A genuinely tag-less reply (never had CHOICE:/PICKS:/BLOCKS: at all) must
+    # still be caught — this is the real no-CHOICE parse-fail case.
+    check("truly tag-less reply still flagged",
+          not da.has_choice_tag(dec(dtype="play", raw_reply="I will just cast the spell")))
+
+
+def test_blocks_and_empty_picks_not_counted_as_parse_fail():
+    """End-to-end: a full report over these reply shapes must NOT count them
+    in parse_fail_by_model (they're real, successfully-parsed decisions —
+    fallback=None, tier=smart — not model formatting failures)."""
+    with tempfile.TemporaryDirectory() as d:
+        dpath = Path(d)
+        write_lines(dpath / "game-5-5000.jsonl", [
+            game_line(seed=5, swap=False),
+            dec(seat="model-a", dtype="blockers", tier="smart", n_options=2, choice=1,
+                raw_reply="Good trade.\n\nBLOCKS: Cat Warrior Token->Guide of Souls"),
+            dec(seat="model-a", dtype="attackers", tier="smart", n_options=1, choice=0,
+                raw_reply="Holding back is correct here.\n\nPICKS:"),
+        ])
+        report = da.build_report([dpath])
+        c = report["combined"]
+        check("no parse-fail counted for model-a", c["parse_fail_by_model"].get("model-a", 0) == 0)
+
+
 def test_malformed_lines_and_no_log_are_tolerated():
     """A directory with a jsonl that has no matching log (crashed/manual
     run) must still be scored on jsonl-only metrics, and malformed lines
@@ -214,6 +256,8 @@ def main():
     test_clean_game_no_defects()
     test_silent_drop_detected()
     test_ai_tier_forced_pick_and_missing_mulligan()
+    test_has_choice_tag_accepts_non_digit_reply_shapes()
+    test_blocks_and_empty_picks_not_counted_as_parse_fail()
     test_malformed_lines_and_no_log_are_tolerated()
     print()
     if FAILURES:

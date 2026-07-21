@@ -1,6 +1,7 @@
 package forge.spike;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -21,6 +22,7 @@ import forge.game.GameStage;
 import forge.game.GameType;
 import forge.game.Match;
 import forge.game.card.Card;
+import forge.game.card.CardCollection;
 import forge.game.combat.Combat;
 import forge.game.phase.PhaseType;
 import forge.game.player.Player;
@@ -457,5 +459,75 @@ public class LlmSpikeTest {
         int[] split = LlmSpikeGui.PlayerControllerLLM.trampleSplit(4, 4);
         Assert.assertEquals(split[0], 4);
         Assert.assertEquals(split[1], 0, "exactly lethal, nothing left to trample over");
+    }
+
+    // ================================================================================
+    // Multi-blocker combat damage (HARNESS-ANALYSIS.md/iter-1 C1 follow-up): assignCombatDamage's
+    // "[AI-EXOTIC-DAMAGE]" escape hatch for 2+ blockers has been deleted — it handed even routine
+    // double-blocks (e.g. 1 damage among 2 blockers, the exact iter-1 tier=ai violation) to Forge's
+    // built-in combat AI. It's now a deterministic lethal-first split in "floor" mode (no model budget,
+    // so it never leaves Java) — these tests exercise that path end-to-end against a REAL Game/Player/
+    // Card via the same construction as the candidateLabel/landSummary tests above, proving (a) the
+    // engine's own blocker order is honored when no model is consulted, (b) lethal amounts are computed
+    // per blocker (not dumped arbitrarily), and (c) undistributed damage tramples through to the
+    // defender when the attacker has trample, or piles onto the last blocker when it doesn't — either
+    // way every point of damage is accounted for, never dropped, never Forge's AI judgment call.
+    // ================================================================================
+
+    @Test
+    public void assignCombatDamage_multiBlockerNoTrample_floorModeAssignsLethalFirstThenExcessToLast() throws Exception {
+        Game game = buildBareGame();
+        Player attackerOwner = game.getPlayers().get(1);
+        Player defenderPlayer = game.getPlayers().get(0);
+        Card attacker = addBattlefieldCard("Craw Wurm", attackerOwner); // 6/4, vanilla, no trample
+        Card blocker1 = addBattlefieldCard("Llanowar Elves", defenderPlayer); // 1/1
+        Card blocker2 = addBattlefieldCard("Elvish Mystic", defenderPlayer);  // 1/1
+        CardCollection blockers = new CardCollection();
+        blockers.add(blocker1);
+        blockers.add(blocker2);
+
+        LobbyPlayer lp = new LobbyPlayerAi("seat-x", null);
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(
+                game, defenderPlayer, lp, "seat-x", "", "not-used", "not-used", "floor");
+
+        Map<Card, Integer> result = ctrl.assignCombatDamage(
+                attacker, blockers, new CardCollection(), 3, defenderPlayer, false);
+
+        Assert.assertEquals((int) result.get(blocker1), 1,
+                "first blocker (engine order, no model consulted) gets exactly its lethal amount (1 toughness)");
+        Assert.assertEquals((int) result.get(blocker2), 2,
+                "second blocker absorbs its own lethal amount plus the leftover that has nowhere else to go (no trample)");
+        int total = 0;
+        for (int v : result.values()) total += v;
+        Assert.assertEquals(total, 3, "all combat damage must be accounted for across blockers, none silently lost");
+    }
+
+    @Test
+    public void assignCombatDamage_multiBlockerWithTrample_floorModeSpillsExcessToDefender() throws Exception {
+        Game game = buildBareGame();
+        Player attackerOwner = game.getPlayers().get(1);
+        Player defenderPlayer = game.getPlayers().get(0);
+        Card attacker = addBattlefieldCard("Iron Tusk Elephant", attackerOwner); // 3/3, vanilla Trample
+        Card blocker1 = addBattlefieldCard("Llanowar Elves", defenderPlayer); // 1/1
+        Card blocker2 = addBattlefieldCard("Elvish Mystic", defenderPlayer);  // 1/1
+        CardCollection blockers = new CardCollection();
+        blockers.add(blocker1);
+        blockers.add(blocker2);
+
+        LobbyPlayer lp = new LobbyPlayerAi("seat-x", null);
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(
+                game, defenderPlayer, lp, "seat-x", "", "not-used", "not-used", "floor");
+
+        Map<Card, Integer> result = ctrl.assignCombatDamage(
+                attacker, blockers, new CardCollection(), 3, defenderPlayer, false);
+
+        Assert.assertEquals((int) result.get(blocker1), 1, "first blocker gets exactly its lethal amount");
+        Assert.assertEquals((int) result.get(blocker2), 1, "second blocker gets exactly its lethal amount");
+        Assert.assertEquals((int) result.get(null), 1,
+                "the undistributed point tramples through to the defender (attacker has Trample) instead of "
+                + "vanishing or being handed to Forge's AI");
+        int total = 0;
+        for (int v : result.values()) total += v;
+        Assert.assertEquals(total, 3, "all combat damage must be accounted for, none silently lost");
     }
 }

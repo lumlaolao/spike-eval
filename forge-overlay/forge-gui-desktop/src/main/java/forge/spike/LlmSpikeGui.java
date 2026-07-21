@@ -884,7 +884,16 @@ public final class LlmSpikeGui {
                 String reply = ask(smart, prompt);
                 if (reply == null) { auto("blockers(bridge-down)->none"); return; }
                 String line = lastSegment(reply, "BLOCKS:");
-                if (line == null || line.toUpperCase().contains("NONE")) { p("[ROUTER] blockers: NONE"); return; }
+                if (line == null || line.toUpperCase().contains("NONE")) {
+                    // A genuine model-consulted decision (the reply came back fine) — must log exactly
+                    // one jsonl row like every other ask path, even though it declines to block. This was
+                    // the silent-drop gap (report iter-1 D2): the ask() succeeded and counted in the log's
+                    // "-> asking" tally, but this branch returned with no evalDec call, so the jsonl side
+                    // came up one row short whenever the model chose not to block at all.
+                    evalDec("blockers", blkLabels.size(), 0, "smart", 0, null, blkLabels);
+                    p("[ROUTER] blockers: NONE");
+                    return;
+                }
                 int assigned = 0;
                 for (String pair : line.split(",")) {
                     int arrow = pair.indexOf("->"); if (arrow < 0) continue;
@@ -1749,10 +1758,18 @@ public final class LlmSpikeGui {
          *  everything on the blocker for overkill/value) and gets a compact two-option decideOne menu.
          *  `getEnoughDamageToKill` is Forge's pure lethal-damage-math helper (deathtouch/indestructible/
          *  prevention aware) — reused the same way `ComputerUtilMana.canPayManaCost` already is elsewhere
-         *  in this file, NOT an AI strategy call. Multi-blocker splits (double/triple block) and the
-         *  Banding "one blocker divides damage among several attackers" case are a genuinely harder N-way
-         *  lethal-ordering problem this menu format doesn't fit compactly, and are left on Forge's AI —
-         *  loudly, as [AI-EXOTIC-DAMAGE], never a silent tier=ai row. */
+         *  in this file, NOT an AI strategy call.
+         *  MULTI-BLOCKER (double/triple block etc.): report C1 follow-up — this used to be the
+         *  "[AI-EXOTIC-DAMAGE]" escape hatch that handed the WHOLE decision to Forge's AI via
+         *  `super.assignCombatDamage`, including routine cases (e.g. two blockers, 1 damage — there is
+         *  no genuinely "exotic" math there, just an ordering choice). That branch is gone: NO
+         *  combat-damage path may reach Forge AI. Instead we ask the model to PRIORITIZE the blockers
+         *  (one bounded decideMany call, full permutation, reusing the same PICKS plumbing as
+         *  orderMoveToZoneList above), then assign damage deterministically in that order — lethal
+         *  amount (via getEnoughDamageToKill) to each blocker before spilling over to the next, with any
+         *  leftover tramples through if the attacker has trample and a defender exists, otherwise piles
+         *  onto the last blocker in the chosen order. No-model / unparsed-after-retry falls back to the
+         *  engine's own blocker order (tier=auto, "damage-assign(auto-in-order)") — still never Forge AI. */
         @Override
         public Map<Card, Integer> assignCombatDamage(Card attacker, CardCollectionView blockers, CardCollectionView remaining,
                 int damageDealt, GameEntity defender, boolean overrideOrder) {
@@ -1794,24 +1811,85 @@ public final class LlmSpikeGui {
                     p("[ROUTER] damage-assign: " + (c == 1 ? "all to blocker" : "max-trample"));
                     return r;
                 }
-            } catch (Exception ignore) {
-                // fall through to the exotic/observe-only path below on any unexpected shape
-            }
-            List<String> labels = cardLabels(blockers);
-            long t0 = System.currentTimeMillis();
-            Map<Card, Integer> r = super.assignCombatDamage(attacker, blockers, remaining, damageDealt, defender, overrideOrder);
-            try {
-                StringBuilder d = new StringBuilder();
-                if (r == null) d.append("(null -> engine re-queues attacker)");
-                else for (Map.Entry<Card, Integer> e : r.entrySet()) {
-                    if (d.length() > 0) d.append(", ");
-                    d.append(e.getKey() == null ? "defender" : safeName(e.getKey())).append('=').append(e.getValue());
+                if (blockers != null && blockers.size() > 1) {
+                    return assignMultiBlockerDamage(attacker, blockers, damageDealt, defender);
                 }
-                p("[AI-EXOTIC-DAMAGE] " + safeName(attacker) + " dmg=" + damageDealt + " among " + labels.size() + " -> " + d);
-                observeAiDec("damage-assign", labels.size(), 0, t0,
-                        "damage-assign(ai-exotic) " + safeName(attacker) + " dmg=" + damageDealt + " -> " + d, labels);
-            } catch (Exception ignore) { }
+            } catch (Exception ignore) {
+                // fall through to the deterministic no-blockers/unexpected-shape default below
+            }
+            // blockers == null/empty, or an unexpected shape threw above: no legal creature to assign
+            // to (should not happen in practice — combat damage assignment is only invoked with at
+            // least one blocker) but the safe, deterministic, non-AI default is "nothing to assign".
+            Map<Card, Integer> r = new java.util.HashMap<>();
+            if (damageDealt > 0 && defender != null) r.put(null, damageDealt); // no blocker to eat it -> tramples/goes to defender
+            evalDec("damage-assign", 0, 0, "auto", 0, "damage-assign(no-blockers)->defender", null);
             return r;
+        }
+
+        /** Multi-blocker damage split, model-prioritized (see assignCombatDamage's javadoc above).
+         *  Returns a lethal-first assignment in the model's (or, on failure, the engine's) blocker
+         *  order — every path deterministic Java, never Forge's combat AI. */
+        private Map<Card, Integer> assignMultiBlockerDamage(Card attacker, CardCollectionView blockers,
+                int damageDealt, GameEntity defender) {
+            List<Card> opts = new ArrayList<>(blockers);
+            List<String> labels = cardLabels(opts);
+            List<Integer> order = null;
+            if (fastOk()) {
+                String q = "COMBAT DAMAGE ASSIGNMENT: " + safeName(attacker) + " deals " + damageDealt
+                        + " damage and is blocked by " + opts.size() + " creatures. List ALL " + opts.size()
+                        + " of them in the ORDER you want damage assigned — the first gets lethal damage "
+                        + "first, then any leftover cascades to the next in your list, and so on"
+                        + (defender != null && attacker.hasKeyword(Keyword.TRAMPLE)
+                                ? " (with trample, any damage left over after all blockers die tramples through to "
+                                  + defender.getName() + ")." : ".");
+                List<Integer> picks = decideMany(fast, "damage-assign", q, labels, opts.size(), opts.size());
+                if (picks != null && picks.size() == opts.size()) order = picks;
+            }
+            if (order == null) {
+                order = new ArrayList<>();
+                for (int i = 0; i < opts.size(); i++) order.add(i);
+                auto("damage-assign(auto-in-order)");
+            }
+            Map<Card, Integer> r = new java.util.HashMap<>();
+            int remainingDmg = damageDealt;
+            StringBuilder log = new StringBuilder();
+            Card last = null;
+            for (int idx : order) {
+                Card b = opts.get(idx);
+                last = b;
+                int assign;
+                if (remainingDmg <= 0) {
+                    assign = 0;
+                } else {
+                    int lethal = ComputerUtilCombat.getEnoughDamageToKill(b, remainingDmg, attacker, true);
+                    assign = Math.min(lethal, remainingDmg);
+                }
+                r.put(b, assign);
+                remainingDmg -= assign;
+                if (log.length() > 0) log.append(", ");
+                log.append(safeName(b)).append('=').append(assign);
+            }
+            if (remainingDmg > 0) {
+                boolean trample = defender != null && attacker.hasKeyword(Keyword.TRAMPLE);
+                if (trample) {
+                    r.put(null, remainingDmg);
+                    log.append(", ").append(defender.getName()).append('=').append(remainingDmg);
+                } else if (last != null) {
+                    r.put(last, r.get(last) + remainingDmg);
+                    log.append(" (+").append(remainingDmg).append(" excess -> ").append(safeName(last)).append(')');
+                }
+            }
+            p("[ROUTER] damage-assign: " + opts.size() + " blockers, order=" + orderSummary(order, opts) + " -> " + log);
+            return r;
+        }
+
+        /** "A > B > C" summary of a chosen index order against its option list (null-safe). */
+        private static String orderSummary(List<Integer> order, List<Card> opts) {
+            try {
+                StringBuilder b = new StringBuilder();
+                for (int i : order) { if (b.length() > 0) b.append(" > "); b.append(safeName(opts.get(i))); }
+                return b.length() == 0 ? "(none)" : b.toString();
+            } catch (Exception e) { return "?"; }
         }
 
         /** X / Multikicker / BidLife announcement. VALUE semantics: choice carries the announced

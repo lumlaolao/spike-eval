@@ -225,7 +225,21 @@ def normalize_fallback(reason):
 _TAG_PATTERNS = {
     "mulligan": re.compile(r'\b(KEEP|MULLIGAN)\b', re.IGNORECASE),
 }
-_DEFAULT_TAG_RE = re.compile(r'\b(CHOICE|PICKS|BLOCKS)\s*:\s*-?\d', re.IGNORECASE)
+# NOTE: this must only require the tag PREFIX, not a digit right after the colon.
+# It used to require `-?\d` immediately following (CHOICE|PICKS|BLOCKS): ­\d, which
+# produced 14/14 false positives in iter-1 (100% of that run's parse_fail_by_model
+# count) against two reply shapes LlmSpikeGui.java's own parser already accepts
+# fine: (1) `BLOCKS: name->name, name->name` — declareBlockers's format is card
+# NAME pairs, never digits; (2) an intentionally EMPTY `PICKS:` (decideMany's
+# valid "decline everything" answer when min==0 — e.g. attackers/surveil passing
+# on 0 picks) has no digits after the tag either. Every candidate this regex is
+# even evaluated against already has fallback=None on a smart/fast tier row,
+# i.e. the harness's own Java parser (decideOne/decideMany's parseTagNumber /
+# PICKS-digit-scan / declareBlockers's "->"-split) already found and used real
+# content there — a reply that never had the tag at all (e.g. "I will just cast
+# the spell") still fails this looser check exactly as before, since there is
+# nothing to search for.
+_DEFAULT_TAG_RE = re.compile(r'\b(CHOICE|PICKS|BLOCKS)\s*:', re.IGNORECASE)
 
 
 def has_choice_tag(d):
