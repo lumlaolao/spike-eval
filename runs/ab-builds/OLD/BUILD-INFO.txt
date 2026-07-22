@@ -1,0 +1,22 @@
+BUILD: OLD  (baseline: eval-vs-forge-ai mainline BEFORE PR #5 "harness-fixes" merged)
+overlay source sha : 820f2fc450e11dc4e1039bbc785403be8677c41c
+  = first parent of merge commit 732955b (PR #5). `git rev-parse 732955b^1`.
+  subject: data(tournament): FINAL - Fable(Sneak & Show) def. DeepSeek(Infect), 20 turns
+built via          : git worktree (detached @ 820f2fc) -> install.sh -> mvn compile
+FORGE_COMMIT pin   : c1c64a53586459cd0d4c70f27abd1aa8bbc92891 (matches ~/code/forge HEAD)
+built date         : 2026-07-21
+artifact           : spike-classes/forge/spike/*.class  (only the forge.spike package differs
+                     between builds; the pinned Forge engine classes in target/classes are identical
+                     across OLD/FIX/STAGE0, so only these are stashed).
+
+HOW TO RUN THIS BUILD with run-llm-headless.sh:
+  run-llm-headless.sh builds  CP="target/classes:$(cat /tmp/forge_cp.txt)"  and runs
+  forge.spike.LlmSpikeHeadless from ~/code/forge/forge-gui-desktop. To use THIS build's spike
+  code without recompiling, PREPEND this build's spike-classes dir so it shadows target/classes:
+
+    CP="/Users/lumlumlam/code/mtg-forge-llm-agent/runs/ab-builds/OLD/spike-classes:target/classes:$(cat /tmp/forge_cp.txt)"
+
+  i.e. edit the CP= line in ~/code/forge/run-llm-headless.sh to the above (keep everything else).
+  The pinned engine classes come from target/classes; the spike classes come first from here.
+  (Equivalently: `bash install.sh` from the 820f2fc worktree then recompile — but the shadow CP
+  avoids a rebuild and lets all three builds coexist.)

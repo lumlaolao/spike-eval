@@ -1,0 +1,52 @@
+========================================================================
+  EXPLORATORY MODE — numbers from this run are NOT citable.
+  Mirror-deck / forced-heuristics-off / jobs=1 guards are DISABLED.
+  Re-run without --exploratory (and a mirror deck) for a citable batch.
+========================================================================
+[provenance] engine=unknown overlay=6c3b0bde7cd3 deck=8b2254558a4c discipline=exploratory
+[out] /Users/lumlumlam/code/mtg-forge-llm-agent/runs/ab-quality-1/fix
+Running 20 games (jobs=2, out=/Users/lumlumlam/code/mtg-forge-llm-agent/runs/ab-quality-1/fix, forge_home=/private/tmp/claude-501/-Users-lumlumlam-code-claude-obsidian/15c29d3f-3105-4c52-8746-756a816457bc/scratchpad/forge-FIX)
+[start] seed=301 swap=0 -> game-301-0.log
+[start] seed=301 swap=1 -> game-301-1.log
+[done] seed=301 swap=0
+[start] seed=302 swap=0 -> game-302-0.log
+[done] seed=301 swap=1
+[start] seed=302 swap=1 -> game-302-1.log
+[done] seed=302 swap=0
+[start] seed=303 swap=0 -> game-303-0.log
+[done] seed=302 swap=1
+[start] seed=303 swap=1 -> game-303-1.log
+[done] seed=303 swap=1
+[start] seed=304 swap=0 -> game-304-0.log
+[done] seed=303 swap=0
+[start] seed=304 swap=1 -> game-304-1.log
+[done] seed=304 swap=0
+[start] seed=305 swap=0 -> game-305-0.log
+[done] seed=304 swap=1
+[start] seed=305 swap=1 -> game-305-1.log
+[done] seed=305 swap=0
+[start] seed=306 swap=0 -> game-306-0.log
+[done] seed=306 swap=0
+[start] seed=306 swap=1 -> game-306-1.log
+[done] seed=306 swap=1
+[start] seed=307 swap=0 -> game-307-0.log
+[done] seed=305 swap=1
+[start] seed=307 swap=1 -> game-307-1.log
+[done] seed=307 swap=0
+[start] seed=308 swap=0 -> game-308-0.log
+[done] seed=308 swap=0
+[start] seed=308 swap=1 -> game-308-1.log
+[done] seed=307 swap=1
+[start] seed=309 swap=0 -> game-309-0.log
+[done] seed=308 swap=1
+[start] seed=309 swap=1 -> game-309-1.log
+[done] seed=309 swap=0
+[start] seed=310 swap=0 -> game-310-0.log
+[done] seed=310 swap=0
+[start] seed=310 swap=1 -> game-310-1.log
+[done] seed=309 swap=1
+[done] seed=310 swap=1
+
+=== batch summary ===
+completed: 20  skipped(resume): 0  problems: 0
+Aggregate with: python3 /Users/lumlumlam/code/mtg-forge-llm-agent/eval/aggregate.py /Users/lumlumlam/code/mtg-forge-llm-agent/runs/ab-quality-1/fix

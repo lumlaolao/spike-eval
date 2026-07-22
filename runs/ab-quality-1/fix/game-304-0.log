@@ -1,0 +1,469 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 304
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/eval/decks/ur-delver.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/eval/decks/burn.plan
+[DECK] loaded 'UR Delver': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/eval/decks/ur-delver.txt)
+[DECK] loaded 'Burn': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/eval/decks/burn.txt)
+[SEATS] A=UR Delver(llm,openrouter:google/gemini-3.5-flash) B=Burn(ai,opus)
+[HEADLESS] game starting (cap=20min)
+[UR Delver] [ROUTER] mulligan: 5/7 lands -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/smart] replied in 2543 ms
+[UR Delver] [ROUTER] mulligan: MULLIGAN
+[OPENROUTER UR Delver/smart] replied in 4293 ms
+[UR Delver] [ROUTER] mulligan-bottom: Ponder
+[UR Delver] [ROUTER] mulligan: heuristic KEEP (2/6 lands)
+[UR Delver] [TALLY] smart=2 fast=0 auto=0 ai=0 avgSmart=3418ms
+[UR Delver] [ROUTER] play(main): 0 castable + 2 land -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER UR Delver/fast] replied in 12690 ms
+[OPENROUTER UR Delver/fast] replied in 3388 ms
+[UR Delver] [ROUTER] play: land Scalding Tarn
+[UR Delver] [TALLY] smart=2 fast=2 auto=0 ai=0 avgSmart=3418ms avgFast=8039ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/smart] replied in 3081 ms
+[UR Delver] [ROUTER] plan: Fetch Volcanic Island and cast Delver of Secrets to start the clock.
+[UR Delver] [ROUTER] play: casts Scalding Tarn [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Island or Mountain card, put it onto the battlefield, then shuffle.]
+[UR Delver] [TALLY] smart=3 fast=2 auto=0 ai=0 avgSmart=3305ms avgFast=8039ms
+[UR Delver] [ROUTER] play(main): 3 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/smart] replied in 1983 ms
+[UR Delver] [ROUTER] play: casts Delver of Secrets {U} [Delver of Secrets - Creature 1 / 1]
+[UR Delver] [TALLY] smart=4 fast=2 auto=0 ai=0 avgSmart=2975ms avgFast=8039ms
+[UR Delver] [ROUTER] play(main): 3 castable + 1 land -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/smart] replied in 3023 ms
+[UR Delver] [ROUTER] plan: Play Island to develop mana, then use Ponder to search for threats.
+[UR Delver] [ROUTER] play: land Island
+[UR Delver] [TALLY] smart=5 fast=2 auto=0 ai=0 avgSmart=2984ms avgFast=8039ms
+[UR Delver] [ROUTER] play(main): 3 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/smart] replied in 2563 ms
+[UR Delver] [ROUTER] play: casts Ponder {U} [Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card.]
+[OPENROUTER UR Delver/smart] replied in 5574 ms
+[UR Delver] [ROUTER] order [Ponder] -> Library: Daze, Island, Island
+[OPENROUTER UR Delver/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER UR Delver/fast] replied in 12776 ms
+[OPENROUTER UR Delver/fast] replied in 2966 ms
+[UR Delver] [ROUTER] confirm(Do you want to shuffle the library?): YES
+[UR Delver] [TALLY] smart=7 fast=4 auto=0 ai=0 avgSmart=3294ms avgFast=7955ms
+[UR Delver] [ROUTER] play(main): 3 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/smart] replied in 4145 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] replied in 3653 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER UR Delver/fast] replied in 9847 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] replied in 4072 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [TALLY] smart=8 fast=7 auto=0 ai=0 avgSmart=3400ms avgFast=7056ms
+[UR Delver] [ROUTER] play(main): 3 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/smart] replied in 4552 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] replied in 3862 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] replied in 4293 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] replied in 4529 ms
+[UR Delver] [ROUTER] play: casts Brainstorm {U} [Draw three cards, then put two cards from your hand on top of your library in any order.]
+[OPENROUTER UR Delver/smart] replied in 6130 ms
+[UR Delver] [ROUTER] zone-change: Chain Lightning [UR Delver's Hand] -> Library [Brainstorm]
+[OPENROUTER UR Delver/smart] replied in 8488 ms
+[UR Delver] [ROUTER] zone-change: Wasteland [UR Delver's Hand] -> Library [Brainstorm]
+[OPENROUTER UR Delver/smart] replied in 9023 ms
+[UR Delver] [ROUTER] order [Brainstorm] -> Library: Chain Lightning, Wasteland
+[UR Delver] [TALLY] smart=12 fast=10 auto=0 ai=0 avgSmart=4616ms avgFast=6207ms
+[UR Delver] [ROUTER] play(main): 2 castable + 1 land -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/smart] replied in 4719 ms
+[UR Delver] [ROUTER] plan: Play Wasteland to destroy Sunbaked Canyon and pass, holding up Spell Pierce.
+[UR Delver] [ROUTER] play: land Wasteland
+[UR Delver] [TALLY] smart=13 fast=10 auto=0 ai=0 avgSmart=4624ms avgFast=6207ms
+[UR Delver] [ROUTER] play(main): 3 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/smart] replied in 3186 ms
+[OPENROUTER UR Delver/smart] replied in 17727 ms
+[UR Delver] [ROUTER] target: Sunbaked Canyon[tapped] [Burn's Battlefield] <- Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[UR Delver] [ROUTER] play: casts Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[UR Delver] [TALLY] smart=15 fast=10 auto=0 ai=0 avgSmart=5402ms avgFast=6207ms
+[UR Delver] [ROUTER] play(main): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/smart] replied in 5159 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER UR Delver/fast] replied in 8926 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] replied in 3795 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] replied in 3921 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [TALLY] smart=16 fast=13 auto=0 ai=0 avgSmart=5386ms avgFast=6055ms
+[UR Delver] [ROUTER] play(main): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/smart] replied in 6758 ms
+[UR Delver] [ROUTER] play: PASS
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+[UR Delver] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER UR Delver/fast] replied in 8605 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] replied in 2692 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] replied in 3145 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER UR Delver/fast] replied in 9182 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER UR Delver/fast] replied in 10539 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER UR Delver/fast] replied in 9407 ms
+[UR Delver] [ROUTER] play: casts Brainstorm {U} [Draw three cards, then put two cards from your hand on top of your library in any order.]
+[UR Delver] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER UR Delver/fast] replied in 7807 ms
+[UR Delver] [ROUTER] play: PASS
+[OPENROUTER UR Delver/smart] replied in 4110 ms
+[UR Delver] [ROUTER] zone-change: Wasteland [UR Delver's Hand] -> Library [Brainstorm]
+[OPENROUTER UR Delver/smart] replied in 13727 ms
+[UR Delver] [ROUTER] zone-change: Force of Will [UR Delver's Hand] -> Library [Brainstorm]
+[OPENROUTER UR Delver/smart] replied in 7052 ms
+[UR Delver] [ROUTER] order [Brainstorm] -> Library: Wasteland, Force of Will
+[UR Delver] [TALLY] smart=20 fast=20 auto=0 ai=0 avgSmart=5891ms avgFast=6504ms
+[UR Delver] [ROUTER] play(main): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/smart] replied in 5251 ms
+[UR Delver] [ROUTER] plan: Cast Chain Lightning on Eidolon to clear the lock piece.
+[OPENROUTER UR Delver/smart] replied in 1957 ms
+[UR Delver] [ROUTER] target: Eidolon of the Great Revel (2/2)[tapped] [Burn's Battlefield] <- Chain Lightning {R} [CARDNAME deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may...]
+[UR Delver] [ROUTER] play: casts Chain Lightning {R} [CARDNAME deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may...]
+[UR Delver] [TALLY] smart=22 fast=20 auto=0 ai=0 avgSmart=5683ms avgFast=6504ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/smart] replied in 2281 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [TALLY] smart=23 fast=20 auto=0 ai=0 avgSmart=5535ms avgFast=6504ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/smart] replied in 3435 ms
+[UR Delver] [ROUTER] play: casts Delver of Secrets {U} [Delver of Secrets - Creature 1 / 1]
+[OPENROUTER UR Delver/fast] replied in 3915 ms
+[UR Delver] [ROUTER] confirm(Reveal cards to other players?): YES
+[UR Delver] [TALLY] smart=24 fast=21 auto=0 ai=0 avgSmart=5448ms avgFast=6381ms
+[UR Delver] [ROUTER] play(main): 0 castable + 1 land -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] replied in 3693 ms
+[UR Delver] [ROUTER] play: land Wasteland
+[UR Delver] [TALLY] smart=24 fast=22 auto=0 ai=0 avgSmart=5448ms avgFast=6259ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/smart] replied in 4986 ms
+[UR Delver] [ROUTER] plan: Attack with Delver of Secrets and hold up Spell Pierce and Daze.
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] replied in 3062 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [AUTO-LEGAL] attackers(forced-only-legal)->attack Delver of Secrets
+[UR Delver] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] replied in 4193 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] replied in 3390 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER UR Delver/fast] replied in 8006 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] replied in 3366 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [TALLY] smart=25 fast=27 auto=1 ai=0 avgSmart=5429ms avgFast=5915ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/smart] replied in 2753 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER UR Delver/fast] replied in 9251 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 3 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER UR Delver/fast] replied in 9930 ms
+[UR Delver] [ROUTER] target: Searing Blaze [Stack] <- Spell Pierce {U} [Counter target noncreature spell unless its controller pays {2}.] (only legal)
+[UR Delver] [ROUTER] play: casts Spell Pierce {U} [Counter target noncreature spell unless its controller pays {2}.]
+[UR Delver] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER UR Delver/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER UR Delver/fast] replied in 9372 ms
+[UR Delver] [ROUTER] target: Searing Blaze [Stack] <- Daze 1{U} [Counter target spell unless its controller pays {1}.] (only legal)
+[UR Delver] [ROUTER] play: casts Daze 1{U} [Counter target spell unless its controller pays {1}.]
+========== GAME OVER ==========
+outcome: B after 10 turns (AllOpponentsLost) in 328s
+--- full game log ---
+  MULLIGAN: UR Delver has mulliganed down to 6 cards.
+  MULLIGAN: UR Delver has kept a hand of 6 cards
+  MULLIGAN: Burn has kept a hand of 7 cards
+  TURN: Turn 1 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Scalding Tarn (24)
+  LIFE: Life: UR Delver 20 > 19
+  ZONE_CHANGE: Scalding Tarn (24) was put into Graveyard from Battlefield.
+  STACK_ADD: UR Delver activated Scalding Tarn
+  STACK_RESOLVE: Scalding Tarn (24) - UR Delver searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  MANA: Volcanic Island (12) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Delver of Secrets
+  STACK_RESOLVE: Delver of Secrets - Creature 1 / 1
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 2 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (85)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  MANA: Mountain (85) - {T}: Add {R}.
+  STACK_ADD: Burn cast Lightning Bolt targeting [Delver of Secrets (7)]
+  DAMAGE: Lightning Bolt (99) deals 3 damage to Delver of Secrets (7).
+  STACK_RESOLVE: Lightning Bolt (99) - Lightning Bolt (99) deals 3 damage to Delver of Secrets (7).
+  ZONE_CHANGE: Delver of Secrets (7) was put into Graveyard from Battlefield.
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 3 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Island (36)
+  MANA: Island (36) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Ponder
+  STACK_RESOLVE: Ponder (35) - Look at the top 3 cards of UR Delver's library. Then put them back in any order.You may have that player shuffle their library. UR Delver draws a card.
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 4 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Sunbaked Canyon (80)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  MANA: Volcanic Island (12) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Brainstorm
+  STACK_RESOLVE: Brainstorm (16) - UR Delver draws three cards, then puts two cards from their hand on top of their library in any order.
+  PHASE: Burn's Main phase, postcombat
+  MANA: Mountain (85) - {T}: Add {R}.
+  LIFE: Life: Burn 20 > 19
+  MANA: Sunbaked Canyon (80) - {T}, Pay 1 life: Add {R} or {W}.
+  STACK_ADD: Burn cast Eidolon of the Great Revel
+  STACK_RESOLVE: Eidolon of the Great Revel - Creature 2 / 2
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 5 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Wasteland (55)
+  ZONE_CHANGE: Wasteland (55) was put into Graveyard from Battlefield.
+  STACK_ADD: UR Delver activated Wasteland targeting [Sunbaked Canyon (80)]
+  ZONE_CHANGE: Sunbaked Canyon (80) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (55) - Destroy Sunbaked Canyon (80).
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 6 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (83)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Eidolon of the Great Revel (117) to attack UR Delver.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: UR Delver didn't block Eidolon of the Great Revel (117).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Eidolon of the Great Revel (117) deals 2 combat damage to UR Delver.
+  LIFE: Life: UR Delver 19 > 17
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  MANA: Island (36) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Brainstorm
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  DAMAGE: Eidolon of the Great Revel (117) deals 2 non-combat damage to UR Delver.
+  LIFE: Life: UR Delver 17 > 15
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Brainstorm (17), Activator: UR Delver, SpellAbility: Draw three cards, then put two cards from your hand on top of your library in any order. ]
+  STACK_RESOLVE: Brainstorm (17) - UR Delver draws three cards, then puts two cards from their hand on top of their library in any order.
+  PHASE: Burn's Cleanup step
+  TURN: Turn 7 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  MANA: Volcanic Island (12) - {T}: Add {R}.
+  STACK_ADD: UR Delver cast Chain Lightning targeting [Eidolon of the Great Revel (117)]
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  DAMAGE: Eidolon of the Great Revel (117) deals 2 non-combat damage to UR Delver.
+  LIFE: Life: UR Delver 15 > 13
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Chain Lightning (57), Activator: UR Delver, SpellAbility: Chain Lightning deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may choose a new target for that copy. ]
+  DAMAGE: Chain Lightning (57) deals 3 damage to Eidolon of the Great Revel (117).
+  MANA: Mountain (85) - {T}: Add {R}.
+  MANA: Mountain (83) - {T}: Add {R}.
+  STACK_ADD: Burn cast Chain Lightning targeting [UR Delver]
+  STACK_RESOLVE: Chain Lightning (57) - Chain Lightning (57) deals 3 damage to Eidolon of the Great Revel (117). 
+  ZONE_CHANGE: Eidolon of the Great Revel (117) was put into Graveyard from Battlefield.
+  DAMAGE: Chain Lightning (121) deals 3 non-combat damage to UR Delver.
+  LIFE: Life: UR Delver 13 > 10
+  STACK_RESOLVE: Chain Lightning (121) - Chain Lightning (121) deals 3 damage to UR Delver. 
+  MANA: Island (36) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Delver of Secrets
+  STACK_RESOLVE: Delver of Secrets - Creature 1 / 1
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  ZONE_CHANGE: Mountain (83) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Mountain (85) was put into Graveyard from Battlefield.
+  STACK_ADD: Burn cast Fireblast targeting [UR Delver]
+  DAMAGE: Fireblast (103) deals 4 non-combat damage to UR Delver.
+  LIFE: Life: UR Delver 10 > 6
+  STACK_RESOLVE: Fireblast (103) - Fireblast (103) deals 4 damage to UR Delver.
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 8 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (86)
+  MANA: Mountain (86) - {T}: Add {R}.
+  STACK_ADD: Burn cast Chain Lightning targeting [UR Delver]
+  DAMAGE: Chain Lightning (113) deals 3 non-combat damage to UR Delver.
+  LIFE: Life: UR Delver 6 > 3
+  STACK_RESOLVE: Chain Lightning (113) - Chain Lightning (113) deals 3 damage to UR Delver. 
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 9 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  STACK_ADD: UR Delver triggered Delver of Secrets
+  STACK_RESOLVE: At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets. [Phase: UR Delver]
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Wasteland (52)
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  COMBAT: UR Delver assigned Delver of Secrets (10) to attack Burn.
+  PHASE: UR Delver's Declare Blockers Step
+  COMBAT: Burn didn't block Delver of Secrets (10).
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  DAMAGE: Delver of Secrets (10) deals 1 combat damage to Burn.
+  LIFE: Life: Burn 19 > 18
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 10 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Bloodstained Mire (81)
+  LIFE: Life: Burn 18 > 17
+  ZONE_CHANGE: Bloodstained Mire (81) was put into Graveyard from Battlefield.
+  STACK_ADD: Burn activated Bloodstained Mire
+  STACK_RESOLVE: Bloodstained Mire (81) - Burn searches their library for a Swamp or Mountain card, puts it onto the battlefield, then shuffles.
+  MANA: Mountain (86) - {T}: Add {R}.
+  MANA: Mountain (88) - {T}: Add {R}.
+  STACK_ADD: Burn cast Searing Blaze targeting [UR Delver] [Delver of Secrets (10)]
+  MANA: Island (36) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Spell Pierce targeting [Searing Blaze (108)]
+  STACK_RESOLVE: Spell Pierce (1) - Counter unless its controller pays {2}.
+  MANA: Volcanic Island (12) - {T}: Add {U}.
+  MANA: Wasteland (52) - {T}: Add {C}.
+  STACK_ADD: UR Delver cast Daze targeting [Searing Blaze (108)]
+  STACK_RESOLVE: Daze (50) - Counter unless its controller pays {1}.
+  DAMAGE: Searing Blaze (108) deals 3 non-combat damage to UR Delver.
+  DAMAGE: Searing Blaze (108) deals 3 damage to Delver of Secrets (10).
+  LIFE: Life: UR Delver 3 > 0
+  STACK_RESOLVE: Searing Blaze (108) - Searing Blaze (108) deals 3 damage to UR Delver. Searing Blaze (108) deals 3 damage to Delver of Secrets (10). 
+  PLAYER_CONTROL: UR Delver has restored control over themself
+  PLAYER_CONTROL: Burn has restored control over themself
+  GAME_OUTCOME: Turn 5
+  GAME_OUTCOME: UR Delver has lost because life total reached 0
+  GAME_OUTCOME: Burn has won because all opponents have lost
+  MATCH_RESULTS: UR Delver: 0 Burn: 1 
+===============================

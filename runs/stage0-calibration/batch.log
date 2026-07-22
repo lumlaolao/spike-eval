@@ -1,0 +1,156 @@
+========================================================================
+  EXPLORATORY MODE — numbers from this run are NOT citable.
+  Mirror-deck / forced-heuristics-off / jobs=1 guards are DISABLED.
+  Re-run without --exploratory (and a mirror deck) for a citable batch.
+========================================================================
+[provenance] engine=c1c64a53586459cd0d4c70f27abd1aa8bbc92891 overlay=6c3b0bde7cd3 deck=8b2254558a4c discipline=exploratory
+[out] /Users/lumlumlam/code/mtg-forge-llm-agent/runs/stage0-calibration
+WARNING: --jobs=3 — claude CLI rate limits usually make >2 parallel games counterproductive (decisions time out and fall back to auto/ai, polluting the eval).
+Running 50 games (jobs=3, out=/Users/lumlumlam/code/mtg-forge-llm-agent/runs/stage0-calibration, forge_home=/Users/lumlumlam/code/forge)
+[start] seed=501 swap=0 -> game-501-0.log
+[start] seed=501 swap=1 -> game-501-1.log
+[start] seed=502 swap=0 -> game-502-0.log
+[done] seed=501 swap=1
+[start] seed=502 swap=1 -> game-502-1.log
+[done] seed=502 swap=0
+[start] seed=503 swap=0 -> game-503-0.log
+[done] seed=501 swap=0
+[start] seed=503 swap=1 -> game-503-1.log
+[done] seed=502 swap=1
+[start] seed=504 swap=0 -> game-504-0.log
+[done] seed=503 swap=1
+[start] seed=504 swap=1 -> game-504-1.log
+[done] seed=503 swap=0
+[start] seed=505 swap=0 -> game-505-0.log
+[done] seed=504 swap=1
+[start] seed=505 swap=1 -> game-505-1.log
+[done] seed=505 swap=0
+[start] seed=506 swap=0 -> game-506-0.log
+[done] seed=505 swap=1
+[start] seed=506 swap=1 -> game-506-1.log
+[done] seed=504 swap=0
+[start] seed=507 swap=0 -> game-507-0.log
+[done] seed=506 swap=0
+[start] seed=507 swap=1 -> game-507-1.log
+[done] seed=506 swap=1
+[start] seed=508 swap=0 -> game-508-0.log
+[done] seed=507 swap=0
+[start] seed=508 swap=1 -> game-508-1.log
+[done] seed=507 swap=1
+[start] seed=509 swap=0 -> game-509-0.log
+[done] seed=508 swap=0
+[start] seed=509 swap=1 -> game-509-1.log
+[done] seed=509 swap=1
+[start] seed=510 swap=0 -> game-510-0.log
+[done] seed=509 swap=0
+[start] seed=510 swap=1 -> game-510-1.log
+[done] seed=508 swap=1
+[start] seed=511 swap=0 -> game-511-0.log
+========================================================================
+  EXPLORATORY MODE — numbers from this run are NOT citable.
+  Mirror-deck / forced-heuristics-off / jobs=1 guards are DISABLED.
+  Re-run without --exploratory (and a mirror deck) for a citable batch.
+========================================================================
+[provenance] engine=c1c64a53586459cd0d4c70f27abd1aa8bbc92891 overlay=6c3b0bde7cd3 deck=8b2254558a4c discipline=exploratory
+[out] /Users/lumlumlam/code/mtg-forge-llm-agent/runs/stage0-calibration
+Resuming: skipping 18/50 combos already complete: 501/swap0, 501/swap1, 502/swap0, 502/swap1, 503/swap0, 503/swap1, 504/swap0, 504/swap1, 505/swap0, 505/swap1, 506/swap0, 506/swap1, 507/swap0, 507/swap1, 508/swap0, 508/swap1, 509/swap0, 509/swap1
+Running 32 games (jobs=8, out=/Users/lumlumlam/code/mtg-forge-llm-agent/runs/stage0-calibration, forge_home=/Users/lumlumlam/code/forge)
+[start] seed=510 swap=0 -> game-510-0.log
+[start] seed=510 swap=1 -> game-510-1.log
+[start] seed=511 swap=0 -> game-511-0.log
+[start] seed=511 swap=1 -> game-511-1.log
+[start] seed=512 swap=0 -> game-512-0.log
+[start] seed=512 swap=1 -> game-512-1.log
+[start] seed=513 swap=0 -> game-513-0.log
+[start] seed=513 swap=1 -> game-513-1.log
+[fail] seed=513 swap=1 exit=1 (see /Users/lumlumlam/code/mtg-forge-llm-agent/runs/stage0-calibration/game-513-1.log)
+[start] seed=514 swap=0 -> game-514-0.log
+[fail] seed=513 swap=0 exit=1 (see /Users/lumlumlam/code/mtg-forge-llm-agent/runs/stage0-calibration/game-513-0.log)
+[start] seed=514 swap=1 -> game-514-1.log
+[fail] seed=512 swap=1 exit=1 (see /Users/lumlumlam/code/mtg-forge-llm-agent/runs/stage0-calibration/game-512-1.log)
+[start] seed=515 swap=0 -> game-515-0.log
+[fail] seed=511 swap=1 exit=1 (see /Users/lumlumlam/code/mtg-forge-llm-agent/runs/stage0-calibration/game-511-1.log)
+[start] seed=515 swap=1 -> game-515-1.log
+[fail] seed=510 swap=1 exit=1 (see /Users/lumlumlam/code/mtg-forge-llm-agent/runs/stage0-calibration/game-510-1.log)
+[start] seed=516 swap=0 -> game-516-0.log
+[fail] seed=512 swap=0 exit=1 (see /Users/lumlumlam/code/mtg-forge-llm-agent/runs/stage0-calibration/game-512-0.log)
+[start] seed=516 swap=1 -> game-516-1.log
+[fail] seed=510 swap=0 exit=1 (see /Users/lumlumlam/code/mtg-forge-llm-agent/runs/stage0-calibration/game-510-0.log)
+[start] seed=517 swap=0 -> game-517-0.log
+========================================================================
+  EXPLORATORY MODE — numbers from this run are NOT citable.
+  Mirror-deck / forced-heuristics-off / jobs=1 guards are DISABLED.
+  Re-run without --exploratory (and a mirror deck) for a citable batch.
+========================================================================
+[provenance] engine=c1c64a53586459cd0d4c70f27abd1aa8bbc92891 overlay=6c3b0bde7cd3 deck=8b2254558a4c discipline=exploratory
+[out] /Users/lumlumlam/code/mtg-forge-llm-agent/runs/stage0-calibration
+Resuming: skipping 18/50 combos already complete: 501/swap0, 501/swap1, 502/swap0, 502/swap1, 503/swap0, 503/swap1, 504/swap0, 504/swap1, 505/swap0, 505/swap1, 506/swap0, 506/swap1, 507/swap0, 507/swap1, 508/swap0, 508/swap1, 509/swap0, 509/swap1
+Running 32 games (jobs=8, out=/Users/lumlumlam/code/mtg-forge-llm-agent/runs/stage0-calibration, forge_home=/Users/lumlumlam/code/forge)
+[start] seed=510 swap=0 -> game-510-0.log
+[start] seed=510 swap=1 -> game-510-1.log
+[start] seed=511 swap=0 -> game-511-0.log
+[start] seed=511 swap=1 -> game-511-1.log
+[start] seed=512 swap=0 -> game-512-0.log
+[start] seed=512 swap=1 -> game-512-1.log
+[start] seed=513 swap=0 -> game-513-0.log
+[start] seed=513 swap=1 -> game-513-1.log
+[done] seed=511 swap=1
+[start] seed=514 swap=0 -> game-514-0.log
+[done] seed=512 swap=1
+[start] seed=514 swap=1 -> game-514-1.log
+[done] seed=511 swap=0
+[start] seed=515 swap=0 -> game-515-0.log
+[done] seed=513 swap=1
+[start] seed=515 swap=1 -> game-515-1.log
+[done] seed=510 swap=0
+[start] seed=516 swap=0 -> game-516-0.log
+[done] seed=510 swap=1
+[start] seed=516 swap=1 -> game-516-1.log
+[done] seed=512 swap=0
+[start] seed=517 swap=0 -> game-517-0.log
+[done] seed=514 swap=0
+[start] seed=517 swap=1 -> game-517-1.log
+[done] seed=513 swap=0
+[start] seed=518 swap=0 -> game-518-0.log
+[done] seed=515 swap=0
+[start] seed=518 swap=1 -> game-518-1.log
+[done] seed=516 swap=0
+[start] seed=519 swap=0 -> game-519-0.log
+[done] seed=515 swap=1
+[start] seed=519 swap=1 -> game-519-1.log
+[done] seed=517 swap=1
+[start] seed=520 swap=0 -> game-520-0.log
+[done] seed=519 swap=0
+[start] seed=520 swap=1 -> game-520-1.log
+[done] seed=516 swap=1
+[start] seed=521 swap=0 -> game-521-0.log
+[done] seed=518 swap=0
+[start] seed=521 swap=1 -> game-521-1.log
+[done] seed=514 swap=1
+[start] seed=522 swap=0 -> game-522-0.log
+[done] seed=517 swap=0
+[start] seed=522 swap=1 -> game-522-1.log
+[done] seed=522 swap=0
+[start] seed=523 swap=0 -> game-523-0.log
+[done] seed=519 swap=1
+[start] seed=523 swap=1 -> game-523-1.log
+[done] seed=518 swap=1
+[start] seed=524 swap=0 -> game-524-0.log
+[done] seed=523 swap=0
+[start] seed=524 swap=1 -> game-524-1.log
+[done] seed=522 swap=1
+[start] seed=525 swap=0 -> game-525-0.log
+[done] seed=520 swap=0
+[start] seed=525 swap=1 -> game-525-1.log
+[done] seed=521 swap=1
+[done] seed=521 swap=0
+[done] seed=525 swap=0
+[done] seed=523 swap=1
+[done] seed=520 swap=1
+[done] seed=524 swap=1
+[done] seed=525 swap=1
+[done] seed=524 swap=0
+
+=== batch summary ===
+completed: 32  skipped(resume): 18  problems: 0
+Aggregate with: python3 /Users/lumlumlam/code/mtg-forge-llm-agent/eval/aggregate.py /Users/lumlumlam/code/mtg-forge-llm-agent/runs/stage0-calibration

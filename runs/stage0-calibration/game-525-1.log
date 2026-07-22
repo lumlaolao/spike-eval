@@ -1,0 +1,505 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 525
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/eval/decks/ur-delver.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/eval/decks/burn.plan
+[DECK] loaded 'UR Delver': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/eval/decks/ur-delver.txt)
+[DECK] loaded 'Burn': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/eval/decks/burn.txt)
+[SEATS] A=UR Delver(llm,openrouter:deepseek/deepseek-v4-pro) B=Burn(ai,opus) [SWAPPED]
+[HEADLESS] game starting (cap=30min)
+[UR Delver] [ROUTER] mulligan: 6/7 lands -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 14980 ms
+[UR Delver] [ROUTER] mulligan: MULLIGAN
+[OPENROUTER UR Delver/smart] replied in 17183 ms
+[UR Delver] [ROUTER] mulligan-bottom: Chain Lightning
+[UR Delver] [ROUTER] mulligan: heuristic KEEP (3/6 lands)
+[UR Delver] [TALLY] smart=2 fast=0 auto=0 ai=0 avgSmart=16081ms
+[UR Delver] [ROUTER] play(main): 0 castable + 2 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 9925 ms
+[UR Delver] [ROUTER] play: land Scalding Tarn
+[UR Delver] [TALLY] smart=2 fast=1 auto=0 ai=0 avgSmart=16081ms avgFast=9925ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 22773 ms
+[UR Delver] [ROUTER] plan: Fetch Volcanic Island, cast Brainstorm to dig for a threat and hide excess lands.
+[UR Delver] [ROUTER] play: casts Scalding Tarn [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Island or Mountain card, put it onto the battlefield, then shuffle.]
+[UR Delver] [TALLY] smart=3 fast=1 auto=0 ai=0 avgSmart=18312ms avgFast=9925ms
+[UR Delver] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 13441 ms
+[UR Delver] [ROUTER] play: casts Brainstorm {U} [Draw three cards, then put two cards from your hand on top of your library in any order.]
+[OPENROUTER UR Delver/smart] replied in 26951 ms
+[UR Delver] [ROUTER] zone-change: Wasteland [UR Delver's Hand] -> Library [Brainstorm]
+[OPENROUTER UR Delver/smart] replied in 5227 ms
+[OPENROUTER UR Delver/smart] replied in 9543 ms
+[UR Delver] [ROUTER] zone-change: Delver of Secrets (1/1) [UR Delver's Hand] -> Library [Brainstorm]
+[OPENROUTER UR Delver/smart] replied in 10017 ms
+[UR Delver] [ROUTER] order [Brainstorm] -> Library: Wasteland, Delver of Secrets
+[UR Delver] [TALLY] smart=8 fast=1 auto=0 ai=0 avgSmart=15014ms avgFast=9925ms
+[UR Delver] [ROUTER] play(main): 2 castable + 1 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 61373 ms
+[UR Delver] [ROUTER] plan: Land Delver to start the clock, protect with Force backup, then deploy second land and hold up Bolt/reactive spells.
+[UR Delver] [ROUTER] play: casts Delver of Secrets {U} [Delver of Secrets - Creature 1 / 1]
+[UR Delver] [TALLY] smart=9 fast=1 auto=0 ai=0 avgSmart=20165ms avgFast=9925ms
+[UR Delver] [ROUTER] play(main): 0 castable + 1 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 3996 ms
+[UR Delver] [ROUTER] play: land Island
+[UR Delver] [ROUTER] blockers: 1 atk / 1 blk -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 5463 ms
+[UR Delver] [ROUTER] blockers: NONE
+[OPENROUTER UR Delver/fast] replied in 3944 ms
+[UR Delver] [ROUTER] confirm(Reveal cards to other players?): YES
+[UR Delver] [TALLY] smart=10 fast=3 auto=0 ai=0 avgSmart=18695ms avgFast=5955ms
+[UR Delver] [ROUTER] play(main): 1 castable + 3 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 39656 ms
+[UR Delver] [ROUTER] plan: Bolt the Goblin Guide to stop future attacks, then play Island and hold up Force of Will.
+[OPENROUTER UR Delver/smart] replied in 6461 ms
+[UR Delver] [ROUTER] target: Goblin Guide (2/2)[tapped] [Burn's Battlefield] <- Lightning Bolt {R} [CARDNAME deals 3 damage to any target.]
+[UR Delver] [ROUTER] play: casts Lightning Bolt {R} [CARDNAME deals 3 damage to any target.]
+[UR Delver] [TALLY] smart=12 fast=3 auto=0 ai=0 avgSmart=19422ms avgFast=5955ms
+[UR Delver] [ROUTER] play(main): 0 castable + 3 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 42208 ms
+[UR Delver] [ROUTER] play: land Wasteland
+[UR Delver] [TALLY] smart=12 fast=4 auto=0 ai=0 avgSmart=19422ms avgFast=15018ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 14873 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 20308 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [AUTO-LEGAL] attackers(forced-only-legal)->attack Delver of Secrets
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 20845 ms
+[OPENROUTER UR Delver/smart] replied in 50805 ms
+[UR Delver] [ROUTER] target: Wasteland[untapped] [UR Delver's Battlefield] <- Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[UR Delver] [ROUTER] play: casts Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[UR Delver] [TALLY] smart=14 fast=6 auto=1 ai=0 avgSmart=21339ms avgFast=16871ms
+[UR Delver] [ROUTER] play(main): 1 castable + 2 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 16683 ms
+[UR Delver] [ROUTER] plan: Cast Murktide Regent (delve 5, 5/5 flyer) to start racing; Eidolon doesn't trigger on 7-drop, and we have no other proactive play.
+[UR Delver] [ROUTER] play: casts Murktide Regent 5{U}{U} [Murktide Regent - Creature 3 / 3]
+[UR Delver] [TALLY] smart=15 fast=6 auto=1 ai=0 avgSmart=21028ms avgFast=16871ms
+[UR Delver] [ROUTER] play(main): 0 castable + 2 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] non-answer -> treating as bridge-down
+[UR Delver] [BRIDGE UR Delver/fast] no reply (attempt 2/3) -> restarting session, retrying in 500ms
+[OPENROUTER UR Delver/fast] replied in 36093 ms
+[UR Delver] [ROUTER] play: land Island
+[UR Delver] [TALLY] smart=15 fast=7 auto=1 ai=0 avgSmart=21028ms avgFast=19617ms
+[UR Delver] [ROUTER] play(main): 1 castable + 1 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 48098 ms
+[UR Delver] [ROUTER] plan: Play Scalding Tarn, then attack with Murktide to pressure and force trades.
+[UR Delver] [ROUTER] play: land Scalding Tarn
+[UR Delver] [TALLY] smart=16 fast=7 auto=1 ai=0 avgSmart=22720ms avgFast=19617ms
+[UR Delver] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 48493 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 10974 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [AUTO-LEGAL] attackers(forced-only-legal)->attack Murktide Regent
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 7321 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 21969 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 19827 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 6483 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [TALLY] smart=17 fast=12 auto=2 ai=0 avgSmart=24236ms avgFast=16991ms
+[UR Delver] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 81598 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 18748 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 12297 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 41800 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 30498 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 3466 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 12857 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [TALLY] smart=18 fast=18 auto=2 ai=0 avgSmart=27423ms avgFast=17975ms
+[UR Delver] [ROUTER] play(main): 3 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 54786 ms
+[UR Delver] [ROUTER] plan: Attack with Murktide, hold up Force of Will to counter any threat, block with Murktide if necessary.
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 10189 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [AUTO-LEGAL] attackers(forced-only-legal)->attack Murktide Regent
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 12414 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 14405 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 26620 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 3672 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [TALLY] smart=19 fast=23 auto=3 ai=0 avgSmart=28863ms avgFast=16993ms
+[UR Delver] [ROUTER] play(main): 3 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 42944 ms
+[UR Delver] [ROUTER] play: casts Ponder {U} [Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card.]
+[UR Delver] [TALLY] smart=20 fast=23 auto=3 ai=0 avgSmart=29567ms avgFast=16993ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 24268 ms
+[UR Delver] [ROUTER] play: PASS
+[OPENROUTER UR Delver/smart] replied in 131913 ms
+[UR Delver] [ROUTER] order [Ponder] -> Library: Lightning Bolt, Ponder, Scalding Tarn
+[OPENROUTER UR Delver/fast] replied in 47773 ms
+[UR Delver] [ROUTER] confirm(Do you want to shuffle the library?): NO
+[UR Delver] [TALLY] smart=22 fast=24 auto=3 ai=0 avgSmart=33978ms avgFast=18276ms
+[UR Delver] [ROUTER] play(main): 2 castable + 1 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 29887 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 20124 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 101553 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 38270 ms
+[UR Delver] [ROUTER] play: PASS
+========== GAME OVER ==========
+outcome: B after 12 turns (AllOpponentsLost) in 1387s
+--- full game log ---
+  MULLIGAN: UR Delver has mulliganed down to 6 cards.
+  MULLIGAN: Burn has mulliganed down to 6 cards.
+  MULLIGAN: UR Delver has kept a hand of 6 cards
+  MULLIGAN: Burn has kept a hand of 6 cards
+  TURN: Turn 1 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Scalding Tarn (85)
+  LIFE: Life: UR Delver 20 > 19
+  ZONE_CHANGE: Scalding Tarn (85) was put into Graveyard from Battlefield.
+  STACK_ADD: UR Delver activated Scalding Tarn
+  STACK_RESOLVE: Scalding Tarn (85) - UR Delver searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  MANA: Volcanic Island (74) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Brainstorm
+  STACK_RESOLVE: Brainstorm (78) - UR Delver draws three cards, then puts two cards from their hand on top of their library in any order.
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 2 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (26)
+  MANA: Mountain (26) - {T}: Add {R}.
+  STACK_ADD: Burn cast Goblin Guide
+  STACK_RESOLVE: Goblin Guide - Creature 2 / 2
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Goblin Guide (8) to attack UR Delver.
+  STACK_ADD: Burn triggered Goblin Guide
+  STACK_RESOLVE: Whenever Goblin Guide attacks, defending player reveals the top card of their library. If it's a land card, that player puts it into their hand. [Attacker: Goblin Guide (8)]
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: UR Delver didn't block Goblin Guide (8).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Goblin Guide (8) deals 2 combat damage to UR Delver.
+  LIFE: Life: UR Delver 19 > 17
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 3 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  MANA: Volcanic Island (74) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Delver of Secrets
+  STACK_RESOLVE: Delver of Secrets - Creature 1 / 1
+  LAND: UR Delver played Island (97)
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 4 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (31)
+  MANA: Mountain (26) - {T}: Add {R}.
+  STACK_RESOLVE: Burn has suspended Rift Bolt with 1 time counters on it.
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Goblin Guide (8) to attack UR Delver.
+  STACK_ADD: Burn triggered Goblin Guide
+  STACK_RESOLVE: Whenever Goblin Guide attacks, defending player reveals the top card of their library. If it's a land card, that player puts it into their hand. [Attacker: Goblin Guide (8)]
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: UR Delver didn't block Goblin Guide (8).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Goblin Guide (8) deals 2 combat damage to UR Delver.
+  LIFE: Life: UR Delver 17 > 15
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 5 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  STACK_ADD: UR Delver triggered Delver of Secrets
+  STACK_RESOLVE: At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets. [Phase: UR Delver]
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  MANA: Volcanic Island (74) - {T}: Add {R}.
+  STACK_ADD: UR Delver cast Lightning Bolt targeting [Goblin Guide (8)]
+  DAMAGE: Lightning Bolt (104) deals 3 damage to Goblin Guide (8).
+  STACK_RESOLVE: Lightning Bolt (104) - Lightning Bolt (104) deals 3 damage to Goblin Guide (8).
+  ZONE_CHANGE: Goblin Guide (8) was put into Graveyard from Battlefield.
+  LAND: UR Delver played Wasteland (114)
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  COMBAT: UR Delver assigned Delver of Secrets (69) to attack Burn.
+  ZONE_CHANGE: Wasteland (114) was put into Graveyard from Battlefield.
+  STACK_ADD: UR Delver activated Wasteland targeting [Wasteland (114)]
+  STACK_RESOLVE: Wasteland ability fizzles.
+  PHASE: UR Delver's Declare Blockers Step
+  COMBAT: Burn didn't block Delver of Secrets (69).
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  DAMAGE: Delver of Secrets (69) deals 1 combat damage to Burn.
+  LIFE: Life: Burn 20 > 19
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 6 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  STACK_ADD: Burn triggered Rift Bolt
+  STACK_RESOLVE: At the beginning of your upkeep, if this card is suspended, remove a time counter from it [Phase: Burn]
+  STACK_ADD: Burn triggered Rift Bolt
+  STACK_ADD: Burn cast Rift Bolt targeting [Delver of Secrets (69)]
+  STACK_RESOLVE: When the last time counter is removed from this card, if it's exiled, you may play it without paying its mana cost if able.  If you can't, it remains exiled. If you cast a creature spell this way, it gains haste until you lose control of the spell or the permanent it becomes. [Removed from: Rift Bolt (49)]
+  DAMAGE: Rift Bolt (49) deals 3 damage to Delver of Secrets (69).
+  STACK_RESOLVE: Rift Bolt (49) - Rift Bolt (49) deals 3 damage to Delver of Secrets (69).
+  ZONE_CHANGE: Delver of Secrets (69) was put into Graveyard from Battlefield.
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (38)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  MANA: Mountain (26) - {T}: Add {R}.
+  MANA: Mountain (31) - {T}: Add {R}.
+  STACK_ADD: Burn cast Eidolon of the Great Revel
+  STACK_RESOLVE: Eidolon of the Great Revel - Creature 2 / 2
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 7 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  MANA: Island (97) - {T}: Add {U}.
+  MANA: Volcanic Island (74) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Murktide Regent
+  EFFECT_REPLACED: Murktide Regent enters with a +1/+1 counter on it for each instant and sorcery card exiled with it.
+  STACK_RESOLVE: Murktide Regent - Creature 3 / 3
+  LAND: UR Delver played Island (102)
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 8 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (36)
+  MANA: Mountain (26) - {T}: Add {R}.
+  STACK_ADD: Burn cast Goblin Guide
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  DAMAGE: Eidolon of the Great Revel (59) deals 2 non-combat damage to Burn.
+  LIFE: Life: Burn 19 > 17
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Goblin Guide (6), Activator: Burn, SpellAbility: Goblin Guide - Creature 2 / 2]
+  STACK_RESOLVE: Goblin Guide - Creature 2 / 2
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 9 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Scalding Tarn (86)
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  COMBAT: UR Delver assigned Murktide Regent (120) to attack Burn.
+  PHASE: UR Delver's Declare Blockers Step
+  COMBAT: Burn didn't block Murktide Regent (120).
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  DAMAGE: Murktide Regent (120) deals 5 combat damage to Burn.
+  LIFE: Life: Burn 17 > 12
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 10 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  MANA: Mountain (26) - {T}: Add {R}.
+  MANA: Mountain (31) - {T}: Add {R}.
+  STACK_ADD: Burn cast Price of Progress
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  DAMAGE: Eidolon of the Great Revel (59) deals 2 non-combat damage to Burn.
+  LIFE: Life: Burn 12 > 10
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Price of Progress (16), Activator: Burn, SpellAbility: Price of Progress deals 2 damage to each player for each nonbasic land they control.]
+  DAMAGE: Price of Progress (16) deals 4 non-combat damage to UR Delver.
+  LIFE: Life: UR Delver 15 > 11
+  STACK_RESOLVE: Price of Progress (16) - Price of Progress deals 2 damage to each player for each nonbasic land they control.
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (29)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Goblin Guide (6) and Eidolon of the Great Revel (59) to attack UR Delver.
+  STACK_ADD: Burn triggered Goblin Guide
+  STACK_RESOLVE: Whenever Goblin Guide attacks, defending player reveals the top card of their library. If it's a land card, that player puts it into their hand. [Attacker: Goblin Guide (6)]
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: UR Delver didn't block Goblin Guide (6).
+UR Delver didn't block Eidolon of the Great Revel (59).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Goblin Guide (6) deals 2 combat damage to UR Delver.
+  DAMAGE: Eidolon of the Great Revel (59) deals 2 combat damage to UR Delver.
+  LIFE: Life: UR Delver 11 > 7
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  MANA: Mountain (38) - {T}: Add {R}.
+  STACK_ADD: Burn cast Lava Spike targeting [UR Delver]
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  DAMAGE: Eidolon of the Great Revel (59) deals 2 non-combat damage to Burn.
+  LIFE: Life: Burn 10 > 8
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Lava Spike (11), Activator: Burn, SpellAbility: Lava Spike deals 3 damage to target player or planeswalker.]
+  DAMAGE: Lava Spike (11) deals 3 non-combat damage to UR Delver.
+  LIFE: Life: UR Delver 7 > 4
+  STACK_RESOLVE: Lava Spike (11) - Lava Spike (11) deals 3 damage to UR Delver.
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 11 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  COMBAT: UR Delver assigned Murktide Regent (120) to attack Burn.
+  PHASE: UR Delver's Declare Blockers Step
+  COMBAT: Burn didn't block Murktide Regent (120).
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  DAMAGE: Murktide Regent (120) deals 5 combat damage to Burn.
+  LIFE: Life: Burn 8 > 3
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  MANA: Island (97) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Ponder
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  DAMAGE: Eidolon of the Great Revel (59) deals 2 non-combat damage to UR Delver.
+  LIFE: Life: UR Delver 4 > 2
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Ponder (94), Activator: UR Delver, SpellAbility: Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card. ]
+  STACK_RESOLVE: Ponder (94) - Look at the top 3 cards of UR Delver's library. Then put them back in any order.You may have that player shuffle their library. UR Delver draws a card.
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 12 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Arid Mesa (10)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Eidolon of the Great Revel (59) and Goblin Guide (6) to attack UR Delver.
+  STACK_ADD: Burn triggered Goblin Guide
+  STACK_RESOLVE: Whenever Goblin Guide attacks, defending player reveals the top card of their library. If it's a land card, that player puts it into their hand. [Attacker: Goblin Guide (6)]
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: UR Delver didn't block Eidolon of the Great Revel (59).
+UR Delver didn't block Goblin Guide (6).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Eidolon of the Great Revel (59) deals 2 combat damage to UR Delver.
+  DAMAGE: Goblin Guide (6) deals 2 combat damage to UR Delver.
+  LIFE: Life: UR Delver 2 > -2
+  PLAYER_CONTROL: Burn has restored control over themself
+  PLAYER_CONTROL: UR Delver has restored control over themself
+  GAME_OUTCOME: Turn 6
+  GAME_OUTCOME: Burn has won because all opponents have lost
+  GAME_OUTCOME: UR Delver has lost because life total reached 0
+  MATCH_RESULTS: Burn: 1 UR Delver: 0 
+===============================

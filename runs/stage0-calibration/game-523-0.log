@@ -1,0 +1,387 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 523
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/eval/decks/ur-delver.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/eval/decks/burn.plan
+[DECK] loaded 'UR Delver': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/eval/decks/ur-delver.txt)
+[DECK] loaded 'Burn': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/eval/decks/burn.txt)
+[SEATS] A=UR Delver(llm,openrouter:deepseek/deepseek-v4-pro) B=Burn(ai,opus)
+[HEADLESS] game starting (cap=30min)
+[UR Delver] [ROUTER] mulligan: heuristic KEEP (2/7 lands)
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+[UR Delver] [TALLY] smart=0 fast=0 auto=0 ai=0
+[UR Delver] [ROUTER] play(main): 0 castable + 1 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 4827 ms
+[UR Delver] [ROUTER] play: land Wasteland
+[UR Delver] [TALLY] smart=0 fast=1 auto=0 ai=0 avgFast=4827ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 15242 ms
+[UR Delver] [ROUTER] plan: Pass turn, hold up Daze for their play, pray for a colored land next draw.
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 11945 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 4130 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 916 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [TALLY] smart=1 fast=4 auto=0 ai=0 avgSmart=15242ms avgFast=5454ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 14825 ms
+[UR Delver] [ROUTER] target: Wasteland[untapped] [UR Delver's Battlefield] <- Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.] (only legal)
+[UR Delver] [ROUTER] play: casts Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[UR Delver] [TALLY] smart=2 fast=4 auto=0 ai=0 avgSmart=15033ms avgFast=5454ms
+[UR Delver] [ROUTER] play(main): 0 castable + 1 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 13518 ms
+[UR Delver] [ROUTER] play: land Wasteland
+[UR Delver] [TALLY] smart=2 fast=5 auto=0 ai=0 avgSmart=15033ms avgFast=7067ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 11062 ms
+[UR Delver] [ROUTER] plan: No colored mana; pass the turn, draw a land next turn.
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 5990 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 10070 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 9836 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [TALLY] smart=3 fast=8 auto=0 ai=0 avgSmart=13709ms avgFast=7654ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 2317 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 7647 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 1302 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 1015 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 14975 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 10259 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 2980 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [TALLY] smart=4 fast=14 auto=0 ai=0 avgSmart=10861ms avgFast=7100ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 7439 ms
+[UR Delver] [ROUTER] plan: Pass, no playable spells and Wasteland has no target; need to draw a colored source.
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 12545 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] non-answer -> treating as bridge-down
+[UR Delver] [BRIDGE UR Delver/fast] no reply (attempt 2/3) -> restarting session, retrying in 500ms
+[OPENROUTER UR Delver/fast] replied in 13485 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 978 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [TALLY] smart=5 fast=17 auto=0 ai=0 avgSmart=10177ms avgFast=7436ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 4143 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 8712 ms
+[OPENROUTER UR Delver/smart] replied in 5257 ms
+[UR Delver] [ROUTER] target: Sunbaked Canyon[untapped] [Burn's Battlefield] <- Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[UR Delver] [ROUTER] play: casts Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[UR Delver] [TALLY] smart=7 fast=18 auto=0 ai=0 avgSmart=8612ms avgFast=7507ms
+[UR Delver] [ROUTER] play(main): 0 castable + 1 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 6048 ms
+[UR Delver] [ROUTER] play: land Volcanic Island
+[UR Delver] [TALLY] smart=7 fast=19 auto=0 ai=0 avgSmart=8612ms avgFast=7430ms
+[UR Delver] [ROUTER] play(main): 7 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 1307 ms
+[UR Delver] [ROUTER] plan: Ponder first to dig for a second land, then cast a threat; save Bolt for Eidolons only if forced.
+[UR Delver] [ROUTER] play: casts Ponder {U} [Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card.]
+[OPENROUTER UR Delver/smart] replied in 25160 ms
+[UR Delver] [ROUTER] order [Ponder] -> Library: Delver of Secrets, Daze, Force of Will
+[OPENROUTER UR Delver/fast] replied in 188366 ms
+[UR Delver] [ROUTER] confirm(Do you want to shuffle the library?): NO
+========== GAME OVER ==========
+outcome: B after 11 turns (AllOpponentsLost) in 428s
+--- full game log ---
+  MULLIGAN: Burn has kept a hand of 7 cards
+  MULLIGAN: UR Delver has kept a hand of 7 cards
+  TURN: Turn 1 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (91)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 2 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Wasteland (52)
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  ZONE_CHANGE: Wasteland (52) was put into Graveyard from Battlefield.
+  STACK_ADD: UR Delver activated Wasteland targeting [Wasteland (52)]
+  STACK_RESOLVE: Wasteland ability fizzles.
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 3 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (88)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  MANA: Mountain (91) - {T}: Add {R}.
+  MANA: Mountain (88) - {T}: Add {R}.
+  STACK_ADD: Burn cast Eidolon of the Great Revel
+  STACK_RESOLVE: Eidolon of the Great Revel - Creature 2 / 2
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 4 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Wasteland (53)
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 5 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (93)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Eidolon of the Great Revel (120) to attack UR Delver.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: UR Delver didn't block Eidolon of the Great Revel (120).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Eidolon of the Great Revel (120) deals 2 combat damage to UR Delver.
+  LIFE: Life: UR Delver 20 > 18
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 6 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  DISCARD: UR Delver discards Daze (50).
+  TURN: Turn 7 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Sunbaked Canyon (80)
+  PHASE: Burn's Beginning of Combat Step
+  ZONE_CHANGE: Wasteland (53) was put into Graveyard from Battlefield.
+  STACK_ADD: UR Delver activated Wasteland targeting [Sunbaked Canyon (80)]
+  ZONE_CHANGE: Sunbaked Canyon (80) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (53) - Destroy Sunbaked Canyon (80).
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Eidolon of the Great Revel (120) to attack UR Delver.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: UR Delver didn't block Eidolon of the Great Revel (120).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Eidolon of the Great Revel (120) deals 2 combat damage to UR Delver.
+  LIFE: Life: UR Delver 18 > 16
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  MANA: Mountain (91) - {T}: Add {R}.
+  STACK_ADD: Burn cast Chain Lightning targeting [UR Delver]
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  DAMAGE: Eidolon of the Great Revel (120) deals 2 non-combat damage to Burn.
+  LIFE: Life: Burn 20 > 18
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Chain Lightning (113), Activator: Burn, SpellAbility: Chain Lightning deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may choose a new target for that copy. ]
+  DAMAGE: Chain Lightning (113) deals 3 non-combat damage to UR Delver.
+  LIFE: Life: UR Delver 16 > 13
+  STACK_RESOLVE: Chain Lightning (113) - Chain Lightning (113) deals 3 damage to UR Delver. 
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 8 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  MANA: Mountain (88) - {T}: Add {R}.
+  STACK_ADD: Burn cast Lightning Bolt targeting [UR Delver]
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  DAMAGE: Eidolon of the Great Revel (120) deals 2 non-combat damage to Burn.
+  LIFE: Life: Burn 18 > 16
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Lightning Bolt (101), Activator: Burn, SpellAbility: Lightning Bolt deals 3 damage to any target.]
+  DAMAGE: Lightning Bolt (101) deals 3 non-combat damage to UR Delver.
+  LIFE: Life: UR Delver 13 > 10
+  STACK_RESOLVE: Lightning Bolt (101) - Lightning Bolt (101) deals 3 damage to UR Delver.
+  PHASE: UR Delver's Cleanup step
+  DISCARD: UR Delver discards Daze (48).
+  TURN: Turn 9 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Eidolon of the Great Revel (120) to attack UR Delver.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: UR Delver didn't block Eidolon of the Great Revel (120).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Eidolon of the Great Revel (120) deals 2 combat damage to UR Delver.
+  LIFE: Life: UR Delver 10 > 8
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  MANA: Mountain (91) - {T}: Add {R}.
+  MANA: Mountain (88) - {T}: Add {R}.
+  STACK_ADD: Burn cast Eidolon of the Great Revel
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  DAMAGE: Eidolon of the Great Revel (120) deals 2 non-combat damage to Burn.
+  LIFE: Life: Burn 16 > 14
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Eidolon of the Great Revel (119), Activator: Burn, SpellAbility: Eidolon of the Great Revel - Creature 2 / 2]
+  STACK_RESOLVE: Eidolon of the Great Revel - Creature 2 / 2
+  MANA: Mountain (93) - {T}: Add {R}.
+  STACK_ADD: Burn cast Lava Spike targeting [UR Delver]
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  DAMAGE: Eidolon of the Great Revel (120) deals 2 non-combat damage to Burn.
+  LIFE: Life: Burn 14 > 12
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Lava Spike (72), Activator: Burn, SpellAbility: Lava Spike deals 3 damage to target player or planeswalker.]
+  DAMAGE: Eidolon of the Great Revel (119) deals 2 non-combat damage to Burn.
+  LIFE: Life: Burn 12 > 10
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Lava Spike (72), Activator: Burn, SpellAbility: Lava Spike deals 3 damage to target player or planeswalker.]
+  DAMAGE: Lava Spike (72) deals 3 non-combat damage to UR Delver.
+  LIFE: Life: UR Delver 8 > 5
+  STACK_RESOLVE: Lava Spike (72) - Lava Spike (72) deals 3 damage to UR Delver.
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 10 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Volcanic Island (12)
+  MANA: Volcanic Island (12) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Ponder
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  DAMAGE: Eidolon of the Great Revel (120) deals 2 non-combat damage to UR Delver.
+  LIFE: Life: UR Delver 5 > 3
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Ponder (34), Activator: UR Delver, SpellAbility: Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card. ]
+  DAMAGE: Eidolon of the Great Revel (119) deals 2 non-combat damage to UR Delver.
+  LIFE: Life: UR Delver 3 > 1
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Ponder (34), Activator: UR Delver, SpellAbility: Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card. ]
+  STACK_RESOLVE: Ponder (34) - Look at the top 3 cards of UR Delver's library. Then put them back in any order.You may have that player shuffle their library. UR Delver draws a card.
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 11 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  MANA: Mountain (91) - {T}: Add {R}.
+  MANA: Mountain (88) - {T}: Add {R}.
+  STACK_ADD: Burn cast Price of Progress
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  DAMAGE: Eidolon of the Great Revel (120) deals 2 non-combat damage to Burn.
+  LIFE: Life: Burn 10 > 8
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Price of Progress (78), Activator: Burn, SpellAbility: Price of Progress deals 2 damage to each player for each nonbasic land they control.]
+  DAMAGE: Eidolon of the Great Revel (119) deals 2 non-combat damage to Burn.
+  LIFE: Life: Burn 8 > 6
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Price of Progress (78), Activator: Burn, SpellAbility: Price of Progress deals 2 damage to each player for each nonbasic land they control.]
+  DAMAGE: Price of Progress (78) deals 2 non-combat damage to UR Delver.
+  LIFE: Life: UR Delver 1 > -1
+  STACK_RESOLVE: Price of Progress (78) - Price of Progress deals 2 damage to each player for each nonbasic land they control.
+  PLAYER_CONTROL: UR Delver has restored control over themself
+  PLAYER_CONTROL: Burn has restored control over themself
+  GAME_OUTCOME: Turn 6
+  GAME_OUTCOME: UR Delver has lost because life total reached 0
+  GAME_OUTCOME: Burn has won because all opponents have lost
+  MATCH_RESULTS: UR Delver: 0 Burn: 1 
+===============================
