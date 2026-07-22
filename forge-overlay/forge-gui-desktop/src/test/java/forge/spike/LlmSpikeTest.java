@@ -302,6 +302,120 @@ public class LlmSpikeTest {
     }
 
     // ================================================================================
+    // Fix round A (bridge internals, HARNESS-ANALYSIS.md F2 + the truncation-retry ordering bug
+    // documented in ModelCfg's class javadoc): isNonAnswer/looksLikeDecisionTag/
+    // collapseDegenerateRepetition are the pure predicates OpenRouterBridge.ask() now consults, in
+    // order, to decide truncation-retry vs. bridge-down vs. degenerate-reply collapse. They're plain
+    // static string functions, so exercised directly here rather than through a live HTTP bridge.
+    // ================================================================================
+
+    @Test
+    public void isNonAnswer_emptyOrNullIsNonAnswer() {
+        // The exact content shape a fully-length-truncated reply has BEFORE any output token ever
+        // came out (see OpenRouterBridge.ask(): this must stay true so the final bridge-down
+        // classification still fires once truncation-retry has had its shot).
+        Assert.assertTrue(LlmSpikeGui.isNonAnswer(null));
+        Assert.assertTrue(LlmSpikeGui.isNonAnswer(""));
+    }
+
+    @Test
+    public void isNonAnswer_knownInfraMessagesAreNonAnswers() {
+        Assert.assertTrue(LlmSpikeGui.isNonAnswer("You've hit your session limit, try again later."));
+        Assert.assertTrue(LlmSpikeGui.isNonAnswer("429 rate limit exceeded"));
+        Assert.assertTrue(LlmSpikeGui.isNonAnswer("Unable to locate a Java Runtime"));
+    }
+
+    @Test
+    public void isNonAnswer_realDecisionTextIsNotANonAnswer() {
+        Assert.assertFalse(LlmSpikeGui.isNonAnswer("I will pass priority.\nCHOICE: 2"));
+    }
+
+    @Test
+    public void looksLikeDecisionTag_completeChoiceTagIsRecognized() {
+        Assert.assertTrue(LlmSpikeGui.looksLikeDecisionTag("Reasoning here.\nCHOICE: 3"));
+        Assert.assertTrue(LlmSpikeGui.looksLikeDecisionTag("PICKS: 1, 4"));
+        Assert.assertTrue(LlmSpikeGui.looksLikeDecisionTag("BLOCKS: Wall of Omens->Goblin Guide 2"));
+    }
+
+    @Test
+    public void looksLikeDecisionTag_truncatedTagWithNoDigitIsNotRecognized() {
+        // PARSE RE-ASK INVESTIGATION (runs/improve/iter-2, game-112 decision idx 124, model
+        // gemini-3.5-flash): the model's first attempt was cut to exactly this text -- the tag
+        // keyword made it out but got truncated before the number. The old bare-substring check
+        // (`u.contains("CHOICE")`) treated this as "already answered" and skipped the doubled-budget
+        // truncation retry that exists for precisely this case.
+        String truncated = "We must pass priority to the blockers step so we can block the opponent's "
+                + "attacking Voice of Victory with our Voice of Victory, preserving our last point of "
+                + "life.\n\nCHOICE: ";
+        Assert.assertFalse(LlmSpikeGui.looksLikeDecisionTag(truncated),
+                "a CHOICE: tag with no digit after it is a truncated non-answer, not a complete decision");
+    }
+
+    @Test
+    public void looksLikeDecisionTag_plainProseWithNoTagAtAllIsNotRecognized() {
+        // The other 7/8 iter-2 re-asks: the model answered entirely in prose and never emitted any
+        // tag keyword at all (a genuine model non-answer on the terse-format contract, not a parser
+        // gap -- the controller's stern one-line re-ask prompt is the correct, already-working fix).
+        // (game-112 decision idx 105, model gemini-3.5-flash's first attempt, verbatim.)
+        String prose = "To survive the combat damage step at 3 life while facing attacks from Voice of "
+                + "Victory (1 power) and its mobilised Warrior tokens (1 power each), we must use Goblin";
+        Assert.assertFalse(LlmSpikeGui.looksLikeDecisionTag(prose));
+    }
+
+    @Test
+    public void looksLikeDecisionTag_keepAndMulliganNeedNoDigit() {
+        Assert.assertTrue(LlmSpikeGui.looksLikeDecisionTag("I'll KEEP this hand."));
+        Assert.assertTrue(LlmSpikeGui.looksLikeDecisionTag("MULLIGAN, too risky."));
+    }
+
+    @Test
+    public void collapseDegenerateRepetition_collapsesQF1StyleRepeatedChoiceLines() {
+        // Reproduces tournament QF-1 decision_line 87: a fast-tier gemini reply that degenerated into
+        // 157 consecutive repetitions of "CHOICE: 1" (2390 chars, HARNESS-ANALYSIS.md F2).
+        StringBuilder reply = new StringBuilder();
+        for (int i = 0; i < 157; i++) reply.append("CHOICE: 1\n");
+        String collapsed = LlmSpikeGui.collapseDegenerateRepetition(reply.toString());
+        long lineCount = collapsed.chars().filter(c -> c == '\n').count() + 1;
+        Assert.assertTrue(collapsed.length() < reply.length(),
+                "157x repeated line must be collapsed down, got: " + collapsed.length() + " chars");
+        Assert.assertTrue(lineCount <= 2, "collapse must leave at most one occurrence (+trailing blank line), got "
+                + lineCount + " lines: " + collapsed);
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.parseTagNumber(collapsed, "CHOICE:"), 1,
+                "the single surviving occurrence must still parse correctly");
+    }
+
+    @Test
+    public void collapseDegenerateRepetition_tenOrFewerRepeatsIsUntouched() {
+        // Boundary: "more than 10" consecutive repeats is the trigger -- exactly 10 must be a no-op,
+        // per the task's own threshold ("repeated more than 10 times consecutively").
+        StringBuilder reply = new StringBuilder();
+        for (int i = 0; i < 10; i++) reply.append("CHOICE: 1\n");
+        String in = reply.toString();
+        Assert.assertEquals(LlmSpikeGui.collapseDegenerateRepetition(in), in,
+                "exactly 10 repeats must NOT be collapsed (only strictly more than 10 triggers it)");
+    }
+
+    @Test
+    public void collapseDegenerateRepetition_longLinesAreNeverCollapsedEvenIfRepeated() {
+        // The <=20-char guard: a long repeated line (e.g. identical multi-sentence reasoning restated
+        // several times, which is a real pattern but NOT the QF-1 degenerate-generation defect) must
+        // be left alone -- only short, tag-shaped lines are in scope for this cheap guard.
+        String longLine = "This is a long line of reasoning that exceeds twenty characters easily.";
+        StringBuilder reply = new StringBuilder();
+        for (int i = 0; i < 20; i++) reply.append(longLine).append('\n');
+        String in = reply.toString();
+        Assert.assertEquals(LlmSpikeGui.collapseDegenerateRepetition(in), in,
+                "lines longer than 20 chars must never be collapsed, regardless of repeat count");
+    }
+
+    @Test
+    public void collapseDegenerateRepetition_normalReplyIsUnchanged() {
+        String normal = "I will hold up removal for their next threat.\nCHOICE: 2";
+        Assert.assertEquals(LlmSpikeGui.collapseDegenerateRepetition(normal), normal);
+        Assert.assertNull(LlmSpikeGui.collapseDegenerateRepetition(null));
+    }
+
+    // ================================================================================
     // Truncation hardening (HARNESS-ANALYSIS.md C4; proposal Prompt 5): truncateWords() backs both
     // oneLine() and saLabel()'s option-text cap — it must cut at a word boundary and append an
     // ellipsis instead of severing mid-word/mid-number, and must be a no-op when the input already fits.
@@ -632,6 +746,58 @@ public class LlmSpikeTest {
         Assert.assertEquals(ctrl.autoPicksCount(), 1,
                 "n_options==1 must be a deterministic auto-pick, never a model call (the surveil forced-pick mislabel)");
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "must never hand off to Forge's AI");
+    }
+
+    // ================================================================================
+    // getAbilityToPlay (harness fix round B): previously a bare `return super.getAbilityToPlay(...)`
+    // -- the file's last unlogged Forge-AI delegation (PlayerControllerAi's own implementation is just
+    // `abilities.get(0)`, zero jsonl/log trace). Now routed: n_options==1 is a deterministic auto-pick
+    // (the common case -- GameActionUtil.getAdditionalCostSpell seeds the list with exactly `[sa]`
+    // unless the card has an AlternateAdditionalCost keyword), and a real >1-option choice with a dead
+    // bridge falls back deterministically to the first option, never to Forge's AI.
+    // ================================================================================
+
+    @Test
+    public void getAbilityToPlay_singleOption_forcedOnlyLegalNeverAsksModel() throws Exception {
+        Game game = buildBareGame();
+        Player p = game.getPlayers().get(0);
+        Card host = addBattlefieldCard("Craw Wurm", p);
+        SpellAbility sa = host.getFirstSpellAbility();
+
+        LobbyPlayer lp = new LobbyPlayerAi("seat-x", null);
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(
+                game, p, lp, "seat-x", "",
+                new DeadBridge("seat-x/smart"), new DeadBridge("seat-x/fast"), "llm");
+
+        SpellAbility result = ctrl.getAbilityToPlay(host, Lists.newArrayList(sa), null);
+
+        Assert.assertSame(result, sa, "the sole legal ability variant should be returned as-is");
+        Assert.assertEquals(ctrl.autoPicksCount(), 1,
+                "a single legal ability must be a deterministic auto-pick, never a model call");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "must never hand off to Forge's AI");
+    }
+
+    @Test
+    public void getAbilityToPlay_multiOption_bridgeDownFallsBackToFirstNeverForgeAi() throws Exception {
+        Game game = buildBareGame();
+        Player p = game.getPlayers().get(0);
+        Card host = addBattlefieldCard("Craw Wurm", p);
+        SpellAbility sa1 = host.getFirstSpellAbility();
+        SpellAbility sa2 = sa1.copy(); // a 2nd cast-mode variant, e.g. an alternate-cost bundle
+        List<SpellAbility> abilities = Lists.newArrayList(sa1, sa2);
+
+        LobbyPlayer lp = new LobbyPlayerAi("seat-x", null);
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(
+                game, p, lp, "seat-x", "",
+                new DeadBridge("seat-x/smart"), new DeadBridge("seat-x/fast"), "llm");
+
+        SpellAbility result = ctrl.getAbilityToPlay(host, abilities, null);
+
+        Assert.assertSame(result, sa1, "a dead bridge must fall back to the first option deterministically");
+        Assert.assertEquals(ctrl.autoPicksCount(), 1,
+                "bridge-down must be a deterministic auto-pick, never a model call");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0,
+                "a dead bridge must never fall through to Forge's AI for this decision");
     }
 
     // ================================================================================

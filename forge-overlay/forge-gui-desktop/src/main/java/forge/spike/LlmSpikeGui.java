@@ -779,9 +779,43 @@ public final class LlmSpikeGui {
             return true;
         }
 
+        /** Chooses WHICH cast-mode/variant of a card the engine has ALREADY decided to play (MDFC
+         *  face, a kicked/AlternateAdditionalCost cost bundle, a Discover/"cast while searching"
+         *  form, etc.) — see PlaySpellAbility.chooseOptionalAdditionalCosts, PlayEffect,
+         *  DiscoverEffect, and ChangeZoneEffect.handleCastWhileSearching, all of which call this on
+         *  an AI-driven seat (the GUI-only InputPassPriority/InputPayMana call sites never fire for
+         *  a non-human controller). This IS a real strategic choice — which face of an MDFC, whether
+         *  to pay the extra cost for an upgraded mode — not a rules technicality, so it's ROUTED like
+         *  every other decideOne site rather than merely observed. It was the file's last unlogged
+         *  Forge-AI delegation: previously a bare `super.*` call (PlayerControllerAi's own
+         *  implementation is just `abilities.get(0)`) with zero jsonl/log trace. In practice
+         *  `abilities` is almost always exactly the one SpellAbility already chosen upstream
+         *  (GameActionUtil.getAdditionalCostSpell seeds it with `[sa]` and only grows it for a
+         *  card with an AlternateAdditionalCost keyword) — the forced-only-legal short-circuit
+         *  below means the routing costs nothing on that hot path. WHETHER to play hostCard at all
+         *  was already decided upstream by chooseSingleEntityForEffect + confirmAction (both already
+         *  routed), so there's no decline option here either — matches the default AI's own
+         *  never-null behavior whenever abilities is non-empty. */
         @Override
         public SpellAbility getAbilityToPlay(Card hostCard, List<SpellAbility> abilities, ITriggerEvent triggerEvent) {
-            return super.getAbilityToPlay(hostCard, abilities, triggerEvent);
+            clearLast();
+            if (abilities == null || abilities.isEmpty()) return null; // callers already guard this; preserve the contract
+            String host = hostCard != null ? hostCard.getName() : "?";
+            if (abilities.size() == 1) { auto("ability-to-play(forced-only-legal)[" + host + "]"); return abilities.get(0); }
+            try {
+                if (!smartOk()) { auto("ability-to-play(no-budget)->first[" + host + "]"); return abilities.get(0); }
+                List<String> labels = new ArrayList<>();
+                for (SpellAbility sa : abilities) labels.add(saLabel(sa));
+                String q = "Choose HOW to play " + host + " -- pick the specific cast mode / cost variant.";
+                int c = decideOne(smart, "ability-to-play", q, labels, null);
+                if (c == -2) { auto("ability-to-play(bridge-down)->first[" + host + "]"); return abilities.get(0); }
+                if (c < 0) { auto("ability-to-play(unparsed)->first[" + host + "]"); return abilities.get(0); }
+                p("[ROUTER] ability-to-play: " + labels.get(c));
+                return abilities.get(c);
+            } catch (Exception e) {
+                auto("ability-to-play(err)->first[" + host + "]");
+                return abilities.get(0);
+            }
         }
 
         @Override
@@ -2458,8 +2492,12 @@ public final class LlmSpikeGui {
      * game, because isNonAnswer(r.content) runs BEFORE the truncation-retry check and a fully-empty
      * `content` (finish_reason=length with the reasoning budget exhausted before any output token) is
      * indistinguishable from a plain non-answer — it short-circuits to bridge-down first, so the retry
-     * is dead code for exactly the case it exists to handle. That ordering is an architecture bug, out
-     * of scope for a config-table-only fix. What IS fixable here: the fast tier's request never sends a
+     * was dead code for exactly the case it exists to handle. That ordering WAS an architecture bug,
+     * out of scope for a config-table-only fix at the time this note was written; it has since been
+     * fixed directly in OpenRouterBridge.ask() (the finish_reason=="length" truncation-retry check now
+     * runs BEFORE isNonAnswer()) — this table's per-model headroom values remain independently useful
+     * (they widen the budget the retry doubles from) but are no longer the only lever. What IS fixable
+     * purely from this table: the fast tier's request never sends a
      * `reasoning` hint at all for ANY model (OpenRouterBridge.ask() unconditionally nulls it out for
      * fastTier — "the fast tier's contract is terse, no extended reasoning"), yet gpt-5/deepseek are
      * native reasoning models that still spend hidden reasoning tokens server-side by default even
@@ -2773,8 +2811,10 @@ public final class LlmSpikeGui {
     /** True if the backend returned a null/empty string or a known non-answer (rate-limit message,
      *  auth error, etc.). These must NOT be parsed as model decisions; returning null routes them
      *  through the honest bridge-down fallback path instead of logging a fake smart/fast decision.
-     *  Keep the pattern list minimal and literal to avoid false positives. */
-    private static boolean isNonAnswer(String r) {
+     *  Keep the pattern list minimal and literal to avoid false positives. Package-private (not
+     *  private) so LlmSpikeTest can exercise it directly -- see OpenRouterBridge.ask() for why this
+     *  must run AFTER the finish_reason=="length" truncation-retry check, not before. */
+    static boolean isNonAnswer(String r) {
         if (r == null || r.isEmpty()) return true;
         String u = r.toUpperCase(Locale.ROOT);
         if (u.contains("YOU'VE HIT YOUR SESSION LIMIT")) return true;
@@ -2786,12 +2826,64 @@ public final class LlmSpikeGui {
     /** Heuristic: does this reply already contain one of the decision-tag keywords the controller's
      *  parsers look for (CHOICE/PICKS/BLOCKS/KEEP/MULLIGAN/ANSWER)? Used only to decide whether a
      *  finish_reason=="length" truncation is worth an expensive retry — if the tag already made it
-     *  out before the model ran out of budget, the truncation was harmless and not worth re-asking. */
-    private static boolean looksLikeDecisionTag(String content) {
+     *  out before the model ran out of budget, the truncation was harmless and not worth re-asking.
+     *  The four numeric tags (CHOICE/PICKS/BLOCKS/ANSWER) require an actual digit somewhere after the
+     *  keyword, not just the bare word: PARSE RE-ASK INVESTIGATION (runs/improve/iter-2, game-112
+     *  decision idx 124) found a real fast-tier reply truncated to "...CHOICE: " with NO digit yet
+     *  written. The old bare-substring check still matched "CHOICE" and reported "already answered",
+     *  which skipped the doubled-budget truncation retry for exactly the reply that most needed it and
+     *  pushed the cost onto a full controller-level re-ask instead. KEEP/MULLIGAN carry no numeric
+     *  value (the word itself is the whole answer) so they keep the plain substring check. */
+    static boolean looksLikeDecisionTag(String content) {
         if (content == null) return false;
         String u = content.toUpperCase(Locale.ROOT);
-        return u.contains("CHOICE") || u.contains("PICKS:") || u.contains("BLOCKS:")
-                || u.contains("KEEP") || u.contains("MULLIGAN") || u.contains("ANSWER:");
+        if (u.contains("KEEP") || u.contains("MULLIGAN")) return true;
+        for (String tag : new String[]{"CHOICE", "PICKS:", "BLOCKS:", "ANSWER:"}) {
+            int i = u.indexOf(tag);
+            if (i >= 0 && Pattern.compile("\\d").matcher(u.substring(i)).find()) return true;
+        }
+        return false;
+    }
+
+    /** Cheap degenerate-generation guard (F2 residual; evidence: tournament QF-1 decision_line 87, a
+     *  fast-tier gemini reply that degenerated into 157 consecutive repetitions of "CHOICE: 1", 2390
+     *  chars). The reply still parsed correctly (parseTagNumber takes the LAST occurrence) so this is
+     *  purely a cost/latency guard, not a correctness fix. Collapses any run of MORE THAN 10
+     *  consecutive identical lines that are each <=20 chars down to a single occurrence, so a stuck
+     *  model can't burn its whole token budget (and bloat the jsonl raw_reply field) repeating one
+     *  line. Logs [DEGENERATE-REPLY] once per call (a summary, not once per removed line) so a run
+     *  full of degenerate replies doesn't itself spam the console.
+     *  No stop-sequence was added to the OpenRouter request body to complement this: the
+     *  repeated text is whatever tag the model just emitted (CHOICE/PICKS/BLOCKS/...), which differs
+     *  per call site, so there is no single literal stop string that reliably catches "the model is
+     *  about to repeat itself" without also risking clipping a legitimate first occurrence of that
+     *  same tag (exactly the "\nCHOICE:" trap called out for this task) -- this collapse is the safer,
+     *  request-shape-independent fix. */
+    static String collapseDegenerateRepetition(String reply) {
+        if (reply == null || reply.indexOf('\n') < 0) return reply;
+        String[] lines = reply.split("\n", -1);
+        StringBuilder out = new StringBuilder(reply.length());
+        int collapsedRuns = 0, collapsedLines = 0;
+        int i = 0;
+        while (i < lines.length) {
+            String line = lines[i];
+            int runEnd = i + 1;
+            if (line.length() <= 20) {
+                while (runEnd < lines.length && lines[runEnd].equals(line)) runEnd++;
+            }
+            int runLen = runEnd - i;
+            if (out.length() > 0) out.append('\n');
+            out.append(line);
+            if (runLen > 10) { // "repeated more than 10 times" -- run length (occurrence count) > 10
+                collapsedRuns++;
+                collapsedLines += runLen - 1;
+            }
+            i = runEnd;
+        }
+        if (collapsedRuns == 0) return reply;
+        System.out.println("[DEGENERATE-REPLY] collapsed " + collapsedLines + " repeated line(s) across "
+                + collapsedRuns + " run(s), " + reply.length() + " -> " + out.length() + " chars");
+        return out.toString();
     }
 
     /** Stateless HTTP bridge to any model reachable through OpenRouter (or any
@@ -2850,22 +2942,33 @@ public final class LlmSpikeGui {
 
                 OrResult r = send(prompt, maxTokens, reasoningEffort, temperature);
                 if (r == null) return null; // transport/HTTP-status failure, already logged by send()
-                if (isNonAnswer(r.content)) {
-                    System.out.println("[OPENROUTER " + label + "] non-answer -> treating as bridge-down");
-                    lastFinishReason = r.finishReason;
-                    return null;
-                }
-                // TRUNCATION RECOVERY (Infra-3): the model ran out of its token budget mid-answer and
-                // the reply never reached a recognizable decision tag — retry ONCE at double the
-                // budget instead of silently accepting (or discarding as a plain non-answer) a reply
-                // that was cut off, not actually failed. Distinguishes "ran out of tokens" from "bridge
-                // down", which the flat retry previously could not.
+                r = new OrResult(collapseDegenerateRepetition(r.content), r.finishReason); // F2 residual
+
+                // TRUNCATION RECOVERY (Infra-3): MUST run BEFORE isNonAnswer() below -- ordering bug
+                // (HARNESS-ANALYSIS.md F2; see the class javadoc above for the full 2026-07-21
+                // investigation). A fully-empty `content` whose token budget was entirely consumed by
+                // hidden reasoning is indistinguishable from a genuine non-answer, so when isNonAnswer()
+                // ran first it always won the race and this retry was dead code for exactly the case it
+                // exists to handle (0 [TRUNCATED->RETRY] firings across 18 finish_reason=length events
+                // in the gpt-5/deepseek sweep). Retry ONCE at double the budget for ANY length-truncated
+                // reply that hasn't already produced a recognizable decision tag -- empty or partial --
+                // BEFORE ever asking "is this a non-answer". Only once finish_reason isn't "length" (or
+                // the tag already made it out) do we fall through to the non-answer/bridge-down check.
                 if ("length".equals(r.finishReason) && !looksLikeDecisionTag(r.content)) {
                     int retryTokens = Math.min(maxTokens * 2, 64000);
                     System.out.println("[OPENROUTER " + label + "] [TRUNCATED->RETRY] finish_reason=length @ max_tokens="
                             + maxTokens + " -> retrying at " + retryTokens);
                     OrResult retry = send(prompt, retryTokens, reasoningEffort, temperature);
-                    if (retry != null && !isNonAnswer(retry.content)) r = retry;
+                    // Only adopt the retry if it's not itself a non-answer: a truncated-but-substantive
+                    // original reply is a better final result than a garbled/empty retry, and either way
+                    // the isNonAnswer() check right below still gets the final say.
+                    if (retry != null && !isNonAnswer(retry.content))
+                        r = new OrResult(collapseDegenerateRepetition(retry.content), retry.finishReason);
+                }
+                if (isNonAnswer(r.content)) {
+                    System.out.println("[OPENROUTER " + label + "] non-answer -> treating as bridge-down");
+                    lastFinishReason = r.finishReason;
+                    return null;
                 }
                 lastFinishReason = r.finishReason;
                 long dur = System.currentTimeMillis() - t0;
