@@ -99,6 +99,15 @@ interface LLMBridge {
      *  seat — and gives the eval-record layer a way to distinguish a clean stop from a token-budget
      *  truncation without re-deriving it from raw_reply. */
     default String getLastFinishReason() { return null; }
+    /** Prompt (input) token count reported by the backend's response `usage` object for the most
+     *  recently completed ask(), or -1 when the backend reports no usage (Claude CLI) or nothing has
+     *  completed yet. Persisted per-decision in the eval JSONL so Stage-0 calibration can sum true
+     *  input/output token cost without re-deriving it. Same last-value single-threaded-per-seat
+     *  contract as getLastFinishReason(). */
+    default int getLastPromptTokens() { return -1; }
+    /** Completion (output) token count from the response `usage` object for the most recent ask(),
+     *  or -1 when unreported. See {@link #getLastPromptTokens()}. */
+    default int getLastCompletionTokens() { return -1; }
 }
 
 /**
@@ -211,6 +220,11 @@ public final class LlmSpikeGui {
         // ADDITIVE (Group-2 observability): the last ask()'d bridge's finish_reason (see
         // LLMBridge.getLastFinishReason), null for backends that don't report one.
         private String lastFinishReason = null;
+        // ADDITIVE (Stage-0 token calibration): prompt/completion token counts from the last ask()'d
+        // bridge's response usage object (LLMBridge.getLast{Prompt,Completion}Tokens), -1 when the
+        // backend reports none (Claude CLI) or no model was consulted for this decision.
+        private int lastPromptTokens = -1;
+        private int lastCompletionTokens = -1;
         // ADDITIVE (Group-2): latency split — the SUCCESSFUL final attempt's own wall time (this is what
         // jsonl latency_ms now reports) vs. everything else (failed bridge sub-attempts, backoff waits,
         // and any earlier caller-level ask() round-trip whose reply was superseded by a later retry) which
@@ -229,6 +243,7 @@ public final class LlmSpikeGui {
         private boolean lastDeclineLogged = false;
         private void clearLast() {
             lastPrompt = null; lastReply = null; lastTier = null; lastAskMs = 0; lastFinishReason = null;
+            lastPromptTokens = -1; lastCompletionTokens = -1;
             lastSuccessMs = 0; lastRetryMs = 0; lastAttempts = 0; lastFirstFailedReply = null; lastDeclineLogged = false;
         }
 
@@ -1452,6 +1467,50 @@ public final class LlmSpikeGui {
             }
         }
 
+        /** ROUTED (audit follow-up): the last unrouted PlayerController choose-cards hook. The player
+         *  must REVEAL between min and max cards from their hand — a public-information cost/effect
+         *  (e.g. "reveal a green card", "reveal your hand"). Forge's own default
+         *  (PlayerControllerAi.chooseCardsToRevealFromHand) is a bare {@code valid.subList(0,
+         *  min(max,size))}: no strategy, zero jsonl/log trace — the same "opaque, untraced default"
+         *  shape scry/surveil had. Now routed like every other choose-subset decision (discard/
+         *  cards-for-effect), with min/max clamped to what's legally available. Bridge-DOWN is the one
+         *  documented Forge-AI exception (identical convention to chooseTargetsFor): delegate to super
+         *  WITH the [FALLBACK->AI] marker so the reconciliation gate counts it instead of the decision
+         *  silently vanishing. The no-model (floor/budget) and forced paths stay deterministic (auto),
+         *  so the ai_tier hard invariant holds for every non-bridge-down run. */
+        @Override
+        public CardCollectionView chooseCardsToRevealFromHand(int min, int max, CardCollectionView valid) {
+            clearLast();
+            if (valid == null || valid.isEmpty())
+                return super.chooseCardsToRevealFromHand(min, max, valid);
+            List<Card> opts = new ArrayList<>(valid);
+            // Legality clamps: never reveal more than are valid, nor fewer than min (nor a negative min).
+            int effMax = Math.min(max, opts.size());
+            int effMin = Math.max(0, Math.min(min, effMax));
+            if (effMax <= 0) return CardCollection.EMPTY;                    // reveal-zero: no real decision, no row
+            if (opts.size() <= effMin) return firstN(opts, effMin, "reveal(forced)"); // whole valid set forced
+            try {
+                if (!smartOk()) return firstN(opts, effMin, "reveal(no-budget)");
+                List<String> labels = new ArrayList<>();
+                for (Card c : opts) labels.add(candidateLabel(c));
+                String q = "You must REVEAL between " + effMin + " and " + effMax + " card(s) from your hand "
+                        + "(they become known to your opponent). Reveal only what the effect requires, and among "
+                        + "legal choices prefer what least exposes your game plan.";
+                List<Integer> picks = decideMany(smart, "reveal", q, labels, effMin, effMax);
+                // decideMany returns null on bridge-down OR still-unparseable-after-retry — either way the
+                // model gave us nothing usable. Documented Forge-AI exception (cf. chooseTargetsFor): hand to
+                // super WITH the [FALLBACK->AI] marker (a tier=ai jsonl row) so the analyzer counts it.
+                if (picks == null)
+                    return aiDelegate("reveal(bridge-down)->ai", super.chooseCardsToRevealFromHand(min, max, valid));
+                CardCollection out = new CardCollection();
+                for (int i : picks) out.add(opts.get(i));
+                p("[ROUTER] reveal: " + (out.isEmpty() ? "(none)" : names(out, false, 10)));
+                return out;
+            } catch (Exception e) {
+                return aiDelegate("reveal(err)->ai", super.chooseCardsToRevealFromHand(min, max, valid));
+            }
+        }
+
         /** Scry — ROUTED (report C2). Was previously unhandled by this class (fell through to
          *  PlayerControllerAi's default, running entirely on Forge's built-in AI with zero jsonl/log
          *  trace and the revealed cards never shown as a real decision) — the exact "library-manipulation
@@ -2138,6 +2197,8 @@ public final class LlmSpikeGui {
             }
             lastReply = reply;
             lastFinishReason = b.getLastFinishReason();
+            lastPromptTokens = b.getLastPromptTokens();
+            lastCompletionTokens = b.getLastCompletionTokens();
             lastAskMs += System.currentTimeMillis() - tAsk; // summed over every attempt; retained for the
                                                              // ms<=0 legacy substitution guard in evalDec
             return reply;
@@ -2232,6 +2293,11 @@ public final class LlmSpikeGui {
                         .append(lastFinishReason == null ? "null" : "\"" + jsonEscape(lastFinishReason) + "\"")
                         .append(",\"first_failed_reply\":")
                         .append(lastFirstFailedReply == null ? "null" : "\"" + jsonEscape(lastFirstFailedReply) + "\"")
+                        // ADDITIVE (Stage-0 token calibration): per-decision input/output token counts from
+                        // the backend response usage object, null when unreported (Claude CLI, or any
+                        // deterministic/floor/random/auto/ai decision that never consulted a model).
+                        .append(",\"prompt_tokens\":").append(lastPromptTokens < 0 ? "null" : lastPromptTokens)
+                        .append(",\"completion_tokens\":").append(lastCompletionTokens < 0 ? "null" : lastCompletionTokens)
                         .append('}');
                 EvalLog.write(sb.toString());
             } catch (Exception ignore) { }
@@ -2808,6 +2874,23 @@ public final class LlmSpikeGui {
         return b.toString();
     }
 
+    /** Minimal integer extractor for a JSON number field (e.g. {@code "prompt_tokens":123}) — the
+     *  numeric analogue of {@link #extractJsonString}, matching this file's dependency-free parse
+     *  style. Returns -1 when the key is absent or the value isn't an integer. Used for the response
+     *  usage token counts. */
+    static int extractJsonInt(String line, String key) {
+        if (line == null) return -1;
+        int k = line.indexOf(key);
+        if (k < 0) return -1;
+        int i = k + key.length();
+        while (i < line.length() && Character.isWhitespace(line.charAt(i))) i++;
+        int start = i;
+        if (i < line.length() && line.charAt(i) == '-') i++;
+        while (i < line.length() && Character.isDigit(line.charAt(i))) i++;
+        if (i == start || (i == start + 1 && line.charAt(start) == '-')) return -1;
+        try { return Integer.parseInt(line.substring(start, i)); } catch (Exception e) { return -1; }
+    }
+
     /** True if the backend returned a null/empty string or a known non-answer (rate-limit message,
      *  auth error, etc.). These must NOT be parsed as model decisions; returning null routes them
      *  through the honest bridge-down fallback path instead of logging a fake smart/fast decision.
@@ -2915,6 +2998,8 @@ public final class LlmSpikeGui {
         private long totalMs = 0;
         private int calls = 0;
         private volatile String lastFinishReason;
+        private volatile int lastPromptTokens = -1;
+        private volatile int lastCompletionTokens = -1;
 
         OpenRouterBridge(String label, String model, String preamble) {
             if (API_KEY == null || API_KEY.isEmpty())
@@ -2942,7 +3027,8 @@ public final class LlmSpikeGui {
 
                 OrResult r = send(prompt, maxTokens, reasoningEffort, temperature);
                 if (r == null) return null; // transport/HTTP-status failure, already logged by send()
-                r = new OrResult(collapseDegenerateRepetition(r.content), r.finishReason); // F2 residual
+                r = new OrResult(collapseDegenerateRepetition(r.content), r.finishReason,
+                        r.promptTokens, r.completionTokens); // F2 residual (usage carried through)
 
                 // TRUNCATION RECOVERY (Infra-3): MUST run BEFORE isNonAnswer() below -- ordering bug
                 // (HARNESS-ANALYSIS.md F2; see the class javadoc above for the full 2026-07-21
@@ -2963,14 +3049,17 @@ public final class LlmSpikeGui {
                     // original reply is a better final result than a garbled/empty retry, and either way
                     // the isNonAnswer() check right below still gets the final say.
                     if (retry != null && !isNonAnswer(retry.content))
-                        r = new OrResult(collapseDegenerateRepetition(retry.content), retry.finishReason);
+                        r = new OrResult(collapseDegenerateRepetition(retry.content), retry.finishReason,
+                                retry.promptTokens, retry.completionTokens);
                 }
                 if (isNonAnswer(r.content)) {
                     System.out.println("[OPENROUTER " + label + "] non-answer -> treating as bridge-down");
                     lastFinishReason = r.finishReason;
+                    lastPromptTokens = r.promptTokens; lastCompletionTokens = r.completionTokens;
                     return null;
                 }
                 lastFinishReason = r.finishReason;
+                lastPromptTokens = r.promptTokens; lastCompletionTokens = r.completionTokens;
                 long dur = System.currentTimeMillis() - t0;
                 totalMs += dur; calls++;
                 System.out.println("[OPENROUTER " + label + "] replied in " + dur + " ms");
@@ -3015,12 +3104,20 @@ public final class LlmSpikeGui {
             }
             String content = extractJsonString(resp.body(), "\"content\":\"");
             String finishReason = extractJsonString(resp.body(), "\"finish_reason\":\"");
-            return new OrResult(content, finishReason);
+            // OpenAI-compatible usage object: {"usage":{"prompt_tokens":N,"completion_tokens":M,...}}.
+            // -1 when the field is absent. Additive persistence for Stage-0 token-cost calibration.
+            int promptTokens = extractJsonInt(resp.body(), "\"prompt_tokens\":");
+            int completionTokens = extractJsonInt(resp.body(), "\"completion_tokens\":");
+            return new OrResult(content, finishReason, promptTokens, completionTokens);
         }
 
         private static final class OrResult {
             final String content, finishReason;
-            OrResult(String content, String finishReason) { this.content = content; this.finishReason = finishReason; }
+            final int promptTokens, completionTokens;
+            OrResult(String content, String finishReason, int promptTokens, int completionTokens) {
+                this.content = content; this.finishReason = finishReason;
+                this.promptTokens = promptTokens; this.completionTokens = completionTokens;
+            }
         }
 
         @Override public String getLabel() { return label; }
@@ -3028,6 +3125,8 @@ public final class LlmSpikeGui {
         @Override public long getTotalMs() { return totalMs; }
         @Override public int getCalls() { return calls; }
         @Override public String getLastFinishReason() { return lastFinishReason; }
+        @Override public int getLastPromptTokens() { return lastPromptTokens; }
+        @Override public int getLastCompletionTokens() { return lastCompletionTokens; }
     }
 
     /** Factory: parses a model spec like "haiku" (Claude CLI) or

@@ -197,9 +197,39 @@ def run_one(args, seed, swap, out_dir):
     """Run one game. Returns (seed, swap, status, exit_code)."""
     env = build_env(args, seed, swap, out_dir)
     log_path = out_dir / ("game-%d-%d.log" % (seed, 1 if swap else 0))
-    # In-game cap is GAME_CAP_MS; the subprocess timeout below is a backstop
-    # for a wedged JVM (2x the cap plus grace for JVM startup / deck load).
-    timeout = args.cap_minutes * 60 * 2 + 300 if args.cap_minutes > 0 else None
+    # The in-game wall-clock cap is GAME_CAP_MS (worker.join(capMs) in
+    # LlmSpikeHeadless). The subprocess timeout below is a backstop for a WEDGED
+    # JVM only. A HEALTHY game's subprocess wall time is NOT just the cap: the
+    # cap timer starts (LlmSpikeHeadless.main sets t0) AFTER Forge model init
+    # (non-lazy load of ~33k card scripts, LOAD_CARD_SCRIPTS_LAZILY=false) + deck
+    # load, and after the cap fires the JVM grants an in-flight model call a grace
+    # window before System.exit so its jsonl row is never orphaned. That grace
+    # was widened from a flat 15s to LlmSpikeGui.ModelCfg.maxConfiguredTimeoutMs()
+    # + 10s (~160s; the built-in ModelCfg table's max is kimi's 150s smart-tier
+    # timeout) in the 4cfdaec cap-shutdown-race fix. So a healthy game's total
+    # wall time ~= [JVM boot + card-script load + deck load, BEFORE the cap timer]
+    # + GAME_CAP_MS + ~160s in-JVM post-cap grace + writeGameSummary/shutdown
+    # writes, all inflated under N-way parallel contention.
+    #
+    # The old `cap*60*2 + 300` formula scaled ONLY with the cap and lacked a fixed
+    # floor for the (cap-independent) grace + card-script load, so small-cap
+    # parallel runs were killed at cap+grace (2 games in the first 5-JVM parallel
+    # run — see the project journal). Keep the 2x-cap load-scaling slush AND add
+    # explicit fixed floors for the grace and the startup/deck-load/shutdown work
+    # so the backstop can only WIDEN, never regress a previously-passing run,
+    # while staying finite (a truly wedged JVM is still killed).
+    #
+    # GRACE_S is a documented constant, not derived live: the source of truth
+    # (ModelCfg.maxConfiguredTimeoutMs) is Java-side and not cheaply callable from
+    # Python. 200 = ~160s built-in grace + margin for a moderately raised
+    # OPENROUTER_MODEL_CFG timeoutMs override.
+    GRACE_S = 200
+    # JVM boot + non-lazy ~33k-card-script parse + deck load (all before the cap
+    # timer) + post-cap game-summary/shutdown writes, generous for parallel
+    # contention where all concurrent JVMs load card scripts at once.
+    STARTUP_SHUTDOWN_S = 600
+    timeout = (args.cap_minutes * 60 * 2 + GRACE_S + STARTUP_SHUTDOWN_S
+               if args.cap_minutes > 0 else None)
     log("[start] seed=%d swap=%d -> %s" % (seed, swap, log_path.name))
     try:
         with open(log_path, "w", encoding="utf-8") as lf:

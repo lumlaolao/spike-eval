@@ -25,6 +25,7 @@ import forge.game.GameType;
 import forge.game.Match;
 import forge.game.card.Card;
 import forge.game.card.CardCollection;
+import forge.game.card.CardCollectionView;
 import forge.game.combat.Combat;
 import forge.game.phase.PhaseType;
 import forge.game.player.Player;
@@ -479,6 +480,20 @@ public class LlmSpikeTest {
         return c;
     }
 
+    /** Puts a fresh Card of `name` into `p`'s hand and returns it — the reveal-from-hand analogue of
+     *  {@link #addBattlefieldCard}, used by the chooseCardsToRevealFromHand routing tests. */
+    private Card addHandCard(String name, Player p) {
+        IPaperCard paperCard = FModel.getMagicDb().getCommonCards().getCard(name);
+        if (paperCard == null) {
+            StaticData.instance().attemptToLoadCard(name);
+            paperCard = FModel.getMagicDb().getCommonCards().getCard(name);
+        }
+        Card c = Card.fromPaperCard(paperCard, p);
+        c.setGameTimestamp(p.getGame().getNextTimestamp());
+        p.getZone(ZoneType.Hand).add(c);
+        return c;
+    }
+
     @Test
     public void candidateLabel_disambiguatesDuplicateNamedPermanentsByTapState() {
         Game game = buildBareGame();
@@ -825,5 +840,88 @@ public class LlmSpikeTest {
         Assert.assertEquals(other.fastMaxTokens, LlmSpikeGui.ModelCfg.DEFAULT_FAST_MAX_TOKENS,
                 "models without evidence of this failure mode (kimi/grok/default) must keep the flat default");
         Assert.assertEquals(other.fastTimeoutMs, LlmSpikeGui.ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
+    }
+
+    // ================================================================================
+    // chooseCardsToRevealFromHand (audit follow-up): the last unrouted PlayerController choose-cards
+    // hook. Previously fell straight through to PlayerControllerAi's bare valid.subList(0,min(max,size))
+    // with zero jsonl/log trace. Now routed like discard/cards-for-effect. These prove the three
+    // fallback ladder rungs: (1) the no-model floor arm is a deterministic auto-pick (never Forge AI),
+    // (2) a whole-set-forced reveal is a deterministic auto-pick, and (3) a dead bridge is the one
+    // documented Forge-AI exception (same convention as chooseTargetsFor) — it delegates to super WITH
+    // the [FALLBACK->AI] marker so the reconciliation gate counts it, never a silent drop.
+    // ================================================================================
+
+    @Test
+    public void chooseCardsToRevealFromHand_floorMode_deterministicNoBudgetNeverForgeAi() throws Exception {
+        Game game = buildBareGame();
+        Player p = game.getPlayers().get(0);
+        CardCollection valid = new CardCollection();
+        valid.add(addHandCard("Llanowar Elves", p));
+        valid.add(addHandCard("Craw Wurm", p));
+
+        LobbyPlayer lp = new LobbyPlayerAi("seat-x", null);
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(
+                game, p, lp, "seat-x", "",
+                new DeadBridge("seat-x/smart"), new DeadBridge("seat-x/fast"), "floor");
+
+        CardCollectionView revealed = ctrl.chooseCardsToRevealFromHand(1, 2, valid);
+
+        Assert.assertEquals(revealed.size(), 1,
+                "the no-model floor arm reveals the deterministic legal minimum (min=1), clamped to <=max");
+        Assert.assertEquals(ctrl.autoPicksCount(), 1,
+                "floor mode must be a deterministic auto-pick, never a model call");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0,
+                "the no-model floor arm must NEVER hand off to Forge's AI (keeps the ai_tier hard invariant at 0)");
+    }
+
+    @Test
+    public void chooseCardsToRevealFromHand_wholeSetForced_deterministicAutoPickNeverModel() throws Exception {
+        Game game = buildBareGame();
+        Player p = game.getPlayers().get(0);
+        CardCollection valid = new CardCollection();
+        valid.add(addHandCard("Llanowar Elves", p));
+        valid.add(addHandCard("Craw Wurm", p));
+
+        LobbyPlayer lp = new LobbyPlayerAi("seat-x", null);
+        // mode="llm" with a live budget — proves the forced short-circuit fires BEFORE any budget/model
+        // check, not merely because the floor arm has no budget.
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(
+                game, p, lp, "seat-x", "",
+                new DeadBridge("seat-x/smart"), new DeadBridge("seat-x/fast"), "llm");
+
+        // min == valid.size(): the whole valid set must be revealed — no real choice.
+        CardCollectionView revealed = ctrl.chooseCardsToRevealFromHand(2, 2, valid);
+
+        Assert.assertEquals(revealed.size(), 2, "a forced reveal of the whole valid set returns every card");
+        Assert.assertEquals(ctrl.autoPicksCount(), 1,
+                "a whole-set-forced reveal must be a deterministic auto-pick, never a model call");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "must never hand off to Forge's AI");
+    }
+
+    @Test
+    public void chooseCardsToRevealFromHand_bridgeDown_delegatesToForgeAiWithMarker() throws Exception {
+        Game game = buildBareGame();
+        Player p = game.getPlayers().get(0);
+        CardCollection valid = new CardCollection();
+        valid.add(addHandCard("Llanowar Elves", p));
+        valid.add(addHandCard("Craw Wurm", p));
+        valid.add(addHandCard("Elvish Mystic", p));
+
+        LobbyPlayer lp = new LobbyPlayerAi("seat-x", null);
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(
+                game, p, lp, "seat-x", "",
+                new DeadBridge("seat-x/smart"), new DeadBridge("seat-x/fast"), "llm");
+
+        // A real choice (reveal exactly 1 of 3) with a dead bridge: the documented Forge-AI exception.
+        CardCollectionView revealed = ctrl.chooseCardsToRevealFromHand(1, 1, valid);
+
+        Assert.assertEquals(revealed.size(), 1,
+                "min/max clamp: exactly one card revealed when max==1 (Forge AI default reveals min(max,size))");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 1,
+                "a dead bridge on this decision is the documented Forge-AI exception (cf. chooseTargetsFor): it "
+                + "must delegate to super WITH the [FALLBACK->AI] marker so the reconciliation gate counts it");
+        Assert.assertEquals(ctrl.autoPicksCount(), 0,
+                "bridge-down here is an ai-delegation (counted), not a deterministic auto-pick");
     }
 }
