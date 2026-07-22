@@ -444,6 +444,38 @@ def default_out_label(args):
 
 # ------------------------------------------------------------------ main
 
+def load_secrets():
+    """Auto-load <repo>/secrets.env into the environment (setdefault — real env
+    wins), same as model_sweep.py/tournament.py. run_batch.py historically
+    lacked this, so a direct invocation from a fresh shell launched JVMs that
+    all died at the egress-consent check (2026-07-21 stage0 relaunch: 7 games
+    failed at startup before this fix)."""
+    path = REPO_ROOT / "secrets.env"
+    if not path.is_file():
+        return
+    for raw in path.read_text().splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        os.environ.setdefault(k.strip(), v.strip())
+
+
+def preflight_openrouter(args):
+    """Refuse up front, with one clear message, instead of spawning a batch of
+    JVMs that each crash at LLMBridgeFactory.create()'s key/egress checks."""
+    if not any(m.startswith("openrouter:") for m in effective_llm_models(args)):
+        return
+    if not os.environ.get("OPENROUTER_API_KEY"):
+        sys.exit("OPENROUTER_API_KEY not set (secrets.env missing?) — an "
+                 "openrouter: model spec is in play; refusing to launch JVMs "
+                 "that would all crash at startup.")
+    if os.environ.get("OPENROUTER_ALLOW_EGRESS") != "1":
+        sys.exit("OPENROUTER_ALLOW_EGRESS=1 not set — egress consent required "
+                 "for openrouter: specs (see secrets.env.example); refusing to "
+                 "launch JVMs that would all crash at startup.")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -488,6 +520,9 @@ def main():
     ap.add_argument("--env", action="append", metavar="KEY=VALUE",
                     help="extra env var for the runner (repeatable)")
     args = ap.parse_args()
+
+    load_secrets()
+    preflight_openrouter(args)
 
     cited = not args.exploratory
 
