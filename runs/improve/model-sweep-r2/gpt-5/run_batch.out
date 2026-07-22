@@ -1,0 +1,16 @@
+========================================================================
+  EXPLORATORY MODE — numbers from this run are NOT citable.
+  Mirror-deck / forced-heuristics-off / jobs=1 guards are DISABLED.
+  Re-run without --exploratory (and a mirror deck) for a citable batch.
+========================================================================
+[provenance] engine=c1c64a53586459cd0d4c70f27abd1aa8bbc92891 overlay=c2639f17ed9f deck=8b2254558a4c discipline=exploratory
+[out] /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/model-sweep-r2/gpt-5
+Running 1 games (jobs=1, out=/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/model-sweep-r2/gpt-5, forge_home=/Users/lumlumlam/code/forge)
+[start] seed=216 swap=0 -> game-216-0.log
+[done] seed=216 swap=0
+
+=== batch summary ===
+completed: 1  skipped(resume): 0  problems: 0
+Aggregate with: python3 /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/aggregate.py /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/model-sweep-r2/gpt-5
+
+--- stderr ---

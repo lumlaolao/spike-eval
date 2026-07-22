@@ -1,0 +1,377 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 226
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/ur-delver.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/burn.plan
+[DECK] loaded 'UR Delver': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/ur-delver.txt)
+[DECK] loaded 'Burn': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/burn.txt)
+[SEATS] A=UR Delver(llm,openrouter:openai/gpt-5) B=Burn(floor,opus)
+[Burn] [MODE] baseline arm: floor
+[HEADLESS] game starting (cap=20min)
+[UR Delver] [ROUTER] mulligan: heuristic KEEP (3/7 lands)
+[Burn] [AUTO-LEGAL] mulligan(no-model)->KEEP
+[UR Delver] [TALLY] smart=0 fast=0 auto=0 ai=0
+[UR Delver] [ROUTER] play(main): 0 castable + 3 land -> asking openai/gpt-5...
+[OPENROUTER UR Delver/fast] replied in 6320 ms
+[UR Delver] [ROUTER] play: land Island
+[UR Delver] [TALLY] smart=0 fast=1 auto=0 ai=0 avgFast=6320ms
+[UR Delver] [ROUTER] play(main): 4 castable -> asking openai/gpt-5...
+[OPENROUTER UR Delver/smart] replied in 9949 ms
+[UR Delver] [ROUTER] plan: Deploy Delver off Island, hold cantrips to set the flip/find interaction next turn.
+[UR Delver] [ROUTER] play: casts Delver of Secrets {U} [Delver of Secrets - Creature 1 / 1]
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[OPENROUTER UR Delver/fast] replied in 6037 ms
+[UR Delver] [ROUTER] confirm(Reveal cards to other players?): YES
+[UR Delver] [TALLY] smart=1 fast=2 auto=0 ai=0 avgSmart=9949ms avgFast=6178ms
+[UR Delver] [ROUTER] play(main): 3 castable + 2 land -> asking openai/gpt-5...
+[OPENROUTER UR Delver/smart] replied in 29681 ms
+[UR Delver] [ROUTER] plan: Fetch Volcanic Island, cast DRC, then Ponder to set up Delver flip and improve draws.
+[UR Delver] [ROUTER] play: land Scalding Tarn
+[UR Delver] [TALLY] smart=2 fast=2 auto=0 ai=0 avgSmart=19815ms avgFast=6178ms
+[UR Delver] [ROUTER] play(main): 4 castable -> asking openai/gpt-5...
+[OPENROUTER UR Delver/smart] replied in 18699 ms
+[UR Delver] [ROUTER] play: casts Scalding Tarn [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Island or Mountain card, put it onto the battlefield, then shuffle.]
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [TALLY] smart=3 fast=2 auto=0 ai=0 avgSmart=19443ms avgFast=6178ms
+[UR Delver] [ROUTER] play(main): 4 castable -> asking openai/gpt-5...
+[OPENROUTER UR Delver/smart] replied in 21513 ms
+[UR Delver] [ROUTER] play: casts Dragon's Rage Channeler {R} [Dragon's Rage Channeler - Creature 1 / 1]
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [TALLY] smart=4 fast=2 auto=0 ai=0 avgSmart=19960ms avgFast=6178ms
+[UR Delver] [ROUTER] play(main): 3 castable -> asking openai/gpt-5...
+[OPENROUTER UR Delver/smart] replied in 18088 ms
+[UR Delver] [ROUTER] play: casts Ponder {U} [Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card.]
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [AUTO-LEGAL] surveil(forced-only-legal)->keep-all-top
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[OPENROUTER UR Delver/smart] replied in 36209 ms
+[UR Delver] [ROUTER] order [Ponder] -> Library: Ponder, Brainstorm, Wasteland
+[OPENROUTER UR Delver/fast] replied in 24629 ms
+[UR Delver] [ROUTER] confirm(Do you want to shuffle the library?): NO
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [AUTO-LEGAL] attackers(forced-only-legal)->attack Delver of Secrets
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[OPENROUTER UR Delver/fast] replied in 18707 ms
+[UR Delver] [ROUTER] confirm(Reveal cards to other players?): YES
+[UR Delver] [TALLY] smart=6 fast=4 auto=2 ai=0 avgSmart=22356ms avgFast=13923ms
+[UR Delver] [ROUTER] play(main): 3 castable + 2 land -> asking openai/gpt-5...
+[OPENROUTER UR Delver/smart] replied in 23317 ms
+[UR Delver] [ROUTER] plan: Brainstorm to set up draws and fuel DRC, then play/hold fetch (avoid Wasteland).
+[UR Delver] [ROUTER] play: casts Brainstorm {U} [Draw three cards, then put two cards from your hand on top of your library in any order.]
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [AUTO-LEGAL] surveil(forced-only-legal)->keep-all-top
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[OPENROUTER UR Delver/smart] replied in 53922 ms
+[UR Delver] [ROUTER] zone-change: Wasteland [UR Delver's Hand] -> Library [Brainstorm]
+[OPENROUTER UR Delver/smart] replied in 73821 ms
+[UR Delver] [ROUTER] zone-change: Delver of Secrets (1/1) [UR Delver's Hand] -> Library [Brainstorm]
+[OPENROUTER UR Delver/smart] replied in 28772 ms
+[UR Delver] [ROUTER] order [Brainstorm] -> Library: Wasteland, Delver of Secrets
+[UR Delver] [TALLY] smart=10 fast=4 auto=3 ai=0 avgSmart=31397ms avgFast=13923ms
+[UR Delver] [ROUTER] play(main): 3 castable + 1 land -> asking openai/gpt-5...
+[OPENROUTER UR Delver/smart] replied in 25467 ms
+[UR Delver] [ROUTER] play: casts Brainstorm {U} [Draw three cards, then put two cards from your hand on top of your library in any order.]
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [AUTO-LEGAL] surveil(forced-only-legal)->keep-all-top
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[OPENROUTER UR Delver/smart] replied in 50658 ms
+[UR Delver] [ROUTER] zone-change: Wasteland [UR Delver's Hand] -> Library [Brainstorm]
+[OPENROUTER UR Delver/smart] replied in 42691 ms
+[UR Delver] [ROUTER] zone-change: Ragavan, Nimble Pilferer (2/1) [UR Delver's Hand] -> Library [Brainstorm]
+[OPENROUTER UR Delver/smart] replied in 44491 ms
+[UR Delver] [ROUTER] order [Brainstorm] -> Library: Wasteland, Ragavan, Nimble Pilferer
+[UR Delver] [TALLY] smart=14 fast=4 auto=4 ai=0 avgSmart=34091ms avgFast=13923ms
+[UR Delver] [ROUTER] play(main): 0 castable + 1 land -> asking openai/gpt-5...
+[OPENROUTER UR Delver/fast] replied in 34142 ms
+[UR Delver] [ROUTER] play: land Flooded Strand
+[UR Delver] [TALLY] smart=14 fast=5 auto=4 ai=0 avgSmart=34091ms avgFast=17967ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking openai/gpt-5...
+[OPENROUTER UR Delver/smart] replied in 45643 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking openai/gpt-5...
+[OPENROUTER UR Delver/fast] replied in 47312 ms
+[UR Delver] [ROUTER] play: PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [ROUTER] attackers: 2 can attack -> asking openai/gpt-5...
+[OPENROUTER UR Delver/smart] replied in 31607 ms
+[UR Delver] [ROUTER] attackers: Insectile Aberration, Dragon's Rage Channeler
+[UR Delver] [ROUTER] play(react): 1 castable -> asking openai/gpt-5...
+[OPENROUTER UR Delver/fast] replied in 31733 ms
+[UR Delver] [ROUTER] play: PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking openai/gpt-5...
+[OPENROUTER UR Delver/fast] replied in 30854 ms
+[UR Delver] [ROUTER] play: PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking openai/gpt-5...
+[OPENROUTER UR Delver/fast] replied in 19062 ms
+[UR Delver] [ROUTER] play: PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking openai/gpt-5...
+[OPENROUTER UR Delver/fast] replied in 13050 ms
+[UR Delver] [ROUTER] play: PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [TALLY] smart=16 fast=10 auto=4 ai=0 avgSmart=34658ms avgFast=23184ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking openai/gpt-5...
+[OPENROUTER UR Delver/smart] replied in 44791 ms
+[UR Delver] [ROUTER] play: PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking openai/gpt-5...
+[OPENROUTER UR Delver/fast] replied in 21605 ms
+[UR Delver] [ROUTER] play: PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking openai/gpt-5...
+[OPENROUTER UR Delver/fast] replied in 16509 ms
+[UR Delver] [ROUTER] play: PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking openai/gpt-5...
+[OPENROUTER UR Delver/fast] replied in 32242 ms
+[UR Delver] [ROUTER] play: PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking openai/gpt-5...
+[OPENROUTER UR Delver/fast] replied in 14110 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [TALLY] smart=17 fast=14 auto=4 ai=0 avgSmart=35254ms avgFast=22593ms
+[UR Delver] [ROUTER] play(main): 6 castable -> asking openai/gpt-5...
+[OPENROUTER UR Delver/smart] replied in 44310 ms
+[UR Delver] [ROUTER] plan: Ponder to sculpt and try to enable delirium, then attack; deploy an extra 1-drop while keeping Spell Pierce up via fetch.
+[UR Delver] [ROUTER] play: casts Ponder {U} [Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card.]
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [AUTO-LEGAL] surveil(forced-only-legal)->keep-all-top
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[OPENROUTER UR Delver/smart] replied in 42251 ms
+[UR Delver] [ROUTER] order [Ponder] -> Library: Scalding Tarn, Spell Pierce, Wasteland
+[OPENROUTER UR Delver/fast] replied in 19347 ms
+[UR Delver] [ROUTER] confirm(Do you want to shuffle the library?): NO
+[UR Delver] [TALLY] smart=19 fast=15 auto=5 ai=0 avgSmart=36098ms avgFast=22377ms
+[UR Delver] [ROUTER] play(main): 4 castable + 1 land -> asking openai/gpt-5...
+[OPENROUTER UR Delver/smart] replied in 76538 ms
+[UR Delver] [ROUTER] play: casts Delver of Secrets {U} [Delver of Secrets - Creature 1 / 1]
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [TALLY] smart=20 fast=15 auto=5 ai=0 avgSmart=38120ms avgFast=22377ms
+[UR Delver] [ROUTER] play(main): 1 castable + 1 land -> asking openai/gpt-5...
+[OPENROUTER UR Delver/smart] replied in 37713 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking openai/gpt-5...
+[OPENROUTER UR Delver/fast] replied in 11841 ms
+[UR Delver] [ROUTER] play: PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [ROUTER] attackers: 2 can attack -> asking openai/gpt-5...
+[OPENROUTER UR Delver/smart] replied in 15655 ms
+[UR Delver] [ROUTER] attackers: Insectile Aberration, Dragon's Rage Channeler
+[UR Delver] [ROUTER] play(react): 1 castable -> asking openai/gpt-5...
+[OPENROUTER UR Delver/fast] replied in 30413 ms
+[UR Delver] [ROUTER] play: PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking openai/gpt-5...
+[HEADLESS] wall-clock cap reached; game is INVALID for eval purposes
+[OPENROUTER UR Delver/fast] replied in 17902 ms
+[UR Delver] [ROUTER] play: PASS
+========== GAME OVER ==========
+outcome: invalid after 7 turns (Draw) in 1212s
+--- full game log ---
+  MULLIGAN: UR Delver has kept a hand of 7 cards
+  MULLIGAN: Burn has kept a hand of 7 cards
+  TURN: Turn 1 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Island (38)
+  MANA: Island (38) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Delver of Secrets
+  STACK_RESOLVE: Delver of Secrets - Creature 1 / 1
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 2 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (94)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 3 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  STACK_ADD: UR Delver triggered Delver of Secrets
+  STACK_RESOLVE: At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets. [Phase: UR Delver]
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Scalding Tarn (24)
+  LIFE: Life: UR Delver 20 > 19
+  ZONE_CHANGE: Scalding Tarn (24) was put into Graveyard from Battlefield.
+  STACK_ADD: UR Delver activated Scalding Tarn
+  STACK_RESOLVE: Scalding Tarn (24) - UR Delver searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  MANA: Volcanic Island (14) - {T}: Add {R}.
+  STACK_ADD: UR Delver cast Dragon's Rage Channeler
+  STACK_RESOLVE: Dragon's Rage Channeler - Creature 1 / 1
+  MANA: Island (38) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Ponder
+  STACK_ADD: UR Delver triggered Dragon's Rage Channeler
+  STACK_RESOLVE: UR Delver surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Ponder (32), Activator: UR Delver, SpellAbility: Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card. ]
+  STACK_RESOLVE: Ponder (32) - Look at the top 3 cards of UR Delver's library. Then put them back in any order.You may have that player shuffle their library. UR Delver draws a card.
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  COMBAT: UR Delver assigned Delver of Secrets (9) to attack Burn.
+  PHASE: UR Delver's Declare Blockers Step
+  COMBAT: Burn didn't block Delver of Secrets (9).
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  DAMAGE: Delver of Secrets (9) deals 1 combat damage to Burn.
+  LIFE: Life: Burn 20 > 19
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 4 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (93)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 5 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  STACK_ADD: UR Delver triggered Delver of Secrets
+  STACK_RESOLVE: At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets. [Phase: UR Delver]
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  MANA: Island (38) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Brainstorm
+  STACK_ADD: UR Delver triggered Dragon's Rage Channeler
+  STACK_RESOLVE: UR Delver surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Brainstorm (15), Activator: UR Delver, SpellAbility: Draw three cards, then put two cards from your hand on top of your library in any order. ]
+  STACK_RESOLVE: Brainstorm (15) - UR Delver draws three cards, then puts two cards from their hand on top of their library in any order.
+  MANA: Volcanic Island (14) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Brainstorm
+  STACK_ADD: UR Delver triggered Dragon's Rage Channeler
+  STACK_RESOLVE: UR Delver surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Brainstorm (17), Activator: UR Delver, SpellAbility: Draw three cards, then put two cards from your hand on top of your library in any order. ]
+  STACK_RESOLVE: Brainstorm (17) - UR Delver draws three cards, then puts two cards from their hand on top of their library in any order.
+  LAND: UR Delver played Flooded Strand (3)
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  COMBAT: UR Delver assigned Insectile Aberration (9) and Dragon's Rage Channeler (28) to attack Burn.
+  PHASE: UR Delver's Declare Blockers Step
+  COMBAT: Burn didn't block Insectile Aberration (9).
+Burn didn't block Dragon's Rage Channeler (28).
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  DAMAGE: Insectile Aberration (9) deals 3 combat damage to Burn.
+  DAMAGE: Dragon's Rage Channeler (28) deals 1 combat damage to Burn.
+  LIFE: Life: Burn 19 > 15
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 6 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (91)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 7 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  MANA: Island (38) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Ponder
+  STACK_ADD: UR Delver triggered Dragon's Rage Channeler
+  STACK_RESOLVE: UR Delver surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Ponder (34), Activator: UR Delver, SpellAbility: Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card. ]
+  STACK_RESOLVE: Ponder (34) - Look at the top 3 cards of UR Delver's library. Then put them back in any order.You may have that player shuffle their library. UR Delver draws a card.
+  MANA: Volcanic Island (14) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Delver of Secrets
+  STACK_RESOLVE: Delver of Secrets - Creature 1 / 1
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  COMBAT: UR Delver assigned Insectile Aberration (9) and Dragon's Rage Channeler (28) to attack Burn.
+  PHASE: UR Delver's Declare Blockers Step
+  COMBAT: Burn didn't block Insectile Aberration (9).
+Burn didn't block Dragon's Rage Channeler (28).
+  PLAYER_CONTROL: UR Delver has restored control over themself
+  PLAYER_CONTROL: Burn has restored control over themself
+  GAME_OUTCOME: Turn 4
+  GAME_OUTCOME: UR Delver has won because all opponents have lost
+  GAME_OUTCOME: Burn has won because all opponents have lost
+  MATCH_RESULTS: UR Delver: 1 Burn: 0 
+===============================

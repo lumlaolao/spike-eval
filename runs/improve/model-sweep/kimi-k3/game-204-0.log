@@ -1,0 +1,426 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 204
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/ur-delver.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/burn.plan
+[DECK] loaded 'UR Delver': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/ur-delver.txt)
+[DECK] loaded 'Burn': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/burn.txt)
+[SEATS] A=UR Delver(llm,openrouter:moonshotai/kimi-k3) B=Burn(floor,opus)
+[Burn] [MODE] baseline arm: floor
+[HEADLESS] game starting (cap=20min)
+[UR Delver] [ROUTER] mulligan: heuristic KEEP (2/7 lands)
+[Burn] [AUTO-LEGAL] mulligan(no-model)->KEEP
+[UR Delver] [TALLY] smart=0 fast=0 auto=0 ai=0
+[UR Delver] [ROUTER] play(main): 0 castable + 2 land -> asking moonshotai/kimi-k3...
+[OPENROUTER UR Delver/fast] replied in 6467 ms
+[UR Delver] [ROUTER] play: land Island
+[UR Delver] [TALLY] smart=0 fast=1 auto=0 ai=0 avgFast=6467ms
+[UR Delver] [ROUTER] play(main): 2 castable -> asking moonshotai/kimi-k3...
+[OPENROUTER UR Delver/smart] replied in 28129 ms
+[UR Delver] [ROUTER] plan: Lead with Delver as the early clock, hold Brainstorm to flip it next upkeep, and Wasteland their first land.
+[UR Delver] [ROUTER] play: casts Delver of Secrets {U} [Delver of Secrets - Creature 1 / 1]
+[Burn] [AUTO-LEGAL] play(no-budget): land Sunbaked Canyon
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[OPENROUTER UR Delver/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER UR Delver/fast] replied in 35081 ms
+[UR Delver] [ROUTER] confirm(Reveal cards to other players?): YES
+[UR Delver] [TALLY] smart=1 fast=2 auto=0 ai=0 avgSmart=28129ms avgFast=20774ms
+[UR Delver] [ROUTER] play(main): 1 castable + 1 land -> asking moonshotai/kimi-k3...
+[OPENROUTER UR Delver/smart] replied in 43481 ms
+[UR Delver] [ROUTER] plan: Brainstorm to dig for a red source (enables both DRCs), then make my land drop based on what I see and attack with the 3/2 flier.
+[UR Delver] [ROUTER] play: casts Brainstorm {U} [Draw three cards, then put two cards from your hand on top of your library in any order.]
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[OPENROUTER UR Delver/smart] replied in 38027 ms
+[UR Delver] [ROUTER] zone-change: Murktide Regent (3/3) [UR Delver's Hand] -> Library [Brainstorm]
+[OPENROUTER UR Delver/smart] replied in 63408 ms
+[UR Delver] [ROUTER] zone-change: Delver of Secrets (1/1) [UR Delver's Hand] -> Library [Brainstorm]
+[OPENROUTER UR Delver/smart] replied in 41106 ms
+[UR Delver] [ROUTER] order [Brainstorm] -> Library: Murktide Regent, Delver of Secrets
+[UR Delver] [TALLY] smart=5 fast=2 auto=0 ai=0 avgSmart=42830ms avgFast=20774ms
+[UR Delver] [ROUTER] play(main): 0 castable + 2 land -> asking moonshotai/kimi-k3...
+[OPENROUTER UR Delver/fast] non-answer -> treating as bridge-down
+[UR Delver] [BRIDGE UR Delver/fast] no reply (attempt 2/3) -> restarting session, retrying in 500ms
+[OPENROUTER UR Delver/fast] non-answer -> treating as bridge-down
+[UR Delver] [BRIDGE UR Delver/fast] no reply (attempt 3/3) -> restarting session, retrying in 2000ms
+[OPENROUTER UR Delver/fast] non-answer -> treating as bridge-down
+[UR Delver] [AUTO-LEGAL] play(bridge-down): land Wasteland
+[UR Delver] [TALLY] smart=5 fast=3 auto=1 ai=0 avgSmart=42830ms avgFast=20774ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking moonshotai/kimi-k3...
+[OPENROUTER UR Delver/smart] replied in 121658 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking moonshotai/kimi-k3...
+[OPENROUTER UR Delver/fast] replied in 14608 ms
+[OPENROUTER UR Delver/smart] replied in 42532 ms
+[UR Delver] [ROUTER] target: Sunbaked Canyon[untapped] [Burn's Battlefield] <- Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[UR Delver] [ROUTER] play: casts Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [ROUTER] attackers: 1 can attack -> asking moonshotai/kimi-k3...
+[OPENROUTER UR Delver/smart] replied in 5802 ms
+[OPENROUTER UR Delver/smart] replied in 10814 ms
+[UR Delver] [ROUTER] attackers: none
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [TALLY] smart=9 fast=4 auto=1 ai=0 avgSmart=43884ms avgFast=18718ms
+[UR Delver] [ROUTER] play(main): 2 castable + 1 land -> asking moonshotai/kimi-k3...
+[OPENROUTER UR Delver/smart] replied in 129393 ms
+[UR Delver] [ROUTER] plan: Play Flooded Strand, fetch a red dual (Volcanic Island), then tap out for Dragon's Rage Channeler + Delver of Secrets — Daze stays live via Island bounce — and swing with Aberration.
+[UR Delver] [ROUTER] play: land Flooded Strand
+[UR Delver] [TALLY] smart=10 fast=4 auto=1 ai=0 avgSmart=52435ms avgFast=18718ms
+[UR Delver] [ROUTER] play(main): 3 castable -> asking moonshotai/kimi-k3...
+[OPENROUTER UR Delver/smart] replied in 21360 ms
+[UR Delver] [ROUTER] play: casts Flooded Strand [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Plains or Island card, put it onto the battlefield, then shuffle.]
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [TALLY] smart=11 fast=4 auto=1 ai=0 avgSmart=49610ms avgFast=18718ms
+[UR Delver] [ROUTER] play(main): 4 castable -> asking moonshotai/kimi-k3...
+[OPENROUTER UR Delver/smart] replied in 51952 ms
+[UR Delver] [ROUTER] play: casts Dragon's Rage Channeler {R} [Dragon's Rage Channeler - Creature 1 / 1]
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [TALLY] smart=12 fast=4 auto=1 ai=0 avgSmart=49805ms avgFast=18718ms
+[UR Delver] [ROUTER] play(main): 2 castable -> asking moonshotai/kimi-k3...
+[OPENROUTER UR Delver/smart] replied in 58645 ms
+[UR Delver] [ROUTER] play: casts Delver of Secrets {U} [Delver of Secrets - Creature 1 / 1]
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [ROUTER] attackers: 1 can attack -> asking moonshotai/kimi-k3...
+[OPENROUTER UR Delver/smart] replied in 6670 ms
+[UR Delver] [ROUTER] attackers: Insectile Aberration
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[OPENROUTER UR Delver/fast] non-answer -> treating as bridge-down
+[UR Delver] [BRIDGE UR Delver/fast] no reply (attempt 2/3) -> restarting session, retrying in 500ms
+[OPENROUTER UR Delver/fast] replied in 7505 ms
+[UR Delver] [ROUTER] confirm(Reveal cards to other players?): YES
+[UR Delver] [TALLY] smart=14 fast=5 auto=1 ai=0 avgSmart=47355ms avgFast=15915ms
+[UR Delver] [ROUTER] play(main): 2 castable -> asking moonshotai/kimi-k3...
+[OPENROUTER UR Delver/smart] replied in 43862 ms
+[UR Delver] [ROUTER] plan: Brainstorm first for max info (hoping for a fetchland to fuel delirium/delve), then cast DRC, keeping Daze live via Island bounce.
+[UR Delver] [ROUTER] play: casts Brainstorm {U} [Draw three cards, then put two cards from your hand on top of your library in any order.]
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[OPENROUTER UR Delver/smart] replied in 139628 ms
+[UR Delver] [ROUTER] surveil: keep-on-top (none); -> GRAVEYARD x1
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[OPENROUTER UR Delver/smart] replied in 17547 ms
+[UR Delver] [ROUTER] zone-change: Murktide Regent (3/3) [UR Delver's Hand] -> Library [Brainstorm]
+[OPENROUTER UR Delver/smart] replied in 34355 ms
+[UR Delver] [ROUTER] zone-change: Force of Will [UR Delver's Hand] -> Library [Brainstorm]
+[OPENROUTER UR Delver/smart] replied in 20576 ms
+[UR Delver] [ROUTER] order [Brainstorm] -> Library: Murktide Regent, Force of Will
+[UR Delver] [TALLY] smart=19 fast=5 auto=1 ai=0 avgSmart=48365ms avgFast=15915ms
+[UR Delver] [ROUTER] play(main): 1 castable + 1 land -> asking moonshotai/kimi-k3...
+[OPENROUTER UR Delver/smart] replied in 27872 ms
+[UR Delver] [ROUTER] play: land Island
+[UR Delver] [TALLY] smart=20 fast=5 auto=1 ai=0 avgSmart=47340ms avgFast=15915ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking moonshotai/kimi-k3...
+[OPENROUTER UR Delver/smart] replied in 28874 ms
+[UR Delver] [ROUTER] play: casts Dragon's Rage Channeler {R} [Dragon's Rage Channeler - Creature 1 / 1]
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [ROUTER] attackers: 3 can attack -> asking moonshotai/kimi-k3...
+[OPENROUTER UR Delver/smart] replied in 5607 ms
+[UR Delver] [ROUTER] attackers: Insectile Aberration, Dragon's Rage Channeler, Delver of Secrets
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Mountain
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[OPENROUTER UR Delver/fast] replied in 10146 ms
+[UR Delver] [ROUTER] confirm(Reveal cards to other players?): YES
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [ROUTER] attackers: 4 can attack -> asking moonshotai/kimi-k3...
+[OPENROUTER UR Delver/smart] replied in 16183 ms
+[UR Delver] [ROUTER] attackers: Insectile Aberration, Dragon's Rage Channeler, Insectile Aberration, Dragon's Rage Channeler
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget): land Sunbaked Canyon
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[Burn] [AUTO-LEGAL] play(no-budget)->PASS
+[UR Delver] [TALLY] smart=23 fast=6 auto=1 ai=0 avgSmart=43368ms avgFast=14761ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking moonshotai/kimi-k3...
+[HEADLESS] wall-clock cap reached; game is INVALID for eval purposes
+[OPENROUTER UR Delver/smart] replied in 69039 ms
+[UR Delver] [ROUTER] plan: Delve out Murktide Regent (leaving one Island for Daze), then attack for lethal with counters up to protect the combat — Burn has no counters, so it resolves as extra insurance.
+[UR Delver] [ROUTER] play: casts Murktide Regent 5{U}{U} [Murktide Regent - Creature 3 / 3]
+ComputerUtilMana: payManaCost() cost was not paid for Murktide Regent - Creature 3 / 3 (Murktide Regent). Didn't find what to pay for {U}
+[UR Delver] AI failed to play Murktide Regent (58) [Stack]
+========== GAME OVER ==========
+outcome: invalid after 11 turns (Draw) in 1214s
+--- full game log ---
+  MULLIGAN: UR Delver has kept a hand of 7 cards
+  MULLIGAN: Burn has kept a hand of 7 cards
+  TURN: Turn 1 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Island (37)
+  MANA: Island (37) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Delver of Secrets
+  STACK_RESOLVE: Delver of Secrets - Creature 1 / 1
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 2 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Sunbaked Canyon (79)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 3 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  STACK_ADD: UR Delver triggered Delver of Secrets
+  STACK_RESOLVE: At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets. [Phase: UR Delver]
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  MANA: Island (37) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Brainstorm
+  STACK_RESOLVE: Brainstorm (15) - UR Delver draws three cards, then puts two cards from their hand on top of their library in any order.
+  LAND: UR Delver played Wasteland (53)
+  PHASE: UR Delver's Beginning of Combat Step
+  ZONE_CHANGE: Wasteland (53) was put into Graveyard from Battlefield.
+  STACK_ADD: UR Delver activated Wasteland targeting [Sunbaked Canyon (79)]
+  ZONE_CHANGE: Sunbaked Canyon (79) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (53) - Destroy Sunbaked Canyon (79).
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 4 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (95)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 5 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Flooded Strand (4)
+  LIFE: Life: UR Delver 20 > 19
+  ZONE_CHANGE: Flooded Strand (4) was put into Graveyard from Battlefield.
+  STACK_ADD: UR Delver activated Flooded Strand
+  STACK_RESOLVE: Flooded Strand (4) - UR Delver searches their library for a Plains or Island card, puts it onto the battlefield, then shuffles.
+  MANA: Volcanic Island (13) - {T}: Add {R}.
+  STACK_ADD: UR Delver cast Dragon's Rage Channeler
+  STACK_RESOLVE: Dragon's Rage Channeler - Creature 1 / 1
+  MANA: Island (37) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Delver of Secrets
+  STACK_RESOLVE: Delver of Secrets - Creature 1 / 1
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  COMBAT: UR Delver assigned Insectile Aberration (9) to attack Burn.
+  PHASE: UR Delver's Declare Blockers Step
+  COMBAT: Burn didn't block Insectile Aberration (9).
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  DAMAGE: Insectile Aberration (9) deals 3 combat damage to Burn.
+  LIFE: Life: Burn 20 > 17
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 6 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (97)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 7 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  STACK_ADD: UR Delver triggered Delver of Secrets
+  STACK_RESOLVE: At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets. [Phase: UR Delver]
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  MANA: Island (37) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Brainstorm
+  STACK_ADD: UR Delver triggered Dragon's Rage Channeler
+  STACK_RESOLVE: UR Delver surveiled 1 card(s) to the graveyard
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Brainstorm (18), Activator: UR Delver, SpellAbility: Draw three cards, then put two cards from your hand on top of your library in any order. ]
+  STACK_RESOLVE: Brainstorm (18) - UR Delver draws three cards, then puts two cards from their hand on top of their library in any order.
+  LAND: UR Delver played Island (40)
+  MANA: Volcanic Island (13) - {T}: Add {R}.
+  STACK_ADD: UR Delver cast Dragon's Rage Channeler
+  STACK_RESOLVE: Dragon's Rage Channeler - Creature 1 / 1
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  COMBAT: UR Delver assigned Insectile Aberration (9), Dragon's Rage Channeler (30) and Delver of Secrets (7) to attack Burn.
+  PHASE: UR Delver's Declare Blockers Step
+  COMBAT: Burn didn't block Insectile Aberration (9).
+Burn didn't block Dragon's Rage Channeler (30).
+Burn didn't block Delver of Secrets (7).
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  DAMAGE: Insectile Aberration (9) deals 3 combat damage to Burn.
+  DAMAGE: Dragon's Rage Channeler (30) deals 1 combat damage to Burn.
+  DAMAGE: Delver of Secrets (7) deals 1 combat damage to Burn.
+  LIFE: Life: Burn 17 > 12
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 8 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (96)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 9 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  STACK_ADD: UR Delver triggered Delver of Secrets
+  STACK_RESOLVE: At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets. [Phase: UR Delver]
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  COMBAT: UR Delver assigned Insectile Aberration (9), Dragon's Rage Channeler (30), Insectile Aberration (7) and Dragon's Rage Channeler (27) to attack Burn.
+  PHASE: UR Delver's Declare Blockers Step
+  COMBAT: Burn didn't block Insectile Aberration (9).
+Burn didn't block Dragon's Rage Channeler (30).
+Burn didn't block Insectile Aberration (7).
+Burn didn't block Dragon's Rage Channeler (27).
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  DAMAGE: Insectile Aberration (9) deals 3 combat damage to Burn.
+  DAMAGE: Dragon's Rage Channeler (30) deals 1 combat damage to Burn.
+  DAMAGE: Insectile Aberration (7) deals 3 combat damage to Burn.
+  DAMAGE: Dragon's Rage Channeler (27) deals 1 combat damage to Burn.
+  LIFE: Life: Burn 12 > 4
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 10 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Sunbaked Canyon (80)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 11 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  PLAYER_CONTROL: UR Delver has restored control over themself
+  PLAYER_CONTROL: Burn has restored control over themself
+  GAME_OUTCOME: Turn 6
+  GAME_OUTCOME: UR Delver has won because all opponents have lost
+  GAME_OUTCOME: Burn has won because all opponents have lost
+  MATCH_RESULTS: UR Delver: 1 Burn: 0 
+  MANA: Island (37) - {T}: Add {U}.
+  MANA: Island (40) - {T}: Add {U}.
+  MANA: Volcanic Island (13) - {T}: Add {U}.
+===============================

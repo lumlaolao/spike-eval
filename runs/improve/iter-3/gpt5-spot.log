@@ -1,0 +1,4 @@
+[sweep] gpt-5: seed=236 -> runs/improve/model-sweep-r4/gpt-5
+
+=== MODEL SWEEP VERDICTS ===
+PASS  gpt-5                    decisions= 76 unparsed=0 bridge_down=0 max_attempts=1 trunc_retries=0 completed=True

@@ -1,0 +1,627 @@
+{
+  "dirs": {
+    "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1": {
+      "label": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1",
+      "n_games": 2,
+      "n_decisions": 259,
+      "n_skipped_lines": 0,
+      "unpaired_files": [],
+      "fallback_by_kind": {
+        "forced(only-legal) all 1": {
+          "count": 9,
+          "example": {
+            "seat": "Identity-A",
+            "turn": 10,
+            "type": "damage-assign",
+            "raw": "forced(only-legal) all 1 -> Guide of Souls"
+          }
+        },
+        "choose-entity(forced-only-legal)": {
+          "count": 6,
+          "example": {
+            "seat": "Identity-B",
+            "turn": 3,
+            "type": "choose-entity",
+            "raw": "choose-entity(forced-only-legal) [Amped Raptor]"
+          }
+        },
+        "forced(only-legal) all 2": {
+          "count": 6,
+          "example": {
+            "seat": "Identity-A",
+            "turn": 8,
+            "type": "damage-assign",
+            "raw": "forced(only-legal) all 2 -> Cat Warrior Token"
+          }
+        },
+        "forced(only-legal)": {
+          "count": 3,
+          "example": {
+            "seat": "Identity-A",
+            "turn": 3,
+            "type": "target",
+            "raw": "forced(only-legal)"
+          }
+        },
+        "mulligan(heuristic-keep 4/7 lands)": {
+          "count": 2,
+          "example": {
+            "seat": "Identity-B",
+            "turn": 0,
+            "type": "mulligan",
+            "raw": "mulligan(heuristic-keep 4/7 lands)"
+          }
+        },
+        "damage-assign(ai-exotic) Guide of Souls dmg=1": {
+          "count": 1,
+          "example": {
+            "seat": "Identity-B",
+            "turn": 11,
+            "type": "damage-assign",
+            "raw": "damage-assign(ai-exotic) Guide of Souls dmg=1 -> Orcish Bowmasters=1, Orc Army Token=0"
+          }
+        },
+        "forced(only-legal) all 3": {
+          "count": 1,
+          "example": {
+            "seat": "Identity-A",
+            "turn": 15,
+            "type": "damage-assign",
+            "raw": "forced(only-legal) all 3 -> Guide of Souls"
+          }
+        },
+        "forced(only-legal) all 4": {
+          "count": 1,
+          "example": {
+            "seat": "Identity-A",
+            "turn": 18,
+            "type": "damage-assign",
+            "raw": "forced(only-legal) all 4 -> Ocelot Pride"
+          }
+        },
+        "mulligan(heuristic-keep 3/7 lands)": {
+          "count": 1,
+          "example": {
+            "seat": "Identity-A",
+            "turn": 0,
+            "type": "mulligan",
+            "raw": "mulligan(heuristic-keep 3/7 lands)"
+          }
+        },
+        "mulligan(heuristic-keep 2/6 lands)": {
+          "count": 1,
+          "example": {
+            "seat": "Identity-B",
+            "turn": 0,
+            "type": "mulligan",
+            "raw": "mulligan(heuristic-keep 2/6 lands)"
+          }
+        },
+        "discard(forced)": {
+          "count": 1,
+          "example": {
+            "seat": "Identity-A",
+            "turn": 6,
+            "type": "discard",
+            "raw": "discard(forced) -> Swords to Plowshares"
+          }
+        }
+      },
+      "ai_tier_count": 1,
+      "ai_tier_lines": [
+        {
+          "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+          "seat": "Identity-B",
+          "turn": 11,
+          "type": "damage-assign",
+          "fallback": "damage-assign(ai-exotic) Guide of Souls dmg=1 -> Orcish Bowmasters=1, Orc Army Token=0"
+        }
+      ],
+      "silent_drop_by_seat": {
+        "Identity-A": {
+          "log_asks": 119,
+          "jsonl_model_consulted": 118,
+          "gap": 1,
+          "files": [
+            {
+              "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+              "log": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-0.log",
+              "log_asks": 76,
+              "jsonl_rows": 75,
+              "gap": 1
+            }
+          ]
+        },
+        "Identity-B": {
+          "log_asks": 79,
+          "jsonl_model_consulted": 79,
+          "gap": 0,
+          "files": []
+        }
+      },
+      "silent_drop_seats": [
+        "Identity-A"
+      ],
+      "silent_drop_total": 1,
+      "parse_fail_by_model": {
+        "Identity-B": 9,
+        "Identity-A": 5
+      },
+      "latency_by_tier_model": {
+        "smart": {
+          "Identity-B": {
+            "n": 72,
+            "p50_ms": 4068,
+            "p90_ms": 10045,
+            "max_ms": 14694
+          },
+          "Identity-A": {
+            "n": 75,
+            "p50_ms": 5697,
+            "p90_ms": 11045,
+            "max_ms": 17169
+          }
+        },
+        "fast": {
+          "Identity-A": {
+            "n": 61,
+            "p50_ms": 4179,
+            "p90_ms": 11544,
+            "max_ms": 26096
+          },
+          "Identity-B": {
+            "n": 19,
+            "p50_ms": 3288,
+            "p90_ms": 4840,
+            "max_ms": 11742
+          }
+        }
+      },
+      "finish_reason_length_count": 1,
+      "forced_pick_mislabels": {
+        "count": 17,
+        "examples": [
+          {
+            "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+            "seat": "Identity-B",
+            "turn": 5,
+            "type": "surveil",
+            "tier": "smart"
+          },
+          {
+            "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+            "seat": "Identity-A",
+            "turn": 5,
+            "type": "surveil",
+            "tier": "smart"
+          },
+          {
+            "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+            "seat": "Identity-B",
+            "turn": 7,
+            "type": "attackers",
+            "tier": "smart"
+          },
+          {
+            "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+            "seat": "Identity-B",
+            "turn": 10,
+            "type": "blockers",
+            "tier": "smart"
+          },
+          {
+            "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+            "seat": "Identity-B",
+            "turn": 11,
+            "type": "attackers",
+            "tier": "smart"
+          },
+          {
+            "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+            "seat": "Identity-B",
+            "turn": 12,
+            "type": "blockers",
+            "tier": "smart"
+          },
+          {
+            "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+            "seat": "Identity-B",
+            "turn": 13,
+            "type": "attackers",
+            "tier": "smart"
+          },
+          {
+            "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+            "seat": "Identity-B",
+            "turn": 15,
+            "type": "attackers",
+            "tier": "smart"
+          },
+          {
+            "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+            "seat": "Identity-A",
+            "turn": 15,
+            "type": "blockers",
+            "tier": "smart"
+          },
+          {
+            "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+            "seat": "Identity-B",
+            "turn": 16,
+            "type": "blockers",
+            "tier": "smart"
+          },
+          {
+            "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+            "seat": "Identity-B",
+            "turn": 17,
+            "type": "attackers",
+            "tier": "smart"
+          },
+          {
+            "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+            "seat": "Identity-B",
+            "turn": 18,
+            "type": "blockers",
+            "tier": "smart"
+          },
+          {
+            "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-102-1784664796047.jsonl",
+            "seat": "Identity-B",
+            "turn": 3,
+            "type": "surveil",
+            "tier": "smart"
+          },
+          {
+            "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-102-1784664796047.jsonl",
+            "seat": "Identity-A",
+            "turn": 4,
+            "type": "surveil",
+            "tier": "smart"
+          },
+          {
+            "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-102-1784664796047.jsonl",
+            "seat": "Identity-A",
+            "turn": 8,
+            "type": "surveil",
+            "tier": "smart"
+          },
+          {
+            "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-102-1784664796047.jsonl",
+            "seat": "Identity-B",
+            "turn": 13,
+            "type": "attackers",
+            "tier": "smart"
+          },
+          {
+            "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-102-1784664796047.jsonl",
+            "seat": "Identity-B",
+            "turn": 15,
+            "type": "attackers",
+            "tier": "smart"
+          }
+        ]
+      },
+      "mulligan_by_seat": {
+        "Identity-A": 2,
+        "Identity-B": 3
+      },
+      "mulligan_missing_seats": []
+    }
+  },
+  "combined": {
+    "label": "combined",
+    "n_games": 2,
+    "n_decisions": 259,
+    "n_skipped_lines": 0,
+    "unpaired_files": [],
+    "fallback_by_kind": {
+      "forced(only-legal) all 1": {
+        "count": 9,
+        "example": {
+          "seat": "Identity-A",
+          "turn": 10,
+          "type": "damage-assign",
+          "raw": "forced(only-legal) all 1 -> Guide of Souls"
+        }
+      },
+      "choose-entity(forced-only-legal)": {
+        "count": 6,
+        "example": {
+          "seat": "Identity-B",
+          "turn": 3,
+          "type": "choose-entity",
+          "raw": "choose-entity(forced-only-legal) [Amped Raptor]"
+        }
+      },
+      "forced(only-legal) all 2": {
+        "count": 6,
+        "example": {
+          "seat": "Identity-A",
+          "turn": 8,
+          "type": "damage-assign",
+          "raw": "forced(only-legal) all 2 -> Cat Warrior Token"
+        }
+      },
+      "forced(only-legal)": {
+        "count": 3,
+        "example": {
+          "seat": "Identity-A",
+          "turn": 3,
+          "type": "target",
+          "raw": "forced(only-legal)"
+        }
+      },
+      "mulligan(heuristic-keep 4/7 lands)": {
+        "count": 2,
+        "example": {
+          "seat": "Identity-B",
+          "turn": 0,
+          "type": "mulligan",
+          "raw": "mulligan(heuristic-keep 4/7 lands)"
+        }
+      },
+      "damage-assign(ai-exotic) Guide of Souls dmg=1": {
+        "count": 1,
+        "example": {
+          "seat": "Identity-B",
+          "turn": 11,
+          "type": "damage-assign",
+          "raw": "damage-assign(ai-exotic) Guide of Souls dmg=1 -> Orcish Bowmasters=1, Orc Army Token=0"
+        }
+      },
+      "forced(only-legal) all 3": {
+        "count": 1,
+        "example": {
+          "seat": "Identity-A",
+          "turn": 15,
+          "type": "damage-assign",
+          "raw": "forced(only-legal) all 3 -> Guide of Souls"
+        }
+      },
+      "forced(only-legal) all 4": {
+        "count": 1,
+        "example": {
+          "seat": "Identity-A",
+          "turn": 18,
+          "type": "damage-assign",
+          "raw": "forced(only-legal) all 4 -> Ocelot Pride"
+        }
+      },
+      "mulligan(heuristic-keep 3/7 lands)": {
+        "count": 1,
+        "example": {
+          "seat": "Identity-A",
+          "turn": 0,
+          "type": "mulligan",
+          "raw": "mulligan(heuristic-keep 3/7 lands)"
+        }
+      },
+      "mulligan(heuristic-keep 2/6 lands)": {
+        "count": 1,
+        "example": {
+          "seat": "Identity-B",
+          "turn": 0,
+          "type": "mulligan",
+          "raw": "mulligan(heuristic-keep 2/6 lands)"
+        }
+      },
+      "discard(forced)": {
+        "count": 1,
+        "example": {
+          "seat": "Identity-A",
+          "turn": 6,
+          "type": "discard",
+          "raw": "discard(forced) -> Swords to Plowshares"
+        }
+      }
+    },
+    "ai_tier_count": 1,
+    "ai_tier_lines": [
+      {
+        "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+        "seat": "Identity-B",
+        "turn": 11,
+        "type": "damage-assign",
+        "fallback": "damage-assign(ai-exotic) Guide of Souls dmg=1 -> Orcish Bowmasters=1, Orc Army Token=0"
+      }
+    ],
+    "silent_drop_by_seat": {
+      "Identity-A": {
+        "log_asks": 119,
+        "jsonl_model_consulted": 118,
+        "gap": 1,
+        "files": [
+          {
+            "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+            "log": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-0.log",
+            "log_asks": 76,
+            "jsonl_rows": 75,
+            "gap": 1
+          }
+        ]
+      },
+      "Identity-B": {
+        "log_asks": 79,
+        "jsonl_model_consulted": 79,
+        "gap": 0,
+        "files": []
+      }
+    },
+    "silent_drop_seats": [
+      "Identity-A"
+    ],
+    "silent_drop_total": 1,
+    "parse_fail_by_model": {
+      "Identity-B": 9,
+      "Identity-A": 5
+    },
+    "latency_by_tier_model": {
+      "smart": {
+        "Identity-B": {
+          "n": 72,
+          "p50_ms": 4068,
+          "p90_ms": 10045,
+          "max_ms": 14694
+        },
+        "Identity-A": {
+          "n": 75,
+          "p50_ms": 5697,
+          "p90_ms": 11045,
+          "max_ms": 17169
+        }
+      },
+      "fast": {
+        "Identity-A": {
+          "n": 61,
+          "p50_ms": 4179,
+          "p90_ms": 11544,
+          "max_ms": 26096
+        },
+        "Identity-B": {
+          "n": 19,
+          "p50_ms": 3288,
+          "p90_ms": 4840,
+          "max_ms": 11742
+        }
+      }
+    },
+    "finish_reason_length_count": 1,
+    "forced_pick_mislabels": {
+      "count": 17,
+      "examples": [
+        {
+          "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+          "seat": "Identity-B",
+          "turn": 5,
+          "type": "surveil",
+          "tier": "smart"
+        },
+        {
+          "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+          "seat": "Identity-A",
+          "turn": 5,
+          "type": "surveil",
+          "tier": "smart"
+        },
+        {
+          "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+          "seat": "Identity-B",
+          "turn": 7,
+          "type": "attackers",
+          "tier": "smart"
+        },
+        {
+          "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+          "seat": "Identity-B",
+          "turn": 10,
+          "type": "blockers",
+          "tier": "smart"
+        },
+        {
+          "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+          "seat": "Identity-B",
+          "turn": 11,
+          "type": "attackers",
+          "tier": "smart"
+        },
+        {
+          "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+          "seat": "Identity-B",
+          "turn": 12,
+          "type": "blockers",
+          "tier": "smart"
+        },
+        {
+          "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+          "seat": "Identity-B",
+          "turn": 13,
+          "type": "attackers",
+          "tier": "smart"
+        },
+        {
+          "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+          "seat": "Identity-B",
+          "turn": 15,
+          "type": "attackers",
+          "tier": "smart"
+        },
+        {
+          "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+          "seat": "Identity-A",
+          "turn": 15,
+          "type": "blockers",
+          "tier": "smart"
+        },
+        {
+          "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+          "seat": "Identity-B",
+          "turn": 16,
+          "type": "blockers",
+          "tier": "smart"
+        },
+        {
+          "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+          "seat": "Identity-B",
+          "turn": 17,
+          "type": "attackers",
+          "tier": "smart"
+        },
+        {
+          "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl",
+          "seat": "Identity-B",
+          "turn": 18,
+          "type": "blockers",
+          "tier": "smart"
+        },
+        {
+          "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-102-1784664796047.jsonl",
+          "seat": "Identity-B",
+          "turn": 3,
+          "type": "surveil",
+          "tier": "smart"
+        },
+        {
+          "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-102-1784664796047.jsonl",
+          "seat": "Identity-A",
+          "turn": 4,
+          "type": "surveil",
+          "tier": "smart"
+        },
+        {
+          "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-102-1784664796047.jsonl",
+          "seat": "Identity-A",
+          "turn": 8,
+          "type": "surveil",
+          "tier": "smart"
+        },
+        {
+          "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-102-1784664796047.jsonl",
+          "seat": "Identity-B",
+          "turn": 13,
+          "type": "attackers",
+          "tier": "smart"
+        },
+        {
+          "file": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-102-1784664796047.jsonl",
+          "seat": "Identity-B",
+          "turn": 15,
+          "type": "attackers",
+          "tier": "smart"
+        }
+      ]
+    },
+    "mulligan_by_seat": {
+      "Identity-A": 2,
+      "Identity-B": 3
+    },
+    "mulligan_missing_seats": []
+  },
+  "hard_invariants": {
+    "ai_tier_count": 1,
+    "ai_tier_ok": false,
+    "silent_drop_total": 1,
+    "silent_drop_ok": false,
+    "pass": false
+  }
+}
