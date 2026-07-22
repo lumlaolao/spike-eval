@@ -1,0 +1,523 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 1 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 512
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/eval/decks/ur-delver.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/eval/decks/burn.plan
+[DECK] loaded 'UR Delver': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/eval/decks/ur-delver.txt)
+[DECK] loaded 'Burn': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/eval/decks/burn.txt)
+[SEATS] A=UR Delver(llm,openrouter:deepseek/deepseek-v4-pro) B=Burn(ai,opus)
+[HEADLESS] game starting (cap=30min)
+[UR Delver] [ROUTER] mulligan: heuristic KEEP (2/7 lands)
+[UR Delver] [TALLY] smart=0 fast=0 auto=0 ai=0
+[UR Delver] [ROUTER] play(main): 0 castable + 2 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 9945 ms
+[UR Delver] [ROUTER] play: land Volcanic Island
+[UR Delver] [TALLY] smart=0 fast=1 auto=0 ai=0 avgFast=9945ms
+[UR Delver] [ROUTER] play(main): 5 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 11191 ms
+[UR Delver] [ROUTER] plan: Cast Delver, establish a threat to race Burn while they're tapped out.
+[UR Delver] [ROUTER] play: casts Delver of Secrets {U} [Delver of Secrets - Creature 1 / 1]
+[UR Delver] [ROUTER] blockers: 1 atk / 1 blk -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 15228 ms
+[UR Delver] [ROUTER] blockers: NONE
+[OPENROUTER UR Delver/fast] replied in 5669 ms
+[UR Delver] [ROUTER] confirm(Reveal cards to other players?): YES
+[UR Delver] [TALLY] smart=2 fast=2 auto=0 ai=0 avgSmart=13209ms avgFast=7807ms
+[UR Delver] [ROUTER] play(main): 5 castable + 1 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 18958 ms
+[UR Delver] [ROUTER] plan: Cast Dragon's Rage Channeler to deploy a second threat, then next turn land-go and hold up interaction.
+[UR Delver] [ROUTER] play: casts Dragon's Rage Channeler {R} [Dragon's Rage Channeler - Creature 1 / 1]
+[UR Delver] [TALLY] smart=3 fast=2 auto=0 ai=0 avgSmart=15125ms avgFast=7807ms
+[UR Delver] [ROUTER] play(main): 0 castable + 1 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 8623 ms
+[UR Delver] [ROUTER] play: land Scalding Tarn
+[UR Delver] [TALLY] smart=3 fast=3 auto=0 ai=0 avgSmart=15125ms avgFast=8079ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 53633 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 23818 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [AUTO-LEGAL] attackers(forced-only-legal)->attack Insectile Aberration
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 17860 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 27721 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 32108 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 74468 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [TALLY] smart=4 fast=8 auto=1 ai=0 avgSmart=24752ms avgFast=25026ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 52923 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 20410 ms
+[UR Delver] [ROUTER] play: casts Scalding Tarn [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Island or Mountain card, put it onto the battlefield, then shuffle.]
+[UR Delver] [ROUTER] play(react): 3 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 75733 ms
+[UR Delver] [ROUTER] play: casts Brainstorm {U} [Draw three cards, then put two cards from your hand on top of your library in any order.]
+[UR Delver] [AUTO-LEGAL] surveil(forced-only-legal)->keep-all-top
+[OPENROUTER UR Delver/smart] replied in 86346 ms
+[UR Delver] [ROUTER] zone-change: Brainstorm [UR Delver's Hand] -> Library [Brainstorm]
+[OPENROUTER UR Delver/smart] replied in 65049 ms
+[OPENROUTER UR Delver/smart] replied in 26893 ms
+[UR Delver] [ROUTER] zone-change: Brainstorm [UR Delver's Hand] -> Library [Brainstorm]
+[OPENROUTER UR Delver/smart] replied in 6541 ms
+[UR Delver] [ROUTER] order [Brainstorm] -> Library: Brainstorm, Brainstorm
+[UR Delver] [ROUTER] blockers: 1 atk / 1 blk -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 11018 ms
+[UR Delver] [ROUTER] blockers: NONE
+[UR Delver] [TALLY] smart=10 fast=10 auto=2 ai=0 avgSmart=34778ms avgFast=29635ms
+[UR Delver] [ROUTER] play(main): 4 castable + 1 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 32393 ms
+[UR Delver] [ROUTER] plan: Cast Brainstorm first to dig deeper, then use the fetchland to shuffle away unwanted cards if needed, and deploy additional threats or burn based on what we draw.
+[UR Delver] [ROUTER] play: casts Brainstorm {U} [Draw three cards, then put two cards from your hand on top of your library in any order.]
+[UR Delver] [AUTO-LEGAL] surveil(forced-only-legal)->keep-all-top
+[OPENROUTER UR Delver/smart] replied in 15049 ms
+[UR Delver] [ROUTER] zone-change: Force of Will [UR Delver's Hand] -> Library [Brainstorm]
+[OPENROUTER UR Delver/smart] replied in 49403 ms
+[UR Delver] [ROUTER] zone-change: Murktide Regent (3/3) [UR Delver's Hand] -> Library [Brainstorm]
+[OPENROUTER UR Delver/smart] replied in 58518 ms
+[UR Delver] [ROUTER] order [Brainstorm] -> Library: Force of Will, Murktide Regent
+[UR Delver] [TALLY] smart=14 fast=10 auto=3 ai=0 avgSmart=35938ms avgFast=29635ms
+[UR Delver] [ROUTER] play(main): 4 castable + 1 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 61523 ms
+[UR Delver] [ROUTER] play: land Scalding Tarn
+[UR Delver] [TALLY] smart=15 fast=10 auto=3 ai=0 avgSmart=37644ms avgFast=29635ms
+[UR Delver] [ROUTER] play(main): 5 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 3038 ms
+[UR Delver] [ROUTER] play: casts Brainstorm {U} [Draw three cards, then put two cards from your hand on top of your library in any order.]
+[UR Delver] [AUTO-LEGAL] surveil(forced-only-legal)->keep-all-top
+[OPENROUTER UR Delver/smart] replied in 80546 ms
+[UR Delver] [ROUTER] zone-change: Force of Will [UR Delver's Hand] -> Library [Brainstorm]
+[OPENROUTER UR Delver/smart] replied in 77010 ms
+[OPENROUTER UR Delver/smart] replied in 5835 ms
+[UR Delver] [ROUTER] zone-change: Dragon's Rage Channeler (1/1) [UR Delver's Hand] -> Library [Brainstorm]
+[OPENROUTER UR Delver/smart] replied in 56424 ms
+[UR Delver] [ROUTER] order [Brainstorm] -> Library: Dragon's Rage Channeler, Force of Will
+[UR Delver] [TALLY] smart=20 fast=10 auto=4 ai=0 avgSmart=39375ms avgFast=29635ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 22230 ms
+[UR Delver] [ROUTER] play: casts Scalding Tarn [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Island or Mountain card, put it onto the battlefield, then shuffle.]
+[UR Delver] [TALLY] smart=21 fast=10 auto=4 ai=0 avgSmart=38559ms avgFast=29635ms
+[UR Delver] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 50847 ms
+[OPENROUTER UR Delver/smart] replied in 15765 ms
+[UR Delver] [ROUTER] target: Monastery Swiftspear (1/2)[tapped] [Burn's Battlefield] <- Lightning Bolt {R} [CARDNAME deals 3 damage to any target.]
+[UR Delver] [ROUTER] play: casts Lightning Bolt {R} [CARDNAME deals 3 damage to any target.]
+[UR Delver] [AUTO-LEGAL] surveil(forced-only-legal)->keep-all-top
+[UR Delver] [AUTO-LEGAL] attackers(forced-only-legal)->attack Dragon's Rage Channeler
+[UR Delver] [TALLY] smart=23 fast=10 auto=6 ai=0 avgSmart=38102ms avgFast=29635ms
+[UR Delver] [ROUTER] play(main): 2 castable + 2 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 112949 ms
+[UR Delver] [ROUTER] plan: Play Flooded Strand, crack for basic Island to reduce Price of Progress damage, pass with Force of Will up (pitch Murktide). Protect until we can safely deploy Murktide.
+[UR Delver] [ROUTER] play: land Flooded Strand
+[UR Delver] [TALLY] smart=24 fast=10 auto=6 ai=0 avgSmart=41221ms avgFast=29635ms
+[UR Delver] [ROUTER] play(main): 3 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 5097 ms
+[UR Delver] [ROUTER] play: casts Murktide Regent 5{U}{U} [Murktide Regent - Creature 3 / 3]
+[UR Delver] [TALLY] smart=25 fast=10 auto=6 ai=0 avgSmart=39776ms avgFast=29635ms
+[UR Delver] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 56084 ms
+[UR Delver] [ROUTER] play: casts Flooded Strand [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Plains or Island card, put it onto the battlefield, then shuffle.]
+[UR Delver] [TALLY] smart=26 fast=10 auto=6 ai=0 avgSmart=40403ms avgFast=29635ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 18784 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [AUTO-LEGAL] attackers(forced-only-legal)->attack Dragon's Rage Channeler
+[UR Delver] [TALLY] smart=27 fast=10 auto=7 ai=0 avgSmart=39602ms avgFast=29635ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 16555 ms
+[OPENROUTER UR Delver/smart] replied in 47905 ms
+[UR Delver] [ROUTER] target: Murktide Regent (6/6)[untapped][+1/+1 x3] [UR Delver's Battlefield] <- Chain Lightning {R} [CARDNAME deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may...]
+[UR Delver] [ROUTER] play: casts Chain Lightning {R} [CARDNAME deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may...]
+[UR Delver] [AUTO-LEGAL] surveil(forced-only-legal)->keep-all-top
+[UR Delver] [TALLY] smart=29 fast=10 auto=8 ai=0 avgSmart=39094ms avgFast=29635ms
+[UR Delver] [ROUTER] play(main): 0 castable + 1 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 22112 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] attackers: 2 can attack -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 37924 ms
+[UR Delver] [ROUTER] attackers: Dragon's Rage Channeler, Murktide Regent
+[UR Delver] [TALLY] smart=30 fast=11 auto=8 ai=0 avgSmart=39055ms avgFast=28951ms
+[UR Delver] [ROUTER] play(main): 0 castable + 1 land -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 36388 ms
+[UR Delver] [ROUTER] play: land Wasteland
+[UR Delver] [TALLY] smart=30 fast=12 auto=8 ai=0 avgSmart=39055ms avgFast=29571ms
+[UR Delver] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/smart] replied in 49828 ms
+[UR Delver] [ROUTER] plan: Hold up Force of Will to counter any burn, pass and win on next attack.
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 10385 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 4175 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 2053 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 5879 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 19089 ms
+[UR Delver] [ROUTER] play: PASS
+[UR Delver] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4-pro...
+[OPENROUTER UR Delver/fast] replied in 19849 ms
+[UR Delver] [ROUTER] target: Lava Spike [Stack] <- Force of Will 3{U}{U} [Counter target spell.] (only legal)
+[UR Delver] [ROUTER] play: casts Force of Will 3{U}{U} [Counter target spell.]
+[UR Delver] [AUTO-LEGAL] surveil(forced-only-legal)->keep-all-top
+========== GAME OVER ==========
+outcome: B after 11 turns (AllOpponentsLost) in 1640s
+--- full game log ---
+  MULLIGAN: Burn has kept a hand of 7 cards
+  MULLIGAN: UR Delver has kept a hand of 7 cards
+  TURN: Turn 1 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Sunbaked Canyon (79)
+  LIFE: Life: Burn 20 > 19
+  MANA: Sunbaked Canyon (79) - {T}, Pay 1 life: Add {R} or {W}.
+  STACK_ADD: Burn cast Monastery Swiftspear
+  STACK_RESOLVE: Monastery Swiftspear - Creature 1 / 2
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Monastery Swiftspear (64) to attack UR Delver.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: UR Delver didn't block Monastery Swiftspear (64).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (64) deals 1 combat damage to UR Delver.
+  LIFE: Life: UR Delver 20 > 19
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 2 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Volcanic Island (14)
+  MANA: Volcanic Island (14) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Delver of Secrets
+  STACK_RESOLVE: Delver of Secrets - Creature 1 / 1
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 3 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (90)
+  MANA: Mountain (90) - {T}: Add {R}.
+  STACK_RESOLVE: Burn has suspended Rift Bolt with 1 time counters on it.
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Monastery Swiftspear (64) to attack UR Delver.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: UR Delver didn't block Monastery Swiftspear (64).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (64) deals 1 combat damage to UR Delver.
+  LIFE: Life: UR Delver 19 > 18
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 4 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  STACK_ADD: UR Delver triggered Delver of Secrets
+  STACK_RESOLVE: At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets. [Phase: UR Delver]
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  MANA: Volcanic Island (14) - {T}: Add {R}.
+  STACK_ADD: UR Delver cast Dragon's Rage Channeler
+  STACK_RESOLVE: Dragon's Rage Channeler - Creature 1 / 1
+  LAND: UR Delver played Scalding Tarn (26)
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  COMBAT: UR Delver assigned Insectile Aberration (9) to attack Burn.
+  PHASE: UR Delver's Declare Blockers Step
+  COMBAT: Burn didn't block Insectile Aberration (9).
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  DAMAGE: Insectile Aberration (9) deals 3 combat damage to Burn.
+  LIFE: Life: Burn 19 > 16
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 5 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  STACK_ADD: Burn triggered Rift Bolt
+  STACK_RESOLVE: At the beginning of your upkeep, if this card is suspended, remove a time counter from it [Phase: Burn]
+  STACK_ADD: Burn triggered Rift Bolt
+  STACK_ADD: Burn cast Rift Bolt targeting [Insectile Aberration (9)]
+  STACK_RESOLVE: When the last time counter is removed from this card, if it's exiled, you may play it without paying its mana cost if able.  If you can't, it remains exiled. If you cast a creature spell this way, it gains haste until you lose control of the spell or the permanent it becomes. [Removed from: Rift Bolt (112)]
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Rift Bolt (112), Activator: Burn, SpellAbility: Rift Bolt deals 3 damage to any target. (without paying its mana cost)]
+  DAMAGE: Rift Bolt (112) deals 3 damage to Insectile Aberration (9).
+  STACK_RESOLVE: Rift Bolt (112) - Rift Bolt (112) deals 3 damage to Insectile Aberration (9).
+  ZONE_CHANGE: Insectile Aberration (9) was put into Graveyard from Battlefield.
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (85)
+  PHASE: Burn's Beginning of Combat Step
+  LIFE: Life: UR Delver 18 > 17
+  ZONE_CHANGE: Scalding Tarn (26) was put into Graveyard from Battlefield.
+  STACK_ADD: UR Delver activated Scalding Tarn
+  STACK_RESOLVE: Scalding Tarn (26) - UR Delver searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  MANA: Volcanic Island (13) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Brainstorm
+  STACK_ADD: UR Delver triggered Dragon's Rage Channeler
+  STACK_RESOLVE: UR Delver surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Brainstorm (18), Activator: UR Delver, SpellAbility: Draw three cards, then put two cards from your hand on top of your library in any order. ]
+  STACK_RESOLVE: Brainstorm (18) - UR Delver draws three cards, then puts two cards from their hand on top of their library in any order.
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Monastery Swiftspear (64) to attack UR Delver.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: UR Delver didn't block Monastery Swiftspear (64).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (64) deals 2 combat damage to UR Delver.
+  LIFE: Life: UR Delver 17 > 15
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 6 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  MANA: Volcanic Island (14) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Brainstorm
+  STACK_ADD: UR Delver triggered Dragon's Rage Channeler
+  STACK_RESOLVE: UR Delver surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Brainstorm (16), Activator: UR Delver, SpellAbility: Draw three cards, then put two cards from your hand on top of your library in any order. ]
+  STACK_RESOLVE: Brainstorm (16) - UR Delver draws three cards, then puts two cards from their hand on top of their library in any order.
+  LAND: UR Delver played Scalding Tarn (25)
+  MANA: Volcanic Island (13) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Brainstorm
+  STACK_ADD: UR Delver triggered Dragon's Rage Channeler
+  STACK_RESOLVE: UR Delver surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Brainstorm (15), Activator: UR Delver, SpellAbility: Draw three cards, then put two cards from your hand on top of your library in any order. ]
+  STACK_RESOLVE: Brainstorm (15) - UR Delver draws three cards, then puts two cards from their hand on top of their library in any order.
+  LIFE: Life: UR Delver 15 > 14
+  ZONE_CHANGE: Scalding Tarn (25) was put into Graveyard from Battlefield.
+  STACK_ADD: UR Delver activated Scalding Tarn
+  STACK_RESOLVE: Scalding Tarn (25) - UR Delver searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  MANA: Volcanic Island (12) - {T}: Add {R}.
+  STACK_ADD: UR Delver cast Lightning Bolt targeting [Monastery Swiftspear (64)]
+  STACK_ADD: UR Delver triggered Dragon's Rage Channeler
+  STACK_RESOLVE: UR Delver surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Lightning Bolt (45), Activator: UR Delver, SpellAbility: Lightning Bolt deals 3 damage to any target.]
+  DAMAGE: Lightning Bolt (45) deals 3 damage to Monastery Swiftspear (64).
+  STACK_RESOLVE: Lightning Bolt (45) - Lightning Bolt (45) deals 3 damage to Monastery Swiftspear (64).
+  ZONE_CHANGE: Monastery Swiftspear (64) was put into Graveyard from Battlefield.
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  COMBAT: UR Delver assigned Dragon's Rage Channeler (27) to attack Burn.
+  PHASE: UR Delver's Declare Blockers Step
+  COMBAT: Burn didn't block Dragon's Rage Channeler (27).
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  DAMAGE: Dragon's Rage Channeler (27) deals 1 combat damage to Burn.
+  LIFE: Life: Burn 16 > 15
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 7 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (88)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  MANA: Mountain (90) - {T}: Add {R}.
+  STACK_ADD: Burn cast Chain Lightning targeting [UR Delver]
+  DAMAGE: Chain Lightning (116) deals 3 non-combat damage to UR Delver.
+  LIFE: Life: UR Delver 14 > 11
+  STACK_RESOLVE: Chain Lightning (116) - Chain Lightning (116) deals 3 damage to UR Delver. 
+  MANA: Mountain (85) - {T}: Add {R}.
+  STACK_ADD: Burn cast Lava Spike targeting [UR Delver]
+  DAMAGE: Lava Spike (71) deals 3 non-combat damage to UR Delver.
+  LIFE: Life: UR Delver 11 > 8
+  STACK_RESOLVE: Lava Spike (71) - Lava Spike (71) deals 3 damage to UR Delver.
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 8 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Flooded Strand (6)
+  MANA: Volcanic Island (14) - {T}: Add {U}.
+  MANA: Volcanic Island (13) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Murktide Regent
+  EFFECT_REPLACED: Murktide Regent enters with a +1/+1 counter on it for each instant and sorcery card exiled with it.
+  STACK_RESOLVE: Murktide Regent - Creature 3 / 3
+  LIFE: Life: UR Delver 8 > 7
+  ZONE_CHANGE: Flooded Strand (6) was put into Graveyard from Battlefield.
+  STACK_ADD: UR Delver activated Flooded Strand
+  STACK_RESOLVE: Flooded Strand (6) - UR Delver searches their library for a Plains or Island card, puts it onto the battlefield, then shuffles.
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  COMBAT: UR Delver assigned Dragon's Rage Channeler (27) to attack Burn.
+  PHASE: UR Delver's Declare Blockers Step
+  COMBAT: Burn didn't block Dragon's Rage Channeler (27).
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  DAMAGE: Dragon's Rage Channeler (27) deals 1 combat damage to Burn.
+  LIFE: Life: Burn 15 > 14
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  MANA: Volcanic Island (12) - {T}: Add {R}.
+  STACK_ADD: UR Delver cast Chain Lightning targeting [Murktide Regent (58)]
+  STACK_ADD: UR Delver triggered Dragon's Rage Channeler
+  STACK_RESOLVE: UR Delver surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Chain Lightning (57), Activator: UR Delver, SpellAbility: Chain Lightning deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may choose a new target for that copy. ]
+  DAMAGE: Chain Lightning (57) deals 3 damage to Murktide Regent (58).
+  STACK_RESOLVE: Chain Lightning (57) - Chain Lightning (57) deals 3 damage to Murktide Regent (58). 
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 9 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (93)
+  MANA: Mountain (90) - {T}: Add {R}.
+  STACK_ADD: Burn cast Monastery Swiftspear
+  STACK_RESOLVE: Monastery Swiftspear - Creature 1 / 2
+  MANA: Mountain (85) - {T}: Add {R}.
+  ZONE_CHANGE: Sunbaked Canyon (79) was put into Graveyard from Battlefield.
+  STACK_ADD: Burn activated Sunbaked Canyon
+  STACK_RESOLVE: Sunbaked Canyon (79) - Burn draws a card.
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  MANA: Mountain (88) - {T}: Add {R}.
+  STACK_ADD: Burn cast Lava Spike targeting [UR Delver]
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Lava Spike (72), Activator: Burn, SpellAbility: Lava Spike deals 3 damage to target player or planeswalker.]
+  DAMAGE: Lava Spike (72) deals 3 non-combat damage to UR Delver.
+  LIFE: Life: UR Delver 7 > 4
+  STACK_RESOLVE: Lava Spike (72) - Lava Spike (72) deals 3 damage to UR Delver.
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 10 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  COMBAT: UR Delver assigned Dragon's Rage Channeler (27) and Murktide Regent (58) to attack Burn.
+  PHASE: UR Delver's Declare Blockers Step
+  COMBAT: Burn didn't block Dragon's Rage Channeler (27).
+Burn didn't block Murktide Regent (58).
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  DAMAGE: Dragon's Rage Channeler (27) deals 3 combat damage to Burn.
+  DAMAGE: Murktide Regent (58) deals 6 combat damage to Burn.
+  LIFE: Life: Burn 14 > 5
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  LAND: UR Delver played Wasteland (55)
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 11 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (91)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Monastery Swiftspear (62) to attack UR Delver.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: UR Delver didn't block Monastery Swiftspear (62).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (62) deals 1 combat damage to UR Delver.
+  LIFE: Life: UR Delver 4 > 3
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  MANA: Mountain (90) - {T}: Add {R}.
+  STACK_ADD: Burn cast Lava Spike targeting [UR Delver]
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  MANA: Volcanic Island (14) - {T}: Add {U}.
+  MANA: Volcanic Island (13) - {T}: Add {U}.
+  MANA: Volcanic Island (12) - {T}: Add {R}.
+  MANA: Volcanic Island (11) - {T}: Add {R}.
+  MANA: Wasteland (55) - {T}: Add {C}.
+  STACK_ADD: UR Delver cast Force of Will targeting [Lava Spike (74)]
+  STACK_ADD: UR Delver triggered Dragon's Rage Channeler
+  STACK_RESOLVE: UR Delver surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Force of Will (20), Activator: UR Delver, SpellAbility: Counter target spell.]
+  STACK_RESOLVE: Force of Will (20) - Counter.
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Lava Spike (74), Activator: Burn, SpellAbility: Lava Spike deals 3 damage to target player or planeswalker.]
+  DAMAGE: Lava Spike (74) deals 3 non-combat damage to UR Delver.
+  LIFE: Life: UR Delver 3 > 0
+  STACK_RESOLVE: Lava Spike (74) - Lava Spike (74) deals 3 damage to UR Delver.
+  PLAYER_CONTROL: UR Delver has restored control over themself
+  PLAYER_CONTROL: Burn has restored control over themself
+  GAME_OUTCOME: Turn 6
+  GAME_OUTCOME: UR Delver has lost because life total reached 0
+  GAME_OUTCOME: Burn has won because all opponents have lost
+  MATCH_RESULTS: UR Delver: 0 Burn: 1 
+===============================

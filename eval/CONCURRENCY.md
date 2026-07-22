@@ -199,6 +199,11 @@ not wanting to starve the user's interactive `claude` CLI sessions.
 
 ## 5. Recommendations
 
+> **Superseded upward by §7 (2026-07-21 evening):** the first real parallel
+> run validated these numbers with headroom to spare; the current ceilings
+> are cheap-LLM **6–10**, mixed **4–6**, floor **4–8**, bare-CLI still **1**.
+> The table below is kept as the original conservative derivation.
+
 | Scenario | Safe `--jobs` | Why |
 |---|---|---|
 | Floor-vs-floor (both controllers `floor`) | **4–6** | CPU-bound, ~25s bursts. 6 P-cores + 12 E-cores comfortably absorb 4–6 concurrent ~25s AI-search bursts alongside existing desktop load; RAM is a non-issue (~1 GB/JVM × 6 ≈ 6 GB of 24 GB). |
@@ -338,6 +343,43 @@ recommended path, given the actual hazards found in section 3 are narrow:
    hazards don't actually require it. Keep the shared `/tmp/forge_cp.txt`
    and shared Forge profile dir; just stop them from being *written* while
    games run.
+
+## 7. Addendum (2026-07-21 evening): first real parallel run — recommendations raised
+
+The §5 table was derived from a single live JVM plus static reads. That
+evening, the A/B + Stage 0 launch provided the first real multi-batch
+measurement on this machine (Apple M5 Pro, 18 cores, 24 GiB):
+
+- **7 concurrent JVMs** across three simultaneous `run_batch.py` batches
+  (A/B old `--jobs 2` + A/B fix `--jobs 2`, gemini-3.5-flash; Stage 0
+  `--jobs 3`, deepseek-v4-pro — all `openrouter:`-routed), alongside the
+  usual desktop load (Claude sessions, Chrome, etc.).
+- **RAM stayed ~75% free at peak**; ~1 GB RSS per JVM held (§2's single-JVM
+  measurement generalized cleanly to 7).
+- **Zero backstop kills, zero invariant failures** in the 40 completed A/B
+  games (`runs/ab-quality-1/*/batch.log` — both end in clean summaries).
+  Note the widened backstop (`run_batch.py` `run_one()`, loop-followups
+  commit `c3ec3d2`: `cap×2 + 200s grace + 600s startup/shutdown`) was in
+  effect — it absorbs the parallel-startup contention that killed 2 games
+  in the first 5-JVM run under the old `cap×2 + 300` formula.
+
+**Raised recommendations** (all still assume no rebuild mid-run, §5 hazard
+list unchanged):
+
+| Scenario | Safe `--jobs` | Basis |
+|---|---|---|
+| Cheap `openrouter:` LLM games | **6–10** | Network-bound; 7 proven with 75% RAM free ⇒ ~10 fits inside a "keep ≥25% RAM free" budget at 1 GB/JVM. Above 10, memory pressure risk on 24 GiB and provider-queue courtesy both start to bite. |
+| Mixed sweep (floor seat + LLM seat) | **4–6** | Floor seat adds brief CPU bursts on top of the RAM budget. |
+| Floor-vs-floor | **4–8** | CPU-burst-bound (~25s/game); 18 logical cores absorb 8 with desktop load intact. |
+| Any bare (non-`openrouter:`) spec | **1** (unchanged) | Local claude CLI contention — not a RAM/CPU question. |
+
+**Count JVMs across ALL concurrently running batches, not per batch** — the
+budget is machine-wide (today's 7 = 2+2+3). `run_batch.py`'s `--jobs`
+warning is now spec-aware and encodes these thresholds
+(`warn_parallel_jobs()`): bare specs warn at `--jobs ≥2`, no-LLM batches
+above 8, `openrouter:` batches above 10. Before a big batch, sanity-check
+free RAM (`vm_stat`) — the ceilings assume the usual desktop load, not a
+machine already under memory pressure.
 
 ---
 *Sources for OpenRouter rate-limit behavior: [API Credit & Rate Limits](https://openrouter.ai/docs/api_reference/limits), [OpenRouter Rate Limits – What You Need to Know](https://openrouter.zendesk.com/hc/en-us/articles/39501163636379-OpenRouter-Rate-Limits-What-You-Need-to-Know).*

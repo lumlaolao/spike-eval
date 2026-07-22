@@ -1,0 +1,20 @@
+BUILD: STAGE0  (loop-followups TIP; TASKS 1+2+4 + TASK 3 static-preamble growth)
+overlay source sha : 339f457  (branch loop-followups, tip)
+  subject: harness: grow smart-tier system preamble with play-improving static content
+  contains: everything in FIX (c3ec3d2) PLUS TASK 3 — smart-tier system preamble grown from
+            ~445 to ~2,319 tokens (with-plan) / ~2,207 (plan-free) of byte-stable static content
+            (snapshot legend + worked CHOICE examples + Legacy/eval-deck glossary).
+built via          : main checkout (loop-followups) -> install.sh -> mvn compile
+FORGE_COMMIT pin   : c1c64a53586459cd0d4c70f27abd1aa8bbc92891 (matches ~/code/forge HEAD)
+built date         : 2026-07-21
+artifact           : spike-classes/forge/spike/*.class  (only the forge.spike package differs
+                     between builds; pinned engine classes are identical across builds).
+NOTE: this is the build currently installed+compiled in ~/code/forge/forge-gui-desktop/target/classes,
+      so run-llm-headless.sh runs THIS build as-is with no CP edit. The spike-classes copy here is the
+      stashed artifact for reproducibility / to coexist with OLD and FIX.
+
+HOW TO RUN THIS BUILD with run-llm-headless.sh:
+  As-is (STAGE0 is what is currently compiled): `bash ~/code/forge/run-llm-headless.sh`.
+  Or, to pin explicitly regardless of what is compiled, prepend the spike-classes dir in the CP= line:
+
+    CP="/Users/lumlumlam/code/mtg-forge-llm-agent/runs/ab-builds/STAGE0/spike-classes:target/classes:$(cat /tmp/forge_cp.txt)"

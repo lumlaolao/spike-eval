@@ -197,9 +197,39 @@ def run_one(args, seed, swap, out_dir):
     """Run one game. Returns (seed, swap, status, exit_code)."""
     env = build_env(args, seed, swap, out_dir)
     log_path = out_dir / ("game-%d-%d.log" % (seed, 1 if swap else 0))
-    # In-game cap is GAME_CAP_MS; the subprocess timeout below is a backstop
-    # for a wedged JVM (2x the cap plus grace for JVM startup / deck load).
-    timeout = args.cap_minutes * 60 * 2 + 300 if args.cap_minutes > 0 else None
+    # The in-game wall-clock cap is GAME_CAP_MS (worker.join(capMs) in
+    # LlmSpikeHeadless). The subprocess timeout below is a backstop for a WEDGED
+    # JVM only. A HEALTHY game's subprocess wall time is NOT just the cap: the
+    # cap timer starts (LlmSpikeHeadless.main sets t0) AFTER Forge model init
+    # (non-lazy load of ~33k card scripts, LOAD_CARD_SCRIPTS_LAZILY=false) + deck
+    # load, and after the cap fires the JVM grants an in-flight model call a grace
+    # window before System.exit so its jsonl row is never orphaned. That grace
+    # was widened from a flat 15s to LlmSpikeGui.ModelCfg.maxConfiguredTimeoutMs()
+    # + 10s (~160s; the built-in ModelCfg table's max is kimi's 150s smart-tier
+    # timeout) in the 4cfdaec cap-shutdown-race fix. So a healthy game's total
+    # wall time ~= [JVM boot + card-script load + deck load, BEFORE the cap timer]
+    # + GAME_CAP_MS + ~160s in-JVM post-cap grace + writeGameSummary/shutdown
+    # writes, all inflated under N-way parallel contention.
+    #
+    # The old `cap*60*2 + 300` formula scaled ONLY with the cap and lacked a fixed
+    # floor for the (cap-independent) grace + card-script load, so small-cap
+    # parallel runs were killed at cap+grace (2 games in the first 5-JVM parallel
+    # run — see the project journal). Keep the 2x-cap load-scaling slush AND add
+    # explicit fixed floors for the grace and the startup/deck-load/shutdown work
+    # so the backstop can only WIDEN, never regress a previously-passing run,
+    # while staying finite (a truly wedged JVM is still killed).
+    #
+    # GRACE_S is a documented constant, not derived live: the source of truth
+    # (ModelCfg.maxConfiguredTimeoutMs) is Java-side and not cheaply callable from
+    # Python. 200 = ~160s built-in grace + margin for a moderately raised
+    # OPENROUTER_MODEL_CFG timeoutMs override.
+    GRACE_S = 200
+    # JVM boot + non-lazy ~33k-card-script parse + deck load (all before the cap
+    # timer) + post-cap game-summary/shutdown writes, generous for parallel
+    # contention where all concurrent JVMs load card scripts at once.
+    STARTUP_SHUTDOWN_S = 600
+    timeout = (args.cap_minutes * 60 * 2 + GRACE_S + STARTUP_SHUTDOWN_S
+               if args.cap_minutes > 0 else None)
     log("[start] seed=%d swap=%d -> %s" % (seed, swap, log_path.name))
     try:
         with open(log_path, "w", encoding="utf-8") as lf:
@@ -347,21 +377,52 @@ def finalize_provenance_and_cap(args, cited):
            forced["RUN_DISCIPLINE"]))
 
 
-def derive_cap_minutes(args):
-    """Per-tier default cap (minutes): no llm seat -> 15; any opus -> 240;
-    all-haiku llm -> 120; anything else llm -> 240 (conservative)."""
+def effective_llm_models(args):
+    """Model specs actually in play for llm seats, with the in-JVM defaults
+    substituted (unset SMART_MODEL_* -> opus, unset FAST_MODEL_* -> haiku) so
+    an unset tier is never silently dropped. Empty list -> no llm seat."""
     ca = args.controller_a or "llm"   # Java defaults an unset controller to llm
     cb = args.controller_b or "llm"
-    if ca != "llm" and cb != "llm":
-        return 15.0
-    # Substitute the in-JVM defaults for unset models (unset SMART_MODEL_* ->
-    # opus, unset FAST_MODEL_* -> haiku) so an unset smart tier correctly
-    # forces the long cap instead of being silently dropped.
     models = []
     if ca == "llm":
         models += [args.smart_a or "opus", args.fast_a or "haiku"]
     if cb == "llm":
         models += [args.smart_b or "opus", args.fast_b or "haiku"]
+    return models
+
+
+def warn_parallel_jobs(args):
+    """Spec-aware --jobs advice (measured basis: eval/CONCURRENCY.md §7).
+    Bare (non-openrouter:) specs shell out to the local claude CLI and contend
+    with the user's own interactive sessions -> jobs=1 territory. openrouter:
+    specs are network-bound (~1GB RSS, near-zero CPU per JVM) -> RAM is the
+    limit; floor/random-only batches are CPU-burst-bound instead."""
+    if args.jobs <= 1:
+        return
+    models = effective_llm_models(args)
+    bare = sorted(set(m for m in models if not m.startswith("openrouter:")))
+    if bare:
+        log("WARNING: --jobs=%d with bare (claude-CLI) model spec(s) %s — "
+            "parallel games starve the local claude CLI (decisions time out "
+            "and fall back to auto/ai, polluting the eval). Use --jobs 1 or "
+            "openrouter:-prefixed specs." % (args.jobs, bare))
+    elif not models and args.jobs > 8:
+        log("WARNING: --jobs=%d for a no-LLM (floor/random/ai) batch — these "
+            "are CPU-bound ~25s bursts; >8 concurrent JVMs oversubscribe "
+            "cores (see eval/CONCURRENCY.md §7)." % args.jobs)
+    elif models and args.jobs > 10:
+        log("WARNING: --jobs=%d — openrouter-routed games are RAM-bound "
+            "(~1GB RSS/JVM on a 24GB machine); count JVMs across ALL "
+            "concurrently running batches, not just this one (see "
+            "eval/CONCURRENCY.md §7)." % args.jobs)
+
+
+def derive_cap_minutes(args):
+    """Per-tier default cap (minutes): no llm seat -> 15; any opus -> 240;
+    all-haiku llm -> 120; anything else llm -> 240 (conservative)."""
+    models = effective_llm_models(args)
+    if not models:
+        return 15.0
     if any("opus" in m for m in models):
         return 240.0
     if all("haiku" in m for m in models):
@@ -382,6 +443,38 @@ def default_out_label(args):
 
 
 # ------------------------------------------------------------------ main
+
+def load_secrets():
+    """Auto-load <repo>/secrets.env into the environment (setdefault — real env
+    wins), same as model_sweep.py/tournament.py. run_batch.py historically
+    lacked this, so a direct invocation from a fresh shell launched JVMs that
+    all died at the egress-consent check (2026-07-21 stage0 relaunch: 7 games
+    failed at startup before this fix)."""
+    path = REPO_ROOT / "secrets.env"
+    if not path.is_file():
+        return
+    for raw in path.read_text().splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        os.environ.setdefault(k.strip(), v.strip())
+
+
+def preflight_openrouter(args):
+    """Refuse up front, with one clear message, instead of spawning a batch of
+    JVMs that each crash at LLMBridgeFactory.create()'s key/egress checks."""
+    if not any(m.startswith("openrouter:") for m in effective_llm_models(args)):
+        return
+    if not os.environ.get("OPENROUTER_API_KEY"):
+        sys.exit("OPENROUTER_API_KEY not set (secrets.env missing?) — an "
+                 "openrouter: model spec is in play; refusing to launch JVMs "
+                 "that would all crash at startup.")
+    if os.environ.get("OPENROUTER_ALLOW_EGRESS") != "1":
+        sys.exit("OPENROUTER_ALLOW_EGRESS=1 not set — egress consent required "
+                 "for openrouter: specs (see secrets.env.example); refusing to "
+                 "launch JVMs that would all crash at startup.")
+
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
@@ -428,6 +521,9 @@ def main():
                     help="extra env var for the runner (repeatable)")
     args = ap.parse_args()
 
+    load_secrets()
+    preflight_openrouter(args)
+
     cited = not args.exploratory
 
     # --deck is convenience for a mirror: it sets both seats.
@@ -472,10 +568,7 @@ def main():
     log("[out] %s" % out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    if args.jobs > 2:
-        log("WARNING: --jobs=%d — claude CLI rate limits usually make >2 "
-            "parallel games counterproductive (decisions time out and fall "
-            "back to auto/ai, polluting the eval)." % args.jobs)
+    warn_parallel_jobs(args)
 
     swaps = [False, True] if args.pairs else [False]
     combos = [(seed, swap) for seed in args.seeds for swap in swaps]

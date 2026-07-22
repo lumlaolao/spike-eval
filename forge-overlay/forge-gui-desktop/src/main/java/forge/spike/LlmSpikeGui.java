@@ -99,6 +99,15 @@ interface LLMBridge {
      *  seat — and gives the eval-record layer a way to distinguish a clean stop from a token-budget
      *  truncation without re-deriving it from raw_reply. */
     default String getLastFinishReason() { return null; }
+    /** Prompt (input) token count reported by the backend's response `usage` object for the most
+     *  recently completed ask(), or -1 when the backend reports no usage (Claude CLI) or nothing has
+     *  completed yet. Persisted per-decision in the eval JSONL so Stage-0 calibration can sum true
+     *  input/output token cost without re-deriving it. Same last-value single-threaded-per-seat
+     *  contract as getLastFinishReason(). */
+    default int getLastPromptTokens() { return -1; }
+    /** Completion (output) token count from the response `usage` object for the most recent ask(),
+     *  or -1 when unreported. See {@link #getLastPromptTokens()}. */
+    default int getLastCompletionTokens() { return -1; }
 }
 
 /**
@@ -211,6 +220,11 @@ public final class LlmSpikeGui {
         // ADDITIVE (Group-2 observability): the last ask()'d bridge's finish_reason (see
         // LLMBridge.getLastFinishReason), null for backends that don't report one.
         private String lastFinishReason = null;
+        // ADDITIVE (Stage-0 token calibration): prompt/completion token counts from the last ask()'d
+        // bridge's response usage object (LLMBridge.getLast{Prompt,Completion}Tokens), -1 when the
+        // backend reports none (Claude CLI) or no model was consulted for this decision.
+        private int lastPromptTokens = -1;
+        private int lastCompletionTokens = -1;
         // ADDITIVE (Group-2): latency split — the SUCCESSFUL final attempt's own wall time (this is what
         // jsonl latency_ms now reports) vs. everything else (failed bridge sub-attempts, backoff waits,
         // and any earlier caller-level ask() round-trip whose reply was superseded by a later retry) which
@@ -229,6 +243,7 @@ public final class LlmSpikeGui {
         private boolean lastDeclineLogged = false;
         private void clearLast() {
             lastPrompt = null; lastReply = null; lastTier = null; lastAskMs = 0; lastFinishReason = null;
+            lastPromptTokens = -1; lastCompletionTokens = -1;
             lastSuccessMs = 0; lastRetryMs = 0; lastAttempts = 0; lastFirstFailedReply = null; lastDeclineLogged = false;
         }
 
@@ -312,7 +327,7 @@ public final class LlmSpikeGui {
                     : "FORMAT: at most two short sentences of reasoning, then a final line in EXACTLY the format I "
                       + "request (e.g. `CHOICE: 3` or `PICKS: 1,4`). I parse ONLY that final line — never write "
                       + "anything after it.";
-            return "You are a world-class Magic: The Gathering (Legacy) player piloting \"" + seat + "\".\n"
+            String base = "You are a world-class Magic: The Gathering (Legacy) player piloting \"" + seat + "\".\n"
                     // PLAN_A=""/PLAN_B="" gives a plan-free eval arm — no expert strategy injected.
                     + (plan == null || plan.isEmpty() ? "" : "GAME PLAN: " + plan + "\n")
                     + "PROTOCOL: I am the Forge rules engine. Each message gives you the CURRENT game state and ONE "
@@ -329,7 +344,111 @@ public final class LlmSpikeGui {
                     + "(6) If your key piece is gone (stripped/bounced), your plan is to FIND another (dig), "
                     + "not to accumulate mana with nothing to spend it on.\n"
                     + format + " Play to WIN the game, not just the current decision.";
+            // SMART-TIER STATIC APPENDIX (byte-identical for every decision in every game — no game state):
+            // a snapshot-format legend (derived from snapshot()/candidateLabel/manaAvailable/landSummary so
+            // it is exact), worked CHOICE-reasoning examples, and a Legacy strategy/keyword glossary for the
+            // eval decks. Load-bearing reasoning support for high-stakes decisions, so it goes on the smart
+            // tier only — the fast tier's contract is terse/no-reasoning, and bloating high-frequency cheap
+            // calls would be pure latency there. Because it carries zero volatile state it keeps the system
+            // message byte-stable per (seat, tier), the prompt-caching prerequisite once a cache breakpoint
+            // is added (see wiki "Prompt Caching for the MTG Harness via OpenRouter").
+            return terse ? base : base + "\n\n" + STATIC_REFERENCE;
         }
+        /** See framing(): byte-stable, game-state-free reference appended to the smart-tier system
+         *  message. Kept as one constant so it is literally identical across seats/games. */
+        private static final String STATIC_REFERENCE =
+                "=== SNAPSHOT LEGEND (how to read the game state in each message) ===\n"
+              + "Header `== Turn N PHASE (active: NAME) ==`: the turn number, current phase/step, and whose\n"
+              + "turn it is. PHASE is one of UPKEEP, DRAW, MAIN1, COMBAT_BEGIN, COMBAT_DECLARE_ATTACKERS,\n"
+              + "COMBAT_DECLARE_BLOCKERS, COMBAT_DAMAGE, MAIN2, END_OF_TURN, CLEANUP. `active:` is the player\n"
+              + "whose turn it is — if it is not you, you are acting at instant speed on their turn.\n"
+              + "`YOU [seat] life L | energy E, poison P/10`: your life total, then optional counters — `energy`\n"
+              + "only shows when >0; `poison P/10` always shows (10 poison = you lose; infect/poison decks race it).\n"
+              + "`hand(n): Name {cost} P/T (tag), ...`: your hand. `{cost}` is the mana cost in brace notation\n"
+              + "(`{2}{B}` = two generic + one black; omitted for lands). `P/T` power/toughness shows for\n"
+              + "creatures only. The affordability `(tag)` is a real payment check, not a guess: `(castable)` =\n"
+              + "you can pay right now; `(need 1 more B)` = short exactly that color; `(not castable now)` = a\n"
+              + "cost too complex to break down (hybrid/Phyrexian/X) or short on total mana.\n"
+              + "`board: ...`: your NONLAND permanents (lands are summarized separately). Each: `Name(P/T)` for\n"
+              + "creatures, `[loyalty N]` for planeswalkers, `[T]` = tapped, `[sick]` = summoning-sick (a creature\n"
+              + "that cannot attack or use {T} abilities yet), and `[+1/+1 x2]`-style counters. `(no nonland\n"
+              + "permanents)` means an empty board.\n"
+              + "`lands: U untapped / T total (Name xU [untapped], Name xK [tapped])`: your land count and the\n"
+              + "per-copy tap breakdown — duplicate-named lands are listed separately by tap state so you can\n"
+              + "target the right copy.\n"
+              + "`mana available: {U:2 R:1 C:1} (K untapped sources)`: how many untapped sources CAN make each\n"
+              + "color right now (dual lands count in BOTH colors but can only make one at a time — a deliberate\n"
+              + "over-count), and the count of distinct untapped mana permanents. Use it to check you can pay a\n"
+              + "line before committing.\n"
+              + "`yard(n): ...`: your graveyard (reanimator/delve/flashback fuel; dredge/escape enablers).\n"
+              + "`OPP [name] life L ...`: the opponent's public state — board, lands, `mana available`, yard, and\n"
+              + "`hand: N cards` (a COUNT only; their card identities are hidden unless INTEL revealed them).\n"
+              + "Their untapped `mana available` is your read on open removal/counters — play around it.\n"
+              + "`stack (top first): N pending: #k Name (player) -> targets | ...`: spells/abilities waiting to\n"
+              + "resolve, top of stack first (it resolves first). `(empty)` means an open priority window with\n"
+              + "nothing pending. `-> targets` shows what each is aimed at.\n"
+              + "`RECENT EVENTS (oldest->newest)`: the engine's own log of what happened between your decisions\n"
+              + "(opponent plays, combat results, discards). `INTEL: ...`: durable facts you learned (revealed\n"
+              + "hands, cards you named). `YOUR TURN PLAN (...)`: the one-line plan you stated earlier this turn —\n"
+              + "execute it or consciously deviate.\n"
+              + "Option lists label each card the same way: `Name (P/T)[loyalty N][tapped]/[untapped][counters]`,\n"
+              + "so duplicate-named permanents are always distinguishable — read the tag before you pick.\n"
+              + "\n"
+              + "=== ANSWER CONTRACT (the exact final line I parse for each decision kind) ===\n"
+              + "- Numbered single pick -> `CHOICE: <number>` (one number from the Options list; a 'decline/none'\n"
+              + "  option, when offered, is just another number).\n"
+              + "- Choose a subset (discard, reveal, cards-for-effect, scry/surveil keep-on-top, sacrifice) ->\n"
+              + "  `PICKS: <comma-separated numbers>`, honoring the stated 'choose between MIN and MAX' bound.\n"
+              + "  For scry/surveil, list the ones to KEEP ON TOP in order (first = new top card); anything you\n"
+              + "  omit goes to the bottom/graveyard.\n"
+              + "- Declare attackers -> `PICKS:` the numbers of the creatures that attack (empty/none = no attack).\n"
+              + "- Declare blockers -> `BLOCKS: blocker->attacker, blocker->attacker` (or `BLOCKS: NONE`).\n"
+              + "- Mulligan -> exactly one word, `KEEP` or `MULLIGAN`.\n"
+              + "I read ONLY that final line; write it verbatim with nothing after it.\n"
+              + "\n"
+              + "=== WORKED EXAMPLES (format + the kind of reasoning that wins; illustrative, not this game) ===\n"
+              + "Example A - sequencing a cantrip before a threat: 'I have UU open, a Brainstorm, and a\n"
+              + "reanimation target still in hand. Digging first can find the missing piece and I lose nothing by\n"
+              + "casting it now.' -> `CHOICE: 2`\n"
+              + "Example B - combat math before attacking: 'They have one 2/2 untapped blocker and no open mana.\n"
+              + "My 3/3 and 2/1 both attack: they can only block one, so at least 2 damage connects and a trade is\n"
+              + "fine for me on tempo.' -> `PICKS: 1,3`\n"
+              + "Example C - passing correctly: 'It is their end step, my only instant is a sorcery-speed threat,\n"
+              + "and holding up nothing gains me a card next turn. Nothing to do here.' -> `CHOICE: 4` (the PASS /\n"
+              + "decline option).\n"
+              + "Example D - not over-committing into removal: 'They hold 2 cards and UU untapped in a counter\n"
+              + "deck. I bait with the cheaper threat first rather than jamming my key payoff into an open\n"
+              + "counterspell.' -> `CHOICE: 1`\n"
+              + "\n"
+              + "=== LEGACY GLOSSARY (mechanics + the eval-deck archetypes you will face) ===\n"
+              + "Tempo: trading mana-efficiency and board presence for initiative — cheap threats + disruption\n"
+              + "(Delver). Card advantage: ending up with more resources than the opponent. Cantrip: a cheap spell\n"
+              + "that replaces itself (Brainstorm, Ponder, Preordain) — chains dig you to your key cards. Combo:\n"
+              + "assemble a specific interaction to win outside combat (Storm, Sneak & Show). Prison/lock:\n"
+              + "denying the opponent resources (Lands' Tabernacle + Wasteland).\n"
+              + "Keywords: Storm (copies the spell once per spell cast this turn — cast the cheap enablers FIRST,\n"
+              + "count storm before the payoff). Delve (exile graveyard cards to pay generic mana). Cascade /\n"
+              + "Prowess / Flash / Flying / Trample / Deathtouch / Lifelink / Hexproof / Shroud (untargetable) /\n"
+              + "Infect (deals damage as -1/-1 counters to creatures and POISON to players; 10 poison kills).\n"
+              + "Energy: a counter resource spent by Mardu Energy payoffs. Reanimate: cheat a big creature from\n"
+              + "the graveyard into play (Animate Dead, Reanimator) — sometimes DISCARDING the fatty is the setup,\n"
+              + "not a loss. Miracle: cast a card for its cheaper cost the turn you draw it (Miracles/Terminus).\n"
+              + "Archetypes in this pool: ANT/Storm (ritual mana -> Ad Nauseam -> lethal storm count; protect the\n"
+              + "combo turn, count mana and storm exactly). Burn (Goblin Guide/Swiftspear + direct damage; every\n"
+              + "point of reach to 0 matters, do not waste burn on blockers unless forced). Death & Taxes\n"
+              + "(Thalia/Mother of Runes hatebears + Wasteland/Rishadan Port mana denial; tax and grind). Elves\n"
+              + "(mana-dork snowball into Craterhoof-style overrun; develop then alpha strike). Goblins (Lackey/\n"
+              + "Ringleader tribal aggro-value; recur bodies, go wide). Grixis Reanimator (discard + Animate Dead\n"
+              + "on Atraxa/Archon early; find a target and an enabler, protect the turn). Infect (Glistener Elf/\n"
+              + "Blighted Agent + pump; ONE connection near 10 poison is lethal — protect the creature, count\n"
+              + "poison). Lands (Wasteland/Port + Tabernacle prison into Marit Lage; deny mana, grind inevitability).\n"
+              + "Mardu Energy (aggressive energy payoffs; curve out, use energy at the right beat). Miracles\n"
+              + "(Brainstorm/Ponder set up Terminus/Entreat wraths; control the board, win late). Sneak & Show\n"
+              + "(Show and Tell / Sneak Attack a huge threat like Emrakul years early; force it through the counter\n"
+              + "window). UR Delver (Delver of Secrets + cantrips + burn + counters; tempo — protect the clock,\n"
+              + "counter their key spell, race).\n"
+              + "General rule for all of them: know YOUR deck's win condition, advance it every turn, and use each\n"
+              + "decision to protect the line that actually wins — not to react locally.";
 
         // ---------------- generic decision router ----------------
 
@@ -1452,6 +1571,50 @@ public final class LlmSpikeGui {
             }
         }
 
+        /** ROUTED (audit follow-up): the last unrouted PlayerController choose-cards hook. The player
+         *  must REVEAL between min and max cards from their hand — a public-information cost/effect
+         *  (e.g. "reveal a green card", "reveal your hand"). Forge's own default
+         *  (PlayerControllerAi.chooseCardsToRevealFromHand) is a bare {@code valid.subList(0,
+         *  min(max,size))}: no strategy, zero jsonl/log trace — the same "opaque, untraced default"
+         *  shape scry/surveil had. Now routed like every other choose-subset decision (discard/
+         *  cards-for-effect), with min/max clamped to what's legally available. Bridge-DOWN is the one
+         *  documented Forge-AI exception (identical convention to chooseTargetsFor): delegate to super
+         *  WITH the [FALLBACK->AI] marker so the reconciliation gate counts it instead of the decision
+         *  silently vanishing. The no-model (floor/budget) and forced paths stay deterministic (auto),
+         *  so the ai_tier hard invariant holds for every non-bridge-down run. */
+        @Override
+        public CardCollectionView chooseCardsToRevealFromHand(int min, int max, CardCollectionView valid) {
+            clearLast();
+            if (valid == null || valid.isEmpty())
+                return super.chooseCardsToRevealFromHand(min, max, valid);
+            List<Card> opts = new ArrayList<>(valid);
+            // Legality clamps: never reveal more than are valid, nor fewer than min (nor a negative min).
+            int effMax = Math.min(max, opts.size());
+            int effMin = Math.max(0, Math.min(min, effMax));
+            if (effMax <= 0) return CardCollection.EMPTY;                    // reveal-zero: no real decision, no row
+            if (opts.size() <= effMin) return firstN(opts, effMin, "reveal(forced)"); // whole valid set forced
+            try {
+                if (!smartOk()) return firstN(opts, effMin, "reveal(no-budget)");
+                List<String> labels = new ArrayList<>();
+                for (Card c : opts) labels.add(candidateLabel(c));
+                String q = "You must REVEAL between " + effMin + " and " + effMax + " card(s) from your hand "
+                        + "(they become known to your opponent). Reveal only what the effect requires, and among "
+                        + "legal choices prefer what least exposes your game plan.";
+                List<Integer> picks = decideMany(smart, "reveal", q, labels, effMin, effMax);
+                // decideMany returns null on bridge-down OR still-unparseable-after-retry — either way the
+                // model gave us nothing usable. Documented Forge-AI exception (cf. chooseTargetsFor): hand to
+                // super WITH the [FALLBACK->AI] marker (a tier=ai jsonl row) so the analyzer counts it.
+                if (picks == null)
+                    return aiDelegate("reveal(bridge-down)->ai", super.chooseCardsToRevealFromHand(min, max, valid));
+                CardCollection out = new CardCollection();
+                for (int i : picks) out.add(opts.get(i));
+                p("[ROUTER] reveal: " + (out.isEmpty() ? "(none)" : names(out, false, 10)));
+                return out;
+            } catch (Exception e) {
+                return aiDelegate("reveal(err)->ai", super.chooseCardsToRevealFromHand(min, max, valid));
+            }
+        }
+
         /** Scry — ROUTED (report C2). Was previously unhandled by this class (fell through to
          *  PlayerControllerAi's default, running entirely on Forge's built-in AI with zero jsonl/log
          *  trace and the revealed cards never shown as a real decision) — the exact "library-manipulation
@@ -2138,6 +2301,8 @@ public final class LlmSpikeGui {
             }
             lastReply = reply;
             lastFinishReason = b.getLastFinishReason();
+            lastPromptTokens = b.getLastPromptTokens();
+            lastCompletionTokens = b.getLastCompletionTokens();
             lastAskMs += System.currentTimeMillis() - tAsk; // summed over every attempt; retained for the
                                                              // ms<=0 legacy substitution guard in evalDec
             return reply;
@@ -2232,6 +2397,11 @@ public final class LlmSpikeGui {
                         .append(lastFinishReason == null ? "null" : "\"" + jsonEscape(lastFinishReason) + "\"")
                         .append(",\"first_failed_reply\":")
                         .append(lastFirstFailedReply == null ? "null" : "\"" + jsonEscape(lastFirstFailedReply) + "\"")
+                        // ADDITIVE (Stage-0 token calibration): per-decision input/output token counts from
+                        // the backend response usage object, null when unreported (Claude CLI, or any
+                        // deterministic/floor/random/auto/ai decision that never consulted a model).
+                        .append(",\"prompt_tokens\":").append(lastPromptTokens < 0 ? "null" : lastPromptTokens)
+                        .append(",\"completion_tokens\":").append(lastCompletionTokens < 0 ? "null" : lastCompletionTokens)
                         .append('}');
                 EvalLog.write(sb.toString());
             } catch (Exception ignore) { }
@@ -2808,6 +2978,23 @@ public final class LlmSpikeGui {
         return b.toString();
     }
 
+    /** Minimal integer extractor for a JSON number field (e.g. {@code "prompt_tokens":123}) — the
+     *  numeric analogue of {@link #extractJsonString}, matching this file's dependency-free parse
+     *  style. Returns -1 when the key is absent or the value isn't an integer. Used for the response
+     *  usage token counts. */
+    static int extractJsonInt(String line, String key) {
+        if (line == null) return -1;
+        int k = line.indexOf(key);
+        if (k < 0) return -1;
+        int i = k + key.length();
+        while (i < line.length() && Character.isWhitespace(line.charAt(i))) i++;
+        int start = i;
+        if (i < line.length() && line.charAt(i) == '-') i++;
+        while (i < line.length() && Character.isDigit(line.charAt(i))) i++;
+        if (i == start || (i == start + 1 && line.charAt(start) == '-')) return -1;
+        try { return Integer.parseInt(line.substring(start, i)); } catch (Exception e) { return -1; }
+    }
+
     /** True if the backend returned a null/empty string or a known non-answer (rate-limit message,
      *  auth error, etc.). These must NOT be parsed as model decisions; returning null routes them
      *  through the honest bridge-down fallback path instead of logging a fake smart/fast decision.
@@ -2915,6 +3102,8 @@ public final class LlmSpikeGui {
         private long totalMs = 0;
         private int calls = 0;
         private volatile String lastFinishReason;
+        private volatile int lastPromptTokens = -1;
+        private volatile int lastCompletionTokens = -1;
 
         OpenRouterBridge(String label, String model, String preamble) {
             if (API_KEY == null || API_KEY.isEmpty())
@@ -2942,7 +3131,8 @@ public final class LlmSpikeGui {
 
                 OrResult r = send(prompt, maxTokens, reasoningEffort, temperature);
                 if (r == null) return null; // transport/HTTP-status failure, already logged by send()
-                r = new OrResult(collapseDegenerateRepetition(r.content), r.finishReason); // F2 residual
+                r = new OrResult(collapseDegenerateRepetition(r.content), r.finishReason,
+                        r.promptTokens, r.completionTokens); // F2 residual (usage carried through)
 
                 // TRUNCATION RECOVERY (Infra-3): MUST run BEFORE isNonAnswer() below -- ordering bug
                 // (HARNESS-ANALYSIS.md F2; see the class javadoc above for the full 2026-07-21
@@ -2963,14 +3153,17 @@ public final class LlmSpikeGui {
                     // original reply is a better final result than a garbled/empty retry, and either way
                     // the isNonAnswer() check right below still gets the final say.
                     if (retry != null && !isNonAnswer(retry.content))
-                        r = new OrResult(collapseDegenerateRepetition(retry.content), retry.finishReason);
+                        r = new OrResult(collapseDegenerateRepetition(retry.content), retry.finishReason,
+                                retry.promptTokens, retry.completionTokens);
                 }
                 if (isNonAnswer(r.content)) {
                     System.out.println("[OPENROUTER " + label + "] non-answer -> treating as bridge-down");
                     lastFinishReason = r.finishReason;
+                    lastPromptTokens = r.promptTokens; lastCompletionTokens = r.completionTokens;
                     return null;
                 }
                 lastFinishReason = r.finishReason;
+                lastPromptTokens = r.promptTokens; lastCompletionTokens = r.completionTokens;
                 long dur = System.currentTimeMillis() - t0;
                 totalMs += dur; calls++;
                 System.out.println("[OPENROUTER " + label + "] replied in " + dur + " ms");
@@ -3015,12 +3208,20 @@ public final class LlmSpikeGui {
             }
             String content = extractJsonString(resp.body(), "\"content\":\"");
             String finishReason = extractJsonString(resp.body(), "\"finish_reason\":\"");
-            return new OrResult(content, finishReason);
+            // OpenAI-compatible usage object: {"usage":{"prompt_tokens":N,"completion_tokens":M,...}}.
+            // -1 when the field is absent. Additive persistence for Stage-0 token-cost calibration.
+            int promptTokens = extractJsonInt(resp.body(), "\"prompt_tokens\":");
+            int completionTokens = extractJsonInt(resp.body(), "\"completion_tokens\":");
+            return new OrResult(content, finishReason, promptTokens, completionTokens);
         }
 
         private static final class OrResult {
             final String content, finishReason;
-            OrResult(String content, String finishReason) { this.content = content; this.finishReason = finishReason; }
+            final int promptTokens, completionTokens;
+            OrResult(String content, String finishReason, int promptTokens, int completionTokens) {
+                this.content = content; this.finishReason = finishReason;
+                this.promptTokens = promptTokens; this.completionTokens = completionTokens;
+            }
         }
 
         @Override public String getLabel() { return label; }
@@ -3028,6 +3229,8 @@ public final class LlmSpikeGui {
         @Override public long getTotalMs() { return totalMs; }
         @Override public int getCalls() { return calls; }
         @Override public String getLastFinishReason() { return lastFinishReason; }
+        @Override public int getLastPromptTokens() { return lastPromptTokens; }
+        @Override public int getLastCompletionTokens() { return lastCompletionTokens; }
     }
 
     /** Factory: parses a model spec like "haiku" (Claude CLI) or

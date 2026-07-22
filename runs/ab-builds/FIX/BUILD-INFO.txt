@@ -1,0 +1,19 @@
+BUILD: FIX  (loop-followups with TASKS 1+2+4 only; BEFORE the TASK 3 preamble commit)
+overlay source sha : c3ec3d2  (branch loop-followups)
+  subject: harness: widen run_batch backstop, route chooseCardsToRevealFromHand, log per-decision token usage
+  contains: TASK 1 (run_batch backstop widen), TASK 2 (chooseCardsToRevealFromHand routing),
+            TASK 4 (per-decision prompt_tokens/completion_tokens jsonl logging). Does NOT contain
+            the TASK 3 static-preamble growth.
+built via          : git worktree (detached @ c3ec3d2) -> install.sh -> mvn compile
+FORGE_COMMIT pin   : c1c64a53586459cd0d4c70f27abd1aa8bbc92891 (matches ~/code/forge HEAD)
+built date         : 2026-07-21
+artifact           : spike-classes/forge/spike/*.class  (only the forge.spike package differs
+                     between builds; pinned engine classes are identical across builds).
+
+HOW TO RUN THIS BUILD with run-llm-headless.sh:
+  Prepend this build's spike-classes dir so it shadows target/classes in the CP= line of
+  ~/code/forge/run-llm-headless.sh:
+
+    CP="/Users/lumlumlam/code/mtg-forge-llm-agent/runs/ab-builds/FIX/spike-classes:target/classes:$(cat /tmp/forge_cp.txt)"
+
+  Everything else in run-llm-headless.sh is unchanged. Runs forge.spike.LlmSpikeHeadless.
