@@ -1,0 +1,48 @@
+[cap] --cap-minutes not given; derived 120 min from controllers/models.
+[provenance] engine=c1c64a53586459cd0d4c70f27abd1aa8bbc92891 overlay=532c01a82b16 deck=4e7be5785b40 discipline=cited
+[out] /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/haiku-vs-ai
+Running 20 games (jobs=1, out=/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/haiku-vs-ai, forge_home=/Users/lumlumlam/code/forge)
+[start] seed=1 swap=0 -> game-1-0.log
+[done] seed=1 swap=0
+[start] seed=1 swap=1 -> game-1-1.log
+[done] seed=1 swap=1
+[start] seed=2 swap=0 -> game-2-0.log
+[done] seed=2 swap=0
+[start] seed=2 swap=1 -> game-2-1.log
+[done] seed=2 swap=1
+[start] seed=3 swap=0 -> game-3-0.log
+[done] seed=3 swap=0
+[start] seed=3 swap=1 -> game-3-1.log
+[done] seed=3 swap=1
+[start] seed=4 swap=0 -> game-4-0.log
+[done] seed=4 swap=0
+[start] seed=4 swap=1 -> game-4-1.log
+[done] seed=4 swap=1
+[start] seed=5 swap=0 -> game-5-0.log
+[done] seed=5 swap=0
+[start] seed=5 swap=1 -> game-5-1.log
+[done] seed=5 swap=1
+[start] seed=6 swap=0 -> game-6-0.log
+[done] seed=6 swap=0
+[start] seed=6 swap=1 -> game-6-1.log
+[done] seed=6 swap=1
+[start] seed=7 swap=0 -> game-7-0.log
+[done] seed=7 swap=0
+[start] seed=7 swap=1 -> game-7-1.log
+[done] seed=7 swap=1
+[start] seed=8 swap=0 -> game-8-0.log
+[done] seed=8 swap=0
+[start] seed=8 swap=1 -> game-8-1.log
+[done] seed=8 swap=1
+[start] seed=9 swap=0 -> game-9-0.log
+[done] seed=9 swap=0
+[start] seed=9 swap=1 -> game-9-1.log
+[done] seed=9 swap=1
+[start] seed=10 swap=0 -> game-10-0.log
+[done] seed=10 swap=0
+[start] seed=10 swap=1 -> game-10-1.log
+[done] seed=10 swap=1
+
+=== batch summary ===
+completed: 20  skipped(resume): 0  problems: 0
+Aggregate with: python3 /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/aggregate.py /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/haiku-vs-ai

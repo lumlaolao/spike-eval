@@ -3,3 +3,11 @@
 *.class
 target/
 .DS_Store
+
+# recorded match video: large binaries, NOT committed like the JSONL eval data.
+# Archive mp4s out-of-band (upload/social) rather than into git history.
+*.mp4
+*.mp4.ffmpeg.log
+
+# local OpenRouter credentials — never commit the real key (template is secrets.env.example)
+secrets.env

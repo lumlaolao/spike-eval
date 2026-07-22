@@ -1,0 +1,92 @@
+========================================================================
+  EXPLORATORY MODE — numbers from this run are NOT citable.
+  Mirror-deck / forced-heuristics-off / jobs=1 guards are DISABLED.
+  Re-run without --exploratory (and a mirror deck) for a citable batch.
+========================================================================
+[provenance] engine=c1c64a53586459cd0d4c70f27abd1aa8bbc92891 overlay=ad96c7c18964 deck=4e7be5785b40 discipline=exploratory
+[out] /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1
+Running 2 games (jobs=1, out=/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1, forge_home=/Users/lumlumlam/code/forge)
+[start] seed=101 swap=0 -> game-101-0.log
+[done] seed=101 swap=0
+[start] seed=102 swap=0 -> game-102-0.log
+[done] seed=102 swap=0
+
+=== batch summary ===
+completed: 2  skipped(resume): 0  problems: 0
+Aggregate with: python3 /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/aggregate.py /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1
+
+HARD INVARIANT FAILURE: ai_tier_count=1 silent_drop_total=1
+=== /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1 ===
+games=2  decisions=259  skipped_malformed_lines=0
+
+--- fallback count by kind ---
+  forced(only-legal) all 1            9   e.g. seat=Identity-A turn=10 type=damage-assign raw='forced(only-legal) all 1 -> Guide of Souls'
+  choose-entity(forced-only-legal)      6   e.g. seat=Identity-B turn=3 type=choose-entity raw='choose-entity(forced-only-legal) [Amped Raptor]'
+  forced(only-legal) all 2            6   e.g. seat=Identity-A turn=8 type=damage-assign raw='forced(only-legal) all 2 -> Cat Warrior Token'
+  forced(only-legal)                  3   e.g. seat=Identity-A turn=3 type=target raw='forced(only-legal)'
+  mulligan(heuristic-keep 4/7 lands)      2   e.g. seat=Identity-B turn=0 type=mulligan raw='mulligan(heuristic-keep 4/7 lands)'
+  damage-assign(ai-exotic) Guide of Souls dmg=1      1   e.g. seat=Identity-B turn=11 type=damage-assign raw='damage-assign(ai-exotic) Guide of Souls dmg=1 -> Orcish Bowmasters=1, Orc Army Token=0'
+  forced(only-legal) all 3            1   e.g. seat=Identity-A turn=15 type=damage-assign raw='forced(only-legal) all 3 -> Guide of Souls'
+  forced(only-legal) all 4            1   e.g. seat=Identity-A turn=18 type=damage-assign raw='forced(only-legal) all 4 -> Ocelot Pride'
+  mulligan(heuristic-keep 3/7 lands)      1   e.g. seat=Identity-A turn=0 type=mulligan raw='mulligan(heuristic-keep 3/7 lands)'
+  mulligan(heuristic-keep 2/6 lands)      1   e.g. seat=Identity-B turn=0 type=mulligan raw='mulligan(heuristic-keep 2/6 lands)'
+  discard(forced)                     1   e.g. seat=Identity-A turn=6 type=discard raw='discard(forced) -> Swords to Plowshares'
+
+--- tier=ai hard invariant (MUST be 0) ---
+count=1
+  VIOLATION /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl seat=Identity-B turn=11 type=damage-assign fallback='damage-assign(ai-exotic) Guide of Souls dmg=1 -> Orcish Bowmasters=1, Orc Army Token=0'
+
+--- silent-drop reconciliation (log '-> asking' events vs jsonl rows, over mulligan/attackers/blockers/play) ---
+  Identity-A           log_asks=119  jsonl_rows=118  gap=1     <-- SILENT DROP
+      /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl (log=/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-0.log) asks=76 rows=75 gap=1
+  Identity-B           log_asks=79   jsonl_rows=79   gap=0   
+total silent drops=1
+
+--- no-CHOICE / parse-fail counts by model ---
+  Identity-B           9
+  Identity-A           5
+
+--- latency percentiles by tier/model (ms; latency_ms>0 only) ---
+  tier=fast   seat=Identity-A           n=61   p50=4179     p90=11544    max=26096   
+  tier=fast   seat=Identity-B           n=19   p50=3288     p90=4840     max=11742   
+  tier=smart  seat=Identity-A           n=75   p50=5697     p90=11045    max=17169   
+  tier=smart  seat=Identity-B           n=72   p50=4068     p90=10045    max=14694   
+
+--- finish_reason=length count ---
+count=1
+
+--- forced-pick mislabels (n_options==1 but tier!=auto) ---
+count=17
+  /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl seat=Identity-B turn=5 type=surveil tier=smart
+  /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl seat=Identity-A turn=5 type=surveil tier=smart
+  /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl seat=Identity-B turn=7 type=attackers tier=smart
+  /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl seat=Identity-B turn=10 type=blockers tier=smart
+  /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl seat=Identity-B turn=11 type=attackers tier=smart
+  /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl seat=Identity-B turn=12 type=blockers tier=smart
+  /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl seat=Identity-B turn=13 type=attackers tier=smart
+  /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl seat=Identity-B turn=15 type=attackers tier=smart
+  /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl seat=Identity-A turn=15 type=blockers tier=smart
+  /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl seat=Identity-B turn=16 type=blockers tier=smart
+  /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl seat=Identity-B turn=17 type=attackers tier=smart
+  /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-101-1784663978455.jsonl seat=Identity-B turn=18 type=blockers tier=smart
+  /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-102-1784664796047.jsonl seat=Identity-B turn=3 type=surveil tier=smart
+  /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-102-1784664796047.jsonl seat=Identity-A turn=4 type=surveil tier=smart
+  /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-102-1784664796047.jsonl seat=Identity-A turn=8 type=surveil tier=smart
+  /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-102-1784664796047.jsonl seat=Identity-B turn=13 type=attackers tier=smart
+  /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/game-102-1784664796047.jsonl seat=Identity-B turn=15 type=attackers tier=smart
+
+--- mulligan rows present per seat ---
+  Identity-A           2
+  Identity-B           3
+
+=== hard invariants ===
+ai_tier_count=1 (ok=False)  silent_drop_total=1 (ok=False)  overall=FAIL
+
+(metrics written to /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/metrics.json)
+(summary written to /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/summary.txt)
+[improve_loop] out=/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1
+[improve_loop] launching: /Library/Developer/CommandLineTools/usr/bin/python3 /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/run_batch.py --seeds 101..102 --exploratory --deck /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/mardu-energy.txt --controller-a llm --controller-b llm --out /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1 --forge-home /Users/lumlumlam/code/forge --smart-a openrouter:google/gemini-3.5-flash --smart-b openrouter:google/gemini-3.5-flash --fast-a openrouter:google/gemini-3.5-flash --fast-b openrouter:google/gemini-3.5-flash --cap-minutes 20.0
+[improve_loop] analyzing -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/metrics.json
+
+[improve_loop] done. games in /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1; metrics in /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/metrics.json (summary /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/summary.txt)
+[improve_loop] defect_analyzer flagged a HARD INVARIANT FAILURE (tier=ai>0 and/or silent decision drops) — read /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/runs/improve/iter-1/summary.txt, fix the harness, rebuild, and rerun.

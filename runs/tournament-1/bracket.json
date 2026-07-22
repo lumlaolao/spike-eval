@@ -1,0 +1,106 @@
+{
+  "rounds": {
+    "QF": {
+      "QF-1": {
+        "a": "claude-opus-4.8",
+        "b": "gemini-3.5-flash",
+        "a_deck": "ur-delver",
+        "b_deck": "miracles",
+        "winner_label": "claude-opus-4.8",
+        "winner": "A",
+        "seed": 345,
+        "swap": true,
+        "mp4": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/tournament-1/QF-1__claude-opus-4.8_vs_gemini-3.5-flash.mp4",
+        "attempt": 1
+      },
+      "QF-2": {
+        "a": "deepseek-v4-pro",
+        "b": "qwen3.7-max",
+        "a_deck": "infect",
+        "b_deck": "ant-storm",
+        "winner_label": "deepseek-v4-pro",
+        "winner": "A",
+        "seed": 346,
+        "swap": true,
+        "mp4": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/tournament-1/QF-2__deepseek-v4-pro_vs_qwen3.7-max.mp4",
+        "attempt": 1
+      },
+      "QF-3": {
+        "a": "claude-fable-5",
+        "b": "kimi-k3",
+        "a_deck": "sneak-and-show",
+        "b_deck": "goblins",
+        "winner_label": "claude-fable-5",
+        "winner": "A",
+        "seed": 347,
+        "swap": true,
+        "mp4": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/tournament-1/QF-3__claude-fable-5_vs_kimi-k3.mp4",
+        "attempt": 1
+      },
+      "QF-4": {
+        "a": "grok-4.5",
+        "b": "gpt-5",
+        "a_deck": "grixis-reanimator",
+        "b_deck": "lands",
+        "winner_label": "grok-4.5",
+        "winner": "A",
+        "seed": 348,
+        "swap": true,
+        "mp4": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/tournament-1/QF-4__grok-4.5_vs_gpt-5.mp4",
+        "attempt": 1
+      }
+    },
+    "SF": {
+      "SF-1": {
+        "a": "claude-opus-4.8",
+        "b": "deepseek-v4-pro",
+        "a_deck": "ur-delver",
+        "b_deck": "infect",
+        "winner_label": "deepseek-v4-pro",
+        "winner": "B",
+        "seed": 347,
+        "swap": true,
+        "mp4": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/tournament-1/SF-1__claude-opus-4.8_vs_deepseek-v4-pro.mp4",
+        "attempt": 1
+      },
+      "SF-2": {
+        "a": "claude-fable-5",
+        "b": "grok-4.5",
+        "a_deck": "sneak-and-show",
+        "b_deck": "grixis-reanimator",
+        "winner_label": "claude-fable-5",
+        "winner": "A",
+        "seed": 348,
+        "swap": true,
+        "mp4": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/tournament-1/SF-2__claude-fable-5_vs_grok-4.5.mp4",
+        "attempt": 1
+      }
+    },
+    "F": {
+      "F-1": {
+        "a": "deepseek-v4-pro",
+        "b": "claude-fable-5",
+        "a_deck": "infect",
+        "b_deck": "sneak-and-show",
+        "winner_label": "claude-fable-5",
+        "winner": "B",
+        "seed": 264,
+        "swap": true,
+        "mp4": "/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/tournament-1/F-1__deepseek-v4-pro_vs_claude-fable-5.mp4",
+        "attempt": 1
+      }
+    }
+  },
+  "draw": [
+    "claude-opus-4.8",
+    "gemini-3.5-flash",
+    "deepseek-v4-pro",
+    "qwen3.7-max",
+    "claude-fable-5",
+    "kimi-k3",
+    "grok-4.5",
+    "gpt-5"
+  ],
+  "champion": "claude-fable-5",
+  "champion_deck": "sneak-and-show"
+}

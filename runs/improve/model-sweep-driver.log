@@ -1,0 +1,18 @@
+[sweep] gemini-3.5-flash: seed=201 -> runs/improve/model-sweep/gemini-3.5-flash
+[sweep] qwen3.7-max: seed=202 -> runs/improve/model-sweep/qwen3.7-max
+[sweep] deepseek-v4-pro: seed=203 -> runs/improve/model-sweep/deepseek-v4-pro
+[sweep] kimi-k3: seed=204 -> runs/improve/model-sweep/kimi-k3
+[sweep] grok-4.5: seed=205 -> runs/improve/model-sweep/grok-4.5
+[sweep] gpt-5: seed=206 -> runs/improve/model-sweep/gpt-5
+[sweep] claude-opus-4.8: seed=207 -> runs/improve/model-sweep/claude-opus-4.8
+[sweep] claude-fable-5: seed=208 -> runs/improve/model-sweep/claude-fable-5
+
+=== MODEL SWEEP VERDICTS ===
+PASS  gemini-3.5-flash         decisions=109 unparsed=0 bridge_down=0 max_attempts=2 trunc_retries=0 completed=True
+PASS  qwen3.7-max              decisions= 43 unparsed=0 bridge_down=0 max_attempts=2 trunc_retries=0 completed=True
+PASS  deepseek-v4-pro          decisions=130 unparsed=0 bridge_down=10 max_attempts=3 trunc_retries=10 completed=True
+PASS  kimi-k3                  decisions= 90 unparsed=0 bridge_down=1 max_attempts=3 trunc_retries=1 completed=True
+PASS  grok-4.5                 decisions= 52 unparsed=0 bridge_down=0 max_attempts=1 trunc_retries=0 completed=True
+FAIL  gpt-5                    decisions=101 unparsed=0 bridge_down=8 max_attempts=3 trunc_retries=8 completed=True
+PASS  claude-opus-4.8          decisions=122 unparsed=0 bridge_down=0 max_attempts=1 trunc_retries=0 completed=True
+PASS  claude-fable-5           decisions=104 unparsed=0 bridge_down=3 max_attempts=3 trunc_retries=3 completed=True

@@ -27,6 +27,10 @@ are only comparable within one engine version.
   `WindowRecorder` (in-JVM mp4 capture), `EvalLog` (JSONL), seat construction, deck plans.
   Model specs are `backend:model` strings, e.g. `haiku` (Claude CLI) or
   `openrouter:anthropic/claude-3.5-sonnet` (OpenRouter API).
+  **Egress boundary:** any `openrouter:` spec sends the full game snapshot (board,
+  hands, deck plan) to openrouter.ai on every call. Holding an API key is not
+  consent — the factory refuses to start unless `OPENROUTER_ALLOW_EGRESS=1` is
+  set explicitly. Never set that flag on the user's behalf.
 - `forge-overlay/.../spike/LlmSpikeHeadless.java` — same match, no GUI; emits the
   eval game-summary JSONL line. Use for all eval/batch work.
 - `run-llm-spike.sh` / `run-llm-headless.sh` — launchers (installed into the forge repo root).
@@ -42,8 +46,11 @@ are only comparable within one engine version.
    — zero model calls, ~12s per full game, bit-reproducible. Seed 42 floor mirror
    is the regression canary: identity A wins after 106 turns, every time.
 2. **LLM code paths** (routing, parsing, prompts): `SMART_MODEL=haiku FAST_MODEL=haiku`
-   — never test with opus. For OpenRouter-backed validation, use a small exploratory
-   game with `SMART_MODEL=openrouter:<cheap-model>` first.
+   — never test with opus. For OpenRouter-backed validation, run one exploratory
+   game with a cheap model first, e.g.
+   `GAME_SEED=42 SMART_MODEL=openrouter:meta-llama/llama-3.1-8b-instruct FAST_MODEL=openrouter:meta-llama/llama-3.1-8b-instruct OPENROUTER_ALLOW_EGRESS=1 bash run-llm-headless.sh`
+   (requires `OPENROUTER_API_KEY`; the `OPENROUTER_ALLOW_EGRESS=1` opt-in is
+   mandatory — see the egress boundary note above).
 3. **Opus / frontier API models** only for user-requested showcases/recordings
    (a full game ≈ 35-45 min).
 
@@ -63,6 +70,38 @@ SIGINT (not SIGKILL) so the recorder's shutdown hook finalizes the mp4.
   is a bug to investigate.
 - GUI matches are best-of-3 — a log with multiple mulligan clusters is one *match*,
   several *games*.
+
+## The improvement loop (added 2026-07-21, branch harness-fixes)
+
+`runs/tournament-1/HARNESS-ANALYSIS.md` is the forensic baseline: 13 confirmed defect
+clusters, all fixed on this branch. The loop that keeps them fixed:
+
+```bash
+python3 eval/improve_loop.py --controller llm --games 2   # play (floor mode = free)
+# defect_analyzer.py runs automatically; read metrics.json
+python3 eval/model_sweep.py                               # per-model certification
+```
+
+- **`eval/defect_analyzer.py` is the merge gate.** Hard invariants: `ai_tier_count=0`
+  and `silent_drop_total=0` (log-vs-jsonl reconciliation). It exits non-zero on
+  violation. Never weaken the analyzer to make a run pass — it is the oracle.
+- **Per-model config lives in `ModelCfg`** (LlmSpikeGui.java, `OPENROUTER_MODEL_CFG`
+  JSON env override): max_tokens / timeouts / fast-tier caps per model. Reasoning
+  models (gpt, deepseek) need big fast-tier budgets — hidden reasoning tokens burn
+  the cap and surface as empty replies, not truncated text.
+- **jsonl schema is additive-only.** Newer fields: `attempts`, `retry_ms`
+  (dead-attempt time; `latency_ms` is the successful attempt only), `finish_reason`,
+  `first_failed_reply`. Existing consumers read via `.get()` — keep it that way.
+- **Parallel games:** safe at `--jobs 4-6` for cheap/floor games, **1** for bare
+  Claude-CLI specs; see `eval/CONCURRENCY.md`. **Never rebuild while games run** —
+  a mid-batch `mvn compile` swaps `target/classes` under live JVMs and regenerating
+  `/tmp/forge_cp.txt` has no lock. No containers; a build lock + worktree is enough.
+- Wall-clock-capped games grant in-flight asks a grace window sized to the slowest
+  configured model timeout before JVM exit (else the ask's jsonl row is orphaned —
+  that was a real silent-drop). `run_batch.py`'s backstop must stay wider than
+  cap + that grace.
+- `secrets.env` (git-ignored, repo root; template `secrets.env.example`) holds
+  `OPENROUTER_API_KEY` + the egress opt-in; eval drivers auto-load it.
 
 ## Eval mode
 

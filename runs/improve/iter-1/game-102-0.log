@@ -1,0 +1,829 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 102
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/mardu-energy.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/mardu-energy.plan
+[DECK] loaded 'Identity-A': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/mardu-energy.txt)
+[DECK] loaded 'Identity-B': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/mardu-energy.txt)
+[SEATS] A=Identity-A(llm,openrouter:google/gemini-3.5-flash) B=Identity-B(llm,openrouter:google/gemini-3.5-flash)
+[HEADLESS] game starting (cap=20min)
+[Identity-B] [ROUTER] mulligan: 0/7 lands -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 3875 ms
+[Identity-B] [ROUTER] mulligan: MULLIGAN
+[OPENROUTER Identity-B/smart] replied in 3644 ms
+[Identity-B] [ROUTER] mulligan-bottom: Swords to Plowshares
+[Identity-A] [ROUTER] mulligan: heuristic KEEP (3/7 lands)
+[Identity-B] [ROUTER] mulligan: heuristic KEEP (2/6 lands)
+[Identity-B] [TALLY] smart=2 fast=0 auto=0 ai=0 avgSmart=3759ms
+[Identity-B] [ROUTER] play(main): 0 castable + 2 land -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/fast] replied in 11542 ms
+[Identity-B] [ROUTER] play: land Plains
+[Identity-B] [TALLY] smart=2 fast=1 auto=0 ai=0 avgSmart=3759ms avgFast=11542ms
+[Identity-B] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 2308 ms
+[Identity-B] [ROUTER] plan: Cast Guide of Souls to start generating energy and pressure.
+[Identity-B] [ROUTER] play: casts Guide of Souls {W} [Guide of Souls - Creature 1 / 2]
+[Identity-A] [TALLY] smart=0 fast=0 auto=0 ai=0
+[Identity-A] [ROUTER] play(main): 0 castable + 3 land -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER Identity-A/fast] replied in 9194 ms
+[Identity-A] [ROUTER] play: land Marsh Flats
+[Identity-A] [TALLY] smart=0 fast=1 auto=0 ai=0 avgFast=9194ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 7243 ms
+[Identity-A] [ROUTER] plan: Crack Marsh Flats for Scrubland, play Badlands, and cast Thoughtseize to disrupt their hand.
+[Identity-A] [ROUTER] play: casts Marsh Flats [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Plains or Swamp card, put it onto the battlefield, then shuffle.]
+[Identity-A] [TALLY] smart=1 fast=1 auto=0 ai=0 avgSmart=7243ms avgFast=9194ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 7181 ms
+[Identity-A] [ROUTER] target: Guide of Souls (1/2)[untapped] [Identity-B's Battlefield] <- Swords to Plowshares {W} [Exile target creature.] (only legal)
+[Identity-A] [ROUTER] play: casts Swords to Plowshares {W} [Exile target creature.]
+[Identity-B] [TALLY] smart=3 fast=1 auto=0 ai=0 avgSmart=3275ms avgFast=11542ms
+[Identity-B] [ROUTER] play(main): 0 castable + 2 land -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/fast] replied in 4067 ms
+[Identity-B] [ROUTER] play: land Marsh Flats
+[Identity-B] [TALLY] smart=3 fast=2 auto=0 ai=0 avgSmart=3275ms avgFast=7804ms
+[Identity-B] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 3767 ms
+[Identity-B] [ROUTER] plan: Fetch a black source to cast Thoughtseize and disrupt the opponent while they are tapped out.
+[Identity-B] [ROUTER] play: casts Marsh Flats [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Plains or Swamp card, put it onto the battlefield, then shuffle.]
+[OPENROUTER Identity-B/smart] replied in 3744 ms
+[Identity-B] [ROUTER] surveil: keep-on-top Wasteland; -> GRAVEYARD x0
+[Identity-A] [TALLY] smart=2 fast=1 auto=0 ai=0 avgSmart=7212ms avgFast=9194ms
+[Identity-A] [ROUTER] play(main): 0 castable + 3 land -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER Identity-A/fast] replied in 12437 ms
+[OPENROUTER Identity-A/fast] replied in 3210 ms
+[Identity-A] [ROUTER] play: land Marsh Flats
+[Identity-A] [TALLY] smart=2 fast=3 auto=0 ai=0 avgSmart=7212ms avgFast=8280ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 4746 ms
+[Identity-A] [ROUTER] plan: Fetch a black source with Marsh Flats to cast Thoughtseize and disrupt their hand.
+[Identity-A] [ROUTER] play: casts Marsh Flats [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Plains or Swamp card, put it onto the battlefield, then shuffle.]
+[OPENROUTER Identity-A/smart] replied in 3472 ms
+[Identity-A] [ROUTER] surveil: keep-on-top (none); -> GRAVEYARD x1
+[Identity-B] [TALLY] smart=5 fast=2 auto=0 ai=0 avgSmart=3467ms avgFast=7804ms
+[Identity-B] [ROUTER] play(main): 2 castable + 2 land -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 7410 ms
+[Identity-B] [ROUTER] plan: Play Karakas, Thoughtseize them, then cast Ajani.
+[Identity-B] [ROUTER] play: land Karakas
+[Identity-B] [TALLY] smart=6 fast=2 auto=0 ai=0 avgSmart=4124ms avgFast=7804ms
+[Identity-B] [ROUTER] play(main): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 2341 ms
+[OPENROUTER Identity-B/smart] replied in 2581 ms
+[Identity-B] [ROUTER] target: Identity-A <- Thoughtseize {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Identity-B] [ROUTER] play: casts Thoughtseize {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[OPENROUTER Identity-B/smart] replied in 14359 ms
+[Identity-B] [ROUTER] discard(strip Identity-A): Voice of Victory
+[Identity-B] [TALLY] smart=9 fast=2 auto=0 ai=0 avgSmart=4892ms avgFast=7804ms
+[Identity-B] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 10045 ms
+[Identity-B] [ROUTER] play: casts Ajani, Nacatl Pariah 1{W} [Ajani, Nacatl Pariah - Creature 1 / 2]
+[Identity-A] [TALLY] smart=4 fast=3 auto=0 ai=0 avgSmart=5660ms avgFast=8280ms
+[Identity-A] [ROUTER] play(main): 1 castable + 3 land -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 5184 ms
+[Identity-A] [ROUTER] plan: Play Badlands to enable Thoughtseize and progress our mana base.
+[Identity-A] [ROUTER] play: land Badlands
+[Identity-A] [TALLY] smart=5 fast=3 auto=0 ai=0 avgSmart=5565ms avgFast=8280ms
+[Identity-A] [ROUTER] play(main): 3 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 3260 ms
+[OPENROUTER Identity-A/smart] replied in 1766 ms
+[Identity-A] [ROUTER] target: Identity-B <- Thoughtseize {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Identity-A] [ROUTER] play: casts Thoughtseize {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Identity-A] [AUTO-LEGAL] discard(forced) -> Swords to Plowshares
+[Identity-A] [TALLY] smart=7 fast=3 auto=1 ai=0 avgSmart=4693ms avgFast=8280ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 4756 ms
+[Identity-A] [ROUTER] play: casts Goblin Bombardment 1{R} [Goblin Bombardment]
+[Identity-B] [TALLY] smart=10 fast=2 auto=0 ai=0 avgSmart=5407ms avgFast=7804ms
+[Identity-B] [ROUTER] play(main): 2 castable + 1 land -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 7116 ms
+[Identity-B] [ROUTER] plan: Play Wasteland to disrupt their mana and attack with our creatures.
+[Identity-B] [ROUTER] play: land Wasteland
+[Identity-B] [TALLY] smart=11 fast=2 auto=0 ai=0 avgSmart=5562ms avgFast=7804ms
+[Identity-B] [ROUTER] play(main): 3 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 3828 ms
+[OPENROUTER Identity-B/smart] replied in 3006 ms
+[Identity-B] [ROUTER] target: Badlands[tapped] [Identity-A's Battlefield] <- Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Identity-B] [ROUTER] play: casts Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Identity-B] [TALLY] smart=13 fast=2 auto=0 ai=0 avgSmart=5232ms avgFast=7804ms
+[Identity-B] [ROUTER] play(main): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 3254 ms
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/fast] replied in 2946 ms
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] attackers: 2 can attack -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 3407 ms
+[Identity-B] [ROUTER] attackers: Ajani, Nacatl Pariah, Cat Warrior Token
+[Identity-B] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/fast] replied in 2384 ms
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/fast] replied in 3181 ms
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/fast] replied in 3430 ms
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/fast] replied in 2475 ms
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [TALLY] smart=15 fast=7 auto=0 ai=0 avgSmart=4979ms avgFast=4289ms
+[Identity-B] [ROUTER] play(main): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 5019 ms
+[Identity-B] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=8 fast=3 auto=1 ai=0 avgSmart=4701ms avgFast=8280ms
+[Identity-A] [ROUTER] play(main): 1 castable + 2 land -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 8007 ms
+[Identity-A] [ROUTER] plan: Play Shadowy Backstreet to get black mana and surveil, then cast Ocelot Pride.
+[Identity-A] [ROUTER] play: land Shadowy Backstreet
+[Identity-B] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/fast] replied in 4006 ms
+[Identity-B] [ROUTER] play: PASS
+[OPENROUTER Identity-A/smart] replied in 2927 ms
+[Identity-A] [ROUTER] surveil: keep-on-top Amped Raptor; -> GRAVEYARD x0
+[Identity-A] [TALLY] smart=10 fast=3 auto=1 ai=0 avgSmart=4854ms avgFast=8280ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 3096 ms
+[Identity-A] [ROUTER] play: casts Ocelot Pride {W} [Ocelot Pride - Creature 1 / 1]
+[Identity-A] [TALLY] smart=11 fast=3 auto=1 ai=0 avgSmart=4694ms avgFast=8280ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 7875 ms
+[OPENROUTER Identity-A/smart] replied in 9011 ms
+[Identity-A] [ROUTER] target: Identity-B <- Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-A] [ROUTER] play: casts Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-B] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/fast] replied in 3029 ms
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/fast] replied in 3287 ms
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/fast] replied in 3012 ms
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/fast] replied in 4104 ms
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [TALLY] smart=16 fast=12 auto=0 ai=0 avgSmart=4981ms avgFast=3955ms
+[Identity-B] [ROUTER] play(main): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 4467 ms
+[Identity-B] [ROUTER] plan: Pass to combat to attack with Ajani and the Cat token.
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/fast] replied in 3908 ms
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] attackers: 2 can attack -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 3855 ms
+[Identity-B] [ROUTER] attackers: Ajani, Nacatl Pariah, Cat Warrior Token
+[Identity-B] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/fast] replied in 4077 ms
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/fast] replied in 3156 ms
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/fast] replied in 4840 ms
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/fast] replied in 3523 ms
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [TALLY] smart=18 fast=17 auto=0 ai=0 avgSmart=4890ms avgFast=3939ms
+[Identity-B] [ROUTER] play(main): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 4059 ms
+[Identity-B] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=13 fast=3 auto=1 ai=0 avgSmart=5271ms avgFast=8280ms
+[Identity-A] [ROUTER] play(main): 2 castable + 1 land -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 16796 ms
+[Identity-A] [ROUTER] plan: Thoughtseize to disrupt and gain info, then deploy threats.
+[OPENROUTER Identity-A/smart] replied in 2644 ms
+[Identity-A] [ROUTER] target: Identity-B <- Thoughtseize {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Identity-A] [ROUTER] play: casts Thoughtseize {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Identity-B] [ROUTER] play(react): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/fast] replied in 2867 ms
+[Identity-B] [ROUTER] play: PASS
+[OPENROUTER Identity-A/smart] replied in 5096 ms
+[Identity-A] [ROUTER] discard(strip Identity-B): Swords to Plowshares
+[Identity-A] [TALLY] smart=16 fast=3 auto=1 ai=0 avgSmart=5816ms avgFast=8280ms
+[Identity-A] [ROUTER] play(main): 1 castable + 1 land -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 7465 ms
+[Identity-A] [ROUTER] play: casts Amped Raptor 1{R} [Amped Raptor - Creature 2 / 1]
+[Identity-B] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/fast] replied in 3046 ms
+[Identity-B] [ROUTER] play: PASS
+[Identity-A] [AUTO-LEGAL] choose-entity(forced-only-legal) [Amped Raptor]
+[OPENROUTER Identity-A/fast] replied in 4123 ms
+[Identity-A] [ROUTER] confirm(Do you want to play Cabal Therapy?): YES
+[Identity-A] [TALLY] smart=17 fast=4 auto=2 ai=0 avgSmart=5913ms avgFast=7241ms
+[Identity-A] [ROUTER] play(main): 1 castable + 1 land -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 3517 ms
+[Identity-A] [ROUTER] play: land Wasteland
+[Identity-A] [TALLY] smart=18 fast=4 auto=2 ai=0 avgSmart=5780ms avgFast=7241ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 8243 ms
+[OPENROUTER Identity-A/smart] replied in 4175 ms
+[Identity-A] [ROUTER] target: Karakas[untapped] [Identity-B's Battlefield] <- Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Identity-A] [ROUTER] play: casts Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Identity-A] [TALLY] smart=20 fast=4 auto=2 ai=0 avgSmart=5823ms avgFast=7241ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 5696 ms
+[OPENROUTER Identity-A/smart] replied in 17169 ms
+[Identity-A] [ROUTER] target: Identity-B <- Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-A] [ROUTER] play: casts Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-B] [TALLY] smart=19 fast=19 auto=0 ai=0 avgSmart=4846ms avgFast=3835ms
+[Identity-B] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 2718 ms
+[Identity-B] [ROUTER] plan: Pass to combat to attack with Ajani and Cat Warrior token, pressuring opponent's 8 life.
+[Identity-B] [ROUTER] play: PASS
+[Identity-B] [ROUTER] attackers: 2 can attack -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 2021 ms
+[Identity-B] [ROUTER] attackers: Ajani, Nacatl Pariah, Cat Warrior Token
+[Identity-B] [TALLY] smart=21 fast=19 auto=0 ai=0 avgSmart=4610ms avgFast=3835ms
+[Identity-B] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 2115 ms
+[Identity-B] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=22 fast=4 auto=2 ai=0 avgSmart=6332ms avgFast=7241ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 6600 ms
+[Identity-A] [ROUTER] plan: Pass and hold Swords to Plowshares for their turn to maximize information.
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/fast] replied in 4178 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/fast] replied in 2999 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/fast] replied in 3462 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=23 fast=7 auto=2 ai=0 avgSmart=6344ms avgFast=5657ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 2442 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-B] [TALLY] smart=22 fast=19 auto=0 ai=0 avgSmart=4497ms avgFast=3835ms
+[Identity-B] [ROUTER] play(main): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 7552 ms
+[Identity-B] [ROUTER] plan: Cast Thoughtseize to strip their last card, then attack with my creatures to put them to 2.
+[OPENROUTER Identity-B/smart] replied in 2132 ms
+[Identity-B] [ROUTER] target: Identity-A <- Thoughtseize {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Identity-B] [ROUTER] play: casts Thoughtseize {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Identity-A] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/fast] replied in 3174 ms
+[OPENROUTER Identity-A/smart] replied in 4280 ms
+[Identity-A] [ROUTER] target: Ajani, Nacatl Pariah (1/2)[untapped] [Identity-B's Battlefield] <- Swords to Plowshares {W} [Exile target creature.]
+[Identity-A] [ROUTER] play: casts Swords to Plowshares {W} [Exile target creature.]
+[Identity-B] [ROUTER] attackers: 1 can attack -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 2007 ms
+[Identity-B] [ROUTER] attackers: Cat Warrior Token
+[Identity-A] [TALLY] smart=25 fast=8 auto=2 ai=0 avgSmart=6105ms avgFast=5347ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 2922 ms
+[Identity-A] [ROUTER] plan: Cast Ocelot Pride to gain lifelink and block or provide fodder for Goblin Bombardment.
+[Identity-A] [ROUTER] play: casts Ocelot Pride {W} [Ocelot Pride - Creature 1 / 1]
+[Identity-A] [TALLY] smart=26 fast=8 auto=2 ai=0 avgSmart=5983ms avgFast=5347ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 7748 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER Identity-A/fast] replied in 10187 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/fast] replied in 3956 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER Identity-A/fast] replied in 10395 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=27 fast=11 auto=2 ai=0 avgSmart=6048ms avgFast=6119ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 8615 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-B] [TALLY] smart=25 fast=19 auto=0 ai=0 avgSmart=4425ms avgFast=3835ms
+[Identity-B] [ROUTER] play(main): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 3961 ms
+[Identity-B] [ROUTER] plan: Cast Ajani to threaten lethal and force a flip if they use Bombardment.
+[Identity-B] [ROUTER] play: casts Ajani, Nacatl Pariah 1{W} [Ajani, Nacatl Pariah - Creature 1 / 2]
+[Identity-A] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER Identity-A/fast] replied in 9690 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/fast] replied in 13988 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-B] [ROUTER] attackers: 1 can attack -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 6853 ms
+[Identity-B] [ROUTER] attackers: Cat Warrior Token
+[Identity-A] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER Identity-A/fast] replied in 11468 ms
+[OPENROUTER Identity-A/fast] replied in 2634 ms
+[OPENROUTER Identity-A/smart] replied in 6412 ms
+[Identity-A] [ROUTER] target: Cat Warrior Token (2/1)[tapped] [Identity-B's Battlefield] <- Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-A] [ROUTER] play: casts Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-B] [TALLY] smart=27 fast=19 auto=0 ai=0 avgSmart=4497ms avgFast=3835ms
+[Identity-B] [ROUTER] play(main): 2 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 10680 ms
+[Identity-B] [ROUTER] play: casts Ajani, Nacatl Avenger [0: Create a 2/1 white Cat Warrior creature token. When you do, if you control a red permanent other than CARDNAME, he deals damage equal to the number of...]
+[Identity-A] [TALLY] smart=29 fast=15 auto=2 ai=0 avgSmart=6149ms avgFast=7006ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 16386 ms
+[Identity-A] [ROUTER] plan: Cast Orcish Bowmasters to establish blockers, disrupt their board, and prepare responses.
+[Identity-A] [ROUTER] play: casts Orcish Bowmasters 1{B} [Orcish Bowmasters - Creature 1 / 1]
+[Identity-A] [AUTO-LEGAL] choose-entity(forced-only-legal) [Orcish Bowmasters]
+[Identity-A] [TALLY] smart=30 fast=15 auto=3 ai=0 avgSmart=6491ms avgFast=7006ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 6113 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER Identity-A/fast] replied in 11084 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/fast] replied in 4465 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER Identity-A/fast] replied in 11938 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=31 fast=18 auto=3 ai=0 avgSmart=6478ms avgFast=7365ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 5557 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-B] [TALLY] smart=28 fast=19 auto=0 ai=0 avgSmart=4718ms avgFast=3835ms
+[Identity-B] [ROUTER] play(main): 3 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 11093 ms
+[Identity-B] [ROUTER] plan: Activate Ajani's +2 to make Cats 3/2s, attack for lethal.
+[Identity-B] [ROUTER] play: casts Ajani, Nacatl Avenger [+2: Put a +1/+1 counter on each Cat you control.]
+[Identity-A] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER Identity-A/fast] replied in 11464 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-B] [TALLY] smart=29 fast=19 auto=0 ai=0 avgSmart=4938ms avgFast=3835ms
+[Identity-B] [ROUTER] play(main): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 4848 ms
+[Identity-B] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/fast] replied in 3501 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-B] [ROUTER] attackers: 2 can attack -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-B/smart] replied in 8674 ms
+[Identity-B] [ROUTER] attackers: Cat Warrior Token, Cat Warrior Token
+[Identity-A] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER Identity-A/fast] replied in 11113 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] blockers: 2 atk / 2 blk -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/smart] replied in 5780 ms
+[Identity-A] [ROUTER] blockers: assigned 2
+[Identity-A] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER Identity-A/fast] replied in 11573 ms
+[OPENROUTER Identity-A/fast] replied in 3166 ms
+[OPENROUTER Identity-A/smart] replied in 9002 ms
+[Identity-A] [ROUTER] target: Cat Warrior Token (3/2)[tapped][+1/+1 x1] [Identity-B's Battlefield] <- Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-A] [ROUTER] play: casts Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-A] [ROUTER] play(react): 1 castable -> asking google/gemini-3.5-flash...
+[OPENROUTER Identity-A/fast] [TRUNCATED->RETRY] finish_reason=length @ max_tokens=512 -> retrying at 1024
+[OPENROUTER Identity-A/fast] replied in 10621 ms
+[OPENROUTER Identity-A/fast] replied in 3156 ms
+[OPENROUTER Identity-A/smart] replied in 10560 ms
+[Identity-A] [ROUTER] target: Cat Warrior Token (3/2)[tapped][+1/+1 x1] [Identity-B's Battlefield] <- Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Identity-A] [ROUTER] play: casts Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+========== GAME OVER ==========
+outcome: B after 17 turns (AllOpponentsLost) in 651s
+--- full game log ---
+  MULLIGAN: Identity-B has mulliganed down to 6 cards.
+  MULLIGAN: Identity-B has kept a hand of 6 cards
+  MULLIGAN: Identity-A has kept a hand of 7 cards
+  TURN: Turn 1 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Plains (116)
+  MANA: Plains (116) - {T}: Add {W}.
+  STACK_ADD: Identity-B cast Guide of Souls
+  STACK_RESOLVE: Guide of Souls - Creature 1 / 2
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 2 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Marsh Flats (21)
+  LIFE: Life: Identity-A 20 > 19
+  ZONE_CHANGE: Marsh Flats (21) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Marsh Flats
+  STACK_RESOLVE: Marsh Flats (21) - Identity-A searches their library for a Plains or Swamp card, puts it onto the battlefield, then shuffles.
+  MANA: Plateau (38) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Swords to Plowshares targeting [Guide of Souls (89)]
+  ZONE_CHANGE: Guide of Souls (89) was put into Exile from Battlefield.
+  LIFE: Life: Identity-B 20 > 21
+  STACK_RESOLVE: Swords to Plowshares (29) - Exile Guide of Souls (89). Identity-B gains life equal to its power.
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 3 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Marsh Flats (95)
+  LIFE: Life: Identity-B 21 > 20
+  ZONE_CHANGE: Marsh Flats (95) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B activated Marsh Flats
+  EFFECT_REPLACED: Shadowy Backstreet enters tapped.
+  STACK_RESOLVE: Marsh Flats (95) - Identity-B searches their library for a Plains or Swamp card, puts it onto the battlefield, then shuffles.
+  STACK_ADD: Identity-B triggered Shadowy Backstreet
+  STACK_RESOLVE: Identity-B surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: When Shadowy Backstreet enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Shadowy Backstreet (131)]
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 4 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Marsh Flats (22)
+  LIFE: Life: Identity-A 19 > 18
+  ZONE_CHANGE: Marsh Flats (22) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Marsh Flats
+  EFFECT_REPLACED: Elegant Parlor enters tapped.
+  STACK_RESOLVE: Marsh Flats (22) - Identity-A searches their library for a Plains or Swamp card, puts it onto the battlefield, then shuffles.
+  STACK_ADD: Identity-A triggered Elegant Parlor
+  STACK_RESOLVE: Identity-A surveiled 1 card(s) to the graveyard
+  STACK_RESOLVE: When Elegant Parlor enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Elegant Parlor (15)]
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 5 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Karakas (92)
+  MANA: Shadowy Backstreet (131) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Thoughtseize targeting [Identity-A]
+  DISCARD: Identity-A discards Voice of Victory (32).
+  LIFE: Life: Identity-B 20 > 18
+  STACK_RESOLVE: Thoughtseize (121) - Identity-A reveals their hand. Identity-B chooses a nonland card from it. Identity-A discards that card. Identity-B loses 2 life.
+  MANA: Plains (116) - {T}: Add {W}.
+  MANA: Karakas (92) - {T}: Add {W}.
+  STACK_ADD: Identity-B cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Identity-B triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (134)]
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 6 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Badlands (1)
+  MANA: Badlands (1) - {T}: Add {B}.
+  STACK_ADD: Identity-A cast Thoughtseize targeting [Identity-B]
+  DISCARD: Identity-B discards Swords to Plowshares (106).
+  LIFE: Life: Identity-A 18 > 16
+  STACK_RESOLVE: Thoughtseize (46) - Identity-B reveals their hand. Identity-A chooses a nonland card from it. Identity-B discards that card. Identity-A loses 2 life.
+  MANA: Plateau (38) - {T}: Add {R}.
+  MANA: Elegant Parlor (15) - {T}: Add {R}.
+  STACK_ADD: Identity-A cast Goblin Bombardment
+  STACK_RESOLVE: Goblin Bombardment
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 7 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Wasteland (127)
+  ZONE_CHANGE: Wasteland (127) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B activated Wasteland targeting [Badlands (1)]
+  ZONE_CHANGE: Badlands (1) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (127) - Destroy Badlands (1).
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Ajani, Nacatl Pariah (134) and Cat Warrior Token (153) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Ajani, Nacatl Pariah (134).
+Identity-A didn't block Cat Warrior Token (153).
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Ajani, Nacatl Pariah (134) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Warrior Token (153) deals 2 combat damage to Identity-A.
+  LIFE: Life: Identity-A 16 > 13
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 8 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  EFFECT_REPLACED: Shadowy Backstreet enters tapped.
+  LAND: Identity-A played Shadowy Backstreet (56)
+  STACK_ADD: Identity-A triggered Shadowy Backstreet
+  STACK_RESOLVE: Identity-A surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: When Shadowy Backstreet enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Shadowy Backstreet (56)]
+  MANA: Plateau (38) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  ZONE_CHANGE: Ocelot Pride (26) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Goblin Bombardment targeting [Identity-B]
+  DAMAGE: Goblin Bombardment (18) deals 1 non-combat damage to Identity-B.
+  LIFE: Life: Identity-B 18 > 17
+  STACK_RESOLVE: Goblin Bombardment (18) - Goblin Bombardment (18) deals 1 damage to Identity-B.
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 9 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Ajani, Nacatl Pariah (134) and Cat Warrior Token (153) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Ajani, Nacatl Pariah (134).
+Identity-A didn't block Cat Warrior Token (153).
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Ajani, Nacatl Pariah (134) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Warrior Token (153) deals 2 combat damage to Identity-A.
+  LIFE: Life: Identity-A 13 > 10
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 10 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Shadowy Backstreet (56) - {T}: Add {B}.
+  STACK_ADD: Identity-A cast Thoughtseize targeting [Identity-B]
+  DISCARD: Identity-B discards Swords to Plowshares (105).
+  LIFE: Life: Identity-A 10 > 8
+  STACK_RESOLVE: Thoughtseize (45) - Identity-B reveals their hand. Identity-A chooses a nonland card from it. Identity-B discards that card. Identity-A loses 2 life.
+  MANA: Plateau (38) - {T}: Add {R}.
+  MANA: Elegant Parlor (15) - {T}: Add {R}.
+  STACK_ADD: Identity-A cast Amped Raptor
+  STACK_RESOLVE: Amped Raptor - Creature 2 / 1
+  STACK_ADD: Identity-A triggered Amped Raptor
+  STACK_RESOLVE: When Amped Raptor enters, you get {E}{E} (two energy counters). Then if you cast it from your hand, exile cards from the top of your library until you exile a nonland card. You may cast that card by paying an amount of {E} equal to its mana value rather than paying its mana cost. [Zone Changer: Amped Raptor (50)]
+  LAND: Identity-A played Wasteland (53)
+  ZONE_CHANGE: Wasteland (53) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Wasteland targeting [Karakas (92)]
+  ZONE_CHANGE: Karakas (92) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (53) - Destroy Karakas (92).
+  ZONE_CHANGE: Amped Raptor (50) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Goblin Bombardment targeting [Identity-B]
+  DAMAGE: Goblin Bombardment (18) deals 1 non-combat damage to Identity-B.
+  LIFE: Life: Identity-B 17 > 16
+  STACK_RESOLVE: Goblin Bombardment (18) - Goblin Bombardment (18) deals 1 damage to Identity-B.
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 11 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Ajani, Nacatl Pariah (134) and Cat Warrior Token (153) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Ajani, Nacatl Pariah (134).
+Identity-A didn't block Cat Warrior Token (153).
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Ajani, Nacatl Pariah (134) deals 1 combat damage to Identity-A.
+  DAMAGE: Cat Warrior Token (153) deals 2 combat damage to Identity-A.
+  LIFE: Life: Identity-A 8 > 5
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 12 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 13 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  MANA: Shadowy Backstreet (131) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Thoughtseize targeting [Identity-A]
+  MANA: Plateau (38) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Swords to Plowshares targeting [Ajani, Nacatl Pariah (134)]
+  ZONE_CHANGE: Ajani, Nacatl Pariah (134) was put into Exile from Battlefield.
+  LIFE: Life: Identity-B 16 > 17
+  STACK_RESOLVE: Swords to Plowshares (31) - Exile Ajani, Nacatl Pariah (134). Identity-B gains life equal to its power.
+  LIFE: Life: Identity-B 17 > 15
+  STACK_RESOLVE: Thoughtseize (119) - Identity-A reveals their hand. Identity-B chooses a nonland card from it. Identity-A discards that card. Identity-B loses 2 life.
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Cat Warrior Token (153) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Cat Warrior Token (153).
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Cat Warrior Token (153) deals 2 combat damage to Identity-A.
+  LIFE: Life: Identity-A 5 > 3
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 14 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Plateau (38) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 15 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  MANA: Plains (116) - {T}: Add {W}.
+  MANA: Shadowy Backstreet (131) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Identity-B triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (135)]
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Cat Warrior Token (153) to attack Identity-A.
+  ZONE_CHANGE: Ocelot Pride (24) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Goblin Bombardment targeting [Cat Warrior Token (153)]
+  DAMAGE: Goblin Bombardment (18) deals 1 damage to Cat Warrior Token (153).
+  STACK_RESOLVE: Goblin Bombardment (18) - Goblin Bombardment (18) deals 1 damage to Cat Warrior Token (153).
+  ZONE_CHANGE: Cat Warrior Token (153) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B triggered Ajani, Nacatl Pariah
+  ZONE_CHANGE: Ajani, Nacatl Pariah (135) was put into Exile from Battlefield.
+  EFFECT_REPLACED: Ajani, Nacatl Avenger enters with three loyalty counters on it.
+  STACK_RESOLVE: Whenever one or more other Cats you control die, you may exile Ajani, then return him to the battlefield transformed under his owner's control. [Amount: 1]
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  STACK_ADD: Identity-B activated Ajani, Nacatl Avenger
+  STACK_RESOLVE: Ajani, Nacatl Avenger (135) - Identity-B creates a 2/1 white Cat Warrior creature token. When you do, if they control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures they control to any target. When you do, if you control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures you control to any target. 
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 16 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Shadowy Backstreet (56) - {T}: Add {B}.
+  MANA: Plateau (38) - {T}: Add {R}.
+  STACK_ADD: Identity-A cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Identity-A triggered Orcish Bowmasters targeting [Ajani, Nacatl Avenger (135)]
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Ajani, Nacatl Avenger (135)]]) [Zone Changer: Orcish Bowmasters (37)]
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 17 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  STACK_ADD: Identity-B activated Ajani, Nacatl Avenger
+  STACK_RESOLVE: Ajani, Nacatl Avenger (135) - Put a +1/+1 counter on each valid permanent.
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Cat Warrior Token (156) and Cat Warrior Token (158) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A assigned Orcish Bowmasters (37) and Orc Army Token (160) to block Cat Warrior Token (156).
+Identity-A didn't block Cat Warrior Token (158).
+  ZONE_CHANGE: Orc Army Token (160) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Goblin Bombardment targeting [Cat Warrior Token (156)]
+  DAMAGE: Goblin Bombardment (18) deals 1 damage to Cat Warrior Token (156).
+  STACK_RESOLVE: Goblin Bombardment (18) - Goblin Bombardment (18) deals 1 damage to Cat Warrior Token (156).
+  ZONE_CHANGE: Orcish Bowmasters (37) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Goblin Bombardment targeting [Cat Warrior Token (156)]
+  DAMAGE: Goblin Bombardment (18) deals 1 damage to Cat Warrior Token (156).
+  STACK_RESOLVE: Goblin Bombardment (18) - Goblin Bombardment (18) deals 1 damage to Cat Warrior Token (156).
+  ZONE_CHANGE: Cat Warrior Token (156) was put into Graveyard from Battlefield.
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Cat Warrior Token (158) deals 3 combat damage to Identity-A.
+  LIFE: Life: Identity-A 3 > 0
+  PLAYER_CONTROL: Identity-A has restored control over themself
+  PLAYER_CONTROL: Identity-B has restored control over themself
+  GAME_OUTCOME: Turn 9
+  GAME_OUTCOME: Identity-A has lost because life total reached 0
+  GAME_OUTCOME: Identity-B has won because all opponents have lost
+  MATCH_RESULTS: Identity-A: 0 Identity-B: 1 
+===============================

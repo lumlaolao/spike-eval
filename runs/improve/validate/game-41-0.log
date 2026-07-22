@@ -1,0 +1,2627 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 41
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/grixis-reanimator.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/mardu-energy.plan
+[DECK] loaded 'Grixis Reanimator': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/grixis-reanimator.txt)
+[DECK] loaded 'Mardu Energy': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/harness-fixes/eval/decks/mardu-energy.txt)
+[SEATS] A=Grixis Reanimator(floor,opus) B=Mardu Energy(floor,opus)
+[Grixis Reanimator] [MODE] baseline arm: floor
+[Mardu Energy] [MODE] baseline arm: floor
+[HEADLESS] game starting (cap=10min)
+[Grixis Reanimator] [AUTO-LEGAL] mulligan(no-model)->KEEP
+[Mardu Energy] [ROUTER] mulligan: heuristic KEEP (2/7 lands)
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget): land Swamp
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Karakas
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Wasteland
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Plains
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Plateau
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Plains
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget): land Swamp
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget): land Polluted Delta
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Wasteland
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget): land Raucous Theater
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] surveil(no-model)->keep-all-top
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Marsh Flats
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Arid Mesa
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget): land Bloodstained Mire
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Scrubland
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Plateau
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Marsh Flats
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget): land Badlands
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget): land Polluted Delta
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Marsh Flats
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Wasteland
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Arid Mesa
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget): land Bloodstained Mire
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget): land Polluted Delta
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Badlands
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget): land Underground Sea
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget): land Swamp
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget): land Polluted Delta
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Marsh Flats
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Shadowy Backstreet
+[Mardu Energy] [AUTO-LEGAL] surveil(no-model)->keep-all-top
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget): land Undercity Sewers
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] surveil(no-model)->keep-all-top
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Arid Mesa
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Scrubland
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Karakas
+[Mardu Energy] [AUTO-LEGAL] choose-entity(no-budget)->first []
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget): land Badlands
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Elegant Parlor
+[Mardu Energy] [AUTO-LEGAL] surveil(no-model)->keep-all-top
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget): land Wasteland
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+[Grixis Reanimator] [AUTO-LEGAL] play(no-budget)->PASS
+[Mardu Energy] [AUTO-LEGAL] play(no-budget)->PASS
+========== GAME OVER ==========
+outcome: A after 108 turns (AllOpponentsLost) in 13s
+--- full game log ---
+  MULLIGAN: Grixis Reanimator has kept a hand of 7 cards
+  MULLIGAN: Mardu Energy has kept a hand of 7 cards
+  TURN: Turn 1 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  LAND: Grixis Reanimator played Swamp (54)
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  TURN: Turn 2 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Karakas (91)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 3 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  TURN: Turn 4 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Wasteland (127)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 5 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Faithless Looting (18).
+  TURN: Turn 6 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Plains (115)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 7 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Faithless Looting (19).
+  TURN: Turn 8 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Plateau (113)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 9 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Atraxa, Grand Unifier (15).
+  TURN: Turn 10 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Plains (116)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 11 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Unmask (44).
+  TURN: Turn 12 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Cabal Therapy (78).
+  TURN: Turn 13 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  LAND: Grixis Reanimator played Swamp (53)
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  TURN: Turn 14 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Orcish Bowmasters (110).
+  TURN: Turn 15 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  LAND: Grixis Reanimator played Polluted Delta (40)
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  TURN: Turn 16 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Wasteland (128)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 17 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  EFFECT_REPLACED: Raucous Theater enters tapped.
+  LAND: Grixis Reanimator played Raucous Theater (48)
+  STACK_ADD: Grixis Reanimator triggered Raucous Theater
+  STACK_RESOLVE: Grixis Reanimator surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: When Raucous Theater enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Raucous Theater (48)]
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  TURN: Turn 18 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Marsh Flats (98)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 19 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Lotus Petal (59).
+  TURN: Turn 20 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Orcish Bowmasters (112).
+  TURN: Turn 21 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Raph & Mikey, Troublemakers (5).
+  TURN: Turn 22 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Ajani, Nacatl Pariah (132).
+  TURN: Turn 23 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Lotus Petal (58).
+  TURN: Turn 24 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Ajani, Nacatl Pariah (134).
+  TURN: Turn 25 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Faithless Looting (20).
+  TURN: Turn 26 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Ajani, Nacatl Pariah (133).
+  TURN: Turn 27 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Lotus Petal (57).
+  TURN: Turn 28 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Arid Mesa (84)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 29 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  LAND: Grixis Reanimator played Bloodstained Mire (30)
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  TURN: Turn 30 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Goblin Bombardment (93).
+  TURN: Turn 31 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Animate Dead (23).
+  TURN: Turn 32 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Ajani, Nacatl Pariah (135).
+  TURN: Turn 33 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Atraxa, Grand Unifier (14).
+  TURN: Turn 34 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Ocelot Pride (100).
+  TURN: Turn 35 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Griselbrand (37).
+  TURN: Turn 36 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Ocelot Pride (102).
+  TURN: Turn 37 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Lotus Petal (56).
+  TURN: Turn 38 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Scrubland (117)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 39 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Animate Dead (24).
+  TURN: Turn 40 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Plateau (114)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 41 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Unmask (46).
+  TURN: Turn 42 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Amped Raptor (126).
+  TURN: Turn 43 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Dark Ritual (9).
+  TURN: Turn 44 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Marsh Flats (95)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 45 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Cabal Therapy (7).
+  TURN: Turn 46 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Hexing Squelcher (80).
+  TURN: Turn 47 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Unmask (45).
+  TURN: Turn 48 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Hexing Squelcher (81).
+  TURN: Turn 49 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  LAND: Grixis Reanimator played Badlands (2)
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  TURN: Turn 50 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Amped Raptor (125).
+  TURN: Turn 51 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  LAND: Grixis Reanimator played Polluted Delta (43)
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  TURN: Turn 52 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Guide of Souls (86).
+  TURN: Turn 53 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Griselbrand (36).
+  TURN: Turn 54 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Marsh Flats (96)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 55 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Raph & Mikey, Troublemakers (4).
+  TURN: Turn 56 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Guide of Souls (87).
+  TURN: Turn 57 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Griselbrand (38).
+  TURN: Turn 58 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Wasteland (129)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 59 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Archon of Cruelty (21).
+  TURN: Turn 60 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Arid Mesa (85)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 61 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Thoughtseize (50).
+  TURN: Turn 62 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Ocelot Pride (99).
+  TURN: Turn 63 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Dark Ritual (11).
+  TURN: Turn 64 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Voice of Victory (108).
+  TURN: Turn 65 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  LAND: Grixis Reanimator played Bloodstained Mire (31)
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  TURN: Turn 66 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Voice of Victory (107).
+  TURN: Turn 67 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  LAND: Grixis Reanimator played Polluted Delta (42)
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  TURN: Turn 68 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Badlands (76)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 69 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  LAND: Grixis Reanimator played Underground Sea (60)
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  TURN: Turn 70 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Amped Raptor (124).
+  TURN: Turn 71 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Dark Ritual (12).
+  TURN: Turn 72 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Hexing Squelcher (82).
+  TURN: Turn 73 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Reanimate (29).
+  TURN: Turn 74 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Guide of Souls (88).
+  TURN: Turn 75 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  LAND: Grixis Reanimator played Swamp (55)
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  TURN: Turn 76 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Cabal Therapy (77).
+  TURN: Turn 77 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  LAND: Grixis Reanimator played Polluted Delta (41)
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  TURN: Turn 78 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Marsh Flats (97)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 79 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Thoughtseize (49).
+  TURN: Turn 80 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Guide of Souls (89).
+  TURN: Turn 81 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Thoughtseize (52).
+  TURN: Turn 82 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Voice of Victory (109).
+  TURN: Turn 83 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Reanimate (27).
+  TURN: Turn 84 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  EFFECT_REPLACED: Shadowy Backstreet enters tapped.
+  LAND: Mardu Energy played Shadowy Backstreet (131)
+  STACK_ADD: Mardu Energy triggered Shadowy Backstreet
+  STACK_RESOLVE: Mardu Energy surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: When Shadowy Backstreet enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Shadowy Backstreet (131)]
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 85 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Atraxa, Grand Unifier (13).
+  TURN: Turn 86 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Swords to Plowshares (106).
+  TURN: Turn 87 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  EFFECT_REPLACED: Undercity Sewers enters tapped.
+  LAND: Grixis Reanimator played Undercity Sewers (6)
+  STACK_ADD: Grixis Reanimator triggered Undercity Sewers
+  STACK_RESOLVE: Grixis Reanimator surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: When Undercity Sewers enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Undercity Sewers (6)]
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  TURN: Turn 88 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Ocelot Pride (101).
+  TURN: Turn 89 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Raph & Mikey, Troublemakers (3).
+  TURN: Turn 90 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Arid Mesa (83)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 91 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Griselbrand (39).
+  TURN: Turn 92 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Scrubland (118)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 93 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Atraxa, Grand Unifier (16).
+  TURN: Turn 94 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Goblin Bombardment (94).
+  TURN: Turn 95 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Faithless Looting (17).
+  TURN: Turn 96 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Cabal Therapy (79).
+  TURN: Turn 97 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Dark Ritual (10).
+  TURN: Turn 98 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Orcish Bowmasters (111).
+  TURN: Turn 99 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Reanimate (28).
+  TURN: Turn 100 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Karakas (92)
+  ZONE_CHANGE: Karakas (92) was put into Graveyard from Battlefield.
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 101 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  LAND: Grixis Reanimator played Badlands (1)
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  TURN: Turn 102 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  EFFECT_REPLACED: Elegant Parlor enters tapped.
+  LAND: Mardu Energy played Elegant Parlor (90)
+  STACK_ADD: Mardu Energy triggered Elegant Parlor
+  STACK_RESOLVE: Mardu Energy surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: When Elegant Parlor enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Elegant Parlor (90)]
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 103 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Animate Dead (25).
+  TURN: Turn 104 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  DISCARD: Mardu Energy discards Amped Raptor (123).
+  TURN: Turn 105 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Animate Dead (22).
+  TURN: Turn 106 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Wasteland (130)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 107 (Grixis Reanimator)
+  PHASE: Grixis Reanimator's Untap step
+  PHASE: Grixis Reanimator's Upkeep step
+  PHASE: Grixis Reanimator's Draw step
+  PHASE: Grixis Reanimator's Main phase, precombat
+  PHASE: Grixis Reanimator's Beginning of Combat Step
+  PHASE: Grixis Reanimator's Declare Attackers Step
+  PHASE: Grixis Reanimator's Declare Blockers Step
+  PHASE: Grixis Reanimator's First Strike Damage Step
+  PHASE: Grixis Reanimator's Combat Damage Step
+  PHASE: Grixis Reanimator's End of Combat Step
+  PHASE: Grixis Reanimator's Main phase, postcombat
+  PHASE: Grixis Reanimator's End step
+  PHASE: Grixis Reanimator's Cleanup step
+  DISCARD: Grixis Reanimator discards Cabal Therapy (8).
+  TURN: Turn 108 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PLAYER_CONTROL: Grixis Reanimator has restored control over themself
+  PLAYER_CONTROL: Mardu Energy has restored control over themself
+  GAME_OUTCOME: Turn 54
+  GAME_OUTCOME: Grixis Reanimator has won because all opponents have lost
+  GAME_OUTCOME: Mardu Energy has lost trying to draw cards from empty library
+  MATCH_RESULTS: Grixis Reanimator: 1 Mardu Energy: 0 
+===============================

@@ -1,0 +1,25 @@
+[cap] --cap-minutes not given; derived 120 min from controllers/models.
+[provenance] engine=c1c64a53586459cd0d4c70f27abd1aa8bbc92891 overlay=4fe27fcead9c deck=4e7be5785b40 discipline=cited
+[out] /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/haiku-vs-ai-3
+Running 20 games (jobs=1, out=/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/runs/haiku-vs-ai-3, forge_home=/Users/lumlumlam/code/forge)
+[start] seed=1 swap=0 -> game-1-0.log
+[done] seed=1 swap=0
+[start] seed=1 swap=1 -> game-1-1.log
+[done] seed=1 swap=1
+[start] seed=2 swap=0 -> game-2-0.log
+[done] seed=2 swap=0
+[start] seed=2 swap=1 -> game-2-1.log
+[done] seed=2 swap=1
+[start] seed=3 swap=0 -> game-3-0.log
+[done] seed=3 swap=0
+[start] seed=3 swap=1 -> game-3-1.log
+[done] seed=3 swap=1
+[start] seed=4 swap=0 -> game-4-0.log
+[done] seed=4 swap=0
+[start] seed=4 swap=1 -> game-4-1.log
+[done] seed=4 swap=1
+[start] seed=5 swap=0 -> game-5-0.log
+[done] seed=5 swap=0
+[start] seed=5 swap=1 -> game-5-1.log
+[done] seed=5 swap=1
+[start] seed=6 swap=0 -> game-6-0.log

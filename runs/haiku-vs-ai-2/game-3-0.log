@@ -1,0 +1,868 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 3
+[DECK] loaded 'Identity-A': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[DECK] loaded 'Identity-B': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/first-trustworthy-eval/eval/decks/mardu-energy.txt)
+[SEATS] A=Identity-A(llm,haiku) B=Identity-B(ai,opus)
+[HEADLESS] game starting (cap=120min)
+[Identity-A] [ROUTER] mulligan: 2/7 lands -> asking haiku...
+[CLAUDE Identity-A/smart] starting persistent haiku session...
+[CLAUDE Identity-A/smart] replied in 11942 ms
+[Identity-A] [ROUTER] mulligan: MULLIGAN
+[Identity-A] [ROUTER] mulligan: 1/6 lands -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 16496 ms
+[Identity-A] [ROUTER] mulligan: KEEP
+[Identity-A] [TALLY] smart=2 fast=0 auto=0 ai=0 avgSmart=14219ms
+[Identity-A] [ROUTER] play(main): 0 castable + 2 land -> asking haiku...
+[CLAUDE Identity-A/fast] starting persistent haiku session...
+[CLAUDE Identity-A/fast] replied in 14059 ms
+[Identity-A] [ROUTER] play: land Plains
+[Identity-A] [TALLY] smart=2 fast=1 auto=0 ai=0 avgSmart=14219ms avgFast=14059ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 10192 ms
+[Identity-A] [ROUTER] plan: Cast Ocelot Pride, build board.
+[Identity-A] [ROUTER] play: casts Ocelot Pride {W} [Ocelot Pride - Creature 1 / 1]
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 27917 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] play(react): 1 castable -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 11358 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=3 fast=3 auto=0 ai=0 avgSmart=12876ms avgFast=17778ms
+[Identity-A] [ROUTER] play(main): 1 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 21370 ms
+[Identity-A] [ROUTER] plan: Swords the Cat Warrior, slow them down.
+[CLAUDE Identity-A/smart] replied in 6174 ms
+[Identity-A] [ROUTER] target: Cat Warrior Token (2/1) [Identity-B's Battlefield] <- Swords to Plowshares {W} [Exile target creature.]
+[Identity-A] [ROUTER] play: casts Swords to Plowshares {W} [Exile target creature.]
+[Identity-A] [TALLY] smart=5 fast=3 auto=0 ai=0 avgSmart=13234ms avgFast=17778ms
+[Identity-A] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 17468 ms
+[Identity-A] [ROUTER] play: land Wasteland
+[Identity-A] [TALLY] smart=5 fast=4 auto=0 ai=0 avgSmart=13234ms avgFast=17700ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 26384 ms
+[CLAUDE Identity-A/smart] replied in 5687 ms
+[Identity-A] [ROUTER] target: Karakas [Identity-B's Battlefield] <- Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Identity-A] [ROUTER] play: casts Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Identity-A] [ROUTER] attackers: 1 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 18305 ms
+[Identity-A] [ROUTER] attackers: none
+[Identity-A] [ROUTER] blockers: 1 atk / 1 blk -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 16085 ms
+[Identity-A] [ROUTER] blockers: NONE
+[Identity-A] [TALLY] smart=9 fast=4 auto=0 ai=0 avgSmart=14737ms avgFast=17700ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 12876 ms
+[Identity-A] [ROUTER] plan: Cast Ocelot Pride, build toward Voice of Victory.
+[Identity-A] [ROUTER] play: casts Ocelot Pride {W} [Ocelot Pride - Creature 1 / 1]
+[Identity-A] [ROUTER] attackers: 1 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 26207 ms
+[Identity-A] [ROUTER] attackers: none
+[Identity-A] [TALLY] smart=11 fast=4 auto=0 ai=0 avgSmart=15610ms avgFast=17700ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 21142 ms
+[Identity-A] [ROUTER] plan: Cast Guide of Souls, build creature density.
+[Identity-A] [ROUTER] play: casts Guide of Souls {W} [Guide of Souls - Creature 1 / 2]
+[Identity-A] [ROUTER] attackers: 2 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 23235 ms
+[Identity-A] [ROUTER] attackers: Ocelot Pride, Ocelot Pride
+[Identity-A] [TALLY] smart=13 fast=4 auto=0 ai=0 avgSmart=16622ms avgFast=17700ms
+[Identity-A] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 17223 ms
+[Identity-A] [ROUTER] play: land Shadowy Backstreet
+[Identity-A] [ROUTER] attackers: 3 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 36135 ms
+[Identity-A] [ROUTER] attackers: Ocelot Pride, Guide of Souls, Cat Token
+[Identity-A] [TALLY] smart=14 fast=5 auto=0 ai=0 avgSmart=18016ms avgFast=17605ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 38530 ms
+[Identity-A] [ROUTER] plan: Cast Voice of Victory, deploy the payoff card.
+[Identity-A] [ROUTER] play: casts Voice of Victory 1{W} [Voice of Victory - Creature 1 / 3]
+[Identity-A] [ROUTER] attackers: 1 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 21056 ms
+[Identity-A] [ROUTER] attackers: Guide of Souls
+[Identity-A] [TALLY] smart=16 fast=5 auto=0 ai=0 avgSmart=19488ms avgFast=17605ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 23334 ms
+[Identity-A] [ROUTER] plan: Cast Ocelot Pride, rebuild my board.
+[Identity-A] [ROUTER] play: casts Ocelot Pride {W} [Ocelot Pride - Creature 1 / 1]
+[Identity-A] [TALLY] smart=17 fast=5 auto=0 ai=0 avgSmart=19714ms avgFast=17605ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 23844 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 1 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 17717 ms
+[Identity-A] [ROUTER] attackers: none
+[Identity-A] [TALLY] smart=19 fast=5 auto=0 ai=0 avgSmart=19826ms avgFast=17605ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 14998 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=20 fast=5 auto=0 ai=0 avgSmart=19585ms avgFast=17605ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 23243 ms
+[Identity-A] [ROUTER] plan: Cast Cabal Therapy, disrupt threats in hand.
+[CLAUDE Identity-A/smart] replied in 3027 ms
+[Identity-A] [ROUTER] target: Identity-B <- Cabal Therapy {B}
+[Identity-A] [ROUTER] play: casts Cabal Therapy {B} [Choose a nonland card name. Target player reveals their hand and disca]
+[CLAUDE Identity-A/smart] replied in 9132 ms
+[Identity-A] [ROUTER] card-name: Swords to Plowshares [Cabal Therapy]
+[Identity-A] [TALLY] smart=23 fast=5 auto=0 ai=0 avgSmart=18570ms avgFast=17605ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 9865 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 2 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 15189 ms
+[Identity-A] [ROUTER] attackers: none
+[Identity-A] [TALLY] smart=25 fast=5 auto=0 ai=0 avgSmart=18086ms avgFast=17605ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 4477 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=26 fast=5 auto=0 ai=0 avgSmart=17563ms avgFast=17605ms
+[Identity-A] [ROUTER] play(main): 2 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 18298 ms
+[Identity-A] [ROUTER] plan: Cast Thoughtseize, discard their best threat.
+[CLAUDE Identity-A/smart] replied in 2714 ms
+[Identity-A] [ROUTER] target: Identity-B <- Thoughtseize {B} [Target player reveals their hand. You choose a nonland card from it. T]
+[Identity-A] [ROUTER] play: casts Thoughtseize {B} [Target player reveals their hand. You choose a nonland card from it. T]
+[CLAUDE Identity-A/smart] replied in 6829 ms
+[Identity-A] [ROUTER] discard(strip Identity-B): Thoughtseize
+[Identity-A] [TALLY] smart=29 fast=5 auto=0 ai=0 avgSmart=16706ms avgFast=17605ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 11694 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 2 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 9624 ms
+[Identity-A] [ROUTER] attackers: none
+[Identity-A] [TALLY] smart=31 fast=5 auto=0 ai=0 avgSmart=16316ms avgFast=17605ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 4138 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=32 fast=5 auto=0 ai=0 avgSmart=15935ms avgFast=17605ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 12341 ms
+[Identity-A] [ROUTER] plan: Pass, preserve mana for future turns.
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] attackers: 2 can attack -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 8309 ms
+[Identity-A] [ROUTER] attackers: none
+[Identity-A] [TALLY] smart=34 fast=5 auto=0 ai=0 avgSmart=15605ms avgFast=17605ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 2710 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] blockers: 5 atk / 1 blk -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 27616 ms
+[Identity-A] [ROUTER] blockers: assigned 1
+[Identity-A] [TALLY] smart=36 fast=5 auto=0 ai=0 avgSmart=15580ms avgFast=17605ms
+[Identity-A] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 24256 ms
+[Identity-A] [ROUTER] play: land Arid Mesa
+[Identity-A] [TALLY] smart=36 fast=6 auto=0 ai=0 avgSmart=15580ms avgFast=18713ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 10791 ms
+[Identity-A] [ROUTER] plan: Activate Arid Mesa for red mana, rebuild board.
+[Identity-A] [ROUTER] play: casts Arid Mesa [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Mountai]
+[Identity-A] [TALLY] smart=37 fast=6 auto=0 ai=0 avgSmart=15451ms avgFast=18713ms
+[Identity-A] [ROUTER] play(main): 0 castable + 1 land -> asking haiku...
+[CLAUDE Identity-A/fast] replied in 32116 ms
+[Identity-A] [ROUTER] play: land Plateau
+[Identity-A] [TALLY] smart=37 fast=7 auto=0 ai=0 avgSmart=15451ms avgFast=20628ms
+[Identity-A] [ROUTER] play(main): 4 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 23851 ms
+[Identity-A] [ROUTER] plan: Cast Hexing Squelcher for blocking, buy one more turn.
+[Identity-A] [ROUTER] play: casts Hexing Squelcher 1{R} [Hexing Squelcher - Creature 2 / 2]
+[Identity-A] [TALLY] smart=38 fast=7 auto=0 ai=0 avgSmart=15672ms avgFast=20628ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 14810 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [TALLY] smart=39 fast=7 auto=0 ai=0 avgSmart=15650ms avgFast=20628ms
+[Identity-A] [ROUTER] play(main): 1 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 2894 ms
+[Identity-A] [ROUTER] play: PASS
+[Identity-A] [ROUTER] blockers: 6 atk / 1 blk -> asking haiku...
+[CLAUDE Identity-A/smart] refreshing session after 40 asks (bounds context growth)
+[CLAUDE Identity-A/smart] starting persistent haiku session...
+[CLAUDE Identity-A/smart] replied in 24365 ms
+[Identity-A] [ROUTER] blockers: assigned 1
+[Identity-A] [TALLY] smart=41 fast=7 auto=0 ai=0 avgSmart=15551ms avgFast=20628ms
+[Identity-A] [ROUTER] play(main): 4 castable -> asking haiku...
+[CLAUDE Identity-A/smart] replied in 62172 ms
+[Identity-A] [ROUTER] plan: Cast Goblin Bombardment to build a repeatable damage engine—creatures will die in future c
+[Identity-A] [ROUTER] play: casts Goblin Bombardment 1{R} [Goblin Bombardment]
+========== GAME OVER ==========
+outcome: B after 27 turns (AllOpponentsLost) in 847s
+--- full game log ---
+  MULLIGAN: Identity-A has mulliganed down to 6 cards.
+  MULLIGAN: Identity-B has kept a hand of 7 cards
+  MULLIGAN: Identity-A has kept a hand of 6 cards
+  TURN: Turn 1 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Karakas (92)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 2 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Plains (41)
+  MANA: Plains (41) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 3 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Wasteland (128)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Karakas (92) - {T}: Add {W}.
+  MANA: Wasteland (128) - {T}: Add {C}.
+  STACK_ADD: Identity-B cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Identity-B triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (133)]
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 4 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Plains (41) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Swords to Plowshares targeting [Cat Warrior Token (155)]
+  ZONE_CHANGE: Cat Warrior Token (155) was put into Exile from Battlefield.
+  LIFE: Life: Identity-B 20 > 22
+  STACK_RESOLVE: Swords to Plowshares (28) - Exile Cat Warrior Token (155). Identity-B gains life equal to its power.
+  LAND: Identity-A played Wasteland (55)
+  ZONE_CHANGE: Wasteland (55) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Wasteland targeting [Karakas (92)]
+  ZONE_CHANGE: Karakas (92) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (55) - Destroy Karakas (92).
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 5 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  EFFECT_REPLACED: Shadowy Backstreet enters tapped.
+  LAND: Identity-B played Shadowy Backstreet (131)
+  STACK_ADD: Identity-B triggered Shadowy Backstreet
+  STACK_RESOLVE: Identity-B surveiled 1 card(s) to the graveyard
+  STACK_RESOLVE: When Shadowy Backstreet enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Shadowy Backstreet (131)]
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Ajani, Nacatl Pariah (133) to attack Identity-A.
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Ajani, Nacatl Pariah (133).
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Ajani, Nacatl Pariah (133) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 20 > 19
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 6 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Plains (41) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 7 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Wasteland (130)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Shadowy Backstreet (131) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Thoughtseize targeting [Identity-A]
+  DISCARD: Identity-A discards Orcish Bowmasters (36).
+  LIFE: Life: Identity-B 22 > 20
+  STACK_RESOLVE: Thoughtseize (119) - Identity-A reveals their hand. Identity-B chooses a nonland card from it. Identity-A discards that card. Identity-B loses 2 life.
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 8 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Plains (41) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Guide of Souls
+  STACK_RESOLVE: Guide of Souls - Creature 1 / 2
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Ocelot Pride (26) and Ocelot Pride (27) to attack Identity-B.
+  STACK_ADD: Identity-A triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Ocelot Pride (26), Ocelot Pride (27)]]
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B assigned Ajani, Nacatl Pariah (133) to block Ocelot Pride (26).
+Identity-B didn't block Ocelot Pride (27).
+  PHASE: Identity-A's First Strike Damage Step
+  DAMAGE: Ocelot Pride (26) deals 1 damage to Ajani, Nacatl Pariah (133).
+  LIFE: Life: Identity-A 19 > 20
+  DAMAGE: Ocelot Pride (27) deals 1 combat damage to Identity-B.
+  LIFE: Life: Identity-A 20 > 21
+  LIFE: Life: Identity-B 20 > 19
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Ajani, Nacatl Pariah (133) deals 1 damage to Ocelot Pride (26).
+  ZONE_CHANGE: Ocelot Pride (26) was put into Graveyard from Battlefield.
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  STACK_ADD: Identity-A triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Identity-A]
+  STACK_ADD: Identity-A triggered Guide of Souls
+  LIFE: Life: Identity-A 21 > 22
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (158)]
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 9 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Marsh Flats (96)
+  LIFE: Life: Identity-B 19 > 18
+  ZONE_CHANGE: Marsh Flats (96) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B activated Marsh Flats
+  STACK_RESOLVE: Marsh Flats (96) - Identity-B searches their library for a Plains or Swamp card, puts it onto the battlefield, then shuffles.
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Shadowy Backstreet (131) - {T}: Add {W}.
+  STACK_ADD: Identity-B cast Guide of Souls
+  STACK_RESOLVE: Guide of Souls - Creature 1 / 2
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 10 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  EFFECT_REPLACED: Shadowy Backstreet enters tapped.
+  LAND: Identity-A played Shadowy Backstreet (56)
+  STACK_ADD: Identity-A triggered Shadowy Backstreet
+  STACK_RESOLVE: Identity-A surveiled 1 card(s) to the graveyard
+  STACK_RESOLVE: When Shadowy Backstreet enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Shadowy Backstreet (56)]
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Ocelot Pride (27), Guide of Souls (14) and Cat Token (158) to attack Identity-B.
+  STACK_ADD: Identity-A triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Ocelot Pride (27), Guide of Souls (14), Cat Token (158)]]
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B assigned Guide of Souls (89) to block Ocelot Pride (27).
+Identity-B assigned Ajani, Nacatl Pariah (133) to block Guide of Souls (14).
+Identity-B didn't block Cat Token (158).
+  PHASE: Identity-A's First Strike Damage Step
+  DAMAGE: Ocelot Pride (27) deals 1 damage to Guide of Souls (89).
+  LIFE: Life: Identity-A 22 > 23
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Guide of Souls (14) deals 1 damage to Ajani, Nacatl Pariah (133).
+  DAMAGE: Cat Token (158) deals 1 combat damage to Identity-B.
+  DAMAGE: Guide of Souls (89) deals 1 damage to Ocelot Pride (27).
+  DAMAGE: Ajani, Nacatl Pariah (133) deals 1 damage to Guide of Souls (14).
+  LIFE: Life: Identity-B 18 > 17
+  ZONE_CHANGE: Ocelot Pride (27) was put into Graveyard from Battlefield.
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 11 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  MANA: Shadowy Backstreet (131) - {T}: Add {B}.
+  MANA: Plateau (114) - {T}: Add {R}.
+  STACK_ADD: Identity-B cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Identity-B triggered Orcish Bowmasters targeting [Cat Token (158)]
+  STACK_ADD: Identity-B triggered Guide of Souls
+  LIFE: Life: Identity-B 17 > 18
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Orcish Bowmasters (111)]
+  DAMAGE: Orcish Bowmasters (111) deals 1 damage to Cat Token (158).
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Cat Token (158)]]) [Zone Changer: Orcish Bowmasters (111)]
+  ZONE_CHANGE: Cat Token (158) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B triggered Guide of Souls
+  LIFE: Life: Identity-B 18 > 19
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Orc Army Token (160)]
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Ajani, Nacatl Pariah (133) and Guide of Souls (89) to attack Identity-A.
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Ajani, Nacatl Pariah (133), Guide of Souls (89)]]
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Ajani, Nacatl Pariah (133).
+Identity-A didn't block Guide of Souls (89).
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Ajani, Nacatl Pariah (133) deals 1 combat damage to Identity-A.
+  DAMAGE: Guide of Souls (89) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 23 > 21
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 12 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Plains (41) - {T}: Add {W}.
+  MANA: Shadowy Backstreet (56) - {T}: Add {B}.
+  STACK_ADD: Identity-A cast Voice of Victory
+  STACK_RESOLVE: Voice of Victory - Creature 1 / 3
+  STACK_ADD: Identity-A triggered Guide of Souls
+  LIFE: Life: Identity-A 21 > 22
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Voice of Victory (33)]
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  COMBAT: Identity-A assigned Guide of Souls (14) to attack Identity-B.
+  STACK_ADD: Identity-A triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Guide of Souls (14)]]
+  PHASE: Identity-A's Declare Blockers Step
+  COMBAT: Identity-B assigned Orc Army Token (160) and Orcish Bowmasters (111) to block Guide of Souls (14).
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  DAMAGE: Guide of Souls (14) deals 1 damage to Orcish Bowmasters (111).
+  DAMAGE: Orc Army Token (160) deals 1 damage to Guide of Souls (14).
+  DAMAGE: Orcish Bowmasters (111) deals 1 damage to Guide of Souls (14).
+  ZONE_CHANGE: Guide of Souls (14) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Orcish Bowmasters (111) was put into Graveyard from Battlefield.
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 13 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  MANA: Shadowy Backstreet (131) - {T}: Add {B}.
+  MANA: Plateau (114) - {T}: Add {R}.
+  STACK_ADD: Identity-B cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Orcish Bowmasters targeting [Identity-A]
+  DAMAGE: Orcish Bowmasters (112) deals 1 non-combat damage to Identity-A.
+  LIFE: Life: Identity-A 22 > 21
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Identity-A]]) [Zone Changer: Orcish Bowmasters (112)]
+  LIFE: Life: Identity-B 19 > 20
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Orcish Bowmasters (112)]
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 14 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Plains (41) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 15 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  MANA: Shadowy Backstreet (131) - {T}: Add {W}.
+  STACK_ADD: Identity-B cast Guide of Souls
+  STACK_RESOLVE: Guide of Souls - Creature 1 / 2
+  STACK_ADD: Identity-B triggered Guide of Souls
+  LIFE: Life: Identity-B 20 > 21
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Guide of Souls (86)]
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 16 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Shadowy Backstreet (56) - {T}: Add {B}.
+  STACK_ADD: Identity-A cast Cabal Therapy
+  STACK_RESOLVE: Cabal Therapy (4) - Identity-A names a card. Identity-B reveals their hand. They discard all of type: Card.NamedCard card.
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 17 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  MANA: Plateau (114) - {T}: Add {R}.
+  MANA: Shadowy Backstreet (131) - {T}: Add {B}.
+  STACK_ADD: Identity-B cast Hexing Squelcher
+  STACK_RESOLVE: Hexing Squelcher - Creature 2 / 2
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Guide of Souls
+  LIFE: Life: Identity-B 21 > 22
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Hexing Squelcher (81)]
+  LIFE: Life: Identity-B 22 > 23
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Hexing Squelcher (81)]
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 18 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Shadowy Backstreet (56) - {T}: Add {B}.
+  STACK_ADD: Identity-A cast Thoughtseize targeting [Identity-B]
+  DISCARD: Identity-B discards Thoughtseize (121).
+  LIFE: Life: Identity-A 21 > 19
+  STACK_RESOLVE: Thoughtseize (47) - Identity-B reveals their hand. Identity-A chooses a nonland card from it. Identity-B discards that card. Identity-A loses 2 life.
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 19 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  ZONE_CHANGE: Wasteland (128) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B activated Wasteland targeting [Shadowy Backstreet (56)]
+  ZONE_CHANGE: Shadowy Backstreet (56) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (128) - Destroy Shadowy Backstreet (56).
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Badlands (76)
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  PHASE: Identity-B's Declare Blockers Step
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 20 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 21 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  MANA: Shadowy Backstreet (131) - {T}: Add {W}.
+  STACK_ADD: Identity-B cast Swords to Plowshares targeting [Voice of Victory (33)]
+  ZONE_CHANGE: Voice of Victory (33) was put into Exile from Battlefield.
+  LIFE: Life: Identity-A 19 > 20
+  STACK_RESOLVE: Swords to Plowshares (106) - Exile Voice of Victory (33). Identity-A gains life equal to its power.
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Orc Army Token (160), Hexing Squelcher (81), Ajani, Nacatl Pariah (133), Guide of Souls (89) and Guide of Souls (86) to attack Identity-A.
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Orc Army Token (160), Hexing Squelcher (81), Ajani, Nacatl Pariah (133), Guide of Souls (89), Guide of Souls (86)]]
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Orc Army Token (160), Hexing Squelcher (81), Ajani, Nacatl Pariah (133), Guide of Souls (89), Guide of Souls (86)]]
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A assigned Ocelot Pride (25) to block Orc Army Token (160).
+Identity-A didn't block Hexing Squelcher (81).
+Identity-A didn't block Ajani, Nacatl Pariah (133).
+Identity-A didn't block Guide of Souls (89).
+Identity-A didn't block Guide of Souls (86).
+  PHASE: Identity-B's First Strike Damage Step
+  DAMAGE: Ocelot Pride (25) deals 1 damage to Orc Army Token (160).
+  LIFE: Life: Identity-A 20 > 21
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Orc Army Token (160) deals 2 damage to Ocelot Pride (25).
+  DAMAGE: Hexing Squelcher (81) deals 2 combat damage to Identity-A.
+  DAMAGE: Ajani, Nacatl Pariah (133) deals 1 combat damage to Identity-A.
+  DAMAGE: Guide of Souls (89) deals 1 combat damage to Identity-A.
+  DAMAGE: Guide of Souls (86) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 21 > 16
+  ZONE_CHANGE: Ocelot Pride (25) was put into Graveyard from Battlefield.
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 22 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Arid Mesa (10)
+  LIFE: Life: Identity-A 16 > 15
+  ZONE_CHANGE: Arid Mesa (10) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-A activated Arid Mesa
+  STACK_RESOLVE: Arid Mesa (10) - Identity-A searches their library for a Mountain or Plains card, puts it onto the battlefield, then shuffles.
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 23 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  LAND: Identity-B played Arid Mesa (85)
+  LIFE: Life: Identity-B 23 > 22
+  ZONE_CHANGE: Arid Mesa (85) was put into Graveyard from Battlefield.
+  STACK_ADD: Identity-B activated Arid Mesa
+  STACK_RESOLVE: Arid Mesa (85) - Identity-B searches their library for a Mountain or Plains card, puts it onto the battlefield, then shuffles.
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Orc Army Token (160), Hexing Squelcher (81), Ajani, Nacatl Pariah (133), Guide of Souls (89), Orcish Bowmasters (112) and Guide of Souls (86) to attack Identity-A.
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Orc Army Token (160), Hexing Squelcher (81), Ajani, Nacatl Pariah (133), Guide of Souls (89), Orcish Bowmasters (112), Guide of Souls (86)]]
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Orc Army Token (160), Hexing Squelcher (81), Ajani, Nacatl Pariah (133), Guide of Souls (89), Orcish Bowmasters (112), Guide of Souls (86)]]
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Orc Army Token (160).
+Identity-A didn't block Hexing Squelcher (81).
+Identity-A didn't block Ajani, Nacatl Pariah (133).
+Identity-A didn't block Guide of Souls (89).
+Identity-A didn't block Orcish Bowmasters (112).
+Identity-A didn't block Guide of Souls (86).
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Orc Army Token (160) deals 2 combat damage to Identity-A.
+  DAMAGE: Hexing Squelcher (81) deals 2 combat damage to Identity-A.
+  DAMAGE: Ajani, Nacatl Pariah (133) deals 1 combat damage to Identity-A.
+  DAMAGE: Guide of Souls (89) deals 1 combat damage to Identity-A.
+  DAMAGE: Orcish Bowmasters (112) deals 1 combat damage to Identity-A.
+  DAMAGE: Guide of Souls (86) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 15 > 7
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 24 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  LAND: Identity-A played Plateau (39)
+  MANA: Plateau (39) - {T}: Add {R}.
+  MANA: Plains (41) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Hexing Squelcher
+  STACK_RESOLVE: Hexing Squelcher - Creature 2 / 2
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 25 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Orc Army Token (160), Hexing Squelcher (81), Ajani, Nacatl Pariah (133), Guide of Souls (89), Orcish Bowmasters (112) and Guide of Souls (86) to attack Identity-A.
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Orc Army Token (160), Hexing Squelcher (81), Ajani, Nacatl Pariah (133), Guide of Souls (89), Orcish Bowmasters (112), Guide of Souls (86)]]
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Orc Army Token (160), Hexing Squelcher (81), Ajani, Nacatl Pariah (133), Guide of Souls (89), Orcish Bowmasters (112), Guide of Souls (86)]]
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A assigned Hexing Squelcher (7) to block Orc Army Token (160).
+Identity-A didn't block Hexing Squelcher (81).
+Identity-A didn't block Ajani, Nacatl Pariah (133).
+Identity-A didn't block Guide of Souls (89).
+Identity-A didn't block Orcish Bowmasters (112).
+Identity-A didn't block Guide of Souls (86).
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Orc Army Token (160) deals 2 damage to Hexing Squelcher (7).
+  DAMAGE: Hexing Squelcher (81) deals 2 combat damage to Identity-A.
+  DAMAGE: Ajani, Nacatl Pariah (133) deals 1 combat damage to Identity-A.
+  DAMAGE: Guide of Souls (89) deals 1 combat damage to Identity-A.
+  DAMAGE: Orcish Bowmasters (112) deals 1 combat damage to Identity-A.
+  DAMAGE: Guide of Souls (86) deals 1 combat damage to Identity-A.
+  DAMAGE: Hexing Squelcher (7) deals 2 damage to Orc Army Token (160).
+  LIFE: Life: Identity-A 7 > 1
+  ZONE_CHANGE: Orc Army Token (160) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Hexing Squelcher (7) was put into Graveyard from Battlefield.
+  PHASE: Identity-B's End of Combat Step
+  PHASE: Identity-B's Main phase, postcombat
+  PHASE: Identity-B's End step
+  PHASE: Identity-B's Cleanup step
+  TURN: Turn 26 (Identity-A)
+  PHASE: Identity-A's Untap step
+  PHASE: Identity-A's Upkeep step
+  PHASE: Identity-A's Draw step
+  PHASE: Identity-A's Main phase, precombat
+  MANA: Plateau (39) - {T}: Add {R}.
+  MANA: Plains (41) - {T}: Add {W}.
+  STACK_ADD: Identity-A cast Goblin Bombardment
+  STACK_RESOLVE: Goblin Bombardment
+  PHASE: Identity-A's Beginning of Combat Step
+  PHASE: Identity-A's Declare Attackers Step
+  PHASE: Identity-A's Declare Blockers Step
+  PHASE: Identity-A's First Strike Damage Step
+  PHASE: Identity-A's Combat Damage Step
+  PHASE: Identity-A's End of Combat Step
+  PHASE: Identity-A's Main phase, postcombat
+  PHASE: Identity-A's End step
+  PHASE: Identity-A's Cleanup step
+  TURN: Turn 27 (Identity-B)
+  PHASE: Identity-B's Untap step
+  PHASE: Identity-B's Upkeep step
+  PHASE: Identity-B's Draw step
+  PHASE: Identity-B's Main phase, precombat
+  PHASE: Identity-B's Beginning of Combat Step
+  PHASE: Identity-B's Declare Attackers Step
+  COMBAT: Identity-B assigned Hexing Squelcher (81), Ajani, Nacatl Pariah (133), Guide of Souls (89), Orcish Bowmasters (112) and Guide of Souls (86) to attack Identity-A.
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_ADD: Identity-B triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Hexing Squelcher (81), Ajani, Nacatl Pariah (133), Guide of Souls (89), Orcish Bowmasters (112), Guide of Souls (86)]]
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Hexing Squelcher (81), Ajani, Nacatl Pariah (133), Guide of Souls (89), Orcish Bowmasters (112), Guide of Souls (86)]]
+  PHASE: Identity-B's Declare Blockers Step
+  COMBAT: Identity-A didn't block Hexing Squelcher (81).
+Identity-A didn't block Ajani, Nacatl Pariah (133).
+Identity-A didn't block Guide of Souls (89).
+Identity-A didn't block Orcish Bowmasters (112).
+Identity-A didn't block Guide of Souls (86).
+  PHASE: Identity-B's First Strike Damage Step
+  PHASE: Identity-B's Combat Damage Step
+  DAMAGE: Hexing Squelcher (81) deals 2 combat damage to Identity-A.
+  DAMAGE: Ajani, Nacatl Pariah (133) deals 1 combat damage to Identity-A.
+  DAMAGE: Guide of Souls (89) deals 1 combat damage to Identity-A.
+  DAMAGE: Orcish Bowmasters (112) deals 1 combat damage to Identity-A.
+  DAMAGE: Guide of Souls (86) deals 1 combat damage to Identity-A.
+  LIFE: Life: Identity-A 1 > -5
+  PLAYER_CONTROL: Identity-A has restored control over themself
+  PLAYER_CONTROL: Identity-B has restored control over themself
+  GAME_OUTCOME: Turn 14
+  GAME_OUTCOME: Identity-A has lost because life total reached 0
+  GAME_OUTCOME: Identity-B has won because all opponents have lost
+  MATCH_RESULTS: Identity-A: 0 Identity-B: 1 
+===============================
