@@ -71,6 +71,38 @@ SIGINT (not SIGKILL) so the recorder's shutdown hook finalizes the mp4.
 - GUI matches are best-of-3 — a log with multiple mulligan clusters is one *match*,
   several *games*.
 
+## The improvement loop (added 2026-07-21, branch harness-fixes)
+
+`runs/tournament-1/HARNESS-ANALYSIS.md` is the forensic baseline: 13 confirmed defect
+clusters, all fixed on this branch. The loop that keeps them fixed:
+
+```bash
+python3 eval/improve_loop.py --controller llm --games 2   # play (floor mode = free)
+# defect_analyzer.py runs automatically; read metrics.json
+python3 eval/model_sweep.py                               # per-model certification
+```
+
+- **`eval/defect_analyzer.py` is the merge gate.** Hard invariants: `ai_tier_count=0`
+  and `silent_drop_total=0` (log-vs-jsonl reconciliation). It exits non-zero on
+  violation. Never weaken the analyzer to make a run pass — it is the oracle.
+- **Per-model config lives in `ModelCfg`** (LlmSpikeGui.java, `OPENROUTER_MODEL_CFG`
+  JSON env override): max_tokens / timeouts / fast-tier caps per model. Reasoning
+  models (gpt, deepseek) need big fast-tier budgets — hidden reasoning tokens burn
+  the cap and surface as empty replies, not truncated text.
+- **jsonl schema is additive-only.** Newer fields: `attempts`, `retry_ms`
+  (dead-attempt time; `latency_ms` is the successful attempt only), `finish_reason`,
+  `first_failed_reply`. Existing consumers read via `.get()` — keep it that way.
+- **Parallel games:** safe at `--jobs 4-6` for cheap/floor games, **1** for bare
+  Claude-CLI specs; see `eval/CONCURRENCY.md`. **Never rebuild while games run** —
+  a mid-batch `mvn compile` swaps `target/classes` under live JVMs and regenerating
+  `/tmp/forge_cp.txt` has no lock. No containers; a build lock + worktree is enough.
+- Wall-clock-capped games grant in-flight asks a grace window sized to the slowest
+  configured model timeout before JVM exit (else the ask's jsonl row is orphaned —
+  that was a real silent-drop). `run_batch.py`'s backstop must stay wider than
+  cap + that grace.
+- `secrets.env` (git-ignored, repo root; template `secrets.env.example`) holds
+  `OPENROUTER_API_KEY` + the egress opt-in; eval drivers auto-load it.
+
 ## Eval mode
 
 Seeded, baseline-anchored A/B comparisons (see README "Eval mode" + `eval/README.md`):
