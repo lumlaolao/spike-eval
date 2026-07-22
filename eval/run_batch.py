@@ -377,21 +377,52 @@ def finalize_provenance_and_cap(args, cited):
            forced["RUN_DISCIPLINE"]))
 
 
-def derive_cap_minutes(args):
-    """Per-tier default cap (minutes): no llm seat -> 15; any opus -> 240;
-    all-haiku llm -> 120; anything else llm -> 240 (conservative)."""
+def effective_llm_models(args):
+    """Model specs actually in play for llm seats, with the in-JVM defaults
+    substituted (unset SMART_MODEL_* -> opus, unset FAST_MODEL_* -> haiku) so
+    an unset tier is never silently dropped. Empty list -> no llm seat."""
     ca = args.controller_a or "llm"   # Java defaults an unset controller to llm
     cb = args.controller_b or "llm"
-    if ca != "llm" and cb != "llm":
-        return 15.0
-    # Substitute the in-JVM defaults for unset models (unset SMART_MODEL_* ->
-    # opus, unset FAST_MODEL_* -> haiku) so an unset smart tier correctly
-    # forces the long cap instead of being silently dropped.
     models = []
     if ca == "llm":
         models += [args.smart_a or "opus", args.fast_a or "haiku"]
     if cb == "llm":
         models += [args.smart_b or "opus", args.fast_b or "haiku"]
+    return models
+
+
+def warn_parallel_jobs(args):
+    """Spec-aware --jobs advice (measured basis: eval/CONCURRENCY.md §7).
+    Bare (non-openrouter:) specs shell out to the local claude CLI and contend
+    with the user's own interactive sessions -> jobs=1 territory. openrouter:
+    specs are network-bound (~1GB RSS, near-zero CPU per JVM) -> RAM is the
+    limit; floor/random-only batches are CPU-burst-bound instead."""
+    if args.jobs <= 1:
+        return
+    models = effective_llm_models(args)
+    bare = sorted(set(m for m in models if not m.startswith("openrouter:")))
+    if bare:
+        log("WARNING: --jobs=%d with bare (claude-CLI) model spec(s) %s — "
+            "parallel games starve the local claude CLI (decisions time out "
+            "and fall back to auto/ai, polluting the eval). Use --jobs 1 or "
+            "openrouter:-prefixed specs." % (args.jobs, bare))
+    elif not models and args.jobs > 8:
+        log("WARNING: --jobs=%d for a no-LLM (floor/random/ai) batch — these "
+            "are CPU-bound ~25s bursts; >8 concurrent JVMs oversubscribe "
+            "cores (see eval/CONCURRENCY.md §7)." % args.jobs)
+    elif models and args.jobs > 10:
+        log("WARNING: --jobs=%d — openrouter-routed games are RAM-bound "
+            "(~1GB RSS/JVM on a 24GB machine); count JVMs across ALL "
+            "concurrently running batches, not just this one (see "
+            "eval/CONCURRENCY.md §7)." % args.jobs)
+
+
+def derive_cap_minutes(args):
+    """Per-tier default cap (minutes): no llm seat -> 15; any opus -> 240;
+    all-haiku llm -> 120; anything else llm -> 240 (conservative)."""
+    models = effective_llm_models(args)
+    if not models:
+        return 15.0
     if any("opus" in m for m in models):
         return 240.0
     if all("haiku" in m for m in models):
@@ -502,10 +533,7 @@ def main():
     log("[out] %s" % out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    if args.jobs > 2:
-        log("WARNING: --jobs=%d — claude CLI rate limits usually make >2 "
-            "parallel games counterproductive (decisions time out and fall "
-            "back to auto/ai, polluting the eval)." % args.jobs)
+    warn_parallel_jobs(args)
 
     swaps = [False, True] if args.pairs else [False]
     combos = [(seed, swap) for seed in args.seeds for swap in swaps]

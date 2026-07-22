@@ -92,8 +92,10 @@ python3 eval/model_sweep.py                               # per-model certificat
 - **jsonl schema is additive-only.** Newer fields: `attempts`, `retry_ms`
   (dead-attempt time; `latency_ms` is the successful attempt only), `finish_reason`,
   `first_failed_reply`. Existing consumers read via `.get()` — keep it that way.
-- **Parallel games:** safe at `--jobs 4-6` for cheap/floor games, **1** for bare
-  Claude-CLI specs; see `eval/CONCURRENCY.md`. **Never rebuild while games run** —
+- **Parallel games:** cheap `openrouter:` LLM games **6–10** (RAM-bound, ~1GB
+  RSS/JVM; count JVMs across ALL concurrent batches — 7 proven healthy
+  2026-07-21), floor **4–8** (CPU-burst-bound), mixed **4–6**, **1** for bare
+  Claude-CLI specs; see `eval/CONCURRENCY.md` §7. **Never rebuild while games run** —
   a mid-batch `mvn compile` swaps `target/classes` under live JVMs and regenerating
   `/tmp/forge_cp.txt` has no lock. No containers; a build lock + worktree is enough.
 - Wall-clock-capped games grant in-flight asks a grace window sized to the slowest
