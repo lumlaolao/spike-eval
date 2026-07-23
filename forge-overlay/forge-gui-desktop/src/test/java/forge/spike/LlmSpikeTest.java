@@ -311,6 +311,24 @@ public class LlmSpikeTest {
     // ================================================================================
 
     @Test
+    public void extractJsonString_compactAndSpacedJsonBothParse() {
+        // OpenRouter emits compact JSON ("content":"..."), OpenAI-compatible local servers
+        // (mlx_lm.server / Python json.dumps) emit spaced JSON ("content": "..."). The old
+        // exact-substring match missed the spaced form entirely -> content=null -> every local-server
+        // reply mislabeled a non-answer (2026-07-22 stage-1 student eval: 30 games, 0 model calls).
+        String compact = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"CHOICE: 2\"},\"finish_reason\":\"stop\"}]}";
+        String spaced = "{\"choices\": [{\"message\": {\"role\": \"assistant\", \"content\": \"CHOICE: 2\"}, \"finish_reason\": \"stop\"}]}";
+        Assert.assertEquals(LlmSpikeGui.extractJsonString(compact, "\"content\":\""), "CHOICE: 2");
+        Assert.assertEquals(LlmSpikeGui.extractJsonString(spaced, "\"content\":\""), "CHOICE: 2");
+        Assert.assertEquals(LlmSpikeGui.extractJsonString(spaced, "\"finish_reason\":\""), "stop");
+        // A non-string value (reasoning-only reply with "content": null) must return null -> the
+        // honest bridge-down path, not the string "null".
+        String nullContent = "{\"choices\": [{\"message\": {\"role\": \"assistant\", \"content\": null}}]}";
+        Assert.assertNull(LlmSpikeGui.extractJsonString(nullContent, "\"content\":\""));
+        Assert.assertNull(LlmSpikeGui.extractJsonString(compact, "\"absent_key\":\""));
+    }
+
+    @Test
     public void isNonAnswer_emptyOrNullIsNonAnswer() {
         // The exact content shape a fully-length-truncated reply has BEFORE any output token ever
         // came out (see OpenRouterBridge.ask(): this must stay true so the final bridge-down

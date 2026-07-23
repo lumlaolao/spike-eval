@@ -2952,11 +2952,25 @@ public final class LlmSpikeGui {
     }
 
     /** Extract the string value after `key` in a JSON-like line, honoring simple backslash escapes.
-     *  Not a full parser — sufficient for the single-string fields we care about. */
-    private static String extractJsonString(String line, String key) {
-        int k = line.indexOf(key);
+     *  Not a full parser — sufficient for the single-string fields we care about. When the key ends
+     *  with the value's opening quote (e.g. {@code "content":"}), whitespace between the colon and
+     *  the quote is tolerated: OpenRouter emits compact JSON but OpenAI-compatible local servers
+     *  (mlx_lm.server / Python json.dumps) emit {@code "content": "..."} with a space, which the old
+     *  exact-substring match silently missed — every local-server reply then read as content=null →
+     *  non-answer → bridge-down (found 2026-07-22: the stage-1 student eval played 30 games with the
+     *  model never consulted once). A non-string value after the key (e.g. {@code "content": null})
+     *  returns null, which is the honest bridge-down path. */
+    static String extractJsonString(String line, String key) {
+        boolean quoted = key.endsWith(":\"");
+        String bare = quoted ? key.substring(0, key.length() - 1) : key;
+        int k = line.indexOf(bare);
         if (k < 0) return null;
-        int i = k + key.length();
+        int i = k + bare.length();
+        if (quoted) {
+            while (i < line.length() && Character.isWhitespace(line.charAt(i))) i++;
+            if (i >= line.length() || line.charAt(i) != '"') return null;
+            i++;
+        }
         StringBuilder b = new StringBuilder();
         while (i < line.length()) {
             char c = line.charAt(i++);
