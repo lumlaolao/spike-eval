@@ -560,13 +560,26 @@ def _resolve(path):
     return (REPO_ROOT / path) if not Path(path).is_absolute() else Path(path)
 
 
-def build_ai_teacher_examples(dir_path, preamble, count_style="first-k"):
+# Decision families the Forge AI emits in bulk and pilots competently (its
+# aggro/combat strength). Everything else is "rare" for ai_filter purposes:
+# menu-format coverage of the long tail is worth keeping even from a LOSING
+# seat, while the bulk families stay winner-only (v1-mixed lesson: weak-teacher
+# volume on the dominant types measurably hurts).
+AI_COMMON_TYPES = frozenset(("play", "attackers", "mulligan", "confirm"))
+
+
+def build_ai_teacher_examples(dir_path, preamble, count_style="first-k",
+                              ai_filter="win"):
     """Scan an ai-log self-play corpus TREE -> Stage-2 example dicts.
 
-    Win-filter: only the winning seat's ai-teacher decisions. Assistant target
-    is the canonical terse answer. System message is the TERSE framing for that
-    seat+plan (terse never carries STATIC_REFERENCE in any build) so the
-    system's requested format agrees with the choice-only answer we emit."""
+    ai_filter: "win" keeps only the winning seat's decisions; "all" keeps both
+    seats; "win+rare" keeps the winning seat in full plus the LOSING seat's
+    rows for rare decision types only (not in AI_COMMON_TYPES) — coverage of
+    the long-tail menus without importing the AI's losing-line play/combat
+    volume. Assistant target is the canonical terse answer. System message is
+    the TERSE framing for that seat+plan (terse never carries STATIC_REFERENCE
+    in any build) so the system's requested format agrees with the choice-only
+    answer we emit."""
     examples, warnings = [], []
     hyg = Counter()
     root = _resolve(dir_path)
@@ -582,11 +595,37 @@ def build_ai_teacher_examples(dir_path, preamble, count_style="first-k"):
                 hyg["skip_game_draw_or_invalid"] += 1
                 continue
             seat, ident = won
-            plan = g.get("plan_%s" % ident) or ""
-            system = preamble.base(seat, plan, terse=True)
+            # seat name -> identity letter for BOTH seats (loser rows are
+            # eligible under ai_filter "all"/"win+rare"). Seat names equal the
+            # deck_<ident> display names; a mirror matchup (deck_a == deck_b)
+            # collapses the map, so loser rows are skipped there (win-only
+            # behavior — same limitation as the winner attribution itself).
+            ident_by_seat = {}
+            for il in ("b", "a"):
+                sname = g.get("deck_%s" % il)
+                if sname:
+                    ident_by_seat[sname] = il
+            system_by_seat = {}
             gkey = "ai-teacher#%s#%s#%s" % (source_tag, rel, g.get("seed"))
             for di, d in enumerate(entry["decisions"]):
-                if d.get("seat") != seat:
+                rseat = d.get("seat")
+                seat_won = rseat == seat
+                if not seat_won:
+                    if ai_filter == "win":
+                        continue
+                    if (ai_filter == "win+rare"
+                            and d.get("type") in AI_COMMON_TYPES):
+                        hyg["skip_loser_common_type"] += 1
+                        continue
+                rid = ident_by_seat.get(rseat)
+                if rid is None:
+                    if rseat is not None and d.get("tier") == "ai-teacher":
+                        hyg["skip_unmapped_seat"] += 1
+                    continue
+                if not seat_won and rid == ident:
+                    # mirror-collapsed map pointed the loser seat at the
+                    # winner's identity; attribution is unsafe -> skip.
+                    hyg["skip_unmapped_seat"] += 1
                     continue
                 if d.get("tier") != "ai-teacher":
                     hyg["skip_nonteacher_tier"] += 1
@@ -611,10 +650,16 @@ def build_ai_teacher_examples(dir_path, preamble, count_style="first-k"):
                     hyg["drop_exact_only_partial"] += 1
                     continue
                 hyg["emit_%s" % kind] += 1
+                if not seat_won:
+                    hyg["emit_from_losing_seat"] += 1
                 dtype = d.get("type")
+                if rseat not in system_by_seat:
+                    rplan = g.get("plan_%s" % rid) or ""
+                    system_by_seat[rseat] = preamble.base(
+                        rseat, rplan, terse=True)
                 examples.append({
                     "messages": [
-                        {"role": "system", "content": system},
+                        {"role": "system", "content": system_by_seat[rseat]},
                         {"role": "user", "content": prompt},
                         {"role": "assistant", "content": target},
                     ],
@@ -626,11 +671,12 @@ def build_ai_teacher_examples(dir_path, preamble, count_style="first-k"):
                         "seed": g.get("seed"),
                         "swap": bool(g.get("swap", False)),
                         "winner": g.get("winner"),
-                        "llm_identity": ident.upper(),
-                        "seat": seat,
-                        "deck": seat,
-                        "model": g.get("smart_%s" % ident),
-                        "teacher_controller": g.get("controller_%s" % ident),
+                        "seat_won": seat_won,
+                        "llm_identity": rid.upper(),
+                        "seat": rseat,
+                        "deck": rseat,
+                        "model": g.get("smart_%s" % rid),
+                        "teacher_controller": g.get("controller_%s" % rid),
                         "engine_sha": g.get("engine_sha"),
                         "overlay_sha": g.get("overlay_sha"),
                         "deck_sha": g.get("deck_sha"),
@@ -643,7 +689,7 @@ def build_ai_teacher_examples(dir_path, preamble, count_style="first-k"):
                     },
                     "_split": None,
                     "_gkey": gkey,
-                    "_cell": (seat, dtype),
+                    "_cell": (rseat, dtype),
                     "_rid": "%s|%s|%s|%d" % (source_tag, rel, entry["file"], di),
                     "_source": "ai-teacher",
                     # dedup key material (not emitted): identical
@@ -1226,7 +1272,7 @@ def run_stage2(args, preamble):
         weights[name] = spec["weight"]
         if spec["type"] == "ai-teacher":
             rows, w, hyg = build_ai_teacher_examples(
-                spec["path"], preamble, args.count_style)
+                spec["path"], preamble, args.count_style, args.ai_filter)
         elif spec["type"] == "prebuilt":
             rows, w, hyg = build_prebuilt_examples(spec["path"])
         elif spec["type"] == "win":
@@ -1291,6 +1337,8 @@ def run_stage2(args, preamble):
         recorded += ["--cap-per-source", "%s:%d" % (match, n)]
     if args.count_style != "first-k":
         recorded += ["--count-style", args.count_style]
+    if args.ai_filter != "win":
+        recorded += ["--ai-filter", args.ai_filter]
 
     train, valid, tree, per_source = write_outputs_v2(
         args.out_dir, examples, recorded, args.val_frac, args.split_seed,
@@ -1376,6 +1424,14 @@ def main(argv=None):
                     help="count-style ai-teacher targets: 'first-k' emits "
                          "PICKS: 1..k (representative); 'exact-only' drops "
                          "partial-subset rows (keeps only k in {0,n}).")
+    ap.add_argument("--ai-filter", choices=("win", "all", "win+rare"),
+                    default="win",
+                    help="ai-teacher seat filter: 'win' keeps only the winning "
+                         "seat's rows; 'all' keeps both seats; 'win+rare' adds "
+                         "the losing seat's rows for rare decision types only "
+                         "(types outside %s) — long-tail menu coverage without "
+                         "the AI's losing-line play/combat volume."
+                         % "/".join(sorted(AI_COMMON_TYPES)))
     args = ap.parse_args(argv)
 
     if args.source:

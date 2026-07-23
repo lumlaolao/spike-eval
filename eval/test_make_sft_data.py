@@ -406,6 +406,44 @@ def test_ai_teacher_swap_seats():
         check("swap flag carried", rows[0]["meta"]["swap"] is True)
 
 
+def test_ai_teacher_ai_filter_modes():
+    pb = m.PreambleBuilder(str(m.DEFAULT_JAVA))
+    with tempfile.TemporaryDirectory() as d:
+        # winner A (Elves). Losing Goblins seat has one common-type row (play)
+        # and one rare-type row (modes).
+        write_game(d, "game-1-1000.jsonl", ai_game(1, False, "A"), [
+            ai_dec("Elves", "play", 0, 2, ["CAST a", "PASS (do nothing)"], prompt="elf-play"),
+            ai_dec("Goblins", "play", 0, 2, ["CAST g", "PASS (do nothing)"], prompt="gob-play"),
+            ai_dec("Goblins", "modes", 1, 2, ["Mode X", "Mode Y"], prompt="gob-modes"),
+        ])
+        rows, _, hyg = m.build_ai_teacher_examples(d, pb, ai_filter="win")
+        check("win: loser rows dropped",
+              sorted(e["messages"][1]["content"] for e in rows) == ["elf-play"])
+        rows, _, hyg = m.build_ai_teacher_examples(d, pb, ai_filter="all")
+        check("all: both seats kept",
+              sorted(e["messages"][1]["content"] for e in rows)
+              == ["elf-play", "gob-modes", "gob-play"])
+        gob = [e for e in rows if e["meta"]["seat"] == "Goblins"]
+        check("all: loser rows carry seat_won=False + own identity/system",
+              all(e["meta"]["seat_won"] is False
+                  and e["meta"]["llm_identity"] == "B"
+                  and 'piloting "Goblins"' in e["messages"][0]["content"]
+                  for e in gob),
+              "gob meta: %s" % [e["meta"] for e in gob])
+        check("all: winner rows carry seat_won=True",
+              all(e["meta"]["seat_won"] is True for e in rows
+                  if e["meta"]["seat"] == "Elves"))
+        check("all: loser rows cell-keyed to their own deck",
+              all(e["_cell"] == ("Goblins", e["meta"]["type"]) for e in gob))
+        rows, _, hyg = m.build_ai_teacher_examples(d, pb, ai_filter="win+rare")
+        check("win+rare: loser rare type kept, loser common type dropped",
+              sorted(e["messages"][1]["content"] for e in rows)
+              == ["elf-play", "gob-modes"])
+        check("win+rare: hygiene counts the dropped loser common row",
+              hyg["skip_loser_common_type"] == 1
+              and hyg["emit_from_losing_seat"] == 1, dict(hyg))
+
+
 def test_ai_teacher_pass_and_count_targets():
     pb = m.PreambleBuilder(str(m.DEFAULT_JAVA))
     with tempfile.TemporaryDirectory() as d:
@@ -633,6 +671,7 @@ def test_stage2_end_to_end():
             val_frac = 0.25
             split_seed = 20260722
             count_style = "first-k"
+            ai_filter = "win"
             java = str(m.DEFAULT_JAVA)
         rc = m.run_stage2(A(), pb)
         check("run_stage2 returns 0", rc == 0)
@@ -675,6 +714,7 @@ def test_stage2_empty_source_hard_fails():
             val_frac = 0.1
             split_seed = 20260722
             count_style = "first-k"
+            ai_filter = "win"
             java = str(m.DEFAULT_JAVA)
         raised = False
         try:
@@ -711,6 +751,7 @@ def test_stage2_dedup_across_games():
             val_frac = 0.5
             split_seed = 20260722
             count_style = "first-k"
+            ai_filter = "win"
             java = str(m.DEFAULT_JAVA)
         m.run_stage2(A(), pb)
         train = (out / "train.jsonl").read_text().strip().splitlines()
@@ -743,6 +784,7 @@ def test_stage2_determinism():
                 val_frac = 0.2
                 split_seed = 20260722
                 count_style = "first-k"
+                ai_filter = "win"
                 java = str(m.DEFAULT_JAVA)
             m.run_stage2(A(), pb)
             return (out / "train.jsonl").read_text(), (out / "valid.jsonl").read_text()
