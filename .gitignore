@@ -16,3 +16,6 @@ secrets.env
 .venv-mlx/
 models/
 datasets/stage1-v0-mlx/
+
+# D1 self-play corpus (~5,400 games): large generated JSONL/logs, never swept into git history.
+runs/d1-selfplay/

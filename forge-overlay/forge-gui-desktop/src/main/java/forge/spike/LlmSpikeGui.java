@@ -140,7 +140,13 @@ public final class LlmSpikeGui {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
         static synchronized void init(long seed) {
             String dir = System.getenv("EVAL_OUT");
-            if (dir == null || dir.isEmpty() || out != null) return;
+            if (dir == null || dir.isEmpty()) return;
+            initToDir(dir, seed);
+        }
+        /** Open the per-game jsonl under {@code dir} (env-independent). Production {@link #init} reads
+         *  EVAL_OUT; LlmSpikeTest drives this directly since it cannot set an env var in-process. */
+        static synchronized void initToDir(String dir, long seed) {
+            if (out != null) return;
             try {
                 java.io.File d = new java.io.File(dir);
                 d.mkdirs();
@@ -150,6 +156,10 @@ public final class LlmSpikeGui {
         }
         static synchronized void write(String json) { if (out != null) out.println(json); }
         static boolean on() { return out != null; }
+        /** Test-only: flush + detach the writer so a subsequent {@link #initToDir} can open a fresh file. */
+        static synchronized void closeForTest() {
+            if (out != null) { out.flush(); out.close(); out = null; }
+        }
     }
 
     /** GAME_SEED env: seed Forge's global RNG (shuffles, coin flip) for reproducible games.
@@ -466,13 +476,8 @@ public final class LlmSpikeGui {
                 if (type != null) evalDec(type, options.size(), res, tierOf(b == smart), System.currentTimeMillis() - t0, null, options);
                 return res;
             }
-            StringBuilder menu = new StringBuilder();
-            int n = 1;
-            for (String o : options) menu.append("  ").append(n++).append(") ").append(oneLine(o)).append('\n');
-            int noneIdx = -1;
-            if (noneLabel != null) { noneIdx = n; menu.append("  ").append(n++).append(") ").append(noneLabel).append('\n'); }
-            String base = snapshot() + "\nPRIORITY: you\nDECISION: " + question + "\nOptions:\n" + menu
-                    + "Reason briefly, then end with EXACTLY: CHOICE: <number>";
+            int noneIdx = noneLabel != null ? options.size() + 1 : -1; // 1-based menu number of the decline option
+            String base = buildDecideOnePrompt(snapshot(), question, options, noneLabel);
             for (int attempt = 0; attempt < 2; attempt++) {
                 String prompt = attempt == 0 ? base
                         : "That reply had no parseable choice. Answer with ONE line only, nothing else: CHOICE: <a number from the list above>.";
@@ -511,12 +516,7 @@ public final class LlmSpikeGui {
                 if (type != null) evalDec(type, options.size(), res.size(), tierOf(b == smart), System.currentTimeMillis() - t0, null, options);
                 return res;
             }
-            StringBuilder menu = new StringBuilder();
-            int n = 1;
-            for (String o : options) menu.append("  ").append(n++).append(") ").append(oneLine(o)).append('\n');
-            String base = snapshot() + "\nPRIORITY: you\nDECISION: " + question + "\nChoose between " + min + " and " + max
-                    + " of these (by number):\n" + menu
-                    + "Reason briefly, then end with EXACTLY: PICKS: <comma-separated numbers>";
+            String base = buildDecideManyPrompt(snapshot(), question, options, min, max);
             for (int attempt = 0; attempt < 2; attempt++) {
                 String prompt = attempt == 0 ? base
                         : "That reply had no parseable PICKS line. Answer with ONE line only, nothing else: PICKS: <"
@@ -544,9 +544,13 @@ public final class LlmSpikeGui {
 
         // ---------------- full-context serializer ----------------
 
-        private String snapshot() {
+        private String snapshot() { return buildSnapshot(getPlayer(), seat, intel, turnPlan, planTurn); }
+        /** Shared, state-free snapshot builder (extracted from {@link #snapshot()} so the AI-logging
+         *  seat can produce a byte-format-identical game-state prompt). The instance {@code snapshot()}
+         *  above just forwards its per-seat fields, so the LLM seat's output is unchanged; the
+         *  ai-teacher seat passes an empty intel deque + no turn plan (it accumulates neither). */
+        static String buildSnapshot(Player me, String seat, java.util.Collection<String> intel, String turnPlan, int planTurn) {
             try {
-                Player me = getPlayer();
                 Game g = me.getGame();
                 PhaseHandler ph = g.getPhaseHandler();
                 Player opp = null;
@@ -857,13 +861,9 @@ public final class LlmSpikeGui {
             if (!smartOk()) { auto("mulligan(no-model)->KEEP"); return true; } // deterministic legal, not the AI
             StringBuilder n = new StringBuilder();
             for (Card c : hand) { if (n.length() > 0) n.append(", "); n.append(c.getName()); }
-            int afterKeep = size; // this Forge deals a shrinking hand each mulligan; you keep exactly what you see
-            String basePrompt = "MULLIGAN DECISION. This is a " + size + "-card hand with " + lands + " land(s): " + n
-                    + ". If you MULLIGAN you will look at a NEW hand of only " + Math.max(0, size - 1)
-                    + " cards (each mulligan costs you a card), and you can never go below 5. If you KEEP you play this "
-                    + afterKeep + "-card hand as-is. Keeping a workable hand almost always beats shrinking it. "
-                    + "For a combo deck, a hand with your enablers + a payoff is a KEEP even on few lands; only ship a hand "
-                    + "that genuinely cannot function. Keep or mulligan? End with EXACTLY one word: KEEP or MULLIGAN.";
+            // Shared template (single source; the ai-teacher seat rebuilds byte-identically via the same
+            // builder). afterKeep == size: this Forge deals a shrinking hand each mulligan; you keep what you see.
+            String basePrompt = buildMulliganPrompt(size, lands, n.toString());
             p("[ROUTER] mulligan: " + lands + "/" + size + " lands -> asking " + smart.getModel() + "...");
             List<String> mullOpts = java.util.Arrays.asList("KEEP", "MULLIGAN");
             // Retry once on an unparseable reply (matching every decideOne/decideMany site). Read the
@@ -981,17 +981,11 @@ public final class LlmSpikeGui {
                 int oppLife = defender.getLife();
                 int oppPoison = 0;
                 try { oppPoison = defender.getCounters(CounterEnumType.POISON); } catch (Exception ignore) { }
-                int poisonNeeded = Math.max(0, 10 - oppPoison);
                 boolean anyInfect = false;
                 for (Card c : legal) { try { if (c.isInfectDamage(defender)) { anyInfect = true; break; } } catch (Exception ignore) { } }
-                String lethalHint = "COUNT LETHAL: opp life " + oppLife + ", poison " + oppPoison + "/10 -- lethal needs "
-                        + oppLife + " dmg OR " + poisonNeeded + " poison"
-                        + (anyInfect ? " (infect attackers deal poison, not life loss)" : "")
-                        + ". If your unblocked/unstoppable damage meets either number, attack with everything needed and WIN NOW.";
+                // Shared question template (single source; the ai-teacher seat rebuilds byte-identically).
                 List<Integer> picks = decideMany(smart, null,
-                        "COMBAT — declare attackers vs " + defender.getName() + " (life " + defender.getLife()
-                        + "). Pick which creatures attack (attacking with 0 is legal and sometimes correct — "
-                        + "weigh their untapped mana and possible blocks). " + lethalHint,
+                        buildAttackersQuestion(defender.getName(), oppLife, oppPoison, anyInfect),
                         labels, 0, legal.size());
                 if (picks == null) {
                     // Bridge dead -> intent-aware fallback (report C3), still fully deterministic, never
@@ -1064,9 +1058,8 @@ public final class LlmSpikeGui {
                     String bl = b.getName() + " (" + b.getNetPower() + "/" + b.getNetToughness() + ")";
                     blk.append(bl); blkLabels.add(bl);
                 }
-                String prompt = snapshot() + "\nCOMBAT — declare blockers. Incoming: " + atk + ". Your blockers: " + blk + ". "
-                        + "Assign blocks (each blocker blocks one attacker). Weigh your life total vs losing blockers. "
-                        + "End with EXACTLY: BLOCKS: blocker->attacker, blocker->attacker   (or BLOCKS: NONE)";
+                // Shared template (single source; the ai-teacher seat rebuilds byte-identically via the same builder).
+                String prompt = buildBlockersPrompt(snapshot(), atk.toString(), blk.toString());
                 p("[ROUTER] blockers: " + attackers.size() + " atk / " + blockers.size() + " blk -> asking " + smart.getModel() + "...");
                 String reply = ask(smart, prompt);
                 if (reply == null) { auto("blockers(bridge-down)->none"); return; }
@@ -1128,42 +1121,12 @@ public final class LlmSpikeGui {
                     } catch (Exception ignore) { }
                 }
 
-                // enumerate castable non-land, non-mana abilities
-                List<SpellAbility> options = new ArrayList<>();
-                for (SpellAbility sa : ComputerUtilAbility.getSpellAbilities(
-                        ComputerUtilAbility.getAvailableCards(me.getGame(), me), me)) {
-                    if (sa.isLandAbility() || sa.isManaAbility()) continue;
-                    if (!sa.canPlay()) continue;
-                    if (!ComputerUtilMana.canPayManaCost(sa, me, 0, false)) continue;
-                    // Skip a targeted spell that currently has NO legal target — casting it just fizzles
-                    // ("Couldn't add to stack, failed to target"), e.g. Animate Dead with an empty graveyard.
-                    if (sa.usesTargeting()) {
-                        try {
-                            if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(me);
-                            TargetRestrictions tr = sa.getTargetRestrictions();
-                            if (tr != null && tr.getAllCandidates(sa, false).size() < Math.max(1, sa.getMinTargets())) continue;
-                        } catch (Exception ignore) { /* can't evaluate -> offer it, prior behavior */ }
-                    }
-                    options.add(sa);
-                    if (options.size() >= 12) break;
-                }
-                // Distinct lands we could play this main phase (by name), each offered as its own option so the
-                // model chooses WHICH land — colored sources, fetchlands, painlands all matter for sequencing.
-                List<SpellAbility> landPlays = new ArrayList<>();
-                List<Card> landCards = new ArrayList<>();
-                if (ownMain) {
-                    CardCollection lands = ComputerUtilAbility.getAvailableLandsToPlay(me.getGame(), me);
-                    if (lands != null) {
-                        java.util.HashSet<String> seen = new java.util.HashSet<>();
-                        for (Card lc : lands) {
-                            if (!seen.add(lc.getName())) continue;
-                            SpellAbility lsa = null;
-                            for (SpellAbility sa : lc.getAllPossibleAbilities(me, true)) if (sa.isLandAbility()) { lsa = sa; break; }
-                            if (lsa != null) { landPlays.add(lsa); landCards.add(lc); }
-                            if (landPlays.size() >= 4) break;
-                        }
-                    }
-                }
+                // Enumerate castable spells + distinct playable lands (shared with the ai-teacher seat so
+                // both build the byte-identical option menu — see enumeratePlayOptions).
+                PlayOptions po = enumeratePlayOptions(me, ownMain);
+                List<SpellAbility> options = po.spells;
+                List<SpellAbility> landPlays = po.landPlays;
+                List<Card> landCards = po.landCards;
                 boolean haveLand = !landPlays.isEmpty();
                 // Nothing to do -> pass (deterministic; never Forge's AI).
                 if (options.isEmpty() && !haveLand) return PASS;
@@ -1205,21 +1168,18 @@ public final class LlmSpikeGui {
                     return PASS;
                 }
 
-                StringBuilder menu = new StringBuilder(); int idx = 1;
-                for (SpellAbility sa : options) menu.append("  ").append(idx++).append(") CAST ").append(saLabel(sa)).append('\n');
-                int landStart = idx;
-                for (int i = 0; i < landPlays.size(); i++) menu.append("  ").append(idx++).append(") PLAY LAND ").append(landCards.get(i).getName()).append('\n');
-                int passIdx = idx; menu.append("  ").append(idx).append(") PASS (do nothing)\n");
-                // Option labels for the decision record, in the exact menu order shown to the model.
-                List<String> playLabels = new ArrayList<>();
-                for (SpellAbility sa : options) playLabels.add("CAST " + saLabel(sa));
-                for (int i = 0; i < landPlays.size(); i++) playLabels.add("PLAY LAND " + landCards.get(i).getName());
-                playLabels.add("PASS (do nothing)");
+                // Option labels for the decision record, in the exact menu order shown to the model
+                // (shared with the ai-teacher seat — see buildPlayLabels/numberedPlayMenu). The numbered
+                // menu string and the land/pass boundary indices are derived from them so BOTH seats
+                // build the byte-identical menu.
+                List<String> playLabels = buildPlayLabels(options, landCards);
+                String menuStr = numberedPlayMenu(playLabels);
+                int landStart = 1 + options.size();                       // 1-based menu number of the first land
+                int passIdx = 1 + options.size() + landPlays.size();      // 1-based menu number of PASS
 
-                String sig = turn + "|" + phh.getPhase() + "|" + menu;
+                String sig = turn + "|" + phh.getPhase() + "|" + menuStr;
                 if (sig.equals(lastAskSig) && lastWasPass) return PASS; // identical spot we already passed on
                 lastAskSig = sig;
-                String menuStr = menu.toString();
 
                 // SPEED: reactive windows recur across phases with the SAME stack and SAME options
                 // (e.g. "activate Wasteland?" at upkeep, draw, main, combat...). Once we decline a
@@ -1248,11 +1208,10 @@ public final class LlmSpikeGui {
                 if (rnd != null) choice = 1 + rnd.nextInt(passIdx); // random arm: uniform incl. PASS
                 for (int attempt = 0; rnd == null && attempt < 2 && choice < 1; attempt++) {
                     String prompt = attempt == 0
-                            ? snapshot() + "\nDECISION: You have priority (" + phh.getPhase()
-                              + (ownMain ? ", your main phase" : ", instant-speed window") + "). Choose ONE action:\n" + menuStr
+                            ? playPromptPrefix(snapshot(), phh.getPhase(), ownMain, menuStr)
                               + (askPlan
                                  ? "First state your plan for THIS TURN as `PLAN: <one short line>` (the sequence you intend, e.g. 'ritual into Reanimate on Griselbrand, hold Petal'), then end with EXACTLY: CHOICE: <number>"
-                                 : "Reason briefly, then end with EXACTLY: CHOICE: <number>")
+                                 : PLAY_PROMPT_TAIL)
                             : "That reply had no parseable choice. Answer with ONE line only: CHOICE: <a number 1.." + passIdx + " from the list above>.";
                     String reply = ask(b, prompt);
                     if (reply != null && askPlan && attempt == 0) {
@@ -2362,49 +2321,9 @@ public final class LlmSpikeGui {
             // set, but its row means "deterministic/Forge-AI decision" and must not inherit the
             // wasted model round-trip's latency (it would pollute the ai/auto latency stats).
             if (ms <= 0 && lastPrompt != null && ("smart".equals(tier) || "fast".equals(tier))) ms = lastSuccessMs;
-            try {
-                PhaseHandler ph = getPlayer().getGame().getPhaseHandler();
-                StringBuilder sb = new StringBuilder(256);
-                sb.append("{\"t\":\"decision\",\"seat\":\"").append(jsonEscape(seat))
-                        .append("\",\"turn\":").append(ph.getTurn()).append(",\"phase\":\"").append(ph.getPhase())
-                        .append("\",\"type\":\"").append(type).append("\",\"n_options\":").append(nOptions)
-                        .append(",\"choice\":").append(choice)
-                        .append(",\"tier\":\"").append(tier).append("\",\"latency_ms\":").append(ms)
-                        .append(",\"fallback\":")
-                        .append(fallback == null ? "null" : "\"" + jsonEscape(fallback) + "\"")
-                        .append(",\"options\":[");
-                if (options != null) {
-                    for (int i = 0; i < options.size(); i++) {
-                        if (i > 0) sb.append(',');
-                        sb.append('"').append(jsonEscape(options.get(i))).append('"');
-                    }
-                }
-                sb.append("],\"prompt\":")
-                        .append(lastPrompt == null ? "null" : "\"" + jsonEscape(lastPrompt) + "\"")
-                        .append(",\"raw_reply\":")
-                        .append(lastReply == null ? "null" : "\"" + jsonEscape(lastReply) + "\"")
-                        // ADDITIVE (Group-2 observability) fields below — new keys only, nothing removed/renamed:
-                        // retry_ms: total dead-attempt wall time this decision (bridge failures, backoff waits,
-                        //   and any earlier reply superseded by a later retry) — the complement of latency_ms.
-                        // attempts: total individual model round-trips made for this decision (1 if none failed).
-                        // finish_reason: the last captured bridge finish_reason ("stop"/"length"/...), null if
-                        //   the backend doesn't report one or no model was consulted.
-                        // first_failed_reply: the earliest reply this decision discarded (capped 500 chars),
-                        //   null when nothing was discarded.
-                        .append(",\"retry_ms\":").append(lastRetryMs)
-                        .append(",\"attempts\":").append(lastAttempts)
-                        .append(",\"finish_reason\":")
-                        .append(lastFinishReason == null ? "null" : "\"" + jsonEscape(lastFinishReason) + "\"")
-                        .append(",\"first_failed_reply\":")
-                        .append(lastFirstFailedReply == null ? "null" : "\"" + jsonEscape(lastFirstFailedReply) + "\"")
-                        // ADDITIVE (Stage-0 token calibration): per-decision input/output token counts from
-                        // the backend response usage object, null when unreported (Claude CLI, or any
-                        // deterministic/floor/random/auto/ai decision that never consulted a model).
-                        .append(",\"prompt_tokens\":").append(lastPromptTokens < 0 ? "null" : lastPromptTokens)
-                        .append(",\"completion_tokens\":").append(lastCompletionTokens < 0 ? "null" : lastCompletionTokens)
-                        .append('}');
-                EvalLog.write(sb.toString());
-            } catch (Exception ignore) { }
+            emitDecisionRow(getPlayer(), seat, type, nOptions, choice, tier, ms, fallback, options,
+                    lastPrompt, lastReply, lastRetryMs, lastAttempts, lastFinishReason, lastFirstFailedReply,
+                    lastPromptTokens, lastCompletionTokens);
         }
         /** Tier label for asked decisions: random arm decisions are harness-made, not model-made. */
         private String tierOf(boolean smartTier) { return rnd != null ? "auto" : (smartTier ? "smart" : "fast"); }
@@ -2574,6 +2493,177 @@ public final class LlmSpikeGui {
             int trampleOver = damageDealt - lethal;
             return new int[]{lethal, trampleOver};
         }
+
+        /** Immutable holder for the play menu's three parallel enumerations (castable spells, the
+         *  land-play abilities, and their host land cards), returned by {@link #enumeratePlayOptions}. */
+        static final class PlayOptions {
+            final List<SpellAbility> spells;
+            final List<SpellAbility> landPlays;
+            final List<Card> landCards;
+            PlayOptions(List<SpellAbility> spells, List<SpellAbility> landPlays, List<Card> landCards) {
+                this.spells = spells; this.landPlays = landPlays; this.landCards = landCards;
+            }
+        }
+
+        /** Enumerate the play menu exactly as {@link #chooseSpellAbilityToPlay} builds it — castable,
+         *  affordable, legally-targetable non-land/non-mana spells (capped at 12), plus distinct
+         *  playable lands by name (capped at 4, only on the player's own main phase). Factored out of
+         *  the LLM seat's play method so the ai-teacher seat builds the byte-identical option list; the
+         *  LLM method calls this in place, so its output is unchanged. Read-only w.r.t. real game state
+         *  (the only mutation, {@code setActivatingPlayer} inside the target-legality probe, mirrors the
+         *  original inline code). */
+        static PlayOptions enumeratePlayOptions(Player me, boolean ownMain) {
+            List<SpellAbility> options = new ArrayList<>();
+            for (SpellAbility sa : ComputerUtilAbility.getSpellAbilities(
+                    ComputerUtilAbility.getAvailableCards(me.getGame(), me), me)) {
+                if (sa.isLandAbility() || sa.isManaAbility()) continue;
+                if (!sa.canPlay()) continue;
+                if (!ComputerUtilMana.canPayManaCost(sa, me, 0, false)) continue;
+                // Skip a targeted spell that currently has NO legal target — casting it just fizzles
+                // ("Couldn't add to stack, failed to target"), e.g. Animate Dead with an empty graveyard.
+                if (sa.usesTargeting()) {
+                    try {
+                        if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(me);
+                        TargetRestrictions tr = sa.getTargetRestrictions();
+                        if (tr != null && tr.getAllCandidates(sa, false).size() < Math.max(1, sa.getMinTargets())) continue;
+                    } catch (Exception ignore) { /* can't evaluate -> offer it, prior behavior */ }
+                }
+                options.add(sa);
+                if (options.size() >= 12) break;
+            }
+            // Distinct lands we could play this main phase (by name), each offered as its own option so the
+            // model chooses WHICH land — colored sources, fetchlands, painlands all matter for sequencing.
+            List<SpellAbility> landPlays = new ArrayList<>();
+            List<Card> landCards = new ArrayList<>();
+            if (ownMain) {
+                CardCollection lands = ComputerUtilAbility.getAvailableLandsToPlay(me.getGame(), me);
+                if (lands != null) {
+                    java.util.HashSet<String> seen = new java.util.HashSet<>();
+                    for (Card lc : lands) {
+                        if (!seen.add(lc.getName())) continue;
+                        SpellAbility lsa = null;
+                        for (SpellAbility sa : lc.getAllPossibleAbilities(me, true)) if (sa.isLandAbility()) { lsa = sa; break; }
+                        if (lsa != null) { landPlays.add(lsa); landCards.add(lc); }
+                        if (landPlays.size() >= 4) break;
+                    }
+                }
+            }
+            return new PlayOptions(options, landPlays, landCards);
+        }
+
+        /** The play menu's option labels in menu order: "CAST &lt;saLabel&gt;" per spell, "PLAY LAND
+         *  &lt;name&gt;" per land, then the trailing "PASS (do nothing)". Shared by the LLM seat's log row
+         *  and the ai-teacher seat so the {@code options} array is byte-identical. */
+        static List<String> buildPlayLabels(List<SpellAbility> options, List<Card> landCards) {
+            List<String> playLabels = new ArrayList<>();
+            for (SpellAbility sa : options) playLabels.add("CAST " + saLabel(sa));
+            for (Card lc : landCards) playLabels.add("PLAY LAND " + lc.getName());
+            playLabels.add("PASS (do nothing)");
+            return playLabels;
+        }
+
+        // ---- shared prompt-template builders --------------------------------------------------------
+        // The LLM seat and the ai-teacher seat MUST send the byte-identical (snapshot + question +
+        // numbered-menu) prompt for a given decision, or the process-metrics state-hash join
+        // (eval/process_metrics.py state_key hashes `prompt`+options) never pairs teacher and student
+        // rows, and the ai-teacher SFT user-message loses the decision framing + menu entirely. These
+        // builders are the single source of that template — decideOne/decideMany/chooseSpellAbilityToPlay
+        // call them so the ai-teacher's reconstruction is identical by construction, not by copy.
+
+        /** 1-based numbered play menu ("  N) label\n" per line); labels shown RAW (already formatted by
+         *  {@link #buildPlayLabels}). Matches {@link #chooseSpellAbilityToPlay}'s inline menu build. */
+        static String numberedPlayMenu(List<String> playLabels) {
+            StringBuilder menu = new StringBuilder();
+            int n = 1;
+            for (String o : playLabels) menu.append("  ").append(n++).append(") ").append(o).append('\n');
+            return menu.toString();
+        }
+
+        /** The reasoning tail of the (non-plan) play prompt — the branch the ai-teacher always uses. */
+        static final String PLAY_PROMPT_TAIL = "Reason briefly, then end with EXACTLY: CHOICE: <number>";
+
+        /** The play prompt up to (not including) the reasoning tail, so the ai-teacher's play row prompt
+         *  is byte-identical to the LLM seat's non-plan play prompt for the same state + menu. */
+        static String playPromptPrefix(String snapshot, PhaseType phase, boolean ownMain, String menuStr) {
+            return snapshot + "\nDECISION: You have priority (" + phase
+                    + (ownMain ? ", your main phase" : ", instant-speed window") + "). Choose ONE action:\n" + menuStr;
+        }
+
+        /** The exact attempt-0 prompt {@link #decideOne} sends: snapshot + question + numbered options
+         *  (options via {@code oneLine}, the trailing decline option raw) + the CHOICE tail. */
+        static String buildDecideOnePrompt(String snapshot, String question, List<String> options, String noneLabel) {
+            StringBuilder menu = new StringBuilder();
+            int n = 1;
+            for (String o : options) menu.append("  ").append(n++).append(") ").append(oneLine(o)).append('\n');
+            if (noneLabel != null) menu.append("  ").append(n++).append(") ").append(noneLabel).append('\n');
+            return snapshot + "\nPRIORITY: you\nDECISION: " + question + "\nOptions:\n" + menu
+                    + "Reason briefly, then end with EXACTLY: CHOICE: <number>";
+        }
+
+        /** The exact attempt-0 prompt {@link #decideMany} sends (PICKS-style, min..max). */
+        static String buildDecideManyPrompt(String snapshot, String question, List<String> options, int min, int max) {
+            StringBuilder menu = new StringBuilder();
+            int n = 1;
+            for (String o : options) menu.append("  ").append(n++).append(") ").append(oneLine(o)).append('\n');
+            return snapshot + "\nPRIORITY: you\nDECISION: " + question + "\nChoose between " + min + " and " + max
+                    + " of these (by number):\n" + menu
+                    + "Reason briefly, then end with EXACTLY: PICKS: <comma-separated numbers>";
+        }
+
+        /** The LLM seat's bespoke mulligan prompt body (not a decideOne/Many template — a KEEP/MULLIGAN
+         *  free-text ask). {@code handNames} is the comma-joined card-name list both seats build the same
+         *  way. Shared so the ai-teacher seat's reconstruction can never drift from the LLM seat's wire
+         *  format. See {@link #mulliganKeepHand} (LLM seat) and PlayerControllerAiLogging.mulliganKeepHand. */
+        static String buildMulliganPrompt(int size, int lands, String handNames) {
+            return "MULLIGAN DECISION. This is a " + size + "-card hand with " + lands + " land(s): " + handNames
+                    + ". If you MULLIGAN you will look at a NEW hand of only " + Math.max(0, size - 1)
+                    + " cards (each mulligan costs you a card), and you can never go below 5. If you KEEP you play this "
+                    + size + "-card hand as-is. Keeping a workable hand almost always beats shrinking it. "
+                    + "For a combo deck, a hand with your enablers + a payoff is a KEEP even on few lands; only ship a hand "
+                    + "that genuinely cannot function. Keep or mulligan? End with EXACTLY one word: KEEP or MULLIGAN.";
+        }
+
+        /** The attackers decideMany QUESTION (the {@code question} arg to {@link #buildDecideManyPrompt},
+         *  which the LLM seat wraps and the ai-teacher seat wraps identically). Bundles the poison-aware
+         *  lethal hint so its template is single-sourced. {@code oppLife}/{@code oppPoison} are the
+         *  defender's life / poison counters; {@code anyInfect} = any legal attacker deals poison damage. */
+        static String buildAttackersQuestion(String defenderName, int oppLife, int oppPoison, boolean anyInfect) {
+            int poisonNeeded = Math.max(0, 10 - oppPoison);
+            String lethalHint = "COUNT LETHAL: opp life " + oppLife + ", poison " + oppPoison + "/10 -- lethal needs "
+                    + oppLife + " dmg OR " + poisonNeeded + " poison"
+                    + (anyInfect ? " (infect attackers deal poison, not life loss)" : "")
+                    + ". If your unblocked/unstoppable damage meets either number, attack with everything needed and WIN NOW.";
+            return "COMBAT — declare attackers vs " + defenderName + " (life " + oppLife
+                    + "). Pick which creatures attack (attacking with 0 is legal and sometimes correct — "
+                    + "weigh their untapped mana and possible blocks). " + lethalHint;
+        }
+
+        /** The LLM seat's bespoke blockers prompt (BLOCKS: wire format, not a decideOne/Many template).
+         *  {@code atk}/{@code blk} are the comma-joined attacker / blocker "Name (P/T)" lists both seats
+         *  build identically. Shared so the ai-teacher's reconstruction can never drift. See
+         *  {@link #declareBlockers} (LLM seat) and PlayerControllerAiLogging.declareBlockers. */
+        static String buildBlockersPrompt(String snapshot, String atk, String blk) {
+            return snapshot + "\nCOMBAT — declare blockers. Incoming: " + atk + ". Your blockers: " + blk + ". "
+                    + "Assign blocks (each blocker blocks one attacker). Weigh your life total vs losing blockers. "
+                    + "End with EXACTLY: BLOCKS: blocker->attacker, blocker->attacker   (or BLOCKS: NONE)";
+        }
+
+        /** Stable match key for a play-menu SpellAbility: {@code hostName|api|description}. Used by the
+         *  ai-teacher seat to map Forge AI's returned SpellAbility back to a menu index when object
+         *  identity does not hold (the AI enumerates its own SA instances). Duplicate-name / MDFC / modal
+         *  cards can collide on this key — {@link PlayerControllerAiLogging#indexOfPlay} resolves that by
+         *  taking the first not-yet-claimed slot and flags genuine ambiguity rather than guessing wrong. */
+        static String playKey(SpellAbility sa) {
+            if (sa == null) return "|null|";
+            String host = "?";
+            try { host = sa.getHostCard() != null ? sa.getHostCard().getName() : "?"; } catch (Exception ignore) { }
+            String api = "?";
+            try { api = sa.getApi() != null ? sa.getApi().toString() : "?"; } catch (Exception ignore) { }
+            String desc = "";
+            try { desc = sa.getDescription() == null ? "" : sa.getDescription().replaceAll("\\s+", " ").trim(); }
+            catch (Exception ignore) { }
+            return host + "|" + api + "|" + desc;
+        }
     }
 
     /** LobbyPlayer whose in-game Player uses OUR controller, carrying seat + plan + models + arm. */
@@ -2591,6 +2681,495 @@ public final class LlmSpikeGui {
             p.setFirstController(new PlayerControllerLLM(game, p, this, getName(), plan, smartModel, fastModel, mode));
             return p;
         }
+    }
+
+    /**
+     * D0 — Forge-AI distillation seat. A sibling of {@link PlayerControllerLLM} that lets Forge's
+     * built-in heuristic AI actually make each decision (via {@code super.*}) while logging that
+     * decision in the SAME jsonl schema the LLM seat emits, tagged {@code tier="ai-teacher"}, so the
+     * AI's argmax becomes an SFT label. Per method: (a) build the byte-format-identical option menu the
+     * LLM seat would build (reusing {@code enumeratePlayOptions}/{@code buildPlayLabels}/{@code saLabel}/
+     * {@code entityLabel}/{@code candidateLabel}); (b) call super for the AI's real choice; (c) map the
+     * returned object / combat mutation back to a menu index (or COUNT, matching the LLM seat's own
+     * per-type encoding); (d) write the row through {@link LlmSpikeGui#emitDecisionRow} with the FULL
+     * templated prompt the LLM seat would have sent — reconstructed via the shared prompt-template
+     * builders ({@code playPromptPrefix}/{@code buildDecideOnePrompt}/{@code buildDecideManyPrompt}),
+     * so {@code prompt} = snapshot + the decision question + the numbered option menu, byte-identical to
+     * the LLM seat's non-plan prompt for the same state. This is load-bearing: eval/process_metrics.py's
+     * teacher-decision-match join hashes {@code prompt}+options, and make_sft_data builds the SFT
+     * user-message from {@code prompt} — a bare board snapshot would never pair with a student row and
+     * would strip the menu from the training example. For the void combat methods (declareAttackers /
+     * declareBlockers) the prompt (incl. its snapshot) is captured BEFORE {@code super} so it reflects
+     * pre-decision state, not the AI's own just-made choice. The ai seat carries no model, no intel, and
+     * no turn plan, so it always uses the non-plan template and an empty-intel snapshot; against a
+     * plan/intel-carrying LLM run those specific rows will not hash-pair (a documented coverage limit,
+     * not a correctness bug). Game behavior is bit-identical to a plain {@code PlayerControllerAi} seat —
+     * every override returns super's result unchanged and only reads the resulting state.
+     *
+     * <p>Invariant discipline: an ai-teacher row is emitted only for a GENUINE enumerable choice
+     * ({@code n_options > 1}); forced single-option spots are skipped (no learning signal). Index-style
+     * rows (ability-to-play, entity, zone-change, targets, number, card-name, mulligan) carry a choice in
+     * {@code [0, n_options)}; COUNT-style rows (attackers, blockers, discard, sacrifice, modes) carry a
+     * subset size in {@code [0, n_options]} — exactly the encoding the LLM seat logs. The play row is the
+     * one special case: a PASS is logged as {@code choice = -1} (n_options still {@code = labels.size()}),
+     * identical to the LLM seat's own play-PASS encoding ({@code chooseSpellAbilityToPlay}'s
+     * {@code (choice>=1 && choice<passIdx) ? choice-1 : -1}), so that the two seats' PASS rows reconcile
+     * in the decision-match join (process_metrics maps a play {@code choice==-1} to the same PASS token).
+     * A choice that cannot be mapped into the menu (AI picked outside our capped enumeration, an
+     * MDFC/duplicate-key collision with no free slot) is logged as a NON-enumerable diagnostic
+     * ({@code n_options = -1}, choice {@code -1}) rather than a wrong index — never a degenerate
+     * enumerable {@code choice = -1} on an index-style row.
+     *
+     * <p>Deferred (documented, low-value or fiddly): assignCombatDamage's map→menu reconciliation, the
+     * bundled target/X sub-choices baked into a returned play SpellAbility (announceRequirements /
+     * chooseTargetsFor beyond the single-target case), scry/surveil ordering, and the free-form
+     * (predicate) chooseCardName variant.
+     */
+    static class PlayerControllerAiLogging extends PlayerControllerAi {
+        private final String seat;
+        private static final java.util.Collection<String> NO_INTEL = java.util.Collections.emptyList();
+
+        PlayerControllerAiLogging(Game game, Player p, LobbyPlayer lp, String seat) {
+            super(game, p, lp);
+            this.seat = seat;
+        }
+
+        /** The game-state prompt the LLM seat would have sent for this decision (empty intel / no turn
+         *  plan, which the AI seat never accumulates). */
+        private String snap() {
+            try { return PlayerControllerLLM.buildSnapshot(getPlayer(), seat, NO_INTEL, "", -1); }
+            catch (Exception e) { return "== (state unavailable) =="; }
+        }
+        private void emit(String type, int nOptions, int choice, List<String> options, String prompt) {
+            emit(type, nOptions, choice, null, options, prompt);
+        }
+        private void emit(String type, int nOptions, int choice, String fallback, List<String> options, String prompt) {
+            try {
+                emitDecisionRow(getPlayer(), seat, type, nOptions, choice, "ai-teacher", 0, fallback, options,
+                        prompt, null, 0, 0, null, null, -1, -1);
+            } catch (Exception ignore) { }
+        }
+
+        // ---------------- return-value decisions (map returned object -> index) ----------------
+
+        @Override
+        public boolean mulliganKeepHand(Player firstPlayer, int cardsToReturn) {
+            // Reconstruct the LLM seat's bespoke mulligan prompt from the (unchanged-by-super) hand.
+            String prompt = null;
+            try {
+                CardCollectionView hand = getPlayer().getCardsIn(ZoneType.Hand);
+                int lands = CardLists.filter(hand, CardPredicates.LANDS).size();
+                int size = hand.size();
+                StringBuilder n = new StringBuilder();
+                for (Card c : hand) { if (n.length() > 0) n.append(", "); n.append(c.getName()); }
+                prompt = PlayerControllerLLM.buildMulliganPrompt(size, lands, n.toString());
+            } catch (Exception ignore) { }
+            boolean keep = super.mulliganKeepHand(firstPlayer, cardsToReturn);
+            emit("mulligan", 2, keep ? 0 : 1, java.util.Arrays.asList("KEEP", "MULLIGAN"), prompt);
+            return keep;
+        }
+
+        @Override
+        public SpellAbility getAbilityToPlay(Card hostCard, List<SpellAbility> abilities, ITriggerEvent triggerEvent) {
+            List<String> labels = null; String prompt = null;
+            try {
+                if (abilities != null && abilities.size() > 1) {
+                    labels = new ArrayList<>();
+                    for (SpellAbility sa : abilities) labels.add(PlayerControllerLLM.saLabel(sa));
+                    String host = hostCard != null ? hostCard.getName() : "?";
+                    String q = "Choose HOW to play " + host + " -- pick the specific cast mode / cost variant.";
+                    prompt = PlayerControllerLLM.buildDecideOnePrompt(snap(), q, labels, null);
+                }
+            } catch (Exception ignore) { }
+            SpellAbility r = super.getAbilityToPlay(hostCard, abilities, triggerEvent);
+            try {
+                if (labels != null) {
+                    int idx = indexByIdentity(abilities, r);
+                    if (idx < 0) idx = indexByKey(abilities, r);
+                    if (idx >= 0) emit("ability-to-play", abilities.size(), idx, labels, prompt);
+                    else emit("ability-to-play", -1, -1, "ai-choice-not-in-menu", labels, prompt);
+                }
+            } catch (Exception ignore) { }
+            return r;
+        }
+
+        @Override
+        public List<SpellAbility> chooseSpellAbilityToPlay() {
+            // Enumerate + snapshot + build the play prompt BEFORE super, so the prompt reflects the true
+            // pre-decision state (super only decides; the cast happens later in the engine).
+            PlayerControllerLLM.PlayOptions po = null; List<String> labels = null; String prompt = null; boolean genuine = false;
+            try {
+                Player me = getPlayer();
+                PhaseHandler phh = me.getGame().getPhaseHandler();
+                boolean ownMain = phh.isPlayerTurn(me) && (phh.is(PhaseType.MAIN1) || phh.is(PhaseType.MAIN2));
+                po = PlayerControllerLLM.enumeratePlayOptions(me, ownMain);
+                // Only a genuine choice: at least one castable spell or land besides PASS. A window whose
+                // only option is PASS carries no learning signal and would flood the log.
+                if (!(po.spells.isEmpty() && po.landCards.isEmpty())) {
+                    genuine = true;
+                    labels = PlayerControllerLLM.buildPlayLabels(po.spells, po.landCards);
+                    String menuStr = PlayerControllerLLM.numberedPlayMenu(labels);
+                    prompt = PlayerControllerLLM.playPromptPrefix(snap(), phh.getPhase(), ownMain, menuStr)
+                            + PlayerControllerLLM.PLAY_PROMPT_TAIL;
+                }
+            } catch (Exception ignore) { }
+            List<SpellAbility> r = super.chooseSpellAbilityToPlay(); // the AI's real decision, returned unchanged
+            try {
+                if (genuine && labels != null) {
+                    int choice;
+                    if (r == null || r.isEmpty()) {
+                        choice = -1; // AI passed priority — mirrors the LLM seat's play-PASS encoding (choice=-1)
+                    } else {
+                        choice = indexOfPlay(r.get(0), po);
+                        if (choice < 0) { emit("play", -1, -1, "ai-choice-not-in-menu", labels, prompt); return r; }
+                    }
+                    // n_options = labels.size() (incl. the trailing PASS slot) == the LLM seat's passIdx.
+                    emit("play", labels.size(), choice, labels, prompt);
+                }
+            } catch (Exception ignore) { }
+            return r;
+        }
+
+        @Override
+        public <T extends GameEntity> T chooseSingleEntityForEffect(FCollectionView<T> optionList, DelayedReveal delayedReveal,
+                SpellAbility sa, String title, boolean isOptional, Player relatedPlayer, Map<String, Object> params) {
+            List<T> opts = new ArrayList<>();
+            try { if (optionList != null) for (T t : optionList) opts.add(t); } catch (Exception ignore) { }
+            List<String> labels = null; String prompt = null;
+            try {
+                // delayedReveal != null is delegated (not routed) by the LLM seat -> no "entity" row there.
+                if (opts.size() > 1 && delayedReveal == null) {
+                    labels = new ArrayList<>();
+                    for (T t : opts) labels.add(PlayerControllerLLM.entityLabel(t));
+                    String q = (title == null || title.isEmpty() ? "Choose one" : title) + PlayerControllerLLM.srcOf(sa);
+                    prompt = PlayerControllerLLM.buildDecideOnePrompt(snap(), q, labels, isOptional ? "Decline / none" : null);
+                }
+            } catch (Exception ignore) { }
+            T r = super.chooseSingleEntityForEffect(optionList, delayedReveal, sa, title, isOptional, relatedPlayer, params);
+            try {
+                if (labels != null) {
+                    int idx = -1;
+                    for (int i = 0; i < opts.size(); i++) if (opts.get(i) == r) { idx = i; break; }
+                    if (idx >= 0) emit("entity", opts.size(), idx, labels, prompt);
+                    // r == null (isOptional decline) or unmatched -> no enumerable row (never choice=-1)
+                }
+            } catch (Exception ignore) { }
+            return r;
+        }
+
+        @Override
+        public Card chooseSingleCardForZoneChange(ZoneType destination, List<ZoneType> origin, SpellAbility sa,
+                CardCollection fetchList, DelayedReveal delayedReveal, String selectPrompt, boolean isOptional, Player decider) {
+            List<Card> opts = fetchList == null ? new ArrayList<>() : new ArrayList<>(fetchList);
+            List<String> labels = null; String prompt = null;
+            try {
+                if (opts.size() > 1 && decider == getPlayer() && delayedReveal == null) {
+                    labels = new ArrayList<>();
+                    for (Card c : opts) labels.add(PlayerControllerLLM.entityLabel(c));
+                    String q = (selectPrompt == null || selectPrompt.isEmpty() ? "Choose a card" : selectPrompt)
+                            + " -> " + destination + PlayerControllerLLM.srcOf(sa)
+                            + " (pick the card that best advances your game plan — e.g. reanimate your biggest threat).";
+                    prompt = PlayerControllerLLM.buildDecideOnePrompt(snap(), q, labels, isOptional ? "Decline / none" : null);
+                }
+            } catch (Exception ignore) { }
+            Card r = super.chooseSingleCardForZoneChange(destination, origin, sa, fetchList, delayedReveal, selectPrompt, isOptional, decider);
+            try {
+                if (labels != null) {
+                    int idx = -1;
+                    for (int i = 0; i < opts.size(); i++) if (opts.get(i) == r) { idx = i; break; }
+                    if (idx >= 0) emit("zone-change", opts.size(), idx, labels, prompt);
+                }
+            } catch (Exception ignore) { }
+            return r;
+        }
+
+        @Override
+        public int chooseNumber(SpellAbility sa, String title, int min, int max) {
+            List<String> opts = null; String prompt = null;
+            try {
+                if (max > min && (max - min) <= 12) {
+                    opts = new ArrayList<>();
+                    for (int i = min; i <= max; i++) opts.add(String.valueOf(i));
+                    String q = (title == null ? "Choose a number" : title) + " (" + min + ".." + max + ")"
+                            + PlayerControllerLLM.srcOf(sa);
+                    prompt = PlayerControllerLLM.buildDecideOnePrompt(snap(), q, opts, null);
+                }
+            } catch (Exception ignore) { }
+            int v = super.chooseNumber(sa, title, min, max);
+            try {
+                if (opts != null && v >= min && v <= max) emit("number", opts.size(), v - min, opts, prompt);
+            } catch (Exception ignore) { }
+            return v;
+        }
+
+        @Override
+        public String chooseCardName(SpellAbility sa, List<ICardFace> faces, String message) {
+            // Mirror the LLM seat's threshold: a numbered menu only for faces.size() <= 20 (above that the
+            // LLM seat switches to a free-form path — out of scope here).
+            List<String> labels = null; String prompt = null;
+            try {
+                if (faces != null && faces.size() > 1 && faces.size() <= 20) {
+                    labels = new ArrayList<>();
+                    for (ICardFace f : faces) labels.add(f.getName());
+                    String q = "NAME A CARD" + PlayerControllerLLM.srcOf(sa) + ": " + oneLine(message);
+                    prompt = PlayerControllerLLM.buildDecideOnePrompt(snap(), q, labels, null);
+                }
+            } catch (Exception ignore) { }
+            String r = super.chooseCardName(sa, faces, message);
+            try {
+                if (labels != null && r != null) {
+                    int idx = -1;
+                    for (int i = 0; i < faces.size(); i++) if (r.equalsIgnoreCase(faces.get(i).getName())) { idx = i; break; }
+                    if (idx >= 0) emit("card-name", faces.size(), idx, labels, prompt);
+                }
+            } catch (Exception ignore) { }
+            return r;
+        }
+
+        // ---------------- target-setting (read sa.getTargets() after super) ----------------
+
+        @Override
+        public boolean chooseTargetsFor(SpellAbility sa) {
+            List<GameEntity> cands = null; List<String> labels = null; String prompt = null;
+            try {
+                if (sa != null && sa.usesTargeting() && sa.getMaxTargets() == 1) {
+                    boolean subTargets = false;
+                    for (SpellAbility sub = sa.getSubAbility(); sub != null; sub = sub.getSubAbility())
+                        if (sub.usesTargeting()) { subTargets = true; break; }
+                    if (!subTargets) {
+                        TargetRestrictions tr = sa.getTargetRestrictions();
+                        if (tr != null) cands = tr.getAllCandidates(sa, false);
+                    }
+                }
+                if (cands != null && cands.size() > 1) {
+                    labels = new ArrayList<>();
+                    for (GameEntity ge : cands) labels.add(PlayerControllerLLM.entityLabel(ge));
+                    String q = "Choose the TARGET for " + PlayerControllerLLM.saLabel(sa)
+                            + " (the spell/ability resolves against whatever you pick).";
+                    prompt = PlayerControllerLLM.buildDecideOnePrompt(snap(), q, labels,
+                            sa.getMinTargets() == 0 ? "No target (decline)" : null);
+                }
+            } catch (Exception ignore) { }
+            boolean r = super.chooseTargetsFor(sa);
+            try {
+                if (labels != null) {
+                    GameEntity chosen = null;
+                    if (sa.getTargets() != null) {
+                        for (Object o : sa.getTargets()) { if (o instanceof GameEntity) { chosen = (GameEntity) o; break; } }
+                    }
+                    if (chosen != null) {
+                        int idx = -1;
+                        for (int i = 0; i < cands.size(); i++) if (cands.get(i) == chosen) { idx = i; break; }
+                        // Identity failure on a duplicate-name candidate -> SKIP rather than guess the first
+                        // same-named index (matches indexOfPlay's discipline; per LOW review finding). In
+                        // practice sa.getTargets() returns the live candidate object, so identity holds.
+                        if (idx >= 0) emit("targets", cands.size(), idx, labels, prompt);
+                    }
+                }
+            } catch (Exception ignore) { }
+            return r;
+        }
+
+        // ---------------- COUNT-style subset decisions (choice = #selected, matches LLM seat) ----------
+
+        @Override
+        public void declareAttackers(Player attacker, Combat combat) {
+            // Capture the menu + prompt BEFORE super so the snapshot reflects pre-combat state, not the
+            // attackers the AI is about to declare (the void-method state-leak the review flagged).
+            List<String> labels = null; int nLegal = 0; String prompt = null;
+            try {
+                Player defender = null;
+                for (Player pl : combat.getDefendingPlayers()) { defender = pl; break; }
+                if (defender != null) {
+                    CardCollection legal = new CardCollection();
+                    for (Card c : attacker.getCreaturesInPlay()) if (CombatUtil.canAttack(c, defender)) legal.add(c);
+                    nLegal = legal.size();
+                    if (nLegal > 1) {
+                        labels = new ArrayList<>();
+                        for (Card c : legal) labels.add(c.getName() + " (" + c.getNetPower() + "/" + c.getNetToughness() + ")");
+                        int oppLife = defender.getLife();
+                        int oppPoison = 0;
+                        try { oppPoison = defender.getCounters(CounterEnumType.POISON); } catch (Exception ignore) { }
+                        boolean anyInfect = false;
+                        for (Card c : legal) { try { if (c.isInfectDamage(defender)) { anyInfect = true; break; } } catch (Exception ignore) { } }
+                        // Shared question template (single source; byte-identical to the LLM seat's).
+                        String q = PlayerControllerLLM.buildAttackersQuestion(defender.getName(), oppLife, oppPoison, anyInfect);
+                        prompt = PlayerControllerLLM.buildDecideManyPrompt(snap(), q, labels, 0, nLegal);
+                    }
+                }
+            } catch (Exception ignore) { }
+            super.declareAttackers(attacker, combat);
+            try {
+                if (labels != null) {
+                    CardCollection atks = combat.getAttackers();
+                    int declared = atks == null ? 0 : atks.size();
+                    if (declared > nLegal) declared = nLegal;
+                    emit("attackers", nLegal, declared, labels, prompt);
+                }
+            } catch (Exception ignore) { }
+        }
+
+        @Override
+        public void declareBlockers(Player defender, Combat combat) {
+            // Capture the menu + bespoke blocker prompt BEFORE super (same void-method state-leak fix).
+            List<String> labels = null; int nPool = 0; String prompt = null;
+            try {
+                CardCollection attackers = combat.getAttackers();
+                if (attackers != null && !attackers.isEmpty()) {
+                    CardCollection blockers = new CardCollection();
+                    for (Card c : defender.getCreaturesInPlay())
+                        for (Card atk : attackers) if (CombatUtil.canBlock(atk, c, combat)) { blockers.add(c); break; }
+                    nPool = blockers.size();
+                    if (nPool > 0) {
+                        labels = new ArrayList<>();
+                        StringBuilder blk = new StringBuilder();
+                        for (Card b : blockers) {
+                            String bl = b.getName() + " (" + b.getNetPower() + "/" + b.getNetToughness() + ")";
+                            labels.add(bl);
+                            if (blk.length() > 0) blk.append(", ");
+                            blk.append(bl);
+                        }
+                        StringBuilder atk = new StringBuilder();
+                        for (Card a : attackers) {
+                            if (atk.length() > 0) atk.append(", ");
+                            atk.append(a.getName()).append(" (").append(a.getNetPower()).append('/').append(a.getNetToughness()).append(')');
+                        }
+                        // Shared template (single source; byte-identical to the LLM seat's).
+                        prompt = PlayerControllerLLM.buildBlockersPrompt(snap(), atk.toString(), blk.toString());
+                    }
+                }
+            } catch (Exception ignore) { }
+            super.declareBlockers(defender, combat);
+            try {
+                if (labels != null && nPool > 0) {
+                    CardCollection all = combat.getAllBlockers();
+                    int assigned = all == null ? 0 : all.size();
+                    if (assigned > nPool) assigned = nPool;
+                    emit("blockers", nPool, assigned, labels, prompt);
+                }
+            } catch (Exception ignore) { }
+        }
+
+        @Override
+        public CardCollection chooseCardsToDiscardFrom(Player p, SpellAbility sa, CardCollection validCards,
+                int min, int max, CardCollectionView visibleToChooser) {
+            List<Card> opts = validCards == null ? new ArrayList<>() : new ArrayList<>(validCards);
+            List<String> labels = null; String prompt = null;
+            try {
+                if (opts.size() > min) { // genuine choice (whole-hand-forced has no learning signal)
+                    labels = new ArrayList<>();
+                    for (Card c : opts) labels.add(PlayerControllerLLM.candidateLabel(c));
+                    boolean stripping = p != getPlayer();
+                    String q = stripping
+                            ? "You are choosing which card(s) " + p.getName() + " must DISCARD from their revealed hand"
+                              + PlayerControllerLLM.srcOf(sa) + ". Strip whatever most threatens your game plan (their removal/disruption/payoff)."
+                            : "You must DISCARD from your hand" + PlayerControllerLLM.srcOf(sa) + ". Pick which card(s) to discard "
+                              + "(remember your game plan — e.g. discarding a huge creature you can later reanimate is often correct).";
+                    prompt = PlayerControllerLLM.buildDecideManyPrompt(snap(), q, labels, min, max);
+                }
+            } catch (Exception ignore) { }
+            CardCollection r = super.chooseCardsToDiscardFrom(p, sa, validCards, min, max, visibleToChooser);
+            try {
+                if (labels != null) emit("discard", opts.size(), r == null ? 0 : r.size(), labels, prompt);
+            } catch (Exception ignore) { }
+            return r;
+        }
+
+        @Override
+        public CardCollectionView choosePermanentsToSacrifice(SpellAbility sa, int min, int max,
+                CardCollectionView validTargets, String message) {
+            List<Card> opts = validTargets == null ? new ArrayList<>() : new ArrayList<>(validTargets);
+            List<String> labels = null; String prompt = null;
+            try {
+                if (opts.size() > min) {
+                    labels = new ArrayList<>();
+                    for (Card c : opts) labels.add(PlayerControllerLLM.candidateLabel(c));
+                    String q = "You must SACRIFICE " + (min == max ? String.valueOf(min) : min + "-" + max)
+                            + " permanent(s)" + PlayerControllerLLM.srcOf(sa)
+                            + (message == null || message.isEmpty() ? "" : ": " + oneLine(message))
+                            + ". Choose what to give up — keep your best remaining threats/blockers/mana sources.";
+                    prompt = PlayerControllerLLM.buildDecideManyPrompt(snap(), q, labels, min, max);
+                }
+            } catch (Exception ignore) { }
+            CardCollectionView r = super.choosePermanentsToSacrifice(sa, min, max, validTargets, message);
+            try {
+                if (labels != null) emit("sacrifice", opts.size(), r == null ? 0 : r.size(), labels, prompt);
+            } catch (Exception ignore) { }
+            return r;
+        }
+
+        @Override
+        public List<AbilitySub> chooseModeForAbility(SpellAbility sa, List<AbilitySub> possible, int min, int num, boolean allowRepeat) {
+            List<String> labels = null; String prompt = null;
+            try {
+                if (possible != null && possible.size() > 1 && !allowRepeat) {
+                    labels = new ArrayList<>();
+                    for (AbilitySub ab : possible) labels.add(oneLine(ab.getDescription()));
+                    String q = "MODAL SPELL — choose mode(s) for " + PlayerControllerLLM.saLabel(sa) + ".";
+                    prompt = PlayerControllerLLM.buildDecideManyPrompt(snap(), q, labels,
+                            Math.max(0, min), Math.min(num, possible.size()));
+                }
+            } catch (Exception ignore) { }
+            List<AbilitySub> r = super.chooseModeForAbility(sa, possible, min, num, allowRepeat);
+            try {
+                if (labels != null) emit("modes", possible.size(), r == null ? 0 : r.size(), labels, prompt);
+            } catch (Exception ignore) { }
+            return r;
+        }
+
+        // ---------------- index-mapping helpers ----------------
+
+        /** Map Forge AI's returned play SpellAbility back to a menu index over {@code po}: a land play
+         *  matches its host land card by name (into the land block after the spells); a spell matches by
+         *  object identity first, then by {@code hostName|api|description} key. Returns -1 when the AI's
+         *  choice is not in the (capped) enumeration — the caller then logs a non-enumerable diagnostic,
+         *  never a wrong index. */
+        int indexOfPlay(SpellAbility chosen, PlayerControllerLLM.PlayOptions po) {
+            if (chosen == null) return -1;
+            try {
+                if (chosen.isLandAbility()) {
+                    String name = chosen.getHostCard() != null ? chosen.getHostCard().getName() : null;
+                    if (name != null)
+                        for (int i = 0; i < po.landCards.size(); i++)
+                            if (name.equals(po.landCards.get(i).getName())) return po.spells.size() + i;
+                    return -1;
+                }
+            } catch (Exception ignore) { }
+            int id = indexByIdentity(po.spells, chosen);
+            if (id >= 0) return id;
+            return indexByKey(po.spells, chosen);
+        }
+        static int indexByIdentity(List<SpellAbility> list, SpellAbility t) {
+            if (t == null || list == null) return -1;
+            for (int i = 0; i < list.size(); i++) if (list.get(i) == t) return i;
+            return -1;
+        }
+        static int indexByKey(List<SpellAbility> list, SpellAbility t) {
+            if (t == null || list == null) return -1;
+            String key = PlayerControllerLLM.playKey(t);
+            for (int i = 0; i < list.size(); i++) if (PlayerControllerLLM.playKey(list.get(i)).equals(key)) return i;
+            return -1;
+        }
+    }
+
+    /** LobbyPlayer whose in-game Player uses the AI-logging controller (CONTROLLER_A/B = "ai-log"). */
+    static class LobbyPlayerAiLogging extends LobbyPlayerAi {
+        LobbyPlayerAiLogging(String name) { super(name, null); }
+        @Override
+        public Player createIngamePlayer(Game game, int id) {
+            Player p = new Player(getName(), game, id);
+            p.setFirstController(new PlayerControllerAiLogging(game, p, this, getName()));
+            return p;
+        }
+    }
+
+    /** Map a CONTROLLER_A/B value to its LobbyPlayer: "ai" = plain Forge AI (untouched), "ai-log" = the
+     *  Forge AI that logs every decision as an ai-teacher SFT row, anything else = the LLM seat / one of
+     *  its baseline arms (llm|random|floor), which carries the plan + model specs + arm mode. */
+    static LobbyPlayer seatFor(String ctl, String name, String plan, String smartModel, String fastModel) {
+        if ("ai".equals(ctl)) return new LobbyPlayerAi(name, null);
+        if ("ai-log".equals(ctl)) return new LobbyPlayerAiLogging(name);
+        return new LobbyPlayerLLM(name, plan, smartModel, fastModel, ctl);
     }
 
     /** Shared seat construction for GUI + headless runners. Env:
@@ -2632,10 +3211,8 @@ public final class LlmSpikeGui {
             deckA = DeckgenUtil.getRandomColorDeck(true); deckB = DeckgenUtil.getRandomColorDeck(true);
         }
 
-        RegisteredPlayer a = new RegisteredPlayer(deckA).setPlayer(
-                "ai".equals(ctlA) ? new LobbyPlayerAi(nameA, null) : new LobbyPlayerLLM(nameA, planA, smartA, fastA, ctlA));
-        RegisteredPlayer b = new RegisteredPlayer(deckB).setPlayer(
-                "ai".equals(ctlB) ? new LobbyPlayerAi(nameB, null) : new LobbyPlayerLLM(nameB, planB, smartB, fastB, ctlB));
+        RegisteredPlayer a = new RegisteredPlayer(deckA).setPlayer(seatFor(ctlA, nameA, planA, smartA, fastA));
+        RegisteredPlayer b = new RegisteredPlayer(deckB).setPlayer(seatFor(ctlB, nameB, planB, smartB, fastB));
         boolean swap = "1".equals(System.getenv("SWAP_SEATS"));
         List<RegisteredPlayer> players = swap ? Lists.newArrayList(b, a) : Lists.newArrayList(a, b);
         System.out.println("[SEATS] A=" + nameA + "(" + ctlA + "," + smartA + ") B=" + nameB + "(" + ctlB + "," + smartB
@@ -2932,6 +3509,50 @@ public final class LlmSpikeGui {
         if (s == null) return "";
         s = s.replaceAll("\\s+", " ").trim();
         return truncateWords(s, 90);
+    }
+
+    /** Single JSONL decision-row writer, shared by the LLM seat's {@code evalDec} and the ai-teacher
+     *  seat's {@code emit} so both emit byte-format-identical rows (same keys, same order). The LLM seat
+     *  passes its captured per-decision model provenance (prompt/raw_reply/retry_ms/attempts/…); the
+     *  ai-teacher seat, which never consults a model, passes prompt = the snapshot the LLM seat would
+     *  have sent, raw_reply = null, and the model-only fields as null/-1/0. */
+    static void emitDecisionRow(Player pl, String seat, String type, int nOptions, int choice, String tier,
+            long ms, String fallback, List<String> options, String prompt, String rawReply,
+            long retryMs, int attempts, String finishReason, String firstFailedReply,
+            int promptTokens, int completionTokens) {
+        if (!EvalLog.on()) return;
+        try {
+            PhaseHandler ph = pl.getGame().getPhaseHandler();
+            StringBuilder sb = new StringBuilder(256);
+            sb.append("{\"t\":\"decision\",\"seat\":\"").append(jsonEscape(seat))
+                    .append("\",\"turn\":").append(ph.getTurn()).append(",\"phase\":\"").append(ph.getPhase())
+                    .append("\",\"type\":\"").append(type).append("\",\"n_options\":").append(nOptions)
+                    .append(",\"choice\":").append(choice)
+                    .append(",\"tier\":\"").append(tier).append("\",\"latency_ms\":").append(ms)
+                    .append(",\"fallback\":")
+                    .append(fallback == null ? "null" : "\"" + jsonEscape(fallback) + "\"")
+                    .append(",\"options\":[");
+            if (options != null) {
+                for (int i = 0; i < options.size(); i++) {
+                    if (i > 0) sb.append(',');
+                    sb.append('"').append(jsonEscape(options.get(i))).append('"');
+                }
+            }
+            sb.append("],\"prompt\":")
+                    .append(prompt == null ? "null" : "\"" + jsonEscape(prompt) + "\"")
+                    .append(",\"raw_reply\":")
+                    .append(rawReply == null ? "null" : "\"" + jsonEscape(rawReply) + "\"")
+                    .append(",\"retry_ms\":").append(retryMs)
+                    .append(",\"attempts\":").append(attempts)
+                    .append(",\"finish_reason\":")
+                    .append(finishReason == null ? "null" : "\"" + jsonEscape(finishReason) + "\"")
+                    .append(",\"first_failed_reply\":")
+                    .append(firstFailedReply == null ? "null" : "\"" + jsonEscape(firstFailedReply) + "\"")
+                    .append(",\"prompt_tokens\":").append(promptTokens < 0 ? "null" : promptTokens)
+                    .append(",\"completion_tokens\":").append(completionTokens < 0 ? "null" : completionTokens)
+                    .append('}');
+            EvalLog.write(sb.toString());
+        } catch (Exception ignore) { }
     }
 
     /** JSON string escape (minimal, no Unicode escapes above U+001F). */

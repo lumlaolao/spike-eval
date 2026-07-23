@@ -407,7 +407,7 @@ def warn_parallel_jobs(args):
             "and fall back to auto/ai, polluting the eval). Use --jobs 1 or "
             "openrouter:-prefixed specs." % (args.jobs, bare))
     elif not models and args.jobs > 8:
-        log("WARNING: --jobs=%d for a no-LLM (floor/random/ai) batch — these "
+        log("WARNING: --jobs=%d for a no-LLM (floor/random/ai/ai-log) batch — these "
             "are CPU-bound ~25s bursts; >8 concurrent JVMs oversubscribe "
             "cores (see eval/CONCURRENCY.md §7)." % args.jobs)
     elif models and args.jobs > 10:
@@ -511,9 +511,9 @@ def main():
     ap.add_argument("--smart-b", help="SMART_MODEL_B")
     ap.add_argument("--fast-a", help="FAST_MODEL_A")
     ap.add_argument("--fast-b", help="FAST_MODEL_B")
-    ap.add_argument("--controller-a", choices=["llm", "random", "floor", "ai"],
+    ap.add_argument("--controller-a", choices=["llm", "random", "floor", "ai", "ai-log"],
                     help="CONTROLLER_A")
-    ap.add_argument("--controller-b", choices=["llm", "random", "floor", "ai"],
+    ap.add_argument("--controller-b", choices=["llm", "random", "floor", "ai", "ai-log"],
                     help="CONTROLLER_B")
     ap.add_argument("--plan-a", help="PLAN_A (forbidden in cited mode)")
     ap.add_argument("--plan-b", help="PLAN_B (forbidden in cited mode)")

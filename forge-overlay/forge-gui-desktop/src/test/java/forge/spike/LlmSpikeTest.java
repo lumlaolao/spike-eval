@@ -942,4 +942,279 @@ public class LlmSpikeTest {
         Assert.assertEquals(ctrl.autoPicksCount(), 0,
                 "bridge-down here is an ai-delegation (counted), not a deterministic auto-pick");
     }
+
+    // ================================================================================
+    // D0 — PlayerControllerAiLogging (Forge-AI distillation seat). Covers the index-mapping helpers
+    // (incl. duplicate-name disambiguation), the play-menu land/spell mapping, and — as a full-game
+    // integration test — the combat before/after diff reconciliation + the ai-teacher row invariant
+    // (every enumerable ai-teacher row has choice in range, options non-empty, never a degenerate -1).
+    // ================================================================================
+
+    @Test
+    public void playKey_duplicateNamedSpellsCollide_identityStillDisambiguates() {
+        Game game = buildBareGame();
+        Player p = game.getPlayers().get(0);
+        SpellAbility sa1 = addBattlefieldCard("Craw Wurm", p).getFirstSpellAbility();
+        SpellAbility sa2 = addBattlefieldCard("Craw Wurm", p).getFirstSpellAbility();
+        Assert.assertNotSame(sa1, sa2, "two distinct copies -> two distinct SpellAbility objects");
+        // Same hostName|api|description key: the duplicate-name collision the design flags.
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.playKey(sa1),
+                LlmSpikeGui.PlayerControllerLLM.playKey(sa2),
+                "two copies of the same card produce the same play key (the ambiguity case)");
+        List<SpellAbility> menu = Lists.newArrayList(sa1, sa2);
+        // Object identity resolves the ambiguity exactly when the AI returned one of OUR enumerated objects.
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerAiLogging.indexByIdentity(menu, sa2), 1,
+                "identity match pins the SECOND copy to index 1, never index 0");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerAiLogging.indexByIdentity(menu, sa1), 0);
+        // Key match is the best-effort fallback for a foreign object: it takes the FIRST slot with that
+        // key (a defined, documented disambiguation) rather than guessing a wrong later index.
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerAiLogging.indexByKey(menu, sa2.copy()), 0,
+                "a foreign (fresh-enumeration) copy with the shared key maps to the first matching slot");
+    }
+
+    @Test
+    public void indexByKey_matchesFreshEnumerationCopyOfADistinctSpell() {
+        Game game = buildBareGame();
+        Player p = game.getPlayers().get(0);
+        SpellAbility elves = addBattlefieldCard("Llanowar Elves", p).getFirstSpellAbility();
+        SpellAbility wurm  = addBattlefieldCard("Craw Wurm", p).getFirstSpellAbility();
+        List<SpellAbility> menu = Lists.newArrayList(elves, wurm);
+        // The AI returns a different object instance for the same underlying spell (fresh getSpellAbilities
+        // enumeration) -> identity fails, key match still lands the right index.
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerAiLogging.indexByIdentity(menu, wurm.copy()), -1);
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerAiLogging.indexByKey(menu, wurm.copy()), 1,
+                "a fresh copy of Craw Wurm maps to its menu slot by hostName|api|description key");
+    }
+
+    @Test
+    public void indexOfPlay_mapsLandByHostNameAndSpellByIdentity() {
+        Game game = buildBareGame();
+        Player p = game.getPlayers().get(0);
+        Card wurm = addBattlefieldCard("Craw Wurm", p);
+        SpellAbility wurmSa = wurm.getFirstSpellAbility();
+        Card island = addHandCard("Island", p);
+        SpellAbility islandLand = landAbilityOf(island, p);
+        Assert.assertNotNull(islandLand, "Island must expose a play-land ability");
+
+        List<SpellAbility> spells = Lists.newArrayList(wurmSa);
+        List<SpellAbility> landPlays = Lists.newArrayList(islandLand);
+        List<Card> landCards = Lists.newArrayList(island);
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po =
+                new LlmSpikeGui.PlayerControllerLLM.PlayOptions(spells, landPlays, landCards);
+
+        LobbyPlayer lp = new LobbyPlayerAi("seat-x", null);
+        LlmSpikeGui.PlayerControllerAiLogging ctrl =
+                new LlmSpikeGui.PlayerControllerAiLogging(game, p, lp, "seat-x");
+
+        Assert.assertEquals(ctrl.indexOfPlay(wurmSa, po), 0, "the spell maps to its own slot by identity");
+        Assert.assertEquals(ctrl.indexOfPlay(islandLand, po), 1,
+                "a land play maps to the land block right after the spells (spells.size()+landIndex)");
+        // A DIFFERENT Island card's land ability (same name, foreign object) still maps by host name.
+        Card island2 = addHandCard("Island", p);
+        SpellAbility island2Land = landAbilityOf(island2, p);
+        Assert.assertNotNull(island2Land);
+        Assert.assertEquals(ctrl.indexOfPlay(island2Land, po), 1,
+                "a foreign land ability with the same host land name still maps to the land slot");
+        // A spell the AI picked that is NOT in our (capped) enumeration -> -1, so the caller logs a
+        // non-enumerable diagnostic rather than a wrong index.
+        SpellAbility foreign = addBattlefieldCard("Elvish Mystic", p).getFirstSpellAbility();
+        Assert.assertEquals(ctrl.indexOfPlay(foreign, po), -1,
+                "a spell absent from the menu returns -1 (never a wrong index)");
+    }
+
+    /** Find a card's play-land ability the same way enumeratePlayOptions does. */
+    private SpellAbility landAbilityOf(Card lc, Player p) {
+        for (SpellAbility sa : lc.getAllPossibleAbilities(p, false)) if (sa.isLandAbility()) return sa;
+        return null;
+    }
+
+    // ---- BLOCKER fix: the ai-teacher rebuilds the FULL templated prompt, byte-identical to the LLM
+    //      seat's decideOne/decideMany/play prompt (shared builders are the single source of the template).
+
+    @Test
+    public void buildDecideOnePrompt_matchesTheDecideOneWireFormatExactly() {
+        String snap = "== Turn 3 ==\nYOU life:20\nOPP life:18";
+        List<String> opts = Lists.newArrayList("Lightning Bolt", "Brainstorm");
+        // No decline option: options numbered 1..n, snapshot + PRIORITY/DECISION/Options + CHOICE tail.
+        String got = LlmSpikeGui.PlayerControllerLLM.buildDecideOnePrompt(snap, "Pick a spell", opts, null);
+        String expect = snap + "\nPRIORITY: you\nDECISION: Pick a spell\nOptions:\n"
+                + "  1) Lightning Bolt\n  2) Brainstorm\n"
+                + "Reason briefly, then end with EXACTLY: CHOICE: <number>";
+        Assert.assertEquals(got, expect, "decideOne prompt template drifted");
+        // With a decline label appended as the final numbered option (raw, not oneLine'd).
+        String gotNone = LlmSpikeGui.PlayerControllerLLM.buildDecideOnePrompt(snap, "Pick a spell", opts, "Decline / none");
+        Assert.assertTrue(gotNone.contains("  3) Decline / none\n"),
+                "the decline option is appended as the last numbered menu entry");
+    }
+
+    @Test
+    public void buildDecideManyPrompt_matchesTheDecideManyWireFormatExactly() {
+        String snap = "== Turn 5 ==";
+        List<String> opts = Lists.newArrayList("Goblin (1/1)", "Elf (2/1)");
+        String got = LlmSpikeGui.PlayerControllerLLM.buildDecideManyPrompt(snap, "Declare attackers", opts, 0, 2);
+        String expect = snap + "\nPRIORITY: you\nDECISION: Declare attackers\nChoose between 0 and 2 of these (by number):\n"
+                + "  1) Goblin (1/1)\n  2) Elf (2/1)\n"
+                + "Reason briefly, then end with EXACTLY: PICKS: <comma-separated numbers>";
+        Assert.assertEquals(got, expect, "decideMany prompt template drifted");
+    }
+
+    @Test
+    public void playPrompt_prefixPlusTailMatchesTheLlmSeatPlayPrompt() {
+        String snap = "== Turn 2 ==";
+        List<String> labels = Lists.newArrayList("CAST Lightning Bolt", "PLAY LAND Mountain", "PASS (do nothing)");
+        String menuStr = LlmSpikeGui.PlayerControllerLLM.numberedPlayMenu(labels);
+        Assert.assertEquals(menuStr, "  1) CAST Lightning Bolt\n  2) PLAY LAND Mountain\n  3) PASS (do nothing)\n",
+                "numbered play menu format drifted");
+        String got = LlmSpikeGui.PlayerControllerLLM.playPromptPrefix(snap, PhaseType.MAIN1, true, menuStr)
+                + LlmSpikeGui.PlayerControllerLLM.PLAY_PROMPT_TAIL;
+        String expect = snap + "\nDECISION: You have priority (" + PhaseType.MAIN1
+                + ", your main phase). Choose ONE action:\n" + menuStr
+                + "Reason briefly, then end with EXACTLY: CHOICE: <number>";
+        Assert.assertEquals(got, expect, "play prompt (non-plan) template drifted");
+        // Reactive (not own main) window uses the instant-speed wording.
+        String react = LlmSpikeGui.PlayerControllerLLM.playPromptPrefix(snap, PhaseType.COMBAT_DECLARE_BLOCKERS, false, menuStr);
+        Assert.assertTrue(react.contains(", instant-speed window). Choose ONE action:"),
+                "a reactive window reads as an instant-speed window");
+    }
+
+    // ---- MEDIUM fix: the ai-teacher's three bespoke (non-decideOne/Many) prompts — mulligan, attackers
+    //      question, blockers — go through shared builders so they can never drift from the LLM seat's
+    //      wire format. These pins are the byte-for-byte contract both seats emit.
+
+    @Test
+    public void buildMulliganPrompt_matchesTheMulliganWireFormatExactly() {
+        String got = LlmSpikeGui.PlayerControllerLLM.buildMulliganPrompt(7, 1, "Island, Brainstorm, Ponder");
+        String expect = "MULLIGAN DECISION. This is a 7-card hand with 1 land(s): Island, Brainstorm, Ponder"
+                + ". If you MULLIGAN you will look at a NEW hand of only 6"
+                + " cards (each mulligan costs you a card), and you can never go below 5. If you KEEP you play this "
+                + "7-card hand as-is. Keeping a workable hand almost always beats shrinking it. "
+                + "For a combo deck, a hand with your enablers + a payoff is a KEEP even on few lands; only ship a hand "
+                + "that genuinely cannot function. Keep or mulligan? End with EXACTLY one word: KEEP or MULLIGAN.";
+        Assert.assertEquals(got, expect, "mulligan prompt template drifted");
+    }
+
+    @Test
+    public void buildAttackersQuestion_matchesTheAttackersQuestionWireFormatExactly() {
+        // Non-infect: life-based lethal hint, poisonNeeded = 10 - oppPoison, no infect parenthetical.
+        String got = LlmSpikeGui.PlayerControllerLLM.buildAttackersQuestion("Bob", 18, 0, false);
+        String expect = "COMBAT — declare attackers vs Bob (life 18"
+                + "). Pick which creatures attack (attacking with 0 is legal and sometimes correct — "
+                + "weigh their untapped mana and possible blocks). "
+                + "COUNT LETHAL: opp life 18, poison 0/10 -- lethal needs 18 dmg OR 10 poison"
+                + ". If your unblocked/unstoppable damage meets either number, attack with everything needed and WIN NOW.";
+        Assert.assertEquals(got, expect, "attackers question template drifted");
+        // Infect present + existing poison: parenthetical appears, poisonNeeded reflects counters.
+        String gotInf = LlmSpikeGui.PlayerControllerLLM.buildAttackersQuestion("Bob", 20, 3, true);
+        Assert.assertTrue(gotInf.contains("poison 3/10 -- lethal needs 20 dmg OR 7 poison"
+                + " (infect attackers deal poison, not life loss)"),
+                "infect attackers add the poison parenthetical and correct poisonNeeded");
+    }
+
+    @Test
+    public void buildBlockersPrompt_matchesTheBlockersWireFormatExactly() {
+        String snap = "== Turn 6 ==";
+        String got = LlmSpikeGui.PlayerControllerLLM.buildBlockersPrompt(snap, "Goblin (2/2)", "Wall (0/4)");
+        String expect = snap + "\nCOMBAT — declare blockers. Incoming: Goblin (2/2). Your blockers: Wall (0/4). "
+                + "Assign blocks (each blocker blocks one attacker). Weigh your life total vs losing blockers. "
+                + "End with EXACTLY: BLOCKS: blocker->attacker, blocker->attacker   (or BLOCKS: NONE)";
+        Assert.assertEquals(got, expect, "blockers prompt template drifted");
+    }
+
+    @Test(timeOut = 220000)
+    public void aiLogging_fullGame_everyEnumerableAiTeacherRowIsValid() throws Exception {
+        java.io.File dir = java.nio.file.Files.createTempDirectory("ai-log-test").toFile();
+        long seed = 4242L;
+        forge.util.MyRandom.setRandom(new java.util.Random(seed));
+        LlmSpikeGui.EvalLog.closeForTest();
+        LlmSpikeGui.EvalLog.initToDir(dir.getAbsolutePath(), seed);
+        try {
+            Deck d1 = DeckgenUtil.getRandomColorDeck(true);
+            Deck d2 = DeckgenUtil.getRandomColorDeck(true);
+            List<RegisteredPlayer> players = Lists.newArrayList();
+            players.add(new RegisteredPlayer(d1).setPlayer(new LlmSpikeGui.LobbyPlayerAiLogging("AiLog-A")));
+            players.add(new RegisteredPlayer(d2).setPlayer(new LlmSpikeGui.LobbyPlayerAiLogging("AiLog-B")));
+            GameRules rules = new GameRules(GameType.Constructed);
+            Match match = new Match(rules, players, "AiLogTest");
+            final Game game = match.createGame();
+            Thread worker = new Thread(() -> {
+                try { match.startGame(game); }
+                catch (Throwable t) { System.out.println("[AI-LOG-TEST] game thread threw: " + t); }
+            }, "forge-game-ailog");
+            worker.start();
+            worker.join(180000);
+            if (worker.isAlive()) { game.setGameOver(GameEndReason.Draw); worker.join(10000); }
+        } finally {
+            LlmSpikeGui.EvalLog.closeForTest();
+        }
+
+        java.io.File[] files = dir.listFiles((d, n) -> n.endsWith(".jsonl"));
+        Assert.assertNotNull(files, "no jsonl produced");
+        Assert.assertTrue(files.length >= 1, "expected a per-game jsonl file");
+
+        java.util.Set<String> INDEX_STYLE = java.util.Set.of(
+                "ability-to-play", "entity", "zone-change", "targets", "number", "card-name", "mulligan");
+        int aiTeacher = 0, enumerable = 0, promptChecked = 0, passRows = 0;
+        java.util.Map<String, Integer> byType = new java.util.HashMap<>();
+        for (java.io.File f : files) {
+            for (String line : java.nio.file.Files.readAllLines(f.toPath())) {
+                if (!line.contains("\"tier\":\"ai-teacher\"")) continue;
+                aiTeacher++;
+                String type = jstr(line, "type");
+                int nOpt = jint(line, "n_options");
+                int choice = jint(line, "choice");
+                byType.merge(type, 1, Integer::sum);
+                if (nOpt > 0) {
+                    enumerable++;
+                    Assert.assertTrue(line.contains("\"options\":[\""),
+                            "enumerable ai-teacher row must have a non-empty options list: " + line);
+                    // BLOCKER fix: the prompt must be the FULL templated prompt (snapshot + question +
+                    // numbered menu), not a bare board snapshot. Assert against the RAW line (jstr's regex
+                    // truncates a JSON string at the first escaped quote). raw_reply is null on ai-teacher
+                    // rows, so these markers can only come from the prompt field.
+                    Assert.assertFalse(line.contains("\"prompt\":null"),
+                            "enumerable ai-teacher row must carry a non-null prompt: " + line);
+                    Assert.assertTrue(line.contains("DECISION") || line.contains("COMBAT")
+                                    || line.contains("MULLIGAN"),
+                            "ai-teacher prompt must carry the decision framing, not a bare snapshot: " + line);
+                    Assert.assertTrue(line.contains("1)") || line.contains("KEEP or MULLIGAN")
+                                    || line.contains("BLOCKS:"),
+                            "ai-teacher prompt must carry the numbered/keyword option menu: " + line);
+                    promptChecked++;
+                    if ("play".equals(type)) {
+                        // The play row's PASS is logged as choice=-1 (mirrors the LLM seat); every real
+                        // action is a 0-based index into the labels (incl. PASS slot), i.e. < n_options.
+                        Assert.assertTrue(choice == -1 || (choice >= 0 && choice < nOpt),
+                                "play choice must be -1 (PASS) or in [0,n_options): " + line);
+                        if (choice == -1) passRows++;
+                    } else if (INDEX_STYLE.contains(type)) {
+                        Assert.assertTrue(choice >= 0,
+                                "index-style ai-teacher row must never carry a degenerate choice=-1: " + line);
+                        Assert.assertTrue(choice < nOpt,
+                                "index-style choice must be in [0,n_options): " + line);
+                    } else {
+                        Assert.assertTrue(choice >= 0,
+                                "count-style ai-teacher row must never carry a degenerate choice=-1: " + line);
+                        Assert.assertTrue(choice <= nOpt,
+                                "count-style choice must be in [0,n_options] (subset size): " + line);
+                    }
+                }
+            }
+        }
+        System.out.println("[AI-LOG-TEST] ai-teacher rows=" + aiTeacher + " enumerable=" + enumerable
+                + " prompt-checked=" + promptChecked + " play-PASS=" + passRows + " byType=" + byType);
+        Assert.assertTrue(aiTeacher > 0, "the ai-logging seat must emit ai-teacher rows");
+        Assert.assertTrue(enumerable > 0, "at least some ai-teacher rows must be enumerable (n_options>0)");
+        Assert.assertTrue(promptChecked > 0, "at least some ai-teacher rows must carry a full templated prompt");
+    }
+
+    private static int jint(String line, String key) {
+        Matcher m = Pattern.compile("\"" + key + "\":(-?\\d+)").matcher(line);
+        Assert.assertTrue(m.find(), key + " not found in: " + line);
+        return Integer.parseInt(m.group(1));
+    }
+    private static String jstr(String line, String key) {
+        Matcher m = Pattern.compile("\"" + key + "\":\"([^\"]*)\"").matcher(line);
+        Assert.assertTrue(m.find(), key + " not found in: " + line);
+        return m.group(1);
+    }
 }
