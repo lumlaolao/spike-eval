@@ -276,6 +276,481 @@ def test_end_to_end_write():
         check("README records counts", "| train |" in readme)
 
 
+# =========================================================================
+# STAGE-2 (stage2-local-v0) multi-source builder tests
+# =========================================================================
+
+def ai_game(seed, swap, winner, deck_a="Elves", deck_b="Goblins"):
+    return {"t": "game", "seed": seed, "swap": swap,
+            "deck_a": deck_a, "deck_b": deck_b,
+            "controller_a": "ai-log", "controller_b": "ai-log",
+            "smart_a": "opus", "smart_b": "opus",
+            "fast_a": "haiku", "fast_b": "haiku",
+            "winner": winner, "turns": 10, "win_condition": "life",
+            "duration_ms": 100, "plan_a": "elf plan", "plan_b": "gob plan",
+            "engine_sha": "e", "overlay_sha": "o", "deck_sha": "d"}
+
+
+def ai_dec(seat, dtype, choice, n_options, options, prompt="P"):
+    return {"t": "decision", "seat": seat, "turn": 3, "phase": "MAIN1",
+            "type": dtype, "n_options": n_options, "choice": choice,
+            "tier": "ai-teacher", "latency_ms": 0, "fallback": None,
+            "options": options, "prompt": prompt, "raw_reply": None,
+            "finish_reason": None}
+
+
+def _tgt(dtype, choice, n_options, options=None):
+    return m.canonical_target({"type": dtype, "choice": choice,
+                               "n_options": n_options,
+                               "options": options or []})
+
+
+# --------------------------------------------------- canonical targets
+
+def test_canonical_target_single_choice():
+    check("play choice 0 -> CHOICE: 1",
+          _tgt("play", 0, 4, ["a", "b", "c", "PASS (do nothing)"]) == ("CHOICE: 1", "choice"))
+    check("play PASS (choice -1) -> CHOICE: n_options",
+          _tgt("play", -1, 3, ["CAST x", "CAST y", "PASS (do nothing)"]) == ("CHOICE: 3", "pass"))
+    check("zone-change choice 1 -> CHOICE: 2",
+          _tgt("zone-change", 1, 3)[0] == "CHOICE: 2")
+    check("decideOne decline (choice -1, non-play) -> CHOICE: n_options+1",
+          _tgt("zone-change", -1, 2) == ("CHOICE: 3", "decline"))
+    check("targets choice 0 -> CHOICE: 1", _tgt("targets", 0, 2)[0] == "CHOICE: 1")
+
+
+def test_canonical_target_mulligan():
+    check("mulligan KEEP",
+          _tgt("mulligan", 0, 2, ["KEEP", "MULLIGAN"]) == ("KEEP", "mulligan-word"))
+    check("mulligan MULLIGAN",
+          _tgt("mulligan", 1, 2, ["KEEP", "MULLIGAN"])[0] == "MULLIGAN")
+    check("mulligan by convention when options absent",
+          _tgt("mulligan", 0, 2)[0] == "KEEP")
+
+
+def test_canonical_target_counts_and_blocks():
+    check("attackers none -> PICKS: NONE", _tgt("attackers", 0, 3) == ("PICKS: NONE", "count-none"))
+    check("attackers partial -> first-k",
+          _tgt("attackers", 2, 3) == ("PICKS: 1,2", "count-first-k"))
+    check("attackers all -> count-all",
+          _tgt("attackers", 3, 3) == ("PICKS: 1,2,3", "count-all"))
+    check("discard count 1 -> PICKS: 1", _tgt("discard", 1, 2) == ("PICKS: 1", "count-first-k"))
+    check("modes count 1 of 1 -> count-all", _tgt("modes", 1, 1) == ("PICKS: 1", "count-all"))
+    check("blockers none -> BLOCKS: NONE", _tgt("blockers", 0, 2) == ("BLOCKS: NONE", "blocks-none"))
+    check("blockers k>0 underdetermined -> dropped",
+          _tgt("blockers", 2, 3) == (None, "blocks-underdetermined"))
+    check("unknown type dropped", _tgt("mystery-type", 1, 2)[0] is None)
+    check("out-of-range count dropped", _tgt("attackers", 9, 3)[0] is None)
+
+
+def test_canonical_target_fallback_oob():
+    # engine-fallback play rows stamp n_options=-1, choice=-1: the PASS branch
+    # must NOT emit "CHOICE: -1" (harness regex \d+ would parse it as CHOICE: 1
+    # and pick option 0). It must drop instead.
+    check("play PASS with n_options=-1 -> dropped (pass-oob)",
+          _tgt("play", -1, -1) == (None, "pass-oob"))
+    check("decideOne decline with n_options=-1 -> dropped (decline-oob)",
+          _tgt("zone-change", -1, -1) == (None, "decline-oob"))
+    check("play PASS with n_options=0 -> dropped (pass-oob)",
+          _tgt("play", -1, 0) == (None, "pass-oob"))
+    # a well-formed decline at n_options=0 is still valid (menu #1)
+    check("decideOne decline with n_options=0 -> CHOICE: 1",
+          _tgt("zone-change", -1, 0) == ("CHOICE: 1", "decline"))
+
+
+# --------------------------------------------------- win-filter edge cases
+
+def test_ai_teacher_win_filter_basic():
+    pb = m.PreambleBuilder(str(m.DEFAULT_JAVA))
+    with tempfile.TemporaryDirectory() as d:
+        # winner A (Elves): keep Elves rows, drop the losing Goblins seat's rows
+        write_game(d, "game-1-1000.jsonl", ai_game(1, False, "A"), [
+            ai_dec("Elves", "play", 0, 3, ["CAST a", "CAST b", "PASS (do nothing)"], prompt="elf-win"),
+            ai_dec("Goblins", "play", 1, 2, ["CAST g", "PASS (do nothing)"], prompt="gob-lose"),
+        ])
+        # a draw -> nothing at all
+        write_game(d, "game-2-1000.jsonl", ai_game(2, False, "draw"),
+                   [ai_dec("Elves", "play", 0, 2, ["CAST a", "PASS (do nothing)"], prompt="drawn")])
+        # incomplete (no game line) -> skipped
+        write_game(d, "game-3-1000.jsonl", None,
+                   [ai_dec("Elves", "play", 0, 2, ["CAST a", "PASS (do nothing)"], prompt="inflight")])
+        rows, warnings, hyg = m.build_ai_teacher_examples(d, pb)
+        prompts = sorted(e["messages"][1]["content"] for e in rows)
+        check("only winning-seat rows kept", prompts == ["elf-win"], "got %s" % prompts)
+        targets = [e["messages"][2]["content"] for e in rows]
+        check("target synthesized (CHOICE: 1)", targets == ["CHOICE: 1"])
+        check("draw contributes nothing", all("drawn" not in p for p in prompts))
+        check("in-flight contributes nothing", all("inflight" not in p for p in prompts))
+        check("system is terse framing for the winning seat",
+              'piloting "Elves"' in rows[0]["messages"][0]["content"]
+              and "SNAPSHOT LEGEND" not in rows[0]["messages"][0]["content"])
+        check("provenance carries source/deck/type/synth",
+              rows[0]["meta"]["source"] == "ai-teacher"
+              and rows[0]["meta"]["deck"] == "Elves"
+              and rows[0]["meta"]["type"] == "play"
+              and rows[0]["meta"]["target_synth"] == "choice")
+
+
+def test_ai_teacher_swap_seats():
+    pb = m.PreambleBuilder(str(m.DEFAULT_JAVA))
+    with tempfile.TemporaryDirectory() as d:
+        # swap=True, winner B (identity B = Goblins). winner is identity-keyed,
+        # so the WINNING seat is still deck_b == Goblins regardless of swap.
+        write_game(d, "game-7-1000.jsonl", ai_game(7, True, "B"), [
+            ai_dec("Elves", "play", 0, 2, ["CAST a", "PASS (do nothing)"], prompt="elf"),
+            ai_dec("Goblins", "play", 1, 3, ["CAST g", "CAST h", "PASS (do nothing)"], prompt="gob"),
+        ])
+        rows, _, _ = m.build_ai_teacher_examples(d, pb)
+        prompts = sorted(e["messages"][1]["content"] for e in rows)
+        check("swap: winning identity B seat (Goblins) kept", prompts == ["gob"])
+        check("swap flag carried", rows[0]["meta"]["swap"] is True)
+
+
+def test_ai_teacher_pass_and_count_targets():
+    pb = m.PreambleBuilder(str(m.DEFAULT_JAVA))
+    with tempfile.TemporaryDirectory() as d:
+        write_game(d, "game-1-1000.jsonl", ai_game(1, False, "A"), [
+            ai_dec("Elves", "play", -1, 3, ["CAST a", "CAST b", "PASS (do nothing)"], prompt="pass"),
+            ai_dec("Elves", "attackers", 2, 2, ["Elf (2/2)", "Elf (1/1)"], prompt="atk"),
+            ai_dec("Elves", "blockers", 0, 2, ["A (1/1)", "B (2/2)"], prompt="noblock"),
+            ai_dec("Elves", "blockers", 1, 2, ["A (1/1)", "B (2/2)"], prompt="block-drop"),
+            ai_dec("Elves", "mulligan", 1, 2, ["KEEP", "MULLIGAN"], prompt="mull"),
+        ])
+        rows, _, hyg = m.build_ai_teacher_examples(d, pb)
+        by_prompt = {e["messages"][1]["content"]: e["messages"][2]["content"] for e in rows}
+        check("PASS -> CHOICE: 3 (n_options)", by_prompt.get("pass") == "CHOICE: 3")
+        check("attackers all -> PICKS: 1,2", by_prompt.get("atk") == "PICKS: 1,2")
+        check("no-block -> BLOCKS: NONE", by_prompt.get("noblock") == "BLOCKS: NONE")
+        check("mulligan word", by_prompt.get("mull") == "MULLIGAN")
+        check("underdetermined block dropped (not emitted)", "block-drop" not in by_prompt)
+        check("drop counted in hygiene", hyg.get("drop_blocks-underdetermined") == 1)
+
+
+def test_ai_teacher_drops_fallback_rows():
+    pb = m.PreambleBuilder(str(m.DEFAULT_JAVA))
+    with tempfile.TemporaryDirectory() as d:
+        good = ai_dec("Elves", "play", 0, 2, ["CAST a", "PASS (do nothing)"],
+                      prompt="clean")
+        # engine-fallback row as it appears in the real corpora: the AI's pick
+        # wasn't in the menu -> fallback set, n_options=-1, choice=-1.
+        fb = ai_dec("Elves", "play", -1, -1,
+                    ["CAST x", "PASS (do nothing)"], prompt="fallback")
+        fb["fallback"] = "ai-choice-not-in-menu"
+        write_game(d, "game-1-1000.jsonl", ai_game(1, False, "A"), [good, fb])
+        rows, _, hyg = m.build_ai_teacher_examples(d, pb)
+        prompts = sorted(e["messages"][1]["content"] for e in rows)
+        check("engine-fallback row dropped, clean row kept",
+              prompts == ["clean"], "got %s" % prompts)
+        check("no 'CHOICE: -1' target ever emitted",
+              all(e["messages"][2]["content"] != "CHOICE: -1" for e in rows))
+        check("fallback drop counted in hygiene", hyg.get("drop_fallback") == 1)
+
+
+def test_dedupe_keyed():
+    def ai_row(key, rid):
+        return {"_key": key, "_rid": rid, "_source": "ai-teacher"}
+    def pre_row(rid):
+        return {"_rid": rid, "_source": "prebuilt"}  # no _key
+    by_source = {
+        "ai-teacher:X": [ai_row(("Elves", "S", "CHOICE: 3"), "a1"),
+                         ai_row(("Elves", "S", "CHOICE: 3"), "a2"),   # dup of a1
+                         ai_row(("Elves", "T", "CHOICE: 1"), "a3")],
+        "ai-teacher:Y": [ai_row(("Elves", "S", "CHOICE: 3"), "b1")],  # cross-source dup
+        "prebuilt:P": [pre_row("p1"), pre_row("p1")],  # identical, but kept (no _key)
+    }
+    out, dropped = m.dedupe_keyed(by_source)
+    check("cross-source keyed dups removed (a2 + b1)", dropped == 2, "got %d" % dropped)
+    xr = [r["_rid"] for r in out["ai-teacher:X"]]
+    check("first occurrence kept within source", xr == ["a1", "a3"], "got %s" % xr)
+    check("cross-source dup emptied", out["ai-teacher:Y"] == [])
+    check("prebuilt rows never deduped", len(out["prebuilt:P"]) == 2)
+    o2, d2 = m.dedupe_keyed(by_source)
+    check("dedupe_keyed deterministic", d2 == dropped
+          and [r["_rid"] for r in o2["ai-teacher:X"]] == xr)
+
+
+def test_ai_teacher_exact_only_drops_partial():
+    pb = m.PreambleBuilder(str(m.DEFAULT_JAVA))
+    with tempfile.TemporaryDirectory() as d:
+        write_game(d, "game-1-1000.jsonl", ai_game(1, False, "A"), [
+            ai_dec("Elves", "attackers", 1, 3, ["a", "b", "c"], prompt="partial"),   # first-k
+            ai_dec("Elves", "attackers", 3, 3, ["a", "b", "c"], prompt="all"),       # count-all
+            ai_dec("Elves", "attackers", 0, 3, ["a", "b", "c"], prompt="none"),      # count-none
+        ])
+        rows, _, _ = m.build_ai_teacher_examples(d, pb, count_style="exact-only")
+        kept = sorted(e["messages"][1]["content"] for e in rows)
+        check("exact-only drops partial first-k, keeps k in {0,n}",
+              kept == ["all", "none"], "got %s" % kept)
+
+
+def test_ai_teacher_reads_tree():
+    pb = m.PreambleBuilder(str(m.DEFAULT_JAVA))
+    with tempfile.TemporaryDirectory() as d:
+        for mu in ("elves__vs__goblins", "ant__vs__dnt"):
+            sub = Path(d) / mu
+            sub.mkdir()
+            write_game(sub, "game-1-1000.jsonl", ai_game(1, False, "A"),
+                       [ai_dec("Elves", "play", 0, 2, ["CAST a", "PASS (do nothing)"], prompt=mu)])
+        rows, _, _ = m.build_ai_teacher_examples(d, pb)
+        prompts = sorted(e["messages"][1]["content"] for e in rows)
+        check("tree walk finds both matchup subdirs",
+              prompts == ["ant__vs__dnt", "elves__vs__goblins"], "got %s" % prompts)
+        gkeys = {e["_gkey"] for e in rows}
+        check("same seed in different subdirs -> distinct game keys", len(gkeys) == 2)
+
+
+# --------------------------------------------------- prebuilt passthrough
+
+def test_prebuilt_passthrough():
+    def row(u, a):
+        return json.dumps({"messages": [
+            {"role": "system", "content": "S"},
+            {"role": "user", "content": u},
+            {"role": "assistant", "content": a}]})
+    with tempfile.TemporaryDirectory() as d:
+        slice_dir = Path(d) / "slice"
+        slice_dir.mkdir()
+        (slice_dir / "train.jsonl").write_text(
+            row("t1", "CHOICE: 1") + "\n" + row("t2", "PICKS: 1,2") + "\n"
+            + row("bad", "reason <think>hidden</think> CHOICE: 1") + "\n")
+        (slice_dir / "valid.jsonl").write_text(row("v1", "KEEP") + "\n")
+        rows, warnings, hyg = m.build_prebuilt_examples(str(slice_dir))
+        users = sorted(e["messages"][1]["content"] for e in rows)
+        check("prebuilt kept verbatim, <think> row dropped",
+              users == ["t1", "t2", "v1"], "got %s" % users)
+        check("<think> drop counted", hyg.get("drop_think_block") == 1)
+        splits = {e["meta"]["split"] for e in rows}
+        check("original split preserved (train+valid)", splits == {"train", "valid"})
+        v = [e for e in rows if e["meta"]["split"] == "valid"]
+        check("valid row from valid.jsonl", v and v[0]["messages"][1]["content"] == "v1")
+        check("prebuilt rows carry no game key (keep own split)",
+              all(e["_gkey"] is None for e in rows))
+        check("provenance source=prebuilt", all(e["meta"]["source"] == "prebuilt" for e in rows))
+
+
+def test_prebuilt_single_file_all_train():
+    with tempfile.TemporaryDirectory() as d:
+        fp = Path(d) / "puzzles.jsonl"
+        fp.write_text(json.dumps({"messages": [
+            {"role": "user", "content": "puz"},
+            {"role": "assistant", "content": "{\"line\": []}"}]}) + "\n")
+        rows, _, _ = m.build_prebuilt_examples(str(fp))
+        check("single file -> all train", rows and rows[0]["_split"] == "train")
+        check("prebuilt_kind labeled from filename",
+              rows[0]["meta"]["prebuilt_kind"] == "puzzles")
+
+
+# --------------------------------------------------- allocation / stratify
+
+def test_allocate_weighted():
+    a = m.allocate_weighted(10, {"x": (1.0, 100), "y": (1.0, 100)})
+    check("even split", a == {"x": 5, "y": 5}, "got %s" % a)
+    b = m.allocate_weighted(10, {"x": (1.0, 3), "y": (1.0, 100)})
+    check("clamp to availability + redistribute", b == {"x": 3, "y": 7}, "got %s" % b)
+    c = m.allocate_weighted(1000, {"x": (1.0, 3), "y": (1.0, 4)})
+    check("budget exceeds total -> take all", c == {"x": 3, "y": 4}, "got %s" % c)
+    w = m.allocate_weighted(12, {"x": (3.0, 100), "y": (1.0, 100)})
+    check("weight bias 3:1 sums to budget", sum(w.values()) == 12 and w["x"] > w["y"],
+          "got %s" % w)
+    check("allocation deterministic",
+          m.allocate_weighted(7, {"a": (1.0, 5), "b": (2.0, 5), "c": (1.0, 5)})
+          == m.allocate_weighted(7, {"a": (1.0, 5), "b": (2.0, 5), "c": (1.0, 5)}))
+
+
+def _cellrows(cell, n, tag):
+    return [{"_cell": cell, "_rid": "%s-%d" % (tag, i),
+             "meta": {"deck": cell[0], "type": cell[1]}} for i in range(n)]
+
+
+def test_stratified_sample_balances_and_oversamples():
+    rows = (_cellrows(("Elves", "play"), 50, "ep")
+            + _cellrows(("Goblins", "play"), 50, "gp")
+            + _cellrows(("Elves", "modes"), 2, "em")
+            + _cellrows(("Goblins", "blockers"), 1, "gb"))
+    out = m.stratified_sample(rows, 20, seed=99)
+    by_cell = {}
+    for r in out:
+        by_cell[r["_cell"]] = by_cell.get(r["_cell"], 0) + 1
+    check("stratified total == cap", len(out) == 20, "got %d" % len(out))
+    check("rare 'modes' cell kept in full (oversampled)", by_cell.get(("Elves", "modes")) == 2)
+    check("rare 'blockers' cell kept in full", by_cell.get(("Goblins", "blockers")) == 1)
+    ep, gp = by_cell.get(("Elves", "play"), 0), by_cell.get(("Goblins", "play"), 0)
+    check("play rows balanced across the two decks (within 1)", abs(ep - gp) <= 1,
+          "got Elves=%d Goblins=%d" % (ep, gp))
+    check("no single (deck,play) cell dominates", ep < 12 and gp < 12)
+    check("stratified sampling deterministic",
+          [r["_rid"] for r in m.stratified_sample(rows, 20, seed=99)]
+          == [r["_rid"] for r in out])
+
+
+def test_apply_mix_reserves_curated_caps_ai_teacher():
+    ai = _cellrows(("Elves", "play"), 40, "ep") + _cellrows(("Goblins", "play"), 40, "gp")
+    for r in ai:
+        r["_rid"] = "ai-" + r["_rid"]
+    pre = [{"_cell": ("puzzle", "prebuilt"), "_rid": "pz-%d" % i,
+            "meta": {"deck": "puzzle", "type": "prebuilt"}} for i in range(10)]
+    by_source = {"ai-teacher:X": ai, "prebuilt:Y": pre}
+    kept, report = m.apply_mix(by_source, {"ai-teacher:X": 1.0, "prebuilt:Y": 1.0},
+                               {}, 30, sample_seed=5)
+    check("curated prebuilt kept in FULL under cap", len(kept["prebuilt:Y"]) == 10)
+    check("ai-teacher fills remaining budget (30-10)", len(kept["ai-teacher:X"]) == 20)
+    check("global total == cap", len(kept["ai-teacher:X"]) + len(kept["prebuilt:Y"]) == 30)
+    # per-source cap
+    kept2, _ = m.apply_mix(by_source, {"ai-teacher:X": 1.0, "prebuilt:Y": 1.0},
+                           {"ai-teacher:X": 12}, None, sample_seed=5)
+    check("per-source cap applied (stratified)", len(kept2["ai-teacher:X"]) == 12)
+    check("uncapped source untouched w/o global cap", len(kept2["prebuilt:Y"]) == 10)
+
+
+# --------------------------------------------------- stage-2 end to end
+
+def test_stage2_end_to_end():
+    pb = m.PreambleBuilder(str(m.DEFAULT_JAVA))
+    with tempfile.TemporaryDirectory() as d:
+        ai_root = Path(d) / "selfplay"
+        (ai_root / "e_vs_g").mkdir(parents=True)
+        for seed in range(1, 9):
+            write_game(ai_root / "e_vs_g", "game-%d-1000.jsonl" % seed,
+                       ai_game(seed, False, "A"), [
+                           ai_dec("Elves", "play", 0, 2, ["CAST a", "PASS (do nothing)"], prompt="p%d" % seed),
+                           ai_dec("Elves", "attackers", 1, 2, ["x", "y"], prompt="a%d" % seed),
+                       ])
+        pre = Path(d) / "puzzles.jsonl"
+        pre.write_text("\n".join(json.dumps({"messages": [
+            {"role": "user", "content": "puz%d" % i},
+            {"role": "assistant", "content": "{\"line\": []}"}]}) for i in range(6)) + "\n")
+
+        specs = [{"type": "ai-teacher", "path": str(ai_root), "weight": 1.0},
+                 {"type": "prebuilt", "path": str(pre), "weight": 1.0}]
+        out = Path(d) / "out"
+
+        class A:  # minimal args stand-in
+            source = specs
+            out_dir = str(out)
+            cap = 12
+            cap_per_source = None
+            sample_seed = 20260723
+            val_frac = 0.25
+            split_seed = 20260722
+            count_style = "first-k"
+            java = str(m.DEFAULT_JAVA)
+        rc = m.run_stage2(A(), pb)
+        check("run_stage2 returns 0", rc == 0)
+        train = (out / "train.jsonl").read_text().strip().splitlines()
+        valid = (out / "valid.jsonl").read_text().strip().splitlines()
+        total = len(train) + len(valid)
+        check("global cap respected", total == 12, "got %d" % total)
+        # every emitted assistant is a canonical terse line or puzzle JSON; no <think>
+        alltext = (out / "train.jsonl").read_text() + (out / "valid.jsonl").read_text()
+        check("no <think> anywhere in targets", "<think>" not in alltext)
+        # prebuilt curated kept in full (6), ai-teacher fills the rest (6)
+        meta = [json.loads(x) for x in (out / "meta.jsonl").read_text().strip().splitlines()]
+        srcs = {}
+        for r in meta:
+            srcs[r["source"]] = srcs.get(r["source"], 0) + 1
+        check("curated prebuilt fully retained under cap", srcs.get("prebuilt") == 6)
+        check("ai-teacher fills remaining budget", srcs.get("ai-teacher") == 6)
+        check("meta aligns line-count with data",
+              len([r for r in meta if r["split"] == "train"]) == len(train))
+        check("README + counts table written",
+              (out / "README.md").exists()
+              and "Counts by (source, deck, type)" in (out / "README.md").read_text())
+        # prebuilt keeps its own (train) split; ai-teacher splits by game
+        pre_splits = {r["split"] for r in meta if r["source"] == "prebuilt"}
+        check("prebuilt kept its original split (train)", pre_splits == {"train"})
+
+
+def test_stage2_empty_source_hard_fails():
+    pb = m.PreambleBuilder(str(m.DEFAULT_JAVA))
+    with tempfile.TemporaryDirectory() as d:
+        out = Path(d) / "out"
+
+        class A:  # a prebuilt source pointing at a non-existent path -> 0 rows
+            source = [{"type": "prebuilt",
+                       "path": str(Path(d) / "does-not-exist"), "weight": 1.0}]
+            out_dir = str(out)
+            cap = None
+            cap_per_source = None
+            sample_seed = 1
+            val_frac = 0.1
+            split_seed = 20260722
+            count_style = "first-k"
+            java = str(m.DEFAULT_JAVA)
+        raised = False
+        try:
+            m.run_stage2(A(), pb)
+        except SystemExit as e:
+            raised = True
+            check("0-row source error names the offending source",
+                  "0 rows" in str(e) and "does-not-exist" in str(e))
+        check("a declared source contributing 0 rows hard-fails", raised)
+
+
+def test_stage2_dedup_across_games():
+    pb = m.PreambleBuilder(str(m.DEFAULT_JAVA))
+    with tempfile.TemporaryDirectory() as d:
+        ai_root = Path(d) / "sp"
+        (ai_root / "mu").mkdir(parents=True)
+        # 6 DIFFERENT games, each with the SAME normalized PASS decision -> the
+        # canonical target collapses to one row after dedup (identical seat +
+        # state + target across games).
+        for seed in range(1, 7):
+            write_game(ai_root / "mu", "game-%d-1000.jsonl" % seed,
+                       ai_game(seed, False, "A"),
+                       [ai_dec("Elves", "play", -1, 2,
+                               ["CAST a", "PASS (do nothing)"], prompt="same state")])
+        specs = [{"type": "ai-teacher", "path": str(ai_root), "weight": 1.0}]
+        out = Path(d) / "out"
+
+        class A:
+            source = specs
+            out_dir = str(out)
+            cap = None
+            cap_per_source = None
+            sample_seed = 7
+            val_frac = 0.5
+            split_seed = 20260722
+            count_style = "first-k"
+            java = str(m.DEFAULT_JAVA)
+        m.run_stage2(A(), pb)
+        train = (out / "train.jsonl").read_text().strip().splitlines()
+        valid = (out / "valid.jsonl").read_text().strip().splitlines()
+        check("identical (state,target) rows from 6 games deduped to 1",
+              len(train) + len(valid) == 1,
+              "got %d" % (len(train) + len(valid)))
+
+
+def test_stage2_determinism():
+    pb = m.PreambleBuilder(str(m.DEFAULT_JAVA))
+    with tempfile.TemporaryDirectory() as d:
+        ai_root = Path(d) / "sp"
+        (ai_root / "mu").mkdir(parents=True)
+        for seed in range(1, 12):
+            write_game(ai_root / "mu", "game-%d-1000.jsonl" % seed,
+                       ai_game(seed, False, "A"),
+                       [ai_dec("Elves", "play", 0, 2, ["CAST a", "PASS (do nothing)"], prompt="p%d" % seed)])
+        specs = [{"type": "ai-teacher", "path": str(ai_root), "weight": 1.0}]
+
+        def build(tag):
+            out = Path(d) / tag
+
+            class A:
+                source = specs
+                out_dir = str(out)
+                cap = 5
+                cap_per_source = None
+                sample_seed = 42
+                val_frac = 0.2
+                split_seed = 20260722
+                count_style = "first-k"
+                java = str(m.DEFAULT_JAVA)
+            m.run_stage2(A(), pb)
+            return (out / "train.jsonl").read_text(), (out / "valid.jsonl").read_text()
+        a = build("r1")
+        b = build("r2")
+        check("stage-2 build is fully deterministic", a == b)
+
+
 # ----------------------------------------------------------------- runner
 
 def main():

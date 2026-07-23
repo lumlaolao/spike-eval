@@ -56,6 +56,7 @@ import hashlib
 import json
 import re
 import sys
+from collections import Counter, defaultdict
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -398,6 +399,622 @@ def dedupe(examples):
     return kept, dropped
 
 
+# ===========================================================================
+# STAGE-2 (stage2-local-v0) MULTI-SOURCE BUILDER
+# ===========================================================================
+#
+# Everything below is additive: the Stage-1 winning-trajectory path above is
+# untouched. The Stage-2 builder mixes three source kinds under CLI-declared
+# weights + a stratified global cap:
+#
+#   ai-teacher  — ai-log SELF-PLAY corpora (a runs dir TREE). Win-filter keeps
+#                 only decisions from the seat that WON that game. These rows
+#                 carry tier="ai-teacher" and NO model reply, so we synthesize
+#                 the assistant target as the CANONICAL TERSE answer the harness
+#                 would parse for that decision (see canonical_target()).
+#   prebuilt    — an already-built chat-format slice (dir with train/valid.jsonl
+#                 or a single .jsonl). Re-emitted VERBATIM with provenance,
+#                 keeping its original split (used for the deepseek smart-tier
+#                 CoT slice and the 61 puzzle-CoT rows x2).
+#   win         — the Stage-1 winning-trajectory path (DIR:BUILD), reused as-is.
+#
+# ------------------------------------------------ canonical ai-teacher targets
+#
+# ai-log rows record only the DECISION, not any prose. We emit exactly the final
+# line a perfectly-behaved model would write for that decision — derived from
+# how LlmSpikeGui.java PARSES replies (the "ANSWER CONTRACT" in the preamble and
+# the decideOne/decideMany/play/mulligan/blockers routers):
+#
+#   * single numbered pick (play, zone-change, targets, entity, confirm, number,
+#     card-name, ability-to-play): choice is a 0-BASED index into the logged
+#     `options`; the harness parses `CHOICE: <1-based number>`  ->  emit
+#     "CHOICE: <choice+1>".
+#   * PASS (play, choice == -1): the PASS option is the LAST entry of the logged
+#     `options` (menu number == n_options; evalDec logged n_options == passIdx).
+#     Worked example C in the preamble: "CHOICE: 4 (the PASS / decline option)".
+#     ->  emit "CHOICE: <n_options>".
+#   * explicit decline on a decideOne site (choice == -1, non-play): the
+#     "Decline / none" label is NOT in the logged `options`, so its menu number
+#     is n_options+1 (verified against real zone-change rows).  ->  emit
+#     "CHOICE: <n_options+1>".
+#   * subset / count sites (attackers, discard, modes, sacrifice, reveal,
+#     cards-for-effect, order, mulligan-bottom, damage-assign): evalDec logs
+#     choice = the SUBSET SIZE k (never which elements). The harness parses
+#     `PICKS: <comma-separated numbers>`.  k==0 -> "PICKS: NONE"; else emit the
+#     cardinality-faithful canonical "PICKS: 1,2,...,k". This is EXACT when
+#     k==0 (none) or k==n_options (all); for 0<k<n_options the SPECIFIC subset
+#     is not recoverable from the log, so first-k is a valid, correctly-sized
+#     REPRESENTATIVE (see --count-style to drop these instead).
+#   * blockers: choice = number of blocker->attacker assignments, but the
+#     PAIRING is not logged. k==0 -> "BLOCKS: NONE" (exact); k>0 is
+#     underdetermined and always DROPPED.
+#   * mulligan: options are ["KEEP","MULLIGAN"], reply is one word.  ->  emit
+#     options[choice] (KEEP/MULLIGAN).
+#
+# Unknown decision types are dropped (never guessed) so no wrong-format target
+# is ever emitted.
+
+# subset/count sites whose reply is `PICKS: ...` (choice == subset size)
+COUNT_PICKS_TYPES = frozenset((
+    "attackers", "discard", "modes", "sacrifice", "reveal",
+    "cards-for-effect", "order", "mulligan-bottom", "damage-assign"))
+# NOTE: reveal / cards-for-effect / order / damage-assign never appear in
+# ai-teacher corpora today (the ai-log seat logs combat damage as
+# "damage-order", which is deliberately unhandled -> dropped as unknown-type).
+# Kept for forward-compat with the model seat's row types; an emitted-but-
+# unhandled type always lands in hygiene as drop_unknown_type, never a guess.
+# single numbered pick sites whose reply is `CHOICE: <n>` (choice == 0-based idx)
+SINGLE_CHOICE_TYPES = frozenset((
+    "play", "zone-change", "targets", "target", "entity",
+    "ability-to-play", "confirm", "number", "card-name"))
+# blockers: reply is `BLOCKS: ...` (choice == # assignments; pairing not logged)
+BLOCKS_TYPES = frozenset(("blockers",))
+
+
+def canonical_target(d):
+    """Canonical terse assistant target for an ai-teacher decision row.
+
+    Returns (target_str, kind). target_str is None when the row cannot be
+    faithfully reconstructed (kind then names the reason). kind is one of:
+    choice / pass / decline / count-none / count-all / count-first-k /
+    blocks-none / mulligan-word  (emitted), or a drop reason (dropped)."""
+    typ = d.get("type")
+    ch = d.get("choice")
+    opts = d.get("options") if isinstance(d.get("options"), list) else []
+    n = d.get("n_options")
+    if not isinstance(n, int) or isinstance(n, bool):
+        n = len(opts)
+    if not isinstance(ch, int) or isinstance(ch, bool):
+        return None, "no-choice"
+
+    if typ == "mulligan":
+        if 0 <= ch < len(opts) and isinstance(opts[ch], str):
+            return opts[ch], "mulligan-word"
+        if ch in (0, 1):                      # 0==KEEP, 1==MULLIGAN by convention
+            return ("KEEP" if ch == 0 else "MULLIGAN"), "mulligan-word"
+        return None, "mulligan-oob"
+
+    if typ in COUNT_PICKS_TYPES:
+        if ch == 0:
+            return "PICKS: NONE", "count-none"
+        if 1 <= ch <= n:
+            picks = "PICKS: " + ",".join(str(i) for i in range(1, ch + 1))
+            return picks, ("count-all" if ch == n else "count-first-k")
+        return None, "count-oob"
+
+    if typ in BLOCKS_TYPES:
+        if ch == 0:
+            return "BLOCKS: NONE", "blocks-none"
+        return None, "blocks-underdetermined"
+
+    if typ in SINGLE_CHOICE_TYPES:
+        if ch == -1:
+            # play: PASS is the last logged option (menu # == n_options).
+            # other decideOne sites: the decline label sits at n_options+1.
+            # A malformed/engine-fallback row (e.g. n_options == -1, as ai-log
+            # stamps for "ai-choice-not-in-menu") would produce a non-positive
+            # CHOICE number the harness (regex \d+) cannot parse, silently
+            # picking option 0. Guard it and drop rather than emit a bad target.
+            if typ == "play":
+                return ("CHOICE: %d" % n, "pass") if n >= 1 else (None, "pass-oob")
+            return (("CHOICE: %d" % (n + 1), "decline") if n >= 0
+                    else (None, "decline-oob"))
+        if ch >= 0:
+            return "CHOICE: %d" % (ch + 1), "choice"
+        return None, "choice-oob"
+
+    return None, "unknown-type"
+
+
+def winning_ai_seat(game):
+    """(seat name, identity letter) of the ai-log identity that WON, or
+    (None, reason) for a draw / missing / non-ai-log winner. winner is
+    IDENTITY-keyed (never flipped by swap), so the winning seat is
+    deck_<winning identity> regardless of seat swap."""
+    winner = game.get("winner")
+    if winner not in ("A", "B"):
+        return None
+    ident = "a" if winner == "A" else "b"
+    if game.get("controller_%s" % ident) not in ("ai-log", "ai", "llm"):
+        return None
+    return game.get("deck_%s" % ident), ident
+
+
+def iter_game_dirs(root):
+    """Directories under `root` (inclusive) that contain game-*.jsonl files.
+
+    ai-teacher corpora are dir TREES (runs/d1-selfplay/<matchup>/game-*.jsonl);
+    d0-validate keeps files at the top level. We group by containing dir so the
+    (seed, swap) rerun-dedup in load_complete_games stays per-matchup."""
+    root = Path(root)
+    dirs = set()
+    if root.is_dir():
+        if any(root.glob("game-*.jsonl")):
+            dirs.add(root)
+        for fp in root.rglob("game-*.jsonl"):
+            dirs.add(fp.parent)
+    return sorted(dirs, key=str)
+
+
+def _resolve(path):
+    return (REPO_ROOT / path) if not Path(path).is_absolute() else Path(path)
+
+
+def build_ai_teacher_examples(dir_path, preamble, count_style="first-k"):
+    """Scan an ai-log self-play corpus TREE -> Stage-2 example dicts.
+
+    Win-filter: only the winning seat's ai-teacher decisions. Assistant target
+    is the canonical terse answer. System message is the TERSE framing for that
+    seat+plan (terse never carries STATIC_REFERENCE in any build) so the
+    system's requested format agrees with the choice-only answer we emit."""
+    examples, warnings = [], []
+    hyg = Counter()
+    root = _resolve(dir_path)
+    source_tag = str(dir_path)
+    for gd in iter_game_dirs(root):
+        games, w = load_complete_games(gd)
+        rel = str(gd.relative_to(root)) if gd != root else "."
+        warnings.extend("%s[%s]: %s" % (source_tag, rel, x) for x in w)
+        for entry in games:
+            g = entry["game"]
+            won = winning_ai_seat(g)
+            if won is None:
+                hyg["skip_game_draw_or_invalid"] += 1
+                continue
+            seat, ident = won
+            plan = g.get("plan_%s" % ident) or ""
+            system = preamble.base(seat, plan, terse=True)
+            gkey = "ai-teacher#%s#%s#%s" % (source_tag, rel, g.get("seed"))
+            for di, d in enumerate(entry["decisions"]):
+                if d.get("seat") != seat:
+                    continue
+                if d.get("tier") != "ai-teacher":
+                    hyg["skip_nonteacher_tier"] += 1
+                    continue
+                prompt = d.get("prompt") or ""
+                if not prompt.strip():
+                    hyg["drop_no_prompt"] += 1
+                    continue
+                # Engine-fallback rows are NOT genuine teacher choices: the
+                # ai-log stamps fallback="ai-choice-not-in-menu" (with
+                # n_options=-1, choice=-1) when the AI's pick wasn't in the menu
+                # and the engine substituted its own. Mirror Stage-1's fallback
+                # drop so we never mint a target from a degenerate fallback.
+                if d.get("fallback") is not None:
+                    hyg["drop_fallback"] += 1
+                    continue
+                target, kind = canonical_target(d)
+                if target is None:
+                    hyg["drop_%s" % kind] += 1
+                    continue
+                if count_style == "exact-only" and kind == "count-first-k":
+                    hyg["drop_exact_only_partial"] += 1
+                    continue
+                hyg["emit_%s" % kind] += 1
+                dtype = d.get("type")
+                examples.append({
+                    "messages": [
+                        {"role": "system", "content": system},
+                        {"role": "user", "content": prompt},
+                        {"role": "assistant", "content": target},
+                    ],
+                    "meta": {
+                        "source": "ai-teacher",
+                        "source_dir": source_tag,
+                        "source_subdir": rel,
+                        "source_file": entry["file"],
+                        "seed": g.get("seed"),
+                        "swap": bool(g.get("swap", False)),
+                        "winner": g.get("winner"),
+                        "llm_identity": ident.upper(),
+                        "seat": seat,
+                        "deck": seat,
+                        "model": g.get("smart_%s" % ident),
+                        "teacher_controller": g.get("controller_%s" % ident),
+                        "engine_sha": g.get("engine_sha"),
+                        "overlay_sha": g.get("overlay_sha"),
+                        "deck_sha": g.get("deck_sha"),
+                        "tier": "ai-teacher",
+                        "decision_index": di,
+                        "type": dtype,
+                        "choice": d.get("choice"),
+                        "n_options": d.get("n_options"),
+                        "target_synth": kind,
+                    },
+                    "_split": None,
+                    "_gkey": gkey,
+                    "_cell": (seat, dtype),
+                    "_rid": "%s|%s|%s|%d" % (source_tag, rel, entry["file"], di),
+                    "_source": "ai-teacher",
+                    # dedup key material (not emitted): identical
+                    # (seat, normalized-state, target) rows from DIFFERENT games
+                    # would otherwise both land in the by-game split and can leak
+                    # a byte-identical exemplar into both train and valid.
+                    "_key": (seat, normalize_state(prompt), target),
+                })
+    return examples, warnings, hyg
+
+
+def dedupe_keyed(by_source):
+    """Drop rows whose `_key` already appeared, across every source that carries
+    one (ai-teacher + win). Prebuilt rows have no `_key` and are NEVER deduped
+    (curated slices, e.g. the 61 puzzle rows x2, may repeat rows on purpose).
+
+    This runs BEFORE the stratified cap and the by-game split, so byte-identical
+    (seat, normalized-state, target) exemplars cannot (a) leak into both
+    train.jsonl and valid.jsonl nor (b) over-represent the ~identical PASS play
+    rows that dominate the corpus. Keeps the first occurrence in
+    (source-insertion, build) order; deterministic. Returns (by_source, dropped).
+    """
+    seen, dropped = set(), 0
+    out = {}
+    for name, rows in by_source.items():
+        kept = []
+        for r in rows:
+            k = r.get("_key")
+            if k is None:
+                kept.append(r)
+                continue
+            if k in seen:
+                dropped += 1
+                continue
+            seen.add(k)
+            kept.append(r)
+        out[name] = kept
+    return out, dropped
+
+
+def build_prebuilt_examples(path, kind_label=None):
+    """Re-emit an already-built chat-format slice VERBATIM with provenance.
+
+    `path` is a dir (train.jsonl [+ valid.jsonl], split preserved) or a single
+    .jsonl (all rows -> train). Rows must be MLX chat format
+    {"messages":[...]}. Any row whose assistant text contains a <think> block is
+    DROPPED (Stage-2 targets carry no <think> anywhere)."""
+    examples, warnings = [], []
+    hyg = Counter()
+    p = _resolve(path)
+    if p.is_dir():
+        files = [(p / "train.jsonl", "train"), (p / "valid.jsonl", "valid")]
+        files = [(f, s) for f, s in files if f.exists()]
+        if not files:
+            warnings.append("prebuilt %s: no train.jsonl/valid.jsonl" % path)
+    elif p.is_file():
+        files = [(p, "train")]
+    else:
+        warnings.append("prebuilt %s: not found" % path)
+        files = []
+    label = kind_label or (p.stem if p.is_file() else p.name)
+    for fp, split in files:
+        try:
+            lines = fp.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError as e:
+            warnings.append("prebuilt %s: unreadable (%s)" % (fp, e))
+            continue
+        for idx, line in enumerate(lines):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except (json.JSONDecodeError, ValueError):
+                hyg["drop_malformed"] += 1
+                continue
+            msgs = rec.get("messages") if isinstance(rec, dict) else None
+            if not isinstance(msgs, list) or not msgs:
+                hyg["drop_no_messages"] += 1
+                continue
+            asst = next((m for m in reversed(msgs)
+                         if isinstance(m, dict) and m.get("role") == "assistant"),
+                        None)
+            if asst is not None and "<think>" in (asst.get("content") or ""):
+                hyg["drop_think_block"] += 1
+                continue
+            hyg["emit"] += 1
+            examples.append({
+                "messages": msgs,
+                "meta": {
+                    "source": "prebuilt",
+                    "source_dir": str(path),
+                    "source_file": fp.name,
+                    "prebuilt_kind": label,
+                    "orig_index": idx,
+                    "tier": "prebuilt",
+                    "deck": label,
+                    "type": "prebuilt",
+                    "split": split,
+                },
+                "_split": split,
+                "_gkey": None,
+                "_cell": (label, "prebuilt"),
+                "_rid": "prebuilt|%s|%s|%d" % (path, split, idx),
+                "_source": "prebuilt",
+            })
+    return examples, warnings, hyg
+
+
+def build_win_examples_v2(dir_path, build, preamble):
+    """Adapt the Stage-1 winning-trajectory builder output to Stage-2 shape."""
+    raw, warnings, hygiene = build_examples([(dir_path, build)], preamble)
+    out = []
+    for e in raw:
+        m = dict(e["meta"])
+        m["source"] = "win"
+        m["deck"] = m.get("seat")
+        out.append({
+            "messages": e["messages"],
+            "meta": m,
+            "_split": None,
+            "_gkey": e["_gkey"],
+            "_cell": (m.get("seat"), m.get("type")),
+            "_rid": "win|%s|%s|%s|%s" % (dir_path, m.get("seed"),
+                                         m.get("swap"), m.get("decision_index")),
+            "_source": "win",
+            "_key": e["_key"],
+        })
+    return out, warnings, hygiene
+
+
+# ------------------------------------------------- deterministic sampling / cap
+
+def _sample_hash(seed, rid):
+    return hashlib.sha256(("%d:%s" % (seed, rid)).encode("utf-8")).hexdigest()
+
+
+def allocate_weighted(budget, items):
+    """Distribute `budget` integer units across items proportional to weight,
+    clamped to each item's availability (water-filling with largest-remainder).
+
+    items: dict key -> (weight, avail). Returns dict key -> allocation. Fully
+    deterministic (ties broken by sorted key). Saturated items overflow is
+    redistributed to unsaturated ones until budget or availability is exhausted."""
+    result = {k: 0 for k in items}
+    budget = min(budget, sum(a for _, a in items.values()))
+    if budget <= 0:
+        return result
+    unsat = {k for k, (w, a) in items.items() if a > 0 and w > 0}
+    while budget > 0 and unsat:
+        tw = sum(items[k][0] for k in unsat)
+        quotas = {k: budget * items[k][0] / tw for k in unsat}
+        assigned = 0
+        for k in unsat:
+            give = min(int(quotas[k]), items[k][1] - result[k])
+            if give > 0:
+                result[k] += give
+                assigned += give
+        budget -= assigned
+        if assigned == 0:
+            # hand out the remaining <len(unsat) units by largest fractional part
+            order = sorted((k for k in unsat if result[k] < items[k][1]),
+                           key=lambda k: (-(quotas[k] - int(quotas[k])), k))
+            for k in order:
+                if budget <= 0:
+                    break
+                result[k] += 1
+                budget -= 1
+        unsat = {k for k in unsat if result[k] < items[k][1]}
+    return result
+
+
+def stratified_sample(rows, target, seed):
+    """Downsample ai-teacher rows to `target`, balancing (deck, decision-type)
+    cells: each cell gets an equal share (clamped to its size), so play-type
+    rows from two decks can't dominate and rare types are kept up to
+    availability. Within a cell, deterministic by seeded row-hash."""
+    if target >= len(rows):
+        return list(rows)
+    cells = defaultdict(list)
+    for r in rows:
+        cells[r["_cell"]].append(r)
+    alloc = allocate_weighted(target, {c: (1.0, len(v)) for c, v in cells.items()})
+    out = []
+    for c in sorted(cells, key=lambda x: (str(x[0]), str(x[1]))):
+        rws = sorted(cells[c], key=lambda r: _sample_hash(seed, r["_rid"]))
+        out.extend(rws[:alloc[c]])
+    return out
+
+
+def hash_sample(rows, target, seed):
+    """Deterministic uniform downsample to `target` by seeded row-hash order."""
+    if target >= len(rows):
+        return list(rows)
+    return sorted(rows, key=lambda r: _sample_hash(seed, r["_rid"]))[:target]
+
+
+def apply_mix(by_source, weights, per_source_caps, global_cap, sample_seed):
+    """Apply per-source caps, then a global stratified cap, to the per-source
+    row lists. Returns (kept_by_source, alloc_report).
+
+    Contract (per the D2 brief): curated sources (prebuilt / win) are kept in
+    full under the global cap; the AI-TEACHER budget = cap - reserved and is
+    STRATIFIED across (deck, type). If the curated rows alone exceed the cap,
+    they too are downsampled (weighted). Weights bias the split among sources of
+    the same kind. All sampling is deterministic under `sample_seed`."""
+    # 1. per-source hard caps
+    capped = {}
+    for name, rows in by_source.items():
+        cap = per_source_caps.get(name)
+        if cap is not None and cap < len(rows):
+            if name.startswith("ai-teacher"):
+                capped[name] = stratified_sample(rows, cap, sample_seed)
+            else:
+                capped[name] = hash_sample(rows, cap, sample_seed)
+        else:
+            capped[name] = list(rows)
+
+    report = {"per_source_caps": dict(per_source_caps), "global_cap": global_cap,
+              "raw": {n: len(r) for n, r in by_source.items()},
+              "after_source_cap": {n: len(r) for n, r in capped.items()}}
+
+    if global_cap is None:
+        report["final"] = {n: len(r) for n, r in capped.items()}
+        return capped, report
+
+    ai = {n: r for n, r in capped.items() if n.startswith("ai-teacher")}
+    other = {n: r for n, r in capped.items() if not n.startswith("ai-teacher")}
+    reserved = sum(len(r) for r in other.values())
+
+    final = {}
+    if reserved >= global_cap:
+        # curated rows already exceed the cap: weighted downsample of curated,
+        # zero ai-teacher budget.
+        alloc = allocate_weighted(
+            global_cap, {n: (weights.get(n, 1.0), len(r)) for n, r in other.items()})
+        for n, r in other.items():
+            final[n] = hash_sample(r, alloc[n], sample_seed)
+        for n in ai:
+            final[n] = []
+    else:
+        for n, r in other.items():
+            final[n] = r
+        ai_budget = global_cap - reserved
+        alloc = allocate_weighted(
+            ai_budget, {n: (weights.get(n, 1.0), len(r)) for n, r in ai.items()})
+        for n, r in ai.items():
+            final[n] = stratified_sample(r, alloc[n], sample_seed)
+
+    report["final"] = {n: len(r) for n, r in final.items()}
+    return final, report
+
+
+# --------------------------------------------------------- Stage-2 output
+
+def stage2_counts(examples):
+    """Nested counts: source -> deck -> type -> n, plus per-source totals."""
+    tree = defaultdict(lambda: defaultdict(Counter))
+    per_source = Counter()
+    for e in examples:
+        m = e["meta"]
+        src = m.get("source", "?")
+        tree[src][m.get("deck")][m.get("type")] += 1
+        per_source[src] += 1
+    return tree, per_source
+
+
+def write_outputs_v2(out_dir, examples, argv, val_frac, split_seed,
+                     mix_report, warnings, hygienes, count_style):
+    """Write train/valid/meta/README for the Stage-2 multi-source set.
+
+    Split: game-derived rows (ai-teacher, win) split BY GAME via assign_splits
+    (both swaps together, leakage-free). Prebuilt rows keep their original
+    split. Deterministic emission order (source, rid)."""
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    game_keys = {e["_gkey"] for e in examples if e["_gkey"] is not None}
+    splits = assign_splits(game_keys, val_frac, split_seed)
+    for e in examples:
+        if e["_split"] is None:
+            e["_split"] = splits.get(e["_gkey"], "train")
+
+    examples.sort(key=lambda e: (e["_source"], e["_rid"]))
+    train = [e for e in examples if e["_split"] == "train"]
+    valid = [e for e in examples if e["_split"] == "valid"]
+
+    def dump(rows, name):
+        with open(out_dir / name, "w", encoding="utf-8") as f:
+            for e in rows:
+                f.write(json.dumps({"messages": e["messages"]},
+                                   ensure_ascii=False) + "\n")
+
+    dump(train, "train.jsonl")
+    dump(valid, "valid.jsonl")
+
+    with open(out_dir / "meta.jsonl", "w", encoding="utf-8") as f:
+        for block, rows in (("train", train), ("valid", valid)):
+            for i, e in enumerate(rows, 1):
+                m = dict(e["meta"])
+                m["split"] = block
+                m["line"] = i
+                m["split_seed"] = split_seed
+                f.write(json.dumps(m, ensure_ascii=False) + "\n")
+
+    tree, per_source = stage2_counts(examples)
+    write_readme_v2(out_dir, argv, examples, train, valid, tree, per_source,
+                    mix_report, warnings, hygienes, count_style, split_seed,
+                    val_frac)
+    return train, valid, tree, per_source
+
+
+def _counts_table(tree):
+    lines = ["| source | deck | type | n |", "|---|---|---|---:|"]
+    for src in sorted(tree):
+        for deck in sorted(tree[src], key=lambda x: str(x)):
+            for typ in sorted(tree[src][deck], key=lambda x: str(x)):
+                lines.append("| %s | %s | %s | %d |"
+                             % (src, deck, typ, tree[src][deck][typ]))
+    return lines
+
+
+def write_readme_v2(out_dir, argv, examples, train, valid, tree, per_source,
+                    mix_report, warnings, hygienes, count_style, split_seed,
+                    val_frac):
+    lines = [
+        "# stage2-local-v0 — multi-source SFT mix",
+        "",
+        "Built by `eval/make_sft_data.py` (Stage-2 multi-source mode). Mixes",
+        "ai-log self-play teacher rows (win-filtered, canonical terse targets),",
+        "prebuilt CoT/puzzle slices, and (optionally) Stage-1 winning",
+        "trajectories, under CLI weights + a stratified global cap.",
+        "",
+        "## Exact command", "", "```", "python3 " + " ".join(argv), "```", "",
+        "## Totals", "",
+        "- examples: **%d** (train %d / valid %d)"
+        % (len(examples), len(train), len(valid)),
+        "- by source: " + ", ".join("%s=%d" % (s, per_source[s])
+                                     for s in sorted(per_source)),
+        "- split: BY GAME for ai-teacher/win (both swaps together); prebuilt",
+        "  slices keep their original split. split_seed=%d val_frac=%s."
+        % (split_seed, val_frac),
+        "- ai-teacher targets are choice-only terse (no reasoning, no <think>);",
+        "  count-style policy = `%s`." % count_style,
+        "",
+        "## Counts by (source, deck, type)", "",
+    ]
+    lines += _counts_table(tree)
+    lines += ["", "## Mix / cap", "", "```",
+              json.dumps(mix_report, indent=2, ensure_ascii=False), "```", ""]
+    lines += ["## Hygiene (per source)", ""]
+    for name, hyg in hygienes:
+        if hyg:
+            lines.append("- **%s**: %s" % (
+                name, ", ".join("%s=%d" % (k, v) for k, v in sorted(hyg.items()))))
+    lines += ["", "## Canonical ai-teacher targets", "",
+              "Assistant text is the exact final line the harness would parse",
+              "(`CHOICE:`/`PICKS:`/`BLOCKS:`/`KEEP`/`MULLIGAN`), derived from",
+              "`LlmSpikeGui.java`. PASS (choice=-1, play) -> `CHOICE: <n_options>`;",
+              "decideOne decline -> `CHOICE: <n_options+1>`; subset size k ->",
+              "`PICKS: 1..k` (exact at k in {0,n}; representative first-k",
+              "otherwise); blockers k>0 dropped (pairing not logged); unknown",
+              "types dropped."]
+    if warnings:
+        lines += ["", "## Warnings (%d)" % len(warnings), ""]
+        lines += ["- " + w for w in warnings[:60]]
+        if len(warnings) > 60:
+            lines.append("- ... %d more" % (len(warnings) - 60))
+    (out_dir / "README.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
 # ------------------------------------------------------------------- output
 
 def write_outputs(out_dir, examples, splits, argv, sources, hygiene,
@@ -547,24 +1164,151 @@ def parse_source_arg(s):
     return (d, b)
 
 
-def main(argv=None):
-    argv = list(sys.argv[1:] if argv is None else argv)
-    ap = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("sources", nargs="*", type=parse_source_arg,
-                    help="DIR:BUILD pairs (BUILD in %s). Default: the two usable "
-                         "sources." % "/".join(BUILDS))
-    ap.add_argument("--out-dir", default=str(REPO_ROOT / "datasets" / "stage1-v0"),
-                    help="output directory (default datasets/stage1-v0)")
-    ap.add_argument("--java", default=str(DEFAULT_JAVA),
-                    help="path to LlmSpikeGui.java for preamble reconstruction")
-    ap.add_argument("--val-frac", type=float, default=0.1,
-                    help="fraction of GAMES to hold out as valid (default 0.1)")
-    ap.add_argument("--split-seed", type=int, default=20260722,
-                    help="seed for the deterministic by-game split")
-    args = ap.parse_args(argv)
+def _is_float(s):
+    try:
+        float(s)
+        return True
+    except (TypeError, ValueError):
+        return False
 
+
+def parse_typed_source(s):
+    """--source TYPE:SPEC[:WEIGHT].
+
+    TYPE in {ai-teacher, prebuilt, win}. A trailing float token is the weight
+    (default 1.0). SPEC is a PATH for ai-teacher/prebuilt, or DIR:BUILD for win.
+    Returns a dict describing the source."""
+    parts = s.split(":")
+    if len(parts) < 2:
+        raise argparse.ArgumentTypeError(
+            "source must be TYPE:SPEC[:WEIGHT], got %r" % s)
+    typ, rest = parts[0], parts[1:]
+    weight = 1.0
+    if len(rest) > 1 and _is_float(rest[-1]):
+        weight = float(rest[-1])
+        rest = rest[:-1]
+    if typ in ("ai-teacher", "prebuilt"):
+        return {"type": typ, "path": ":".join(rest), "weight": weight}
+    if typ == "win":
+        if len(rest) < 2:
+            raise argparse.ArgumentTypeError(
+                "win source needs DIR:BUILD, got %r" % s)
+        return {"type": "win", "path": ":".join(rest[:-1]),
+                "build": rest[-1], "weight": weight}
+    raise argparse.ArgumentTypeError(
+        "unknown source type %r (want ai-teacher/prebuilt/win)" % typ)
+
+
+def parse_cap_per_source(s):
+    """--cap-per-source MATCH:N  (MATCH = a source name substring, N = int)."""
+    if ":" not in s:
+        raise argparse.ArgumentTypeError("cap-per-source must be MATCH:N")
+    m, n = s.rsplit(":", 1)
+    try:
+        return (m, int(n))
+    except ValueError:
+        raise argparse.ArgumentTypeError("cap-per-source N must be an int: %r" % s)
+
+
+def source_name(spec):
+    """Stable per-source key used for weights, caps, and reporting."""
+    if spec["type"] == "win":
+        return "win:%s:%s" % (spec["path"], spec.get("build"))
+    return "%s:%s" % (spec["type"], spec["path"])
+
+
+def run_stage2(args, preamble):
+    """Build the stage2-local-v0 multi-source mix. Returns 0."""
+    specs = args.source
+    by_source, weights, warnings, hygienes = {}, {}, [], []
+    for spec in specs:
+        name = source_name(spec)
+        weights[name] = spec["weight"]
+        if spec["type"] == "ai-teacher":
+            rows, w, hyg = build_ai_teacher_examples(
+                spec["path"], preamble, args.count_style)
+        elif spec["type"] == "prebuilt":
+            rows, w, hyg = build_prebuilt_examples(spec["path"])
+        elif spec["type"] == "win":
+            rows, w, hyg = build_win_examples_v2(
+                spec["path"], spec["build"], preamble)
+        else:  # unreachable (validated at parse time)
+            continue
+        # namespace each row's source key so multiple sources of a type coexist
+        for r in rows:
+            r["_srcname"] = name
+        by_source[name] = by_source.get(name, []) + rows
+        warnings.extend(w)
+        hygienes.append((name, hyg))
+
+    # Raw per-source contribution BEFORE any dedup/cap. A declared source that
+    # yields 0 rows is almost always a mistyped or cross-checkout path (relative
+    # paths resolve against the SCRIPT's repo root, not cwd), so hard-fail rather
+    # than let a whole curated source vanish behind a buried README warning.
+    raw_counts = {name: len(rows) for name, rows in by_source.items()}
+    for name in sorted(raw_counts):
+        sys.stderr.write("[stage2] source %s: %d raw rows\n"
+                         % (name, raw_counts[name]))
+    empty = sorted(n for n, c in raw_counts.items() if c == 0)
+    if empty:
+        raise SystemExit(
+            "[stage2] ERROR: source(s) contributed 0 rows: %s. Relative paths "
+            "resolve against the script repo root %s (not cwd); check the path "
+            "exists there and is non-empty." % (", ".join(empty), REPO_ROOT))
+
+    # Cross-source dedup of keyed rows (ai-teacher/win) before capping + split.
+    by_source, dedup_dropped = dedupe_keyed(by_source)
+    if dedup_dropped:
+        sys.stderr.write("[stage2] deduped %d near-identical keyed row(s)\n"
+                         % dedup_dropped)
+
+    # per-source caps: MATCH substring against source name
+    per_source_caps = {}
+    for match, n in (args.cap_per_source or []):
+        for name in by_source:
+            if match in name:
+                per_source_caps[name] = n
+
+    kept_by_source, mix_report = apply_mix(
+        by_source, weights, per_source_caps, args.cap, args.sample_seed)
+    mix_report["raw_pre_dedup"] = raw_counts
+    mix_report["dedup_dropped"] = dedup_dropped
+
+    examples = [r for rows in kept_by_source.values() for r in rows]
+
+    recorded = ["eval/make_sft_data.py"]
+    for spec in specs:
+        tok = ("%s:%s:%s" % (spec["type"], spec["path"], spec.get("build"))
+               if spec["type"] == "win"
+               else "%s:%s" % (spec["type"], spec["path"]))
+        if spec["weight"] != 1.0:
+            tok += ":%g" % spec["weight"]
+        recorded += ["--source", tok]
+    recorded += ["--out-dir", args.out_dir]
+    if args.cap is not None:
+        recorded += ["--cap", str(args.cap)]
+    for match, n in (args.cap_per_source or []):
+        recorded += ["--cap-per-source", "%s:%d" % (match, n)]
+    if args.count_style != "first-k":
+        recorded += ["--count-style", args.count_style]
+
+    train, valid, tree, per_source = write_outputs_v2(
+        args.out_dir, examples, recorded, args.val_frac, args.split_seed,
+        mix_report, warnings, hygienes, args.count_style)
+
+    print("[stage2] wrote %d train + %d valid to %s"
+          % (len(train), len(valid), args.out_dir))
+    print("  by source: " + ", ".join("%s=%d" % (s, per_source[s])
+                                       for s in sorted(per_source)))
+    print("  mix: raw=%s -> final=%s (cap=%s)"
+          % (mix_report["raw"], mix_report["final"], args.cap))
+    if warnings:
+        print("  warnings: %d (see README)" % len(warnings))
+    return 0
+
+
+def run_stage1(args):
+    """Original Stage-1 winning-trajectory build (unchanged behavior)."""
     sources = args.sources or DEFAULT_SOURCES
     preamble = PreambleBuilder(args.java)
 
@@ -574,8 +1318,6 @@ def main(argv=None):
     gkeys = {e["_gkey"] for e in examples}
     splits = assign_splits(gkeys, args.val_frac, args.split_seed)
 
-    # Record the command as invoked (for the README), normalizing sources back
-    # to DIR:BUILD tokens.
     recorded = ["eval/make_sft_data.py"] + ["%s:%s" % (d, b) for d, b in sources]
     if args.out_dir != str(REPO_ROOT / "datasets" / "stage1-v0"):
         recorded += ["--out-dir", args.out_dir]
@@ -597,6 +1339,49 @@ def main(argv=None):
     if warnings:
         print("  warnings: %d (see README)" % len(warnings))
     return 0
+
+
+def main(argv=None):
+    argv = list(sys.argv[1:] if argv is None else argv)
+    ap = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("sources", nargs="*", type=parse_source_arg,
+                    help="Stage-1 DIR:BUILD pairs (BUILD in %s). Default: the two "
+                         "usable sources." % "/".join(BUILDS))
+    ap.add_argument("--out-dir", default=str(REPO_ROOT / "datasets" / "stage1-v0"),
+                    help="output directory (default datasets/stage1-v0)")
+    ap.add_argument("--java", default=str(DEFAULT_JAVA),
+                    help="path to LlmSpikeGui.java for preamble reconstruction")
+    ap.add_argument("--val-frac", type=float, default=0.1,
+                    help="fraction of GAMES to hold out as valid (default 0.1)")
+    ap.add_argument("--split-seed", type=int, default=20260722,
+                    help="seed for the deterministic by-game split")
+    # ---- Stage-2 multi-source mode (activated by any --source) ----
+    ap.add_argument("--source", action="append", type=parse_typed_source,
+                    default=None, metavar="TYPE:SPEC[:WEIGHT]",
+                    help="Stage-2 typed source. TYPE in ai-teacher/prebuilt/win. "
+                         "SPEC is a PATH (ai-teacher/prebuilt) or DIR:BUILD (win). "
+                         "Trailing float is the mix weight. Repeatable.")
+    ap.add_argument("--cap", type=int, default=None,
+                    help="Stage-2 global example cap; ai-teacher rows are "
+                         "STRATIFIED-downsampled across (deck, type) to fit.")
+    ap.add_argument("--cap-per-source", action="append", type=parse_cap_per_source,
+                    default=None, metavar="MATCH:N",
+                    help="cap sources whose name contains MATCH to N rows.")
+    ap.add_argument("--sample-seed", type=int, default=20260723,
+                    help="seed for deterministic downsampling (default 20260723)")
+    ap.add_argument("--count-style", choices=("first-k", "exact-only"),
+                    default="first-k",
+                    help="count-style ai-teacher targets: 'first-k' emits "
+                         "PICKS: 1..k (representative); 'exact-only' drops "
+                         "partial-subset rows (keeps only k in {0,n}).")
+    args = ap.parse_args(argv)
+
+    if args.source:
+        preamble = PreambleBuilder(args.java)
+        return run_stage2(args, preamble)
+    return run_stage1(args)
 
 
 if __name__ == "__main__":
