@@ -23,12 +23,12 @@ aws s3 cp   "s3://$BUCKET/config/axolotl-qwen3-8b-qlora.yaml" $WORK/config.yaml 
   || aws s3 cp "s3://$BUCKET/config.yaml" $WORK/config.yaml
 
 # ---- resume support: newest checkpoint from a previous (interrupted) spot run
+# (config sets auto_resume_from_checkpoints: true, so axolotl picks up the
+# newest checkpoint present in output_dir — no CLI flag needed)
 LATEST=$(aws s3 ls "s3://$BUCKET/runs/$RUN_TAG/checkpoints/" 2>/dev/null \
          | awk '{print $2}' | tr -d / | sort -t- -k2 -n | tail -1)
-RESUME_ARG=""
 if [ -n "$LATEST" ]; then
   aws s3 sync "s3://$BUCKET/runs/$RUN_TAG/checkpoints/$LATEST" "$WORK/out/$LATEST"
-  RESUME_ARG="--resume_from_checkpoint $WORK/out/$LATEST"
 fi
 
 # ---- background checkpoint sync every 5 min (spot-interruption insurance)
@@ -40,7 +40,7 @@ fi
 SYNC_PID=$!
 
 # ---- train
-axolotl train $WORK/config.yaml $RESUME_ARG
+axolotl train $WORK/config.yaml
 RC=$?
 
 # ---- final upload: adapter + logs (+ marker with exit code)

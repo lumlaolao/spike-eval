@@ -34,7 +34,7 @@ gradient_checkpointing: true
 
 # LoRA — identical shape to the MLX run
 lora_r: 16
-lora_alpha: 32                # alpha/r = 2.0 ≈ mlx scale 20/rank 16 intent; see note
+lora_alpha: 320               # alpha/r = 20.0 == mlx_lm scale (see NOTE)
 lora_dropout: 0.05
 lora_target_linear: true
 
@@ -46,11 +46,16 @@ load_best_model_at_end: true
 metric_for_best_model: eval_loss
 
 output_dir: /workspace/out
+auto_resume_from_checkpoints: true   # resumes from newest checkpoint in output_dir
 seed: 0
 
-# NOTE on lora_alpha: mlx_lm uses scale=20.0 directly as the LoRA scaling
-# factor; PEFT uses alpha/r. alpha=32 (scale 2.0) is the PEFT-conventional
-# setting, NOT numerically identical to mlx's 20.0. If you want the closest
-# match to the local run's effective update magnitude, set lora_alpha: 320
-# (alpha/r = 20) and expect to drop learning_rate ~an order of magnitude.
-# Treat cloud-vs-local as a re-tuned twin, not a bit-clone (README caveat 1).
+# NOTE on lora_alpha (verified 2026-07-23; vault: [[MLX LoRA scale vs PEFT
+# lora_alpha]]): mlx_lm applies `scale` (20.0) directly to the BA update; PEFT
+# applies alpha/r. alpha=320 with r=16 gives alpha/r = 20.0 — the SAME
+# effective scaling as the local run, so the local learning rate (1e-4)
+# carries over. The PEFT-conventional alpha=32 would train ~10x weaker than
+# the local run. If training is unstable at alpha=320, drop lr first.
+# Still a re-tuned twin, not a bit-clone: bnb-nf4 vs MLX-4bit quantization
+# differs, and Qwen3's enable_thinking=false injects an EMPTY <think></think>
+# sentinel at serving time — byte-diff one rendered example (axolotl template
+# vs mlx_lm server) before trusting any cross-pipeline eval delta.

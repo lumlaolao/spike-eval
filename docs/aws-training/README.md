@@ -7,9 +7,11 @@ ballparks from that date — **always check current spot prices before launch**.
 
 ## TL;DR
 
-- **~$1–2 per training run** on a spot `g5.xlarge` (A10G 24GB), ~2.5–3.5h
-  wall-clock (~2–3× faster than the M5 Pro). An L40S (`g6e.xlarge`) spot cuts
-  it to ~1–1.5h for about the same total dollars.
+- **~$1.20–1.80 per training run** on a spot `g5.xlarge` (A10G 24GB) or
+  `g6.xlarge` (L4), ~2.5–4.5h wall-clock (~2–3× faster than the M5 Pro). The
+  L40S (`g6e.xlarge`) is fastest but its us-east-1 spot pool is saturated
+  (spot ≈ on-demand, ~$1.9–2.8/run) — prefer g5/g6, or a broker for
+  L40S-class speed.
 - **No containers needed.** The Deep Learning AMI ships NVIDIA drivers + CUDA;
   a pinned pip install of axolotl on top is reproducible enough for a
   one-person project. (Containers-vs-not verdict at the bottom.)
@@ -25,15 +27,16 @@ ballparks from that date — **always check current spot prices before launch**.
 
 | Instance | GPU | On-demand | Spot (typ.) | Est. run time | Est. spot cost |
 |---|---|---:|---:|---:|---:|
-| g6.xlarge  | L4 24GB    | ~$0.80/h | ~$0.25–0.35 | ~3.5–4.5h | **~$1.00–1.40** |
-| g5.xlarge  | A10G 24GB  | ~$1.01/h | ~$0.35–0.45 | ~2.5–3.5h | **~$1.00–1.50** |
-| g6e.xlarge | L40S 48GB  | ~$1.86/h | ~$0.60–0.90 | ~1.0–1.5h | **~$0.90–1.40** |
+| g6.xlarge  | L4 24GB    | ~$0.81/h | ~$0.40 | ~3.5–4.5h | **~$1.40–1.80** |
+| g5.xlarge  | A10G 24GB  | ~$1.01/h | ~$0.47 | ~2.5–3.5h | **~$1.20–1.70** |
+| g6e.xlarge | L40S 48GB  | ~$1.86/h | ~$1.86 (spot≈OD!) | ~1.0–1.5h | **~$1.90–2.80** |
 | p5.48xl 8×H100 | overkill | ~$55/h | — | ~10 min | don't |
 
 Plus: EBS 100GB gp3 ≈ $0.01/h while up; S3 for a 40MB dataset + ~200MB
 adapter ≈ pennies/month. Total per run ≈ **the price of a coffee refill**.
 
-The three cost levers, in order: **(1) spot instead of on-demand** (60–70% off),
+The three cost levers, in order: **(1) spot instead of on-demand** (~50% off
+on g5/g6; ~0% on g6e in us-east-1 — check per region),
 **(2) auto-terminate the instant training ends** (user-data ends with
 `shutdown`, instance shutdown behavior = terminate — you cannot forget a
 running box), **(3) right-size the GPU** (24GB is enough for 8B QLoRA with
@@ -63,9 +66,12 @@ local:  bash docs/aws-training/convert-to-mlx.sh       # PEFT -> fused MLX 4-bit
 local:  # -> models/qwen-mtg-sft-<tag>-fused, serve + eval as usual
 ```
 
-Spot interruption (rare at these sizes, ~<5%/day): relaunch `launch-spot.sh`;
-the user-data script finds the newest checkpoint in S3 and passes
-`--resume_from_checkpoint`. Nothing is lost but the minutes since last save.
+Spot interruption — NOT rare: g5/g6/g6e all sit in AWS's worst **>20%**
+disruption band in us-east-1 (verified 2026-07-23), so checkpoint-resume is
+load-bearing, not insurance. On interruption relaunch `launch-spot.sh`;
+the user-data script syncs the newest S3 checkpoint into `output_dir` and the
+config's `auto_resume_from_checkpoints: true` picks it up. Nothing is lost but
+the minutes since last save.
 
 ## Files here
 
@@ -98,7 +104,11 @@ to `docker run`.
    (`eval/replay_match.py`) before believing any cross-pipeline delta.
 2. **Tokenizer/template**: keep `chat_template: qwen3` and
    `enable_thinking: false` semantics identical to serving; targets contain no
-   think blocks (format policy), so the template must not inject them.
+   think blocks (format policy). Gotcha (verified 2026-07-23): Qwen3's
+   `enable_thinking=false` injects an *empty* `<think></think>` sentinel — it
+   is not "nothing" — and axolotl exposes no switch for it, so byte-diff one
+   rendered training example against the mlx_lm server's render before
+   trusting any cross-pipeline eval delta.
 3. Checkpoint-selection discipline is unchanged: pick by full-valid-set loss
    (axolotl `evals_per_epoch` + `load_best_model_at_end`), not single noisy
    spot reads.

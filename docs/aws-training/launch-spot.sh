@@ -13,7 +13,8 @@ KEY_NAME="${KEY_NAME:-}"             # optional ssh key for debugging
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
-# Latest AWS Deep Learning AMI (PyTorch, Ubuntu 22.04) — drivers + CUDA preinstalled.
+# Latest DLAMI *base* OSS NVIDIA-driver AMI (Ubuntu 22.04) — driver + CUDA only,
+# NO preinstalled PyTorch (user-data pip-installs torch via axolotl; that's fine).
 AMI=$(aws ssm get-parameter --region "$REGION" \
   --name /aws/service/deeplearning/ami/x86_64/base-oss-nvidia-driver-gpu-ubuntu-22.04/latest/ami-id \
   --query Parameter.Value --output text)
