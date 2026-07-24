@@ -576,7 +576,12 @@ def _post_chat(endpoint, model, messages, max_tokens, timeout):
         url, data=body, headers={"Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         obj = json.loads(resp.read().decode("utf-8", "replace"))
-    return obj["choices"][0]["message"]["content"]
+    # mlx_lm server omits the "content" key entirely when the token budget is
+    # exhausted before any text token (e.g. a 1-token reply that spent its
+    # budget on a leading newline). Treat as empty text, not a transport error
+    # — an empty scoring reply lands in the parse-failure bucket, which is the
+    # honest outcome.
+    return obj["choices"][0]["message"].get("content", "")
 
 
 def health_probe(endpoint, model, timeout):
@@ -585,7 +590,7 @@ def health_probe(endpoint, model, timeout):
     t0 = time.time()
     _post_chat(endpoint, model,
                [{"role": "user", "content": "ping"}],
-               max_tokens=1, timeout=timeout)
+               max_tokens=4, timeout=timeout)
     return time.time() - t0
 
 
