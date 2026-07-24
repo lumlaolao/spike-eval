@@ -164,6 +164,11 @@ def build_env(args, seed, swap, out_dir):
     env["EVAL_OUT"] = str(out_dir)
     if args.cap_minutes > 0:
         env["GAME_CAP_MS"] = str(int(args.cap_minutes * 60_000))
+    # D4 DAgger: SHADOW_AI is controlled ONLY by --shadow-ai (scrub any ambient
+    # value first so a stray export can't silently label — or un-label — a run).
+    env.pop("SHADOW_AI", None)
+    if getattr(args, "shadow_ai", False):
+        env["SHADOW_AI"] = "1"
 
     passthrough = {
         "SMART_MODEL_A": args.smart_a,
@@ -517,6 +522,14 @@ def main():
                     help="CONTROLLER_B")
     ap.add_argument("--plan-a", help="PLAN_A (forbidden in cited mode)")
     ap.add_argument("--plan-b", help="PLAN_B (forbidden in cited mode)")
+    ap.add_argument("--shadow-ai", action="store_true",
+                    help="set SHADOW_AI=1: overlay the Forge-AI DAgger labeler "
+                         "(D4). Additive shadow_choice field only — does NOT "
+                         "change the game trajectory (bit-reproducible either "
+                         "way). Use with --controller-a llm: floor games label "
+                         "almost nothing (they short-circuit before the play "
+                         "menu the shadow needs), so DAgger data costs student "
+                         "inference.")
     ap.add_argument("--env", action="append", metavar="KEY=VALUE",
                     help="extra env var for the runner (repeatable)")
     args = ap.parse_args()

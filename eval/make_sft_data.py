@@ -701,6 +701,132 @@ def build_ai_teacher_examples(dir_path, preamble, count_style="first-k",
     return examples, warnings, hyg
 
 
+def build_dagger_examples(dir_path, preamble, count_style="first-k"):
+    """Scan a student self-play corpus TREE -> Stage-2 DAgger example dicts.
+
+    A clone of build_ai_teacher_examples with three differences that make this
+    the DAgger (on-trajectory expert-labeling) source:
+
+      * NO win-filter. DAgger targets the compounding-error failure mode, so we
+        want the AI's label on EVERY state the student actually reached — both
+        seats, winning and losing games alike. (This is why DAgger yields ~2x the
+        ai-teacher per-game volume: no winning_ai_seat gate.)
+      * Row selection by `shadow_choice`, not tier. Keep a row iff it carries a
+        non-null `shadow_choice` (the Forge-AI's DAgger label, written by the
+        student seat's four shadow-covered overrides). Only genuine (n_options>1)
+        student decisions on the four shadow families ever carry it.
+      * Target synthesized from the SHADOW label: canonical_target({**d,
+        "choice": shadow_choice}) reuses every per-type encoding unchanged, so
+        the assistant answer is what the AI would have done in the student's
+        state — while the user message stays the student's real prompt.
+
+    Same blockers caveat as ai-teacher: canonical_target drops blockers with k>0
+    (pairing not logged); a dagger blocker row yields an SFT target only when the
+    AI blocks none (k=0). The k>0 shadow_choice still lives on the jsonl row for
+    the process_metrics divergence report.
+
+    RECOMMENDED: build dagger sources with count_style="exact-only". The count
+    encoding records only HOW MANY attackers/blockers the expert chose, not WHICH
+    ones, so a partial choice (0 < k < n) renders as "PICKS: 1..k" — the FIRST k
+    menu entries, which is almost never the set the AI actually picked. Those rows
+    are kind="count-first-k" and teach a wrong answer confidently. "exact-only"
+    drops them and keeps the two unambiguous cases (count-none / count-all, i.e.
+    "attack with nothing" / "attack with everything"). The default stays
+    "first-k" for continuity with the ai-teacher corpus that trained
+    stage2-local-v0, so this is a deliberate per-build choice, not a silent one."""
+    examples, warnings = [], []
+    hyg = Counter()
+    root = _resolve(dir_path)
+    source_tag = str(dir_path)
+    for gd in iter_game_dirs(root):
+        games, w = load_complete_games(gd)
+        rel = str(gd.relative_to(root)) if gd != root else "."
+        warnings.extend("%s[%s]: %s" % (source_tag, rel, x) for x in w)
+        for entry in games:
+            g = entry["game"]
+            # No win-filter: keep every game (incl. draws) and BOTH seats.
+            ident_by_seat = {}
+            for il in ("b", "a"):
+                sname = g.get("deck_%s" % il)
+                if sname:
+                    ident_by_seat[sname] = il
+            system_by_seat = {}
+            gkey = "dagger#%s#%s#%s" % (source_tag, rel, g.get("seed"))
+            for di, d in enumerate(entry["decisions"]):
+                sc = d.get("shadow_choice")
+                if sc is None:
+                    continue  # not a shadow-labeled row (the sole DAgger selector)
+                if not isinstance(sc, int) or isinstance(sc, bool):
+                    hyg["skip_bad_shadow_choice"] += 1
+                    continue
+                rseat = d.get("seat")
+                rid = ident_by_seat.get(rseat)
+                if rid is None:
+                    hyg["skip_unmapped_seat"] += 1
+                    continue
+                prompt = d.get("prompt") or ""
+                if not prompt.strip():
+                    # Deterministic (floor/auto/budget) student rows carry no
+                    # prompt -> no SFT user message; drop. The usable DAgger rows
+                    # are the student's genuine model-consulted decisions.
+                    hyg["drop_no_prompt"] += 1
+                    continue
+                # Target from the AI's shadow label over the SAME menu.
+                target, kind = canonical_target({**d, "choice": sc})
+                if target is None:
+                    hyg["drop_%s" % kind] += 1
+                    continue
+                if count_style == "exact-only" and kind == "count-first-k":
+                    hyg["drop_exact_only_partial"] += 1
+                    continue
+                hyg["emit_%s" % kind] += 1
+                dtype = d.get("type")
+                if rseat not in system_by_seat:
+                    rplan = g.get("plan_%s" % rid) or ""
+                    system_by_seat[rseat] = preamble.base(
+                        rseat, rplan, terse=True)
+                examples.append({
+                    "messages": [
+                        {"role": "system", "content": system_by_seat[rseat]},
+                        {"role": "user", "content": prompt},
+                        {"role": "assistant", "content": target},
+                    ],
+                    "meta": {
+                        "source": "dagger",
+                        "source_dir": source_tag,
+                        "source_subdir": rel,
+                        "source_file": entry["file"],
+                        "seed": g.get("seed"),
+                        "swap": bool(g.get("swap", False)),
+                        "winner": g.get("winner"),
+                        "llm_identity": rid.upper(),
+                        "seat": rseat,
+                        "deck": rseat,
+                        "model": g.get("smart_%s" % rid),
+                        "student_controller": g.get("controller_%s" % rid),
+                        "engine_sha": g.get("engine_sha"),
+                        "overlay_sha": g.get("overlay_sha"),
+                        "deck_sha": g.get("deck_sha"),
+                        "tier": "ai-shadow",
+                        "decision_index": di,
+                        "type": dtype,
+                        "choice": sc,               # the SHADOW label (what we teach)
+                        "student_choice": d.get("choice"),  # what the student did
+                        "n_options": d.get("n_options"),
+                        "target_synth": kind,
+                    },
+                    "_split": None,
+                    "_gkey": gkey,
+                    "_cell": (rseat, dtype),
+                    "_rid": "%s|%s|%s|%d" % (source_tag, rel, entry["file"], di),
+                    "_source": "dagger",
+                    # dedup key: (type, seat, normalized-state, shadow-target) so a
+                    # state the student revisits identically collapses to one row.
+                    "_key": (dtype, rseat, normalize_state(prompt), target),
+                })
+    return examples, warnings, hyg
+
+
 def dedupe_keyed(by_source):
     """Drop rows whose `_key` already appeared, across every source that carries
     one (ai-teacher + win). Prebuilt rows have no `_key` and are NEVER deduped
@@ -896,12 +1022,18 @@ def apply_mix(by_source, weights, per_source_caps, global_cap, sample_seed):
     STRATIFIED across (deck, type). If the curated rows alone exceed the cap,
     they too are downsampled (weighted). Weights bias the split among sources of
     the same kind. All sampling is deterministic under `sample_seed`."""
+    # dagger (D4) shares the ai-teacher reserved-budget family: both are
+    # keyed, synthesized-target sources that get stratified across (deck, type)
+    # rather than kept-in-full like the curated win/prebuilt sources.
+    def _is_synth_bucket(name):
+        return name.startswith("ai-teacher") or name.startswith("dagger")
+
     # 1. per-source hard caps
     capped = {}
     for name, rows in by_source.items():
         cap = per_source_caps.get(name)
         if cap is not None and cap < len(rows):
-            if name.startswith("ai-teacher"):
+            if _is_synth_bucket(name):
                 capped[name] = stratified_sample(rows, cap, sample_seed)
             else:
                 capped[name] = hash_sample(rows, cap, sample_seed)
@@ -916,8 +1048,8 @@ def apply_mix(by_source, weights, per_source_caps, global_cap, sample_seed):
         report["final"] = {n: len(r) for n, r in capped.items()}
         return capped, report
 
-    ai = {n: r for n, r in capped.items() if n.startswith("ai-teacher")}
-    other = {n: r for n, r in capped.items() if not n.startswith("ai-teacher")}
+    ai = {n: r for n, r in capped.items() if _is_synth_bucket(n)}
+    other = {n: r for n, r in capped.items() if not _is_synth_bucket(n)}
     reserved = sum(len(r) for r in other.values())
 
     final = {}
@@ -1221,9 +1353,15 @@ def _is_float(s):
 def parse_typed_source(s):
     """--source TYPE:SPEC[:WEIGHT].
 
-    TYPE in {ai-teacher, prebuilt, win}. A trailing float token is the weight
-    (default 1.0). SPEC is a PATH for ai-teacher/prebuilt, or DIR:BUILD for win.
-    Returns a dict describing the source."""
+    TYPE in {ai-teacher, dagger, prebuilt, win}. A trailing float token is the
+    weight (default 1.0). SPEC is a PATH for ai-teacher/dagger/prebuilt, or
+    DIR:BUILD for win. Returns a dict describing the source.
+
+    dagger (D4 DAgger shadow-labeling): a student self-play corpus in which the
+    student rows carry an additive `shadow_choice` field = the Forge-AI's label
+    over the SAME menu the student faced on the student's own trajectory. Same
+    SPEC shape as ai-teacher (a PATH); differs only in the builder (no win-filter,
+    row selection by shadow_choice, target synthesized from the shadow label)."""
     parts = s.split(":")
     if len(parts) < 2:
         raise argparse.ArgumentTypeError(
@@ -1233,7 +1371,7 @@ def parse_typed_source(s):
     if len(rest) > 1 and _is_float(rest[-1]):
         weight = float(rest[-1])
         rest = rest[:-1]
-    if typ in ("ai-teacher", "prebuilt"):
+    if typ in ("ai-teacher", "dagger", "prebuilt"):
         return {"type": typ, "path": ":".join(rest), "weight": weight}
     if typ == "win":
         if len(rest) < 2:
@@ -1242,7 +1380,7 @@ def parse_typed_source(s):
         return {"type": "win", "path": ":".join(rest[:-1]),
                 "build": rest[-1], "weight": weight}
     raise argparse.ArgumentTypeError(
-        "unknown source type %r (want ai-teacher/prebuilt/win)" % typ)
+        "unknown source type %r (want ai-teacher/dagger/prebuilt/win)" % typ)
 
 
 def parse_cap_per_source(s):
@@ -1273,6 +1411,9 @@ def run_stage2(args, preamble):
         if spec["type"] == "ai-teacher":
             rows, w, hyg = build_ai_teacher_examples(
                 spec["path"], preamble, args.count_style, args.ai_filter)
+        elif spec["type"] == "dagger":
+            rows, w, hyg = build_dagger_examples(
+                spec["path"], preamble, args.count_style)
         elif spec["type"] == "prebuilt":
             rows, w, hyg = build_prebuilt_examples(spec["path"])
         elif spec["type"] == "win":

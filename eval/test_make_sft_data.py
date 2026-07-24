@@ -795,6 +795,142 @@ def test_stage2_determinism():
 
 # ----------------------------------------------------------------- runner
 
+# --------------------------------------------------- D4 DAgger (dagger source)
+
+def dagger_dec(seat, dtype, choice, shadow_choice, n_options, options, prompt="P"):
+    """A STUDENT decision row (tier smart, real prompt) carrying the additive
+    shadow_choice DAgger label (the Forge-AI's pick over the same menu)."""
+    d = ai_dec(seat, dtype, choice, n_options, options, prompt)
+    d["tier"] = "smart"                 # student tier, NOT ai-teacher
+    d["shadow_choice"] = shadow_choice
+    return d
+
+
+def test_dagger_builder_per_family():
+    """One dagger example per shadow family, target synthesized byte-exact from
+    the SHADOW label (not the student's choice), with the blockers k>0 drop."""
+    pb = m.PreambleBuilder(str(m.DEFAULT_JAVA))
+    with tempfile.TemporaryDirectory() as d:
+        write_game(d, "game-1-1000.jsonl", ai_game(1, False, "A"), [
+            dagger_dec("Elves", "play", 2, 0, 3,
+                       ["CAST a", "CAST b", "PASS (do nothing)"], prompt="p-index"),
+            dagger_dec("Elves", "play", 0, -1, 3,
+                       ["CAST a", "CAST b", "PASS (do nothing)"], prompt="p-pass"),
+            dagger_dec("Elves", "attackers", 1, 2, 3, ["x", "y", "z"], prompt="a-count"),
+            dagger_dec("Elves", "attackers", 0, 3, 3, ["x", "y", "z"], prompt="a-all"),
+            dagger_dec("Elves", "blockers", 0, 0, 2, ["b1", "b2"], prompt="b-none"),
+            dagger_dec("Elves", "blockers", 1, 2, 3, ["b1", "b2", "b3"], prompt="b-kpos"),
+            dagger_dec("Elves", "mulligan", 0, 0, 2, ["KEEP", "MULLIGAN"], prompt="m-keep"),
+            dagger_dec("Elves", "mulligan", 0, 1, 2, ["KEEP", "MULLIGAN"], prompt="m-mull"),
+        ])
+        rows, warnings, hyg = m.build_dagger_examples(d, pb)
+        by_prompt = {e["messages"][1]["content"]: e["messages"][2]["content"]
+                     for e in rows}
+        check("play index (shadow 0) -> CHOICE: 1", by_prompt.get("p-index") == "CHOICE: 1")
+        check("play PASS (shadow -1) -> CHOICE: 3", by_prompt.get("p-pass") == "CHOICE: 3")
+        check("attackers count (shadow 2/3) -> PICKS: 1,2", by_prompt.get("a-count") == "PICKS: 1,2")
+        check("attackers all (shadow 3/3) -> PICKS: 1,2,3", by_prompt.get("a-all") == "PICKS: 1,2,3")
+        check("blockers k=0 -> BLOCKS: NONE", by_prompt.get("b-none") == "BLOCKS: NONE")
+        check("blockers k>0 DROPPED (pairing not logged)", "b-kpos" not in by_prompt)
+        check("blockers k>0 drop counted in hygiene",
+              hyg["drop_blocks-underdetermined"] == 1)
+        check("mulligan keep (shadow 0) -> KEEP", by_prompt.get("m-keep") == "KEEP")
+        check("mulligan mull (shadow 1) -> MULLIGAN", by_prompt.get("m-mull") == "MULLIGAN")
+        r0 = next(e for e in rows if e["messages"][1]["content"] == "p-index")
+        check("provenance source=dagger tier=ai-shadow",
+              r0["meta"]["source"] == "dagger" and r0["meta"]["tier"] == "ai-shadow")
+        check("meta choice = the shadow label", r0["meta"]["choice"] == 0)
+        check("meta records the student's own choice", r0["meta"]["student_choice"] == 2)
+        check("dagger system is terse framing (no STATIC_REFERENCE)",
+              'piloting "Elves"' in r0["messages"][0]["content"]
+              and "SNAPSHOT LEGEND" not in r0["messages"][0]["content"])
+
+
+def test_dagger_no_win_filter():
+    """DAgger keeps EVERY state: losing-seat rows and draw games included."""
+    pb = m.PreambleBuilder(str(m.DEFAULT_JAVA))
+    with tempfile.TemporaryDirectory() as d:
+        # winner A (Elves) — a shadow row on the LOSING seat (Goblins) is kept.
+        write_game(d, "game-1-1000.jsonl", ai_game(1, False, "A"), [
+            dagger_dec("Elves", "play", 0, 0, 2,
+                       ["CAST a", "PASS (do nothing)"], prompt="winner-seat"),
+            dagger_dec("Goblins", "play", 0, 0, 2,
+                       ["CAST g", "PASS (do nothing)"], prompt="loser-seat"),
+        ])
+        # a DRAW game still contributes (no draw skip, unlike ai-teacher).
+        write_game(d, "game-2-1000.jsonl", ai_game(2, False, "draw"), [
+            dagger_dec("Elves", "play", 0, 0, 2,
+                       ["CAST a", "PASS (do nothing)"], prompt="draw-seat"),
+        ])
+        rows, _, _ = m.build_dagger_examples(d, pb)
+        prompts = sorted(e["messages"][1]["content"] for e in rows)
+        check("losing-seat AND winning-seat AND draw rows all kept",
+              prompts == ["draw-seat", "loser-seat", "winner-seat"],
+              "got %s" % prompts)
+        # Contrast: the win-filtered ai-teacher builder would drop the loser and
+        # the draw — and here, drop everything (these rows are tier=smart).
+        ai_rows, _, _ = m.build_ai_teacher_examples(d, pb)
+        check("ai-teacher builder emits nothing from student(smart) rows",
+              ai_rows == [])
+
+
+def test_dagger_selects_by_shadow_choice_and_prompt():
+    """Only rows with a non-null shadow_choice AND a real prompt survive."""
+    pb = m.PreambleBuilder(str(m.DEFAULT_JAVA))
+    with tempfile.TemporaryDirectory() as d:
+        write_game(d, "game-1-1000.jsonl", ai_game(1, False, "A"), [
+            dagger_dec("Elves", "play", 0, 0, 2,
+                       ["CAST a", "PASS (do nothing)"], prompt="has-shadow"),
+            # no shadow_choice key at all -> silently skipped (not a dagger row)
+            ai_dec("Elves", "play", 0, 2, ["CAST a", "PASS (do nothing)"],
+                   prompt="no-shadow"),
+            # shadow present but prompt empty (floor/auto student row) -> dropped
+            dagger_dec("Elves", "play", 0, 0, 2,
+                       ["CAST a", "PASS (do nothing)"], prompt=""),
+        ])
+        rows, warnings, hyg = m.build_dagger_examples(d, pb)
+        prompts = [e["messages"][1]["content"] for e in rows]
+        check("only the shadow-labeled, prompted row survives",
+              prompts == ["has-shadow"], "got %s" % prompts)
+        check("prompt-less shadow row counted as drop_no_prompt",
+              hyg["drop_no_prompt"] == 1)
+
+
+def test_parse_typed_source_dagger():
+    s = m.parse_typed_source("dagger:runs/d4:2.0")
+    check("dagger type parsed", s["type"] == "dagger")
+    check("dagger path parsed", s["path"] == "runs/d4")
+    check("dagger weight parsed", s["weight"] == 2.0)
+    s2 = m.parse_typed_source("dagger:runs/d4")
+    check("dagger default weight 1.0",
+          s2["weight"] == 1.0 and s2["path"] == "runs/d4")
+    check("dagger source_name is dagger:PATH", m.source_name(s) == "dagger:runs/d4")
+
+
+def test_apply_mix_dagger_shares_reserved_bucket():
+    """dagger + ai-teacher share the stratified reserved budget; curated
+    (prebuilt/win) sources stay kept-in-full."""
+    ai = _cellrows(("Elves", "play"), 20, "ep")
+    for r in ai:
+        r["_rid"] = "ai-" + r["_rid"]
+    dg = _cellrows(("Goblins", "play"), 20, "gp")
+    for r in dg:
+        r["_rid"] = "dg-" + r["_rid"]
+    pre = [{"_cell": ("puzzle", "prebuilt"), "_rid": "pz-%d" % i,
+            "meta": {"deck": "puzzle", "type": "prebuilt"}} for i in range(10)]
+    by_source = {"ai-teacher:X": ai, "dagger:Y": dg, "prebuilt:Z": pre}
+    weights = {"ai-teacher:X": 1.0, "dagger:Y": 1.0, "prebuilt:Z": 1.0}
+    kept, report = m.apply_mix(by_source, weights, {}, 30, sample_seed=5)
+    check("curated prebuilt kept in FULL under cap", len(kept["prebuilt:Z"]) == 10)
+    synth = len(kept["ai-teacher:X"]) + len(kept["dagger:Y"])
+    check("ai-teacher+dagger fill the reserved budget (30-10=20)", synth == 20)
+    check("dagger takes a stratified 1:1 share (10 each)",
+          len(kept["dagger:Y"]) == 10 and len(kept["ai-teacher:X"]) == 10)
+    check("global total == cap", synth + len(kept["prebuilt:Z"]) == 30)
+    kept2, _ = m.apply_mix(by_source, weights, {"dagger:Y": 8}, None, sample_seed=5)
+    check("dagger per-source cap applied (stratified)", len(kept2["dagger:Y"]) == 8)
+
+
 def main():
     for name, fn in sorted(globals().items()):
         if name.startswith("test_") and callable(fn):
