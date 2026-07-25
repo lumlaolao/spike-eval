@@ -641,7 +641,7 @@ one of them, per the schema enums; do not paste the examples verbatim.
 ```json
 {
   "schema": "puzzle-position.v1",
-  "id": "sha256-of-(engine_sha,seed,swap,decision_index)[:16]",
+  "id": "sha256-of-(engine_sha,seed,swap,game_file,decision_index,category)[:16] — unique per line (game_file salted in: seeds are reused across match games, and llm games are non-deterministic, so (engine_sha,seed,swap) alone does not identify a game instance); the shared replay address of same-decision candidates is the source block",
   "category": "lethal-now | save-vs-lethal | forced-block | free-win | mulligan | graded-midgame",
   "source": {
     "engine_sha": "c1c64a5...", "overlay_sha": "6c3b0bd...",

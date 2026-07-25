@@ -3,10 +3,10 @@
   "$id": "puzzle-position.v1",
   "title": "Engine-verified golden-suite position (one jsonl line) — see eval/EVAL-DESIGN.md §3 / §10.1",
   "type": "object",
-  "required": ["schema", "id", "category", "source", "prompt", "options", "n_options", "answer_key", "split"],
+  "required": ["schema", "id", "category", "source", "prompt", "options", "n_options", "split"],
   "properties": {
     "schema": {"const": "puzzle-position.v1"},
-    "id": {"type": "string", "description": "sha256(engine_sha,seed,swap,decision_index)[:16]"},
+    "id": {"type": "string", "description": "sha256(engine_sha,seed,swap,game_file,decision_index,category)[:16] — unique per line; same-decision candidates in different categories share the source block (replay address), never the id. game_file is salted in because (engine_sha,seed,swap) does not identify a game instance (reused seeds across matches; non-deterministic llm games)"},
     "category": {"enum": ["lethal-now", "save-vs-lethal", "forced-block", "free-win", "mulligan", "graded-midgame"]},
     "source": {
       "type": "object",
@@ -49,6 +49,18 @@
       }
     },
     "split": {"enum": ["open", "holdout"]},
-    "excluded_from_sft_overlap": {"type": "boolean", "description": "true iff source game contributed no row to any SFT dataset (required true for split=holdout)"}
+    "seed_block": {"type": "string", "description": "name of the reserved eval seed block the source seed falls in (eval/seed_policy.py), when it falls in one; absent otherwise"},
+    "excluded_from_sft_overlap": {"type": "boolean", "description": "true iff source game contributed no row to any SFT dataset (required true for split=holdout)"},
+    "status": {"enum": ["candidate", "verified"], "description": "absent = verified, for back-compat with pre-status suite files. 'candidate' = mined by eval/mine_puzzles.py, text-heuristic hypothesis, not yet engine-verified: no answer_key."},
+    "replayable": {"type": "boolean", "description": "true iff both controllers of the source game are deterministic (floor/random/ai/ai-log), i.e. the position can be re-reached by the fork harness. false for llm-piloted games (candidates only, for heuristic tuning)."},
+    "category_evidence": {"type": "string", "description": "short human-readable summary of what the mining heuristic matched, e.g. 'own_power=7 opp_life=6' (mine_puzzles.py only)"}
+  },
+  "if": {
+    "required": ["status"],
+    "properties": {"status": {"const": "candidate"}}
+  },
+  "then": {},
+  "else": {
+    "required": ["answer_key"]
   }
 }
