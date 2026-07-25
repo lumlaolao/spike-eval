@@ -64,7 +64,7 @@ def load_config(path=None):
 def scan_jsonl_file(path):
     """Parse one game jsonl -> per-file stats dict. Never raises."""
     st = {"games": 0, "decisions": 0, "labels": 0, "wins": 0, "losses": 0,
-          "draws": 0, "by_type": {}}
+          "draws": 0, "by_type": {}, "last_game": None}
     try:
         with open(path, "r", errors="replace") as f:
             for line in f:
@@ -91,6 +91,10 @@ def scan_jsonl_file(path):
                         st["losses"] += 1
                     else:
                         st["draws"] += 1
+                    st["last_game"] = {"seed": row.get("seed"),
+                                       "swap": row.get("swap"),
+                                       "winner": w,
+                                       "turns": row.get("turns")}
     except OSError:
         pass
     return st
@@ -236,6 +240,140 @@ def dagger_panel(cfg):
         panel["health"] = "unhealthy"
     panel["java_procs"] = _pgrep_count("java", exact=True)
     panel["mlx_procs"] = _pgrep_count("serve_capped")
+    return panel
+
+
+# --------------------------------------------------------------------------
+# Live event feed: completed matches (corpus) merged with heartbeat events
+# --------------------------------------------------------------------------
+
+FNAME_SEED_RE = re.compile(r"game-(\d+)-")
+
+
+def parse_hb_time(hhmmss, ref_epoch):
+    """Map a bare HH:MM:SS log time to an epoch: the most recent occurrence
+    of that time-of-day at or before ref_epoch (the log file's mtime)."""
+    try:
+        h, m, s = (int(x) for x in hhmmss.split(":"))
+        ref = datetime.fromtimestamp(ref_epoch)
+        cand = ref.replace(hour=h, minute=m, second=s, microsecond=0)
+        if cand > ref + timedelta(seconds=60):   # time-of-day after the file's
+            cand -= timedelta(days=1)            # last write -> previous day
+        return cand.timestamp()
+    except (ValueError, OSError, OverflowError):
+        return ref_epoch
+
+
+def match_events(cache):
+    """One event per corpus file that has its final game row. Works off the
+    scan cache, so a file that gains its game row minutes after appearing
+    shows up as soon as the (mtime,size)-keyed rescan picks the row up."""
+    events = []
+    for path, (key, st) in list(cache.items()):
+        g = st.get("last_game")
+        if not st.get("games") or not g:
+            continue          # in-flight file: game row not written yet
+        mtime = key[0]
+        w = g.get("winner")
+        if w == "A":
+            kind, outcome = "win", "WIN (A)"
+        elif w == "B":
+            kind, outcome = "loss", "LOSS (B)"
+        else:
+            kind, outcome = "draw", "DRAW/CAPPED (%s)" % w
+        seed = g.get("seed")
+        if seed is None:
+            m = FNAME_SEED_RE.match(os.path.basename(path))
+            seed = m.group(1) if m else "?"
+        swap = g.get("swap")
+        swap = "?" if swap is None else (1 if swap else 0)
+        events.append({
+            "ts": mtime, "kind": kind,
+            "text": "%s seed %s swap %s — %s in %s turns · %d labels" % (
+                os.path.basename(os.path.dirname(path)), seed, swap,
+                outcome, g.get("turns", "?"), st.get("labels", 0)),
+        })
+    return events
+
+
+def heartbeat_feed(lines, ref_epoch):
+    """Condense heartbeat lines: every UNHEALTHY/RESTART is an event, ok
+    beats are NOT (one per 45s would drown the feed) — instead a status
+    summary plus a discrete 'recovered' event when ok follows a strike."""
+    status = {"state": None, "last_ts": None, "consecutive_ok": 0, "text": "no heartbeat data"}
+    events = []
+    prev_bad = False
+    consec_ok = 0
+    for ln in lines:
+        m = HB_RE.search(ln)
+        if not m:
+            continue
+        ts, what, rss = m.group(1), m.group(2), m.group(3)
+        ep = parse_hb_time(ts, ref_epoch)
+        status["last_ts"] = ts
+        if what == "ok":
+            if prev_bad:
+                events.append({"ts": ep, "kind": "recovered",
+                               "text": "heartbeat recovered (rss %s)" % (rss or "?")})
+            prev_bad = False
+            consec_ok += 1
+            status["state"] = "ok"
+        else:
+            prev_bad = True
+            consec_ok = 0
+            kind = "restart" if what.startswith("RESTART") else "unhealthy"
+            events.append({"ts": ep, "kind": kind,
+                           "text": "heartbeat %s%s" % (what, " · rss %s" % rss if rss else "")})
+            status["state"] = what
+    status["consecutive_ok"] = consec_ok
+    if status["state"] == "ok":
+        status["text"] = "heartbeat: ok, last beat %s (%d consecutive)" % (
+            status["last_ts"], consec_ok)
+    elif status["state"]:
+        status["text"] = "heartbeat: %s, last beat %s" % (status["state"], status["last_ts"])
+    return status, events
+
+
+def _fmt_event_time(ts, now=None):
+    now = now or time.time()
+    try:
+        dt = datetime.fromtimestamp(ts)
+    except (OSError, OverflowError, ValueError):
+        return "?"
+    return dt.strftime("%H:%M:%S") if now - ts < 20 * 3600 else dt.strftime("%b %d %H:%M")
+
+
+def build_feed(cfg, cache, max_events=40):
+    """Merged chronological feed (newest first). Degrades per-source: either
+    side can be missing and the other still renders."""
+    panel = {"ok": False, "events": [], "hb_status": None, "note": ""}
+    sources = 0
+    try:
+        agg = scan_corpus(cfg.get("runs_dir"), cache)   # cheap: mtime-cached
+        if agg["ok"]:
+            sources += 1
+        panel["events"].extend(match_events(cache))
+    except Exception as e:  # noqa: BLE001
+        panel["note"] += "corpus: %s. " % str(e)[:120]
+    hb_path = os.path.join(cfg.get("dagger_dir") or "", "heartbeat.log")
+    try:
+        ref = os.path.getmtime(hb_path)
+        status, hb_events = heartbeat_feed(_read_lines(hb_path), ref)
+        panel["hb_status"] = status
+        panel["events"].extend(hb_events)
+        sources += 1
+    except OSError:
+        panel["hb_status"] = {"state": None, "text": "no heartbeat log", "consecutive_ok": 0}
+    except Exception as e:  # noqa: BLE001
+        panel["note"] += "heartbeat: %s. " % str(e)[:120]
+    panel["events"].sort(key=lambda e: e.get("ts") or 0, reverse=True)
+    panel["events"] = panel["events"][:max_events]
+    now = time.time()
+    for e in panel["events"]:
+        e["time"] = _fmt_event_time(e.get("ts") or 0, now)
+    panel["ok"] = sources > 0
+    if not panel["ok"] and not panel["note"]:
+        panel["note"] = "no data (corpus and heartbeat both unavailable)"
     return panel
 
 
@@ -388,6 +526,7 @@ def build_status():
     for name, fn in (
         ("dagger", lambda: dagger_panel(CFG)),
         ("corpus", lambda: scan_corpus(CFG["runs_dir"], CORPUS_CACHE)),
+        ("feed", lambda: build_feed(CFG, CORPUS_CACHE)),
         ("training", lambda: training_panel(CFG)),
         ("ledger", lambda: summarize_ledger(CFG["ledger"])),
     ):
@@ -446,6 +585,22 @@ PAGE = """<!DOCTYPE html>
   ul.inc { list-style:none; } ul.inc li { padding:3px 0;
     border-bottom:1px solid var(--grid); font-variant-numeric:tabular-nums; }
   ul.inc li:last-child { border-bottom:none; }
+  ul.feed { list-style:none; max-height:340px; overflow-y:auto; }
+  ul.feed li { display:flex; gap:8px; align-items:baseline; padding:3px 0;
+    border-bottom:1px solid var(--grid); font-size:12.5px; }
+  ul.feed li:last-child { border-bottom:none; }
+  ul.feed .t { color:var(--muted); flex:0 0 62px;
+    font-variant-numeric:tabular-nums; font-size:11.5px; }
+  ul.feed .dot { flex:0 0 9px; position:relative; top:-1px; }
+  .ev-win { color:var(--ink); font-weight:600; }
+  .ev-loss { color:var(--muted); }
+  .ev-draw { color:var(--ink2); font-style:italic; }
+  .ev-unhealthy { color:var(--serious); font-weight:600; }
+  .ev-restart { color:var(--crit); font-weight:600; }
+  .ev-recovered { color:var(--good); }
+  .hbline { display:flex; gap:8px; align-items:center; padding:6px 8px;
+    background:var(--page); border:1px solid var(--border); border-radius:8px;
+    margin-bottom:8px; font-variant-numeric:tabular-nums; }
   .empty { color:var(--muted); font-style:italic; }
   .typebar { display:flex; align-items:center; gap:8px; margin:3px 0; }
   .typebar .name { flex:0 0 110px; font-size:12px; }
@@ -544,6 +699,28 @@ function budgetCard(s) {
   return card('AWS budget', b);
 }
 
+function feedCard(f) {
+  if (!f || f.error) return card('Live feed', empty('error: ' + (f && f.error || '?')));
+  if (!f.ok) return card('Live feed', empty(f.note || 'no data'));
+  const dots = {win:'var(--good)', loss:'var(--grid)', draw:'var(--muted)',
+    unhealthy:'var(--serious)', restart:'var(--crit)', recovered:'var(--good)'};
+  const hb = f.hb_status || {};
+  const hbColor = hb.state === 'ok' ? 'var(--good)' : hb.state ? 'var(--serious)' : 'var(--muted)';
+  let b = `<div class="hbline">${dot(hbColor, '')}<span>${esc(hb.text || 'no heartbeat data')}</span></div>`;
+  if (!f.events.length) b += empty('no events yet');
+  else {
+    b += `<ul class="feed">`;
+    for (const e of f.events) {
+      b += `<li><span class="t">${esc(e.time)}</span>
+        <span class="dot" style="background:${dots[e.kind] || 'var(--muted)'}"></span>
+        <span class="ev-${esc(e.kind)}">${esc(e.text)}</span></li>`;
+    }
+    b += `</ul>`;
+  }
+  if (f.note) b += `<div class="mini">${esc(f.note)}</div>`;
+  return card('Live feed — matches + heartbeat', b);
+}
+
 function incidentCard(d) {
   const hb = (d && d.heartbeat) || {};
   const inc = hb.incidents || [];
@@ -567,8 +744,8 @@ async function refresh() {
     const s = await r.json();
     document.getElementById('stamp').textContent = 'updated ' + s.generated_at + ' · refreshes every 10s';
     document.getElementById('grid').innerHTML =
-      daggerCard(s.dagger) + corpusCard(s.corpus) + budgetCard(s) +
-      incidentCard(s.dagger) + trainingCard(s.training);
+      daggerCard(s.dagger) + feedCard(s.feed) + corpusCard(s.corpus) +
+      budgetCard(s) + incidentCard(s.dagger) + trainingCard(s.training);
   } catch (e) {
     document.getElementById('stamp').textContent = 'refresh failed: ' + e + ' (retrying)';
   }

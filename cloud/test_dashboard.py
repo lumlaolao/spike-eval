@@ -280,6 +280,119 @@ class DaggerPanelHealthTest(unittest.TestCase):
         self.assertIn("note", p)
 
 
+class FeedTest(unittest.TestCase):
+    """Event feed: match/heartbeat merge, late game rows, ok-condensation."""
+
+    REF = datetime(2026, 7, 24, 12, 0, 0)  # fixed "now" for heartbeat times
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.runs = os.path.join(self.tmp.name, "runs")
+        self.dagger = os.path.join(self.tmp.name, "dagger")
+        os.makedirs(self.dagger)
+        self.cfg = {"runs_dir": self.runs, "dagger_dir": self.dagger}
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def epoch(self, h, m, s=0):
+        return self.REF.replace(hour=h, minute=m, second=s).timestamp()
+
+    def write_game(self, cell, fname, lines, ts):
+        cdir = os.path.join(self.runs, cell)
+        os.makedirs(cdir, exist_ok=True)
+        p = os.path.join(cdir, fname)
+        with open(p, "w") as f:
+            f.write("\n".join(lines) + "\n")
+        os.utime(p, (ts, ts))
+        return p
+
+    def write_heartbeat(self, lines, mtime):
+        p = os.path.join(self.dagger, "heartbeat.log")
+        with open(p, "w") as f:
+            f.write("\n".join(lines) + "\n")
+        os.utime(p, (mtime, mtime))
+        return p
+
+    def test_merge_ordering_newest_first(self):
+        self.write_game("a-vs-b", "game-9100-1.jsonl",
+                        [d_row("play"), g_row("A", seed=9100, swap=False, turns=13)],
+                        ts=self.epoch(11, 0))
+        self.write_game("c-vs-d", "game-9101-2.jsonl",
+                        [d_row("play"), d_row("mulligan"),
+                         g_row("B", seed=9101, swap=True, turns=8)],
+                        ts=self.epoch(11, 45))
+        self.write_heartbeat(["[11:15:00] ok rss=1KB",
+                              "[11:30:00] UNHEALTHY strike=1 rss=2KB"],
+                             mtime=self.epoch(11, 30, 30))
+        panel = dashboard.build_feed(self.cfg, {})
+        self.assertTrue(panel["ok"])
+        kinds = [e["kind"] for e in panel["events"]]
+        # 11:45 loss, 11:30 UNHEALTHY, 11:00 win — the lone ok beat is condensed
+        self.assertEqual(kinds, ["loss", "unhealthy", "win"])
+        self.assertIn("c-vs-d seed 9101 swap 1 — LOSS (B) in 8 turns", panel["events"][0]["text"])
+        self.assertIn("2 labels", panel["events"][0]["text"])
+        self.assertIn("a-vs-b seed 9100 swap 0 — WIN (A) in 13 turns", panel["events"][2]["text"])
+        self.assertEqual(panel["hb_status"]["state"], "UNHEALTHY strike=1")
+
+    def test_game_row_gained_later_appears_on_rescan(self):
+        cache = {}
+        p = self.write_game("a-vs-b", "game-9100-1.jsonl",
+                            [d_row("play"), d_row("play")], ts=self.epoch(10, 0))
+        panel = dashboard.build_feed(self.cfg, cache)
+        self.assertEqual([e for e in panel["events"] if e["kind"] in
+                          ("win", "loss", "draw")], [])  # in-flight: no event
+        with open(p, "a") as f:
+            f.write(g_row("A", seed=9100, swap=False, turns=20) + "\n")
+        t2 = self.epoch(10, 30)
+        os.utime(p, (t2, t2))
+        panel = dashboard.build_feed(self.cfg, cache)   # same cache object
+        wins = [e for e in panel["events"] if e["kind"] == "win"]
+        self.assertEqual(len(wins), 1)
+        self.assertEqual(wins[0]["ts"], t2)
+
+    def test_heartbeat_condensation_and_recovery(self):
+        lines = (["[09:%02d:00] ok rss=1KB" % i for i in range(5)]
+                 + ["[09:05:00] UNHEALTHY strike=1 rss=2KB",
+                    "[09:06:00] UNHEALTHY strike=2 rss=2KB",
+                    "[09:07:00] RESTART: killing JVMs + server",
+                    "[09:08:00] ok rss=3KB",
+                    "[09:09:00] ok rss=3KB"])
+        status, events = dashboard.heartbeat_feed(lines, self.epoch(9, 9, 30))
+        kinds = [e["kind"] for e in events]
+        # plain ok beats never become events; recovery after the bad run does
+        self.assertEqual(kinds, ["unhealthy", "unhealthy", "restart", "recovered"])
+        self.assertEqual(status["state"], "ok")
+        self.assertEqual(status["consecutive_ok"], 2)
+        self.assertIn("(2 consecutive)", status["text"])
+        self.assertIn("09:09:00", status["text"])
+        # UNHEALTHY always surfaces even when the log ends healthy
+        self.assertTrue(all("heartbeat" in e["text"] for e in events))
+
+    def test_hb_time_crossing_midnight(self):
+        ref = datetime(2026, 7, 24, 0, 30, 0).timestamp()
+        late = dashboard.parse_hb_time("23:50:00", ref)
+        self.assertLess(late, ref)                       # mapped to yesterday
+        self.assertAlmostEqual(ref - late, 40 * 60, delta=61)
+
+    def test_both_sources_missing_degrades(self):
+        cfg = {"runs_dir": os.path.join(self.tmp.name, "nope"),
+               "dagger_dir": os.path.join(self.tmp.name, "nada")}
+        panel = dashboard.build_feed(cfg, {})
+        self.assertFalse(panel["ok"])
+        self.assertIn("no data", panel["note"])
+        self.assertEqual(panel["events"], [])
+
+    def test_capped_at_40_events(self):
+        for i in range(50):
+            self.write_game("a-vs-b", "game-%d-1.jsonl" % (9000 + i),
+                            [g_row("A", seed=9000 + i, swap=False)],
+                            ts=self.epoch(8, 0) + i)
+        panel = dashboard.build_feed(self.cfg, {})
+        self.assertEqual(len(panel["events"]), 40)
+        self.assertEqual(panel["events"][0]["text"].split()[2], "9049")  # newest first
+
+
 def _proc(returncode=0, stdout="", stderr=""):
     r = mock.Mock()
     r.returncode, r.stdout, r.stderr = returncode, stdout, stderr
