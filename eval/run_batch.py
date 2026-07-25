@@ -38,6 +38,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import seed_policy  # noqa: E402  seed governance (EVAL-DESIGN.md §6.5)
+
 PRINT_LOCK = threading.Lock()
 
 # Repo root = parent of eval/. runs/ and forge-overlay/ live here.
@@ -422,6 +425,37 @@ def warn_parallel_jobs(args):
             "eval/CONCURRENCY.md §7)." % args.jobs)
 
 
+# ------------------------------------------------------- seed governance
+#
+# eval/EVAL-DESIGN.md §6.5 reserves seed blocks (frozen-legacy 501-525,
+# puzzle-mining 20000-29999, certification-holdout 30000-30099) that must
+# never feed SFT/training data — see eval/seed_policy.py, the shared guard.
+# run_batch.py itself is NOT refused here: playing eval games on a reserved
+# seed is exactly what those blocks are FOR (frozen anchors, mining runs,
+# certification holdouts). This is a non-fatal heads-up only, so a batch
+# aimed at a reserved block (deliberately) is not blocked, but a batch that
+# reserved seeds slipped into BY ACCIDENT (e.g. a copy-pasted --seeds range)
+# gets a loud reminder before the games it writes are later fed to
+# make_sft_data.py / mine_puzzles.py (both of which DO refuse).
+
+def warn_reserved_seeds(seeds):
+    """Print a loud, non-fatal warning if any requested seed falls in a
+    reserved eval block."""
+    offenders = seed_policy.check_seeds(seeds)
+    if not offenders:
+        return
+    bar = "=" * 72
+    log(bar)
+    log("  NOTE: some requested seed(s) are in RESERVED eval blocks (%s)."
+        % seed_policy.DOC_POINTER)
+    log("  That's fine if this run IS the frozen-anchor/mining/certification")
+    log("  use those blocks exist for — but games on these seeds must NEVER")
+    log("  be fed into make_sft_data.py / mine_puzzles.py as SFT/training data.")
+    for block in sorted(offenders):
+        log("  [%s] %s" % (block, ", ".join(str(s) for s in offenders[block])))
+    log(bar)
+
+
 def derive_cap_minutes(args):
     """Per-tier default cap (minutes): no llm seat -> 15; any opus -> 240;
     all-haiku llm -> 120; anything else llm -> 240 (conservative)."""
@@ -534,6 +568,7 @@ def main():
                     help="extra env var for the runner (repeatable)")
     args = ap.parse_args()
 
+    warn_reserved_seeds(args.seeds)
     load_secrets()
     preflight_openrouter(args)
 

@@ -489,7 +489,7 @@ fine resolution is explicitly out of budget — the design reports frontier CIs 
 whatever width 25–50 consented pairs buy (≈ ±13–19 pts at n=50 games) and does
 not pretend otherwise.
 
-### 6.5 Seed governance (Brief A §6)
+### 6.5 Seed governance (Brief A §6) — **LOCKED 2026-07-25, user-approved**
 
 | Block | Purpose | Status |
 |---|---|---|
@@ -500,8 +500,14 @@ not pretend otherwise.
 | 30000–30099 | **certification holdout** (STR + PUZ held-out runs) | reserved; opened at release time, then retired and replaced |
 | d1-selfplay seed range | SFT corpus | burned everywhere |
 
-`make_sft_data.py` and `mine_puzzles.py` must both refuse seed-block overlap
-(one ~20-line shared guard, `eval/seed_policy.py`).
+Enforcement (implemented with this lock): `eval/seed_policy.py` is the single
+source of truth for the reserved ranges. `make_sft_data.py` refuses (exit 2)
+any SFT source containing a game whose seed falls in a reserved block —
+override only via `--allow-reserved-seeds`, which prints a loud banner and is
+recorded in the dataset provenance. `run_batch.py` prints a prominent
+eval-reserved warning when requested seeds intersect a reserved block (games
+there are fine — feeding them to SFT is not). `mine_puzzles.py` tags candidate
+seeds with their block. Tests: `eval/test_seed_policy.py`.
 
 ---
 
@@ -571,6 +577,12 @@ n=8 games) — its numbers are *profiles*, never citable strength claims; the
 | 1.6 (v2, optional) `state_export` on flagged rows + fork-from-snapshot → full PUNT for LLM/student games | 1.5 | Java + schema, ~1 week; defer until v1 metrics prove insufficient |
 
 ### Phase 2 — paid frontier calls (**every row requires explicit user consent + `OPENROUTER_ALLOW_EGRESS=1`; nothing here runs by default**)
+
+**Decided roster (user decision, 2026-07-25):** the same 8 models as
+tournament-1 — opus-4.8, claude-fable-5, gpt-5, grok-4.5, gemini-3.5-flash,
+qwen3.7-max, kimi-k3, deepseek-v4-pro. Recording this decision authorizes
+nothing: each Phase-2 run still requires explicit per-run user consent and the
+egress opt-in at launch time.
 
 | Work item | Est. cost (per model / total for 8) | Notes |
 |---|---|---|
