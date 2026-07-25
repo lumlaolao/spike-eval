@@ -1,5 +1,14 @@
 # DAgger round 1 — deferred fixes & follow-ups
 
+**Update 2026-07-25 00:05: items 1+2 DONE and verified live** (applied early — three
+cells censored in 90 min changed the math on deferring). Heartbeat now logs
+`reload-skip` during planned recycles and `busy (progress N->M)` instead of false
+strikes; progress detection counts completed-request/prefill log lines, NOT file
+mtime (a wedged server still writes timeout tracebacks, which would keep mtime
+fresh and blind the watchdog). Item 3 merged into the same relaunch: resume
+resweeps the short cells (goblins-vs-miracles, infect-vs-sneak-and-show,
+lands-vs-ur-delver) with the fixed watchdog.
+
 Living list of things noticed mid-run and deliberately deferred (editing a running
 bash script corrupts it; fixes land when the driver is idle). Ordered by dependency.
 
