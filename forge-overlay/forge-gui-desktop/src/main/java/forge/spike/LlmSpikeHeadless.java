@@ -30,6 +30,15 @@ public final class LlmSpikeHeadless {
     private LlmSpikeHeadless() {}
 
     public static void main(String[] args) throws Exception {
+        // Milestone D (eval/EVAL-DESIGN.md §3.1): FORK_MODE=check|enumerate|rollout delegates to the
+        // replay-and-rollout harness instead of a normal match. Absent (the default), behavior below
+        // is byte-identical to before this branch existed.
+        String forkMode = System.getenv("FORK_MODE");
+        if (forkMode != null && !forkMode.trim().isEmpty()) {
+            LlmSpikeFork.run(forkMode.trim());
+            return; // unreachable: LlmSpikeFork.run always exits the JVM itself
+        }
+
         long capMs = 3 * 60 * 60 * 1000L;
         try { String v = System.getenv("GAME_CAP_MS"); if (v != null) capMs = Long.parseLong(v.trim()); } catch (Exception ignore) {}
 

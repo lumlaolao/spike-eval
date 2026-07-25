@@ -139,6 +139,7 @@ public final class LlmSpikeGui {
      *  final game summary land here so batch runs produce a dataset, not scrollback. */
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
+        private static volatile java.io.File file; // the exact file `out` is writing (LlmSpikeFork reads it back)
         static synchronized void init(long seed) {
             String dir = System.getenv("EVAL_OUT");
             if (dir == null || dir.isEmpty()) return;
@@ -151,17 +152,37 @@ public final class LlmSpikeGui {
             try {
                 java.io.File d = new java.io.File(dir);
                 d.mkdirs();
-                out = new java.io.PrintWriter(new java.io.FileWriter(
-                        new java.io.File(d, "game-" + seed + "-" + System.currentTimeMillis() + ".jsonl"), true), true);
+                file = new java.io.File(d, "game-" + seed + "-" + System.currentTimeMillis() + ".jsonl");
+                out = new java.io.PrintWriter(new java.io.FileWriter(file, true), true);
             } catch (Exception e) { System.out.println("[EVAL] log init failed: " + e); }
         }
         static synchronized void write(String json) { if (out != null) out.println(json); }
         static boolean on() { return out != null; }
+        /** The file currently being written (null if EVAL_OUT unset). LlmSpikeFork's check mode reads
+         *  this back after the game ends to compare the replayed decision stream against FORK_SOURCE. */
+        static java.io.File currentFile() { return file; }
         /** Test-only: flush + detach the writer so a subsequent {@link #initToDir} can open a fresh file. */
         static synchronized void closeForTest() {
-            if (out != null) { out.flush(); out.close(); out = null; }
+            if (out != null) { out.flush(); out.close(); out = null; file = null; }
         }
     }
+
+    /** Fork-mode extension point (LlmSpikeFork, Milestone D — eval/EVAL-DESIGN.md §3.1). Null in
+     *  every normal run (GUI, headless, tests) — zero overhead, zero behavior change. When
+     *  LlmSpikeFork sets it before starting a game, {@link #emitDecisionRow} calls it synchronously
+     *  (today, the fork-mode game runs on a single worker thread — see LlmSpikeFork#playDeterministicGame
+     *  — so "synchronously" here means "inline with that one thread's call to emitDecisionRow", not a
+     *  tested guarantee across concurrently-deciding seats), immediately after each decision row is
+     *  written, with a 0-based index in EMISSION order (== the order decision rows land in the jsonl
+     *  file, since EvalLog.write is synchronized and both seats' calls funnel through one writer) —
+     *  the same "merged decision stream" index FORK_DECISION_INDEX addresses. */
+    interface ForkHook {
+        void onDecision(int index, Player pl, String seat, String type, int nOptions,
+                int choice, List<String> options);
+    }
+    static volatile ForkHook FORK_HOOK = null;
+    static final java.util.concurrent.atomic.AtomicInteger FORK_DECISION_SEQ =
+            new java.util.concurrent.atomic.AtomicInteger(-1);
 
     /** The seed applySeed() actually used. Read by the D4 shadow labeler to derive its ephemeral RNG
      *  streams, so shadow draws differ across games in a batch instead of replaying one fixed stream.
@@ -3878,7 +3899,23 @@ public final class LlmSpikeGui {
                     // D4 DAgger additive field: the Forge-AI's shadow label over this row's menu, or null.
                     .append(",\"shadow_choice\":").append(shadowChoice == null ? "null" : shadowChoice)
                     .append('}');
-            EvalLog.write(sb.toString());
+            // The write, the index increment, and the hook dispatch must be one atomic unit
+            // with respect to concurrently-deciding seats: fork addressing depends on
+            // index == emission order == file line order. EvalLog.write is static synchronized,
+            // so synchronizing on EvalLog.class here extends that same monitor (re-entrant)
+            // around the increment -- two threads can no longer interleave between a write and
+            // its incrementAndGet, which would silently address the wrong decision row.
+            // Unconditional increment: FORK_DECISION_SEQ must track every decision row (this is
+            // the ONLY place it's incremented) even with no hook installed -- check mode reads
+            // it afterward to report the real decision count. Inert overhead on non-fork runs.
+            synchronized (EvalLog.class) {
+                EvalLog.write(sb.toString());
+                int idx = FORK_DECISION_SEQ.incrementAndGet();
+                ForkHook hook = FORK_HOOK; // read once: volatile, and null in every non-fork run
+                if (hook != null) {
+                    try { hook.onDecision(idx, pl, seat, type, nOptions, choice, options); } catch (Throwable ignore) { }
+                }
+            }
         } catch (Exception ignore) { }
     }
 
