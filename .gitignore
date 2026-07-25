@@ -19,3 +19,7 @@ datasets/stage1-v0-mlx/
 
 # D1 self-play corpus (~5,400 games): large generated JSONL/logs, never swept into git history.
 runs/d1-selfplay/
+
+# cloud dashboard runtime state: personal cost ledger + per-job local config
+cloud/aws_ledger.jsonl
+cloud/dashboard_config.json
