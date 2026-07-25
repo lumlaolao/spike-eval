@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "puzzle-position.v1",
+  "title": "Engine-verified golden-suite position (one jsonl line) — see eval/EVAL-DESIGN.md §3 / §10.1",
+  "type": "object",
+  "required": ["schema", "id", "category", "source", "prompt", "options", "n_options", "answer_key", "split"],
+  "properties": {
+    "schema": {"const": "puzzle-position.v1"},
+    "id": {"type": "string", "description": "sha256(engine_sha,seed,swap,decision_index)[:16]"},
+    "category": {"enum": ["lethal-now", "save-vs-lethal", "forced-block", "free-win", "mulligan", "graded-midgame"]},
+    "source": {
+      "type": "object",
+      "required": ["engine_sha", "overlay_sha", "deck_a", "deck_b", "controllers", "seed", "swap", "decision_index", "decision_type", "seat", "turn"],
+      "properties": {
+        "engine_sha": {"type": "string"},
+        "overlay_sha": {"type": "string"},
+        "deck_a": {"type": "string"},
+        "deck_b": {"type": "string"},
+        "controllers": {"type": "string", "description": "e.g. ai/ai — must be deterministic for replay"},
+        "seed": {"type": "integer", "description": "must lie in the reserved mining block (seed_policy.py)"},
+        "swap": {"type": "boolean"},
+        "decision_index": {"type": "integer", "minimum": 0},
+        "game_file": {"type": "string"},
+        "turn": {"type": "integer"},
+        "decision_type": {"type": "string"},
+        "seat": {"type": "string"}
+      }
+    },
+    "prompt": {"type": "string", "description": "verbatim user message the seat saw at the decision point"},
+    "options": {"type": "array", "items": {"type": "string"}, "minItems": 2},
+    "n_options": {"type": "integer", "minimum": 2},
+    "answer_key": {
+      "type": "object",
+      "required": ["verified_by", "option_scores"],
+      "properties": {
+        "verified_by": {"enum": ["exhaustive", "rollout"]},
+        "rollout": {
+          "type": "object",
+          "properties": {
+            "n_per_option": {"type": "integer"},
+            "continuation": {"type": "string"},
+            "seed_fn": {"type": "string"}
+          }
+        },
+        "option_scores": {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 10}},
+        "option_wp": {"type": "array", "items": {"type": "number", "minimum": 0, "maximum": 1}},
+        "option_wp_se": {"type": "array", "items": {"type": "number", "minimum": 0}},
+        "caveats": {"type": "array", "items": {"enum": ["rollout_policy_caveat", "single_deal_hidden_info"]}}
+      }
+    },
+    "split": {"enum": ["open", "holdout"]},
+    "excluded_from_sft_overlap": {"type": "boolean", "description": "true iff source game contributed no row to any SFT dataset (required true for split=holdout)"}
+  }
+}
