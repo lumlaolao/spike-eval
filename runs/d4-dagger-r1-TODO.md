@@ -25,6 +25,17 @@ Per-cell server recycles (~30s model reload) log spurious UNHEALTHY strikes
 (`rss=deadKB` entries). Driver should touch `$SCRATCH/reloading` before
 `start_server` and remove it after; heartbeat skips probes while it exists.
 
+## 2b. Relax validate_cell to row-level bridge policy (before final straggler pass)
+Current gate quarantines a game on bridge>0 — written for the wedge era (100%
+bridge games, zero model calls). Post-fix reality: slow matchups (goblins-vs-
+miracles 9100) complete with 60 model calls and 2 bridge rows (harness per-ask
+timeout crossed behind a slow generation) and get rejected wholesale. Fix when
+driver idle: quarantine only if model==0 OR bridge exceeds ~5% of decision rows;
+handle residual bridge rows at DATASET build (exclude fallback rows — verify
+make_sft_data's dagger builder already skips rows without shadow_choice/with
+fallback set, else add it). Until then: slow cells may close 5/6; final pass
+with relaxed gate reclaims them.
+
 ## 3. Straggler pass (after 1+2)
 Re-run the driver; resume fills only the missing games. Known short cells:
 `goblins-vs-miracles` 5/6, `infect-vs-sneak-and-show` 5/6 — final list via
