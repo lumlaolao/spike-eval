@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "puzzle-position.v1",
+  "title": "Engine-verified golden-suite position (one jsonl line) — see eval/EVAL-DESIGN.md §3 / §10.1",
+  "type": "object",
+  "required": ["schema", "id", "category", "source", "prompt", "options", "n_options", "split"],
+  "properties": {
+    "schema": {"const": "puzzle-position.v1"},
+    "id": {"type": "string", "description": "sha256(engine_sha,seed,swap,game_file,decision_index,category)[:16] — unique per line; same-decision candidates in different categories share the source block (replay address), never the id. game_file is salted in because (engine_sha,seed,swap) does not identify a game instance (reused seeds across matches; non-deterministic llm games)"},
+    "category": {"enum": ["lethal-now", "save-vs-lethal", "forced-block", "free-win", "mulligan", "graded-midgame"]},
+    "source": {
+      "type": "object",
+      "required": ["engine_sha", "overlay_sha", "deck_a", "deck_b", "controllers", "seed", "swap", "decision_index", "decision_type", "seat", "turn"],
+      "properties": {
+        "engine_sha": {"type": "string"},
+        "overlay_sha": {"type": "string"},
+        "deck_a": {"type": "string"},
+        "deck_b": {"type": "string"},
+        "controllers": {"type": "string", "description": "e.g. ai/ai — must be deterministic for replay"},
+        "seed": {"type": "integer", "description": "must lie in the reserved mining block (seed_policy.py)"},
+        "swap": {"type": "boolean"},
+        "decision_index": {"type": "integer", "minimum": 0},
+        "game_file": {"type": "string"},
+        "turn": {"type": "integer"},
+        "decision_type": {"type": "string"},
+        "seat": {"type": "string"}
+      }
+    },
+    "prompt": {"type": "string", "description": "verbatim user message the seat saw at the decision point"},
+    "options": {"type": "array", "items": {"type": "string"}, "minItems": 2},
+    "n_options": {"type": "integer", "minimum": 2},
+    "answer_key": {
+      "type": "object",
+      "required": ["verified_by", "option_scores"],
+      "properties": {
+        "verified_by": {"enum": ["exhaustive", "rollout"]},
+        "rollout": {
+          "type": "object",
+          "properties": {
+            "n_per_option": {"type": "integer"},
+            "continuation": {"type": "string"},
+            "seed_fn": {"type": "string"}
+          }
+        },
+        "option_scores": {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 10}},
+        "option_wp": {"type": "array", "items": {"type": "number", "minimum": 0, "maximum": 1}},
+        "option_wp_se": {"type": "array", "items": {"type": "number", "minimum": 0}},
+        "caveats": {"type": "array", "items": {"enum": ["rollout_policy_caveat", "single_deal_hidden_info"]}}
+      }
+    },
+    "split": {"enum": ["open", "holdout"]},
+    "seed_block": {"type": "string", "description": "name of the reserved eval seed block the source seed falls in (eval/seed_policy.py), when it falls in one; absent otherwise"},
+    "excluded_from_sft_overlap": {"type": "boolean", "description": "true iff source game contributed no row to any SFT dataset (required true for split=holdout)"},
+    "status": {"enum": ["candidate", "verified"], "description": "absent = verified, for back-compat with pre-status suite files. 'candidate' = mined by eval/mine_puzzles.py, text-heuristic hypothesis, not yet engine-verified: no answer_key."},
+    "replayable": {"type": "boolean", "description": "true iff both controllers of the source game are deterministic (floor/random/ai/ai-log), i.e. the position can be re-reached by the fork harness. false for llm-piloted games (candidates only, for heuristic tuning)."},
+    "category_evidence": {"type": "string", "description": "short human-readable summary of what the mining heuristic matched, e.g. 'own_power=7 opp_life=6' (mine_puzzles.py only)"}
+  },
+  "if": {
+    "required": ["status"],
+    "properties": {"status": {"const": "candidate"}}
+  },
+  "then": {},
+  "else": {
+    "required": ["answer_key"]
+  }
+}

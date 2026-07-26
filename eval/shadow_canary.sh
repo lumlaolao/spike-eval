@@ -117,23 +117,36 @@ if [ "$MODE" = "both" ] || [ "$MODE" = "noop" ]; then
   }
   trap restore EXIT
   ( cd "$REPO" && git checkout HEAD -- "$SPIKE_REL" ) || { echo "ABORT: git checkout failed"; exit 1; }
+  # Does the working tree actually differ from HEAD? If not, gate 2 is vacuous (HEAD vs HEAD)
+  # and the swap discriminator below has nothing to discriminate.
+  if cmp -s "$BACKUP" "$SPIKE"; then DIFF_EXPECTED=0; else DIFF_EXPECTED=1; fi
   build || { echo "ABORT: baseline build failed"; exit 1; }
   BASE_REFS=$(refs "$INSTALLED")
-  echo "  baseline installed refs=$BASE_REFS"
+  BASE_SHA=$(shasum -a 256 "$INSTALLED" | cut -d' ' -f1)
+  echo "  baseline installed refs=$BASE_REFS sha=${BASE_SHA:0:12}"
   BASE=""
   for s in $SEEDS; do r=$(play "noop-base-$s" $s 0); echo "  seed $s base: $r"; BASE="$BASE$s	$r
 "; done
   cp "$BACKUP" "$SPIKE" || { echo "ABORT: could not restore working file"; exit 1; }
   build || { echo "ABORT: working build failed"; exit 1; }
   CUR_REFS=$(refs "$INSTALLED")
-  echo "  working installed refs=$CUR_REFS"
+  CUR_SHA=$(shasum -a 256 "$INSTALLED" | cut -d' ' -f1)
+  echo "  working installed refs=$CUR_REFS sha=${CUR_SHA:0:12}"
   # The assertion that turns "I ran an A/B" into "I ran an A/B against the builds I meant to".
   # An earlier revision of this gate silently failed to swap builds and reported PASS while
-  # comparing the baseline against itself.
-  if [ "$BASE_REFS" = "$CUR_REFS" ]; then
-    echo "  *** INCONCLUSIVE: baseline and working builds have the same SHADOW ref count ($BASE_REFS)."
-    echo "      The build swap did not take effect, so this gate would compare a build against itself."
+  # comparing the baseline against itself. Discriminator history: SHADOW ref count (0 vs 16)
+  # worked only while the shadow feature was uncommitted — once committed, BOTH builds carry
+  # 16 refs and the count can't distinguish them (2026-07-26: exactly this fired a spurious
+  # FAIL against an unrelated snapshot change). Now: compare installed-file checksums, which
+  # differ whenever the working tree differs from HEAD; ref counts stay as informational output.
+  if [ "$DIFF_EXPECTED" = 1 ] && [ "$BASE_SHA" = "$CUR_SHA" ]; then
+    echo "  *** INCONCLUSIVE: working tree differs from HEAD but the installed file checksum did"
+    echo "      not change across the swap — the build swap did not take effect, so this gate"
+    echo "      would compare a build against itself."
     FAIL=1
+  fi
+  if [ "$DIFF_EXPECTED" = 0 ]; then
+    echo "  (note: working tree == HEAD for the spike file; gate 2 is vacuous this run)"
   fi
   for s in $SEEDS; do
     cur=$(play "noop-cur-$s" $s 0)

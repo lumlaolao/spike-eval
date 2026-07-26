@@ -124,6 +124,16 @@ python3 eval/model_sweep.py                               # per-model certificat
 - `secrets.env` (git-ignored, repo root; template `secrets.env.example`) holds
   `OPENROUTER_API_KEY` + the egress opt-in; eval drivers auto-load it.
 
+## Seed governance (locked 2026-07-25 — user-approved)
+
+Reserved eval seed blocks, never usable as SFT/training-data sources:
+**501–525** (frozen legacy baselines), **20000–29999** (puzzle-suite mining),
+**30000–30099** (certification holdout). `eval/seed_policy.py` is the single
+source of truth; `make_sft_data.py` refuses reserved-seed sources (override
+`--allow-reserved-seeds` prints a loud banner and is stamped into provenance);
+`run_batch.py` warns when requested seeds are eval-reserved. Pick training-data
+generation seeds outside these blocks. Full policy: `eval/EVAL-DESIGN.md` §6.5.
+
 ## Eval mode
 
 Seeded, baseline-anchored A/B comparisons (see README "Eval mode" + `eval/README.md`):

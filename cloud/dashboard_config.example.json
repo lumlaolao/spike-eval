@@ -1,0 +1,10 @@
+{
+  "runs_dir": "~/code/mtg-forge-llm-agent/runs/d4-dagger-r1",
+  "dagger_dir": "~/.claude/jobs/f9e4d46b/tmp/dagger",
+  "ledger": null,
+  "training_log": "~/code/mtg-forge-llm-agent/runs/training/mlx_lm_train.log",
+  "budget_monthly": 15.0,
+  "target_games": 192,
+  "aws_ce": false,
+  "port": 8377
+}

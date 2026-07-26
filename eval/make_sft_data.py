@@ -63,6 +63,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_JAVA = (REPO_ROOT / "forge-overlay" / "forge-gui-desktop" / "src"
                 / "main" / "java" / "forge" / "spike" / "LlmSpikeGui.java")
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import seed_policy  # noqa: E402  seed governance (EVAL-DESIGN.md §6.5)
+
 # (relative dir, build tag). Build tag selects the preamble shape (see below).
 DEFAULT_SOURCES = [
     ("runs/stage0-calibration", "STAGE0"),
@@ -71,15 +74,26 @@ DEFAULT_SOURCES = [
 
 # build tag -> does the SMART tier get the STATIC_REFERENCE appendix?  + commit
 # for provenance. fast tier never gets STATIC_REFERENCE in any build.
+# static_reference_len: the length STATIC_REFERENCE had WHEN THAT BUILD'S RUNS
+# WERE GENERATED. Only builds with static_reference_on_smart can be
+# mis-reconstructed by a drifted working tree, so only they pin it; system()
+# refuses rather than appending text those runs never saw.
 BUILDS = {
-    "STAGE0": {"static_reference_on_smart": True, "commit": "339f457"},
+    "STAGE0": {"static_reference_on_smart": True, "commit": "339f457",
+               "static_reference_len": 7492},
     "FIX":    {"static_reference_on_smart": False, "commit": "c3ec3d2"},
 }
 
 MODEL_TIERS = ("smart", "fast")  # only model-authored tiers become examples
 
 # Expected character lengths — a guard against silent drift in the Java source.
-EXPECT_STATIC_REFERENCE_LEN = 7492
+# Re-pinned 2026-07-26 (7492 -> 8154): task #8 added the two `OPP CAST THIS
+# GAME` / `OPP LANDS PLAYED` description lines to STATIC_REFERENCE. Verified
+# component-by-component against origin/main that NOTHING else moved — the base
+# body, tail, and both FORMAT branches are byte-identical — so terse framing
+# (fast tier, ai-teacher, dagger) reconstructs exactly as before. A stale pin is
+# a pin that can't fail: re-pin deliberately, never delete.
+EXPECT_STATIC_REFERENCE_LEN = 8154
 
 
 # ------------------------------------------------------- Java literal parsing
@@ -199,6 +213,24 @@ class PreambleBuilder:
         terse = (tier == "fast")
         msg = self.base(seat, plan, terse)
         if (not terse) and BUILDS[build]["static_reference_on_smart"]:
+            want = BUILDS[build].get("static_reference_len")
+            if want is None:
+                raise SystemExit(
+                    "build %s sets static_reference_on_smart but no "
+                    "static_reference_len; add the length STATIC_REFERENCE had "
+                    "when %s runs were generated so drift can be detected."
+                    % (build, build))
+            if len(self.static_reference) != want:
+                raise SystemExit(
+                    "refusing to reconstruct %s smart-tier system messages: "
+                    "the working-tree STATIC_REFERENCE is %d chars, but %s runs "
+                    "saw %d. Appending it anyway would emit a preamble those "
+                    "games never used (silent training-data corruption). "
+                    "Reconstruct from a checkout at commit %s, or restrict this "
+                    "run to terse sources (fast tier / ai-teacher / dagger), "
+                    "which never carry STATIC_REFERENCE."
+                    % (build, len(self.static_reference), build, want,
+                       BUILDS[build]["commit"]))
             msg = msg + "\n\n" + self.static_reference
         return msg
 
@@ -558,6 +590,83 @@ def iter_game_dirs(root):
 
 def _resolve(path):
     return (REPO_ROOT / path) if not Path(path).is_absolute() else Path(path)
+
+
+# --------------------------------------------------------- seed governance
+#
+# eval/EVAL-DESIGN.md §6.5 reserves seed blocks (frozen-legacy 501-525,
+# puzzle-mining 20000-29999, certification-holdout 30000-30099) that must
+# NEVER feed SFT/training data — see eval/seed_policy.py for the shared
+# guard. This scan is deliberately a lightweight PRE-PASS over game(s)
+# seeds only, run once per source before any builder does real work, so a
+# violation refuses before ANY output is written and the real
+# build_*_examples() functions stay untouched (existing call sites/tests
+# unaffected). ai-teacher and dagger are self-play corpus TREES (scan via
+# iter_game_dirs, matching build_ai_teacher_examples/build_dagger_examples);
+# win is a single directory (matching build_examples). prebuilt sources are
+# EXEMPT — they carry no game-*.jsonl files, only an already-built dataset.
+
+def _scan_source_seeds(spec_type, path):
+    """Seeds appearing in COMPLETE games under `path` for a source of this
+    type. Returns a plain list (may contain duplicates/None; the caller
+    filters)."""
+    p = _resolve(path)
+    seeds = []
+    if spec_type in ("ai-teacher", "dagger"):
+        for gd in iter_game_dirs(p):
+            games, _ = load_complete_games(gd)
+            seeds.extend(e["game"].get("seed") for e in games)
+    else:  # "win"
+        games, _ = load_complete_games(p)
+        seeds.extend(e["game"].get("seed") for e in games)
+    return seeds
+
+
+def enforce_seed_policy(labeled_seeds, allow_reserved_seeds):
+    """labeled_seeds: iterable of (source_label, seed) pairs collected across
+    every non-exempt source about to be built. Refuses (prints a clear
+    multi-line message + sys.exit(2)) if any seed lands in a reserved eval
+    block, UNLESS allow_reserved_seeds overrides it — in which case a loud
+    banner is printed instead and the build proceeds.
+
+    Returns True iff reserved seeds were present AND allowed through (an
+    actual override fired); False iff every seed was clean. Callers stamp
+    the return value into the run's README/mix-report as
+    reserved_seed_override so a contaminated build is traceable after the
+    fact (additive field only)."""
+    offenders = {}
+    for label, seed in labeled_seeds:
+        if not isinstance(seed, int) or isinstance(seed, bool):
+            continue
+        block = seed_policy.reserved_block(seed)
+        if block:
+            offenders.setdefault(block, set()).add("%s#%d" % (label, seed))
+    if not offenders:
+        return False
+
+    bar = "=" * 72
+    lines = [bar,
+             "  reserved eval seed(s) detected in source game data.",
+             "  %s reserves these seed blocks for held-out measurement;"
+             % seed_policy.DOC_POINTER,
+             "  games played on them must NEVER feed SFT/training data.", ""]
+    for block in sorted(offenders):
+        lines.append("  [%s] %s" % (block, ", ".join(sorted(offenders[block]))))
+    lines.append(bar)
+
+    if not allow_reserved_seeds:
+        print("\nREFUSING:\n" + "\n".join(lines), file=sys.stderr)
+        print("\npass --allow-reserved-seeds to override (the resulting "
+              "dataset becomes CONTAMINATED for held-out measurement and "
+              "must be labeled as such).", file=sys.stderr)
+        sys.exit(2)
+
+    print("\nOVERRIDDEN (--allow-reserved-seeds):\n" + "\n".join(lines),
+          file=sys.stderr)
+    print("\nproceeding anyway — this dataset is CONTAMINATED for held-out "
+          "measurement purposes; reserved_seed_override=true is stamped "
+          "into this run's output.", file=sys.stderr)
+    return True
 
 
 # Decision families the Forge AI emits in bulk and pilots competently (its
@@ -1170,6 +1279,18 @@ def write_readme_v2(out_dir, argv, examples, train, valid, tree, per_source,
         "## Counts by (source, deck, type)", "",
     ]
     lines += _counts_table(tree)
+    if mix_report.get("reserved_seed_override"):
+        lines += [
+            "",
+            "## Seed governance",
+            "",
+            "**`--allow-reserved-seeds` was passed and reserved eval seed(s) "
+            "(see `%s`) were" % seed_policy.DOC_POINTER,
+            "found among the source games.** This dataset is **CONTAMINATED "
+            "for held-out measurement** —",
+            "do not use it (or anything trained on it) as an unbiased eval "
+            "anchor.",
+        ]
     lines += ["", "## Mix / cap", "", "```",
               json.dumps(mix_report, indent=2, ensure_ascii=False), "```", ""]
     lines += ["## Hygiene (per source)", ""]
@@ -1196,7 +1317,7 @@ def write_readme_v2(out_dir, argv, examples, train, valid, tree, per_source,
 # ------------------------------------------------------------------- output
 
 def write_outputs(out_dir, examples, splits, argv, sources, hygiene,
-                  dedup_dropped, warnings):
+                  dedup_dropped, warnings, reserved_seed_override=False):
     out_dir.mkdir(parents=True, exist_ok=True)
     # Deterministic emission order: by source, seed, swap, then decision index.
     examples.sort(key=lambda e: (e["meta"]["source_dir"], e["meta"]["seed"],
@@ -1226,7 +1347,8 @@ def write_outputs(out_dir, examples, splits, argv, sources, hygiene,
                 f.write(json.dumps(m, ensure_ascii=False) + "\n")
 
     counts = summarize(train, valid)
-    write_readme(out_dir, counts, argv, sources, hygiene, dedup_dropped, warnings)
+    write_readme(out_dir, counts, argv, sources, hygiene, dedup_dropped, warnings,
+                 reserved_seed_override)
     return train, valid, counts
 
 
@@ -1250,7 +1372,8 @@ def summarize(train, valid):
     }
 
 
-def write_readme(out_dir, counts, argv, sources, hygiene, dedup_dropped, warnings):
+def write_readme(out_dir, counts, argv, sources, hygiene, dedup_dropped, warnings,
+                 reserved_seed_override=False):
     src_lines = "\n".join("- `%s` (build %s)" % (d, b) for d, b in sources)
     lines = [
         "# stage1-v0 — winning-trajectory SFT data",
@@ -1326,6 +1449,18 @@ def write_readme(out_dir, counts, argv, sources, hygiene, dedup_dropped, warning
         "- Train/valid split is BY GAME (both swap variants of a seed together,",
         "  leakage-free), deterministic via a stable hash of the game key.",
     ]
+    if reserved_seed_override:
+        lines += [
+            "",
+            "## Seed governance",
+            "",
+            "**`--allow-reserved-seeds` was passed and reserved eval seed(s) "
+            "(see `%s`) were" % seed_policy.DOC_POINTER,
+            "found among the source games.** This dataset is **CONTAMINATED "
+            "for held-out measurement** —",
+            "do not use it (or anything trained on it) as an unbiased eval "
+            "anchor.",
+        ]
     if warnings:
         lines += ["", "## Warnings", ""] + ["- " + w for w in warnings]
     (out_dir / "README.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -1404,6 +1539,22 @@ def source_name(spec):
 def run_stage2(args, preamble):
     """Build the stage2-local-v0 multi-source mix. Returns 0."""
     specs = args.source
+
+    # Seed governance (EVAL-DESIGN.md §6.5): scan every non-exempt source
+    # (ai-teacher/dagger/win are real game-dir trees; prebuilt is an
+    # already-built dataset and carries no game-*.jsonl, so it's exempt) and
+    # refuse before building anything if a reserved seed shows up, unless
+    # overridden. See enforce_seed_policy()'s docstring. getattr() defaults
+    # so lightweight args stand-ins (e.g. in tests) that predate this flag
+    # don't need updating.
+    allow_reserved_seeds = getattr(args, "allow_reserved_seeds", False)
+    labeled_seeds = []
+    for spec in specs:
+        if spec["type"] in ("ai-teacher", "dagger", "win"):
+            labeled_seeds += [(source_name(spec), s)
+                              for s in _scan_source_seeds(spec["type"], spec["path"])]
+    reserved_seed_override = enforce_seed_policy(labeled_seeds, allow_reserved_seeds)
+
     by_source, weights, warnings, hygienes = {}, {}, [], []
     for spec in specs:
         name = source_name(spec)
@@ -1460,6 +1611,7 @@ def run_stage2(args, preamble):
         by_source, weights, per_source_caps, args.cap, args.sample_seed)
     mix_report["raw_pre_dedup"] = raw_counts
     mix_report["dedup_dropped"] = dedup_dropped
+    mix_report["reserved_seed_override"] = reserved_seed_override
 
     examples = [r for rows in kept_by_source.values() for r in rows]
 
@@ -1480,6 +1632,8 @@ def run_stage2(args, preamble):
         recorded += ["--count-style", args.count_style]
     if args.ai_filter != "win":
         recorded += ["--ai-filter", args.ai_filter]
+    if allow_reserved_seeds:
+        recorded += ["--allow-reserved-seeds"]
 
     train, valid, tree, per_source = write_outputs_v2(
         args.out_dir, examples, recorded, args.val_frac, args.split_seed,
@@ -1497,9 +1651,20 @@ def run_stage2(args, preamble):
 
 
 def run_stage1(args):
-    """Original Stage-1 winning-trajectory build (unchanged behavior)."""
+    """Original Stage-1 winning-trajectory build (unchanged behavior aside
+    from the seed-governance guard below)."""
     sources = args.sources or DEFAULT_SOURCES
     preamble = PreambleBuilder(args.java)
+
+    # Seed governance (EVAL-DESIGN.md §6.5): every "win" source is a real
+    # game-dir tree; refuse before building anything if a reserved seed
+    # shows up, unless overridden. See enforce_seed_policy()'s docstring.
+    # getattr() defaults so lightweight args stand-ins that predate this
+    # flag don't need updating.
+    allow_reserved_seeds = getattr(args, "allow_reserved_seeds", False)
+    labeled_seeds = [(str(d), s) for d, _b in sources
+                      for s in _scan_source_seeds("win", d)]
+    reserved_seed_override = enforce_seed_policy(labeled_seeds, allow_reserved_seeds)
 
     examples, warnings, hygiene = build_examples(sources, preamble)
     examples, dedup_dropped = dedupe(examples)
@@ -1510,11 +1675,13 @@ def run_stage1(args):
     recorded = ["eval/make_sft_data.py"] + ["%s:%s" % (d, b) for d, b in sources]
     if args.out_dir != str(REPO_ROOT / "datasets" / "stage1-v0"):
         recorded += ["--out-dir", args.out_dir]
+    if allow_reserved_seeds:
+        recorded += ["--allow-reserved-seeds"]
 
     out_dir = Path(args.out_dir)
     train, valid, counts = write_outputs(
         out_dir, examples, splits, recorded, sources, hygiene,
-        dedup_dropped, warnings)
+        dedup_dropped, warnings, reserved_seed_override)
 
     print("wrote %d train + %d valid examples to %s"
           % (len(train), len(valid), out_dir))
@@ -1546,6 +1713,13 @@ def main(argv=None):
                     help="fraction of GAMES to hold out as valid (default 0.1)")
     ap.add_argument("--split-seed", type=int, default=20260722,
                     help="seed for the deterministic by-game split")
+    ap.add_argument("--allow-reserved-seeds", action="store_true",
+                    help="override the reserved-eval-seed-block refusal (see "
+                         "eval/seed_policy.py / EVAL-DESIGN.md §6.5). Applies "
+                         "to both Stage-1 and Stage-2 mode. Prints a loud "
+                         "banner and stamps reserved_seed_override=true into "
+                         "the output README/mix-report; the resulting "
+                         "dataset is CONTAMINATED for held-out measurement.")
     # ---- Stage-2 multi-source mode (activated by any --source) ----
     ap.add_argument("--source", action="append", type=parse_typed_source,
                     default=None, metavar="TYPE:SPEC[:WEIGHT]",
