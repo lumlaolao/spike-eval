@@ -46,7 +46,11 @@ cat "$JOB_DIR/MANIFEST.txt" 2>/dev/null || echo "(no manifest)"
 # All three quirks below were hit live on runpod/pytorch:1.0.3-cu1281 (Ubuntu
 # 24.04), 2026-07-26:
 #   1. PEP 668: system pip refuses to install (externally-managed-environment)
-#      -> venv with --system-site-packages so the image's torch is reused.
+#      -> venv. FULLY ISOLATED, not --system-site-packages: axolotl pins its
+#      own torch, and mixing it with the image's torch-linked packages
+#      (torchaudio/torchvision) produces undefined-symbol crashes at import.
+#      Letting pip build one coherent stack costs ~2 min of datacenter
+#      bandwidth and removes the whole class of ABI clashes.
 #   2. flash-attn's build imports torch inside pip's isolated build env and
 #      dies; a 20-step QLoRA run doesn't need it (nor deepspeed on 1 GPU), so
 #      base axolotl only. Re-add extras deliberately if a multi-GPU run needs
@@ -55,7 +59,7 @@ cat "$JOB_DIR/MANIFEST.txt" 2>/dev/null || echo "(no manifest)"
 #      venv's real one -> PATH must put the venv first when axolotl launches.
 status BOOTSTRAP
 VENV=/workspace/venv
-python3 -m venv --system-site-packages "$VENV" || die "venv creation failed"
+python3 -m venv "$VENV" || die "venv creation failed"
 export PATH="$VENV/bin:$PATH"
 pip install --no-cache-dir --quiet "axolotl==${AXOLOTL_PIN}" \
   || die "axolotl install failed"
