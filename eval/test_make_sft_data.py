@@ -5,6 +5,7 @@ Run: python3 eval/test_make_sft_data.py
 """
 
 import contextlib
+import io
 import json
 import sys
 import tempfile
@@ -969,6 +970,88 @@ def test_apply_mix_dagger_shares_reserved_bucket():
     check("global total == cap", synth + len(kept["prebuilt:Z"]) == 30)
     kept2, _ = m.apply_mix(by_source, weights, {"dagger:Y": 8}, None, sample_seed=5)
     check("dagger per-source cap applied (stratified)", len(kept2["dagger:Y"]) == 8)
+
+
+# ------------------------------------------------- held-out deck guard
+# datasets/stage2-r2-teacher-v0 acquired 1148 painter / sneak-and-show rows
+# (2.3%) from runs/r2-breadth-teacher because nothing checked decks at BUILD
+# time, silently turning the suite's generalization arm into an
+# in-distribution one. These pin the three ways out: refuse, drop, allow.
+
+def _heldout_rows(slug, n, source="ai-teacher:X"):
+    return [{"messages": [], "meta": {"deck": slug, "seat": slug}} for _ in range(n)]
+
+
+def test_heldout_registry_reads_only_heldout_decks():
+    slugs, note = m.load_heldout_deck_slugs()
+    check("registry loads without a note", note is None, str(note))
+    check("held-out decks found", bool(slugs), str(slugs))
+    check("in-corpus decks are NOT treated as held-out",
+          "burn" not in slugs and "ur-delver" not in slugs, str(slugs))
+
+
+def test_heldout_registry_missing_is_reported_not_silent():
+    """A registry we cannot read must say so — an empty set would otherwise
+    read as 'no held-out decks', the exact silent pass this guards."""
+    with tempfile.TemporaryDirectory() as d:
+        slugs, note = m.load_heldout_deck_slugs(Path(d) / "absent.json")
+        check("missing registry -> empty slugs", slugs == set())
+        check("missing registry -> loud note", note is not None and "NOT checked" in note)
+
+
+def test_heldout_guard_refuses_by_default():
+    by_source = {"ai-teacher:X": _heldout_rows("painter", 3)
+                 + [{"messages": [], "meta": {"deck": "burn"}}]}
+    with contextlib.redirect_stderr(io.StringIO()):
+        try:
+            m.enforce_heldout_decks(by_source, {"painter"}, drop=False, allow=False)
+            check("refuses on a held-out deck row", False, "did not exit")
+        except SystemExit as e:
+            check("refuses on a held-out deck row -> exit 2", e.code == 2, str(e.code))
+
+
+def test_heldout_guard_drop_removes_only_those_rows():
+    by_source = {"ai-teacher:X": _heldout_rows("painter", 3)
+                 + [{"messages": [], "meta": {"deck": "burn"}}] * 5}
+    with contextlib.redirect_stderr(io.StringIO()):
+        dropped, override = m.enforce_heldout_decks(
+            by_source, {"painter"}, drop=True, allow=False)
+    check("drop reports the count", dropped == 3, str(dropped))
+    check("drop is not an override", override is False)
+    check("only held-out rows removed", len(by_source["ai-teacher:X"]) == 5)
+    check("no held-out row survives",
+          all(r["meta"]["deck"] != "painter" for r in by_source["ai-teacher:X"]))
+
+
+def test_heldout_guard_allow_keeps_rows_and_flags_override():
+    by_source = {"ai-teacher:X": _heldout_rows("painter", 3)}
+    with contextlib.redirect_stderr(io.StringIO()):
+        dropped, override = m.enforce_heldout_decks(
+            by_source, {"painter"}, drop=False, allow=True)
+    check("allow drops nothing", dropped == 0 and len(by_source["ai-teacher:X"]) == 3)
+    check("allow flags the override", override is True)
+
+
+def test_heldout_guard_clean_corpus_is_untouched():
+    by_source = {"ai-teacher:X": [{"messages": [], "meta": {"deck": "burn"}}] * 4}
+    dropped, override = m.enforce_heldout_decks(
+        by_source, {"painter"}, drop=False, allow=False)
+    check("clean corpus does not refuse", dropped == 0 and override is False)
+    check("clean corpus keeps every row", len(by_source["ai-teacher:X"]) == 4)
+
+
+def test_heldout_guard_reads_the_nested_meta_deck():
+    """The bug this shipped with: the slug lives in row['meta']['deck'], not at
+    the top level, so a top-level-only read found nothing and passed a
+    contaminated corpus."""
+    check("nested meta.deck is found",
+          m._row_deck_slug({"meta": {"deck": "painter"}}) == "painter")
+    check("nested meta.seat is a fallback",
+          m._row_deck_slug({"meta": {"seat": "painter"}}) == "painter")
+    check("top-level still works",
+          m._row_deck_slug({"deck": "painter"}) == "painter")
+    check("a row with no deck is unjudgeable, not clean",
+          m._row_deck_slug({"meta": {}}) is None)
 
 
 def main():

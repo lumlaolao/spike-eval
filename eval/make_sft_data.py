@@ -669,6 +669,123 @@ def enforce_seed_policy(labeled_seeds, allow_reserved_seeds):
     return True
 
 
+# ---------------------------------------------------- held-out deck guard
+#
+# The deck-side twin of enforce_seed_policy above. eval/holdouts.json declares
+# decks whose games must never reach a training corpus, so an eval on them
+# measures generalization rather than recall. Nothing enforced that at BUILD
+# time, which is how datasets/stage2-r2-teacher-v0 acquired 1148 painter /
+# sneak-and-show rows (2.3%) from runs/r2-breadth-teacher and silently turned
+# the suite's generalization arm into an in-distribution one.
+#
+# Unlike seeds, a held-out deck is a per-ROW property, so this guard can offer
+# something the seed guard cannot: drop exactly the offending rows and keep the
+# rest of the corpus. That is the intended remedy, but it is NOT the default --
+# silently shrinking a corpus is its own kind of surprise. Default is refuse;
+# the operator picks --drop-heldout-decks (clean) or --allow-heldout-decks
+# (contaminated, stamped).
+
+def load_heldout_deck_slugs(registry_path=None):
+    """Slugs of decks declared held-out in eval/holdouts.json.
+
+    Returns (slugs, note). A missing/unreadable registry yields an empty set
+    and a note the caller surfaces -- this guard must never be the reason a
+    build dies, but it must also never pass quietly when it cannot see."""
+    p = (Path(registry_path) if registry_path
+         else Path(__file__).resolve().parent / "holdouts.json")
+    try:
+        reg = json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, ValueError) as e:
+        return set(), ("held-out deck registry unreadable (%s: %s) -- this "
+                       "build was NOT checked for held-out deck contamination"
+                       % (p.name, e))
+    slugs = {slug for slug, d in (reg.get("decks") or {}).items()
+             if d.get("status") == "held-out"}
+    if not slugs:
+        return set(), ("held-out deck registry declares no held-out decks -- "
+                       "this build's deck check is vacuous")
+    return slugs, None
+
+
+def _row_deck_slug(row):
+    """The deck slug for an in-flight example row, or None if it carries none.
+
+    Builders nest identity under `meta` (meta.deck == meta.seat == slug); the
+    top level is checked as a fallback."""
+    meta = row.get("meta") or {}
+    return (meta.get("deck") or meta.get("seat")
+            or row.get("deck") or row.get("seat"))
+
+
+def enforce_heldout_decks(by_source, heldout_slugs, drop, allow):
+    """Refuse, drop, or allow rows whose deck is declared held-out.
+
+    by_source: {source_name: [row, ...]} mutated in place when dropping.
+    Returns (dropped_count, override_bool). The deck slug lives in each row's
+    nested `meta` (every builder writes meta.deck == meta.seat == the slug);
+    the top level is checked too so a future row shape that hoists it still
+    matches. A row carrying neither cannot be judged and is left alone --
+    which is why unjudgeable rows are counted and reported below rather than
+    passing silently."""
+    if not heldout_slugs:
+        return 0, False
+    offenders = {}
+    unjudgeable = 0
+    for name, rows in by_source.items():
+        for r in rows:
+            slug = _row_deck_slug(r)
+            if slug is None:
+                unjudgeable += 1
+            elif slug in heldout_slugs:
+                offenders.setdefault(slug, {}).setdefault(name, 0)
+                offenders[slug][name] += 1
+    if unjudgeable:
+        print("[heldout-decks] NOTE: %d row(s) carry no deck field and could "
+              "not be checked against eval/holdouts.json" % unjudgeable,
+              file=sys.stderr)
+    if not offenders:
+        return 0, False
+
+    total = sum(n for per in offenders.values() for n in per.values())
+    bar = "=" * 72
+    lines = [bar,
+             "  held-out deck row(s) detected in source game data.",
+             "  eval/holdouts.json declares these decks held-out; games on",
+             "  them must NEVER feed a training corpus, or every eval that",
+             "  uses them measures recall instead of generalization.", ""]
+    for slug in sorted(offenders):
+        per = ", ".join("%s=%d" % (k, v) for k, v in sorted(offenders[slug].items()))
+        lines.append("  [%s] %d row(s): %s"
+                     % (slug, sum(offenders[slug].values()), per))
+    lines.append(bar)
+
+    if drop:
+        for name, rows in list(by_source.items()):
+            by_source[name] = [r for r in rows
+                               if _row_deck_slug(r) not in heldout_slugs]
+        print("\nDROPPED (--drop-heldout-decks):\n" + "\n".join(lines),
+              file=sys.stderr)
+        print("\n%d row(s) removed; the rest of the corpus is unaffected and "
+              "stays clean for held-out measurement." % total, file=sys.stderr)
+        return total, False
+
+    if allow:
+        print("\nOVERRIDDEN (--allow-heldout-decks):\n" + "\n".join(lines),
+              file=sys.stderr)
+        print("\nproceeding anyway — this dataset CONTAMINATES the held-out "
+              "decks above; heldout_deck_override=true is stamped into this "
+              "run's output, and eval/check_holdouts.py will fail until "
+              "eval/holdouts.json grandfathers this dataset.", file=sys.stderr)
+        return 0, True
+
+    print("\nREFUSING:\n" + "\n".join(lines), file=sys.stderr)
+    print("\npass --drop-heldout-decks to exclude just those rows (recommended), "
+          "or --allow-heldout-decks to keep them (the resulting dataset "
+          "CONTAMINATES those decks and must be labeled as such).",
+          file=sys.stderr)
+    sys.exit(2)
+
+
 # Decision families the Forge AI emits in bulk and pilots competently (its
 # aggro/combat strength). Everything else is "rare" for ai_filter purposes:
 # menu-format coverage of the long tail is worth keeping even from a LOSING
@@ -1579,6 +1696,20 @@ def run_stage2(args, preamble):
         warnings.extend(w)
         hygienes.append((name, hyg))
 
+    # Held-out deck guard: runs AFTER building (a deck is a per-row property,
+    # unlike a seed) but BEFORE dedup/cap/split, so dropped rows never reach the
+    # split and the per-source counts below reflect what actually ships.
+    heldout_slugs, heldout_note = load_heldout_deck_slugs()
+    if heldout_note:
+        warnings.append(heldout_note)
+    heldout_dropped, heldout_deck_override = enforce_heldout_decks(
+        by_source, heldout_slugs,
+        getattr(args, "drop_heldout_decks", False),
+        getattr(args, "allow_heldout_decks", False))
+    if heldout_dropped:
+        warnings.append("dropped %d held-out deck row(s) (--drop-heldout-decks)"
+                        % heldout_dropped)
+
     # Raw per-source contribution BEFORE any dedup/cap. A declared source that
     # yields 0 rows is almost always a mistyped or cross-checkout path (relative
     # paths resolve against the SCRIPT's repo root, not cwd), so hard-fail rather
@@ -1634,6 +1765,10 @@ def run_stage2(args, preamble):
         recorded += ["--ai-filter", args.ai_filter]
     if allow_reserved_seeds:
         recorded += ["--allow-reserved-seeds"]
+    if getattr(args, "drop_heldout_decks", False):
+        recorded += ["--drop-heldout-decks"]
+    if heldout_deck_override:
+        recorded += ["--allow-heldout-decks"]
 
     train, valid, tree, per_source = write_outputs_v2(
         args.out_dir, examples, recorded, args.val_frac, args.split_seed,
@@ -1720,6 +1855,16 @@ def main(argv=None):
                          "banner and stamps reserved_seed_override=true into "
                          "the output README/mix-report; the resulting "
                          "dataset is CONTAMINATED for held-out measurement.")
+    ap.add_argument("--drop-heldout-decks", action="store_true",
+                    help="exclude rows whose deck is declared held-out in "
+                         "eval/holdouts.json, keeping the rest of the corpus. "
+                         "The recommended remedy when a source tree happens to "
+                         "contain a held-out matchup.")
+    ap.add_argument("--allow-heldout-decks", action="store_true",
+                    help="keep held-out deck rows instead of refusing. Stamps "
+                         "heldout_deck_override=true; the dataset CONTAMINATES "
+                         "those decks and eval/check_holdouts.py will fail "
+                         "until eval/holdouts.json grandfathers it.")
     # ---- Stage-2 multi-source mode (activated by any --source) ----
     ap.add_argument("--source", action="append", type=parse_typed_source,
                     default=None, metavar="TYPE:SPEC[:WEIGHT]",
