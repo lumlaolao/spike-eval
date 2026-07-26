@@ -35,7 +35,7 @@ RunPod (ballparks — GPU spot prices move; check the deploy page):
 
 | What | Rate (July 2026 ballpark) |
 |---|---|
-| RTX 4090 24GB (community cloud) | ~$0.30–0.50/hr |
+| RTX 4090 24GB (community cloud) | $0.69/hr (measured 2026-07-25; the only high-stock card) |
 | A40 / A6000 48GB | ~$0.40–0.80/hr |
 | Volume disk while pod **runs** | $0.10/GB/mo |
 | Volume disk while pod is **STOPPED** | $0.20/GB/mo — **the rate doubles**; a stopped pod is not free |
@@ -55,11 +55,17 @@ honest:
 
 ```bash
 # on your laptop, after each session (hours * rate = what you spent)
-echo '{"ts": '"$(date +%s)"', "what": "runpod RTX4090", "hours": 2.5, "rate": 0.35}' \
+echo '{"ts": '"$(date +%s)"', "what": "runpod RTX4090", "hours": 2.5, "rate": 0.69}' \
   >> ~/code/mtg-forge-llm-agent/cloud/aws_ledger.jsonl
 ```
 
 ## RunPod quickstart
+
+> **Two RunPod runbooks exist on purpose.** This one covers *generation /
+> self-play* pods, where the repo + harness must live on the pod (rsync'd
+> with the exclusions below). For *training-only* jobs, use
+> `docs/runpod-training/` instead — it ships a ~3 MB job tarball (dataset +
+> config only) so no repo, key, or credential ever touches rented hardware.
 
 ### 1. Sign up + credit
 
@@ -95,8 +101,10 @@ containers run as `root` — that is normal here.)
 ### 4. Get code + model onto the pod (from the laptop)
 
 ```bash
-# code (repo is private, so rsync beats cloning):
+# code (repo is private, so rsync beats cloning). NEVER let secrets.env or
+# .git (which could carry credential helpers/remotes) land on rented hardware:
 rsync -av -e "ssh -p <POD_PORT> -i ~/.ssh/id_ed25519" \
+  --exclude secrets.env --exclude '.git' \
   --exclude runs --exclude models --exclude .venv-mlx --exclude '.claude' \
   ~/code/mtg-forge-llm-agent/ root@<POD_IP>:/workspace/mtg-forge-llm-agent/
 
