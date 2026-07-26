@@ -328,6 +328,68 @@ public class LlmSpikeTest {
         Assert.assertNull(LlmSpikeGui.extractJsonString(compact, "\"absent_key\":\""));
     }
 
+    // ================================================================================
+    // Resolved model identity (2026-07-26). The configured spec is not an identity: an alias like
+    // "openrouter:default_model" is resolved server-side, so runs/stage1-student-eval and
+    // runs/stage2-student-eval carry identical provenance despite having been played by different
+    // adapters. extractServedModel reads what the endpoint says answered, for the game line.
+    // ================================================================================
+
+    @Test
+    public void extractServedModel_readsTopLevelModelField() {
+        String compact = "{\"id\":\"chatcmpl-1\",\"object\":\"chat.completion\",\"created\":1,"
+                + "\"model\":\"student-stage2\",\"choices\":[{\"message\":{\"content\":\"CHOICE: 2\"}}]}";
+        String spaced = "{\"id\": \"chatcmpl-1\", \"model\": \"mlx-community/adapter-v2\", "
+                + "\"choices\": [{\"message\": {\"content\": \"CHOICE: 2\"}}]}";
+        Assert.assertEquals(LlmSpikeGui.extractServedModel(compact), "student-stage2");
+        Assert.assertEquals(LlmSpikeGui.extractServedModel(spaced), "mlx-community/adapter-v2");
+    }
+
+    @Test
+    public void extractServedModel_completionTextCannotMasqueradeAsTheModelId() {
+        // The failure this guard exists for: a reply that happens to contain the literal
+        // "model":" would otherwise be read as the served model and mislabel the entire run,
+        // silently, in the field that decides which checkpoint owns the win rate. Only the body
+        // BEFORE "choices" is searched, so the completion text can never win.
+        String noModelField = "{\"id\":\"chatcmpl-1\",\"choices\":[{\"message\":{\"content\":"
+                + "\"I would set \\\"model\\\":\\\"gpt-9\\\" here\"}}]}";
+        Assert.assertNull(LlmSpikeGui.extractServedModel(noModelField));
+
+        String realFieldWins = "{\"model\":\"real-checkpoint\",\"choices\":[{\"message\":{\"content\":"
+                + "\"I would set \\\"model\\\":\\\"gpt-9\\\" here\"}}]}";
+        Assert.assertEquals(LlmSpikeGui.extractServedModel(realFieldWins), "real-checkpoint");
+    }
+
+    @Test
+    public void extractServedModel_absentOrEmptyYieldsNullNotAGuess() {
+        // null -> the game line records "unknown". An endpoint that names nothing must leave the
+        // run honestly unattributed rather than inheriting the alias we asked for.
+        Assert.assertNull(LlmSpikeGui.extractServedModel(null));
+        Assert.assertNull(LlmSpikeGui.extractServedModel("{\"choices\":[]}"));
+        Assert.assertNull(LlmSpikeGui.extractServedModel("{\"model\":\"\",\"choices\":[]}"));
+        Assert.assertNull(LlmSpikeGui.extractServedModel("not json at all"));
+    }
+
+    @Test
+    public void resolvedTemperature_distinguishesUnsetFromZero() {
+        // "default" (field omitted from the request body) and an explicit 0.0 are different
+        // configurations; collapsing them would make two different runs look identical.
+        Assert.assertEquals(LlmSpikeGui.resolvedTemperature("haiku"), "n/a");
+        Assert.assertEquals(LlmSpikeGui.resolvedTemperature(null), "n/a");
+        String t = LlmSpikeGui.resolvedTemperature("openrouter:some/unknown-model");
+        Assert.assertTrue(t.equals("default") || t.matches("-?\\d+(\\.\\d+)?"),
+                "expected 'default' or a number, got: " + t);
+    }
+
+    @Test
+    public void modelCfgSha_isBuiltinWhenNoOverrideIsSet() {
+        // Guards the common case only: OPENROUTER_MODEL_CFG is process env, so the override branch
+        // isn't reachable from a unit test without mutating the environment.
+        if (System.getenv("OPENROUTER_MODEL_CFG") == null) {
+            Assert.assertEquals(LlmSpikeGui.modelCfgSha(), "builtin");
+        }
+    }
+
     @Test
     public void isNonAnswer_emptyOrNullIsNonAnswer() {
         // The exact content shape a fully-length-truncated reply has BEFORE any output token ever

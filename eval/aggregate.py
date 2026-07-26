@@ -34,6 +34,13 @@ DEFAULT_RESAMPLES = 10_000
 DEFAULT_BOOTSTRAP_SEED = 20260715  # fixed for reproducible CIs
 DEFAULT_MAX_FALLBACK_RATE = 0.10
 
+# Default for fields the harness did not yet emit when the line was written.
+# Kept DISTINCT from "unknown": absent means this run predates the field and
+# cannot be judged; "unknown" means the run could have resolved the value and
+# didn't. The identity gate fails the second and excuses the first, so adding
+# the gate does not retroactively condemn every older run dir.
+MISSING = "(pre-provenance)"
+
 # Self-describing provenance fields appended to the game line (see spec B).
 # (game-line key, display default when the field is absent on legacy lines)
 PROVENANCE_FIELDS = (
@@ -49,7 +56,26 @@ PROVENANCE_FIELDS = (
     ("fast_budget", "unknown"),
     ("claude_deadline_ms", "unknown"),
     ("game_cap_ms", "unknown"),
+    # Resolved model identity (added 2026-07-26). The configured spec is not an
+    # identity: SMART_MODEL_A="openrouter:default_model" against a local server
+    # names no checkpoint, which is why stage1-student-eval and
+    # stage2-student-eval are indistinguishable in provenance despite being
+    # different adapters. served_* is what the endpoint said actually answered.
+    ("served_smart_a", MISSING),
+    ("served_smart_b", MISSING),
+    ("served_fast_a", MISSING),
+    ("served_fast_b", MISSING),
+    ("openrouter_base_url", MISSING),
+    ("checkpoint_sha", MISSING),
+    ("model_cfg_sha", MISSING),
+    ("temperature_a", MISSING),
+    ("temperature_b", MISSING),
+    ("seed_bank", MISSING),
 )
+
+# Identity fields a cited run must resolve. A value in this set means the field
+# is present but names nothing — an alias the endpoint never disambiguated.
+UNATTRIBUTABLE_VALUES = ("unknown", "", "unregistered")
 
 # The ai tier only counts fallbacks INSIDE overridden methods; several decision
 # points are un-overridden and always run on Forge AI invisibly. ai=0 therefore
@@ -392,6 +418,91 @@ def summarize_provenance(games):
     }
 
 
+def summarize_model_identity(games, prov):
+    """Can this directory's numbers be attributed to a specific model?
+
+    Three states, and the difference between the last two is the whole point:
+
+      legacy         the identity fields are absent -> the run predates them.
+                     Unattributable, but not a harness failure: nothing was
+                     asked of it. Reported, never gated.
+      unattributable the fields are present and still name nothing ("unknown"),
+                     e.g. an alias spec against a server that reports no model.
+                     A cited run in this state FAILS -- it is exactly the
+                     stage1-vs-stage2 situation, where two different adapters
+                     produced two artifacts no one can tell apart afterwards.
+      attributable   every llm identity resolves to a served model name.
+
+    Only llm-controlled identities are checked: a floor/random/ai seat has no
+    model to name, so demanding one would fail every baseline arm."""
+    real = [g for g in games if not g.get("_no_game_line")]
+    f = prov["fields"]
+
+    def one(field):
+        vals = f.get(field, [])
+        return vals[0] if len(vals) == 1 else None
+
+    llm_identities = sorted({ident for g in real for ident in ("a", "b")
+                             if g.get("controller_%s" % ident) == "llm"})
+
+    # Configured specs live on the game line but are not provenance fields (they
+    # are part of the arm label), so read them off the records directly.
+    def distinct(field):
+        out, seen = [], set()
+        for g in real:
+            v = g.get(field, MISSING)
+            if repr(v) not in seen:
+                seen.add(repr(v))
+                out.append(v)
+        return out
+
+    configured = {"%s_%s" % (tier, ident): distinct("%s_%s" % (tier, ident))
+                  for ident in llm_identities for tier in ("smart", "fast")}
+
+    unresolved, legacy_fields = [], []
+    for ident in llm_identities:
+        for tier in ("smart", "fast"):
+            field = "served_%s_%s" % (tier, ident)
+            vals = f.get(field, [])
+            for v in vals:
+                if v == MISSING:
+                    legacy_fields.append(field)
+                elif str(v).strip() in UNATTRIBUTABLE_VALUES:
+                    unresolved.append(field)
+
+    ckpt = f.get("checkpoint_sha", [])
+    ckpt_legacy = any(v == MISSING for v in ckpt)
+
+    legacy = bool(legacy_fields) or (not llm_identities and ckpt_legacy)
+    # A run with no llm arm has nothing to attribute -> vacuous, like the
+    # fallback gate. Never fail it.
+    vacuous = not llm_identities
+    attributable = bool(llm_identities) and not unresolved and not legacy_fields
+    discipline = one("discipline")
+
+    return {
+        "llm_identities": llm_identities,
+        "vacuous": vacuous,
+        "legacy": legacy,
+        "legacy_fields": sorted(set(legacy_fields)),
+        "unresolved_fields": sorted(set(unresolved)),
+        "attributable": attributable,
+        "discipline": discipline,
+        "configured": configured,
+        "served": {k: f.get(k, []) for k in
+                   ("served_smart_a", "served_smart_b", "served_fast_a", "served_fast_b")},
+        "checkpoint_sha": ckpt,
+        "base_url": f.get("openrouter_base_url", []),
+        "model_cfg_sha": f.get("model_cfg_sha", []),
+        "temperature": {k: f.get(k, []) for k in ("temperature_a", "temperature_b")},
+        "seed_bank": f.get("seed_bank", []),
+        # Cited numbers must be attributable; exploratory ones only warn. A run
+        # that predates the fields is excused either way -- see MISSING.
+        "failed": bool(discipline == "cited" and not vacuous
+                       and unresolved and not legacy_fields),
+    }
+
+
 def summarize_fallback_gate(games, decisions, max_rate):
     """Fallback gate over decisions of LLM-controlled identities only.
 
@@ -456,6 +567,7 @@ def build_summary(path, resamples, bootstrap_seed,
                           ai_partial_caveat=AI_PARTIAL_CAVEAT),
         "provenance": prov,
         "provenance_mixed": prov["mixed"],
+        "model_identity": summarize_model_identity(games, prov),
         "fallback_gate": summarize_fallback_gate(games, decisions, max_fallback_rate),
         "warnings": warnings,
     }
@@ -497,6 +609,38 @@ def print_provenance(s):
           % (_prov_val(f.get("smart_budget", [])), _prov_val(f.get("fast_budget", [])),
              _prov_val(f.get("claude_deadline_ms", []))))
     print("caps:        game_cap_ms=%s" % _prov_val(f.get("game_cap_ms", [])))
+    print("seed bank:   %s" % _prov_val(f.get("seed_bank", [])))
+
+
+def print_model_identity(s):
+    """Who actually played. Printed next to the win rate because a win rate
+    whose player cannot be named is not a result about a model."""
+    m = s["model_identity"]
+    print("\n=== model identity ===")
+    if m["vacuous"]:
+        print("no llm arm in this dir -> nothing to attribute (gate vacuous).")
+        return
+    print("endpoint:    %s   model_cfg=%s"
+          % (_prov_val(m["base_url"]), _prov_val(m["model_cfg_sha"])))
+    print("checkpoint:  %s" % _prov_val(m["checkpoint_sha"]))
+    for ident in m["llm_identities"]:
+        print("identity %s:  configured smart=%s fast=%s"
+              % (ident.upper(), _prov_val(m["configured"].get("smart_%s" % ident, [])),
+                 _prov_val(m["configured"].get("fast_%s" % ident, []))))
+        print("             served     smart=%s fast=%s   temperature=%s"
+              % (_prov_val(m["served"].get("served_smart_%s" % ident, [])),
+                 _prov_val(m["served"].get("served_fast_%s" % ident, [])),
+                 _prov_val(m["temperature"].get("temperature_%s" % ident, []))))
+    if m["legacy_fields"]:
+        print("verdict: LEGACY — this dir predates the identity fields, so which model "
+              "played it cannot be recovered from the artifact. Not gated (nothing was "
+              "asked of the run), but do not cite it as a per-checkpoint result.")
+    elif m["unresolved_fields"]:
+        print("verdict: UNATTRIBUTABLE — the endpoint never named what answered (%s). "
+              "The configured spec is an alias, so this artifact cannot distinguish one "
+              "checkpoint from another." % ", ".join(m["unresolved_fields"]))
+    else:
+        print("verdict: attributable — every llm identity resolves to a served model.")
 
 
 def print_fallback_gate(s):
@@ -578,6 +722,7 @@ def print_human(s):
                                       for k, v in d["by_type"].items()))
     print(AI_PARTIAL_CAVEAT)
 
+    print_model_identity(s)
     print_fallback_gate(s)
 
     if s["warnings"]:
@@ -598,7 +743,8 @@ def main():
                     help="RNG seed for the bootstrap (default %d)" % DEFAULT_BOOTSTRAP_SEED)
     ap.add_argument("--max-fallback-rate", type=float, default=DEFAULT_MAX_FALLBACK_RATE,
                     help="fallback-gate ceiling over llm-identity decisions; exceeding "
-                         "it exits 2 (default %.2f)" % DEFAULT_MAX_FALLBACK_RATE)
+                         "it exits 2 (default %.2f). A cited run whose serving endpoint "
+                         "never named the model exits 3." % DEFAULT_MAX_FALLBACK_RATE)
     args = ap.parse_args()
 
     path = Path(args.dir).expanduser()
@@ -613,7 +759,16 @@ def main():
     else:
         print_human(summary)
 
-    # Fallback gate is enforced AFTER the full report is printed.
+    # Gates are enforced AFTER the full report is printed.
+    mi = summary["model_identity"]
+    if mi["failed"]:
+        print("\n" + "!" * 60, file=sys.stderr)
+        print("FAILED MODEL-IDENTITY GATE: this run is stamped discipline=cited but the "
+              "serving endpoint never named what answered (%s). A citable number has to "
+              "say which model produced it."
+              % ", ".join(mi["unresolved_fields"]), file=sys.stderr)
+        print("!" * 60, file=sys.stderr)
+
     fg = summary["fallback_gate"]
     if fg["failed"]:
         print("\n" + "!" * 60, file=sys.stderr)
@@ -622,7 +777,14 @@ def main():
               % (fmt_pct(fg["fallback_rate"]), fmt_pct(fg["max_fallback_rate"])),
               file=sys.stderr)
         print("!" * 60, file=sys.stderr)
+
+    # Exit 2 stays the fallback gate's documented code; the identity gate gets
+    # its own 3 so a caller can tell "degraded games" from "unidentifiable
+    # player". Both messages print even when both fail.
+    if fg["failed"]:
         sys.exit(2)
+    if mi["failed"]:
+        sys.exit(3)
 
 
 if __name__ == "__main__":

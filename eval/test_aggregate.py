@@ -381,6 +381,109 @@ def test_provenance_legacy_unknown():
               str(p["fields"]["discipline"]))
 
 
+def identity_line(seed, swap, winner, served="student-stage2-a1b2c3", **kw):
+    """A game line carrying the resolved-identity fields (2026-07-26 schema)."""
+    g = game_line(seed, swap, winner, smart_a="openrouter:default_model")
+    g.update({"discipline": "cited",
+              "served_smart_a": served, "served_fast_a": served,
+              "served_smart_b": "unknown", "served_fast_b": "unknown",
+              "openrouter_base_url": "http://127.0.0.1:8080/v1",
+              "checkpoint_sha": "a1b2c3d4e5f6", "model_cfg_sha": "builtin",
+              "temperature_a": "0.7", "temperature_b": "n/a",
+              "seed_bank": "eval-holdout"})
+    g.update(kw)
+    return g
+
+
+def test_model_identity_attributable():
+    """A cited run whose endpoint names what answered passes the gate — and the
+    served name, not the alias spec, is what identifies the checkpoint."""
+    with tempfile.TemporaryDirectory() as d:
+        write_jsonl(d, "game-1-1000.jsonl", [identity_line(1, False, "A")])
+        write_jsonl(d, "game-1-1001.jsonl", [identity_line(1, True, "A")])
+        m = aggregate.build_summary(Path(d), 200, 1)["model_identity"]
+        check("attributable run is attributable", m["attributable"] is True, str(m))
+        check("attributable run does not fail the gate", m["failed"] is False, str(m))
+        check("served name recorded",
+              m["served"]["served_smart_a"] == ["student-stage2-a1b2c3"],
+              str(m["served"]))
+        check("configured alias still reported",
+              m["configured"]["smart_a"] == ["openrouter:default_model"],
+              str(m["configured"]))
+        check("checkpoint sha recorded",
+              m["checkpoint_sha"] == ["a1b2c3d4e5f6"], str(m["checkpoint_sha"]))
+
+
+def test_model_identity_gate_fails_cited_unattributable():
+    """The stage1-vs-stage2 failure: the fields are present, the endpoint named
+    nothing, and the run claims to be citable. That must fail."""
+    with tempfile.TemporaryDirectory() as d:
+        write_jsonl(d, "game-1-1000.jsonl",
+                    [identity_line(1, False, "A", served="unknown")])
+        write_jsonl(d, "game-1-1001.jsonl",
+                    [identity_line(1, True, "A", served="unknown")])
+        m = aggregate.build_summary(Path(d), 200, 1)["model_identity"]
+        check("cited+unresolved fails the gate", m["failed"] is True, str(m))
+        check("unresolved fields named",
+              set(m["unresolved_fields"]) == {"served_smart_a", "served_fast_a"},
+              str(m["unresolved_fields"]))
+
+
+def test_model_identity_exploratory_warns_only():
+    """Same missing identity, exploratory discipline: reported, not gated. The
+    gate is about what may be CITED, not about blocking iteration."""
+    with tempfile.TemporaryDirectory() as d:
+        for i, swap in enumerate((False, True)):
+            write_jsonl(d, "game-1-100%d.jsonl" % i,
+                        [identity_line(1, swap, "A", served="unknown",
+                                       discipline="exploratory")])
+        m = aggregate.build_summary(Path(d), 200, 1)["model_identity"]
+        check("exploratory unresolved does not fail", m["failed"] is False, str(m))
+        check("exploratory unresolved still reported",
+              bool(m["unresolved_fields"]), str(m))
+
+
+def test_model_identity_legacy_not_gated():
+    """A dir written before the fields existed is unattributable but excused:
+    adding the gate must not retroactively condemn every older run."""
+    with tempfile.TemporaryDirectory() as d:
+        write_jsonl(d, "game-1-1000.jsonl",
+                    [dict(game_line(1, False, "A"), discipline="cited")])
+        write_jsonl(d, "game-1-1001.jsonl",
+                    [dict(game_line(1, True, "A"), discipline="cited")])
+        m = aggregate.build_summary(Path(d), 200, 1)["model_identity"]
+        check("legacy dir flagged legacy", m["legacy"] is True, str(m))
+        check("legacy dir not attributable", m["attributable"] is False, str(m))
+        check("legacy dir does not fail the gate", m["failed"] is False, str(m))
+
+
+def test_model_identity_vacuous_without_llm_arm():
+    """floor-vs-random has no model to name; demanding one would fail every
+    baseline arm."""
+    with tempfile.TemporaryDirectory() as d:
+        for i, swap in enumerate((False, True)):
+            write_jsonl(d, "game-1-100%d.jsonl" % i,
+                        [dict(game_line(1, swap, "A", ctrl_a="floor", ctrl_b="random"),
+                              discipline="cited", served_smart_a="unknown")])
+        m = aggregate.build_summary(Path(d), 200, 1)["model_identity"]
+        check("no-llm-arm identity gate is vacuous", m["vacuous"] is True, str(m))
+        check("vacuous identity gate does not fail", m["failed"] is False, str(m))
+
+
+def test_mixed_checkpoint_is_mixed_provenance():
+    """Two checkpoints in one directory is a batch that cannot be read as one
+    result — the existing MIXED-PROVENANCE machinery now catches it."""
+    with tempfile.TemporaryDirectory() as d:
+        write_jsonl(d, "game-1-1000.jsonl", [identity_line(1, False, "A")])
+        write_jsonl(d, "game-1-1001.jsonl",
+                    [identity_line(1, True, "A", served="student-stage1-999999",
+                                   checkpoint_sha="ffffffffffff")])
+        p = aggregate.build_summary(Path(d), 200, 1)["provenance"]
+        check("mixed checkpoints flagged", p["mixed"] is True, str(p["mixed_fields"]))
+        check("checkpoint_sha named as the differing field",
+              "checkpoint_sha" in p["mixed_fields"], str(p["mixed_fields"]))
+
+
 def main():
     test_wilson()
     test_p90()
@@ -392,6 +495,12 @@ def main():
     test_fallback_gate()
     test_mixed_provenance()
     test_provenance_legacy_unknown()
+    test_model_identity_attributable()
+    test_model_identity_gate_fails_cited_unattributable()
+    test_model_identity_exploratory_warns_only()
+    test_model_identity_legacy_not_gated()
+    test_model_identity_vacuous_without_llm_arm()
+    test_mixed_checkpoint_is_mixed_provenance()
     print()
     if FAILURES:
         print("FAILED: %d check(s): %s" % (len(FAILURES), ", ".join(FAILURES)))

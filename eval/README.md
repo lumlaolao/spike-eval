@@ -158,6 +158,83 @@ Ground truth is `LlmSpikeHeadless.java`; the game line is keyed by
   dedupes reruns of the same seed/swap combo by keeping the newest.
 - A `.jsonl` file with no game line is a crashed game and counts as
   `invalid`. Malformed lines are skipped with a warning.
+- **Resolved model identity** (additive, 2026-07-26). `smart_a` records the
+  *configured spec*, which is not an identity: `openrouter:default_model`
+  against a local server names no checkpoint, which is why
+  `runs/stage1-student-eval` and `runs/stage2-student-eval` carry identical
+  provenance despite being different adapters. `served_smart_a` /
+  `served_fast_a` (and `_b`) record what the **endpoint said answered**, read
+  from the response's own `model` field; `openrouter_base_url`,
+  `checkpoint_sha` (from `--checkpoint`), `model_cfg_sha`, `temperature_a/b`
+  and `seed_bank` complete the picture. A field the endpoint did not supply is
+  `"unknown"` — never a guess inherited from the alias. `aggregate.py` prints
+  a **model identity** block and exits **3** when a run stamped
+  `discipline=cited` cannot name what played. Dirs written before these fields
+  existed report `(pre-provenance)` and are excused, not failed.
+
+## Frozen suites + the holdout registry
+
+A **suite** (`eval/suites/*.json`) is the frozen artifact a checkpoint gets
+pointed at: declared eval-only seed bank, mirror decks, opponent ladder, and
+gates — the deck/opponent half of "the eval is a versioned module". Numbers
+are citable only when they come from a validated suite run.
+
+- `eval/holdouts.json` — the deck registry. Every eval deck is
+  `in-corpus` (appears in training data; evals on it are in-distribution
+  only) or `held-out` (must never appear in a new training dataset).
+  Held-out decks carry a `grandfathered` list: contamination that predates
+  the declaration is frozen and labeled, not hidden — so a held-out deck is
+  a valid generalization measure only for models trained on corpora built
+  after its declaration date.
+- `eval/check_holdouts.py` — audits `datasets/*/meta.jsonl` against the
+  registry: prints deck presence per dataset/split and derivable matchups,
+  warns on meta-less dataset dirs (invisible to the audit), and exits **1**
+  if a held-out deck leaks into a non-grandfathered dataset. Run it after
+  every corpus build.
+- `eval/seed_registry.json` + `eval/seed_registry.py` — the seed-side
+  equivalent, and the artifact `stage3-v1.json`'s `seed_policy` deferred to.
+  Every seed band is declared `eval-only`, `train`, or `harness`; a band may
+  also list `burned` seeds (harvested *before* the band was declared — the
+  seed analogue of a deck's `grandfathered` list). `check` exits **1** if an
+  un-burned eval-only seed appears in `datasets/*/meta.jsonl`, if a corpus is
+  unreadable, or if a frozen suite arm draws on burned/training seeds.
+  `audit` retroactively labels every dir in `runs/` with how contaminated it
+  was. `run_batch.py` refuses a cited batch on both counts: seeds outside an
+  eval-only band, and seeds already present in a corpus.
+- `eval/run_suite.py` — validates a suite against the registry and the
+  `run_batch.py` CLI contract (role/deck-status consistency, disjoint
+  in-bank seed ranges, cited discipline, gates), then prints the exact
+  per-arm commands. Exit **2** on any violation. It launches nothing.
+
+- `eval/build_report.py` — the report builder. Points at the per-arm output
+  dirs (default `runs/<suite>-<arm>`, overridable with `--arm-dir`), shells
+  out to `aggregate.py --json` / `defect_analyzer.py` / `check_holdouts.py`
+  (no statistics are recomputed — those tools stay the single source), and
+  writes a frozen report folder: `suite.json` copy, `report.json`,
+  `report.md`, and per-arm defect evidence. Verdicts: **PASS** (every arm
+  present, all gates green) / **FAIL** (a gate broke — exit 1) /
+  **INCOMPLETE** (an arm has no usable data — exit 3). Per-arm gates:
+  fallback rate, defect invariants, `discipline=cited`, unmixed provenance.
+  One report per checkpoint; never quote arms added after the fact.
+
+```bash
+python3 eval/seed_registry.py check                     # seed contamination gate
+python3 eval/seed_registry.py audit                     # label past runs
+python3 eval/check_holdouts.py                          # corpus audit
+python3 eval/run_suite.py eval/suites/stage3-v1.json \
+    --student openrouter:default_model                  # validate + plan
+# ... run the printed run_batch.py commands ...
+python3 eval/build_report.py eval/suites/stage3-v1.json \
+    --student openrouter:default_model                  # frozen report
+```
+
+`eval/suites/stage3-v1.json` is the first suite: two cheap sanity arms
+(floor, random), two 200-pair in-distribution headline arms vs Forge AI
+(ur-delver, burn), one 200-pair generalization arm (painter, held-out
+2026-07-26), and a disabled teacher-mirror arm pending a frozen teacher
+spec. All arms are mirror-deck so they run under cited discipline;
+asymmetric student-deck-vs-AI-deck matchups need a `cited-nomirror` mode in
+`run_batch.py` (both deck SHAs pinned) and are deliberately not in v1.
 
 ## Improvement loop
 

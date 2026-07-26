@@ -113,6 +113,9 @@ the classic instant-speed action window). `[TALLY]` prints running `avgSmart`/`a
 | `EVAL_OUT` | off | directory for per-decision + game-summary JSONL (the eval dataset) |
 | `MULLIGAN_HEURISTIC` / `SKIP_HEURISTICS` | 1 | set `0` for confound-free eval runs (model owns all mulligans / no free-pass shortcuts) |
 | `GAME_CAP_MS` | 3h (headless) | wall-clock cap; a capped game is recorded **invalid**, never a draw |
+| `CHECKPOINT_SHA` | `unknown` | identity of the weights under test, stamped on the game line. Set it via `run_batch.py --checkpoint <path-or-tag>` rather than by hand |
+| `SEED_BANK` | `unregistered` | which declared band (`eval/seed_registry.json`) the seeds came from; `run_batch.py` sets it |
+| `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` | endpoint for `openrouter:` specs; recorded on the game line, since a local server and openrouter.ai are different experiments even for an identical model string |
 
 ## Multi-backend models (OpenRouter and beyond)
 

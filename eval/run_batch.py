@@ -39,7 +39,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import seed_policy  # noqa: E402  seed governance (EVAL-DESIGN.md §6.5)
+import seed_policy  # noqa: E402  seed governance (EVAL-DESIGN.md §6.5), the authority
+import seed_registry  # noqa: E402  enforcement layer over seed_policy's blocks
 
 PRINT_LOCK = threading.Lock()
 
@@ -62,6 +63,7 @@ RUN_DEFINING_KEYS = (
     "SMART_MODEL_A", "SMART_MODEL_B", "FAST_MODEL_A", "FAST_MODEL_B",
     "GAME_SEED", "SWAP_SEATS", "EVAL_OUT", "GAME_CAP_MS",
     "ENGINE_SHA", "OVERLAY_SHA", "DECK_SHA", "RUN_DISCIPLINE",
+    "CHECKPOINT_SHA", "SEED_BANK",
 )
 
 
@@ -135,6 +137,37 @@ def _deck_sha(path):
         return "unknown"
     b = _read_bytes(path)
     return _sha12_bytes(b) if b is not None else "unknown"
+
+
+def _checkpoint_sha(spec):
+    """Identity of the model weights under test, for the game line.
+
+    --checkpoint takes either a path (an adapter dir or weights file, hashed) or
+    an opaque string (a tag or a hash you computed elsewhere, passed through).
+    A directory hashes its file NAMES and CONTENTS in sorted order, so swapping
+    an adapter without renaming it still changes the sha.
+
+    This is the operator's claim about which weights are being served. The
+    game line ALSO records what the endpoint said answered (served_*); when
+    those two disagree, the run is not what its driver thought it was."""
+    if not spec:
+        return "unknown"
+    p = Path(spec).expanduser()
+    if not p.exists():
+        return spec  # opaque tag: record it verbatim
+    if p.is_file():
+        b = _read_bytes(p)
+        return _sha12_bytes(b) if b is not None else "unknown"
+    h = hashlib.sha256()
+    for f in sorted(p.rglob("*")):
+        if not f.is_file():
+            continue
+        h.update(str(f.relative_to(p)).encode("utf-8"))
+        b = _read_bytes(f)
+        if b is None:
+            return "unknown"
+        h.update(b)
+    return h.hexdigest()[:12]
 
 
 def _spike_drift(installed_dir, overlay_dir):
@@ -338,6 +371,38 @@ def cited_pre_guards(args):
         _refuse("cited mode requires --jobs 1 (got %d); parallel JVMs starve the "
                 "claude CLI and inflate fallbacks." % args.jobs)
 
+    # --- guard 3b: held-out seeds only ---
+    cited_seed_guard(args)
+
+
+def cited_seed_guard(args):
+    """A cited win rate must be measured on seeds the model was not trained on.
+
+    runs/stage1-student-eval and runs/stage2-student-eval both played seeds
+    501-525 while 13 of those 25 seeds sat in datasets/stage1-v1 — the student
+    was graded on shuffles whose winning lines it had been fine-tuned on. No
+    amount of confidence interval fixes that, so the check belongs here, before
+    the games run, not in the analysis afterwards.
+
+    Refuses on either failure mode: a seed declared as training/harness/
+    unregistered in eval/seed_registry.json, or a seed that is in a training
+    corpus right now regardless of what the registry says."""
+    try:
+        registry = seed_registry.load_registry()
+    except seed_registry.RegistryError as e:
+        _refuse("seed registry is unusable (%s). Cited mode needs it to tell a "
+                "held-out seed from a trained-on one." % e)
+
+    problems = seed_registry.cited_seed_violations(registry, args.seeds)
+    if problems:
+        banks = ", ".join("%s %s" % (b["name"], seed_registry.fmt_ranges(b["ranges"]))
+                          for b in registry.eval_only_banks) or "(none declared)"
+        _refuse("these seeds cannot carry a cited eval:\n           - "
+                + "\n           - ".join(problems)
+                + "\n           eval-only bands: " + banks
+                + "\n           (inspect with: python3 eval/seed_registry.py classify "
+                  "<spec>)")
+
 
 def finalize_provenance_and_cap(args, cited):
     """Guards 4-5 (spec C): derive the per-tier cap when --cap-minutes was
@@ -372,6 +437,17 @@ def finalize_provenance_and_cap(args, cited):
     forced["ENGINE_SHA"] = _engine_sha(args.forge_home)
     forced["OVERLAY_SHA"] = _overlay_sha(installed_dir)
     forced["DECK_SHA"] = _deck_sha(args.deck_a or args.deck_b)
+    forced["CHECKPOINT_SHA"] = _checkpoint_sha(args.checkpoint)
+    # Which declared band these seeds came from, stamped on every game line so
+    # the artifact says whether it was held-out without re-deriving it later.
+    try:
+        forced["SEED_BANK"] = seed_registry.seed_bank_label(
+            seed_registry.load_registry(), args.seeds)
+    except seed_registry.RegistryError as e:
+        # Exploratory runs must not be blocked by a registry problem; cited runs
+        # already refused in cited_seed_guard.
+        log("[warn] seed registry unusable (%s) -> seed_bank=unregistered" % e)
+        forced["SEED_BANK"] = seed_registry.UNREGISTERED
     args.forced_env = forced
 
     # Guard 4: per-tier cap derivation (only when not explicitly given).
@@ -383,6 +459,12 @@ def finalize_provenance_and_cap(args, cited):
     log("[provenance] engine=%s overlay=%s deck=%s discipline=%s"
         % (forced["ENGINE_SHA"], forced["OVERLAY_SHA"], forced["DECK_SHA"],
            forced["RUN_DISCIPLINE"]))
+    log("[provenance] checkpoint=%s seed_bank=%s"
+        % (forced["CHECKPOINT_SHA"], forced["SEED_BANK"]))
+    if forced["CHECKPOINT_SHA"] == "unknown":
+        log("[warn] no --checkpoint given: the game line will not say which weights "
+            "played. The endpoint's served_* fields are then the only identity, and "
+            "an alias spec (e.g. openrouter:default_model) may not resolve to one.")
 
 
 def effective_llm_models(args):
@@ -564,6 +646,11 @@ def main():
                          "almost nothing (they short-circuit before the play "
                          "menu the shadow needs), so DAgger data costs student "
                          "inference.")
+    ap.add_argument("--checkpoint",
+                    help="identity of the weights under test: a path (adapter dir "
+                         "or file, hashed) or an opaque tag. Stamped as "
+                         "CHECKPOINT_SHA on every game line. Strongly recommended "
+                         "whenever the model spec is an alias the endpoint resolves.")
     ap.add_argument("--env", action="append", metavar="KEY=VALUE",
                     help="extra env var for the runner (repeatable)")
     args = ap.parse_args()
