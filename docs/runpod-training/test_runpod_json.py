@@ -64,6 +64,32 @@ class SshEndpointTests(unittest.TestCase):
         "ports": [{"privatePort": "22", "publicPort": "60123", "ip": "1.2.3.4"}],
     })
 
+    # The REAL shape returned by runpodctl 2.7.2, captured live 2026-07-26
+    # (pod 8sf5c45c7tv4i8): top-level `ssh` object, `ports` is plain strings.
+    LIVE_CLI_SHAPE = json.dumps({
+        "containerDiskInGb": 30,
+        "costPerHr": 0.69,
+        "desiredStatus": "RUNNING",
+        "id": "8sf5c45c7tv4i8",
+        "ports": ["22/tcp"],
+        "ssh": {
+            "id": "8sf5c45c7tv4i8",
+            "ip": "80.15.7.37",
+            "port": 39947,
+            "setup": "runpodctl doctor",
+            "ssh_command": "ssh root@80.15.7.37 -p 39947",
+            "ssh_key": {"exists": False, "path": "/x", "source": "runpodctl doctor"},
+        },
+        "uptimeSeconds": 0,
+    })
+
+    def test_live_cli_shape_top_level_ssh(self):
+        self.assertEqual(ssh_endpoint(self.LIVE_CLI_SHAPE), ("80.15.7.37", "39947"))
+
+    def test_live_shape_before_ssh_published(self):
+        payload = json.dumps({"id": "x", "ports": ["22/tcp"], "ssh": {"id": "x"}})
+        self.assertIsNone(ssh_endpoint(payload))
+
     def test_runtime_ports_shape(self):
         self.assertEqual(ssh_endpoint(self.RUNTIME_SHAPE), ("1.2.3.4", "60123"))
 

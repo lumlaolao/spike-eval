@@ -45,6 +45,19 @@ JOB_TAR="$REPO_ROOT/runs/runpod/$JOB/job.tar.gz"
 command -v runpodctl >/dev/null || { echo "runpodctl not installed" >&2; exit 1; }
 runpodctl user >/dev/null 2>&1 || { echo "runpodctl not authenticated -- run: runpodctl doctor" >&2; exit 1; }
 
+# SSH pre-flight (live-learned 2026-07-26, the expensive way): pods only accept
+# keys that were synced to the ACCOUNT before pod creation, and in practice the
+# image honors the doctor-generated key (~/.runpod/ssh/runpodctl-ssh-key) —
+# an explicit PUBLIC_KEY env and even a manually add-key'd personal key were
+# both rejected by runpod/pytorch:1.0.3. Run doctor BEFORE renting anything.
+DOCTOR_KEY="$HOME/.runpod/ssh/runpodctl-ssh-key"
+if [[ ! -f "$DOCTOR_KEY" ]]; then
+  echo "no doctor SSH key at $DOCTOR_KEY -- running: runpodctl doctor" >&2
+  runpodctl doctor < /dev/null >/dev/null 2>&1 || true
+  [[ -f "$DOCTOR_KEY" ]] || { echo "runpodctl doctor did not create $DOCTOR_KEY; fix auth first (no pod was rented)" >&2; exit 1; }
+fi
+SSH_KEY="$DOCTOR_KEY"
+
 # Smoke runs are 20 steps; anything over an hour means something hung.
 [[ -z "$MAX_HOURS" ]] && { [[ $SMOKE -eq 1 ]] && MAX_HOURS=1 || MAX_HOURS=4; }
 TERMINATE_AT="$(python3 -c "
@@ -115,7 +128,10 @@ echo
   exit 1
 }
 
+# scp's port flag is -P (capital); lowercase -p means "preserve times" and the
+# port number silently becomes a filename. Cost a live pod-hour to learn.
 SSH_OPTS=(-p "$SSH_PORT" -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15)
+SCP_OPTS=(-P "$SSH_PORT" -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15)
 echo "ssh: root@$SSH_HOST:$SSH_PORT"
 
 for i in $(seq 1 30); do
@@ -128,7 +144,7 @@ echo
 # ~50MB of jsonl + a YAML. No credentials, no repo, no engine: see README
 # "Getting code onto the pod" for why a private-repo clone is the wrong shape here.
 echo "=== shipping job ==="
-scp "${SSH_OPTS[@]}" "$JOB_TAR" "root@$SSH_HOST:/workspace/job.tar.gz"
+scp "${SCP_OPTS[@]}" "$JOB_TAR" "root@$SSH_HOST:/workspace/job.tar.gz"
 ssh "${SSH_OPTS[@]}" "root@$SSH_HOST" "cd /workspace && tar -xzf job.tar.gz && ls job/"
 
 # --- start training detached -------------------------------------------------

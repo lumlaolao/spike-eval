@@ -43,8 +43,33 @@ echo "--- job manifest ---"
 cat "$JOB_DIR/MANIFEST.txt" 2>/dev/null || echo "(no manifest)"
 
 # --- deps --------------------------------------------------------------------
+# All three quirks below were hit live on runpod/pytorch:1.0.3-cu1281 (Ubuntu
+# 24.04), 2026-07-26:
+#   1. PEP 668: system pip refuses to install (externally-managed-environment)
+#      -> venv. FULLY ISOLATED, not --system-site-packages: axolotl pins its
+#      own torch, and mixing it with the image's torch-linked packages
+#      (torchaudio/torchvision) produces undefined-symbol crashes at import.
+#      Letting pip build one coherent stack costs ~2 min of datacenter
+#      bandwidth and removes the whole class of ABI clashes.
+#   2. flash-attn's build imports torch inside pip's isolated build env and
+#      dies; a 20-step QLoRA run doesn't need it (nor deepspeed on 1 GPU), so
+#      base axolotl only. Re-add extras deliberately if a multi-GPU run needs
+#      them (with --no-build-isolation for flash-attn).
+#   3. The image carries a dangling /snap/bin/accelerate shim that shadows the
+#      venv's real one -> PATH must put the venv first when axolotl launches.
 status BOOTSTRAP
-pip install --no-cache-dir --quiet "axolotl[flash-attn,deepspeed]==${AXOLOTL_PIN}" \
+VENV=/workspace/venv
+python3 -m venv "$VENV" || die "venv creation failed"
+export PATH="$VENV/bin:$PATH"
+# torchvision must be in the SAME resolve as axolotl AND version-pinned:
+# axolotl 0.18 imports torchvision unconditionally without depending on it; a
+# second pip call (or an unpinned tv here) upgrades torch past axolotl's pin
+# and torchvision::nms fails to register against the mismatched torch.
+# tv 0.27.1 pairs with axolotl 0.18's torch<=2.12.1. NO torchaudio: its
+# release line stops at 2.11 (no torch-2.12 pair exists) and transformers
+# only probes it behind a guarded availability check — absent is clean,
+# mismatched is a crash.
+pip install --no-cache-dir --quiet "axolotl==${AXOLOTL_PIN}" "torchvision==0.27.1" \
   || die "axolotl install failed"
 pip install --no-cache-dir --quiet "huggingface_hub[cli]" || die "hf hub install failed"
 echo "axolotl: $(pip show axolotl 2>/dev/null | awk '/^Version:/{print $2}')"
@@ -67,6 +92,9 @@ snapshot_download('$BASE_MODEL')" || die "base model download failed"
 fi
 
 # --- config ------------------------------------------------------------------
+# The shared axolotl config (docs/aws-training/) hardcodes /workspace/data/*,
+# an AWS-runbook layout; the job tarball lands at $JOB_DIR/data. Bridge it.
+ln -sfn "$JOB_DIR/data" /workspace/data
 CONFIG="$JOB_DIR/config.yaml"
 cp "$CONFIG" /workspace/config.active.yaml
 CONFIG=/workspace/config.active.yaml
