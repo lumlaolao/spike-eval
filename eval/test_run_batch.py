@@ -73,36 +73,40 @@ class TestSeedGuardWiring(unittest.TestCase):
     a second, drifting copy of the rule would be worse than none."""
 
     def test_contaminated_student_eval_seeds_are_refused(self):
+        """501-525 carried both student evals. seed_policy.py reserves the block
+        and calls it burned for held-out measurement, so the guard must refuse
+        it — on the burn AND on the live corpus scan, independently."""
         registry = run_batch.seed_registry.load_registry()
         problems = run_batch.seed_registry.cited_seed_violations(
             registry, list(range(501, 526)))
-        self.assertTrue(problems)
-        self.assertTrue(any("not eval-only" in p for p in problems))
+        self.assertTrue(any("BURNED" in p for p in problems))
         self.assertTrue(any("training corpus" in p for p in problems),
                         "the live corpus scan should also fire on 501-525")
 
-    def test_live_part_of_the_held_out_band_is_accepted(self):
-        """9200-9224 sits in the suite-declared eval band, clear of the burned
-        DAgger seeds at 9001 and 9100-9102."""
+    def test_the_claimed_holdout_band_is_accepted(self):
+        """stage3-holdout (7000-7999), claimed from seed_policy's open lane and
+        verified clean when claimed."""
         registry = run_batch.seed_registry.load_registry()
         self.assertEqual(
             run_batch.seed_registry.cited_seed_violations(
-                registry, list(range(9200, 9225))), [])
+                registry, list(range(7100, 7125))), [])
 
-    def test_burned_part_of_the_held_out_band_is_refused(self):
+    def test_dagger_territory_is_refused(self):
         registry = run_batch.seed_registry.load_registry()
         problems = run_batch.seed_registry.cited_seed_violations(
             registry, [9100, 9101, 9102])
-        self.assertTrue(any("BURNED" in p for p in problems))
+        self.assertTrue(any("not eval-only" in p for p in problems))
+        self.assertTrue(any("training corpus" in p for p in problems))
 
     def test_seed_bank_labels(self):
         registry = run_batch.seed_registry.load_registry()
         self.assertEqual(
-            run_batch.seed_registry.seed_bank_label(registry, [9200, 9500]),
-            "eval-holdout")
+            run_batch.seed_registry.seed_bank_label(registry, [7100, 7500]),
+            "stage3-holdout")
+        # Derived straight from seed_policy.RESERVED_BLOCKS, not restated in JSON.
         self.assertEqual(
-            run_batch.seed_registry.seed_bank_label(registry, [20000, 20500]),
-            "eval-holdout-2")
+            run_batch.seed_registry.seed_bank_label(registry, [30000, 30099]),
+            "certification-holdout")
 
 
 if __name__ == "__main__":

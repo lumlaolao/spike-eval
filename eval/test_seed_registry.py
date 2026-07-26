@@ -11,6 +11,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import seed_policy  # noqa: E402
 import seed_registry as sr
 
 
@@ -372,29 +373,68 @@ class TestShippedRegistry(unittest.TestCase):
     def test_loads_and_has_an_eval_only_bank(self):
         self.assertTrue(self.reg.eval_only_banks)
 
-    def test_the_suite_declared_band_is_the_registry_band(self):
-        """stage3-v1.json's seed_policy said its 9000..9999 bank MUST move under
-        the registry once one existed. If someone re-narrows the band without
-        updating the suite, the two artifacts have silently diverged again."""
-        bank = self.reg.bank_for(9500)
-        self.assertIsNotNone(bank, "9000-9999 must be a declared band")
-        self.assertEqual(bank["policy"], "eval-only")
-        self.assertEqual(self.reg.policy_for(9000), "eval-only")
-        self.assertEqual(self.reg.policy_for(9999), "eval-only")
+    def test_reserved_blocks_are_derived_from_seed_policy(self):
+        """seed_policy.py is the single source of truth (EVAL-DESIGN.md §6.5,
+        locked). Every reserved block must appear as an eval-only bank sourced
+        from it, not restated in JSON where the two could drift apart."""
+        for name, lo, hi in seed_policy.RESERVED_BLOCKS:
+            bank = self.reg.bank_for(lo)
+            self.assertIsNotNone(bank, "no bank covers reserved block %s" % name)
+            self.assertEqual(bank["name"], name)
+            self.assertEqual(bank["policy"], "eval-only")
+            self.assertEqual(bank["source"], "seed_policy")
+            self.assertEqual(self.reg.policy_for(hi), "eval-only")
 
-    def test_the_dagger_seeds_are_burned(self):
-        """9100-9102 are in datasets/stage2-local-v1-dagger and 9001 was played
-        by runs/d4-dagger-pilot. All four must be unusable for a cited eval."""
-        for seed in (9001, 9100, 9101, 9102):
-            self.assertTrue(self.reg.is_burned(seed), "seed %d should be burned" % seed)
-        self.assertFalse(self.reg.is_burned(9500))
-
-    def test_the_contaminated_student_eval_seeds_are_declared_training(self):
-        """501-525 carried runs/stage1-student-eval and runs/stage2-student-eval
-        and are also in datasets/stage1-v1. The registry must say so, otherwise
-        the guard would let that exact batch run cited again."""
+    def test_frozen_legacy_is_eval_only_but_wholly_burned(self):
+        """seed_policy calls 501-525 'burned for held-out measurement, kept for
+        tracking continuity'. That is exactly `burned`: reserved from training,
+        and equally unusable for a cited eval. It is also true by measurement —
+        13 of the 25 are in datasets/stage1-v1."""
         for seed in (501, 513, 525):
+            self.assertEqual(self.reg.policy_for(seed), "eval-only")
+            self.assertTrue(self.reg.is_burned(seed))
+        self.assertTrue(any("BURNED" in p for p in
+                            sr.cited_seed_violations(self.reg, [501, 513])))
+
+    def test_the_dagger_seeds_are_training_territory(self):
+        """9001 and 9100-9102 sit outside every seed_policy block. They were
+        played by DAgger runs and 9100-9102 were harvested, so they must
+        classify as train — refused for a cited eval, not silently
+        'unregistered'."""
+        for seed in (9001, 9100, 9101, 9102):
             self.assertEqual(self.reg.policy_for(seed), "train")
+        self.assertTrue(sr.cited_seed_violations(self.reg, [9100]))
+
+    def test_the_suite_bank_is_an_eval_only_registry_band(self):
+        """stage3-v1.json banks on the stage3-holdout claim; if someone moves
+        either the suite or the band without the other, this fails."""
+        suite = json.loads(
+            (Path(sr.__file__).parent / "suites" / "stage3-v1.json").read_text())
+        lo, hi = (int(x) for x in suite["seed_policy"]["bank"].split(".."))
+        for seed in (lo, (lo + hi) // 2, hi):
+            self.assertEqual(self.reg.policy_for(seed), "eval-only")
+            self.assertFalse(self.reg.is_burned(seed))
+        self.assertEqual(self.reg.bank_for(lo)["name"], "stage3-holdout")
+
+    def test_the_open_lane_claim_is_declared_at_risk(self):
+        """stage3-holdout lives in seed_policy's OPEN lane, so make_sft_data.py
+        will not refuse it. Claiming otherwise would overstate the guarantee."""
+        bank = self.reg.bank_for(7000)
+        self.assertEqual(bank["name"], "stage3-holdout")
+        self.assertTrue(bank["at_risk"])
+        self.assertIsNone(seed_policy.reserved_block(7000),
+                          "if seed_policy ever reserves this lane, drop at_risk")
+
+    def test_a_bank_overlapping_a_reserved_block_is_refused(self):
+        """The contradiction guard: JSON must not redeclare reserved seeds with
+        a different policy, which is how two sources of truth diverge."""
+        clash = {"name": "oops", "policy": "train",
+                 "ranges": [[seed_policy.RESERVED_BLOCKS[0][1],
+                             seed_policy.RESERVED_BLOCKS[0][2]]]}
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(sr.RegistryError) as cm:
+                sr.load_registry(write_registry(tmp, [clash]))
+            self.assertIn("RESERVED", str(cm.exception))
 
     def test_shipped_eval_band_is_not_in_any_shipped_corpus(self):
         seeds, unreadable = sr.corpus_seeds()

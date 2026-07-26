@@ -38,6 +38,9 @@ import re
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import seed_policy  # noqa: E402
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_REGISTRY = Path(__file__).with_name("seed_registry.json")
 
@@ -152,8 +155,44 @@ def load_registry(path=None):
                                 "only means something for an eval-only band"
                                 % (where, name, policy))
         banks.append({"name": name, "policy": policy, "ranges": ranges,
-                      "burned": burned, "purpose": b.get("purpose", "")})
+                      "burned": burned, "source": "registry",
+                      "at_risk": bool(b.get("at_risk")),
+                      "purpose": b.get("purpose", "")})
 
+    # eval/seed_policy.py is the authority (EVAL-DESIGN.md §6.5, locked
+    # 2026-07-25). Its reserved blocks are DERIVED into banks here rather than
+    # restated in JSON, so the two artifacts cannot drift into disagreeing
+    # about the same seed — which is the exact failure both exist to prevent.
+    derived_burns = raw.get("derived_burns") or {}
+    derived = []
+    for name, lo, hi in seed_policy.RESERVED_BLOCKS:
+        burns = []
+        for r in derived_burns.get(name) or []:
+            blo, bhi = r
+            if not (lo <= blo and bhi <= hi):
+                raise RegistryError("derived_burns[%s] range [%d, %d] is outside the "
+                                    "seed_policy block [%d, %d]" % (name, blo, bhi, lo, hi))
+            burns.append((blo, bhi))
+        derived.append({"name": name, "policy": "eval-only", "ranges": [(lo, hi)],
+                        "burned": burns, "source": "seed_policy", "at_risk": False,
+                        "purpose": "Reserved by %s (%s). Never a training source."
+                                   % (seed_policy.DOC_POINTER, name)})
+
+    # A JSON bank that reaches into a reserved block would silently override
+    # the locked policy for those seeds. Refuse rather than resolve it.
+    for b in banks:
+        for lo, hi in b["ranges"]:
+            for s in (lo, hi):
+                blk = seed_policy.reserved_block(s)
+                if blk:
+                    raise RegistryError(
+                        "bank %r range [%d, %d] overlaps the RESERVED block %r "
+                        "(%s). seed_policy.py is the single source of truth for "
+                        "reserved seeds — remove the range from %s instead of "
+                        "redeclaring it." % (b["name"], lo, hi, blk,
+                                             seed_policy.DOC_POINTER, path.name))
+
+    banks = derived + banks
     errs = overlap_errors(banks)
     if errs:
         raise RegistryError("overlapping seed bands make a seed's policy "
