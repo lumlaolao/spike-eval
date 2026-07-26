@@ -42,10 +42,20 @@ def ssh_endpoint(payload):
     """Extract (host, port) of the direct-TCP SSH port from
     `runpodctl pod get -o json` output.
 
-    Returns None until the runtime has published a public mapping for
-    private port 22. Raises on malformed JSON (CLI wrapper swallows).
+    Live-verified 2026-07-26 (runpodctl 2.7.2): the CLI publishes SSH info in
+    a TOP-LEVEL `ssh` object ({ip, port, ssh_command, ...}) as soon as the
+    pod is scheduled; `runtime.ports` mapping objects only appear in the
+    GraphQL API, and the CLI's `ports` field is the requested spec as plain
+    strings ("22/tcp") until then. We check the observed shape first, then
+    the mapping-object shapes for forward compatibility.
+
+    Returns None until an endpoint is published. Raises on malformed JSON
+    (CLI wrapper swallows).
     """
     d = _unwrap(payload)
+    s = d.get("ssh") or {}
+    if isinstance(s, dict) and s.get("ip") and s.get("port"):
+        return str(s["ip"]), str(s["port"])
     ports = (d.get("runtime") or {}).get("ports") or d.get("ports") or []
     for p in ports:
         if not isinstance(p, dict):

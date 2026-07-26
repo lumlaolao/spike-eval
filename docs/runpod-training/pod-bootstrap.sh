@@ -43,8 +43,21 @@ echo "--- job manifest ---"
 cat "$JOB_DIR/MANIFEST.txt" 2>/dev/null || echo "(no manifest)"
 
 # --- deps --------------------------------------------------------------------
+# All three quirks below were hit live on runpod/pytorch:1.0.3-cu1281 (Ubuntu
+# 24.04), 2026-07-26:
+#   1. PEP 668: system pip refuses to install (externally-managed-environment)
+#      -> venv with --system-site-packages so the image's torch is reused.
+#   2. flash-attn's build imports torch inside pip's isolated build env and
+#      dies; a 20-step QLoRA run doesn't need it (nor deepspeed on 1 GPU), so
+#      base axolotl only. Re-add extras deliberately if a multi-GPU run needs
+#      them (with --no-build-isolation for flash-attn).
+#   3. The image carries a dangling /snap/bin/accelerate shim that shadows the
+#      venv's real one -> PATH must put the venv first when axolotl launches.
 status BOOTSTRAP
-pip install --no-cache-dir --quiet "axolotl[flash-attn,deepspeed]==${AXOLOTL_PIN}" \
+VENV=/workspace/venv
+python3 -m venv --system-site-packages "$VENV" || die "venv creation failed"
+export PATH="$VENV/bin:$PATH"
+pip install --no-cache-dir --quiet "axolotl==${AXOLOTL_PIN}" \
   || die "axolotl install failed"
 pip install --no-cache-dir --quiet "huggingface_hub[cli]" || die "hf hub install failed"
 echo "axolotl: $(pip show axolotl 2>/dev/null | awk '/^Version:/{print $2}')"
