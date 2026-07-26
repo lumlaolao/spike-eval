@@ -74,8 +74,19 @@ CREATE_JSON="$(runpodctl pod create \
   --terminate-after "$TERMINATE_AT" \
   -o json)"
 
-POD_ID="$(echo "$CREATE_JSON" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id') or d.get('podId') or '')")"
-[[ -n "$POD_ID" ]] || { echo "could not parse pod id from:"; echo "$CREATE_JSON"; exit 1; }
+# runpod_json.py never exits non-zero on a bad payload (prints nothing
+# instead) — under set -e a parse crash here would abort BEFORE the recovery
+# lines below, leaving a billing pod with no printed way to find it.
+POD_ID="$(echo "$CREATE_JSON" | python3 "$REPO_ROOT/docs/runpod-training/runpod_json.py" pod-id)"
+[[ -n "$POD_ID" ]] || {
+  echo "could not parse pod id from runpodctl output:" >&2
+  echo "$CREATE_JSON" >&2
+  echo >&2
+  echo "!! a pod MAY still have been created and be billing. check and clean up:" >&2
+  echo "     runpodctl pod list" >&2
+  echo "     runpodctl pod delete <id>" >&2
+  exit 1
+}
 
 echo "pod: $POD_ID"
 echo "$POD_ID" > "$REPO_ROOT/runs/runpod/$JOB/POD_ID"
@@ -91,14 +102,7 @@ echo "=== waiting for ssh (up to 10 min) ==="
 SSH_HOST=""; SSH_PORT=""
 for i in $(seq 1 60); do
   INFO="$(runpodctl pod get "$POD_ID" -o json 2>/dev/null || true)"
-  read -r SSH_HOST SSH_PORT <<<"$(echo "$INFO" | python3 -c "
-import sys, json
-try: d = json.load(sys.stdin)
-except Exception: raise SystemExit
-for p in (d.get('runtime') or {}).get('ports') or d.get('ports') or []:
-    if str(p.get('privatePort')) == '22' and p.get('ip') and p.get('publicPort'):
-        print(p['ip'], p['publicPort']); break
-" 2>/dev/null)"
+  read -r SSH_HOST SSH_PORT <<<"$(echo "$INFO" | python3 "$REPO_ROOT/docs/runpod-training/runpod_json.py" ssh)"
   [[ -n "${SSH_HOST:-}" && -n "${SSH_PORT:-}" ]] && break
   printf '\r  ... %ds' $((i*10)); sleep 10
 done

@@ -30,3 +30,5 @@ runs/runpod/*/adapter.tar.gz
 runs/runpod/*/out/
 runs/runpod/*/pod.env
 runs/runpod/*/POD_ID
+runs/runpod/*/job.tar.gz.tmp
+runs/runpod/*/bootstrap.log

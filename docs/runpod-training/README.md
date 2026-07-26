@@ -4,6 +4,12 @@ Runpod counterpart to `docs/aws-training/`, which ends with the honest admission
 that *"AWS is not the cheapest place to do this. Runpod/Vast/Lambda rent the same
 silicon ~2–3× cheaper with zero quota friction."* This is that path, made runnable.
 
+**Scope**: this runbook is for *training-only* pods, which get a ~3 MB job
+tarball and nothing else. For *generation / self-play* pods (repo + harness on
+the pod), use `cloud/README.md` (lands with the harness branch if not present
+here yet) — its rsync excludes `secrets.env` and `.git` for the same
+no-credentials-on-rented-hardware reason.
+
 Written 2026-07-25. Prices are Runpod **list** prices read off runpod.io/pricing
 that day (page's own "Updated July 17, 2026"). Per-region Community Cloud prices in
 the console can be lower — **re-check `runpodctl gpu list` before launch.**
@@ -236,6 +242,13 @@ bash docs/runpod-training/fetch-adapter.sh stage2-runpod-v0
 
 # 6. local post-step — PEFT -> merged -> MLX 4-bit fused (reuses the AWS script)
 bash docs/aws-training/convert-to-mlx.sh
+
+# 7. log the spend so the cloud/ dashboard budget bar stays honest
+#    (hours * rate; 4090 measured at $0.69/hr on 2026-07-25; mkdir -p because
+#    cloud/ lands with the harness branch and may not exist here yet)
+mkdir -p cloud
+echo '{"ts": '"$(date +%s)"', "what": "runpod stage2-runpod-v0 RTX4090", "hours": 1.5, "rate": 0.69}' \
+  >> cloud/aws_ledger.jsonl
 ```
 
 Everything downstream of step 6 — serve, `eval/replay_match.py`, the

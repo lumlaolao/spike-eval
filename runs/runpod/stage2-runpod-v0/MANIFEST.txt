@@ -1,6 +1,6 @@
 job:            stage2-runpod-v0
 packed:         2026-07-25T23:56:47Z
-dataset_dir:    /Users/lumlumlam/code/mtg-forge-llm-agent/datasets/stage2-local-v0-mlx
+dataset_dir:    datasets/stage2-local-v0-mlx
 train_rows:     12168
 valid_rows:     1332
 train_sha256:   4a4bf0ab258253313dddb04d08e7aba7d2ccc257f456c1caa9b51b24de8e714e

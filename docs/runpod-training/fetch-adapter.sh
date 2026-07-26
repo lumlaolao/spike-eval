@@ -59,7 +59,15 @@ echo "=== fetching adapter ==="
 scp "${SSH_OPTS[@]}" "root@$SSH_HOST:/workspace/adapter.tar.gz" "$RUN_DIR/adapter.tar.gz"
 scp "${SSH_OPTS[@]}" "root@$SSH_HOST:/workspace/bootstrap.log"  "$RUN_DIR/bootstrap.log" || true
 
-tar -xzf "$RUN_DIR/adapter.tar.gz" -C "$RUN_DIR"
+# This tarball was produced on rented Community Cloud hardware — sanity-check
+# entry names before extracting (no absolute paths, no .. traversal) and drop
+# remote ownership.
+if tar -tzf "$RUN_DIR/adapter.tar.gz" | grep -E '^/|(^|/)\.\.(/|$)' >/dev/null; then
+  echo "adapter.tar.gz contains absolute or traversal paths — refusing to extract" >&2
+  echo "inspect it manually: tar -tzf $RUN_DIR/adapter.tar.gz" >&2
+  exit 1
+fi
+tar -xzf "$RUN_DIR/adapter.tar.gz" -C "$RUN_DIR" --no-same-owner
 echo "adapter -> $RUN_DIR/out/"
 
 # Only delete once the bytes are verifiably on local disk. Deleting a pod whose

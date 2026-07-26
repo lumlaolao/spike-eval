@@ -38,7 +38,7 @@ cp "$HERE/pod-bootstrap.sh" "$STAGE/job/"
 cat > "$STAGE/job/MANIFEST.txt" <<EOF
 job:            $JOB_NAME
 packed:         $(date -u +%Y-%m-%dT%H:%M:%SZ)
-dataset_dir:    $DATA_DIR
+dataset_dir:    ${DATA_DIR#"$REPO_ROOT"/}
 train_rows:     $(wc -l < "$DATA_DIR/train.jsonl" | tr -d ' ')
 valid_rows:     $(wc -l < "$DATA_DIR/valid.jsonl" | tr -d ' ')
 train_sha256:   $(shasum -a 256 "$DATA_DIR/train.jsonl" | cut -d' ' -f1)
@@ -50,7 +50,10 @@ forge_commit:   $(cat "$REPO_ROOT/FORGE_COMMIT" 2>/dev/null || echo unknown)
 EOF
 
 mkdir -p "$OUT_DIR"
-tar -czf "$OUT_DIR/job.tar.gz" -C "$STAGE" job
+# temp + atomic rename: a crash/disk-full mid-tar must not leave a truncated
+# job.tar.gz that launch-pod.sh's existence check would happily ship to a paid pod
+tar -czf "$OUT_DIR/job.tar.gz.tmp" -C "$STAGE" job
+mv "$OUT_DIR/job.tar.gz.tmp" "$OUT_DIR/job.tar.gz"
 cp "$STAGE/job/MANIFEST.txt" "$OUT_DIR/MANIFEST.txt"
 
 echo "packed: $OUT_DIR/job.tar.gz ($(du -h "$OUT_DIR/job.tar.gz" | cut -f1))"
