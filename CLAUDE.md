@@ -5,6 +5,53 @@ Claude models pilot full Legacy games inside the real Forge rules engine. A cust
 card-naming, mulligans...) to persistent `claude -p` CLI bridges; the engine validates
 every option, so illegal moves are impossible by construction.
 
+## CURRENT FOCUS (2026-07-26) — the eval IS the deliverable
+
+**The goal is a general MTG-play benchmark, not a stronger student.** Training work
+serves the eval, not the other way round. A change that does not make the benchmark
+more trustworthy or broader is out of scope right now.
+
+Three headline scores, each reported with its confidence interval AND the trivial
+baseline it beats (see "the 88% lesson" below — a score without its floor is not a
+score):
+
+1. **STR-AI** — win rate vs Forge's built-in heuristic AI, on a **fixed, published
+   seed set**, across **many deck archetypes**. Breadth is the point: burn-vs-delver
+   alone measures one matchup's quirks, not play skill. Target is thousands of games
+   over the full 16-deck pool, reported per-matchup and pooled.
+2. **STR-HELDOUT** — the same measurement on a seed band mechanically blocked from
+   every training corpus (`eval/seed_registry.json` + `eval/seed_policy.py`,
+   enforced by `run_batch.py` and CI). The gap between STR-AI and STR-HELDOUT is
+   the memorization estimate.
+3. **PUZ** — the golden puzzle suite: per-puzzle *solved / not solved*, *count
+   solved*, and *time-to-solve*. Teacher-independent, so it survives the teacher
+   being weak (see EVAL-DESIGN.md §3).
+
+`eval/EVAL-DESIGN.md` is the full design (five axes; these three are the headline).
+`eval/suites/*.json` is how a suite gets frozen; `eval/build_report.py` emits the
+scorecard.
+
+### The 88% lesson (why every metric now reports its floor)
+
+Replay decision-match against the Forge-AI teacher read **88.1%** while the same
+student won **10%** of games. Both numbers were correct. The teacher declines to act
+on ~83% of priority windows (`choice=-1`), `canonical_target` encodes that decline as
+the last menu option (`PASS (do nothing)`), so **78.2% of scoreable rows have PASS as
+the answer**. A model that only ever says PASS scores 78.2%. The student's 88.1% was
+**+9.9 points over doing nothing** — and its errors concentrated in the minority class
+(all 20 recorded mismatches were rows where the teacher acted), which is exactly where
+games are decided.
+
+Rules this earned, and they apply to every axis:
+- **Report the majority-class baseline next to any accuracy.** `replay_match.py` now
+  emits `majority_class_baseline` and `margin_over_baseline`; quoting a match rate
+  without them is not allowed.
+- **Prefer metrics whose trivial baseline is near zero** (win rate, puzzles solved)
+  over accuracy on an unbalanced label set.
+- **Class-balance the training corpus deliberately.** `datasets/stage2-r2-teacher-v0`
+  is 78.3% PASS targets; trained as-is it teaches inaction. Use `--cap-per-source` /
+  stratified caps, and check `target_synth` shares before training.
+
 ## The one rule that matters
 
 **`forge-overlay/` is the source of truth.** Never edit files inside `~/code/forge`

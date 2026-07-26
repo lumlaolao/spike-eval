@@ -628,6 +628,41 @@ def test_explicit_empty_file_exits():
 
 # --------------------------------------------------------------------- runner
 
+# ------------------------------------------------ majority-class baseline
+# The 88.1%-vs-10% investigation: decision-match is accuracy over a label set
+# where ~78% of targets are PASS, so a near-trivial model scores near-88.
+# Every report must carry the floor it is beating.
+
+def test_majority_class_baseline():
+    import make_sft_data as _m
+
+    class _R:
+        def __init__(self, d): self.d = d
+
+    def play(n, choice):
+        return _R({"type": "play", "n_options": n, "choice": choice,
+                   "options": ["CAST x"] * (n - 1) + ["PASS (do nothing)"]})
+
+    # 8 passes (choice=-1 -> "CHOICE: n", kind='pass') + 2 real actions.
+    rows = [play(3, -1)] * 8 + [play(3, 0), play(3, 1)]
+    b = rm.majority_class_baseline(rows)
+    check("baseline picks the pass class", b["target"] == "pass", str(b["target"]))
+    check("baseline rate is the majority share", abs(b["rate"] - 0.8) < 1e-9,
+          str(b["rate"]))
+    check("baseline counts every scoreable row", b["n"] == 10, str(b["n"]))
+    check("distribution is reported", b["distribution"].get("pass") == 8,
+          str(b["distribution"]))
+
+    # A balanced set must not report a 78%-style floor.
+    rows2 = [play(3, 0)] * 5 + [play(3, -1)] * 5
+    b2 = rm.majority_class_baseline(rows2)
+    check("balanced labels -> 50% floor", abs(b2["rate"] - 0.5) < 1e-9, str(b2["rate"]))
+
+    # Rows that cannot be scored contribute no floor (and don't crash).
+    b3 = rm.majority_class_baseline([_R({"type": "play"})])
+    check("unscoreable rows yield an empty baseline", b3["rate"] is None, str(b3))
+
+
 def main():
     tests = [v for k, v in sorted(globals().items())
              if k.startswith("test_") and callable(v)]

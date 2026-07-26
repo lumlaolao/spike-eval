@@ -98,6 +98,63 @@ Reporting standard for **every** number (Brief A §1): point estimate + SEM +
 95% CI, n and cluster count stated; decision-level metrics are always clustered
 by game (naive SEs understate up to 3×); game-level metrics cluster by seed-pair.
 
+**Plus, as of 2026-07-26 — every accuracy-shaped metric MUST report the trivial
+baseline it beats, and the margin over it.** See §1.1.
+
+### 1.1 The 88% lesson — why a match rate without its floor is not a result
+
+Measured, this repo: replay decision-match against the Forge-AI teacher read
+**88.1%** (Wilson [86.3, 89.6], n=1500) while the same student won **10%** of
+games (5/50). Both numbers were correct, and the reconciliation is structural:
+
+- The Forge AI declines to act on ~83% of priority windows, logging `choice=-1`.
+- `canonical_target()` encodes that decline as the last menu option, which is
+  always `PASS (do nothing)` — verified 22614/22614 sampled `play` menus.
+- So **78.2% of scoreable rows have PASS as the answer** (72639 sampled;
+  `play` alone is 94.9% of rows and 82.4% PASS).
+- **A model that only ever emits PASS scores 78.2% on this metric.** The
+  student's 88.1% is **+9.9 points over doing nothing.**
+- The errors are not spread evenly: all 20 recorded mismatches were rows where
+  the teacher *acted*. Agreement is near-total on the trivial majority class and
+  poor on the minority class — which is precisely the set of decisions that
+  decide games. Hence 88% agreement alongside a 10% win rate.
+
+Consequences now binding on this design:
+
+1. `replay_match.py` emits `majority_class_baseline` and `margin_over_baseline`
+   in both JSON and text. **DQ-shadow and any future agreement metric inherit
+   this requirement.** Quoting a raw agreement rate is a reporting error.
+2. **Headline axes must have a near-zero trivial baseline.** STR (win rate vs a
+   real opponent) and PUZ (positions actually solved) qualify; agreement rates
+   do not, which is why DQ-shadow was already marked "diagnostic only, never
+   headline" and stays there.
+3. **Training corpora must be class-balanced deliberately.**
+   `datasets/stage2-r2-teacher-v0` is 78.3% PASS targets; trained as-is it
+   teaches inaction, which is the failure mode the win rate then measures.
+   Check `target_synth` shares before every training run.
+4. `DQ-process`'s durdle / PASS-on-castable rate is promoted from a nice-to-have
+   to the **primary diagnostic** for this pathology: it measures the failure
+   directly rather than inferring it from an agreement gap.
+
+### 1.2 Archetype breadth is a first-class requirement
+
+A win rate measured on one matchup is a fact about that matchup. `burn` vs
+`ur-delver` was the entire basis of every pre-2026-07-26 number, and it cannot
+distinguish "plays Magic well" from "has memorized one race."
+
+**STR-AI and STR-HELDOUT must therefore be reported across the full deck pool
+(16 archetypes in `eval/decks/`), per-matchup AND pooled**, with per-matchup n
+stated. A pooled number that hides a 90%-vs-10% split across archetypes is a
+worse artifact than no number. Mirror-deck pairing still applies within each
+matchup (`run_batch.py` cited discipline); asymmetric student-deck-vs-AI-deck
+matchups need the `cited-nomirror` mode noted in `eval/README.md` and are not
+in v1.
+
+Evidence this matters, already in hand: replay match rate by deck ranges from
+**73.4% (Elves)** to **92.9% (Grixis Reanimator)** — a 19.5-point spread across
+archetypes on the same model, larger than the entire margin over the trivial
+baseline.
+
 ---
 
 ## 2. Axis 1 — raw strength (STR)

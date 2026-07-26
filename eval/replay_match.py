@@ -683,6 +683,38 @@ def _bucket(results, keyfn):
     return out
 
 
+def majority_class_baseline(rows):
+    """The match rate a model scores by ALWAYS emitting the most common target.
+
+    Decision-match is a classification accuracy over a wildly unbalanced label
+    set: ~78% of scoreable rows in the d1-selfplay corpus have PASS as their
+    target, because the Forge AI declines to act on most priority windows and
+    canonical_target encodes that decline as the last menu option. An 88% match
+    rate against a 78% floor is +10 points of real signal, not 88 -- and the
+    difference is not cosmetic, because the minority class is exactly the set
+    of decisions that decide games. Reporting the rate without this number
+    invites reading a near-trivial score as near-perfect play.
+
+    Returns {"target": str|None, "rate": float|None, "n": int,
+             "distribution": {target: count}} over the rows actually replayed."""
+    counts = Counter()
+    for r in rows:
+        # Collapse to the answer SHAPE, not the literal string: "CHOICE: 4" and
+        # "CHOICE: 7" are both a pass when they name the last option, and a
+        # baseline forced to guess the exact integer would understate the floor.
+        # canonical_target's `kind` already encodes that distinction.
+        tgt, kind = canonical_target(r.d)
+        if tgt is None:
+            continue
+        counts[kind] += 1
+    n = sum(counts.values())
+    if not n:
+        return {"target": None, "rate": None, "n": 0, "distribution": {}}
+    top, top_n = counts.most_common(1)[0]
+    return {"target": top, "rate": top_n / n, "n": n,
+            "distribution": dict(counts.most_common())}
+
+
 def build_report(results, rows, stats, args, health_s):
     # Transport-errored rows are NOT decisions we scored: they leave the match
     # denominator and the Wilson CI, reported separately as transport_errors.
@@ -693,6 +725,7 @@ def build_report(results, rows, stats, args, health_s):
     parse_fail = sum(1 for r in results
                      if not r["parse_ok"] and not r["error"])
     lo, hi = wilson_ci(hits, scored)
+    baseline = majority_class_baseline(rows)
 
     def roll(bucket):
         out = {}
@@ -748,6 +781,11 @@ def build_report(results, rows, stats, args, health_s):
         "hits": hits,
         "match_rate": (hits / scored) if scored else None,
         "wilson95": {"lo": lo, "hi": hi},
+        # A match rate is meaningless without the floor it is beating.
+        "majority_class_baseline": baseline,
+        "margin_over_baseline": (
+            (hits / scored) - baseline["rate"]
+            if scored and baseline["rate"] is not None else None),
         "parse_failures": parse_fail,
         "transport_errors": errors,
         "transport_error_budget": TRANSPORT_ERROR_BUDGET,
@@ -782,6 +820,15 @@ def render_text(r):
           if w["lo"] is not None else "-")
     L.append("MATCH RATE: %s  (%d/%d scored)   Wilson 95%% CI %s"
              % (fmt_pct(r["match_rate"]), r["hits"], r["scored"], ci))
+    b = r.get("majority_class_baseline") or {}
+    if b.get("rate") is not None:
+        L.append("MAJORITY-CLASS BASELINE: %s — a model that ONLY ever emits "
+                 "'%s' scores this." % (fmt_pct(b["rate"]), b["target"]))
+        L.append("MARGIN OVER BASELINE: %+.1f pts  <- this, not the match rate, "
+                 "is the signal." % (100 * (r["margin_over_baseline"] or 0)))
+        L.append("  Decision-match is accuracy over a very unbalanced label set;")
+        L.append("  the minority class is where games are decided, so a high")
+        L.append("  match rate is compatible with a low win rate.")
     L.append("attempted: %d   scored: %d   transport errors: %d (excluded from "
              "the rate)   parse failures: %d"
              % (r["attempted"], r["scored"], r["transport_errors"],
