@@ -162,6 +162,16 @@ def _write_win_source(d, seed, winner="A"):
     return src
 
 
+# Sources are tagged :FIX, not :STAGE0, deliberately. These tests are about SEED
+# GOVERNANCE; the build tag is incidental. STAGE0 pins static_reference_len=7492
+# (what its runs actually saw) while the working tree is now 8154 — task #8 added
+# the two OPP CAST/LANDS lines — so make_sft_data.py rightly REFUSES to
+# reconstruct STAGE0 smart-tier system messages rather than append text those
+# games never saw. That refusal wrote no output, and these tests then failed
+# reading a README that was never created: a real guard breaking an unrelated
+# test, not a bug in either. FIX sets static_reference_on_smart=False, so it
+# never needs the appendix and is stable across that drift. Do not "fix" this
+# back to STAGE0 — re-pin BUILDS["STAGE0"] only from a checkout at its commit.
 def run_make_sft(*args):
     proc = subprocess.run(
         [sys.executable, str(HERE / "make_sft_data.py")] + list(args),
@@ -175,7 +185,7 @@ def test_make_sft_data_refuses_reserved_seed():
     with tempfile.TemporaryDirectory() as d:
         src = _write_win_source(d, 510)
         out = Path(d) / "out"
-        code, _out, err = run_make_sft("%s:STAGE0" % src, "--out-dir", str(out))
+        code, _out, err = run_make_sft("%s:FIX" % src, "--out-dir", str(out))
         check("refuses on a frozen-legacy seed -> exit 2", code == 2,
               "exit %d stderr=%s" % (code, err))
         check("refusal names the reserved block", "frozen-legacy" in err, err)
@@ -191,7 +201,7 @@ def test_make_sft_data_allow_reserved_seeds_overrides():
         src = _write_win_source(d, 510)
         out = Path(d) / "out"
         code, _out, err = run_make_sft(
-            "%s:STAGE0" % src, "--out-dir", str(out), "--allow-reserved-seeds")
+            "%s:FIX" % src, "--out-dir", str(out), "--allow-reserved-seeds")
         check("override lets the build proceed -> exit 0", code == 0,
               "exit %d stderr=%s" % (code, err))
         check("loud override banner printed to stderr", "OVERRIDDEN" in err, err)
@@ -207,7 +217,7 @@ def test_make_sft_data_clean_seed_unaffected():
     with tempfile.TemporaryDirectory() as d:
         src = _write_win_source(d, 5000)
         out = Path(d) / "out"
-        code, _out, err = run_make_sft("%s:STAGE0" % src, "--out-dir", str(out))
+        code, _out, err = run_make_sft("%s:FIX" % src, "--out-dir", str(out))
         check("clean seed builds normally -> exit 0", code == 0,
               "exit %d stderr=%s" % (code, err))
         check("no reserved/override banner for a clean seed",
