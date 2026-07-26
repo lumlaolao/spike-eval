@@ -144,7 +144,7 @@ echo
 # ~50MB of jsonl + a YAML. No credentials, no repo, no engine: see README
 # "Getting code onto the pod" for why a private-repo clone is the wrong shape here.
 echo "=== shipping job ==="
-scp "${SSH_OPTS[@]}" "$JOB_TAR" "root@$SSH_HOST:/workspace/job.tar.gz"
+scp "${SCP_OPTS[@]}" "$JOB_TAR" "root@$SSH_HOST:/workspace/job.tar.gz"
 ssh "${SSH_OPTS[@]}" "root@$SSH_HOST" "cd /workspace && tar -xzf job.tar.gz && ls job/"
 
 # --- start training detached -------------------------------------------------
