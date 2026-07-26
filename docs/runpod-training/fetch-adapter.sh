@@ -18,6 +18,7 @@ RUN_DIR="$REPO_ROOT/runs/runpod/$JOB"
 source "$RUN_DIR/pod.env"
 
 SSH_OPTS=(-p "$SSH_PORT" -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15)
+SCP_OPTS=(-P "$SSH_PORT" -i "$SSH_KEY" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15)
 remote() { ssh "${SSH_OPTS[@]}" "root@$SSH_HOST" "$@"; }
 
 get_status() { remote 'cat /workspace/STATUS 2>/dev/null || echo UNREACHABLE'; }
@@ -40,7 +41,7 @@ echo "status: $STATUS"
 
 if [[ "$STATUS" == "FAILED" ]]; then
   echo "=== training failed; pulling the log so the pod can be killed ==="
-  scp "${SSH_OPTS[@]}" "root@$SSH_HOST:/workspace/bootstrap.log" "$RUN_DIR/bootstrap.log" || true
+  scp "${SCP_OPTS[@]}" "root@$SSH_HOST:/workspace/bootstrap.log" "$RUN_DIR/bootstrap.log" || true
   echo "log: $RUN_DIR/bootstrap.log"
   echo "tail:"; tail -30 "$RUN_DIR/bootstrap.log" 2>/dev/null | sed 's/^/  /'
   echo
@@ -56,8 +57,8 @@ if [[ "$STATUS" != "DONE" ]]; then
 fi
 
 echo "=== fetching adapter ==="
-scp "${SSH_OPTS[@]}" "root@$SSH_HOST:/workspace/adapter.tar.gz" "$RUN_DIR/adapter.tar.gz"
-scp "${SSH_OPTS[@]}" "root@$SSH_HOST:/workspace/bootstrap.log"  "$RUN_DIR/bootstrap.log" || true
+scp "${SCP_OPTS[@]}" "root@$SSH_HOST:/workspace/adapter.tar.gz" "$RUN_DIR/adapter.tar.gz"
+scp "${SCP_OPTS[@]}" "root@$SSH_HOST:/workspace/bootstrap.log"  "$RUN_DIR/bootstrap.log" || true
 
 # This tarball was produced on rented Community Cloud hardware — sanity-check
 # entry names before extracting (no absolute paths, no .. traversal) and drop
