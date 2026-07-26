@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "description": "Holdout registry for eval decks. The seed-side equivalent (eval-only seed bank + seed overlap check) is a separate artifact owned by the other workstream; this file covers decks/matchups only. Status semantics: 'in-corpus' = known to appear in training datasets, evals on it measure in-distribution play only. 'held-out' = must never appear in a training dataset except those listed in 'grandfathered' (contamination that predates the declaration is frozen, not hidden); evals on it measure generalization only for models whose training corpora are all free of it outside the grandfathered list (i.e. corpora built after the declaration).",
+  "decks": {
+    "ant-storm":          { "name": "Ant Storm",          "file": "eval/decks/ant-storm.txt",          "status": "in-corpus" },
+    "burn":               { "name": "Burn",               "file": "eval/decks/burn.txt",               "status": "in-corpus" },
+    "cephalid-breakfast": { "name": "Cephalid Breakfast", "file": "eval/decks/cephalid-breakfast.txt", "status": "in-corpus" },
+    "death-and-taxes":    { "name": "Death and Taxes",    "file": "eval/decks/death-and-taxes.txt",    "status": "in-corpus" },
+    "doomsday":           { "name": "Doomsday",           "file": "eval/decks/doomsday.txt",           "status": "in-corpus" },
+    "elves":              { "name": "Elves",              "file": "eval/decks/elves.txt",              "status": "in-corpus" },
+    "food-chain":         { "name": "Food Chain",         "file": "eval/decks/food-chain.txt",         "status": "in-corpus" },
+    "goblins":            { "name": "Goblins",            "file": "eval/decks/goblins.txt",            "status": "in-corpus" },
+    "grixis-reanimator":  { "name": "Grixis Reanimator",  "file": "eval/decks/grixis-reanimator.txt",  "status": "in-corpus" },
+    "infect":             { "name": "Infect",             "file": "eval/decks/infect.txt",             "status": "in-corpus" },
+    "lands":              { "name": "Lands",              "file": "eval/decks/lands.txt",              "status": "in-corpus" },
+    "mardu-energy":       { "name": "Mardu Energy",       "file": "eval/decks/mardu-energy.txt",       "status": "in-corpus" },
+    "miracles":           { "name": "Miracles",           "file": "eval/decks/miracles.txt",           "status": "in-corpus" },
+    "ur-delver":          { "name": "UR Delver",          "file": "eval/decks/ur-delver.txt",          "status": "in-corpus" },
+
+    "painter": {
+      "name": "Painter",
+      "file": "eval/decks/painter.txt",
+      "status": "held-out",
+      "grandfathered": ["stage1-v0", "stage1-v1", "stage2-local-v0", "stage2-local-v1-dagger"],
+      "notes": "Declared held-out 2026-07-26. Contaminated in all corpora through stage2-local-v1-dagger (grandfathered), so it is a valid generalization deck ONLY for models trained on corpora built after that dataset. Exclude from all future corpus builds; eval/check_holdouts.py fails if it leaks into a new dataset."
+    },
+    "sneak-and-show": {
+      "name": "Sneak and Show",
+      "file": "eval/decks/sneak-and-show.txt",
+      "status": "held-out",
+      "grandfathered": ["stage1-v0", "stage1-v1", "stage2-local-v0", "stage2-local-v1-dagger"],
+      "notes": "Declared held-out 2026-07-26. Same semantics as painter. These two decks are a default pick (one midrange-combo, one pure combo); swap for any other pair by editing this file, but never un-declare a holdout after a model has been kept clean of it."
+    }
+  }
+}

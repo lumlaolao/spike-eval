@@ -22,6 +22,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -220,6 +221,16 @@ public final class LlmSpikeGui {
     // re-derivation that would miss the sidecar. See loadPlanSidecar / writeGameSummary.
     static volatile String lastPlanA = DEFAULT_PLAN_A;
     static volatile String lastPlanB = DEFAULT_PLAN_B;
+
+    // What ACTUALLY answered, keyed by bridge label ("<deck-identity>/smart" | "<deck-identity>/fast").
+    // Stashed by OpenRouterBridge on every successful reply, read by writeGameSummary.
+    //
+    // The CONFIGURED spec is not an identity. `SMART_MODEL=openrouter:default_model` against a local
+    // mlx server names no checkpoint at all: runs/stage1-student-eval and runs/stage2-student-eval
+    // were played by different adapters and are byte-identical in provenance, so nothing in either
+    // artifact says which model earned which number. Only the serving endpoint knows, and it tells us
+    // in the response's own `model` field — so that is what we record, alongside the spec we asked for.
+    static final Map<String, String> servedModels = new ConcurrentHashMap<>();
 
     /** Our agent's controller: extend the AI, route decisions to Claude, delegate to super on
      *  anything we don't handle or that fails. One instance per seat — all state is per-instance. */
@@ -4306,6 +4317,9 @@ public final class LlmSpikeGui {
                 System.out.println("[OPENROUTER " + label + "] HTTP " + resp.statusCode() + ": " + oneLine(resp.body()));
                 return null;
             }
+            String served = extractServedModel(resp.body());
+            if (served != null) servedModels.put(label, served);
+
             String content = extractJsonString(resp.body(), "\"content\":\"");
             String finishReason = extractJsonString(resp.body(), "\"finish_reason\":\"");
             // OpenAI-compatible usage object: {"usage":{"prompt_tokens":N,"completion_tokens":M,...}}.
@@ -4323,6 +4337,11 @@ public final class LlmSpikeGui {
                 this.promptTokens = promptTokens; this.completionTokens = completionTokens;
             }
         }
+
+        /** The endpoint every openrouter: spec in this JVM talked to. Provenance only — a run against
+         *  a local mlx server and a run against openrouter.ai are different experiments even when the
+         *  model spec string is identical. */
+        static String baseUrl() { return BASE_URL; }
 
         @Override public String getLabel() { return label; }
         @Override public String getModel() { return model; }
@@ -4393,6 +4412,49 @@ public final class LlmSpikeGui {
         return fallback;
     }
 
+    /** The endpoint's OWN name for the model that produced a chat-completion response, or null when
+     *  it named none. This is the provenance that the configured spec cannot supply: an alias like
+     *  "default_model" is resolved server-side, so only the response says which checkpoint answered.
+     *
+     *  Only the HEAD of the body is searched — everything before "choices" — so a model id quoted
+     *  inside the completion text can never win the substring match and mislabel the whole run. A
+     *  server that omits the field yields null, and the game line records "unknown": the honest
+     *  reading, not a confident wrong answer. Package-private for LlmSpikeTest. */
+    static String extractServedModel(String responseBody) {
+        if (responseBody == null) return null;
+        int choicesAt = responseBody.indexOf("\"choices\"");
+        String head = choicesAt >= 0 ? responseBody.substring(0, choicesAt) : responseBody;
+        String served = extractJsonString(head, "\"model\":\"");
+        return (served == null || served.isEmpty()) ? null : served;
+    }
+
+    /** Resolved sampling temperature for a model SPEC, for the game line. "n/a" for the Claude CLI
+     *  backend (no temperature knob there); "default" when the spec's ModelCfg row leaves it unset and
+     *  the request body omits the field entirely — which is a real, distinct configuration, not zero. */
+    static String resolvedTemperature(String spec) {
+        if (spec == null || !spec.startsWith("openrouter:")) return "n/a";
+        try {
+            Double t = ModelCfg.forModel(spec.substring("openrouter:".length())).temperature;
+            return t == null ? "default" : String.valueOf(t);
+        } catch (Exception e) { return "unknown"; }
+    }
+
+    /** sha256[:12] of the OPENROUTER_MODEL_CFG override JSON, or "builtin" when it is unset.
+     *  The per-model max_tokens / timeout / reasoning-effort / temperature table is load-bearing for
+     *  what the model was able to produce, and it lives entirely in an env var — without this hash two
+     *  runs on materially different sampling configs are indistinguishable in the artifact. */
+    static String modelCfgSha() {
+        String raw = System.getenv("OPENROUTER_MODEL_CFG");
+        if (raw == null || raw.trim().isEmpty()) return "builtin";
+        try {
+            byte[] d = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(raw.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 6; i++) sb.append(String.format("%02x", d[i]));
+            return sb.toString();
+        } catch (Exception e) { return "unknown"; }
+    }
+
     /** Machine-readable game-summary JSONL line + human GAME OVER block, shared by the headless and GUI
      *  runners so both emit the IDENTICAL identity-keyed record the eval/tournament drivers parse. All
      *  per-identity fields (deck/controller/model/plan) are keyed to deck-identity A/B, never post-swap. */
@@ -4423,6 +4485,20 @@ public final class LlmSpikeGui {
 
         String smartDef = System.getenv().getOrDefault("SMART_MODEL", "opus");
         String fastDef  = System.getenv().getOrDefault("FAST_MODEL", "haiku");
+
+        // --- resolved-identity provenance: "which model, on which endpoint, actually played?" ---
+        // The served_* fields are keyed by deck-identity NAME (the bridge label's seat is the deck
+        // name), so like every other per-identity field they survive SWAP_SEATS unchanged.
+        String smartASpec = System.getenv().getOrDefault("SMART_MODEL_A", smartDef);
+        String smartBSpec = System.getenv().getOrDefault("SMART_MODEL_B", smartDef);
+        String fastASpec  = System.getenv().getOrDefault("FAST_MODEL_A", fastDef);
+        String fastBSpec  = System.getenv().getOrDefault("FAST_MODEL_B", fastDef);
+        boolean anyOpenRouter = smartASpec.startsWith("openrouter:") || smartBSpec.startsWith("openrouter:")
+                || fastASpec.startsWith("openrouter:") || fastBSpec.startsWith("openrouter:");
+        // Gate the accessor so a zero-model floor/random run doesn't class-init the OpenRouter bridge
+        // just to report an endpoint it never contacted.
+        String baseUrl = anyOpenRouter ? OpenRouterBridge.baseUrl() : "n/a";
+
         EvalLog.write("{\"t\":\"game\",\"seed\":" + seed
                 + ",\"swap\":" + "1".equals(System.getenv("SWAP_SEATS"))
                 + ",\"deck_a\":\"" + jsonEscape(nameA) + "\""
@@ -4448,6 +4524,17 @@ public final class LlmSpikeGui {
                 + ",\"overlay_sha\":\"" + jsonEscape(System.getenv().getOrDefault("OVERLAY_SHA", "unknown")) + "\""
                 + ",\"deck_sha\":\"" + jsonEscape(System.getenv().getOrDefault("DECK_SHA", "unknown")) + "\""
                 + ",\"discipline\":\"" + jsonEscape(System.getenv().getOrDefault("RUN_DISCIPLINE", "unspecified")) + "\""
+                // Additive (schema is additive-only): resolved model identity + sampling + seed bank.
+                + ",\"served_smart_a\":\"" + jsonEscape(servedModels.getOrDefault(nameA + "/smart", "unknown")) + "\""
+                + ",\"served_smart_b\":\"" + jsonEscape(servedModels.getOrDefault(nameB + "/smart", "unknown")) + "\""
+                + ",\"served_fast_a\":\"" + jsonEscape(servedModels.getOrDefault(nameA + "/fast", "unknown")) + "\""
+                + ",\"served_fast_b\":\"" + jsonEscape(servedModels.getOrDefault(nameB + "/fast", "unknown")) + "\""
+                + ",\"openrouter_base_url\":\"" + jsonEscape(baseUrl) + "\""
+                + ",\"checkpoint_sha\":\"" + jsonEscape(System.getenv().getOrDefault("CHECKPOINT_SHA", "unknown")) + "\""
+                + ",\"model_cfg_sha\":\"" + jsonEscape(modelCfgSha()) + "\""
+                + ",\"temperature_a\":\"" + jsonEscape(resolvedTemperature(smartASpec)) + "\""
+                + ",\"temperature_b\":\"" + jsonEscape(resolvedTemperature(smartBSpec)) + "\""
+                + ",\"seed_bank\":\"" + jsonEscape(System.getenv().getOrDefault("SEED_BANK", "unregistered")) + "\""
                 + "}");
     }
 

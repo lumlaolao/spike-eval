@@ -1,0 +1,75 @@
+{
+  "suite": "stage3-v1",
+  "version": 1,
+  "description": "First frozen eval suite. All arms are mirror-deck so they run under run_batch.py cited discipline TODAY (cited forbids asymmetric decks; asymmetric student-deck-vs-AI-deck matchups are deferred to the orchestration workstream, which will add a cited-nomirror mode with both deck SHAs pinned). Identity A is always the student (controller llm, model ${STUDENT}); identity B is the arm opponent. Headline metric per arm: paired win rate of identity A with Wilson 95% CI (aggregate.py). Sanity arms exist to catch harness regressions cheaply before spending on the 200-pair arms.",
+  "discipline": "cited",
+  "student": { "smart": "${STUDENT}", "fast": "${STUDENT}" },
+  "seed_policy": {
+    "bank": "9000..9999",
+    "note": "Eval-only bank, declared here until the seed-registry workstream lands its own artifact; when it does, this range MUST be moved under it and the overlap check wired to datasets/*/meta.jsonl. Per-arm ranges below are disjoint; gaps left for future arms."
+  },
+  "gates": {
+    "max_fallback_rate": 0.10,
+    "defect_invariants": true,
+    "min_autonomy_pct": null
+  },
+  "gates_note": "max_fallback_rate is enforced by aggregate.py. defect_invariants = defect_analyzer.py must exit 0 over each arm's output dir. min_autonomy_pct is a placeholder for the autonomy metric (provenance workstream item 3); set a number once game lines carry it.",
+  "arms": [
+    {
+      "name": "floor-sanity",
+      "enabled": true,
+      "role": "sanity",
+      "deck": "ur-delver",
+      "seeds": "9010..9019",
+      "controller_b": "floor",
+      "note": "Harness smoke: student must crush floor. 10 pairs is plenty for an expected blowout. Caveat: floor short-circuits before the play/attack/block menus, so this certifies little about real decision paths."
+    },
+    {
+      "name": "random-sanity",
+      "enabled": true,
+      "role": "sanity",
+      "deck": "ur-delver",
+      "seeds": "9020..9029",
+      "controller_b": "random",
+      "note": "Second rung: random plays the real menus, so unlike floor it exercises the full decision surface from the opposing seat."
+    },
+    {
+      "name": "forge-ai-ur-delver",
+      "enabled": true,
+      "role": "in-distribution",
+      "deck": "ur-delver",
+      "seeds": "9110..9309",
+      "controller_b": "ai",
+      "note": "Headline arm, in-distribution deck (ur-delver is in every corpus since stage1). 200 pairs matches the repo power math for a 10-pt gap at rho~0.5. Reference: Forge-AI-vs-Forge-AI ceiling on this deck is 28% (runs/stage2-eval/ai-delver-ceiling)."
+    },
+    {
+      "name": "forge-ai-burn",
+      "enabled": true,
+      "role": "in-distribution",
+      "deck": "burn",
+      "seeds": "9310..9509",
+      "controller_b": "ai",
+      "note": "Second in-distribution deck so the headline is not one matchup. Burn is the most-represented deck in stage2 corpora."
+    },
+    {
+      "name": "forge-ai-painter",
+      "enabled": true,
+      "role": "generalization",
+      "deck": "painter",
+      "seeds": "9510..9709",
+      "controller_b": "ai",
+      "note": "Generalization arm. painter is HELD-OUT in eval/holdouts.json, but grandfathered through stage2-local-v1-dagger: for the current student this measures a low-training-exposure deck, NOT a clean one. It becomes a true generalization number for any model trained on corpora built after the 2026-07-26 holdout declaration (check_holdouts.py enforces)."
+    },
+    {
+      "name": "teacher-mirror",
+      "enabled": false,
+      "role": "calibration",
+      "deck": "ur-delver",
+      "seeds": "9710..9809",
+      "controller_b": "llm",
+      "smart_b": "${TEACHER}",
+      "fast_b": "${TEACHER}",
+      "note": "Student vs frozen teacher (e.g. opus, or a pinned earlier checkpoint) on a mirror deck: the purest pilot-skill delta the design supports. Disabled until a teacher model spec is chosen and frozen; pass --teacher SPEC to run_suite.py when enabling."
+    }
+  ]
+}

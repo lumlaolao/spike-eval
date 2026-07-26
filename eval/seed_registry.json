@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "_note": [
+    "Declared seed banks. A seed's bank decides what it may be USED for; the live scan in",
+    "seed_registry.py decides whether that promise was kept. Ranges are inclusive on both ends.",
+    "",
+    "Policies:",
+    "  eval-only  MUST NOT appear in any training corpus (datasets/*/meta.jsonl). A single hit is",
+    "             contamination and fails `seed_registry.py check` — this is the CI gate.",
+    "  train      Harvestable into training corpora. A cited eval MUST NOT draw from these, whether",
+    "             or not the specific seed has been harvested yet: the whole band is the harvest pool.",
+    "  harness    Zero-model / mechanical validation (canary, smoke, plumbing). Never a strength claim,",
+    "             so contamination is meaningless here; also not usable for a cited eval.",
+    "",
+    "An eval-only bank may also declare `burned`: seeds inside it that were harvested (or played by a",
+    "corpus-generating run) BEFORE the band was declared eval-only. This mirrors the `grandfathered`",
+    "list in eval/holdouts.json — pre-declaration contamination is frozen and labeled, not hidden.",
+    "Burned seeds do NOT fail the contamination check, because that damage is already done and",
+    "recording it is the point; they ARE refused for any cited eval. The asymmetry with decks is",
+    "deliberate: a held-out deck is scarce and worth grandfathering, a clean seed costs nothing.",
+    "",
+    "Seeds outside every bank classify as 'unregistered': allowed in exploratory work, refused for a",
+    "cited eval. Declaring the band is how a seed becomes usable, which is the point — it makes the",
+    "train/eval split a thing someone decided, not a thing that emerged from whatever was typed."
+  ],
+  "banks": [
+    {
+      "name": "eval-holdout",
+      "policy": "eval-only",
+      "ranges": [[9000, 9999]],
+      "burned": [[9001, 9001], [9100, 9102]],
+      "purpose": "Flagship held-out eval. This band was declared by eval/suites/stage3-v1.json's seed_policy, which required it to move under this registry once the registry existed; that is what this entry does. 9100-9102 are burned: runs/d4-dagger-r1 played them and datasets/stage2-local-v1-dagger harvested them. 9001 is burned too: runs/d4-dagger-pilot played it and DAgger runs exist to be harvested, so treating it as clean would be optimistic. stage3-v1's forge-ai-ur-delver arm starts at 9100 and therefore currently overlaps the burned seeds — shift that arm before running it cited."
+    },
+    {
+      "name": "eval-holdout-2",
+      "policy": "eval-only",
+      "ranges": [[20000, 20999]],
+      "purpose": "Reserve bank, deliberately untouched. Chosen as a virgin band: the highest seed appearing anywhere in runs/ was 9102 and in datasets/ was 6529 on 2026-07-26, so nothing here can be retroactively burned. Use it if eval-holdout's burn list grows enough to make that band awkward."
+    },
+    {
+      "name": "canary",
+      "policy": "harness",
+      "ranges": [[42, 42]],
+      "purpose": "Floor-mirror regression canary (identity A wins after 108 turns, bit-reproducible). See CLAUDE.md validation ladder step 1."
+    },
+    {
+      "name": "smoke",
+      "policy": "harness",
+      "ranges": [[1, 20]],
+      "purpose": "Smoke batches: floor-vs-random, floor-vs-ai, haiku-vs-* plumbing runs."
+    },
+    {
+      "name": "validate",
+      "policy": "harness",
+      "ranges": [[900, 999]],
+      "purpose": "D0 distillation-seam validation (runs/d0-validate)."
+    },
+    {
+      "name": "train-stage0",
+      "policy": "train",
+      "ranges": [[301, 399], [501, 599]],
+      "purpose": "Stage-0 teacher calibration and the A/B preamble/quality runs. Harvested into datasets/stage1-v0 and datasets/stage1-v1. runs/stage0-calibration, stage1-student-eval and stage2-student-eval all drew 501-525 from here, which is why those student win rates are not defensible as held-out measurements."
+    },
+    {
+      "name": "train-selfplay",
+      "policy": "train",
+      "ranges": [[1000, 8999]],
+      "purpose": "D1 self-play and the R2 teacher breadth/burn corpora. Harvested into datasets/stage2-local-v0 and datasets/stage2-local-v1-dagger. Stops at 8999 so it does not collide with the eval-holdout band above; the D4 DAgger rounds that already ran at 9001/9100-9102 predate that boundary and are recorded as eval-holdout's burn list."
+    }
+  ]
+}

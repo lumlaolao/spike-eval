@@ -534,7 +534,11 @@ def test_contamination_detector():
     if java.exists():
         import re as _re
         src = java.read_text(encoding="utf-8")
-        m = _re.search(r"private static boolean isNonAnswer.*?return false;",
+        # Visibility is not part of the contract: isNonAnswer was made
+        # package-private so LlmSpikeTest could call it, which silently emptied
+        # java_pats and left this parity guard failing on every run rather than
+        # comparing anything. Match either form.
+        m = _re.search(r"(?:private )?static boolean isNonAnswer.*?return false;",
                        src, _re.S)
         java_pats = set()
         if m:
