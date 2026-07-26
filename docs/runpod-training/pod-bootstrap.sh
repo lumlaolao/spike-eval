@@ -92,6 +92,9 @@ snapshot_download('$BASE_MODEL')" || die "base model download failed"
 fi
 
 # --- config ------------------------------------------------------------------
+# The shared axolotl config (docs/aws-training/) hardcodes /workspace/data/*,
+# an AWS-runbook layout; the job tarball lands at $JOB_DIR/data. Bridge it.
+ln -sfn "$JOB_DIR/data" /workspace/data
 CONFIG="$JOB_DIR/config.yaml"
 cp "$CONFIG" /workspace/config.active.yaml
 CONFIG=/workspace/config.active.yaml
