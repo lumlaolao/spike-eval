@@ -105,7 +105,8 @@ containers run as `root` — that is normal here.)
 # .git (which could carry credential helpers/remotes) land on rented hardware:
 rsync -av -e "ssh -p <POD_PORT> -i ~/.ssh/id_ed25519" \
   --exclude secrets.env --exclude '.git' \
-  --exclude runs --exclude models --exclude .venv-mlx --exclude '.claude' \
+  --exclude runs --exclude models --exclude datasets --exclude .venv-mlx \
+  --exclude '.claude' --exclude '*.mp4' \
   ~/code/mtg-forge-llm-agent/ root@<POD_IP>:/workspace/mtg-forge-llm-agent/
 
 # student model — vLLM wants the HuggingFace-format dir (config.json +
@@ -184,6 +185,117 @@ one command.
 
 Finally, append the session to the ledger (see "Cost expectations") so the
 dashboard's budget bar reflects reality.
+
+## CPU-only teacher-corpus generation — measure before you rent
+
+Teacher corpora (`--controller-a ai-log --controller-b ai`) are **engine vs
+engine**: Forge's own AI plays both seats and the `ai-log` seat writes
+`tier="ai-teacher"` decision rows. There are **zero model calls**, so this
+workload:
+
+- **needs no GPU** — it is pure CPU, one JVM per concurrent game;
+- **needs no secrets on the pod** — no `OPENROUTER_API_KEY`, no
+  `OPENROUTER_ALLOW_EGRESS`, no egress at all. If you do rent a box for this,
+  nothing sensitive has to touch it beyond the repo itself.
+
+**Renting for this is usually a net loss.** Measured on the 18-core / 24 GB
+laptop, 2026-07-26 (round-2 corpus, engine `c1c64a5`):
+
+| Measurement | Value |
+|---|---|
+| 100 games (50 seeds × `--pairs`) at `--jobs 6` | 4 min 01 s wall, 0 problems |
+| Per-game cost | ~14.5 s per game per slot |
+| Per-JVM CPU | ~1 core (`ps` shows ~100% per `LlmSpikeHeadless`) |
+| Per-JVM RSS | ~0.66 GB measured (12 JVMs = 7.9 GB) |
+| `--jobs 12` on 18 cores / 24 GB | 21 games/min, but 56–65% **sys** time |
+
+**Do not size `--jobs` from macOS load average.** At `--jobs 8` the 1-minute load
+average reads ~26 on an 18-core box, which looks badly oversubscribed; `ps` shows
+only 8 cores actually busy. Darwin's load average counts blocked and GC threads,
+so it over-reports for JVM fleets. Size from `%CPU` per process (~1 core each)
+and from RAM, not from load average.
+
+**But don't size from `%CPU` alone either.** Pushing to `--jobs 12` on the
+strength of idle cores drove system time to 56–65% with the memory compressor
+holding ~6 GB — the JVMs' own 7.9 GB was not the problem, contention with
+everything else on a 24 GB laptop was. Useful work fell to ~10–33% user time.
+The batch still completed cleanly (`rc=0`, 0 problems), so this is a throughput
+tax, not a correctness risk. CLAUDE.md's **4–8** guidance is the right default;
+treat anything above it as needing a before/after measurement on the *same*
+matchup, not just free cores.
+
+Per-game wall time varies a lot by *matchup* (a Burn-vs-Elves game is not the
+same length as Burn-vs-UR-Delver), so do not benchmark a `--jobs` change by
+comparing two different matchups — compare the same matchup, or a whole corpus.
+
+Now price the pod. Fixed cost **before the first game starts** is pod create +
+rsync + `bootstrap_gpu.sh` (JDK/maven install, Forge clone at the `FORGE_COMMIT`
+pin, full maven build) — §5 measures that bootstrap at 10–20 min, so call the
+round trip 25–35 min.
+
+Then notice what the per-JVM-per-core result above implies: throughput is set by
+**core count**, and a 16-vCPU pod has no meaningful edge over an 18-core laptop.
+Renting buys roughly 1.0× the local throughput while costing 25–35 minutes of
+setup — the payback period is infinite, not merely long. Cloud vCPUs are usually
+*slower* per core than Apple Silicon, so the realistic case is worse than parity.
+(This comparison is arithmetic from the local measurements plus §5's stated
+bootstrap time; per-game throughput on a pod has not been measured directly.)
+
+**A pod only pays off when it brings more cores than you have, or when the wall
+clock is not the constraint** — a 64-vCPU box for a very large corpus, or any pod
+at all when you want the laptop free or the corpus built overnight. For a
+same-size-or-smaller core count, generate locally.
+
+The round-2 teacher corpus was generated locally for this reason, on a directive
+that had assumed a 2–3 hour local runtime. Measured: the driver produced 1,023
+games in ~62 min wall (09:29→10:31, `--jobs` 8 then 12), for a 1,200-game corpus
+across 16 archetypes. No pod was rented and nothing was added to the ledger.
+
+### Verify the output, not just the exit code
+
+`run_batch.py` reported `completed: 50  problems: 0` for a batch that had
+silently merged two games into one file: both swap variants of a seed started in
+the same millisecond and derived the same `game-<seed>-<ms>.jsonl` name, so 115
+decisions from two different games interleaved in a single file. Nothing in the
+batch summary reflected it.
+
+After any large batch, scan for it directly — a complete game file holds exactly
+one `t=="game"` row:
+
+```bash
+python3 - <<'PY'
+import json, glob
+for f in glob.glob('runs/<RUN_NAME>/*/game-*.jsonl'):
+    n = sum(1 for l in open(f) if l.strip() and json.loads(l).get('t') == 'game')
+    if n > 1:
+        print('COLLISION (%d games in one file): %s' % (n, f))
+PY
+```
+
+Fix by deleting the merged file and re-running that seed at `--jobs 1`. Files
+with **zero** game rows are different and benign — they are in-flight or killed
+games, which `load_complete_games` already skips and `run_batch.py` re-runs on
+resume.
+
+### If you do exceed the break-even
+
+Same flow as the GPU quickstart with the GPU parts dropped:
+
+1. Deploy any cheap pod (§2). GPU choice is irrelevant — pick on vCPU count and
+   price. As of 2026-07-25 the RTX 5090 community listing at $0.69/hr places
+   reliably; **RTX 4090 placement fails** with image
+   `runpod/pytorch:1.0.3-cu1281-torch291-ubuntu2404`. "machine does not have the
+   resources" is transient — retry.
+2. rsync the repo (§4). Keep every exclusion; no model dir and no `secrets.env`
+   are needed.
+3. `bash cloud/bootstrap_gpu.sh` in tmux (§5). Its seed-42 canary (identity A
+   wins in 108 turns) must pass before you generate anything — a corpus from a
+   box whose engine does not match the pin is not comparable to local runs.
+4. Run the batch under tmux with `--controller-a ai-log --controller-b ai` and
+   **no** `--smart-a`/`--fast-a` model flags. Start at `--jobs 8` and only raise
+   it if load average stays below core count.
+5. rsync results back (§7), then **terminate** the pod (§8) and append the hours
+   to `cloud/aws_ledger.jsonl`.
 
 ## Vast.ai note
 
