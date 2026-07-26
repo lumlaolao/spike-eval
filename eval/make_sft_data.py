@@ -74,15 +74,26 @@ DEFAULT_SOURCES = [
 
 # build tag -> does the SMART tier get the STATIC_REFERENCE appendix?  + commit
 # for provenance. fast tier never gets STATIC_REFERENCE in any build.
+# static_reference_len: the length STATIC_REFERENCE had WHEN THAT BUILD'S RUNS
+# WERE GENERATED. Only builds with static_reference_on_smart can be
+# mis-reconstructed by a drifted working tree, so only they pin it; system()
+# refuses rather than appending text those runs never saw.
 BUILDS = {
-    "STAGE0": {"static_reference_on_smart": True, "commit": "339f457"},
+    "STAGE0": {"static_reference_on_smart": True, "commit": "339f457",
+               "static_reference_len": 7492},
     "FIX":    {"static_reference_on_smart": False, "commit": "c3ec3d2"},
 }
 
 MODEL_TIERS = ("smart", "fast")  # only model-authored tiers become examples
 
 # Expected character lengths — a guard against silent drift in the Java source.
-EXPECT_STATIC_REFERENCE_LEN = 7492
+# Re-pinned 2026-07-26 (7492 -> 8154): task #8 added the two `OPP CAST THIS
+# GAME` / `OPP LANDS PLAYED` description lines to STATIC_REFERENCE. Verified
+# component-by-component against origin/main that NOTHING else moved — the base
+# body, tail, and both FORMAT branches are byte-identical — so terse framing
+# (fast tier, ai-teacher, dagger) reconstructs exactly as before. A stale pin is
+# a pin that can't fail: re-pin deliberately, never delete.
+EXPECT_STATIC_REFERENCE_LEN = 8154
 
 
 # ------------------------------------------------------- Java literal parsing
@@ -202,6 +213,24 @@ class PreambleBuilder:
         terse = (tier == "fast")
         msg = self.base(seat, plan, terse)
         if (not terse) and BUILDS[build]["static_reference_on_smart"]:
+            want = BUILDS[build].get("static_reference_len")
+            if want is None:
+                raise SystemExit(
+                    "build %s sets static_reference_on_smart but no "
+                    "static_reference_len; add the length STATIC_REFERENCE had "
+                    "when %s runs were generated so drift can be detected."
+                    % (build, build))
+            if len(self.static_reference) != want:
+                raise SystemExit(
+                    "refusing to reconstruct %s smart-tier system messages: "
+                    "the working-tree STATIC_REFERENCE is %d chars, but %s runs "
+                    "saw %d. Appending it anyway would emit a preamble those "
+                    "games never used (silent training-data corruption). "
+                    "Reconstruct from a checkout at commit %s, or restrict this "
+                    "run to terse sources (fast tier / ai-teacher / dagger), "
+                    "which never carry STATIC_REFERENCE."
+                    % (build, len(self.static_reference), build, want,
+                       BUILDS[build]["commit"]))
             msg = msg + "\n\n" + self.static_reference
         return msg
 

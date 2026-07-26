@@ -4,6 +4,7 @@
 Run: python3 eval/test_make_sft_data.py
 """
 
+import contextlib
 import json
 import sys
 import tempfile
@@ -13,6 +14,25 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import make_sft_data as m  # noqa: E402
 
 FAILURES = []
+
+
+@contextlib.contextmanager
+def stage0_pin_aligned(pb):
+    """Point STAGE0's STATIC_REFERENCE pin at the working tree for one block.
+
+    Stage-1 fixtures tag synthetic games "STAGE0" to exercise split/dedupe/write
+    plumbing — they are not reconstructing real STAGE0 corpora. system() refuses
+    when the tree has drifted from what STAGE0 runs saw (it has, since task #8
+    grew STATIC_REFERENCE 7492 -> 8154), so these tests state explicitly that
+    they accept whatever text the tree currently holds. Production paths keep
+    the strict guard.
+    """
+    saved = m.BUILDS["STAGE0"]["static_reference_len"]
+    m.BUILDS["STAGE0"]["static_reference_len"] = len(pb.static_reference)
+    try:
+        yield
+    finally:
+        m.BUILDS["STAGE0"]["static_reference_len"] = saved
 
 
 def check(name, cond, detail=""):
@@ -68,8 +88,23 @@ def test_preamble_reconstruction():
           "got %d" % len(plan_a))
     base = pb.base("UR Delver", plan_a, terse=False)
     check("base(verbose) == 1762 chars", len(base) == 1762, "got %d" % len(base))
-    smart = pb.system("UR Delver", plan_a, "smart", "STAGE0")
-    check("STAGE0 smart system == 9256 chars", len(smart) == 9256,
+    # The working tree drifted past STAGE0's STATIC_REFERENCE (task #8 added the
+    # OPP CAST / OPP LANDS lines), so reconstructing STAGE0 smart-tier messages
+    # from it must REFUSE rather than append text those runs never saw.
+    stage0_len = m.BUILDS["STAGE0"]["static_reference_len"]
+    if len(pb.static_reference) != stage0_len:
+        try:
+            pb.system("UR Delver", plan_a, "smart", "STAGE0")
+            check("STAGE0 smart refuses on STATIC_REFERENCE drift", False,
+                  "no SystemExit raised")
+        except SystemExit as e:
+            check("STAGE0 smart refuses on STATIC_REFERENCE drift",
+                  "refusing to reconstruct" in str(e), str(e))
+    # Exercise the append mechanism itself against whatever the tree now holds.
+    with stage0_pin_aligned(pb):
+        smart = pb.system("UR Delver", plan_a, "smart", "STAGE0")
+    check("STAGE0 smart system == base + blank line + STATIC_REFERENCE",
+          len(smart) == len(base) + 2 + len(pb.static_reference),
           "got %d" % len(smart))
     check("STAGE0 smart contains STATIC_REFERENCE",
           "SNAPSHOT LEGEND" in smart and "LEGACY GLOSSARY" in smart)
@@ -133,7 +168,8 @@ def test_winning_seat_filter():
         # LOSS for LLM (identity B won): none of its rows should be emitted.
         write_game(d, "game-2-1000.jsonl", game_line(2, False, "B"),
                    [decision("UR Delver", prompt="lost-state", reply="R3")])
-        examples, warnings, hygiene = m.build_examples([(d, "STAGE0")], pb)
+        with stage0_pin_aligned(pb):
+            examples, warnings, hygiene = m.build_examples([(d, "STAGE0")], pb)
         prompts = sorted(e["messages"][1]["content"] for e in examples)
         check("only winning-seat LLM rows kept", prompts == ["f", "win-state"],
               "got %s" % prompts)
@@ -159,7 +195,8 @@ def test_hygiene_drops():
             decision("UR Delver", prompt="trunc", reply="x", finish_reason="length"),
             decision("UR Delver", tier="auto", prompt="auto", reply="x"),  # not model tier
         ])
-        examples, warnings, hygiene = m.build_examples([(d, "STAGE0")], pb)
+        with stage0_pin_aligned(pb):
+            examples, warnings, hygiene = m.build_examples([(d, "STAGE0")], pb)
         kept = sorted(e["messages"][1]["content"] for e in examples)
         check("only the clean model-tier row survives", kept == ["good"],
               "got %s" % kept)
@@ -193,7 +230,8 @@ def test_dedup_pairs():
             decision("UR Delver", tier="fast", prompt="board X (99)", reply="CHOICE: 1"),
             decision("UR Delver", tier="fast", prompt="board X (99)", reply="CHOICE: 2"),
         ])
-        examples, _, _ = m.build_examples([(d, "STAGE0")], pb)
+        with stage0_pin_aligned(pb):
+            examples, _, _ = m.build_examples([(d, "STAGE0")], pb)
         check("3 rows built pre-dedup", len(examples) == 3)
         kept, dropped = m.dedupe(examples)
         check("1 near-duplicate dropped", dropped == 1, "got %d" % dropped)
@@ -226,7 +264,8 @@ def test_split_keeps_both_swaps_together():
                    [decision("UR Delver", prompt="a")])
         write_game(d, "game-1-2000.jsonl", game_line(1, True, "A"),
                    [decision("UR Delver", prompt="b")])
-        examples, _, _ = m.build_examples([(d, "STAGE0")], pb)
+        with stage0_pin_aligned(pb):
+            examples, _, _ = m.build_examples([(d, "STAGE0")], pb)
         gkeys = {e["_gkey"] for e in examples}
         check("both swaps share one game key", len(gkeys) == 1,
               "got %s" % gkeys)
@@ -244,7 +283,8 @@ def test_end_to_end_write():
                        game_line(seed, False, "A"),
                        [decision("UR Delver", prompt="s%d" % seed,
                                  reply="CHOICE: %d" % seed)])
-        examples, warnings, hygiene = m.build_examples([(str(src), "STAGE0")], pb)
+        with stage0_pin_aligned(pb):
+            examples, warnings, hygiene = m.build_examples([(str(src), "STAGE0")], pb)
         examples, dropped = m.dedupe(examples)
         gkeys = {e["_gkey"] for e in examples}
         splits = m.assign_splits(gkeys, 0.1, 20260722)

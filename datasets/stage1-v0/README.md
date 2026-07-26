@@ -10,6 +10,21 @@ from a seat the LLM piloted **and won**.
 python3 eval/make_sft_data.py runs/stage0-calibration:STAGE0 runs/ab-quality-1/fix:FIX
 ```
 
+> **Reproducing this exact dataset now needs an older Java source.** Task #8
+> (commit 608ea71) grew `STATIC_REFERENCE` from 7492 to 8154 chars, and the
+> STAGE0 half of this set appends that text to every smart-tier system message.
+> `make_sft_data.py` therefore **refuses** to rebuild STAGE0 rows from the
+> current tree rather than emit a preamble those games never saw. Restore the
+> build STAGE0 ran against first:
+>
+> ```
+> git checkout 339f457 -- forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java
+> ```
+>
+> (or point `--java` at a checkout of that file). The FIX half and all terse
+> sources — fast tier, `ai-teacher`, `dagger` — never carry STATIC_REFERENCE and
+> rebuild unchanged from any tree.
+
 ## Sources
 
 - `runs/stage0-calibration` (build STAGE0)
