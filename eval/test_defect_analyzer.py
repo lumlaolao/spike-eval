@@ -250,6 +250,44 @@ def test_malformed_lines_and_no_log_are_tolerated():
         check("decision still counted despite missing log", s["n_decisions"] == 1)
 
 
+def test_shadow_choice_field_invisible_to_merge_gate():
+    """D4: the additive shadow_choice field on the student's decision row must be
+    invisible to the merge gate. It adds no rows (a field, never a sibling row),
+    so ai_tier_count stays 0 and the log-vs-jsonl silent-drop reconciliation is
+    untouched — this is the schema constraint that dictated field-not-row."""
+    # model_consulted keys on prompt ONLY — shadow_choice never flips it.
+    check("prompt-less row with shadow_choice is NOT consulted",
+          da.model_consulted({"prompt": None, "shadow_choice": 2}) is False)
+    check("consulted row unchanged by shadow_choice",
+          da.model_consulted({"prompt": "P", "shadow_choice": 2}) is True)
+    with tempfile.TemporaryDirectory() as d:
+        dpath = Path(d)
+        # The clean-game fixture, but every model row ALSO carries shadow_choice.
+        write_lines(dpath / "game-1-1000.jsonl", [
+            game_line(seed=1, swap=False),
+            dec(seat="model-a", dtype="mulligan", tier="smart", n_options=2, choice=0,
+                raw_reply="fine hand\nKEEP", shadow_choice=1),
+            dec(seat="model-a", dtype="play", tier="smart", n_options=3, choice=1,
+                shadow_choice=0),
+            dec(seat="model-a", dtype="play", tier="auto", n_options=1, choice=0,
+                latency=0, prompt=None, raw_reply=None, fallback=None),
+        ])
+        write_text(dpath / "game-1-0.log", "\n".join([
+            "[model-a] [ROUTER] mulligan: 2/7 lands -> asking x/model-a...",
+            "[OPENROUTER model-a/smart] replied in 4000 ms",
+            "[model-a] [ROUTER] mulligan: KEEP",
+            "[model-a] [ROUTER] play(main): 1 castable -> asking x/model-a...",
+            "[OPENROUTER model-a/smart] replied in 5000 ms",
+            "[model-a] [ROUTER] play: casts Foo",
+        ]))
+        report = da.build_report([dpath])
+        c = report["combined"]
+        check("shadow run: ai_tier_count still 0", c["ai_tier_count"] == 0)
+        check("shadow run: silent_drop_total still 0", c["silent_drop_total"] == 0)
+        check("shadow run: hard invariants still pass",
+              report["hard_invariants"]["pass"] is True)
+
+
 def main():
     test_parse_log_text()
     test_normalize_fallback_matches_analyze_corpus_convention()
@@ -259,6 +297,7 @@ def main():
     test_has_choice_tag_accepts_non_digit_reply_shapes()
     test_blocks_and_empty_picks_not_counted_as_parse_fail()
     test_malformed_lines_and_no_log_are_tolerated()
+    test_shadow_choice_field_invisible_to_merge_gate()
     print()
     if FAILURES:
         print("FAILED: %s" % ", ".join(FAILURES))

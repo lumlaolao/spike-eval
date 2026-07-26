@@ -1,0 +1,128 @@
+========================================================================
+REPLAY DECISION-MATCH — logged teacher choices re-asked offline
+========================================================================
+endpoint: http://localhost:8080/v1   model: default_model   (health probe 0.21s)
+corpora: runs/stage0-calibration
+
+### FILTER FUNNEL
+  loaded                           2098
+  after drop-fallback              1834
+  after drop-n_options<=1          1792
+  after drop-approx-blockers       1792
+  after --tiers                    1119
+  after scoreable                  1119
+  after --max-rows sample          800
+
+### OVERALL
+MATCH RATE: 53.9%  (431/800 scored)   Wilson 95% CI [50.4%, 57.3%]
+attempted: 800   scored: 800   transport errors: 0 (excluded from the rate)   parse failures: 5
+
+### BY DECISION TYPE
+  play                     n=581   match=47.5% (276/581)  parse-fail=1  err=0
+  target                   n=74    match=77.0% (57/74)  parse-fail=0  err=0
+  order                    n=57    match=100.0% (57/57)  parse-fail=0  err=0
+  zone-change              n=55    match=36.4% (20/55)  parse-fail=3  err=0
+  attackers                n=18    match=88.9% (16/18)  parse-fail=1  err=0
+  mulligan                 n=9     match=11.1% (1/9)  parse-fail=0  err=0
+  mulligan-bottom          n=3     match=100.0% (3/3)  parse-fail=0  err=0
+  targets                  n=3     match=33.3% (1/3)  parse-fail=0  err=0
+
+### BY DECK / SEAT
+  UR Delver                n=800   match=53.9% (431/800)  parse-fail=5  err=0
+
+### BY TIER
+  smart                    n=800   match=53.9% (431/800)  parse-fail=5  err=0
+
+### MISMATCH EXAMPLES (first 20)
+  - [play] runs/stage0-calibration|.|game-510-1784696536221.jsonl|32 seat=UR Delver tier=smart turn=8
+      logged choice=0 (canonical target='CHOICE: 1')  n_options=4
+      score: choice=2 want=1
+      reply tail: "\n\nWe need to hold up Spell Pierce to counter the opponent's potential burn spells and protect our life total, rather than playing a 2/1 creature that does not help us win the game. We can cast Spell Pierce on their turn using the mana we have available.\n\nCHOICE: 2"
+  - [play] runs/stage0-calibration|.|game-519-1784698496957.jsonl|16 seat=UR Delver tier=smart turn=8
+      logged choice=0 (canonical target='CHOICE: 1')  n_options=4
+      score: choice=4 want=1
+      reply tail: "\n\nWe need to hold up our mana and counterspells to protect our Delver and counter the opponent's spells, as they have no untapped lands. Playing a land now would only help them cast their spells and deal damage to us.\n\nCHOICE: 4"
+  - [play] runs/stage0-calibration|.|game-525-1784700142630.jsonl|15 seat=UR Delver tier=smart turn=6
+      logged choice=0 (canonical target='CHOICE: 1')  n_options=2
+      score: choice=2 want=1
+      reply tail: "\n\nWe need to hold up our Lightning Bolt to counter the opponent's potential burn spells and protect our life total, as they have a hand of three cards and a Mountain in play. Casting it now would leave us vulnerable to lethal next turn.\n\nCHOICE: 2"
+  - [play] runs/stage0-calibration|.|game-520-1784699176948.jsonl|59 seat=UR Delver tier=smart turn=12
+      logged choice=-1 (canonical target='CHOICE: 3')  n_options=3
+      score: choice=1 want=3
+      reply tail: '\n\nWe have a 3/2 threat on board (Murktide Regent) and a 2/1 (Ragavan) that can be converted to a 3/2 with Dash. We need to hold up mana for Wasteland to counter their mana development, and we can cast Chain Lightning to put them in range of lethal damage. We should cast Chain Lightning now to start the clock and pressure them with a threat they cannot easily remove.\n\nCHOICE: 1'
+  - [zone-change] runs/stage0-calibration|.|game-521-1784699189167.jsonl|21 seat=UR Delver tier=smart turn=17
+      logged choice=7 (canonical target='CHOICE: 8')  n_options=9
+      score: choice=3 want=8
+      reply tail: "\n\nWe need to put back the least useful cards to maximize our options. The three identical Dragon's Rage Channelers are the least useful cards in our hand, so we put back one of them.\n\nCHOICE: 3"
+  - [play] runs/stage0-calibration|.|game-518-1784698332022.jsonl|5 seat=UR Delver tier=smart turn=3
+      logged choice=2 (canonical target='CHOICE: 3')  n_options=5
+      score: choice=4 want=3
+      reply tail: '\n\nPLAN: Play Scalding Tarn to increase mana, then cast Delver of Secrets to start our clock.  \nCHOICE: 4'
+  - [zone-change] runs/stage0-calibration|.|game-501-1784691235326.jsonl|12 seat=UR Delver tier=smart turn=5
+      logged choice=5 (canonical target='CHOICE: 6')  n_options=7
+      score: choice=1 want=6
+      reply tail: '\n\nWe need to put back the Brainstorm to shuffle away the unwanted cards and find a threat or disruption. Putting it back now allows us to shuffle it away with the other cards we put back, keeping our hand clean and our options open.\n\nCHOICE: 1'
+  - [play] runs/stage0-calibration|.|game-504-1784692951379.jsonl|8 seat=UR Delver tier=smart turn=4
+      logged choice=0 (canonical target='CHOICE: 1')  n_options=2
+      score: choice=2 want=1
+      reply tail: '\n\nWe need to hold up our mana and let the Bolt resolve to kill the opponent, as they have no untapped lands and cannot pay the {R} cost for Channeler. Passing priority lets the Bolt resolve and kill them, which is the correct tempo play.\n\nCHOICE: 2'
+  - [play] runs/stage0-calibration|.|game-514-1784697267369.jsonl|4 seat=UR Delver tier=smart turn=4
+      logged choice=1 (canonical target='CHOICE: 2')  n_options=4
+      score: choice=4 want=2
+      reply tail: "lt and Delver of Secrets to set up our clock while keeping our mana open for interaction. Casting Lightning Bolt now would leave us with only one untapped land (Volcanic Island) to cast Delver of Secrets on the opponent's turn, which is inefficient. We should pass priority and let the opponent attack with their Sunbaked Canyon, then cast Delver of Secrets on our turn to start our clock.\n\nCHOICE: 4"
+  - [play] runs/stage0-calibration|.|game-514-1784697456767.jsonl|19 seat=UR Delver tier=smart turn=5
+      logged choice=3 (canonical target='CHOICE: 4')  n_options=5
+      score: choice=5 want=4
+      reply tail: "\n\nPLAN: Pass priority to let the opponent attack with Goblin Guide, then attack with Dragon's Rage Channeler for lethal.  \nCHOICE: 5"
+  - [mulligan] runs/stage0-calibration|.|game-509-1784695484415.jsonl|0 seat=UR Delver tier=smart turn=0
+      logged choice=0 (canonical target='KEEP')  n_options=2
+      score: mulligan
+      reply tail: '\n\nMULLIGAN'
+  - [play] runs/stage0-calibration|.|game-520-1784698939542.jsonl|42 seat=UR Delver tier=smart turn=11
+      logged choice=-1 (canonical target='CHOICE: 3')  n_options=3
+      score: choice=1 want=3
+      reply tail: '\n\nWe have two untapped lands (Wasteland) in hand, and we need to play them to maximize our mana and options. Playing both now is the correct play to set up our future turns and enable our spells.\n\nCHOICE: 1,2'
+  - [play] runs/stage0-calibration|.|game-518-1784698332022.jsonl|10 seat=UR Delver tier=smart turn=5
+      logged choice=2 (canonical target='CHOICE: 3')  n_options=4
+      score: choice=1 want=3
+      reply tail: "\n\nWe need to put pressure on the opponent's life total and disrupt their potential burn spells. Casting Chain Lightning now is the best way to do this while they are tapped out and cannot pay the {R}{R} tax.\n\nCHOICE: 1"
+  - [targets] runs/stage0-calibration|.|game-511-1784696536953.jsonl|29 seat=UR Delver tier=smart turn=13
+      logged choice=3 (canonical target='CHOICE: 4')  n_options=4
+      score: choice=1 want=4
+      reply tail: "\n\nWe want to maximize our life total and minimize the damage to our Dragon's Rage Channeler, as we have no immediate threats to counter. Targeting the opponent with Chain Lightning is the correct play here.\n\nCHOICE: 1"
+  - [play] runs/stage0-calibration|.|game-502-1784691551537.jsonl|25 seat=UR Delver tier=smart turn=8
+      logged choice=0 (canonical target='CHOICE: 1')  n_options=2
+      score: choice=2 want=1
+      reply tail: "\n\nWe need to hold up Spell Pierce for potential removal and let Dragon's Rage Channeler attack with the opponent tapped out. Playing Wasteland now would only cost us life and slow our clock. We should pass and let the opponent attack with their hand of three cards, then cast Spell Pierce on their turn to counter their threat.\n\nCHOICE: 2"
+  - [play] runs/stage0-calibration|.|game-502-1784691235667.jsonl|5 seat=UR Delver tier=smart turn=3
+      logged choice=2 (canonical target='CHOICE: 3')  n_options=4
+      score: choice=2 want=3
+      reply tail: "\n\nPLAN: Cast Ponder to find lands, then cast Dragon's Rage Channeler to start our clock while the opponent is tapped out.\nCHOICE: 2"
+  - [play] runs/stage0-calibration|.|game-509-1784695397506.jsonl|41 seat=UR Delver tier=smart turn=12
+      logged choice=0 (canonical target='CHOICE: 1')  n_options=5
+      score: choice=2 want=1
+      reply tail: "\n\nPLAN: Play Volcanic Island to increase mana, then attack with Dragon's Rage Channeler for lethal.  \nCHOICE: 2"
+  - [play] runs/stage0-calibration|.|game-502-1784691235667.jsonl|20 seat=UR Delver tier=smart turn=9
+      logged choice=0 (canonical target='CHOICE: 1')  n_options=2
+      score: choice=2 want=1
+      reply tail: "\n\nWe have a fast clock with Murktide Regent on the board and need to hold up Spell Pierce to counter the opponent's potential burn spells. Casting Delver now would leave us with no Spell Pierce to counter their spells, which is highly dangerous. We should pass and let the opponent play their hand first.\n\nCHOICE: 2"
+  - [play] runs/stage0-calibration|.|game-503-1784691729502.jsonl|43 seat=UR Delver tier=smart turn=14
+      logged choice=1 (canonical target='CHOICE: 2')  n_options=6
+      score: choice=5 want=2
+      reply tail: "\n\nWe need to hold up our mana and counterspells to counter the opponent's potential burn spells and protect our life total. Playing the land is the safest and most flexible option here.\n\nCHOICE: 5"
+  - [play] runs/stage0-calibration|.|game-505-1784693018887.jsonl|20 seat=UR Delver tier=smart turn=9
+      logged choice=-1 (canonical target='CHOICE: 2')  n_options=2
+      score: choice=1 want=2
+      reply tail: "\n\nWe need to hold up our mana and counterspells to counter the opponent's spells and protect our life total, as they have a fast burn deck with a high threat density. Playing the Island is unnecessary and wastes our mana, which we need to hold up for our spells and potential future plays.\n\nCHOICE: 1"
+
+### CAVEATS (the reported match rate is CONSERVATIVE)
+  - Single-shot: each decision is asked ONCE — no corrective second
+    attempt like the live harness — so parse-failures deflate this
+    match rate vs. true harness acceptance.
+  - Bounded counts: count-type (PICKS) acceptance is single-shot
+    cardinality matching with NO min/max truncation. Java truncates
+    over-picks for bounded types, but that bound is unreconstructable
+    from the logs, so an over-pick Java would truncate to a match is
+    scored as a miss here.
+
+(json written to runs/stage2-eval/replay-vs-deepseek.json)

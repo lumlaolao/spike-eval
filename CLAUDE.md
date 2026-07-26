@@ -44,7 +44,26 @@ are only comparable within one engine version.
 1. **Harness mechanics** (seeding, JSONL, arms, engine plumbing):
    `GAME_SEED=42 CONTROLLER_A=floor CONTROLLER_B=floor bash run-llm-headless.sh`
    — zero model calls, ~12s per full game, bit-reproducible. Seed 42 floor mirror
-   is the regression canary: identity A wins after 106 turns, every time.
+   is the regression canary: identity A wins after 108 turns, every time.
+   (Was 106 when first recorded; the harness commits since moved it to 108. If
+   you change an auto/floor path, re-pin this number — a stale canary is a
+   canary that can't fail.)
+   **Floor proves less than it looks like.** Floor short-circuits every play at
+   `play(no-budget)->PASS` before the play menu is built, so it never exercises
+   the play/attack/block decision paths. For anything touching those, use the
+   **random** arm (`CONTROLLER_A=random CONTROLLER_B=random`) — also zero-model
+   and deterministic, but it has budget (`smartOk()` is false only for
+   `mode=="floor"`) and reaches the full menu.
+1b. **D4 shadow labeler** (`SHADOW_AI`): `bash eval/shadow_canary.sh` — two gates,
+   both required. Gate 1 (on/off) catches shadow perturbing the game; gate 2
+   (no-op vs committed HEAD) catches defects that fire on BOTH arms, which gate 1
+   is structurally blind to. A real BLOCKER hid there: an SVar restore placed
+   before the `!SHADOW` guard mutated SpellAbilities in every config, and gate 1
+   stayed green because both arms were equally broken. The script asserts the
+   intended build was actually installed (SHADOW ref count 0 vs 16) — without
+   that, an unnoticed build-swap failure compares a build against itself and
+   reports PASS. **General rule this cycle earned: before trusting a green gate,
+   say what would have made it fail. If you can't, it isn't evidence.**
 2. **LLM code paths** (routing, parsing, prompts): `SMART_MODEL=haiku FAST_MODEL=haiku`
    — never test with opus. For OpenRouter-backed validation, run one exploratory
    game with a cheap model first, e.g.

@@ -1,0 +1,61 @@
+# Axolotl QLoRA config — cloud twin of models/qwen-mtg-lora-stage2-local-v0/lora-config.yaml
+# Train: axolotl train axolotl-qwen3-8b-qlora.yaml
+base_model: Qwen/Qwen3-8B
+load_in_4bit: true            # bnb nf4 — the QLoRA in "QLoRA"
+adapter: qlora
+
+# data: the builder's mlx dir is already chat-messages jsonl; axolotl reads it
+# as chat_template input. valid.jsonl doubles as the eval set.
+datasets:
+  - path: /workspace/data/train.jsonl
+    type: chat_template
+    field_messages: messages
+chat_template: qwen3
+test_datasets:
+  - path: /workspace/data/valid.jsonl
+    type: chat_template
+    field_messages: messages
+    split: train            # axolotl quirk: jsonl loads as a 'train' split
+
+train_on_inputs: false        # == mlx mask_prompt: true (assistant tokens only)
+sequence_len: 4096
+sample_packing: false         # keep 1 example = 1 sequence, same as local run
+pad_to_sequence_len: false
+
+# capacity / schedule — mirror the local run: eff. batch 4, ~2.5 epochs
+micro_batch_size: 1
+gradient_accumulation_steps: 4
+num_epochs: 2.5
+learning_rate: 1.0e-4
+lr_scheduler: constant        # local run used constant lr
+optimizer: adamw_torch
+bf16: auto
+gradient_checkpointing: true
+
+# LoRA — identical shape to the MLX run
+lora_r: 16
+lora_alpha: 320               # alpha/r = 20.0 == mlx_lm scale (see NOTE)
+lora_dropout: 0.05
+lora_target_linear: true
+
+# eval / checkpoints — full-valid-set evals, keep the best
+evals_per_epoch: 10
+saves_per_epoch: 10
+save_total_limit: 5
+load_best_model_at_end: true
+metric_for_best_model: eval_loss
+
+output_dir: /workspace/out
+auto_resume_from_checkpoints: true   # resumes from newest checkpoint in output_dir
+seed: 0
+
+# NOTE on lora_alpha (verified 2026-07-23; vault: [[MLX LoRA scale vs PEFT
+# lora_alpha]]): mlx_lm applies `scale` (20.0) directly to the BA update; PEFT
+# applies alpha/r. alpha=320 with r=16 gives alpha/r = 20.0 — the SAME
+# effective scaling as the local run, so the local learning rate (1e-4)
+# carries over. The PEFT-conventional alpha=32 would train ~10x weaker than
+# the local run. If training is unstable at alpha=320, drop lr first.
+# Still a re-tuned twin, not a bit-clone: bnb-nf4 vs MLX-4bit quantization
+# differs, and Qwen3's enable_thinking=false injects an EMPTY <think></think>
+# sentinel at serving time — byte-diff one rendered example (axolotl template
+# vs mlx_lm server) before trusting any cross-pipeline eval delta.
