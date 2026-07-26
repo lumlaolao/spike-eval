@@ -61,10 +61,15 @@ status BOOTSTRAP
 VENV=/workspace/venv
 python3 -m venv "$VENV" || die "venv creation failed"
 export PATH="$VENV/bin:$PATH"
-# torchvision/torchaudio must be in the SAME resolve as axolotl: axolotl 0.18
-# imports torchvision unconditionally but does not depend on it, and
-# installing it in a second pip call upgrades torch past axolotl's pin.
-pip install --no-cache-dir --quiet "axolotl==${AXOLOTL_PIN}" torchvision torchaudio \
+# torchvision must be in the SAME resolve as axolotl AND version-pinned:
+# axolotl 0.18 imports torchvision unconditionally without depending on it; a
+# second pip call (or an unpinned tv here) upgrades torch past axolotl's pin
+# and torchvision::nms fails to register against the mismatched torch.
+# tv 0.27.1 pairs with axolotl 0.18's torch<=2.12.1. NO torchaudio: its
+# release line stops at 2.11 (no torch-2.12 pair exists) and transformers
+# only probes it behind a guarded availability check — absent is clean,
+# mismatched is a crash.
+pip install --no-cache-dir --quiet "axolotl==${AXOLOTL_PIN}" "torchvision==0.27.1" \
   || die "axolotl install failed"
 pip install --no-cache-dir --quiet "huggingface_hub[cli]" || die "hf hub install failed"
 echo "axolotl: $(pip show axolotl 2>/dev/null | awk '/^Version:/{print $2}')"
