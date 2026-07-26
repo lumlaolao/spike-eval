@@ -8,11 +8,12 @@ Written 2026-07-25. Prices are Runpod **list** prices read off runpod.io/pricing
 that day (page's own "Updated July 17, 2026"). Per-region Community Cloud prices in
 the console can be lower — **re-check `runpodctl gpu list` before launch.**
 
-**Status: written, not executed.** Every script here is unrun — validating them
-costs real GPU-hours on a real account, which needs an API key this repo doesn't
-have. Treat the wall-clock numbers as estimates with stated derivations, not
-measurements. The first real run should be a `--smoke` launch (below), not a
-7,600-step job.
+**Status (2026-07-25): CLI authenticated, no pod launched yet.** `runpodctl` 2.7.2
+is installed and talking to the account ($25 credit, $0/hr spend), so live GPU
+availability in the table below is real. `pack-job.sh` is tested. Everything that
+touches a *running pod* is still unrun — treat the wall-clock numbers as
+extrapolations with stated derivations, not measurements. The first real launch
+should be `--smoke` (~$0.10), not a 7,600-step job.
 
 ## TL;DR
 
@@ -39,13 +40,16 @@ Unlike AWS there is no quota request — this is the "zero friction" the AWS doc
 was pointing at.
 
 ```bash
-brew install runpod/runpodctl/runpodctl     # already done: runpodctl 2.7.2
-runpodctl doctor                            # prompts for API key, writes ~/.runpod/config.toml
+brew install runpod/runpodctl/runpodctl     # DONE: runpodctl 2.7.2
+runpodctl doctor                            # DONE: key -> ~/.runpod/config.toml
 runpodctl user                              # confirm auth + credit balance
+runpodctl gpu list                          # live availability; run before every launch
 ```
 
 Get the key at <https://www.runpod.io/console/user/settings> → API Keys. Give it
-the narrowest scope that still allows pod create/delete.
+the narrowest scope that still allows pod create/delete. Run `doctor` in a plain
+terminal, not through an agent session — it echoes into whatever transcript is
+listening.
 
 Then, for rsync-based transfers (optional but recommended — see below):
 
@@ -84,28 +88,46 @@ Speedups are estimated relative to the measured M5 Pro anchor, cross-checked
 against the AWS doc's independent A10G/L4 estimates (2.5–4.5h), which this table
 reproduces. They are **not measured on Runpod.**
 
-| GPU | VRAM | $/hr (list) | est. vs M5 Pro | est. run | **est. cost** |
-|---|---:|---:|---:|---:|---:|
-| **RTX A5000** | 24 GB | $0.27 | 2.0–2.5× | 2.8–3.5h | **$0.76–0.95** |
-| A40 | 48 GB | $0.44 | 2.5–3.0× | 2.3–2.8h | $1.01–1.23 |
-| **RTX 4090** | 24 GB | $0.69 | 4.0–5.0× | 1.4–1.8h | **$0.97–1.24** |
-| RTX A6000 | 48 GB | $0.53 | 2.5–3.0× | 2.3–2.8h | $1.22–1.48 |
-| RTX 3090 | 24 GB | $0.50 | 2.3–2.8× | 2.5–3.0h | $1.25–1.50 |
-| L40S | 48 GB | $0.99 | 4.5–5.5× | 1.3–1.6h | $1.29–1.54 |
-| L4 | 24 GB | $0.39 | 1.6–2.0× | 3.5–4.4h | $1.37–1.72 |
-| A100 PCIe | 80 GB | $1.39 | 5.0–6.0× | 1.2–1.4h | $1.63–1.95 |
-| H100 PCIe | 80 GB | $2.89 | 8–10× | 0.7–0.9h | $2.02–2.53 |
+Availability and vCPU/RAM are **live**, read from `runpodctl gpu list` and the
+deploy console on 2026-07-25. Prices matched the marketing page exactly on both
+Community and Secure toggles, so the list price is the real price.
+
+| GPU | VRAM | vCPU / RAM | $/hr | live stock | est. vs M5 Pro | est. run | **est. cost** |
+|---|---:|---:|---:|:--|---:|---:|---:|
+| ~~RTX A5000~~ | 24 GB | — | $0.27 | **out of capacity** | 2.0–2.5× | 2.8–3.5h | ~~$0.76–0.95~~ |
+| L4 | 24 GB | 6 / 45 GB | $0.39 | low | 1.6–2.0× | 3.5–4.4h | $1.37–1.72 |
+| A40 | 48 GB | 9 / 50 GB | $0.44 | medium | 2.5–3.0× | 2.3–2.8h | $1.01–1.23 |
+| RTX 3090 | 24 GB | 6 / 100 GB | $0.50 | low | 2.3–2.8× | 2.5–3.0h | $1.25–1.50 |
+| RTX A6000 | 48 GB | 8 / 50 GB | $0.53 | low | 2.5–3.0× | 2.3–2.8h | $1.22–1.48 |
+| **RTX 4090** | 24 GB | 5 / 31 GB | $0.69 | **high** | 4.0–5.0× | 1.4–1.8h | **$0.97–1.24** |
+| L40S | 48 GB | 16 / 125 GB | $0.99 | low | 4.5–5.5× | 1.3–1.6h | $1.29–1.54 |
+| A100 PCIe | 80 GB | 8 / 117 GB | $1.39 | **out of capacity** | 5.0–6.0× | 1.2–1.4h | $1.63–1.95 |
+| H100 PCIe | 80 GB | 16 / 176 GB | $2.89 | low | 8–10× | 0.7–0.9h | $2.02–2.53 |
 
 Add per-run fixed overhead — pod boot, pinned pip install, 16.4 GB model pull —
-of roughly 8–12 min at the pod's hourly rate: **+$0.04 (A5000) to +$0.14 (4090)**.
-On the short/fast GPUs this overhead is a *third* of the bill, which is the one
-argument for a network volume (below).
+of roughly 8–12 min at the pod's hourly rate: **+$0.05 to +$0.14**. On the fast
+GPUs this overhead is a *third* of the bill, which is the one argument for a
+network volume (below).
 
-**Read of the table:** the cheapest option (A5000, ~$0.85) and the fastest
-sensible one (4090, ~$1.10) differ by ~$0.25 — less than the cost of one
-mistaken run. Buy the 2× wall-clock. Only 80 GB cards are actually poor value
-here: 24 GB is sufficient for 8B QLoRA with grad checkpointing, so an 80 GB card
-is charity, exactly as the AWS doc concluded.
+**Read of the table:** across a 10× spread in hourly rate, total cost varies by
+only ~40%, because the cheap cards are cheap *and slow*. Cost is therefore nearly
+GPU-invariant for this job — **so choose on availability and wall-clock, not price.**
+
+That makes the decision easy, because availability collapses it: the theoretical
+bargain (A5000 at $0.27) is **out of capacity**, and most of the rest are "low".
+**RTX 4090 is the only card in the useful range at high stock**, and it happens to
+be the fastest-per-dollar of the 24 GB options anyway. It is the default in
+`launch-pod.sh`.
+
+Two caveats worth knowing before you deviate:
+
+- **80 GB cards are charity here.** 24 GB is sufficient for 8B QLoRA with grad
+  checkpointing — same conclusion the AWS doc reached.
+- **The 4090's 5 vCPUs are the catch.** Fine for training, where the GPU is the
+  bottleneck. But if you ever try to run Forge self-play *on the pod*,
+  `eval/CONCURRENCY.md` wants 6–10 JVMs and 5 vCPUs will not deliver that. For
+  that job the **A40 (9 vCPU, 48 GB, $0.44)** is the better shape despite being
+  slower at training — a rare case where the cheaper card is also the right one.
 
 ### Storage — where the real waste is
 
@@ -116,11 +138,25 @@ is charity, exactly as the AWS doc concluded.
 | Volume disk (**idle/stopped**) | **$0.20/GB/mo** | 60 GB stopped = **$0.39/day, ~$12/mo** |
 | Network volume (standard, <1 TB) | $0.07/GB/mo | 100 GB = **$7.00/mo** |
 
+**Confirmed live in the deploy console** (2026-07-25), which itemises this for the
+default 80 GB total disk before you deploy anything:
+
+```
+Total disk           80 GB
+GPU cost             $0.00/hour     <- while stopped
+Container disk cost  $0.004/hour
+Volume disk cost     $0.007/hour    <- running
+Stopped cost         $0.014/hour    <- 2x the volume rate, indefinitely
+```
+
+$0.014/hr is $0.34/day, ~$10/mo, for a pod that is doing nothing at all.
+
 Two conclusions:
 
 1. **Delete pods, don't stop them.** A stopped pod bills volume at *double* the
    running rate. Leaving one stopped for a month costs more than ten training runs.
-   `launch-pod.sh` sets `--terminate-after` so this can't happen by forgetting.
+   `launch-pod.sh` sets `--terminate-after` so this can't happen by forgetting, and
+   `fetch-adapter.sh` deletes on success rather than stopping.
 2. **Skip the network volume until cadence justifies it.** A 100 GB network volume
    is $7/mo ≈ 6 training runs. It only pays for itself if you re-pull the 16 GB
    base model often enough that the ~$0.05–0.14/run download overhead exceeds
