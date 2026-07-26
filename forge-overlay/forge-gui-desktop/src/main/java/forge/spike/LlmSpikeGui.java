@@ -337,7 +337,10 @@ public final class LlmSpikeGui {
         private final java.util.ArrayDeque<String> intel = new java.util.ArrayDeque<>();
         private void remember(String fact) {
             intel.addLast("T" + safeTurn() + ": " + fact);
-            while (intel.size() > 8) intel.removeFirst();
+            // 16 (was 8): reveals are the "seen but not necessarily cast" half of opponent memory —
+            // the cast/land history lines carry the ground-truth half, so INTEL only needs to hold
+            // reveals/names, and 8 was evicting early-game hand reveals by mid-game.
+            while (intel.size() > 16) intel.removeFirst();
         }
         private int safeTurn() {
             try { return getPlayer().getGame().getPhaseHandler().getTurn(); } catch (Exception e) { return 0; }
@@ -441,8 +444,15 @@ public final class LlmSpikeGui {
               + "over-count), and the count of distinct untapped mana permanents. Use it to check you can pay a\n"
               + "line before committing.\n"
               + "`yard(n): ...`: your graveyard (reanimator/delve/flashback fuel; dredge/escape enablers).\n"
+              + "`exile(n): ...`: exiled cards (delve fuel gone; adventure/impulse cards may still be playable).\n"
               + "`OPP [name] life L ...`: the opponent's public state — board, lands, `mana available`, yard, and\n"
               + "`hand: N cards` (a COUNT only; their card identities are hidden unless INTEL revealed them).\n"
+              + "`OPP CAST THIS GAME: Name xN, ...`: cumulative record of every spell the opponent has actually\n"
+              + "CAST this game, even if the card has since been bounced, shuffled away, or exiled — use it to\n"
+              + "infer their deck and count their key resources (e.g. how many counterspells are already spent).\n"
+              + "`OPP LANDS PLAYED: ...` is the same for their land drops (fetches they cracked are in their yard).\n"
+              + "These count only what was CAST/PLAYED: a card you merely SAW (an INTEL reveal, or something\n"
+              + "put back by scry/Brainstorm-type effects) is NOT listed here until they actually cast it.\n"
               + "Their untapped `mana available` is your read on open removal/counters — play around it.\n"
               + "`stack (top first): N pending: #k Name (player) -> targets | ...`: spells/abilities waiting to\n"
               + "resolve, top of stack first (it resolves first). `(empty)` means an open priority window with\n"
@@ -614,6 +624,8 @@ public final class LlmSpikeGui {
                 s.append("  lands: ").append(landSummary(me)).append('\n');
                 s.append("  mana available: ").append(manaAvailable(me)).append('\n');
                 s.append("  yard(").append(me.getCardsIn(ZoneType.Graveyard).size()).append("): ").append(names(me.getCardsIn(ZoneType.Graveyard), true, 30)).append('\n');
+                if (!me.getCardsIn(ZoneType.Exile).isEmpty())
+                    s.append("  exile(").append(me.getCardsIn(ZoneType.Exile).size()).append("): ").append(exileNames(me.getCardsIn(ZoneType.Exile), 30)).append('\n');
                 if (opp != null) {
                     s.append("OPP [").append(opp.getName()).append("] life ").append(opp.getLife()).append(playerCounters(opp)).append('\n');
                     s.append("  board: ").append(perms(opp)).append('\n');
@@ -622,7 +634,18 @@ public final class LlmSpikeGui {
                     s.append("  lands: ").append(landSummary(opp)).append('\n');
                     s.append("  mana available: ").append(manaAvailable(opp)).append('\n');
                     s.append("  yard(").append(opp.getCardsIn(ZoneType.Graveyard).size()).append("): ").append(names(opp.getCardsIn(ZoneType.Graveyard), true, 30)).append('\n');
+                    if (!opp.getCardsIn(ZoneType.Exile).isEmpty())
+                        s.append("  exile(").append(opp.getCardsIn(ZoneType.Exile).size()).append("): ").append(exileNames(opp.getCardsIn(ZoneType.Exile), 30)).append('\n');
                     s.append("  hand: ").append(opp.getCardsIn(ZoneType.Hand).size()).append(" cards\n");
+                    // Opponent memory (task #8): cumulative CAST/LAND history derived from the engine's
+                    // own game log at snapshot time — stateless (no listener, replay-safe, works for the
+                    // ai-teacher hashing path too) and immune to the INTEL deque cap. Deliberately
+                    // separate from INTEL reveals: "cast" is ground truth about their deck; "seen" is not
+                    // (a Brainstorm put-back was seen but may never be cast).
+                    String oppCasts = castHistory(g, opp, GameLogEntryType.STACK_ADD, " cast ");
+                    if (!oppCasts.isEmpty()) s.append("  OPP CAST THIS GAME: ").append(oppCasts).append('\n');
+                    String oppLands = castHistory(g, opp, GameLogEntryType.LAND, " played ");
+                    if (!oppLands.isEmpty()) s.append("  OPP LANDS PLAYED: ").append(oppLands).append('\n');
                 }
                 int stackSize = g.getStack().size();
                 s.append("stack (top first): ").append(stackSize == 0 ? "(empty)" : (stackSize + " pending: " + safeStackTop(g))).append('\n');
@@ -645,6 +668,48 @@ public final class LlmSpikeGui {
                 return "== (state unavailable) ==";
             }
         }
+        /** Cumulative "<Name> xN, ..." history of one player's casts (STACK_ADD + " cast ") or land
+         *  drops (LAND + " played "), derived from the full engine game log at snapshot time.
+         *  Names come from the LOG MESSAGE, not the entry's sourceCard — the message records what was
+         *  publicly announced (a face-down cast logs as "Morph"), so this can never leak hidden info.
+         *  Ordered by count desc then first-seen; capped at 25 distinct names for prompt economy. */
+        static String castHistory(Game g, Player p, GameLogEntryType type, String verb) {
+            try {
+                // Prefix cannot cross-match similarly-named players ("Bob" vs "Bob 2"): the key
+                // includes the full verb (" cast "/" played "), so "Bob 2 cast X" never starts
+                // with "Bob cast ". Verified against GameLogFormatter's message templates.
+                String prefix = p.getName() + verb;
+                java.util.LinkedHashMap<String, Integer> counts = new java.util.LinkedHashMap<>();
+                List<GameLogEntry> entries = g.getGameLog().getLogEntriesForTypes(EnumSet.of(type)); // newest-first
+                for (int i = entries.size() - 1; i >= 0; i--) {                                      // oldest-first
+                    String msg = entries.get(i).message();
+                    if (msg == null || !msg.startsWith(prefix)) continue;
+                    String name = msg.substring(prefix.length());
+                    int cut = name.indexOf(" targeting");
+                    if (cut >= 0) name = name.substring(0, cut);
+                    name = name.trim();
+                    if (name.endsWith(".")) name = name.substring(0, name.length() - 1);
+                    // LAND messages append the engine card id ("Marsh Flats (98)") — strip it so
+                    // repeat plays of same-named cards aggregate into one "Name xN" entry.
+                    name = name.replaceAll(" \\(\\d+\\)$", "");
+                    if (name.isEmpty()) continue;
+                    counts.merge(name, 1, Integer::sum);
+                }
+                if (counts.isEmpty()) return "";
+                java.util.List<java.util.Map.Entry<String, Integer>> es = new java.util.ArrayList<>(counts.entrySet());
+                es.sort((a, b) -> b.getValue() - a.getValue());
+                StringBuilder b = new StringBuilder();
+                int shown = 0;
+                for (java.util.Map.Entry<String, Integer> e : es) {
+                    if (shown++ == 25) { b.append(", ...(").append(es.size() - 25).append(" more)"); break; }
+                    if (b.length() > 0) b.append(", ");
+                    b.append(e.getKey());
+                    if (e.getValue() > 1) b.append(" x").append(e.getValue());
+                }
+                return b.toString();
+            } catch (Exception e) { return ""; }
+        }
+
         /** Full stack contents, top-of-stack first: each item's source, activating player, and its
          *  current targets (if any) — not just the top card. Also doubles as the reactive dedup
          *  signature key (a richer signature only sharpens that cache: two situations that share a
@@ -829,6 +894,20 @@ public final class LlmSpikeGui {
                 }
                 return why.length() > 0 ? "(" + why + ")" : "(not castable now)";
             } catch (Exception e) { return "(not castable now)"; }
+        }
+        /** Exile-zone listing with face-down masking. Exile is the zone where hidden face-down cards
+         *  live long-term (Foretell, face-down "exile until" effects); Card.getName() returns the TRUE
+         *  name regardless of facing (masking exists only at the CardView layer), so listing exile
+         *  through names() would leak hidden information into the prompt — the exact failure mode
+         *  castHistory avoids by reading log messages. Verifier-caught (2026-07-26). */
+        private static String exileNames(Iterable<Card> cards, int cap) {
+            StringBuilder b = new StringBuilder(); int i = 0;
+            for (Card c : cards) {
+                if (i++ >= cap) { b.append(", ..."); break; }
+                if (b.length() > 0) b.append(", ");
+                b.append(c.isFaceDown() ? "a face-down card" : c.getName());
+            }
+            return b.length() == 0 ? "(none)" : b.toString();
         }
         private static String names(Iterable<Card> cards, boolean withPT, int cap) {
             StringBuilder b = new StringBuilder(); int i = 0;
@@ -3012,6 +3091,28 @@ public final class LlmSpikeGui {
         }
         LobbyPlayerLLM(String name, String plan, String smartModel, String fastModel, String mode) {
             super(name, null); this.plan = plan; this.smartModel = smartModel; this.fastModel = fastModel; this.mode = mode;
+            // Task #6: brand-logo avatars. Tiles 120-128 of sprite_avatars.png are composited at
+            // install time from forge-overlay/forge-gui/res (see repo README). -1 = no match ->
+            // HostedMatch falls back to the user's preference avatars, exactly as before.
+            int av = avatarFor(smartModel, name);
+            if (av >= 0) setAvatarIndex(av);
+        }
+        /** Model spec/name -> sprite tile. Spec substrings, most specific first; the local student
+         *  serves as "default_model" through the OpenRouter-compatible endpoint, so that literal
+         *  maps to the student tile, NOT to the qwen3.7-max tile. */
+        static int avatarFor(String spec, String name) {
+            String s = ((spec == null ? "" : spec) + " " + (name == null ? "" : name)).toLowerCase();
+            if (s.contains("default_model") || s.contains("student")) return 128;
+            if (s.contains("opus"))                       return 120;
+            if (s.contains("fable") || s.contains("mythos")) return 121;
+            if (s.contains("gpt") || s.contains("openai") || s.contains("o4-")) return 122;
+            if (s.contains("gemini"))                     return 123;
+            if (s.contains("deepseek"))                   return 124;
+            if (s.contains("qwen"))                       return 125;
+            if (s.contains("kimi") || s.contains("moonshot")) return 126;
+            if (s.contains("grok") || s.contains("x-ai")) return 127;
+            if (s.contains("claude") || s.contains("anthropic") || s.contains("haiku") || s.contains("sonnet")) return 121;
+            return -1;
         }
         @Override
         public Player createIngamePlayer(Game game, int id) {

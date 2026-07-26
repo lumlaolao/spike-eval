@@ -61,3 +61,14 @@ with `--count-style exact-only`, retrain, re-eval on frozen seeds 501–525 only
   in durable dirs (driver regenerates the classpath at startup now).
 - mlx server: concurrent requests batch at dim 2 and crash the generator —
   `--decode-concurrency 1 --prompt-concurrency 1` is mandatory on this stack.
+
+## Deferred from task #8 (2026-07-26)
+
+- **Interactive tool calls for zone inspection** (user idea): let the model issue
+  a lookup ("show me X's oracle text", "list opp exile") mid-decision instead of
+  front-loading everything into the snapshot. Deferred because the bridge
+  protocol is one-shot ask->answer; tool calls mean a multi-round protocol
+  change touching every backend (ClaudeBridge, OpenRouterBridge) and the
+  timeout/retry model. The cheap 80% was done instead: exile zones + cumulative
+  OPP CAST/LANDS history are now IN the snapshot directly, so there is little
+  left to "look up". Revisit if snapshot size becomes the binding constraint.
