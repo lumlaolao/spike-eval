@@ -61,7 +61,10 @@ status BOOTSTRAP
 VENV=/workspace/venv
 python3 -m venv "$VENV" || die "venv creation failed"
 export PATH="$VENV/bin:$PATH"
-pip install --no-cache-dir --quiet "axolotl==${AXOLOTL_PIN}" \
+# torchvision/torchaudio must be in the SAME resolve as axolotl: axolotl 0.18
+# imports torchvision unconditionally but does not depend on it, and
+# installing it in a second pip call upgrades torch past axolotl's pin.
+pip install --no-cache-dir --quiet "axolotl==${AXOLOTL_PIN}" torchvision torchaudio \
   || die "axolotl install failed"
 pip install --no-cache-dir --quiet "huggingface_hub[cli]" || die "hf hub install failed"
 echo "axolotl: $(pip show axolotl 2>/dev/null | awk '/^Version:/{print $2}')"
