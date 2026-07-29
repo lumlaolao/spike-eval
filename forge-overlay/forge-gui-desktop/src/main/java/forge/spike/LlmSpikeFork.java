@@ -21,7 +21,9 @@ import forge.game.GameRules;
 import forge.game.GameType;
 import forge.game.Match;
 import forge.game.phase.PhaseHandler;
+import forge.game.player.Player;
 import forge.game.player.RegisteredPlayer;
+import forge.game.zone.ZoneType;
 import forge.gui.GuiBase;
 import forge.localinstance.properties.ForgePreferences.FPref;
 import forge.model.FModel;
@@ -60,7 +62,10 @@ import forge.util.MyRandom;
  *       GameCopier; that is the v1-mandated mechanism), installs {@link LlmSpikeGui#FORK_FORCER} so
  *       the decision at {@code FORK_DECISION_INDEX} takes option {@code o} instead of the
  *       controller's own pick, reseeds the shared {@code MyRandom} stream at that exact moment with
- *       {@code rollout_seed = mix64(seed_base ^ (o*C1) ^ (j*C2))}, and lets the game run to
+ *       {@code rollout_seed = mix64(seed_base ^ (o*C1) ^ (j*C2))}, re-deals the hidden library
+ *       order from that stream ({@code FORK_ROLLOUT_DETERMINIZE=library}, the default — WITHOUT it
+ *       the continuation provably does not diverge and every arm scores 0/n or n/n; see
+ *       {@link #determinizeHiddenZones}), and lets the game run to
  *       completion. One {@code t:"fork_rollout"} jsonl row per (option, j) plus one
  *       {@code t:"fork_rollout_summary"} row land in {@code FORK_ROLLOUT_OUT}. v1 forces ONLY
  *       {@code play} and {@code mulligan} (index-encoded types); count-encoded types (attackers,
@@ -442,6 +447,67 @@ public final class LlmSpikeFork {
         return mix64(base ^ (option * ROLLOUT_C1) ^ (j * ROLLOUT_C2));
     }
 
+    /**
+     * Re-randomize the HIDDEN information at the fork point: every player's library order.
+     *
+     * <p>WHY THIS EXISTS — the measured defect it repairs. Reseeding {@link MyRandom} alone was
+     * assumed to make the continuation diverge across j ("j-variance enters through direct
+     * MyRandom consumers — Forge-AI evaluators via percentTrue"). Measured on the real
+     * 16-game corpus, that assumption is FALSE: across 6 positions and 18 option-arms, at every
+     * n tried, every arm returned exactly 0/n or n/n and never an intermediate value. All n
+     * replays of an option played the identical line, so n=16 bought exactly n=1 of information
+     * and every WP was 0.0 or 1.0. The reason is structural, not statistical: a mid-game reseed
+     * cannot re-deal a library whose order was fixed at game start, and the Forge AI's line is
+     * effectively a deterministic function of the board it sees. With the draws already fixed,
+     * there was nothing left for the new stream to vary.
+     *
+     * <p>WHAT IT CHANGES, PRECISELY. Only the ORDER of cards in each library — a zone whose
+     * order is hidden from both players. Zone membership, hands, battlefield, graveyards, exile,
+     * life, counters and the stack are untouched, so the OBSERVABLE position every option is
+     * evaluated from is bit-identical to the probe's. {@link forge.game.zone.Zone#shuffle} is the
+     * engine's own routine and fires no shuffle triggers or state-change events, so no ability
+     * observes this (a {@code Player.shuffle(sa)} call WOULD have — hence the zone-level call).
+     *
+     * <p>WHAT IT MEANS FOR THE NUMBER. The resulting WP is the win probability conditional on the
+     * observable state, marginalized over library orders — the imperfect-information quantity the
+     * eval actually wants, not the single-deal quantity {@code single_deal_hidden_info} in
+     * EVAL-DESIGN §9.3 warned about. Two honest caveats, both recorded on every row via
+     * {@code determinize}: (1) a player who legitimately KNEW its top card (post-Brainstorm,
+     * post-scry, Sensei's-style effects) loses that knowledge, so positions whose value rests on
+     * a known top card are measured slightly pessimistically; (2) an opponent's unknown HAND is
+     * not re-dealt, only libraries — this is partial determinization, not full ISMCTS.
+     *
+     * <p>Draws come from the freshly-seeded {@code MyRandom} stream installed immediately before,
+     * so the shuffle is a deterministic function of {@code rollout_seed} and replays exactly.
+     * Set {@code FORK_ROLLOUT_DETERMINIZE=none} to restore the old behavior — kept only so the
+     * degenerate 0/n-or-n/n result above stays reproducible as evidence.
+     *
+     * @return number of libraries shuffled (0 when disabled or the game is unavailable)
+     */
+    static int determinizeHiddenZones(Player decidingPlayer, boolean enabled) {
+        if (!enabled || decidingPlayer == null) return 0;
+        Game g = decidingPlayer.getGame();
+        if (g == null) return 0;
+        int n = 0;
+        for (Player p : g.getPlayers()) {
+            forge.game.zone.Zone lib = p.getZone(ZoneType.Library);
+            if (lib == null || lib.size() < 2) continue;
+            lib.shuffle();
+            n++;
+        }
+        return n;
+    }
+
+    /** {@code FORK_ROLLOUT_DETERMINIZE=library|none} (default {@code library}). Any other value is
+     *  refused by the caller rather than silently treated as one of them — a typo that silently
+     *  disabled determinization would reproduce the zero-variance defect while LOOKING fixed. */
+    static Boolean parseDeterminize(String raw) {
+        String v = (raw == null || raw.trim().isEmpty()) ? "library" : raw.trim().toLowerCase();
+        if ("library".equals(v)) return Boolean.TRUE;
+        if ("none".equals(v)) return Boolean.FALSE;
+        return null;
+    }
+
     /** v1 forceable gate: only index-encoded types whose forced index maps unambiguously to an
      *  engine object. Count-encoded types (attackers/blockers/discard/...) log a subset SIZE, not
      *  an index — there is nothing to force per option. */
@@ -513,10 +579,17 @@ public final class LlmSpikeFork {
      * pre-decision prefix's draws already happened and are untouched, and the whole continuation
      * draws from the fresh stream. Documented caveat: components that derived their OWN Random
      * from MyRandom at construction time (PlayerControllerLLM's random-arm {@code rnd}) keep their
-     * construction-time stream, so on random-arm seats j-variance enters only through direct
-     * MyRandom consumers (Forge-AI evaluators via percentTrue, shuffle-like effects) — which is why
-     * the recommended continuation is ai-log/ai-log, whose every decision draws through the AI
-     * evaluators.
+     * construction-time stream.
+     *
+     * <p>CORRECTION (measured 2026-07-28, supersedes this method's original claim). It used to say
+     * j-variance "enters through direct MyRandom consumers (Forge-AI evaluators via percentTrue),
+     * which is why the recommended continuation is ai-log/ai-log". That is FALSE as written: with
+     * the reseed alone, all n replays of an option played the identical line and every arm scored
+     * exactly 0/n or n/n. A mid-game reseed cannot re-deal a library fixed at game start. Real
+     * variance now comes from {@link #determinizeHiddenZones}, which re-deals the hidden library
+     * order at the fork point ({@code FORK_ROLLOUT_DETERMINIZE=library}, the default); the reseed
+     * is retained because the shuffle draws from it. See that method's javadoc for what the
+     * resulting WP does and does not mean.
      *
      * <p>Exit codes: 0 OK (rows emitted; individual failed rollouts are counted invalid, never
      * losses), 2 refused (bad args, non-forceable type — the old exit 3 "not implemented" is
@@ -573,6 +646,18 @@ public final class LlmSpikeFork {
             }
         }
 
+        String detEnv = System.getenv("FORK_ROLLOUT_DETERMINIZE");
+        Boolean detParsed = parseDeterminize(detEnv);
+        if (detParsed == null) {
+            System.err.println("[FORK] FORK_ROLLOUT_DETERMINIZE must be 'library' or 'none' (got '"
+                    + detEnv + "'). Refusing rather than defaulting: silently falling back to 'none' "
+                    + "would reproduce the zero-variance defect (every arm 0/n or n/n) while the run "
+                    + "still reported OK.");
+            System.exit(2);
+        }
+        final boolean determinize = detParsed.booleanValue();
+        final String determinizeLabel = determinize ? "library" : "none";
+
         File outFile = resolveRolloutOut(gameSeed, targetIdx);
 
         // ---- probe: re-reach the position once, capture its shape + prefix (exits 2/5 itself) ----
@@ -618,6 +703,7 @@ public final class LlmSpikeFork {
         long[][] seeds = new long[probe.nOptions][nPerOption];
         int emitted = 0;
         int prefixDrifts = 0;
+        int determinizeNoops = 0;
         for (int o : targets) {
             for (int j = 0; j < nPerOption; j++) {
                 final long rseed = rolloutSeed(seedBase, o, j);
@@ -625,6 +711,7 @@ public final class LlmSpikeFork {
                 final int optionToForce = o;
                 final AtomicBoolean fired = new AtomicBoolean(false);
                 final int[] loggedChoice = {Integer.MIN_VALUE};
+                final int[] shuffled = {0};
                 final List<String[]> prefixRows = new ArrayList<>();
 
                 LlmSpikeGui.ForkForcer forcer = (idx, pl, seat, type, nOptions, options) -> {
@@ -635,6 +722,11 @@ public final class LlmSpikeFork {
                     // Reseed the continuation stream at the exact moment of the forced decision
                     // (see the MyRandom contract note in this method's javadoc).
                     MyRandom.setRandom(new java.util.Random(rseed));
+                    // ...then re-deal the hidden information. The reseed alone provably does not
+                    // make the continuation diverge — see determinizeHiddenZones' javadoc for the
+                    // measurement. Order matters: the shuffle must draw from the fresh stream so
+                    // it is a pure function of rollout_seed.
+                    shuffled[0] = determinizeHiddenZones(pl, determinize);
                     return optionToForce;
                 };
                 LlmSpikeGui.ForkHook hook = (idx, pl, seat, type, nOptions, choice, options) -> {
@@ -680,7 +772,10 @@ public final class LlmSpikeFork {
                         .append(",\"decision_type\":\"").append(LlmSpikeGui.jsonEscape(probe.type)).append('"')
                         .append(",\"n_options\":").append(probe.nOptions)
                         .append(",\"options\":").append(jsonStringArray(probe.options))
+                        .append(",\"determinize\":\"").append(determinizeLabel).append('"')
+                        .append(",\"libraries_shuffled\":").append(shuffled[0])
                         .append(",\"forced_ok\":").append(forcedOk);
+                if (determinize && fired.get() && shuffled[0] == 0) determinizeNoops++;
                 if (note != null) rj.append(",\"note\":\"").append(LlmSpikeGui.jsonEscape(note)).append('"');
                 rj.append('}');
                 out.println(rj.toString());
@@ -701,6 +796,7 @@ public final class LlmSpikeFork {
                 .append(",\"seed_base\":").append(seedBase)
                 .append(",\"seed_fn\":\"mix64(base_seed ^ (i*C1) ^ (j*C2))\"")
                 .append(",\"continuation\":\"").append(LlmSpikeGui.jsonEscape(ctlA + "/" + ctlB)).append('"')
+                .append(",\"determinize\":\"").append(determinizeLabel).append('"')
                 .append(",\"per_option\":").append(perOptionJson(tally, seeds, targets))
                 .append('}');
         out.println(sj.toString());
@@ -715,6 +811,14 @@ public final class LlmSpikeFork {
         }
         if (emitted == 0) {
             System.out.println("[FORK] FORK-FAILED: no rollout was attempted");
+            System.exit(5);
+        }
+        if (determinize && determinizeNoops == emitted) {
+            // Determinization was requested, the forcer fired, and not one library was re-dealt.
+            // Every WP below is then a SINGLE-DEAL number wearing a determinized label — exactly
+            // the failure that produced 0/n-or-n/n arms and looked like a clean run. Refuse.
+            System.out.println("[FORK] FORK-FAILED: determinize=library requested but 0 libraries "
+                    + "were shuffled in any of " + emitted + " rollouts; WPs would be single-deal");
             System.exit(5);
         }
         System.out.println("[FORK] rollout OK: " + emitted + " rollouts over " + targets.size()

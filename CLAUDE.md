@@ -98,8 +98,9 @@ are only comparable within one engine version.
   `eval/plan_adherence.py` + `eval/plans/*.milestones.json` (PLAN axis),
   `eval/blunder_flags.py` + `eval/blunder_report.py` (DQ/PUNT axes),
   `eval/build_report.py` (five-axis scorecard, `scorecard.json`).
-  Java rollout support: `forge-overlay/.../LlmSpikeFork.java` — compiles + canary-green
-  but has NEVER produced win probabilities in a real run.
+  Java rollout support: `forge-overlay/.../LlmSpikeFork.java` — **now produces real
+  win probabilities** (2026-07-28). It did not before, and the reason is the
+  cautionary tale below.
   **No verified golden puzzle suite exists yet** (Phase 1.2 not run; 3 verified
   positions repo-wide); DQ is unmeasured (all corpora textlane-only — never add
   `punt.rate_textlane` to the rollout punt rate); PLAN resolves a deck only on
@@ -115,6 +116,14 @@ are only comparable within one engine version.
    `test_verify_keys` / `test_plan_adherence` / `test_blunder_flags` /
    `test_blunder_report` / `test_build_report` / `test_bedrock`). Never weaken a
    test to pass it.
+0b. **Java unit tests** (free, ~1 min, no game): `cd ~/code/forge && mvn -q -pl
+   forge-gui-desktop -am -o test -Dtest=LlmSpikeForkTest
+   -Dsurefire.failIfNoSpecifiedTests=false` — 32 tests, the pure logic every WP
+   rests on (seed mix, forceable-type gate, forced-index mapping, tally,
+   determinize parsing). **Run it: it was absent from this ladder until
+   2026-07-28 and had been failing the whole time** on an assertion that was
+   arithmetically impossible (`mix64(0) != 0`; zero is a genuine fixed point of
+   the SplitMix64 finalizer). A test nobody runs is not a test.
 1. **Harness mechanics** (seeding, JSONL, arms, engine plumbing):
    `GAME_SEED=42 CONTROLLER_A=floor CONTROLLER_B=floor bash run-llm-headless.sh`
    — zero model calls, ~12s per full game, bit-reproducible. Seed 42 floor mirror
@@ -153,6 +162,19 @@ SIGINT (not SIGKILL) so the recorder's shutdown hook finalizes the mp4.
 
 ## Engine gotchas (violating these cost us days)
 
+- **A mid-game reseed does not re-deal the library — rollouts need explicit
+  determinization.** `LlmSpikeFork` reseeded `MyRandom` at the fork point on the
+  documented assumption that "j-variance enters through direct MyRandom consumers
+  (Forge-AI evaluators via `percentTrue`)". Measured, that is false: across 6
+  positions and 18 option-arms, at every `n`, every arm returned exactly `0/n` or
+  `n/n`. All `n` replays played the identical line, so `n=16` bought `n=1` of
+  information and no answer key could ever be minted. The library order was fixed
+  at game start and no amount of reseeding moves it. Fix:
+  `FORK_ROLLOUT_DETERMINIZE=library` (the default) re-deals every library at the
+  fork via `Zone.shuffle()` — trigger-free, so no ability observes it, and only a
+  hidden zone's ORDER changes. **Generalisable lesson:** a rollout that never
+  returns an intermediate value is not a lopsided position, it is a broken
+  continuation. Check the *distribution*, not just that rows appeared.
 - **Pass priority with `null`, never an empty list** from `chooseSpellAbilityToPlay` —
   empty list spins the 999-iteration "AI looped too much" loop.
 - **The AI cast path does no targeting** for ordinary spells: set engine-validated

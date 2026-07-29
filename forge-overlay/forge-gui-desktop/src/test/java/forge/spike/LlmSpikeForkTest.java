@@ -278,10 +278,60 @@ public class LlmSpikeForkTest {
     }
 
     @Test
-    public void mix64_zeroIsNotAFixedPoint() {
-        // A naive xorshift without the multiply constants maps 0 -> 0; seed_base ^ 0 ^ 0 == seed_base
-        // makes (option 0, j 0) reuse the raw base seed unless the finalizer really mixes.
-        Assert.assertNotEquals(LlmSpikeFork.mix64(0L), 0L);
+    public void parseDeterminize_defaultsToLibraryAndRefusesTypos() {
+        // Unset/blank must mean the FIX, not the defect: with determinization off, every rollout
+        // arm measured 0/n or n/n (see determinizeHiddenZones' javadoc), so a silent default of
+        // "none" would produce single-deal WPs from a run that reported OK.
+        Assert.assertEquals(Boolean.TRUE, LlmSpikeFork.parseDeterminize(null));
+        Assert.assertEquals(Boolean.TRUE, LlmSpikeFork.parseDeterminize(""));
+        Assert.assertEquals(Boolean.TRUE, LlmSpikeFork.parseDeterminize("  library  "));
+        Assert.assertEquals(Boolean.TRUE, LlmSpikeFork.parseDeterminize("LIBRARY"));
+        Assert.assertEquals(Boolean.FALSE, LlmSpikeFork.parseDeterminize("none"));
+        // A typo returns null so the caller can REFUSE. Mapping it to either mode would be the
+        // worst outcome available: "libary" would quietly disable the fix while the run stayed green.
+        Assert.assertNull(LlmSpikeFork.parseDeterminize("libary"));
+        Assert.assertNull(LlmSpikeFork.parseDeterminize("hand"));
+        Assert.assertNull(LlmSpikeFork.parseDeterminize("0"));
+    }
+
+    @Test
+    public void determinizeHiddenZones_isANoOpWhenDisabledOrPlayerless() {
+        // The engine-backed path is covered by the A/B run recorded in the commit message
+        // (turns 16/18 fixed -> 10..14 spread, and WPs 0.20/0.10 where every arm had been 0 or 1).
+        // What is unit-testable here is the guard: disabled or null must touch nothing and report 0,
+        // because runRollout treats "determinize requested but 0 libraries shuffled" as a hard
+        // failure and a guard that lied about its count would defeat that check.
+        Assert.assertEquals(0, LlmSpikeFork.determinizeHiddenZones(null, true));
+        Assert.assertEquals(0, LlmSpikeFork.determinizeHiddenZones(null, false));
+    }
+
+    @Test
+    public void mix64_reallyMixes() {
+        // CORRECTED 2026-07-28. This test used to assert mix64(0) != 0 and had therefore NEVER
+        // passed -- zero IS a fixed point of the SplitMix64 finalizer, unavoidably: every term is
+        // 0 XOR (0 >>> k) == 0 multiplied by a constant. Asserting otherwise is a claim about
+        // arithmetic, not about this code, and no implementation could satisfy it. (It went
+        // unnoticed because the Java suite was not part of the validation ladder; it is now.)
+        //
+        // The intent behind it was sound, so it is kept and made checkable. What actually has to
+        // hold is that the finalizer disperses -- if it were the identity, rollout_seed would
+        // collapse to base ^ (i*C1) ^ (j*C2) and neighbouring (i, j) pairs would sit in adjacent,
+        // strongly-correlated Random streams.
+        Assert.assertEquals(LlmSpikeFork.mix64(0L), 0L);   // documented, not denied
+
+        // Pinned known-answer vector, byte-identical to the Python mirror in
+        // eval/test_verify_keys.py (py_rollout_seed(0, 1, 0) == 0xE220A8397B1DCDAF). Changing the
+        // finalizer constants breaks BOTH sides at once, which is the point of pinning it twice.
+        Assert.assertEquals(LlmSpikeFork.mix64(LlmSpikeFork.ROLLOUT_C1), 0xE220A8397B1DCDAFL);
+
+        // Not the identity, and a +1 input change does not produce a +1 output change.
+        Assert.assertNotEquals(LlmSpikeFork.mix64(1L), 1L);
+        Assert.assertNotEquals(LlmSpikeFork.mix64(20017L), 20017L);
+        Assert.assertNotEquals(LlmSpikeFork.mix64(1L) - LlmSpikeFork.mix64(0L), 1L);
+
+        // The original worry, stated as something testable: with a real seed base, (option 0, j 0)
+        // must not hand the continuation the raw base seed back.
+        Assert.assertNotEquals(LlmSpikeFork.rolloutSeed(20017L, 0, 0), 20017L);
     }
 
     @Test

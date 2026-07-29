@@ -182,6 +182,39 @@ SPREAD_N_BINS = 20
 SEED_FN = "mix64(base_seed ^ (i*C1) ^ (j*C2))"
 EMPTY_STACK_MARK = "stack (top first): (empty)"
 
+# How the engine re-randomizes hidden information at the fork point
+# (LlmSpikeFork.determinizeHiddenZones / FORK_ROLLOUT_DETERMINIZE).
+#
+#   "library" -- re-deal every player's library order from the rollout seed.
+#                The WP is then the win probability conditional on the
+#                OBSERVABLE state, marginalized over library orders.
+#   "none"    -- the pre-fix behavior, kept ONLY so the defect below stays
+#                reproducible as evidence. Measured across 6 positions and 18
+#                option-arms at every n tried, every arm returned exactly 0/n
+#                or n/n: reseeding MyRandom mid-game cannot re-deal a library
+#                whose order was fixed at game start, so all n replays played
+#                the identical line and n=16 bought n=1 of information.
+#
+# This is provenance, not decoration: a key minted under "none" is a
+# single-deal number and is NOT comparable to one minted under "library".
+# It is recorded on every result and on every rollout_evidence block.
+DETERMINIZE_MODES = ("library", "none")
+DEFAULT_DETERMINIZE = "library"
+
+#: Caveat slug stamped on every key whose WP came from a determinized rollout.
+#: It REPLACES single_deal_hidden_info rather than joining it -- the two are
+#: mutually exclusive claims about the same number, and emitting both would
+#: leave the reader unable to tell which one is true. Meaning: library order
+#: was re-dealt at the fork point, so the WP marginalizes over library orders
+#: instead of measuring one deal. Residual approximation: a player who
+#: legitimately knew its top card (post-Brainstorm/scry) loses that knowledge,
+#: and opponents' HANDS are not re-dealt -- partial determinization, not full
+#: ISMCTS.
+DETERMINIZED_CAVEAT = "determinized_library_hidden_info"
+
+#: The pre-fix claim, still correct for determinize="none" rollouts.
+SINGLE_DEAL_CAVEAT = "single_deal_hidden_info"
+
 # Combo archetypes whose graded/rollout keys carry rollout_policy_caveat
 # (EVAL-DESIGN §3.5: the Forge-AI continuation policy is weak at combo, so
 # combo-line WPs are underestimated).
@@ -421,6 +454,9 @@ def build_rollout_evidence(result, decided, reason, category,
         "separation_z": None,
         "continuation": result.get("continuation"),
         "seed_fn": result.get("seed_fn"),
+        # Provenance, not decoration: a "none" WP is a single-deal number and
+        # is not comparable to a "library" one. See DETERMINIZE_MODES.
+        "determinize": result.get("determinize"),
         "engine_sha": result.get("engine_sha"),
         "overlay_sha": result.get("overlay_sha"),
         "decided": bool(decided),
@@ -462,6 +498,7 @@ def _fail_result(key, reason):
             "option_wins": [], "option_losses": [], "option_draws": [],
             "option_invalid": [], "n_per_option": 0,
             "continuation": None, "seed_fn": SEED_FN, "rollout_seeds": [],
+            "determinize": None,
             "caveats": [], "engine_sha": None, "overlay_sha": None,
             "wall_ms": 0}
 
@@ -476,10 +513,14 @@ class RolloutDriver(object):
     def __init__(self, forge_home=None, n_per_option=DEFAULT_N_PER_OPTION,
                  continuation=ROLLOUT_CONTINUATION, timeout_s=900,
                  work_dir=None, dry_run=False, engine_sha=None,
-                 overlay_sha=None):
+                 overlay_sha=None, determinize=DEFAULT_DETERMINIZE):
         self.forge_home = Path(forge_home).expanduser() if forge_home else None
         self.n_per_option = n_per_option
         self.continuation = continuation
+        if determinize not in DETERMINIZE_MODES:
+            raise ValueError("determinize must be one of %s (got %r)"
+                             % (sorted(DETERMINIZE_MODES), determinize))
+        self.determinize = determinize
         self.timeout_s = timeout_s
         self.work_dir = Path(work_dir) if work_dir else None
         self.dry_run = dry_run
@@ -684,6 +725,7 @@ class RolloutDriver(object):
                      "FORK_ROLLOUT_OPTION": str(o),
                      "FORK_ROLLOUT_N": str(n),
                      "FORK_ROLLOUT_SEED_BASE": str(address.get("seed")),
+                     "FORK_ROLLOUT_DETERMINIZE": self.determinize,
                      "FORK_ROLLOUT_OUT": str(roll_file)}
             try:
                 rc, _log = self._run(env, extra)
@@ -759,7 +801,9 @@ class RolloutDriver(object):
                 "n_per_option": n,
                 "continuation": address.get("controllers"),
                 "seed_fn": SEED_FN, "rollout_seeds": seeds,
-                "caveats": [], "engine_sha": self.engine_sha,
+                "determinize": self.determinize,
+                "caveats": [],
+                "engine_sha": self.engine_sha,
                 "overlay_sha": self.overlay_sha, "wall_ms": wall_ms}
 
 
@@ -1000,7 +1044,12 @@ def verify_one(cand, driver, lane_filter, n_per_option, name_idx, sha16, now,
             out["probe"] = probe_evidence
         return out, lane, False, sreason, engine_missing
 
-    caveats = ["single_deal_hidden_info"]
+    # Mutually exclusive by construction: a determinized WP is NOT single-deal.
+    # Emitting the stale slug on a determinized key would tell the reader the
+    # opposite of what was measured, so it is chosen, never appended.
+    caveats = [DETERMINIZED_CAVEAT
+               if result.get("determinize") == "library"
+               else SINGLE_DEAL_CAVEAT]
     slug = slug_for_deck_name(src.get("seat"), name_idx)
     if slug in COMBO_SLUGS:
         caveats.append("rollout_policy_caveat")
@@ -1185,6 +1234,13 @@ def main(argv=None):
     ap.add_argument("--lane", choices=("exhaustive", "rollout", "both"),
                     default="both")
     ap.add_argument("--n-per-option", type=int, default=DEFAULT_N_PER_OPTION)
+    ap.add_argument("--determinize", choices=DETERMINIZE_MODES,
+                    default=DEFAULT_DETERMINIZE,
+                    help="re-randomize hidden info at the fork point. "
+                         "'library' (default) re-deals every library so the "
+                         "rollout actually diverges; 'none' reproduces the "
+                         "measured zero-variance defect (every arm 0/n or n/n) "
+                         "and is kept only as evidence -- do not mint keys with it.")
     ap.add_argument("--forge-home", default=os.path.expanduser("~/code/forge"))
     ap.add_argument("--driver", choices=("engine", "fixture", "none"),
                     default="none",
@@ -1236,7 +1292,7 @@ def main(argv=None):
         driver = RolloutDriver(
             forge_home=args.forge_home, n_per_option=args.n_per_option,
             work_dir=str(Path(args.out).resolve().parent / "verify-keys-work"),
-            dry_run=args.dry_run,
+            dry_run=args.dry_run, determinize=args.determinize,
             engine_sha=os.environ.get("ENGINE_SHA") or None,
             overlay_sha=os.environ.get("OVERLAY_SHA") or None)
 

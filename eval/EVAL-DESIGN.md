@@ -318,13 +318,36 @@ source suite positions.
 
 ### 3.5 Answer-key limits (stated on every report)
 
-Rollout WPs are **single-deal, perfect-information continuations by the Forge
-AI**: (a) the continuation policy is weak at combo, so combo-line WPs are
+Rollout WPs are **library-determinized continuations by the Forge AI**:
+(a) the continuation policy is weak at combo, so combo-line WPs are
 underestimated — combo-deck graded positions carry a `rollout_policy_caveat`
-flag; (b) the deal is fixed, so "correct given hidden information you couldn't
-see" can be scored as wrong — tactic categories are restricted to
+flag; (b) hidden information is only *partly* re-dealt — see below.
+
+**(b), as of 2026-07-28.** This section used to say the WPs were "single-deal,
+perfect-information" and that "the deal is fixed". That is no longer accurate,
+and the change was forced rather than chosen. With the deal fixed, the rollout
+lane produced **no variance at all**: across 6 positions and 18 option-arms, at
+every `n` tried, every arm returned exactly `0/n` or `n/n`. Reseeding
+`MyRandom` at the fork point cannot re-deal a library whose order was fixed at
+game start, so all `n` replays played the identical line — `n=16` bought `n=1`
+of information and no answer key could be minted for any position.
+
+The fix (`FORK_ROLLOUT_DETERMINIZE=library`, the default) re-deals every
+player's **library order** at the fork point, from the rollout seed. Only the
+order of a hidden zone changes: zone membership, hands, battlefield,
+graveyards, exile, life, counters and the stack are bit-identical to the probe,
+so every option is still evaluated from the same observable position. The WP is
+therefore the win probability conditional on the observable state, marginalized
+over library orders.
+
+Residual bias, stamped on every key as `determinized_library_hidden_info`:
+opponents' **hands** are not re-dealt (partial determinization, not full
+ISMCTS), and a player who legitimately knew its top card (post-Brainstorm/scry)
+loses that knowledge. Tactic categories therefore stay restricted to
 public-information-dominant states (lethal on board, declared attackers) where
-this bias is minimal; graded categories carry the caveat.
+the residual bias is minimal; graded categories carry the caveat. Keys minted
+before this landed carry `single_deal_hidden_info` and are **not comparable**
+to determinized ones — the two slugs are mutually exclusive by construction.
 
 ---
 
@@ -340,7 +363,7 @@ capability vs reliability).
 | Evaluator | What it gives | Failure modes | Verdict |
 |---|---|---|---|
 | **Shadow oracle** (`SHADOW_AI=1`, EXISTS) | per-decision agreement with Forge AI over the same menu; free; every decision | teacher-capped (agreement ≠ quality; can't see student surpassing teacher); AI is weak at combo and some targeting; binary — no magnitude | **trigger + diagnostic**, never a quality score |
-| **Rollout ΔWP** (fork harness §3.1) | teacher-independent magnitude: `WPL(d) = WP(best option) − WP(chosen)` from N rollouts per option | expensive (~option_count × N × seconds-per-rollout); continuation-policy bias (combo blind spot); single-deal hidden-info bias; only meaningful when WP gaps exceed rollout noise | **the adjudicator**, applied to a flagged subset |
+| **Rollout ΔWP** (fork harness §3.1) | teacher-independent magnitude: `WPL(d) = WP(best option) − WP(chosen)` from N rollouts per option | expensive (~option_count × N × seconds-per-rollout); continuation-policy bias (combo blind spot); residual hidden-info bias (libraries are re-dealt, opponents' hands are not - see 3.5); only meaningful when WP gaps exceed rollout noise | **the adjudicator**, applied to a flagged subset |
 | **Hybrid (chosen design)** | shadow disagreement ∪ cheap red-flags → rollout adjudication of flagged decisions only | inherits both, but cheaply; flagging recall < 1 (a blunder the AI also makes is missed — quantify via a random-sample audit lane) | **v1 design** |
 
 **Flagging rule (per decision):** flag if any of
@@ -661,10 +684,13 @@ endpoint. Everything else in this design is $0 and local/AWS.
 2. **Combo-line quality.** The rollout continuation policy is the same AI that
    wins 0% with Ant Storm — WP answer keys systematically undervalue combo
    lines. Combo-deck graded positions are flagged, not fixed.
-3. **Hidden-information judgment.** Single-deal rollouts can't score information-
-   set-correct play (bluff-Daze, playing around unseen cards). A "punt" that was
-   correct against the opponent's *range* is miscounted; AIVAT-grade correction
-   (Brief B §6) is future work.
+3. **Hidden-information judgment.** Rollouts re-deal every library at the fork
+   point (§3.5), so WPs marginalize over library orders rather than measuring one
+   deal — but opponents' *hands* are not re-dealt. Information-set-correct play
+   (bluff-Daze, playing around unseen cards) is therefore still only partly
+   scored: a "punt" that was correct against the opponent's *range* can be
+   miscounted. Full determinization and AIVAT-grade correction (Brief B §6) are
+   future work.
 4. **Cross-turn intent.** PLAN measures observable milestone pursuit, not
    whether the model *meant* it; DQ scores decisions locally, so a coherent
    losing line vs an incoherent winning one is only partially separated.

@@ -313,9 +313,17 @@ what integrating the modules exposed.
 2. **Combo-line quality.** The rollout continuation policy is the same AI that
    wins 0% with Ant Storm, so WP answer keys systematically undervalue combo
    lines. Combo-deck graded positions are flagged, not fixed.
-3. **Hidden-information judgment.** Single-deal rollouts cannot score
-   information-set-correct play (bluff-Daze, playing around unseen cards). A
-   "punt" that was correct against the opponent's *range* is miscounted.
+3. **Hidden-information judgment.** Rollouts re-deal every **library** at the
+   fork point (`FORK_ROLLOUT_DETERMINIZE=library`, the default), so a WP is the
+   win probability conditional on the observable state, marginalized over
+   library orders — not a single deal. Two gaps remain: opponents' **hands**
+   are not re-dealt (partial determinization, not full ISMCTS), and a player
+   who legitimately knew its top card post-Brainstorm/scry loses that
+   knowledge. So information-set-correct play (bluff-Daze, playing around
+   unseen cards) is still only partly scored: a "punt" that was correct against
+   the opponent's *range* can still be miscounted. Keys carry
+   `determinized_library_hidden_info`; keys minted before this landed carry
+   `single_deal_hidden_info` and are **not comparable** to them.
 4. **Cross-turn intent.** PLAN measures observable milestone pursuit, not
    whether the model meant it; DQ scores decisions locally, so a coherent losing
    line and an incoherent winning one are only partially separated.

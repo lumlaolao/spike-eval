@@ -465,15 +465,25 @@ beats a wide fake one: current whole-repo yield is 3 verified / 807 mined.
 python3 eval/verify_keys.py CANDIDATES.jsonl --out POSITIONS.jsonl \
     [--lane exhaustive|rollout|both] [--driver engine|fixture|none] \
     [--fixture FILE.jsonl] [--n-per-option 16] [--forge-home ~/code/forge] \
+    [--determinize library|none] \
     [--max-positions N] [--summary summary.json] [--json] [--dry-run]
 ```
 
 Default `--driver none` is pure exhaustive: zero engine, zero network,
 runnable without a Forge checkout (keys minted that way carry the
-`unprobed_replay_address` caveat). The Java rollout support
-(`LlmSpikeFork.java`) compiles and passes the canary but **has never been run
-in anger** — no rollout-lane key exists yet. Exit 3 = INCOMPLETE when an
-engine driver was requested but unreachable.
+`unprobed_replay_address` caveat). Exit 3 = INCOMPLETE when an engine driver
+was requested but unreachable.
+
+**`--determinize` (default `library`) is load-bearing — do not set it to
+`none` to mint keys.** The rollout continuation re-deals every player's library
+order at the fork point so the replays actually diverge. Without it they do
+not: measured across 6 positions and 18 option-arms, at every `n`, every arm
+returned exactly `0/n` or `n/n`, because reseeding `MyRandom` mid-game cannot
+re-deal a library fixed at game start. `none` reproduces that defect and exists
+only as evidence. The two modes stamp mutually-exclusive caveats
+(`determinized_library_hidden_info` vs `single_deal_hidden_info`) and their WPs
+are **not comparable**; the engine refuses any other value rather than
+defaulting, so a typo cannot silently disable it.
 
 ```bash
 python3 eval/test_verify_keys.py

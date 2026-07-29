@@ -45,7 +45,7 @@
         "option_scores": {"type": "array", "items": {"type": "integer", "minimum": 0, "maximum": 10}},
         "option_wp": {"type": "array", "items": {"type": "number", "minimum": 0, "maximum": 1}},
         "option_wp_se": {"type": "array", "items": {"type": "number", "minimum": 0}},
-        "caveats": {"type": "array", "items": {"enum": ["rollout_policy_caveat", "single_deal_hidden_info"]}}
+        "caveats": {"type": "array", "items": {"enum": ["rollout_policy_caveat", "single_deal_hidden_info", "determinized_library_hidden_info"]}}
       }
     },
     "split": {"enum": ["open", "holdout"]},

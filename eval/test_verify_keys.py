@@ -892,9 +892,80 @@ def test_rollout_lane_fake_engine():
               and ak.get("option_wp") == [0.75, 0.25]
               and len(ak.get("option_wp_se") or []) == 2
               and ak.get("rollout", {}).get("seed_fn") == vk.SEED_FN
-              and "single_deal_hidden_info" in ak.get("caveats", []))
+              # engine driver defaults to determinize="library", so the key
+              # must carry the determinized slug and NOT the single-deal one.
+              and ak.get("caveats", []) == [vk.DETERMINIZED_CAVEAT])
         check("fake engine: probe evidence matched",
               out.get("probe", {}).get("matched") is True)
+
+
+def test_determinize_contract():
+    """The rollout continuation must actually re-deal hidden information.
+
+    WHAT WOULD MAKE THIS FAIL: dropping FORK_ROLLOUT_DETERMINIZE from the
+    child env (the engine would silently fall back to its own default and the
+    Python-side provenance would be a lie); flipping the default back to
+    "none"; letting an unknown mode through the constructor; or emitting the
+    single-deal caveat on a determinized key. That last one is the one that
+    matters most -- it is a claim about the number that would be exactly
+    backwards, and nothing downstream could detect it.
+    """
+    seen = {}
+
+    class EnvSpy(FakeEngine):
+        def _run(self, env, extra):
+            if extra["FORK_MODE"] == "rollout":
+                seen["determinize"] = extra.get("FORK_ROLLOUT_DETERMINIZE")
+            return FakeEngine._run(self, env, extra)
+
+    def outcome(o, j):
+        win = (j % 4 != 0) if o == 0 else (j % 4 == 0)
+        return {"winner": "A" if win else "B", "forced_ok": True}
+
+    with tempfile.TemporaryDirectory() as td:
+        # 1. the default is the FIX, not the defect
+        check("determinize: default is 'library'",
+              vk.DEFAULT_DETERMINIZE == "library")
+
+        # 2. the mode actually reaches the engine's env
+        drv = EnvSpy(PROBE_2OPT, outcome, work_dir=td)
+        res = drv.rollout(fake_address(), n_per_option=8)
+        check("determinize: passed to the engine as FORK_ROLLOUT_DETERMINIZE",
+              seen.get("determinize") == "library", repr(seen))
+        check("determinize: recorded on the result",
+              res.get("determinize") == "library")
+
+        # 3. ...and onto the answer key, REPLACING the single-deal claim
+        out, _, verified, _, _ = run_verify_one(
+            rollout_cand(), driver=EnvSpy(PROBE_2OPT, outcome, work_dir=td),
+            name_idx=NAME_IDX_WITH_PATHS)
+        caveats = (out.get("answer_key") or {}).get("caveats") or []
+        check("determinize: key carries the determinized caveat",
+              verified and vk.DETERMINIZED_CAVEAT in caveats, str(caveats))
+        check("determinize: key does NOT also claim single-deal",
+              vk.SINGLE_DEAL_CAVEAT not in caveats, str(caveats))
+
+        # 4. explicit "none" still works and tells the truth about itself
+        drv = EnvSpy(PROBE_2OPT, outcome, work_dir=td, determinize="none")
+        res = drv.rollout(fake_address(), n_per_option=8)
+        check("determinize=none: passed through",
+              seen.get("determinize") == "none", repr(seen))
+        out, _, verified, _, _ = run_verify_one(
+            rollout_cand(),
+            driver=EnvSpy(PROBE_2OPT, outcome, work_dir=td,
+                          determinize="none"),
+            name_idx=NAME_IDX_WITH_PATHS)
+        caveats = (out.get("answer_key") or {}).get("caveats") or []
+        check("determinize=none: key claims single-deal, not determinized",
+              verified and caveats == [vk.SINGLE_DEAL_CAVEAT], str(caveats))
+
+        # 5. a typo is refused, not silently treated as one of the modes --
+        #    the whole point is that "looks fixed but isn't" cannot recur
+        try:
+            FakeEngine(PROBE_2OPT, outcome, work_dir=td, determinize="libary")
+            check("determinize: typo refused", False, "constructor accepted it")
+        except ValueError:
+            check("determinize: typo refused", True)
 
 
 def test_replay_drift_rc4():

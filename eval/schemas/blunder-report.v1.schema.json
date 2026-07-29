@@ -29,7 +29,7 @@
         "wpl": {"type": "number", "minimum": 0, "description": "win-probability loss = wp_best - wp_chosen"},
         "wpl_se": {"type": "number", "minimum": 0},
         "class": {"enum": ["good", "inaccuracy", "mistake", "blunder", "unadjudicable"]},
-        "caveats": {"type": "array", "items": {"enum": ["rollout_policy_caveat", "single_deal_hidden_info"]}}
+        "caveats": {"type": "array", "items": {"enum": ["rollout_policy_caveat", "single_deal_hidden_info", "determinized_library_hidden_info"]}}
       }
     }
   }
