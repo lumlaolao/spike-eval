@@ -286,6 +286,122 @@ def cmd_compare(args):
     return 0
 
 
+def position_solve_rates(run_dirs):
+    """-> {model: {position_id: mean solved over k}} plus the position order.
+
+    Read from results.jsonl, not summary.json: the per-position detail is the
+    only thing that can tell a suite's FREE positions from its discriminating
+    ones, and that distinction is what decides whether a leaderboard means
+    anything.
+    """
+    per, order = {}, []
+    seen = set()
+    for d in run_dirs:
+        rp = Path(d) / "results.jsonl"
+        if not rp.is_file():
+            continue
+        model = None
+        acc = {}
+        for line in rp.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                r = json.loads(line)
+            except ValueError:
+                continue
+            pid = r.get("position_id")
+            if not pid:
+                continue
+            model = model or r.get("model")
+            acc.setdefault(pid, []).append(1.0 if r.get("solved") else 0.0)
+            if pid not in seen:
+                seen.add(pid)
+                order.append(pid)
+        if model:
+            per[model] = dict((k, sum(v) / float(len(v)))
+                              for k, v in acc.items() if v)
+    return per, order
+
+
+def discrimination(per, order):
+    """Split the suite into FREE / DEAD / DISCRIMINATING positions.
+
+    free  -- every model solves it every time. Contributes a constant to every
+             score, so it raises the headline and ranks nobody.
+    dead  -- no model ever solves it. Also ranks nobody, but unlike `free` it
+             does not inflate the headline.
+    disc  -- the positions that actually order the leaderboard.
+
+    Why this matters: 15 of puz-v1's 25 positions are `lethal-now`, and the
+    first three models scored 1.000 on every one. That puts a floor of 0.60
+    under any model that can count damage -- far above the 0.28 constant-index
+    floor reported beside the headline -- and leaves the ranking resting on 9
+    positions whose CI is wider than the gap between any two frontier models.
+    A leaderboard that hides that is the 88% lesson with new numbers.
+    """
+    models = sorted(per)
+    free, dead, disc = [], [], []
+    for pid in order:
+        vals = [per[m].get(pid) for m in models]
+        if any(v is None for v in vals):
+            continue
+        if all(v >= 1.0 for v in vals):
+            free.append(pid)
+        elif all(v <= 0.0 for v in vals):
+            dead.append(pid)
+        else:
+            disc.append(pid)
+    return {"models": models, "free": free, "dead": dead, "discriminating": disc}
+
+
+def cmd_leaderboard(args):
+    dirs = args.dirs
+    per, order = position_solve_rates(dirs)
+    if not per:
+        print("no results.jsonl found in the given dirs", file=sys.stderr)
+        return 3
+    d = discrimination(per, order)
+    models, disc, free, dead = (d["models"], d["discriminating"],
+                                d["free"], d["dead"])
+    n_all = len(free) + len(dead) + len(disc)
+    print("suite: %d scored positions across %d models" % (n_all, len(models)))
+    print("  free          %3d  (every model solves -- ranks nobody, but adds "
+          "%.2f to every headline)" % (len(free),
+                                       len(free) / float(n_all) if n_all else 0))
+    print("  dead          %3d  (no model solves -- ranks nobody)" % len(dead))
+    print("  DISCRIMINATING%3d  (the positions the ranking actually rests on)"
+          % len(disc))
+    if n_all:
+        print("  => a model that solves only the free positions already scores "
+              "%.3f" % (len(free) / float(n_all)))
+    if disc:
+        import math
+        n = len(disc)
+        print()
+        print("  %-30s %8s %8s   %s" % ("model", "overall", "disc", "95% CI on disc"))
+        rows = []
+        for m in models:
+            allv = [per[m][p] for p in (free + dead + disc) if p in per[m]]
+            dv = [per[m][p] for p in disc]
+            est = sum(dv) / float(n)
+            se = math.sqrt(max(est * (1 - est), 0.0) / n)
+            rows.append((est, m, sum(allv) / float(len(allv)) if allv else 0.0,
+                         se))
+        for est, m, ov, se in sorted(rows, reverse=True):
+            print("  %-30s %8.3f %8.3f   +/- %.3f" % (m, ov, est, 1.96 * se))
+        worst = min(r[0] for r in rows)
+        best = max(r[0] for r in rows)
+        se_max = max(r[3] for r in rows)
+        if (best - worst) < 1.96 * se_max * (2 ** 0.5):
+            print()
+            print("  ORDERING NOT SIGNIFICANT: the best-to-worst spread (%.3f) "
+                  "is inside the\n  noise of a single %d-position estimate "
+                  "(+/-%.3f). Report the scores, not the rank."
+                  % (best - worst, n, 1.96 * se_max))
+    return 0
+
+
 def cmd_replies(args):
     """Print the model's actual answers. A score says a run happened; only the
     replies say whether it made sense."""
@@ -345,6 +461,12 @@ def main(argv=None):
     p.add_argument("--model", default=None)
     p.add_argument("--suite", default=None)
     p.set_defaults(fn=cmd_compare)
+
+    p = sub.add_parser("leaderboard",
+                       help="split the suite into free/dead/discriminating "
+                            "positions and rank on the part that ranks")
+    p.add_argument("dirs", nargs="+")
+    p.set_defaults(fn=cmd_leaderboard)
 
     p = sub.add_parser("replies", help="read the model's answers back out")
     p.add_argument("dir")

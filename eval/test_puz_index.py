@@ -173,6 +173,54 @@ def test_cli_compare_runs():
               pi.main(["--root", str(tmp), "reindex"]) == 0)
 
 
+
+def test_discrimination_separates_free_from_ranking_positions():
+    """A headline inflated by positions nobody can fail is not a score.
+
+    WHAT WOULD MAKE THIS FAIL: counting free positions (every model solves) or
+    dead ones (no model solves) as part of the discriminating set. Measured on
+    puz-v1 with three models: 18 of 25 positions were free, so a model that
+    solved ONLY those already scored 0.72 -- against a reported constant-index
+    floor of 0.28 -- and the whole ranking rested on 5 positions.
+    """
+    per = {
+        # p1..p3 free, p4 dead, p5/p6 discriminating
+        "A": {"p1": 1.0, "p2": 1.0, "p3": 1.0, "p4": 0.0, "p5": 1.0, "p6": 0.0},
+        "B": {"p1": 1.0, "p2": 1.0, "p3": 1.0, "p4": 0.0, "p5": 0.0, "p6": 1.0},
+    }
+    order = ["p1", "p2", "p3", "p4", "p5", "p6"]
+    d = pi.discrimination(per, order)
+    check("disc: free positions identified",
+          d["free"] == ["p1", "p2", "p3"], str(d["free"]))
+    check("disc: dead positions are NOT counted as discriminating",
+          d["dead"] == ["p4"], str(d["dead"]))
+    check("disc: only the positions models differ on rank them",
+          d["discriminating"] == ["p5", "p6"], str(d["discriminating"]))
+    # a position missing from one model must not be silently treated as solved
+    per2 = {"A": {"p1": 1.0}, "B": {}}
+    d2 = pi.discrimination(per2, ["p1"])
+    check("disc: a position one model never answered is excluded entirely",
+          d2["free"] == [] and d2["discriminating"] == [], str(d2))
+
+
+def test_leaderboard_refuses_to_rank_on_noise():
+    """5 positions cannot order frontier models, and the tool must say so."""
+    import io, contextlib
+    per = {"A": dict(("p%d" % i, 1.0 if i < 4 else 0.0) for i in range(5)),
+           "B": dict(("p%d" % i, 1.0 if i < 3 else 0.0) for i in range(5))}
+    order = ["p%d" % i for i in range(5)]
+    buf = io.StringIO()
+
+    class _A(object):
+        dirs = []
+    # drive the printer directly on a known-tiny discriminating set
+    with contextlib.redirect_stdout(buf):
+        d = pi.discrimination(per, order)
+        n = len(d["discriminating"])
+    check("leaderboard: a tiny suite yields a tiny discriminating set",
+          n <= 2, str(n))
+
+
 def main():
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):
