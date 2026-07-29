@@ -304,10 +304,21 @@ def build_puz_axis(path):
                    % (resolved, json.dumps(data.get("skips") or {})))
 
     def fl(metric_blk, twin=None):
-        """The four floors + the oracle ceiling for one puzzle metric."""
+        """Every floor the run measured, + the oracle ceiling, for one metric.
+
+        max_constant_index dominates always_first by construction and is the
+        one to read; always_first is kept beside it because artifacts minted
+        before that floor existed only have always_first, and dropping it here
+        would silently change what old scorecards mean. Floors absent from the
+        run are skipped rather than rendered as null -- a floor that reads
+        `null` is indistinguishable from a floor of zero at a glance, which is
+        the exact confusion this axis exists to prevent.
+        """
         out = []
         for name in ("random_choice", "always_pass", "always_first",
-                     "majority_class"):
+                     "max_constant_index", "majority_class"):
+            if name not in b:
+                continue
             src = b.get(name) or {}
             src = (src.get(twin) or {}) if twin else src
             out.append(floor_entry(

@@ -432,6 +432,15 @@ def test_positional_skew_caveat_discriminates():
               "always answer 2" in skew[0], skew[0])
         check("it points at the floor that actually binds",
               "margin_over_max_constant_index" in skew[0], skew[0])
+        # A caveat naming a floor the scorecard does not print is a dead end
+        # for the reader, so the floor itself must reach the metric rows.
+        incl = [m for m in puz["metrics"]
+                if m["metric"] == "puz.score_incl"][0]
+        got = {f["floor"] for f in incl["floors"]}
+        check("max_constant_index reaches the scorecard floors",
+              "max_constant_index" in got, str(sorted(got)))
+        check("always_first is kept beside it for older artifacts",
+              "always_first" in got, str(sorted(got)))
 
     with tempfile.TemporaryDirectory() as tmp:
         # Same suite size, best constant policy at 0.36 vs 0.35 random --
