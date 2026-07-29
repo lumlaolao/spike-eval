@@ -1,0 +1,1492 @@
+{
+ "api_key_present": false,
+ "backend": "offline",
+ "baselines": {
+  "always_first": {
+   "best_index_counts": {
+    "1": 3,
+    "2": 4,
+    "3": 2,
+    "4": 2,
+    "5": 1
+   },
+   "ci95": [
+    3.0,
+    7.5
+   ],
+   "est": 5.166666666666667,
+   "method": "cluster-bootstrap",
+   "n": 12,
+   "n_clusters": 10,
+   "pass_1": {
+    "ci95": [
+     0.0,
+     0.6
+    ],
+    "est": 0.25,
+    "method": "cluster-bootstrap",
+    "n": 12,
+    "n_clusters": 10,
+    "se": 0.13956266970384956
+   },
+   "pass_k": {
+    "ci95": [
+     0.0,
+     0.6
+    ],
+    "est": 0.25,
+    "method": "cluster-bootstrap",
+    "n": 12,
+    "n_clusters": 10,
+    "se": 0.13956266970384956
+   },
+   "se": 1.1196994627682526
+  },
+  "always_pass": {
+   "ci95": [
+    1.3,
+    5.857142857142857
+   ],
+   "est": 3.9166666666666665,
+   "method": "cluster-bootstrap",
+   "n": 12,
+   "n_clusters": 10,
+   "pass_1": {
+    "ci95": [
+     0.0,
+     0.5
+    ],
+    "est": 0.25,
+    "method": "cluster-bootstrap",
+    "n": 12,
+    "n_clusters": 10,
+    "se": 0.13324618552439532
+   },
+   "pass_k": {
+    "ci95": [
+     0.0,
+     0.5
+    ],
+    "est": 0.25,
+    "method": "cluster-bootstrap",
+    "n": 12,
+    "n_clusters": 10,
+    "se": 0.13324618552439532
+   },
+   "se": 1.1899427825930269
+  },
+  "majority_class": {
+   "ci95": [
+    1.3,
+    5.857142857142857
+   ],
+   "est": 3.9166666666666665,
+   "frac_positions_maximal": 0.25,
+   "method": "cluster-bootstrap",
+   "n": 12,
+   "n_clusters": 10,
+   "pass_1": {
+    "ci95": [
+     0.0,
+     0.5
+    ],
+    "est": 0.25,
+    "method": "cluster-bootstrap",
+    "n": 12,
+    "n_clusters": 10,
+    "se": 0.13324618552439532
+   },
+   "pass_k": {
+    "ci95": [
+     0.0,
+     0.5
+    ],
+    "est": 0.25,
+    "method": "cluster-bootstrap",
+    "n": 12,
+    "n_clusters": 10,
+    "se": 0.13324618552439532
+   },
+   "se": 1.1899427825930269,
+   "token": "PASS (do nothing)"
+  },
+  "oracle_ceiling": {
+   "ci95": [
+    10.0,
+    10.0
+   ],
+   "est": 10.0,
+   "method": "cluster-bootstrap",
+   "n": 12,
+   "n_clusters": 10,
+   "pass_1": {
+    "ci95": [
+     1.0,
+     1.0
+    ],
+    "est": 1.0,
+    "method": "cluster-bootstrap",
+    "n": 12,
+    "n_clusters": 10,
+    "se": 0.0
+   },
+   "pass_k": {
+    "ci95": [
+     1.0,
+     1.0
+    ],
+    "est": 1.0,
+    "method": "cluster-bootstrap",
+    "n": 12,
+    "n_clusters": 10,
+    "se": 0.0
+   },
+   "se": 0.0
+  },
+  "random_choice": {
+   "ci95": [
+    3.6157142857142857,
+    5.395238095238095
+   ],
+   "est": 4.591137566137566,
+   "method": "cluster-bootstrap",
+   "n": 12,
+   "n_clusters": 10,
+   "pass_1": {
+    "ci95": [
+     0.264484126984127,
+     0.42638888888888876
+    ],
+    "est": 0.3357142857142857,
+    "method": "cluster-bootstrap",
+    "n": 12,
+    "n_clusters": 10,
+    "se": 0.04059164944403301
+   },
+   "pass_k": {
+    "ci95": [
+     0.007547231872448796,
+     0.06992358796296294
+    ],
+    "est": 0.029292205285049264,
+    "method": "cluster-bootstrap",
+    "n": 12,
+    "n_clusters": 10,
+    "se": 0.016463612445691257
+   },
+   "se": 0.4463016834478419
+  }
+ },
+ "by_category": {
+  "graded-midgame": {
+   "baselines": {
+    "always_first": {
+     "best_index_counts": {
+      "1": 1,
+      "2": 1,
+      "5": 1
+     },
+     "ci95": [
+      0.0,
+      10.0
+     ],
+     "est": 4.666666666666667,
+     "method": "cluster-bootstrap",
+     "n": 3,
+     "n_clusters": 3,
+     "pass_1": {
+      "ci95": [
+       0.0,
+       1.0
+      ],
+      "est": 0.3333333333333333,
+      "method": "cluster-bootstrap",
+      "n": 3,
+      "n_clusters": 3,
+      "se": 0.27855683094323785
+     },
+     "pass_k": {
+      "ci95": [
+       0.0,
+       1.0
+      ],
+      "est": 0.3333333333333333,
+      "method": "cluster-bootstrap",
+      "n": 3,
+      "n_clusters": 3,
+      "se": 0.27855683094323785
+     },
+     "se": 2.439544155747908
+    },
+    "always_pass": {
+     "ci95": [
+      0.0,
+      10.0
+     ],
+     "est": 4.666666666666667,
+     "method": "cluster-bootstrap",
+     "n": 3,
+     "n_clusters": 3,
+     "pass_1": {
+      "ci95": [
+       0.0,
+       1.0
+      ],
+      "est": 0.3333333333333333,
+      "method": "cluster-bootstrap",
+      "n": 3,
+      "n_clusters": 3,
+      "se": 0.27714449516861983
+     },
+     "pass_k": {
+      "ci95": [
+       0.0,
+       1.0
+      ],
+      "est": 0.3333333333333333,
+      "method": "cluster-bootstrap",
+      "n": 3,
+      "n_clusters": 3,
+      "se": 0.27714449516861983
+     },
+     "se": 2.436324886091043
+    },
+    "majority_class": {
+     "ci95": [
+      0.0,
+      10.0
+     ],
+     "est": 3.3333333333333335,
+     "frac_positions_maximal": 0.3333333333333333,
+     "method": "cluster-bootstrap",
+     "n": 3,
+     "n_clusters": 3,
+     "pass_1": {
+      "ci95": [
+       0.0,
+       1.0
+      ],
+      "est": 0.3333333333333333,
+      "method": "cluster-bootstrap",
+      "n": 3,
+      "n_clusters": 3,
+      "se": 0.27855683094323785
+     },
+     "pass_k": {
+      "ci95": [
+       0.0,
+       1.0
+      ],
+      "est": 0.3333333333333333,
+      "method": "cluster-bootstrap",
+      "n": 3,
+      "n_clusters": 3,
+      "se": 0.27855683094323785
+     },
+     "se": 2.785568309432443,
+     "token": "CAST Glimpse of Nature {G} [Whenever you cast a creature spell this turn, draw a card.]"
+    },
+    "oracle_ceiling": {
+     "ci95": [
+      10.0,
+      10.0
+     ],
+     "est": 10.0,
+     "method": "cluster-bootstrap",
+     "n": 3,
+     "n_clusters": 3,
+     "pass_1": {
+      "ci95": [
+       1.0,
+       1.0
+      ],
+      "est": 1.0,
+      "method": "cluster-bootstrap",
+      "n": 3,
+      "n_clusters": 3,
+      "se": 0.0
+     },
+     "pass_k": {
+      "ci95": [
+       1.0,
+       1.0
+      ],
+      "est": 1.0,
+      "method": "cluster-bootstrap",
+      "n": 3,
+      "n_clusters": 3,
+      "se": 0.0
+     },
+     "se": 0.0
+    },
+    "random_choice": {
+     "ci95": [
+      3.714285714285714,
+      6.666666666666667
+     ],
+     "est": 5.06031746031746,
+     "method": "cluster-bootstrap",
+     "n": 3,
+     "n_clusters": 3,
+     "pass_1": {
+      "ci95": [
+       0.14285714285714285,
+       0.6666666666666666
+      ],
+      "est": 0.40317460317460313,
+      "method": "cluster-bootstrap",
+      "n": 3,
+      "n_clusters": 3,
+      "se": 0.1240120831602213
+     },
+     "pass_k": {
+      "ci95": [
+       0.00041649312786339016,
+       0.19753086419753083
+      ],
+      "est": 0.0745157857751314,
+      "method": "cluster-bootstrap",
+      "n": 3,
+      "n_clusters": 3,
+      "se": 0.05132798337705439
+     },
+     "se": 0.7094590098540792
+    }
+   },
+   "metrics": {
+    "declined_slot_rate": {
+     "ci95": [
+      0.0,
+      0.2425007574992425
+     ],
+     "est": 0.0,
+     "method": "wilson",
+     "n": 12,
+     "n_clusters": null,
+     "se": 0.0
+    },
+    "interface_failure_rate": {
+     "ci95": [
+      0.0,
+      0.2425007574992425
+     ],
+     "est": 0.0,
+     "method": "wilson",
+     "n": 12,
+     "n_clusters": null,
+     "se": 0.0
+    },
+    "pass_1": {
+     "ci95": [
+      0.13811783989736134,
+      0.609382412602386
+     ],
+     "est": 0.3333333333333333,
+     "margin_over_always_first": 0.0,
+     "margin_over_always_pass": 0.0,
+     "margin_over_majority_class": 0.0,
+     "margin_over_random_choice": -0.06984126984126982,
+     "method": "wilson",
+     "n": 12,
+     "n_clusters": null,
+     "se": 0.13608276348795434
+    },
+    "pass_k": {
+     "ci95": [
+      0.0,
+      0.5615060804490177
+     ],
+     "est": 0.0,
+     "k_used": 4,
+     "margin_over_always_first": -0.3333333333333333,
+     "margin_over_always_pass": -0.3333333333333333,
+     "margin_over_majority_class": -0.3333333333333333,
+     "margin_over_random_choice": -0.0745157857751314,
+     "method": "wilson",
+     "n": 3,
+     "n_clusters": null,
+     "se": 0.0
+    },
+    "puz_score_excl": {
+     "ci95": [
+      3.0,
+      7.5
+     ],
+     "est": 5.0,
+     "margin_over_always_first": 0.33333333333333304,
+     "margin_over_always_pass": 0.33333333333333304,
+     "margin_over_majority_class": 1.6666666666666665,
+     "margin_over_random_choice": -0.0603174603174601,
+     "method": "cluster-bootstrap",
+     "n": 12,
+     "n_clusters": 3,
+     "se": 1.0896901909974912
+    },
+    "puz_score_excl_norm": {
+     "ci95": [
+      0.30000000000000004,
+      0.75
+     ],
+     "est": 0.5,
+     "method": "cluster-bootstrap",
+     "n": 12,
+     "n_clusters": 3,
+     "se": 0.10896901909974913
+    },
+    "puz_score_incl": {
+     "ci95": [
+      3.0,
+      7.5
+     ],
+     "est": 5.0,
+     "margin_over_always_first": 0.33333333333333304,
+     "margin_over_always_pass": 0.33333333333333304,
+     "margin_over_majority_class": 1.6666666666666665,
+     "margin_over_random_choice": -0.0603174603174601,
+     "method": "cluster-bootstrap",
+     "n": 12,
+     "n_clusters": 3,
+     "se": 1.0896901909974912
+    },
+    "puz_score_incl_norm": {
+     "ci95": [
+      0.30000000000000004,
+      0.75
+     ],
+     "est": 0.5,
+     "method": "cluster-bootstrap",
+     "n": 12,
+     "n_clusters": 3,
+     "se": 0.10896901909974913
+    }
+   },
+   "n_positions": 3,
+   "n_samples_valid": 12
+  },
+  "lethal-now": {
+   "baselines": {
+    "always_first": {
+     "best_index_counts": {
+      "1": 2,
+      "2": 1
+     },
+     "ci95": [
+      0.0,
+      10.0
+     ],
+     "est": 6.666666666666667,
+     "method": "cluster-bootstrap",
+     "n": 3,
+     "n_clusters": 3,
+     "pass_1": {
+      "ci95": [
+       0.0,
+       1.0
+      ],
+      "est": 0.6666666666666666,
+      "method": "cluster-bootstrap",
+      "n": 3,
+      "n_clusters": 3,
+      "se": 0.2785568309432432
+     },
+     "pass_k": {
+      "ci95": [
+       0.0,
+       1.0
+      ],
+      "est": 0.6666666666666666,
+      "method": "cluster-bootstrap",
+      "n": 3,
+      "n_clusters": 3,
+      "se": 0.2785568309432432
+     },
+     "se": 2.785568309432471
+    },
+    "always_pass": {
+     "ci95": [
+      0.0,
+      0.0
+     ],
+     "est": 0.0,
+     "method": "cluster-bootstrap",
+     "n": 3,
+     "n_clusters": 3,
+     "pass_1": {
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "est": 0.0,
+      "method": "cluster-bootstrap",
+      "n": 3,
+      "n_clusters": 3,
+      "se": 0.0
+     },
+     "pass_k": {
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "est": 0.0,
+      "method": "cluster-bootstrap",
+      "n": 3,
+      "n_clusters": 3,
+      "se": 0.0
+     },
+     "se": 0.0
+    },
+    "majority_class": {
+     "ci95": [
+      0.0,
+      10.0
+     ],
+     "est": 6.666666666666667,
+     "frac_positions_maximal": 0.6666666666666666,
+     "method": "cluster-bootstrap",
+     "n": 3,
+     "n_clusters": 3,
+     "pass_1": {
+      "ci95": [
+       0.0,
+       1.0
+      ],
+      "est": 0.6666666666666666,
+      "method": "cluster-bootstrap",
+      "n": 3,
+      "n_clusters": 3,
+      "se": 0.2785568309432432
+     },
+     "pass_k": {
+      "ci95": [
+       0.0,
+       1.0
+      ],
+      "est": 0.6666666666666666,
+      "method": "cluster-bootstrap",
+      "n": 3,
+      "n_clusters": 3,
+      "se": 0.2785568309432432
+     },
+     "se": 2.785568309432471,
+     "token": "CAST Chain Lightning {R} [CARDNAME deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may...]"
+    },
+    "oracle_ceiling": {
+     "ci95": [
+      10.0,
+      10.0
+     ],
+     "est": 10.0,
+     "method": "cluster-bootstrap",
+     "n": 3,
+     "n_clusters": 3,
+     "pass_1": {
+      "ci95": [
+       1.0,
+       1.0
+      ],
+      "est": 1.0,
+      "method": "cluster-bootstrap",
+      "n": 3,
+      "n_clusters": 3,
+      "se": 0.0
+     },
+     "pass_k": {
+      "ci95": [
+       1.0,
+       1.0
+      ],
+      "est": 1.0,
+      "method": "cluster-bootstrap",
+      "n": 3,
+      "n_clusters": 3,
+      "se": 0.0
+     },
+     "se": 0.0
+    },
+    "random_choice": {
+     "ci95": [
+      2.5,
+      5.0
+     ],
+     "est": 3.611111111111111,
+     "method": "cluster-bootstrap",
+     "n": 3,
+     "n_clusters": 3,
+     "pass_1": {
+      "ci95": [
+       0.25,
+       0.5
+      ],
+      "est": 0.3611111111111111,
+      "method": "cluster-bootstrap",
+      "n": 3,
+      "n_clusters": 3,
+      "se": 0.06005754234455383
+     },
+     "pass_k": {
+      "ci95": [
+       0.00390625,
+       0.0625
+      ],
+      "est": 0.026250643004115226,
+      "method": "cluster-bootstrap",
+      "n": 3,
+      "n_clusters": 3,
+      "se": 0.014922485219664338
+     },
+     "se": 0.6005754234455324
+    }
+   },
+   "metrics": {
+    "declined_slot_rate": {
+     "ci95": [
+      0.0,
+      0.2425007574992425
+     ],
+     "est": 0.0,
+     "method": "wilson",
+     "n": 12,
+     "n_clusters": null,
+     "se": 0.0
+    },
+    "interface_failure_rate": {
+     "ci95": [
+      0.0,
+      0.2425007574992425
+     ],
+     "est": 0.0,
+     "method": "wilson",
+     "n": 12,
+     "n_clusters": null,
+     "se": 0.0
+    },
+    "pass_1": {
+     "ci95": [
+      0.08894003962896138,
+      0.53231033912066
+     ],
+     "est": 0.25,
+     "margin_over_always_first": -0.41666666666666663,
+     "margin_over_always_pass": 0.25,
+     "margin_over_majority_class": -0.41666666666666663,
+     "margin_over_random_choice": -0.1111111111111111,
+     "method": "wilson",
+     "n": 12,
+     "n_clusters": null,
+     "se": 0.125
+    },
+    "pass_k": {
+     "ci95": [
+      0.0,
+      0.5615060804490177
+     ],
+     "est": 0.0,
+     "k_used": 4,
+     "margin_over_always_first": -0.6666666666666666,
+     "margin_over_always_pass": 0.0,
+     "margin_over_majority_class": -0.6666666666666666,
+     "margin_over_random_choice": -0.026250643004115226,
+     "method": "wilson",
+     "n": 3,
+     "n_clusters": null,
+     "se": 0.0
+    },
+    "puz_score_excl": {
+     "ci95": [
+      0.0,
+      7.5
+     ],
+     "est": 2.5,
+     "margin_over_always_first": -4.166666666666667,
+     "margin_over_always_pass": 2.5,
+     "margin_over_majority_class": -4.166666666666667,
+     "margin_over_random_choice": -1.1111111111111112,
+     "method": "cluster-bootstrap",
+     "n": 12,
+     "n_clusters": 3,
+     "se": 2.04057760903359
+    },
+    "puz_score_excl_norm": {
+     "ci95": [
+      0.0,
+      0.75
+     ],
+     "est": 0.25,
+     "method": "cluster-bootstrap",
+     "n": 12,
+     "n_clusters": 3,
+     "se": 0.20405776090335903
+    },
+    "puz_score_incl": {
+     "ci95": [
+      0.0,
+      7.5
+     ],
+     "est": 2.5,
+     "margin_over_always_first": -4.166666666666667,
+     "margin_over_always_pass": 2.5,
+     "margin_over_majority_class": -4.166666666666667,
+     "margin_over_random_choice": -1.1111111111111112,
+     "method": "cluster-bootstrap",
+     "n": 12,
+     "n_clusters": 3,
+     "se": 2.04057760903359
+    },
+    "puz_score_incl_norm": {
+     "ci95": [
+      0.0,
+      0.75
+     ],
+     "est": 0.25,
+     "method": "cluster-bootstrap",
+     "n": 12,
+     "n_clusters": 3,
+     "se": 0.20405776090335903
+    }
+   },
+   "n_positions": 3,
+   "n_samples_valid": 12
+  },
+  "save-vs-lethal": {
+   "baselines": {
+    "always_first": {
+     "best_index_counts": {
+      "2": 2,
+      "3": 2,
+      "4": 2
+     },
+     "ci95": [
+      2.0,
+      6.5
+     ],
+     "est": 4.666666666666667,
+     "method": "cluster-bootstrap",
+     "n": 6,
+     "n_clusters": 4,
+     "pass_1": {
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "est": 0.0,
+      "method": "cluster-bootstrap",
+      "n": 6,
+      "n_clusters": 4,
+      "se": 0.0
+     },
+     "pass_k": {
+      "ci95": [
+       0.0,
+       0.0
+      ],
+      "est": 0.0,
+      "method": "cluster-bootstrap",
+      "n": 6,
+      "n_clusters": 4,
+      "se": 0.0
+     },
+     "se": 1.1680314162085657
+    },
+    "always_pass": {
+     "ci95": [
+      2.0,
+      7.25
+     ],
+     "est": 5.5,
+     "method": "cluster-bootstrap",
+     "n": 6,
+     "n_clusters": 4,
+     "pass_1": {
+      "ci95": [
+       0.0,
+       0.6
+      ],
+      "est": 0.3333333333333333,
+      "method": "cluster-bootstrap",
+      "n": 6,
+      "n_clusters": 4,
+      "se": 0.20063020880412769
+     },
+     "pass_k": {
+      "ci95": [
+       0.0,
+       0.6
+      ],
+      "est": 0.3333333333333333,
+      "method": "cluster-bootstrap",
+      "n": 6,
+      "n_clusters": 4,
+      "se": 0.20063020880412769
+     },
+     "se": 1.3425692457750473
+    },
+    "majority_class": {
+     "ci95": [
+      0.0,
+      6.0
+     ],
+     "est": 3.0,
+     "frac_positions_maximal": 0.16666666666666666,
+     "method": "cluster-bootstrap",
+     "n": 6,
+     "n_clusters": 4,
+     "pass_1": {
+      "ci95": [
+       0.0,
+       0.3
+      ],
+      "est": 0.16666666666666666,
+      "method": "cluster-bootstrap",
+      "n": 6,
+      "n_clusters": 4,
+      "se": 0.10031510440206384
+     },
+     "pass_k": {
+      "ci95": [
+       0.0,
+       0.3
+      ],
+      "est": 0.16666666666666666,
+      "method": "cluster-bootstrap",
+      "n": 6,
+      "n_clusters": 4,
+      "se": 0.10031510440206384
+     },
+     "se": 1.3215852784699909,
+     "token": "CAST Aether Vial {1} [{T}: You may put a creature card with mana value equal to the number of charge counters on CARDNAME from your hand onto the battlefield.]"
+    },
+    "oracle_ceiling": {
+     "ci95": [
+      10.0,
+      10.0
+     ],
+     "est": 10.0,
+     "method": "cluster-bootstrap",
+     "n": 6,
+     "n_clusters": 4,
+     "pass_1": {
+      "ci95": [
+       1.0,
+       1.0
+      ],
+      "est": 1.0,
+      "method": "cluster-bootstrap",
+      "n": 6,
+      "n_clusters": 4,
+      "se": 0.0
+     },
+     "pass_k": {
+      "ci95": [
+       1.0,
+       1.0
+      ],
+      "est": 1.0,
+      "method": "cluster-bootstrap",
+      "n": 6,
+      "n_clusters": 4,
+      "se": 0.0
+     },
+     "se": 0.0
+    },
+    "random_choice": {
+     "ci95": [
+      3.2222222222222223,
+      6.0
+     ],
+     "est": 4.8465608465608465,
+     "method": "cluster-bootstrap",
+     "n": 6,
+     "n_clusters": 4,
+     "pass_1": {
+      "ci95": [
+       0.23333333333333334,
+       0.31944444444444436
+      ],
+      "est": 0.2892857142857142,
+      "method": "cluster-bootstrap",
+      "n": 6,
+      "n_clusters": 4,
+      "se": 0.02152293491357075
+     },
+     "pass_k": {
+      "ci95": [
+       0.004131945022907121,
+       0.010925231770712819
+      ],
+      "est": 0.008201196180475212,
+      "method": "cluster-bootstrap",
+      "n": 6,
+      "n_clusters": 4,
+      "se": 0.0017158181490038668
+     },
+     "se": 0.7160403532236549
+    }
+   },
+   "metrics": {
+    "declined_slot_rate": {
+     "ci95": [
+      0.0,
+      0.13798057582897535
+     ],
+     "est": 0.0,
+     "method": "wilson",
+     "n": 24,
+     "n_clusters": null,
+     "se": 0.0
+    },
+    "interface_failure_rate": {
+     "ci95": [
+      0.0,
+      0.13798057582897535
+     ],
+     "est": 0.0,
+     "method": "wilson",
+     "n": 24,
+     "n_clusters": null,
+     "se": 0.0
+    },
+    "pass_1": {
+     "ci95": [
+      0.023158327842973503,
+      0.258492152014506
+     ],
+     "est": 0.08333333333333333,
+     "margin_over_always_first": 0.08333333333333333,
+     "margin_over_always_pass": -0.25,
+     "margin_over_majority_class": -0.08333333333333333,
+     "margin_over_random_choice": -0.2059523809523809,
+     "method": "wilson",
+     "n": 24,
+     "n_clusters": null,
+     "se": 0.0564169333655275
+    },
+    "pass_k": {
+     "ci95": [
+      0.0,
+      0.3903430336530645
+     ],
+     "est": 0.0,
+     "k_used": 4,
+     "margin_over_always_first": 0.0,
+     "margin_over_always_pass": -0.3333333333333333,
+     "margin_over_majority_class": -0.16666666666666666,
+     "margin_over_random_choice": -0.008201196180475212,
+     "method": "wilson",
+     "n": 6,
+     "n_clusters": null,
+     "se": 0.0
+    },
+    "puz_score_excl": {
+     "ci95": [
+      1.125,
+      4.25
+     ],
+     "est": 3.3333333333333335,
+     "margin_over_always_first": -1.3333333333333335,
+     "margin_over_always_pass": -2.1666666666666665,
+     "margin_over_majority_class": 0.3333333333333335,
+     "margin_over_random_choice": -1.513227513227513,
+     "method": "cluster-bootstrap",
+     "n": 24,
+     "n_clusters": 4,
+     "se": 0.7830673304449667
+    },
+    "puz_score_excl_norm": {
+     "ci95": [
+      0.1125,
+      0.42500000000000004
+     ],
+     "est": 0.33333333333333337,
+     "method": "cluster-bootstrap",
+     "n": 24,
+     "n_clusters": 4,
+     "se": 0.07830673304449667
+    },
+    "puz_score_incl": {
+     "ci95": [
+      1.125,
+      4.25
+     ],
+     "est": 3.3333333333333335,
+     "margin_over_always_first": -1.3333333333333335,
+     "margin_over_always_pass": -2.1666666666666665,
+     "margin_over_majority_class": 0.3333333333333335,
+     "margin_over_random_choice": -1.513227513227513,
+     "method": "cluster-bootstrap",
+     "n": 24,
+     "n_clusters": 4,
+     "se": 0.7830673304449667
+    },
+    "puz_score_incl_norm": {
+     "ci95": [
+      0.1125,
+      0.42500000000000004
+     ],
+     "est": 0.33333333333333337,
+     "method": "cluster-bootstrap",
+     "n": 24,
+     "n_clusters": 4,
+     "se": 0.07830673304449667
+    }
+   },
+   "n_positions": 6,
+   "n_samples_valid": 24
+  }
+ },
+ "by_decision_type": {
+  "play": {
+   "baselines": {
+    "always_first": {
+     "best_index_counts": {
+      "1": 3,
+      "2": 4,
+      "3": 2,
+      "4": 2,
+      "5": 1
+     },
+     "ci95": [
+      3.0,
+      7.5
+     ],
+     "est": 5.166666666666667,
+     "method": "cluster-bootstrap",
+     "n": 12,
+     "n_clusters": 10,
+     "pass_1": {
+      "ci95": [
+       0.0,
+       0.6
+      ],
+      "est": 0.25,
+      "method": "cluster-bootstrap",
+      "n": 12,
+      "n_clusters": 10,
+      "se": 0.13956266970384956
+     },
+     "pass_k": {
+      "ci95": [
+       0.0,
+       0.6
+      ],
+      "est": 0.25,
+      "method": "cluster-bootstrap",
+      "n": 12,
+      "n_clusters": 10,
+      "se": 0.13956266970384956
+     },
+     "se": 1.1196994627682526
+    },
+    "always_pass": {
+     "ci95": [
+      1.3,
+      5.857142857142857
+     ],
+     "est": 3.9166666666666665,
+     "method": "cluster-bootstrap",
+     "n": 12,
+     "n_clusters": 10,
+     "pass_1": {
+      "ci95": [
+       0.0,
+       0.5
+      ],
+      "est": 0.25,
+      "method": "cluster-bootstrap",
+      "n": 12,
+      "n_clusters": 10,
+      "se": 0.13324618552439532
+     },
+     "pass_k": {
+      "ci95": [
+       0.0,
+       0.5
+      ],
+      "est": 0.25,
+      "method": "cluster-bootstrap",
+      "n": 12,
+      "n_clusters": 10,
+      "se": 0.13324618552439532
+     },
+     "se": 1.1899427825930269
+    },
+    "majority_class": {
+     "ci95": [
+      1.3,
+      5.857142857142857
+     ],
+     "est": 3.9166666666666665,
+     "frac_positions_maximal": 0.25,
+     "method": "cluster-bootstrap",
+     "n": 12,
+     "n_clusters": 10,
+     "pass_1": {
+      "ci95": [
+       0.0,
+       0.5
+      ],
+      "est": 0.25,
+      "method": "cluster-bootstrap",
+      "n": 12,
+      "n_clusters": 10,
+      "se": 0.13324618552439532
+     },
+     "pass_k": {
+      "ci95": [
+       0.0,
+       0.5
+      ],
+      "est": 0.25,
+      "method": "cluster-bootstrap",
+      "n": 12,
+      "n_clusters": 10,
+      "se": 0.13324618552439532
+     },
+     "se": 1.1899427825930269,
+     "token": "PASS (do nothing)"
+    },
+    "oracle_ceiling": {
+     "ci95": [
+      10.0,
+      10.0
+     ],
+     "est": 10.0,
+     "method": "cluster-bootstrap",
+     "n": 12,
+     "n_clusters": 10,
+     "pass_1": {
+      "ci95": [
+       1.0,
+       1.0
+      ],
+      "est": 1.0,
+      "method": "cluster-bootstrap",
+      "n": 12,
+      "n_clusters": 10,
+      "se": 0.0
+     },
+     "pass_k": {
+      "ci95": [
+       1.0,
+       1.0
+      ],
+      "est": 1.0,
+      "method": "cluster-bootstrap",
+      "n": 12,
+      "n_clusters": 10,
+      "se": 0.0
+     },
+     "se": 0.0
+    },
+    "random_choice": {
+     "ci95": [
+      3.6157142857142857,
+      5.395238095238095
+     ],
+     "est": 4.591137566137566,
+     "method": "cluster-bootstrap",
+     "n": 12,
+     "n_clusters": 10,
+     "pass_1": {
+      "ci95": [
+       0.264484126984127,
+       0.42638888888888876
+      ],
+      "est": 0.3357142857142857,
+      "method": "cluster-bootstrap",
+      "n": 12,
+      "n_clusters": 10,
+      "se": 0.04059164944403301
+     },
+     "pass_k": {
+      "ci95": [
+       0.007547231872448796,
+       0.06992358796296294
+      ],
+      "est": 0.029292205285049264,
+      "method": "cluster-bootstrap",
+      "n": 12,
+      "n_clusters": 10,
+      "se": 0.016463612445691257
+     },
+     "se": 0.4463016834478419
+    }
+   },
+   "metrics": {
+    "declined_slot_rate": {
+     "ci95": [
+      0.0,
+      0.0741026511527422
+     ],
+     "est": 0.0,
+     "method": "wilson",
+     "n": 48,
+     "n_clusters": null,
+     "se": 0.0
+    },
+    "interface_failure_rate": {
+     "ci95": [
+      0.0,
+      0.0741026511527422
+     ],
+     "est": 0.0,
+     "method": "wilson",
+     "n": 48,
+     "n_clusters": null,
+     "se": 0.0
+    },
+    "pass_1": {
+     "ci95": [
+      0.10191276348200173,
+      0.31940139348846214
+     ],
+     "est": 0.1875,
+     "margin_over_always_first": -0.0625,
+     "margin_over_always_pass": -0.0625,
+     "margin_over_majority_class": -0.0625,
+     "margin_over_random_choice": -0.1482142857142857,
+     "method": "wilson",
+     "n": 48,
+     "n_clusters": null,
+     "se": 0.05633673867912483
+    },
+    "pass_k": {
+     "ci95": [
+      0.0,
+      0.2425007574992425
+     ],
+     "est": 0.0,
+     "k_used": 4,
+     "margin_over_always_first": -0.25,
+     "margin_over_always_pass": -0.25,
+     "margin_over_majority_class": -0.25,
+     "margin_over_random_choice": -0.029292205285049264,
+     "method": "wilson",
+     "n": 12,
+     "n_clusters": null,
+     "se": 0.0
+    },
+    "puz_score_excl": {
+     "ci95": [
+      2.0,
+      5.0
+     ],
+     "est": 3.5416666666666665,
+     "margin_over_always_first": -1.6250000000000004,
+     "margin_over_always_pass": -0.375,
+     "margin_over_majority_class": -0.375,
+     "margin_over_random_choice": -1.0494708994708994,
+     "method": "cluster-bootstrap",
+     "n": 48,
+     "n_clusters": 10,
+     "se": 0.7483425699057206
+    },
+    "puz_score_excl_norm": {
+     "ci95": [
+      0.2,
+      0.5
+     ],
+     "est": 0.3541666666666667,
+     "method": "cluster-bootstrap",
+     "n": 48,
+     "n_clusters": 10,
+     "se": 0.07483425699057206
+    },
+    "puz_score_incl": {
+     "ci95": [
+      2.0,
+      5.0
+     ],
+     "est": 3.5416666666666665,
+     "margin_over_always_first": -1.6250000000000004,
+     "margin_over_always_pass": -0.375,
+     "margin_over_majority_class": -0.375,
+     "margin_over_random_choice": -1.0494708994708994,
+     "method": "cluster-bootstrap",
+     "n": 48,
+     "n_clusters": 10,
+     "se": 0.7483425699057206
+    },
+    "puz_score_incl_norm": {
+     "ci95": [
+      0.2,
+      0.5
+     ],
+     "est": 0.3541666666666667,
+     "method": "cluster-bootstrap",
+     "n": 48,
+     "n_clusters": 10,
+     "se": 0.07483425699057206
+    }
+   },
+   "n_positions": 12,
+   "n_samples_valid": 48
+  }
+ },
+ "caveats": [
+  "answer-key limits (EVAL-DESIGN.md 3.5): rollout-derived keys are single-deal, perfect-information continuations by the Forge AI; the continuation policy is weak at combo, so combo-line WPs are underestimated (combo-deck graded positions carry rollout_policy_caveat); the deal is fixed, so plays correct under hidden information can be scored as wrong \u2014 tactic categories are restricted to public-information-dominant states, graded categories carry the caveat.",
+  "answer_key_caveat:determinized_library_hidden_info",
+  "answer_key_caveat:rollout_policy_caveat"
+ ],
+ "contract": "prompt-contract.v1",
+ "contract_sha": "abaddd69db49a9d2",
+ "counters": {
+  "attempted_samples": 48,
+  "declined_slot_n": 0,
+  "interface_failures": 0,
+  "missing_fixture_samples": 0,
+  "pass_k_excluded": 0,
+  "transport_errors": 0,
+  "valid_samples": 48
+ },
+ "endpoint_host": "",
+ "engine_sha": "c1c64a53586459cd0d4c70f27abd1aa8bbc92891",
+ "generated_utc": "20260729-000000",
+ "k": 4,
+ "metrics": {
+  "declined_slot_rate": {
+   "ci95": [
+    0.0,
+    0.0741026511527422
+   ],
+   "est": 0.0,
+   "method": "wilson",
+   "n": 48,
+   "n_clusters": null,
+   "se": 0.0
+  },
+  "interface_failure_rate": {
+   "ci95": [
+    0.0,
+    0.0741026511527422
+   ],
+   "est": 0.0,
+   "method": "wilson",
+   "n": 48,
+   "n_clusters": null,
+   "se": 0.0
+  },
+  "pass_1": {
+   "ci95": [
+    0.10191276348200173,
+    0.31940139348846214
+   ],
+   "est": 0.1875,
+   "margin_over_always_first": -0.0625,
+   "margin_over_always_pass": -0.0625,
+   "margin_over_majority_class": -0.0625,
+   "margin_over_random_choice": -0.1482142857142857,
+   "method": "wilson",
+   "n": 48,
+   "n_clusters": null,
+   "se": 0.05633673867912483
+  },
+  "pass_k": {
+   "ci95": [
+    0.0,
+    0.2425007574992425
+   ],
+   "est": 0.0,
+   "k_used": 4,
+   "margin_over_always_first": -0.25,
+   "margin_over_always_pass": -0.25,
+   "margin_over_majority_class": -0.25,
+   "margin_over_random_choice": -0.029292205285049264,
+   "method": "wilson",
+   "n": 12,
+   "n_clusters": null,
+   "se": 0.0
+  },
+  "puz_score_excl": {
+   "ci95": [
+    2.0,
+    5.0
+   ],
+   "est": 3.5416666666666665,
+   "margin_over_always_first": -1.6250000000000004,
+   "margin_over_always_pass": -0.375,
+   "margin_over_majority_class": -0.375,
+   "margin_over_random_choice": -1.0494708994708994,
+   "method": "cluster-bootstrap",
+   "n": 48,
+   "n_clusters": 10,
+   "se": 0.7483425699057206
+  },
+  "puz_score_excl_norm": {
+   "ci95": [
+    0.2,
+    0.5
+   ],
+   "est": 0.3541666666666667,
+   "method": "cluster-bootstrap",
+   "n": 48,
+   "n_clusters": 10,
+   "se": 0.07483425699057206
+  },
+  "puz_score_incl": {
+   "ci95": [
+    2.0,
+    5.0
+   ],
+   "est": 3.5416666666666665,
+   "margin_over_always_first": -1.6250000000000004,
+   "margin_over_always_pass": -0.375,
+   "margin_over_majority_class": -0.375,
+   "margin_over_random_choice": -1.0494708994708994,
+   "method": "cluster-bootstrap",
+   "n": 48,
+   "n_clusters": 10,
+   "se": 0.7483425699057206
+  },
+  "puz_score_incl_norm": {
+   "ci95": [
+    0.2,
+    0.5
+   ],
+   "est": 0.3541666666666667,
+   "method": "cluster-bootstrap",
+   "n": 48,
+   "n_clusters": 10,
+   "se": 0.07483425699057206
+  },
+  "transport_error_rate": {
+   "ci95": [
+    0.0,
+    0.0741026511527422
+   ],
+   "est": 0.0,
+   "method": "wilson",
+   "n": 48,
+   "n_clusters": null,
+   "se": 0.0
+  }
+ },
+ "model": "offline:random",
+ "model_cfg": null,
+ "model_cfg_sha": null,
+ "n_clusters": 10,
+ "n_positions": 12,
+ "n_samples": 48,
+ "offline_policy": "random",
+ "overlay_sha": "487bbf8dc330",
+ "positions_file": "runs/overnight-1/suite-balanced.jsonl",
+ "sample_seed": 20260729,
+ "schema": "puzzle-run-summary.v1",
+ "seed_blocks": {
+  "puzzle-mining": 12
+ },
+ "skips": {
+  "skipped_category": 0,
+  "skipped_malformed_key": 0,
+  "skipped_render_error": 0,
+  "skipped_sampled_out": 0,
+  "skipped_split": 0,
+  "skipped_unscoreable_type": 0,
+  "skipped_unverified": 0
+ },
+ "split": "open",
+ "split_counts": {
+  "open": 12
+ },
+ "strictness": "strict",
+ "warnings": []
+}

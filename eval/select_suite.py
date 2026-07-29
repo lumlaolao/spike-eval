@@ -94,7 +94,28 @@ def dedupe(rows):
 
 
 def random_baseline(rows):
-    """Mean 1/n_options over rows — what uniform guessing scores."""
+    """Mean 1/n_options over rows — a CONSERVATIVE stand-in for the real floor.
+
+    puzzle_run.py is authoritative for every published floor, and it defines
+    random_choice over the MENU the model is actually offered
+    (rendered["menu_numbers"], via menu_score), counting every menu number that
+    scores 10. That differs from 1/n_options twice over: prompt_contract pins
+    mulligan to a 2-number menu whatever n_options says, and a key may mark
+    SEVERAL options 10 (score_from_wp's CI-overlap tie rule), which raises the
+    chance a uniform guess lands on one.
+
+    Measured on the balanced 12-position suite: this returns 0.247 where
+    puzzle_run reports random_choice 0.336. The gap is one-directional --
+    ignoring extra 10s can only UNDERSTATE the floor -- so using it as the
+    selection target is strictly stricter than the published bar, and a suite
+    balanced against it also clears puzzle_run's. That is why the
+    approximation is tolerable here and nowhere else.
+
+    It is NOT tolerable for always_first / always_pass, which are the floors
+    the selection actually optimises: those use verify_keys.suite_composition's
+    definitions verbatim, and both agree with puzzle_run exactly (0.25/0.25 on
+    the same suite). Do not report this number as a published baseline.
+    """
     ns = [len(r.get("options") or []) for r in rows]
     ns = [n for n in ns if n]
     if not ns:
