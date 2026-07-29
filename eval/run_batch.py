@@ -338,6 +338,45 @@ def has_game_line(out_dir, seed, swap):
 
 # ----------------------------------------------------------- cited guards
 
+FORGE_CP_FILE = "/tmp/forge_cp.txt"
+
+
+def require_forge_classpath(cp_file=FORGE_CP_FILE, forge_home=None):
+    """Refuse the batch up front if the maven classpath artifact is gone.
+
+    Same shape of failure as the deck-path bug this module already guards
+    against: a missing prerequisite that surfaces only as N identical opaque
+    per-game failures. Here every game dies with exit 1 and a bare
+    `cat: /tmp/forge_cp.txt: No such file or directory` in its own log, the
+    batch summary says only "nonzero-exit", and nothing names the cause or the
+    fix. It emptied a full overnight run: 12 matchups "generated" in under a
+    second each, 0 games produced.
+
+    /tmp is swept by the OS, so this file disappears on its own schedule while
+    the compiled classes it points at stay valid -- it will happen again.
+
+    Deliberately NOT self-healing: regenerating has no lock (CLAUDE.md), so
+    doing it here would race any batch already running. Refuse, print the exact
+    one-time command, and let the operator run it with nothing else in flight.
+    """
+    p = Path(cp_file)
+    try:
+        ok = p.is_file() and p.stat().st_size > 0
+    except OSError:
+        ok = False
+    if ok:
+        return
+    home = Path(forge_home).expanduser() if forge_home else Path("~/code/forge").expanduser()
+    _refuse_always(
+        "maven classpath file is missing or empty: %s\n"
+        "           Every game would fail with exit 1 and a bare 'cat: %s: No\n"
+        "           such file or directory'. Regenerate it ONCE, with no games\n"
+        "           running (regenerating has no lock):\n"
+        "             cd %s && mvn -q -o -pl forge-gui-desktop -am \\\n"
+        "                 dependency:build-classpath -Dmdep.outputFile=%s"
+        % (p, p, home, p))
+
+
 def resolve_deck_paths(args):
     """Absolutise and existence-check DECK_A/DECK_B. Runs in BOTH modes.
 
@@ -712,6 +751,7 @@ def main():
     # Deck paths are absolutised + existence-checked in BOTH modes, before any
     # JVM launches. See resolve_deck_paths for why this must not be cited-only.
     resolve_deck_paths(args)
+    require_forge_classpath(forge_home=args.forge_home)
 
     # Cited guards 1-3 run FIRST: before forge-home is touched and before any
     # directory is created, so a mirror-guard violation refuses cleanly.

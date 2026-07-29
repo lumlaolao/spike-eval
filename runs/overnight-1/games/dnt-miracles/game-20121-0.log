@@ -1,0 +1,955 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20121
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/death-and-taxes.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/miracles.plan
+[DECK] loaded 'Death and Taxes': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/death-and-taxes.txt)
+[DECK] loaded 'Miracles': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/miracles.txt)
+[SEATS] A=Death and Taxes(ai-log,opus) B=Miracles(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: B after 30 turns (AllOpponentsLost) in 13s
+--- full game log ---
+  MULLIGAN: Death and Taxes has kept a hand of 7 cards
+  MULLIGAN: Miracles has kept a hand of 7 cards
+  TURN: Turn 1 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (44)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (44) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Mother of Runes
+  STACK_RESOLVE: Mother of Runes - Creature 1 / 1
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 2 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Island (99)
+  MANA: Island (99) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Ponder
+  STACK_RESOLVE: Ponder (93) - Look at the top 3 cards of Miracles' library. Then put them back in any order.You may have that player shuffle their library. Miracles draws a card.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 3 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (31)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (44) - {T}: Add {W}.
+  MANA: Plains (31) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Thalia, Guardian of Thraben
+  STACK_RESOLVE: Thalia, Guardian of Thraben - Creature 2 / 1
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 4 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Volcanic Island (76)
+  MANA: Island (99) - {T}: Add {U}.
+  MANA: Volcanic Island (76) - {T}: Add {R}.
+  STACK_ADD: Miracles cast Portent targeting [Miracles]
+  STACK_RESOLVE: Portent (70) - Look at the top 3 cards of Miracles' library. Then put them back in any order.You may have that player shuffle their library. Draw a card.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 5 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Miracles triggered Portent
+  STACK_RESOLVE: Draw a card. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Rishadan Port (57)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Thalia, Guardian of Thraben (14) to attack Miracles.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Miracles didn't block Thalia, Guardian of Thraben (14).
+  PHASE: Death and Taxes' First Strike Damage Step
+  DAMAGE: Thalia, Guardian of Thraben (14) deals 2 combat damage to Miracles.
+  LIFE: Life: Miracles 20 > 18
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 6 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Karakas (69)
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  STACK_ADD: Miracles activated Karakas targeting [Thalia, Guardian of Thraben (14)]
+  STACK_RESOLVE: Karakas (69) - Return Thalia, Guardian of Thraben (14) to its owner's hand.
+  MANA: Island (99) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 7 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Rishadan Port (56)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (44) - {T}: Add {W}.
+  MANA: Plains (31) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Thalia, Guardian of Thraben
+  STACK_RESOLVE: Thalia, Guardian of Thraben - Creature 2 / 1
+  PHASE: Death and Taxes' End step
+  MANA: Volcanic Island (76) - {T}: Add {R}.
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top (113) - Miracles draws a card. Put Sensei's Divining Top (113) on top of its owner's library.
+  STACK_RESOLVE: Sensei's Divining Top (113) - Look at the top 3 cards of Miracles' library. Then put them back in any order.
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 8 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Tundra (98)
+  MANA: Island (99) - {T}: Add {U}.
+  MANA: Volcanic Island (76) - {T}: Add {R}.
+  STACK_ADD: Miracles cast Ponder
+  STACK_RESOLVE: Ponder (95) - Look at the top 3 cards of Miracles' library. Then put them back in any order.You may have that player shuffle their library. Miracles draws a card.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  STACK_ADD: Miracles activated Karakas targeting [Thalia, Guardian of Thraben (14)]
+  STACK_RESOLVE: Karakas (69) - Return Thalia, Guardian of Thraben (14) to its owner's hand.
+  MANA: Tundra (98) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 9 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (34)
+  MANA: Plains (44) - {T}: Add {W}.
+  MANA: Plains (31) - {T}: Add {W}.
+  MANA: Plains (34) - {T}: Add {W}.
+  MANA: Rishadan Port (57) - {T}: Add {C}.
+  MANA: Rishadan Port (56) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Batterskull
+  STACK_RESOLVE: Batterskull
+  STACK_ADD: Death and Taxes triggered Batterskull
+  STACK_RESOLVE: Living Weapon (When this Equipment enters, create a 0/0 black Phyrexian Germ creature token, then attach this to it.) [Zone Changer: Batterskull (3)]
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 10 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Island (106)
+  MANA: Island (99) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Ponder
+  STACK_RESOLVE: Ponder (96) - Look at the top 3 cards of Miracles' library. Then put them back in any order.You may have that player shuffle their library. Miracles draws a card.
+  MANA: Tundra (98) - {T}: Add {W}.
+  MANA: Karakas (69) - {T}: Add {W}.
+  MANA: Island (106) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Council's Judgment
+  STACK_RESOLVE: Miracles voted for Batterskull (3)
+Death and Taxes voted for Batterskull (3)
+  ZONE_CHANGE: Batterskull (3) was put into Exile from Battlefield.
+  STACK_RESOLVE: Council's Judgment (110) - Miracles and Death and Taxes vote for a nonland permanent you don't control.
+  ZONE_CHANGE: Phyrexian Germ Token (133) was put into Graveyard from Battlefield.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 11 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Wasteland (55)
+  ZONE_CHANGE: Wasteland (55) was put into Graveyard from Battlefield.
+  STACK_ADD: Death and Taxes activated Wasteland targeting [Karakas (69)]
+  ZONE_CHANGE: Karakas (69) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (55) - Destroy Karakas (69).
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (44) - {T}: Add {W}.
+  MANA: Plains (31) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Thalia, Guardian of Thraben
+  STACK_RESOLVE: Thalia, Guardian of Thraben - Creature 2 / 1
+  MANA: Plains (34) - {T}: Add {W}.
+  MANA: Rishadan Port (57) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Stoneforge Mystic
+  STACK_RESOLVE: Stoneforge Mystic - Creature 1 / 2
+  STACK_ADD: Death and Taxes triggered Stoneforge Mystic
+  STACK_RESOLVE: When Stoneforge Mystic enters, you may search your library for an Equipment card, reveal it, put it into your hand, then shuffle. [Zone Changer: Stoneforge Mystic (51)]
+  PHASE: Death and Taxes' End step
+  MANA: Volcanic Island (76) - {T}: Add {R}.
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top (113) - Miracles draws a card. Put Sensei's Divining Top (113) on top of its owner's library.
+  STACK_RESOLVE: Sensei's Divining Top (113) - Look at the top 3 cards of Miracles' library. Then put them back in any order.
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 12 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Flooded Strand (67)
+  LIFE: Life: Miracles 18 > 17
+  ZONE_CHANGE: Flooded Strand (67) was put into Graveyard from Battlefield.
+  STACK_ADD: Miracles activated Flooded Strand
+  STACK_RESOLVE: Flooded Strand (67) - Miracles searches their library for a Plains or Island card, puts it onto the battlefield, then shuffles.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Island (99) - {T}: Add {U}.
+  MANA: Island (106) - {T}: Add {U}.
+  MANA: Volcanic Island (76) - {T}: Add {R}.
+  MANA: Tundra (98) - {T}: Add {U}.
+  MANA: Tundra (97) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Jace, the Mind Sculptor
+  EFFECT_REPLACED: Jace, the Mind Sculptor enters with three loyalty counters on it.
+  STACK_RESOLVE: Jace, the Mind Sculptor
+  STACK_ADD: Miracles activated Jace, the Mind Sculptor targeting [Thalia, Guardian of Thraben (14)]
+  STACK_RESOLVE: Jace, the Mind Sculptor (117) - Return Thalia, Guardian of Thraben (14) to its owner's hand.
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 13 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  MANA: Plains (44) - {T}: Add {W}.
+  MANA: Plains (31) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Umezawa's Jitte
+  STACK_RESOLVE: Umezawa's Jitte
+  MANA: Plains (34) - {T}: Add {W}.
+  MANA: Rishadan Port (57) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte targeting [Stoneforge Mystic (51)]
+  STACK_RESOLVE: Umezawa's Jitte (60) -  Attach to Stoneforge Mystic (51)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Stoneforge Mystic (51) to attack Jace, the Mind Sculptor (117).
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Miracles didn't block Stoneforge Mystic (51).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  STACK_ADD: Death and Taxes triggered Umezawa's Jitte
+  STACK_RESOLVE: Whenever equipped creature deals combat damage, put two charge counters on Umezawa's Jitte. [Damage Source: Stoneforge Mystic (51), Damaged: [Jace, the Mind Sculptor (117)], Amount: 1]
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 14 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Flooded Strand (68)
+  LIFE: Life: Miracles 17 > 16
+  ZONE_CHANGE: Flooded Strand (68) was put into Graveyard from Battlefield.
+  STACK_ADD: Miracles activated Flooded Strand
+  STACK_RESOLVE: Flooded Strand (68) - Miracles searches their library for a Plains or Island card, puts it onto the battlefield, then shuffles.
+  STACK_ADD: Miracles activated Jace, the Mind Sculptor targeting [Death and Taxes]
+  STACK_RESOLVE: Jace, the Mind Sculptor (117) - Miracles looks at the top card of Death and Taxes' library.
+  MANA: Island (99) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Portent targeting [Miracles]
+  STACK_RESOLVE: Portent (71) - Look at the top 3 cards of Miracles' library. Then put them back in any order.You may have that player shuffle their library. Draw a card.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Island (106) - {T}: Add {U}.
+  MANA: Volcanic Island (76) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Counterbalance
+  STACK_RESOLVE: Counterbalance
+  MANA: Tundra (98) - {T}: Add {W}.
+  STACK_ADD: Miracles cast Swords to Plowshares targeting [Stoneforge Mystic (51)]
+  STACK_ADD: Death and Taxes activated Mother of Runes targeting [Stoneforge Mystic (51)]
+  MANA: Tundra (97) - {T}: Add {W}.
+  STACK_ADD: Miracles cast Swords to Plowshares targeting [Stoneforge Mystic (51)]
+  ZONE_CHANGE: Stoneforge Mystic (51) was put into Exile from Battlefield.
+  LIFE: Life: Death and Taxes 20 > 21
+  STACK_RESOLVE: Swords to Plowshares (73) - Exile Stoneforge Mystic (51). Death and Taxes gains life equal to its power.
+  STACK_RESOLVE: Mother of Runes ability fizzles.
+  STACK_RESOLVE: Swords to Plowshares ability fizzles.
+  PHASE: Miracles' End step
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte
+  LIFE: Life: Death and Taxes 21 > 23
+  STACK_RESOLVE: Umezawa's Jitte (60) -  You gain 2 life.
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte
+  LIFE: Life: Death and Taxes 23 > 25
+  STACK_RESOLVE: Umezawa's Jitte (60) -  You gain 2 life.
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 15 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Miracles triggered Portent
+  STACK_RESOLVE: Draw a card. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  MANA: Plains (44) - {T}: Add {W}.
+  MANA: Plains (31) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte targeting [Mother of Runes (6)]
+  STACK_RESOLVE: Umezawa's Jitte (60) -  Attach to Mother of Runes (6)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (34) - {T}: Add {W}.
+  MANA: Rishadan Port (57) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Thalia, Guardian of Thraben
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Thalia, Guardian of Thraben (14), Activator: Death and Taxes, SpellAbility: Thalia, Guardian of Thraben - Creature 2 / 1]
+  STACK_RESOLVE: Thalia, Guardian of Thraben - Creature 2 / 1
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 16 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Scalding Tarn (89)
+  LIFE: Life: Miracles 16 > 15
+  ZONE_CHANGE: Scalding Tarn (89) was put into Graveyard from Battlefield.
+  STACK_ADD: Miracles activated Scalding Tarn
+  STACK_RESOLVE: Scalding Tarn (89) - Miracles searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  STACK_ADD: Miracles activated Jace, the Mind Sculptor targeting [Death and Taxes]
+  STACK_RESOLVE: Jace, the Mind Sculptor (117) - Miracles looks at the top card of Death and Taxes' library.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Island (99) - {T}: Add {U}.
+  MANA: Island (106) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Brainstorm
+  STACK_RESOLVE: Brainstorm (79) - Miracles draws three cards, then puts two cards from their hand on top of their library in any order.
+  MANA: Island (102) - {T}: Add {U}.
+  MANA: Volcanic Island (76) - {T}: Add {R}.
+  STACK_ADD: Miracles cast Brainstorm
+  STACK_RESOLVE: Brainstorm (81) - Miracles draws three cards, then puts two cards from their hand on top of their library in any order.
+  MANA: Tundra (98) - {T}: Add {U}.
+  MANA: Volcanic Island (77) - {T}: Add {R}.
+  STACK_ADD: Miracles cast Snapcaster Mage
+  STACK_RESOLVE: Snapcaster Mage - Creature 2 / 1
+  STACK_ADD: Miracles triggered Snapcaster Mage targeting [Council's Judgment (110)]
+  STACK_RESOLVE: When Snapcaster Mage enters, target instant or sorcery card in your graveyard gains flashback until end of turn. The flashback cost is equal to its mana cost. (You may cast that card from your graveyard for its flashback cost. Then exile it.) (Targeting: [[Council's Judgment (110)]]) [Zone Changer: Snapcaster Mage (82)]
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 17 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  MANA: Plains (44) - {T}: Add {W}.
+  MANA: Plains (31) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Swords to Plowshares targeting [Snapcaster Mage (82)]
+  STACK_ADD: Miracles triggered Counterbalance
+  MANA: Plains (34) - {T}: Add {W}.
+  MANA: Rishadan Port (57) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Swords to Plowshares targeting [Snapcaster Mage (82)]
+  STACK_ADD: Miracles triggered Counterbalance
+  ZONE_CHANGE: Send countered spell to Graveyard
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Swords to Plowshares (24), Activator: Death and Taxes, SpellAbility: Exile target creature. Its controller gains life equal to its power.]
+  ZONE_CHANGE: Send countered spell to Graveyard
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Swords to Plowshares (25), Activator: Death and Taxes, SpellAbility: Exile target creature. Its controller gains life equal to its power.]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Thalia, Guardian of Thraben (14) to attack Jace, the Mind Sculptor (117).
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Miracles didn't block Thalia, Guardian of Thraben (14).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 18 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  STACK_ADD: Miracles activated Jace, the Mind Sculptor targeting [Thalia, Guardian of Thraben (14)]
+  STACK_RESOLVE: Jace, the Mind Sculptor (117) - Return Thalia, Guardian of Thraben (14) to its owner's hand.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Island (99) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 19 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  MANA: Plains (44) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Swords to Plowshares targeting [Snapcaster Mage (82)]
+  STACK_ADD: Miracles triggered Counterbalance
+  ZONE_CHANGE: Send countered spell to Graveyard
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Swords to Plowshares (26), Activator: Death and Taxes, SpellAbility: Exile target creature. Its controller gains life equal to its power.]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (31) - {T}: Add {W}.
+  MANA: Plains (34) - {T}: Add {W}.
+  MANA: Rishadan Port (57) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Mirran Crusader
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Mirran Crusader (22), Activator: Death and Taxes, SpellAbility: Mirran Crusader - Creature 2 / 2]
+  STACK_RESOLVE: Mirran Crusader - Creature 2 / 2
+  MANA: Rishadan Port (56) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Aether Vial
+  STACK_ADD: Miracles triggered Counterbalance
+  ZONE_CHANGE: Send countered spell to Graveyard
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Aether Vial (10), Activator: Death and Taxes, SpellAbility: Aether Vial]
+  PHASE: Death and Taxes' End step
+  MANA: Island (106) - {T}: Add {U}.
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top (116) - Miracles draws a card. Put Sensei's Divining Top (116) on top of its owner's library.
+  STACK_RESOLVE: Sensei's Divining Top (116) - Look at the top 3 cards of Miracles' library. Then put them back in any order.
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 20 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  STACK_ADD: Miracles activated Jace, the Mind Sculptor targeting [Mirran Crusader (22)]
+  STACK_RESOLVE: Jace, the Mind Sculptor (117) - Return Mirran Crusader (22) to its owner's hand.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Island (99) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top
+  MANA: Island (106) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 21 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (44) - {T}: Add {W}.
+  MANA: Plains (31) - {T}: Add {W}.
+  MANA: Plains (34) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Mirran Crusader
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Mirran Crusader (22), Activator: Death and Taxes, SpellAbility: Mirran Crusader - Creature 2 / 2]
+  STACK_RESOLVE: Mirran Crusader - Creature 2 / 2
+  PHASE: Death and Taxes' End step
+  MANA: Island (102) - {T}: Add {U}.
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top (115) - Miracles draws a card. Put Sensei's Divining Top (115) on top of its owner's library.
+  MANA: Volcanic Island (76) - {T}: Add {R}.
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top (116) - Miracles draws a card. Put Sensei's Divining Top (116) on top of its owner's library.
+  STACK_RESOLVE: Sensei's Divining Top (116) - Look at the top 3 cards of Miracles' library. Then put them back in any order.
+  STACK_RESOLVE: Sensei's Divining Top (115) - Look at the top 3 cards of Miracles' library. Then put them back in any order.
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 22 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  STACK_ADD: Miracles activated Jace, the Mind Sculptor targeting [Death and Taxes]
+  STACK_RESOLVE: Jace, the Mind Sculptor (117) - Miracles looks at the top card of Death and Taxes' library.
+  MANA: Island (99) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Ponder
+  STACK_RESOLVE: Ponder (94) - Look at the top 3 cards of Miracles' library. Then put them back in any order.You may have that player shuffle their library. Miracles draws a card.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Island (106) - {T}: Add {U}.
+  MANA: Island (102) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Counterbalance
+  STACK_RESOLVE: Counterbalance
+  MANA: Volcanic Island (76) - {T}: Add {R}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top
+  MANA: Volcanic Island (77) - {T}: Add {R}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 23 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Mirran Crusader (22) to attack Jace, the Mind Sculptor (117).
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Miracles didn't block Mirran Crusader (22).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  ZONE_CHANGE: Jace, the Mind Sculptor (117) was put into Graveyard from Battlefield.
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (44) - {T}: Add {W}.
+  MANA: Plains (31) - {T}: Add {W}.
+  MANA: Plains (34) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Mirran Crusader
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_ADD: Miracles triggered Counterbalance
+  ZONE_CHANGE: Send countered spell to Graveyard
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Mirran Crusader (23), Activator: Death and Taxes, SpellAbility: Mirran Crusader - Creature 2 / 2]
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Mirran Crusader (23), Activator: Death and Taxes, SpellAbility: Mirran Crusader - Creature 2 / 2]
+  PHASE: Death and Taxes' End step
+  MANA: Tundra (98) - {T}: Add {U}.
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top (115) - Miracles draws a card. Put Sensei's Divining Top (115) on top of its owner's library.
+  MANA: Tundra (97) - {T}: Add {U}.
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top (116) - Miracles draws a card. Put Sensei's Divining Top (116) on top of its owner's library.
+  STACK_RESOLVE: Sensei's Divining Top (116) - Look at the top 3 cards of Miracles' library. Then put them back in any order.
+  STACK_RESOLVE: Sensei's Divining Top (115) - Look at the top 3 cards of Miracles' library. Then put them back in any order.
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 24 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Tundra (98) - {T}: Add {W}.
+  MANA: Island (99) - {T}: Add {U}.
+  MANA: Island (106) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Monastery Mentor
+  STACK_RESOLVE: Monastery Mentor - Creature 2 / 2
+  MANA: Island (102) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_ADD: Miracles triggered Monastery Mentor
+  STACK_ADD: Miracles triggered Monastery Mentor
+  STACK_RESOLVE: Whenever you cast a noncreature spell, create a 1/1 white Monk creature token with prowess. [Card: Sensei's Divining Top (115), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (115), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Sensei's Divining Top
+  MANA: Volcanic Island (76) - {T}: Add {R}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_ADD: Miracles triggered Monk Token
+  STACK_ADD: Miracles triggered Monastery Mentor
+  STACK_ADD: Miracles triggered Monastery Mentor
+  STACK_RESOLVE: Whenever you cast a noncreature spell, create a 1/1 white Monk creature token with prowess. [Card: Sensei's Divining Top (116), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (116), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (116), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Sensei's Divining Top
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 25 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (37)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Mirran Crusader (22) to attack Miracles.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Miracles didn't block Mirran Crusader (22).
+  PHASE: Death and Taxes' First Strike Damage Step
+  DAMAGE: Mirran Crusader (22) deals 2 combat damage to Miracles.
+  LIFE: Life: Miracles 15 > 13
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Mirran Crusader (22) deals 2 combat damage to Miracles.
+  LIFE: Life: Miracles 13 > 11
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (44) - {T}: Add {W}.
+  MANA: Plains (31) - {T}: Add {W}.
+  MANA: Plains (34) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Flickerwisp
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Flickerwisp (47), Activator: Death and Taxes, SpellAbility: Flickerwisp - Creature 3 / 1]
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Flickerwisp (47), Activator: Death and Taxes, SpellAbility: Flickerwisp - Creature 3 / 1]
+  STACK_RESOLVE: Flickerwisp - Creature 3 / 1
+  STACK_ADD: Death and Taxes triggered Flickerwisp targeting [Monk Token (136)]
+  ZONE_CHANGE: Monk Token (136) was put into Exile from Battlefield.
+  STACK_RESOLVE: When Flickerwisp enters, exile another target permanent. Return that card to the battlefield under its owner's control at the beginning of the next end step. (Targeting: [[Monk Token (136)]]) [Zone Changer: Flickerwisp (47)]
+  MANA: Plains (37) - {T}: Add {W}.
+  MANA: Rishadan Port (57) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Thalia, Guardian of Thraben
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_ADD: Miracles triggered Counterbalance
+  ZONE_CHANGE: Send countered spell to Graveyard
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Thalia, Guardian of Thraben (14), Activator: Death and Taxes, SpellAbility: Thalia, Guardian of Thraben - Creature 2 / 1]
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Thalia, Guardian of Thraben (14), Activator: Death and Taxes, SpellAbility: Thalia, Guardian of Thraben - Creature 2 / 1]
+  PHASE: Death and Taxes' End step
+  STACK_ADD: Death and Taxes triggered Flickerwisp
+  MANA: Volcanic Island (77) - {T}: Add {R}.
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top (115) - Miracles draws a card. Put Sensei's Divining Top (115) on top of its owner's library.
+  MANA: Tundra (97) - {T}: Add {U}.
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top (116) - Miracles draws a card. Put Sensei's Divining Top (116) on top of its owner's library.
+  STACK_RESOLVE: Sensei's Divining Top (116) - Look at the top 3 cards of Miracles' library. Then put them back in any order.
+  STACK_RESOLVE: Sensei's Divining Top (115) - Look at the top 3 cards of Miracles' library. Then put them back in any order.
+  STACK_RESOLVE: Return exiled permanent to the battlefield. ([Monk Token (136)]) [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 26 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  MANA: Island (99) - {T}: Add {U}.
+  MANA: Island (106) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Snapcaster Mage
+  STACK_RESOLVE: Snapcaster Mage - Creature 2 / 1
+  STACK_ADD: Miracles triggered Snapcaster Mage targeting [Council's Judgment (110)]
+  STACK_RESOLVE: When Snapcaster Mage enters, target instant or sorcery card in your graveyard gains flashback until end of turn. The flashback cost is equal to its mana cost. (You may cast that card from your graveyard for its flashback cost. Then exile it.) (Targeting: [[Council's Judgment (110)]]) [Zone Changer: Snapcaster Mage (83)]
+  MANA: Tundra (98) - {T}: Add {W}.
+  MANA: Tundra (97) - {T}: Add {W}.
+  MANA: Island (102) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Council's Judgment
+  STACK_ADD: Miracles triggered Monastery Mentor
+  STACK_ADD: Miracles triggered Monk Token
+  STACK_ADD: Miracles triggered Monastery Mentor
+  STACK_RESOLVE: Whenever you cast a noncreature spell, create a 1/1 white Monk creature token with prowess. [Card: Council's Judgment (110), Activator: Miracles, SpellAbility: Will of the Council — Starting with you, each player votes for a nonland permanent you don't control. Exile each permanent with the most votes or tied for most votes.]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Council's Judgment (110), Activator: Miracles, SpellAbility: Will of the Council — Starting with you, each player votes for a nonland permanent you don't control. Exile each permanent with the most votes or tied for most votes.]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Council's Judgment (110), Activator: Miracles, SpellAbility: Will of the Council — Starting with you, each player votes for a nonland permanent you don't control. Exile each permanent with the most votes or tied for most votes.]
+  STACK_RESOLVE: Miracles voted for Flickerwisp (47)
+Death and Taxes voted for Flickerwisp (47)
+  ZONE_CHANGE: Flickerwisp (47) was put into Exile from Battlefield.
+  STACK_RESOLVE: Council's Judgment (110) - Miracles and Death and Taxes vote for a nonland permanent you don't control.
+  EFFECT_REPLACED: Flashback (You may cast this card from your graveyard for its flashback cost. Then exile it.)
+  MANA: Volcanic Island (76) - {T}: Add {R}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_ADD: Miracles triggered Monastery Mentor
+  STACK_ADD: Miracles triggered Monk Token
+  STACK_ADD: Miracles triggered Monk Token
+  STACK_ADD: Miracles triggered Monastery Mentor
+  STACK_RESOLVE: Whenever you cast a noncreature spell, create a 1/1 white Monk creature token with prowess. [Card: Sensei's Divining Top (115), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (115), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (115), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (115), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Sensei's Divining Top
+  MANA: Volcanic Island (77) - {T}: Add {R}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_ADD: Miracles triggered Monk Token
+  STACK_ADD: Miracles triggered Monastery Mentor
+  STACK_ADD: Miracles triggered Monk Token
+  STACK_ADD: Miracles triggered Monk Token
+  STACK_ADD: Miracles triggered Monastery Mentor
+  STACK_RESOLVE: Whenever you cast a noncreature spell, create a 1/1 white Monk creature token with prowess. [Card: Sensei's Divining Top (116), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (116), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (116), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (116), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (116), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Sensei's Divining Top
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  COMBAT: Miracles assigned Monastery Mentor (84), Monk Token (139) and Snapcaster Mage (82) to attack Death and Taxes.
+  PHASE: Miracles' Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Monastery Mentor (84).
+Death and Taxes didn't block Monk Token (139).
+Death and Taxes didn't block Snapcaster Mage (82).
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  DAMAGE: Monastery Mentor (84) deals 5 combat damage to Death and Taxes.
+  DAMAGE: Monk Token (139) deals 4 combat damage to Death and Taxes.
+  DAMAGE: Snapcaster Mage (82) deals 2 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 25 > 14
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 27 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (40)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Mirran Crusader (22) to attack Miracles.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Miracles didn't block Mirran Crusader (22).
+  PHASE: Death and Taxes' First Strike Damage Step
+  DAMAGE: Mirran Crusader (22) deals 2 combat damage to Miracles.
+  LIFE: Life: Miracles 11 > 9
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Mirran Crusader (22) deals 2 combat damage to Miracles.
+  LIFE: Life: Miracles 9 > 7
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (44) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Mother of Runes
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Mother of Runes (5), Activator: Death and Taxes, SpellAbility: Mother of Runes - Creature 1 / 1]
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Mother of Runes (5), Activator: Death and Taxes, SpellAbility: Mother of Runes - Creature 1 / 1]
+  STACK_RESOLVE: Mother of Runes - Creature 1 / 1
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 28 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  COMBAT: Miracles assigned Monastery Mentor (84), Monk Token (139), Monk Token (142), Monk Token (145) and Monk Token (148) to attack Death and Taxes.
+  PHASE: Miracles' Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Monastery Mentor (84).
+Death and Taxes didn't block Monk Token (139).
+Death and Taxes didn't block Monk Token (142).
+Death and Taxes didn't block Monk Token (145).
+Death and Taxes didn't block Monk Token (148).
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  DAMAGE: Monastery Mentor (84) deals 2 combat damage to Death and Taxes.
+  DAMAGE: Monk Token (139) deals 1 combat damage to Death and Taxes.
+  DAMAGE: Monk Token (142) deals 1 combat damage to Death and Taxes.
+  DAMAGE: Monk Token (145) deals 1 combat damage to Death and Taxes.
+  DAMAGE: Monk Token (148) deals 1 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 14 > 8
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 29 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (30)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  MANA: Island (99) - {T}: Add {U}.
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top (115) - Miracles draws a card. Put Sensei's Divining Top (115) on top of its owner's library.
+  MANA: Island (106) - {T}: Add {U}.
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top (116) - Miracles draws a card. Put Sensei's Divining Top (116) on top of its owner's library.
+  STACK_RESOLVE: Sensei's Divining Top (116) - Look at the top 3 cards of Miracles' library. Then put them back in any order.
+  STACK_RESOLVE: Sensei's Divining Top (115) - Look at the top 3 cards of Miracles' library. Then put them back in any order.
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 30 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Island (103)
+  MANA: Island (99) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_ADD: Miracles triggered Monk Token
+  STACK_ADD: Miracles triggered Monastery Mentor
+  STACK_ADD: Miracles triggered Monk Token
+  STACK_ADD: Miracles triggered Monk Token
+  STACK_ADD: Miracles triggered Monk Token
+  STACK_ADD: Miracles triggered Monastery Mentor
+  STACK_RESOLVE: Whenever you cast a noncreature spell, create a 1/1 white Monk creature token with prowess. [Card: Sensei's Divining Top (115), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (115), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (115), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (115), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (115), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (115), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Sensei's Divining Top
+  MANA: Island (106) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_ADD: Miracles triggered Monk Token
+  STACK_ADD: Miracles triggered Monastery Mentor
+  STACK_ADD: Miracles triggered Monk Token
+  STACK_ADD: Miracles triggered Monk Token
+  STACK_ADD: Miracles triggered Monk Token
+  STACK_ADD: Miracles triggered Monk Token
+  STACK_ADD: Miracles triggered Monastery Mentor
+  STACK_RESOLVE: Whenever you cast a noncreature spell, create a 1/1 white Monk creature token with prowess. [Card: Sensei's Divining Top (116), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (116), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (116), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (116), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (116), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (116), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Sensei's Divining Top (116), Activator: Miracles, SpellAbility: Sensei's Divining Top]
+  STACK_RESOLVE: Sensei's Divining Top
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  COMBAT: Miracles assigned Monastery Mentor (84), Monk Token (139), Monk Token (142), Monk Token (145), Monk Token (148), Snapcaster Mage (82) and Snapcaster Mage (83) to attack Death and Taxes.
+  PHASE: Miracles' Declare Blockers Step
+  COMBAT: Death and Taxes assigned Mother of Runes (6) to block Monastery Mentor (84).
+Death and Taxes assigned Mother of Runes (5) to block Monk Token (139).
+Death and Taxes assigned Mirran Crusader (22) to block Monk Token (142).
+Death and Taxes didn't block Monk Token (145).
+Death and Taxes didn't block Monk Token (148).
+Death and Taxes didn't block Snapcaster Mage (82).
+Death and Taxes didn't block Snapcaster Mage (83).
+  STACK_ADD: Death and Taxes activated Mother of Runes targeting [Mirran Crusader (22)]
+  STACK_RESOLVE: Mother of Runes (6) - Mirran Crusader (22) gains protection from your choice of white, blue, black, red, or green until end of turn.
+  STACK_ADD: Death and Taxes activated Mother of Runes targeting [Mother of Runes (5)]
+  STACK_RESOLVE: Mother of Runes (5) - Mother of Runes (5) gains protection from your choice of white, blue, black, red, or green until end of turn.
+  PHASE: Miracles' First Strike Damage Step
+  DAMAGE: Mirran Crusader (22) deals 2 damage to Monk Token (142).
+  PHASE: Miracles' Combat Damage Step
+  EFFECT_REPLACED: Protection from white
+  EFFECT_REPLACED: Protection from white
+  DAMAGE: Monastery Mentor (84) deals 4 damage to Mother of Runes (6).
+  DAMAGE: Monk Token (145) deals 3 combat damage to Death and Taxes.
+  DAMAGE: Monk Token (148) deals 3 combat damage to Death and Taxes.
+  DAMAGE: Snapcaster Mage (82) deals 2 combat damage to Death and Taxes.
+  DAMAGE: Snapcaster Mage (83) deals 2 combat damage to Death and Taxes.
+  DAMAGE: Mother of Runes (6) deals 1 damage to Monastery Mentor (84).
+  DAMAGE: Mother of Runes (5) deals 1 damage to Monk Token (139).
+  DAMAGE: Mirran Crusader (22) deals 2 damage to Monk Token (142).
+  LIFE: Life: Death and Taxes 8 > -2
+  PLAYER_CONTROL: Death and Taxes has restored control over themself
+  PLAYER_CONTROL: Miracles has restored control over themself
+  GAME_OUTCOME: Turn 15
+  GAME_OUTCOME: Death and Taxes has lost because life total reached 0
+  GAME_OUTCOME: Miracles has won because all opponents have lost
+  MATCH_RESULTS: Death and Taxes: 0 Miracles: 1 
+===============================

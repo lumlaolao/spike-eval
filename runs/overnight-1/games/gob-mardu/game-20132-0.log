@@ -1,0 +1,707 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20132
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/mardu-energy.plan
+[DECK] loaded 'Goblins': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.txt)
+[DECK] loaded 'Mardu Energy': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/mardu-energy.txt)
+[SEATS] A=Goblins(ai-log,opus) B=Mardu Energy(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+SVar 'ConvertedManaCost' not defined in Card (Ocelot Pride)
+========== GAME OVER ==========
+outcome: B after 18 turns (AllOpponentsLost) in 9s
+--- full game log ---
+  MULLIGAN: Goblins has kept a hand of 7 cards
+  MULLIGAN: Mardu Energy has kept a hand of 7 cards
+  TURN: Turn 1 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (19)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 2 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  EFFECT_REPLACED: Shadowy Backstreet enters tapped.
+  LAND: Mardu Energy played Shadowy Backstreet (116)
+  STACK_ADD: Mardu Energy triggered Shadowy Backstreet
+  STACK_RESOLVE: Mardu Energy surveiled 1 card(s) to the graveyard
+  STACK_RESOLVE: When Shadowy Backstreet enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Shadowy Backstreet (116)]
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 3 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (27)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (19) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Aether Vial
+  STACK_RESOLVE: Aether Vial
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 4 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Arid Mesa (69)
+  LIFE: Life: Mardu Energy 20 > 19
+  ZONE_CHANGE: Arid Mesa (69) was put into Graveyard from Battlefield.
+  STACK_ADD: Mardu Energy activated Arid Mesa
+  STACK_RESOLVE: Arid Mesa (69) - Mardu Energy searches their library for a Mountain or Plains card, puts it onto the battlefield, then shuffles.
+  MANA: Shadowy Backstreet (116) - {T}: Add {B}.
+  MANA: Badlands (61) - {T}: Add {R}.
+  STACK_ADD: Mardu Energy cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Mardu Energy triggered Orcish Bowmasters targeting [Goblins]
+  DAMAGE: Orcish Bowmasters (96) deals 1 non-combat damage to Goblins.
+  LIFE: Life: Goblins 20 > 19
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Goblins]]) [Zone Changer: Orcish Bowmasters (96)]
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 5 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (37)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (19) - {T}: Add {R}.
+  MANA: Mountain (27) - {T}: Add {R}.
+  MANA: Mountain (37) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Warchief
+  STACK_RESOLVE: Goblin Warchief - Creature 2 / 2
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 6 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Marsh Flats (83)
+  LIFE: Life: Mardu Energy 19 > 18
+  ZONE_CHANGE: Marsh Flats (83) was put into Graveyard from Battlefield.
+  STACK_ADD: Mardu Energy activated Marsh Flats
+  STACK_RESOLVE: Marsh Flats (83) - Mardu Energy searches their library for a Plains or Swamp card, puts it onto the battlefield, then shuffles.
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Shadowy Backstreet (116) - {T}: Add {W}.
+  MANA: Badlands (61) - {T}: Add {R}.
+  STACK_ADD: Mardu Energy cast Voice of Victory
+  STACK_RESOLVE: Voice of Victory - Creature 1 / 3
+  MANA: Scrubland (103) - {T}: Add {W}.
+  STACK_ADD: Mardu Energy cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 7 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (30)
+  MANA: Mountain (19) - {T}: Add {R}.
+  MANA: Mountain (27) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Gempalm Incinerator
+  STACK_RESOLVE: Gempalm Incinerator - Creature 2 / 1
+  MANA: Mountain (37) - {T}: Add {R}.
+  MANA: Mountain (30) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Sharpshooter
+  STACK_RESOLVE: Goblin Sharpshooter - Creature 1 / 1
+  STACK_ADD: Goblins activated Goblin Sharpshooter targeting [Ocelot Pride (87)]
+  DAMAGE: Goblin Sharpshooter (14) deals 1 damage to Ocelot Pride (87).
+  STACK_RESOLVE: Goblin Sharpshooter (14) - Goblin Sharpshooter (14) deals 1 damage to Ocelot Pride (87).
+  ZONE_CHANGE: Ocelot Pride (87) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Ocelot Pride (87)]
+  STACK_ADD: Goblins activated Goblin Sharpshooter targeting [Orcish Bowmasters (96)]
+  DAMAGE: Goblin Sharpshooter (14) deals 1 damage to Orcish Bowmasters (96).
+  STACK_RESOLVE: Goblin Sharpshooter (14) - Goblin Sharpshooter (14) deals 1 damage to Orcish Bowmasters (96).
+  ZONE_CHANGE: Orcish Bowmasters (96) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Orcish Bowmasters (96)]
+  STACK_ADD: Goblins activated Goblin Sharpshooter targeting [Orc Army Token (138)]
+  DAMAGE: Goblin Sharpshooter (14) deals 1 damage to Orc Army Token (138).
+  STACK_RESOLVE: Goblin Sharpshooter (14) - Goblin Sharpshooter (14) deals 1 damage to Orc Army Token (138).
+  ZONE_CHANGE: Orc Army Token (138) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Orc Army Token (138)]
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 8 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Badlands (61) - {T}: Add {R}.
+  MANA: Shadowy Backstreet (116) - {T}: Add {B}.
+  STACK_ADD: Mardu Energy cast Amped Raptor
+  STACK_RESOLVE: Amped Raptor - Creature 2 / 1
+  STACK_ADD: Mardu Energy triggered Amped Raptor
+  STACK_ADD: Goblins activated Goblin Sharpshooter targeting [Amped Raptor (110)]
+  DAMAGE: Goblin Sharpshooter (14) deals 1 damage to Amped Raptor (110).
+  STACK_RESOLVE: Goblin Sharpshooter (14) - Goblin Sharpshooter (14) deals 1 damage to Amped Raptor (110).
+  ZONE_CHANGE: Amped Raptor (110) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Amped Raptor (110)]
+  STACK_RESOLVE: When Amped Raptor enters, you get {E}{E} (two energy counters). Then if you cast it from your hand, exile cards from the top of your library until you exile a nonland card. You may cast that card by paying an amount of {E} equal to its mana value rather than paying its mana cost. [Zone Changer: Amped Raptor (110)]
+  MANA: Scrubland (103) - {T}: Add {W}.
+  STACK_ADD: Mardu Energy cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  STACK_ADD: Goblins activated Goblin Sharpshooter targeting [Ocelot Pride (84)]
+  DAMAGE: Goblin Sharpshooter (14) deals 1 damage to Ocelot Pride (84).
+  STACK_RESOLVE: Goblin Sharpshooter (14) - Goblin Sharpshooter (14) deals 1 damage to Ocelot Pride (84).
+  ZONE_CHANGE: Ocelot Pride (84) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Ocelot Pride (84)]
+  PHASE: Mardu Energy's End step
+  STACK_ADD: Goblins activated Goblin Sharpshooter targeting [Mardu Energy]
+  DAMAGE: Goblin Sharpshooter (14) deals 1 non-combat damage to Mardu Energy.
+  LIFE: Life: Mardu Energy 18 > 17
+  STACK_RESOLVE: Goblin Sharpshooter (14) - Goblin Sharpshooter (14) deals 1 damage to Mardu Energy.
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 9 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Karakas (17)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (19) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Aether Vial
+  STACK_RESOLVE: Aether Vial
+  MANA: Mountain (27) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Aether Vial
+  STACK_RESOLVE: Aether Vial
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 10 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Shadowy Backstreet (116) - {T}: Add {W}.
+  MANA: Badlands (61) - {T}: Add {R}.
+  STACK_ADD: Mardu Energy cast Voice of Victory
+  STACK_RESOLVE: Voice of Victory - Creature 1 / 3
+  MANA: Scrubland (103) - {T}: Add {W}.
+  STACK_ADD: Mardu Energy cast Guide of Souls
+  STACK_RESOLVE: Guide of Souls - Creature 1 / 2
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 11 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  MANA: Mountain (19) - {T}: Add {R}.
+  MANA: Mountain (27) - {T}: Add {R}.
+  MANA: Mountain (37) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Ringleader
+  STACK_RESOLVE: Goblin Ringleader - Creature 2 / 2
+  STACK_ADD: Goblins triggered Goblin Ringleader
+  STACK_RESOLVE: When Goblin Ringleader enters, reveal the top four cards of your library. Put all Goblin cards revealed this way into your hand and the rest on the bottom of your library in any order. [Zone Changer: Goblin Ringleader (4)]
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 12 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Karakas (77)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Shadowy Backstreet (116) - {T}: Add {W}.
+  MANA: Badlands (61) - {T}: Add {R}.
+  STACK_ADD: Mardu Energy cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Ajani, Nacatl Pariah
+  STACK_ADD: Goblins activated Karakas targeting [Ajani, Nacatl Pariah (117)]
+  STACK_RESOLVE: Karakas (17) - Return Ajani, Nacatl Pariah (117) to its owner's hand.
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (117)]
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  LIFE: Life: Mardu Energy 17 > 18
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Warrior Token (148)]
+  LIFE: Life: Mardu Energy 18 > 19
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Ajani, Nacatl Pariah (117)]
+  MANA: Scrubland (103) - {T}: Add {W}.
+  MANA: Karakas (77) - {T}: Add {W}.
+  STACK_ADD: Mardu Energy cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (117)]
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  LIFE: Life: Mardu Energy 19 > 20
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Warrior Token (152)]
+  LIFE: Life: Mardu Energy 20 > 21
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Ajani, Nacatl Pariah (117)]
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 13 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  STACK_ADD: Goblins activated Karakas targeting [Ajani, Nacatl Pariah (117)]
+  STACK_RESOLVE: Karakas (17) - Return Ajani, Nacatl Pariah (117) to its owner's hand.
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  MANA: Mountain (19) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Skirk Prospector
+  STACK_RESOLVE: Skirk Prospector - Creature 1 / 1
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 14 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Cat Warrior Token (148) and Cat Warrior Token (152) to attack Goblins.
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Cat Warrior Token (148), Cat Warrior Token (152)]]
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Goblins didn't block Cat Warrior Token (148).
+Goblins didn't block Cat Warrior Token (152).
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Cat Warrior Token (148) deals 2 combat damage to Goblins.
+  DAMAGE: Cat Warrior Token (152) deals 2 combat damage to Goblins.
+  LIFE: Life: Goblins 19 > 15
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Badlands (61) - {T}: Add {R}.
+  MANA: Shadowy Backstreet (116) - {T}: Add {B}.
+  STACK_ADD: Mardu Energy cast Amped Raptor
+  STACK_RESOLVE: Amped Raptor - Creature 2 / 1
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Amped Raptor
+  STACK_ADD: Mardu Energy cast Ocelot Pride
+  STACK_RESOLVE: When Amped Raptor enters, you get {E}{E} (two energy counters). Then if you cast it from your hand, exile cards from the top of your library until you exile a nonland card. You may cast that card by paying an amount of {E} equal to its mana value rather than paying its mana cost. [Zone Changer: Amped Raptor (111)]
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  LIFE: Life: Mardu Energy 21 > 22
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Ocelot Pride (85)]
+  LIFE: Life: Mardu Energy 22 > 23
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Amped Raptor (111)]
+  MANA: Scrubland (103) - {T}: Add {W}.
+  MANA: Karakas (77) - {T}: Add {W}.
+  STACK_ADD: Mardu Energy cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (117)]
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  LIFE: Life: Mardu Energy 23 > 24
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Warrior Token (157)]
+  LIFE: Life: Mardu Energy 24 > 25
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Ajani, Nacatl Pariah (117)]
+  PHASE: Mardu Energy's End step
+  STACK_ADD: Mardu Energy triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Mardu Energy]
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  LIFE: Life: Mardu Energy 25 > 26
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (164)]
+  LIFE: Life: Mardu Energy 26 > 27
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Warrior Token (163)]
+  LIFE: Life: Mardu Energy 27 > 28
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (160)]
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 15 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  STACK_ADD: Goblins activated Karakas targeting [Ajani, Nacatl Pariah (117)]
+  STACK_RESOLVE: Karakas (17) - Return Ajani, Nacatl Pariah (117) to its owner's hand.
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 16 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Cat Warrior Token (148), Cat Warrior Token (152), Amped Raptor (111), Cat Warrior Token (157) and Cat Warrior Token (163) to attack Goblins.
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Cat Warrior Token (148), Cat Warrior Token (152), Amped Raptor (111), Cat Warrior Token (157), Cat Warrior Token (163)]]
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Goblins didn't block Cat Warrior Token (148).
+Goblins didn't block Cat Warrior Token (152).
+Goblins didn't block Amped Raptor (111).
+Goblins didn't block Cat Warrior Token (157).
+Goblins didn't block Cat Warrior Token (163).
+  PHASE: Mardu Energy's First Strike Damage Step
+  DAMAGE: Amped Raptor (111) deals 2 combat damage to Goblins.
+  LIFE: Life: Goblins 15 > 13
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Cat Warrior Token (148) deals 2 combat damage to Goblins.
+  DAMAGE: Cat Warrior Token (152) deals 2 combat damage to Goblins.
+  DAMAGE: Cat Warrior Token (157) deals 2 combat damage to Goblins.
+  DAMAGE: Cat Warrior Token (163) deals 2 combat damage to Goblins.
+  LIFE: Life: Goblins 13 > 5
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Shadowy Backstreet (116) - {T}: Add {W}.
+  MANA: Badlands (61) - {T}: Add {R}.
+  STACK_ADD: Mardu Energy cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (117)]
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  LIFE: Life: Mardu Energy 28 > 29
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Warrior Token (168)]
+  LIFE: Life: Mardu Energy 29 > 30
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Ajani, Nacatl Pariah (117)]
+  MANA: Scrubland (103) - {T}: Add {W}.
+  STACK_ADD: Mardu Energy cast Guide of Souls
+  STACK_RESOLVE: Guide of Souls - Creature 1 / 2
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  LIFE: Life: Mardu Energy 30 > 31
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Guide of Souls (71)]
+  PHASE: Mardu Energy's End step
+  STACK_ADD: Mardu Energy triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Mardu Energy]
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  LIFE: Life: Mardu Energy 31 > 32
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (175)]
+  LIFE: Life: Mardu Energy 32 > 33
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (175)]
+  LIFE: Life: Mardu Energy 33 > 34
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Warrior Token (174)]
+  LIFE: Life: Mardu Energy 34 > 35
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Warrior Token (174)]
+  LIFE: Life: Mardu Energy 35 > 36
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (171)]
+  LIFE: Life: Mardu Energy 36 > 37
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Cat Token (171)]
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 17 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  STACK_ADD: Goblins activated Karakas targeting [Ajani, Nacatl Pariah (117)]
+  STACK_RESOLVE: Karakas (17) - Return Ajani, Nacatl Pariah (117) to its owner's hand.
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (18)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 18 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Cat Warrior Token (148), Cat Warrior Token (152), Amped Raptor (111), Cat Warrior Token (157), Cat Warrior Token (163), Cat Warrior Token (168), Cat Warrior Token (174), Voice of Victory (92), Voice of Victory (94), Guide of Souls (74), Ocelot Pride (85), Cat Token (160), Cat Token (164), Guide of Souls (71), Cat Token (171) and Cat Token (175) to attack Goblins.
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Voice of Victory
+  STACK_ADD: Mardu Energy triggered Voice of Victory
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (94)]
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  LIFE: Life: Mardu Energy 37 > 38
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (180)]
+  LIFE: Life: Mardu Energy 38 > 39
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (180)]
+  LIFE: Life: Mardu Energy 39 > 40
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (179)]
+  LIFE: Life: Mardu Energy 40 > 41
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (179)]
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (92)]
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  LIFE: Life: Mardu Energy 41 > 42
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (183)]
+  LIFE: Life: Mardu Energy 42 > 43
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (183)]
+  LIFE: Life: Mardu Energy 43 > 44
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (182)]
+  LIFE: Life: Mardu Energy 44 > 45
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Warrior Token (182)]
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Cat Warrior Token (148), Cat Warrior Token (152), Amped Raptor (111), Cat Warrior Token (157), Cat Warrior Token (163), Cat Warrior Token (168), Cat Warrior Token (174), Voice of Victory (92), Voice of Victory (94), Guide of Souls (74), Ocelot Pride (85), Cat Token (160), Cat Token (164), Guide of Souls (71), Cat Token (171), Cat Token (175)]]
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Cat Warrior Token (148), Cat Warrior Token (152), Amped Raptor (111), Cat Warrior Token (157), Cat Warrior Token (163), Cat Warrior Token (168), Cat Warrior Token (174), Voice of Victory (92), Voice of Victory (94), Guide of Souls (74), Ocelot Pride (85), Cat Token (160), Cat Token (164), Guide of Souls (71), Cat Token (171), Cat Token (175)]]
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Goblins assigned Goblin Warchief (15) to block Cat Warrior Token (148).
+Goblins assigned Gempalm Incinerator (56) to block Cat Warrior Token (152).
+Goblins assigned Skirk Prospector (39) to block Amped Raptor (111).
+Goblins assigned Goblin Ringleader (4) to block Cat Warrior Token (157).
+Goblins didn't block Cat Warrior Token (163).
+Goblins didn't block Cat Warrior Token (168).
+Goblins didn't block Cat Warrior Token (174).
+Goblins didn't block Voice of Victory (92).
+Goblins didn't block Voice of Victory (94).
+Goblins didn't block Guide of Souls (74).
+Goblins didn't block Ocelot Pride (85).
+Goblins didn't block Cat Token (160).
+Goblins didn't block Cat Token (164).
+Goblins didn't block Guide of Souls (71).
+Goblins didn't block Cat Token (171).
+Goblins didn't block Cat Token (175).
+Goblins didn't block Warrior Token (179).
+Goblins didn't block Warrior Token (180).
+Goblins didn't block Warrior Token (182).
+Goblins didn't block Warrior Token (183).
+  PHASE: Mardu Energy's First Strike Damage Step
+  DAMAGE: Amped Raptor (111) deals 2 damage to Skirk Prospector (39).
+  DAMAGE: Ocelot Pride (85) deals 1 combat damage to Goblins.
+  LIFE: Life: Mardu Energy 45 > 46
+  LIFE: Life: Goblins 5 > 4
+  ZONE_CHANGE: Skirk Prospector (39) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Skirk Prospector (39)]
+  STACK_ADD: Goblins activated Goblin Sharpshooter targeting [Amped Raptor (111)]
+  DAMAGE: Goblin Sharpshooter (14) deals 1 damage to Amped Raptor (111).
+  STACK_RESOLVE: Goblin Sharpshooter (14) - Goblin Sharpshooter (14) deals 1 damage to Amped Raptor (111).
+  ZONE_CHANGE: Amped Raptor (111) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Amped Raptor (111)]
+  STACK_ADD: Goblins activated Goblin Sharpshooter targeting [Ocelot Pride (85)]
+  DAMAGE: Goblin Sharpshooter (14) deals 1 damage to Ocelot Pride (85).
+  STACK_RESOLVE: Goblin Sharpshooter (14) - Goblin Sharpshooter (14) deals 1 damage to Ocelot Pride (85).
+  ZONE_CHANGE: Ocelot Pride (85) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Ocelot Pride (85)]
+  STACK_ADD: Goblins activated Goblin Sharpshooter targeting [Cat Warrior Token (163)]
+  DAMAGE: Goblin Sharpshooter (14) deals 1 damage to Cat Warrior Token (163).
+  STACK_RESOLVE: Goblin Sharpshooter (14) - Goblin Sharpshooter (14) deals 1 damage to Cat Warrior Token (163).
+  ZONE_CHANGE: Cat Warrior Token (163) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Cat Warrior Token (163)]
+  STACK_ADD: Goblins activated Goblin Sharpshooter targeting [Cat Warrior Token (168)]
+  DAMAGE: Goblin Sharpshooter (14) deals 1 damage to Cat Warrior Token (168).
+  STACK_RESOLVE: Goblin Sharpshooter (14) - Goblin Sharpshooter (14) deals 1 damage to Cat Warrior Token (168).
+  ZONE_CHANGE: Cat Warrior Token (168) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Cat Warrior Token (168)]
+  STACK_ADD: Goblins activated Goblin Sharpshooter targeting [Cat Warrior Token (174)]
+  DAMAGE: Goblin Sharpshooter (14) deals 1 damage to Cat Warrior Token (174).
+  STACK_RESOLVE: Goblin Sharpshooter (14) - Goblin Sharpshooter (14) deals 1 damage to Cat Warrior Token (174).
+  ZONE_CHANGE: Cat Warrior Token (174) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Cat Warrior Token (174)]
+  STACK_ADD: Goblins activated Goblin Sharpshooter targeting [Cat Token (160)]
+  DAMAGE: Goblin Sharpshooter (14) deals 1 damage to Cat Token (160).
+  STACK_RESOLVE: Goblin Sharpshooter (14) - Goblin Sharpshooter (14) deals 1 damage to Cat Token (160).
+  ZONE_CHANGE: Cat Token (160) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Cat Token (160)]
+  STACK_ADD: Goblins activated Goblin Sharpshooter targeting [Cat Token (164)]
+  DAMAGE: Goblin Sharpshooter (14) deals 1 damage to Cat Token (164).
+  STACK_RESOLVE: Goblin Sharpshooter (14) - Goblin Sharpshooter (14) deals 1 damage to Cat Token (164).
+  ZONE_CHANGE: Cat Token (164) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Cat Token (164)]
+  STACK_ADD: Goblins activated Goblin Sharpshooter targeting [Cat Token (171)]
+  DAMAGE: Goblin Sharpshooter (14) deals 1 damage to Cat Token (171).
+  STACK_RESOLVE: Goblin Sharpshooter (14) - Goblin Sharpshooter (14) deals 1 damage to Cat Token (171).
+  ZONE_CHANGE: Cat Token (171) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Cat Token (171)]
+  STACK_ADD: Goblins activated Goblin Sharpshooter targeting [Cat Token (175)]
+  DAMAGE: Goblin Sharpshooter (14) deals 1 damage to Cat Token (175).
+  STACK_RESOLVE: Goblin Sharpshooter (14) - Goblin Sharpshooter (14) deals 1 damage to Cat Token (175).
+  ZONE_CHANGE: Cat Token (175) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Cat Token (175)]
+  STACK_ADD: Goblins activated Goblin Sharpshooter targeting [Warrior Token (179)]
+  DAMAGE: Goblin Sharpshooter (14) deals 1 damage to Warrior Token (179).
+  STACK_RESOLVE: Goblin Sharpshooter (14) - Goblin Sharpshooter (14) deals 1 damage to Warrior Token (179).
+  ZONE_CHANGE: Warrior Token (179) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Warrior Token (179)]
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Cat Warrior Token (148) deals 2 damage to Goblin Warchief (15).
+  DAMAGE: Cat Warrior Token (152) deals 2 damage to Gempalm Incinerator (56).
+  DAMAGE: Cat Warrior Token (157) deals 2 damage to Goblin Ringleader (4).
+  DAMAGE: Voice of Victory (92) deals 1 combat damage to Goblins.
+  DAMAGE: Voice of Victory (94) deals 1 combat damage to Goblins.
+  DAMAGE: Guide of Souls (74) deals 1 combat damage to Goblins.
+  DAMAGE: Guide of Souls (71) deals 1 combat damage to Goblins.
+  DAMAGE: Warrior Token (180) deals 1 combat damage to Goblins.
+  DAMAGE: Warrior Token (182) deals 1 combat damage to Goblins.
+  DAMAGE: Warrior Token (183) deals 1 combat damage to Goblins.
+  DAMAGE: Goblin Ringleader (4) deals 2 damage to Cat Warrior Token (157).
+  DAMAGE: Goblin Warchief (15) deals 2 damage to Cat Warrior Token (148).
+  DAMAGE: Gempalm Incinerator (56) deals 2 damage to Cat Warrior Token (152).
+  LIFE: Life: Goblins 4 > -3
+  PLAYER_CONTROL: Goblins has restored control over themself
+  PLAYER_CONTROL: Mardu Energy has restored control over themself
+  GAME_OUTCOME: Turn 9
+  GAME_OUTCOME: Goblins has lost because life total reached 0
+  GAME_OUTCOME: Mardu Energy has won because all opponents have lost
+  MATCH_RESULTS: Goblins: 0 Mardu Energy: 1 
+===============================

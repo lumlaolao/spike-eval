@@ -1,0 +1,434 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20133
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/mardu-energy.plan
+[DECK] loaded 'Goblins': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.txt)
+[DECK] loaded 'Mardu Energy': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/mardu-energy.txt)
+[SEATS] A=Goblins(ai-log,opus) B=Mardu Energy(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+SVar 'ConvertedManaCost' not found in ability, fallback to Card (Thoughtseize). Ability is (Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life. )
+SVar 'ConvertedManaCost' not defined in Card (Thoughtseize)
+SVar 'ConvertedManaCost' not defined in Card (Ajani, Nacatl Pariah)
+========== GAME OVER ==========
+outcome: A after 15 turns (AllOpponentsLost) in 4s
+--- full game log ---
+  MULLIGAN: Goblins has kept a hand of 7 cards
+  MULLIGAN: Mardu Energy has kept a hand of 7 cards
+  TURN: Turn 1 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (29)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 2 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Badlands (61)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 3 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (30)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (29) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Lackey
+  STACK_RESOLVE: Goblin Lackey - Creature 1 / 1
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 4 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Wasteland (113)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Badlands (61) - {T}: Add {R}.
+  MANA: Wasteland (113) - {T}: Add {C}.
+  STACK_ADD: Mardu Energy cast Amped Raptor
+  STACK_RESOLVE: Amped Raptor - Creature 2 / 1
+  STACK_ADD: Mardu Energy triggered Amped Raptor
+  STACK_ADD: Mardu Energy cast Thoughtseize targeting [Goblins]
+  STACK_RESOLVE: When Amped Raptor enters, you get {E}{E} (two energy counters). Then if you cast it from your hand, exile cards from the top of your library until you exile a nonland card. You may cast that card by paying an amount of {E} equal to its mana value rather than paying its mana cost. [Zone Changer: Amped Raptor (109)]
+  DISCARD: Goblins discards Krenko, Mob Boss (46).
+  LIFE: Life: Mardu Energy 20 > 18
+  STACK_RESOLVE: Thoughtseize (107) - Goblins reveals their hand. Mardu Energy chooses a nonland card from it. Goblins discards that card. Mardu Energy loses 2 life.
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 5 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (23)
+  MANA: Mountain (29) - {T}: Add {R}.
+  MANA: Mountain (30) - {T}: Add {R}.
+  MANA: Mountain (23) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Chieftain
+  STACK_RESOLVE: Goblin Chieftain - Creature 2 / 2
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 6 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  MANA: Badlands (61) - {T}: Add {B}.
+  MANA: Wasteland (113) - {T}: Add {C}.
+  STACK_ADD: Mardu Energy cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Mardu Energy triggered Orcish Bowmasters targeting [Goblins]
+  DAMAGE: Orcish Bowmasters (97) deals 1 non-combat damage to Goblins.
+  LIFE: Life: Goblins 20 > 19
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Goblins]]) [Zone Changer: Orcish Bowmasters (97)]
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Amped Raptor (109) to attack Goblins.
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Goblins didn't block Amped Raptor (109).
+  PHASE: Mardu Energy's First Strike Damage Step
+  DAMAGE: Amped Raptor (109) deals 2 combat damage to Goblins.
+  LIFE: Life: Goblins 19 > 17
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 7 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  MANA: Mountain (29) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Skirk Prospector
+  STACK_RESOLVE: Skirk Prospector - Creature 1 / 1
+  MANA: Mountain (30) - {T}: Add {R}.
+  MANA: Mountain (23) - {T}: Add {R}.
+  ZONE_CHANGE: Goblin Lackey (7) was put into Graveyard from Battlefield.
+  MANA: Skirk Prospector (39) - Sacrifice a Goblin: Add {R}.
+  STACK_ADD: Goblins cast Goblin Matron
+  STACK_RESOLVE: Goblin Matron - Creature 1 / 1
+  STACK_ADD: Goblins triggered Goblin Matron
+  STACK_RESOLVE: When Goblin Matron enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle. [Zone Changer: Goblin Matron (53)]
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Goblin Chieftain (45), Skirk Prospector (39) and Goblin Matron (53) to attack Mardu Energy.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Mardu Energy didn't block Goblin Chieftain (45).
+Mardu Energy didn't block Skirk Prospector (39).
+Mardu Energy didn't block Goblin Matron (53).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Goblin Chieftain (45) deals 2 combat damage to Mardu Energy.
+  DAMAGE: Skirk Prospector (39) deals 2 combat damage to Mardu Energy.
+  DAMAGE: Goblin Matron (53) deals 2 combat damage to Mardu Energy.
+  LIFE: Life: Mardu Energy 18 > 12
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 8 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Amped Raptor (109), Orcish Bowmasters (97) and Orc Army Token (137) to attack Goblins.
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Goblins didn't block Amped Raptor (109).
+Goblins didn't block Orcish Bowmasters (97).
+Goblins didn't block Orc Army Token (137).
+  PHASE: Mardu Energy's First Strike Damage Step
+  DAMAGE: Amped Raptor (109) deals 2 combat damage to Goblins.
+  LIFE: Life: Goblins 17 > 15
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Orcish Bowmasters (97) deals 1 combat damage to Goblins.
+  DAMAGE: Orc Army Token (137) deals 1 combat damage to Goblins.
+  LIFE: Life: Goblins 15 > 13
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 9 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  MANA: Mountain (29) - {T}: Add {R}.
+  MANA: Mountain (30) - {T}: Add {R}.
+  MANA: Mountain (23) - {T}: Add {R}.
+  ZONE_CHANGE: Goblin Chieftain (45) was put into Graveyard from Battlefield.
+  MANA: Skirk Prospector (39) - Sacrifice a Goblin: Add {R}.
+  STACK_ADD: Goblins cast Krenko, Mob Boss
+  STACK_RESOLVE: Krenko, Mob Boss - Creature 3 / 3
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Skirk Prospector (39) and Goblin Matron (53) to attack Mardu Energy.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Mardu Energy didn't block Skirk Prospector (39).
+Mardu Energy didn't block Goblin Matron (53).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Skirk Prospector (39) deals 1 combat damage to Mardu Energy.
+  DAMAGE: Goblin Matron (53) deals 1 combat damage to Mardu Energy.
+  LIFE: Life: Mardu Energy 12 > 10
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  ZONE_CHANGE: Goblin Matron (53) was put into Graveyard from Battlefield.
+  MANA: Skirk Prospector (39) - Sacrifice a Goblin: Add {R}.
+  STACK_ADD: Goblins cast Aether Vial
+  STACK_RESOLVE: Aether Vial
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 10 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Badlands (61) - {T}: Add {R}.
+  MANA: Wasteland (113) - {T}: Add {C}.
+  STACK_ADD: Mardu Energy cast Amped Raptor
+  STACK_RESOLVE: Amped Raptor - Creature 2 / 1
+  STACK_ADD: Mardu Energy triggered Amped Raptor
+  STACK_ADD: Mardu Energy cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Amped Raptor enters, you get {E}{E} (two energy counters). Then if you cast it from your hand, exile cards from the top of your library until you exile a nonland card. You may cast that card by paying an amount of {E} equal to its mana value rather than paying its mana cost. [Zone Changer: Amped Raptor (108)]
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Mardu Energy triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (119)]
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 11 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  STACK_ADD: Goblins activated Aether Vial
+  STACK_RESOLVE: Aether Vial (12) - You may put a creature card with mana value equal to the number of charge counters on Aether Vial from your hand onto the battlefield.
+  PHASE: Goblins' Main phase, precombat
+  MANA: Mountain (29) - {T}: Add {R}.
+  MANA: Mountain (30) - {T}: Add {R}.
+  MANA: Mountain (23) - {T}: Add {R}.
+  ZONE_CHANGE: Goblin Lackey (8) was put into Graveyard from Battlefield.
+  MANA: Skirk Prospector (39) - Sacrifice a Goblin: Add {R}.
+  STACK_ADD: Goblins cast Goblin Ringleader
+  STACK_RESOLVE: Goblin Ringleader - Creature 2 / 2
+  STACK_ADD: Goblins triggered Goblin Ringleader
+  STACK_RESOLVE: When Goblin Ringleader enters, reveal the top four cards of your library. Put all Goblin cards revealed this way into your hand and the rest on the bottom of your library in any order. [Zone Changer: Goblin Ringleader (5)]
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 12 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  MANA: Badlands (61) - {T}: Add {B}.
+  MANA: Wasteland (113) - {T}: Add {C}.
+  STACK_ADD: Mardu Energy cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Mardu Energy triggered Orcish Bowmasters targeting [Skirk Prospector (39)]
+  DAMAGE: Orcish Bowmasters (95) deals 1 damage to Skirk Prospector (39).
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Skirk Prospector (39)]]) [Zone Changer: Orcish Bowmasters (95)]
+  ZONE_CHANGE: Skirk Prospector (39) was put into Graveyard from Battlefield.
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  STACK_ADD: Goblins activated Krenko, Mob Boss
+  STACK_RESOLVE: Krenko, Mob Boss (47) - Goblins creates four 1/1 red Goblin creature tokens.
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 13 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  STACK_ADD: Goblins activated Aether Vial
+  STACK_RESOLVE: Aether Vial (12) - You may put a creature card with mana value equal to the number of charge counters on Aether Vial from your hand onto the battlefield.
+  STACK_ADD: Goblins triggered Munitions Expert targeting [Amped Raptor (109)]
+  DAMAGE: Munitions Expert (44) deals 5 damage to Amped Raptor (109).
+  STACK_RESOLVE: When Munitions Expert enters, you may have it deal damage to target creature or planeswalker equal to the number of Goblins you control. (Targeting: [[Amped Raptor (109)]]) [Zone Changer: Munitions Expert (44)]
+  ZONE_CHANGE: Amped Raptor (109) was put into Graveyard from Battlefield.
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  MANA: Mountain (29) - {T}: Add {R}.
+  MANA: Mountain (30) - {T}: Add {R}.
+  MANA: Mountain (23) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Warchief
+  STACK_RESOLVE: Goblin Warchief - Creature 2 / 2
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (47) to attack Mardu Energy.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Mardu Energy didn't block Krenko, Mob Boss (47).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Krenko, Mob Boss (47) deals 3 combat damage to Mardu Energy.
+  LIFE: Life: Mardu Energy 10 > 7
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 14 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Amped Raptor (108) to attack Goblins.
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Goblins didn't block Amped Raptor (108).
+  PHASE: Mardu Energy's First Strike Damage Step
+  DAMAGE: Amped Raptor (108) deals 2 combat damage to Goblins.
+  LIFE: Life: Goblins 13 > 11
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Badlands (61) - {T}: Add {B}.
+  STACK_ADD: Mardu Energy cast Thoughtseize targeting [Goblins]
+  DISCARD: Goblins discards Goblin Warchief (16).
+  LIFE: Life: Mardu Energy 7 > 5
+  STACK_RESOLVE: Thoughtseize (105) - Goblins reveals their hand. Mardu Energy chooses a nonland card from it. Goblins discards that card. Mardu Energy loses 2 life.
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 15 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  EFFECT_REPLACED: As Cavern of Souls enters, choose a creature type.
+  LAND: Goblins played Cavern of Souls (2)
+  MANA: Mountain (29) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Mogg War Marshal
+  STACK_RESOLVE: Mogg War Marshal - Creature 1 / 1
+  STACK_ADD: Goblins triggered Mogg War Marshal
+  STACK_RESOLVE: When Mogg War Marshal enters or dies, create a 1/1 red Goblin creature token. [Zone Changer: Mogg War Marshal (42)]
+  MANA: Mountain (30) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Mogg War Marshal
+  STACK_RESOLVE: Mogg War Marshal - Creature 1 / 1
+  STACK_ADD: Goblins triggered Mogg War Marshal
+  STACK_RESOLVE: When Mogg War Marshal enters or dies, create a 1/1 red Goblin creature token. [Zone Changer: Mogg War Marshal (41)]
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (47), Goblin Ringleader (5), Goblin Warchief (15), Goblin Token (166), Goblin Token (167), Munitions Expert (44), Mogg War Marshal (42), Goblin Token (182), Mogg War Marshal (41) and Goblin Token (187) to attack Mardu Energy.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Mardu Energy assigned Cat Warrior Token (143) to block Krenko, Mob Boss (47).
+Mardu Energy assigned Orc Army Token (137) to block Goblin Ringleader (5).
+Mardu Energy assigned Orcish Bowmasters (97) to block Goblin Warchief (15).
+Mardu Energy didn't block Goblin Token (166).
+Mardu Energy didn't block Goblin Token (167).
+Mardu Energy assigned Orcish Bowmasters (95) to block Munitions Expert (44).
+Mardu Energy assigned Ajani, Nacatl Pariah (119) to block Mogg War Marshal (42).
+Mardu Energy didn't block Goblin Token (182).
+Mardu Energy didn't block Mogg War Marshal (41).
+Mardu Energy didn't block Goblin Token (187).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Krenko, Mob Boss (47) deals 3 damage to Cat Warrior Token (143).
+  DAMAGE: Goblin Ringleader (5) deals 2 damage to Orc Army Token (137).
+  DAMAGE: Goblin Warchief (15) deals 2 damage to Orcish Bowmasters (97).
+  DAMAGE: Goblin Token (166) deals 1 combat damage to Mardu Energy.
+  DAMAGE: Goblin Token (167) deals 1 combat damage to Mardu Energy.
+  DAMAGE: Munitions Expert (44) deals 1 damage to Orcish Bowmasters (95).
+  DAMAGE: Mogg War Marshal (42) deals 1 damage to Ajani, Nacatl Pariah (119).
+  DAMAGE: Goblin Token (182) deals 1 combat damage to Mardu Energy.
+  DAMAGE: Mogg War Marshal (41) deals 1 combat damage to Mardu Energy.
+  DAMAGE: Goblin Token (187) deals 1 combat damage to Mardu Energy.
+  DAMAGE: Cat Warrior Token (143) deals 2 damage to Krenko, Mob Boss (47).
+  DAMAGE: Orc Army Token (137) deals 2 damage to Goblin Ringleader (5).
+  DAMAGE: Orcish Bowmasters (97) deals 1 damage to Goblin Warchief (15).
+  DAMAGE: Orcish Bowmasters (95) deals 1 damage to Munitions Expert (44).
+  DAMAGE: Ajani, Nacatl Pariah (119) deals 1 damage to Mogg War Marshal (42).
+  LIFE: Life: Mardu Energy 5 > 0
+  PLAYER_CONTROL: Goblins has restored control over themself
+  PLAYER_CONTROL: Mardu Energy has restored control over themself
+  GAME_OUTCOME: Turn 8
+  GAME_OUTCOME: Goblins has won because all opponents have lost
+  GAME_OUTCOME: Mardu Energy has lost because life total reached 0
+  MATCH_RESULTS: Goblins: 1 Mardu Energy: 0 
+===============================

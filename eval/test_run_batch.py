@@ -103,6 +103,55 @@ class TestResolveIsActuallyWired(unittest.TestCase):
         self.assertNotIn("[start]", proc.stdout)
 
 
+class TestRequireForgeClasspath(unittest.TestCase):
+    """A missing /tmp/forge_cp.txt must stop the batch, not every game.
+
+    WHAT WOULD MAKE THIS FAIL: deleting the call site in main(), or letting a
+    zero-byte file through. Either restores the failure this guards: 12
+    matchups "generated" in under a second each and 0 games produced, with the
+    real cause (`cat: /tmp/forge_cp.txt: No such file or directory`) buried in
+    per-game logs and the batch summary saying only "nonzero-exit".
+    """
+
+    def test_missing_file_refuses_with_exit_2(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with self.assertRaises(SystemExit) as cm:
+                run_batch.require_forge_classpath(
+                    cp_file=str(Path(tmp) / "nope.txt"))
+            self.assertEqual(cm.exception.code, 2)
+
+    def test_empty_file_refuses(self):
+        """An empty file is the realistic half-failure: a truncated or
+        interrupted `dependency:build-classpath` leaves the path existing."""
+        with tempfile.TemporaryDirectory() as tmp:
+            cp = Path(tmp) / "cp.txt"
+            cp.write_text("", encoding="utf-8")
+            with self.assertRaises(SystemExit) as cm:
+                run_batch.require_forge_classpath(cp_file=str(cp))
+            self.assertEqual(cm.exception.code, 2)
+
+    def test_populated_file_is_accepted(self):
+        """Negative control: without this the assertions above would pass on a
+        guard that refuses unconditionally."""
+        with tempfile.TemporaryDirectory() as tmp:
+            cp = Path(tmp) / "cp.txt"
+            cp.write_text("/a/b.jar:/c/d.jar\n", encoding="utf-8")
+            run_batch.require_forge_classpath(cp_file=str(cp))  # must not raise
+
+    def test_refusal_prints_the_regeneration_command(self):
+        """The message has to carry the fix. The operator is looking at a batch
+        that produced nothing and has no other clue what to run."""
+        import io
+        import contextlib
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), self.assertRaises(SystemExit):
+            run_batch.require_forge_classpath(cp_file="/nonexistent/cp.txt")
+        msg = err.getvalue()
+        self.assertIn("dependency:build-classpath", msg)
+        self.assertIn("-Dmdep.outputFile=", msg)
+        self.assertNotIn("--exploratory", msg)
+
+
 class TestCheckpointSha(unittest.TestCase):
     def test_missing_spec_is_unknown(self):
         self.assertEqual(run_batch._checkpoint_sha(None), "unknown")

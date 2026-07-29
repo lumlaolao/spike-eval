@@ -1,0 +1,23 @@
+========================================================================
+  NOTE: some requested seed(s) are in RESERVED eval blocks (eval/EVAL-DESIGN.md §6.5).
+  That's fine if this run IS the frozen-anchor/mining/certification
+  use those blocks exist for — but games on these seeds must NEVER
+  be fed into make_sft_data.py / mine_puzzles.py as SFT/training data.
+  [puzzle-mining] 20136, 20137, 20138, 20139, 20140, 20141, 20142, 20143, 20144, 20145, 20146, 20147
+========================================================================
+========================================================================
+  EXPLORATORY MODE — numbers from this run are NOT citable.
+  Mirror-deck / forced-heuristics-off / jobs=1 guards are DISABLED.
+  Re-run without --exploratory (and a mirror deck) for a citable batch.
+========================================================================
+[provenance] engine=c1c64a53586459cd0d4c70f27abd1aa8bbc92891 overlay=487bbf8dc330 deck=299e50800b83 discipline=exploratory
+[provenance] checkpoint=unknown seed_bank=puzzle-mining
+[warn] no --checkpoint given: the game line will not say which weights played. The endpoint's served_* fields are then the only identity, and an alias spec (e.g. openrouter:default_model) may not resolve to one.
+[out] /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games/elves-dnt
+Running 12 games (jobs=6, out=/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games/elves-dnt, forge_home=/Users/lumlumlam/code/forge)
+[start] seed=20136 swap=0 -> game-20136-0.log
+[start] seed=20137 swap=0 -> game-20137-0.log
+[start] seed=20138 swap=0 -> game-20138-0.log
+[start] seed=20139 swap=0 -> game-20139-0.log
+[start] seed=20140 swap=0 -> game-20140-0.log
+[start] seed=20141 swap=0 -> game-20141-0.log

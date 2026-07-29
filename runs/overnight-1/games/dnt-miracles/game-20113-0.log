@@ -1,0 +1,570 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 1 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20113
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/death-and-taxes.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/miracles.plan
+[DECK] loaded 'Death and Taxes': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/death-and-taxes.txt)
+[DECK] loaded 'Miracles': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/miracles.txt)
+[SEATS] A=Death and Taxes(ai-log,opus) B=Miracles(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: A after 22 turns (AllOpponentsLost) in 7s
+--- full game log ---
+  MULLIGAN: Miracles has kept a hand of 7 cards
+  MULLIGAN: Death and Taxes has kept a hand of 7 cards
+  TURN: Turn 1 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Volcanic Island (77)
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 2 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Rishadan Port (56)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Rishadan Port (56) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Aether Vial
+  MANA: Volcanic Island (77) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Brainstorm
+  STACK_RESOLVE: Brainstorm (80) - Miracles draws three cards, then puts two cards from their hand on top of their library in any order.
+  STACK_RESOLVE: Aether Vial
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 3 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Plains (92)
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 4 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Karakas (18)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Volcanic Island (77) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Brainstorm
+  STACK_RESOLVE: Brainstorm (79) - Miracles draws three cards, then puts two cards from their hand on top of their library in any order.
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 5 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Flooded Strand (66)
+  LIFE: Life: Miracles 20 > 19
+  ZONE_CHANGE: Flooded Strand (66) was put into Graveyard from Battlefield.
+  STACK_ADD: Miracles activated Flooded Strand
+  STACK_RESOLVE: Flooded Strand (66) - Miracles searches their library for a Plains or Island card, puts it onto the battlefield, then shuffles.
+  MANA: Volcanic Island (77) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Portent targeting [Death and Taxes]
+  STACK_RESOLVE: Portent (71) - Look at the top 3 cards of Death and Taxes' library. Then put them back in any order.You may have that player shuffle their library. Draw a card.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 6 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_ADD: Miracles triggered Portent
+  STACK_RESOLVE: Draw a card. [Phase: Death and Taxes]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Rishadan Port (58)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Rishadan Port (56) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Aether Vial
+  STACK_RESOLVE: Aether Vial
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 7 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Flooded Strand (67)
+  LIFE: Life: Miracles 19 > 18
+  ZONE_CHANGE: Flooded Strand (67) was put into Graveyard from Battlefield.
+  STACK_ADD: Miracles activated Flooded Strand
+  STACK_RESOLVE: Flooded Strand (67) - Miracles searches their library for a Plains or Island card, puts it onto the battlefield, then shuffles.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Volcanic Island (77) - {T}: Add {U}.
+  MANA: Tundra (97) - {T}: Add {U}.
+  MANA: Plains (92) - {T}: Add {W}.
+  MANA: Volcanic Island (76) - {T}: Add {R}.
+  STACK_ADD: Miracles cast Jace, the Mind Sculptor
+  EFFECT_REPLACED: Jace, the Mind Sculptor enters with three loyalty counters on it.
+  STACK_RESOLVE: Jace, the Mind Sculptor
+  STACK_ADD: Miracles activated Jace, the Mind Sculptor targeting [Death and Taxes]
+  STACK_RESOLVE: Jace, the Mind Sculptor (117) - Miracles looks at the top card of Death and Taxes' library.
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 8 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  STACK_ADD: Death and Taxes activated Aether Vial
+  STACK_RESOLVE: Aether Vial (11) - You may put a creature card with mana value equal to the number of charge counters on Aether Vial from your hand onto the battlefield.
+  STACK_ADD: Death and Taxes triggered Flickerwisp targeting [Jace, the Mind Sculptor (117)]
+  ZONE_CHANGE: Jace, the Mind Sculptor (117) was put into Exile from Battlefield.
+  STACK_RESOLVE: When Flickerwisp enters, exile another target permanent. Return that card to the battlefield under its owner's control at the beginning of the next end step. (Targeting: [[Jace, the Mind Sculptor (117)]]) [Zone Changer: Flickerwisp (49)]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (40)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  STACK_ADD: Death and Taxes triggered Flickerwisp
+  EFFECT_REPLACED: Jace, the Mind Sculptor enters with three loyalty counters on it.
+  STACK_RESOLVE: Return exiled permanent to the battlefield. ([Jace, the Mind Sculptor (117)]) [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 9 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Tundra (98)
+  STACK_ADD: Miracles activated Jace, the Mind Sculptor targeting [Death and Taxes]
+  STACK_RESOLVE: Jace, the Mind Sculptor (117) - Miracles looks at the top card of Death and Taxes' library.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Plains (92) - {T}: Add {W}.
+  MANA: Tundra (97) - {T}: Add {W}.
+  MANA: Tundra (98) - {T}: Add {W}.
+  MANA: Volcanic Island (77) - {T}: Add {R}.
+  MANA: Volcanic Island (76) - {T}: Add {R}.
+  STACK_ADD: Miracles cast Entreat the Angels
+  STACK_RESOLVE: Entreat the Angels (112) - Miracles creates X 4/4 white Angel creature tokens with flying. (X=1)
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 10 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  MANA: Plains (40) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Swords to Plowshares targeting [Angel Token (130)]
+  ZONE_CHANGE: Angel Token (130) was put into Exile from Battlefield.
+  LIFE: Life: Miracles 18 > 22
+  STACK_RESOLVE: Swords to Plowshares (26) - Exile Angel Token (130). Miracles gains life equal to its power.
+  PHASE: Death and Taxes' Draw step
+  STACK_ADD: Death and Taxes activated Aether Vial
+  STACK_RESOLVE: Aether Vial (11) - You may put a creature card with mana value equal to the number of charge counters on Aether Vial from your hand onto the battlefield.
+  STACK_ADD: Death and Taxes triggered Recruiter of the Guard
+  STACK_RESOLVE: When Recruiter of the Guard enters, you may search your library for a creature card with toughness 2 or less, reveal it, put it into your hand, then shuffle. [Zone Changer: Recruiter of the Guard (21)]
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (35)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Flickerwisp (49) to attack Jace, the Mind Sculptor (117).
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Miracles didn't block Flickerwisp (49).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (35) - {T}: Add {W}.
+  MANA: Karakas (18) - {T}: Add {W}.
+  MANA: Rishadan Port (56) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Mirran Crusader
+  LIFE: Life: Miracles 22 > 21
+  STACK_ADD: Miracles cast Force of Will targeting [Mirran Crusader - Creature 2 / 2]
+  ZONE_CHANGE: Send countered spell to Graveyard
+  STACK_RESOLVE: Force of Will (85) - Counter Mirran Crusader (23).
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 11 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Scalding Tarn (91)
+  LIFE: Life: Miracles 21 > 20
+  ZONE_CHANGE: Scalding Tarn (91) was put into Graveyard from Battlefield.
+  STACK_ADD: Miracles activated Scalding Tarn
+  STACK_RESOLVE: Scalding Tarn (91) - Miracles searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  STACK_ADD: Miracles activated Jace, the Mind Sculptor targeting [Death and Taxes]
+  STACK_RESOLVE: Jace, the Mind Sculptor (117) - Miracles looks at the top card of Death and Taxes' library.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Plains (92) - {T}: Add {W}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 12 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (34)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Flickerwisp (49) and Recruiter of the Guard (21) to attack Jace, the Mind Sculptor (117).
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Miracles didn't block Flickerwisp (49).
+Miracles didn't block Recruiter of the Guard (21).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  ZONE_CHANGE: Jace, the Mind Sculptor (117) was put into Graveyard from Battlefield.
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (40) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Aether Vial
+  STACK_RESOLVE: Aether Vial
+  PHASE: Death and Taxes' End step
+  MANA: Island (103) - {T}: Add {U}.
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top (113) - Miracles draws a card. Put Sensei's Divining Top (113) on top of its owner's library.
+  STACK_RESOLVE: Sensei's Divining Top (113) - Look at the top 3 cards of Miracles' library. Then put them back in any order.
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 13 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Island (101)
+  MANA: Island (103) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Ponder
+  STACK_RESOLVE: Ponder (96) - Look at the top 3 cards of Miracles' library. Then put them back in any order.You may have that player shuffle their library. Miracles draws a card.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Plains (92) - {T}: Add {W}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 14 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  STACK_ADD: Death and Taxes activated Aether Vial
+  EFFECT_REPLACED: As Phyrexian Revoker enters, choose a nonland card name.
+  STACK_RESOLVE: Aether Vial (10) - You may put a creature card with mana value equal to the number of charge counters on Aether Vial from your hand onto the battlefield.
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (37)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Flickerwisp (49) and Recruiter of the Guard (21) to attack Miracles.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Miracles didn't block Flickerwisp (49).
+Miracles didn't block Recruiter of the Guard (21).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Flickerwisp (49) deals 3 combat damage to Miracles.
+  DAMAGE: Recruiter of the Guard (21) deals 1 combat damage to Miracles.
+  LIFE: Life: Miracles 20 > 16
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 15 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Scalding Tarn (88)
+  LIFE: Life: Miracles 16 > 15
+  ZONE_CHANGE: Scalding Tarn (88) was put into Graveyard from Battlefield.
+  STACK_ADD: Miracles activated Scalding Tarn
+  STACK_RESOLVE: Scalding Tarn (88) - Miracles searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Island (103) - {T}: Add {U}.
+  MANA: Island (101) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Counterbalance
+  STACK_RESOLVE: Counterbalance
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 16 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Flickerwisp (49), Phyrexian Revoker (28) and Recruiter of the Guard (21) to attack Miracles.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Miracles didn't block Flickerwisp (49).
+Miracles didn't block Phyrexian Revoker (28).
+Miracles didn't block Recruiter of the Guard (21).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Flickerwisp (49) deals 3 combat damage to Miracles.
+  DAMAGE: Phyrexian Revoker (28) deals 2 combat damage to Miracles.
+  DAMAGE: Recruiter of the Guard (21) deals 1 combat damage to Miracles.
+  LIFE: Life: Miracles 15 > 9
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 17 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 18 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  MANA: Plains (92) - {T}: Add {W}.
+  STACK_ADD: Miracles cast Swords to Plowshares targeting [Flickerwisp (49)]
+  ZONE_CHANGE: Flickerwisp (49) was put into Exile from Battlefield.
+  LIFE: Life: Death and Taxes 20 > 23
+  STACK_RESOLVE: Swords to Plowshares (74) - Exile Flickerwisp (49). Death and Taxes gains life equal to its power.
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Wasteland (55)
+  ZONE_CHANGE: Wasteland (55) was put into Graveyard from Battlefield.
+  STACK_ADD: Death and Taxes activated Wasteland targeting [Volcanic Island (77)]
+  ZONE_CHANGE: Volcanic Island (77) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (55) - Destroy Volcanic Island (77).
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Phyrexian Revoker (28) and Recruiter of the Guard (21) to attack Miracles.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Miracles didn't block Phyrexian Revoker (28).
+Miracles didn't block Recruiter of the Guard (21).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Phyrexian Revoker (28) deals 2 combat damage to Miracles.
+  DAMAGE: Recruiter of the Guard (21) deals 1 combat damage to Miracles.
+  LIFE: Life: Miracles 9 > 6
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 19 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Plains (92) - {T}: Add {W}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 20 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  STACK_ADD: Death and Taxes activated Aether Vial
+  STACK_RESOLVE: Aether Vial (10) - You may put a creature card with mana value equal to the number of charge counters on Aether Vial from your hand onto the battlefield.
+  PHASE: Death and Taxes' Main phase, precombat
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Phyrexian Revoker (28) and Recruiter of the Guard (21) to attack Miracles.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Miracles didn't block Phyrexian Revoker (28).
+Miracles didn't block Recruiter of the Guard (21).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Phyrexian Revoker (28) deals 2 combat damage to Miracles.
+  DAMAGE: Recruiter of the Guard (21) deals 1 combat damage to Miracles.
+  LIFE: Life: Miracles 6 > 3
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 21 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Scalding Tarn (90)
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 22 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (45)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Phyrexian Revoker (28), Thalia, Guardian of Thraben (15) and Recruiter of the Guard (21) to attack Miracles.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Miracles didn't block Phyrexian Revoker (28).
+Miracles didn't block Thalia, Guardian of Thraben (15).
+Miracles didn't block Recruiter of the Guard (21).
+  PHASE: Death and Taxes' First Strike Damage Step
+  DAMAGE: Thalia, Guardian of Thraben (15) deals 2 combat damage to Miracles.
+  LIFE: Life: Miracles 3 > 1
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Phyrexian Revoker (28) deals 2 combat damage to Miracles.
+  DAMAGE: Recruiter of the Guard (21) deals 1 combat damage to Miracles.
+  LIFE: Life: Miracles 1 > -2
+  PLAYER_CONTROL: Death and Taxes has restored control over themself
+  PLAYER_CONTROL: Miracles has restored control over themself
+  GAME_OUTCOME: Turn 11
+  GAME_OUTCOME: Death and Taxes has won because all opponents have lost
+  GAME_OUTCOME: Miracles has lost because life total reached 0
+  MATCH_RESULTS: Death and Taxes: 1 Miracles: 0 
+===============================
