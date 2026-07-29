@@ -142,6 +142,25 @@ exercised; see §6.
 | `puz.interface_failure_rate` (non-headline) | `never_fail = 0.0` |
 | `puz.score_excl` (**never** headline) | the same four |
 
+**Measured 2026-07-29: `score_incl` is the weaker headline, and by a lot.** On
+the balanced 12-position suite the floors came out:
+
+| baseline | `score_incl` /10 | `pass_1` |
+|---|---|---|
+| always_first | **5.17** | 0.25 |
+| random_choice | 4.59 | 0.336 |
+| always_pass / majority_class | 3.92 | 0.25 |
+| oracle_ceiling | 10.0 | 1.0 |
+
+Partial credit is forgiving: a policy that answers "1" every time, on a suite
+deliberately balanced so that `pass_1` floors sit at chance, still collects
+**5.17/10** on the headline metric — a trivial floor above 50%. `pass_1` on the
+same suite floors at 0.25. The project rule is to prefer metrics whose trivial
+baseline is near zero, so **quote `pass_1` as the headline and treat
+`score_incl` as the diagnostic**, or at minimum never show `score_incl` without
+`margin_over_always_first` beside it. This is recorded rather than acted on
+unilaterally: changing the headline is a suite-contract decision.
+
 Read `margin_over_always_first`, not just `margin_over_random_choice`. The
 engine emits menu options in its own order and nothing shuffles them, so a
 corpus can put the correct answer at slot 1 far more often than chance, and
