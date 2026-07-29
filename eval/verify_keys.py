@@ -621,7 +621,8 @@ class RolloutDriver(object):
     def __init__(self, forge_home=None, n_per_option=DEFAULT_N_PER_OPTION,
                  continuation=ROLLOUT_CONTINUATION, timeout_s=900,
                  work_dir=None, dry_run=False, engine_sha=None,
-                 overlay_sha=None, determinize=DEFAULT_DETERMINIZE):
+                 overlay_sha=None, determinize=DEFAULT_DETERMINIZE,
+                 j_offset=0):
         self.forge_home = Path(forge_home).expanduser() if forge_home else None
         self.n_per_option = n_per_option
         self.continuation = continuation
@@ -629,6 +630,10 @@ class RolloutDriver(object):
             raise ValueError("determinize must be one of %s (got %r)"
                              % (sorted(DETERMINIZE_MODES), determinize))
         self.determinize = determinize
+        # Which j band this driver draws from. Non-zero is what lets a
+        # confirmation pass use rollouts DISJOINT from the screening pass that
+        # selected the position -- see screen_then_confirm().
+        self.j_offset = int(j_offset or 0)
         self.timeout_s = timeout_s
         self.work_dir = Path(work_dir) if work_dir else None
         self.dry_run = dry_run
@@ -841,6 +846,7 @@ class RolloutDriver(object):
                      "FORK_ROLLOUT_N": str(n),
                      "FORK_ROLLOUT_SEED_BASE": str(address.get("seed")),
                      "FORK_ROLLOUT_DETERMINIZE": self.determinize,
+                     "FORK_ROLLOUT_J_OFFSET": str(self.j_offset),
                      "FORK_ROLLOUT_OUT": str(roll_file)}
             try:
                 rc, _log = self._run(env, extra)
@@ -917,6 +923,7 @@ class RolloutDriver(object):
                 "continuation": address.get("controllers"),
                 "seed_fn": SEED_FN, "rollout_seeds": seeds,
                 "determinize": self.determinize,
+                "j_offset": self.j_offset,
                 "caveats": [],
                 "engine_sha": self.engine_sha,
                 "overlay_sha": self.overlay_sha, "wall_ms": wall_ms}
@@ -1192,6 +1199,60 @@ def verify_one(cand, driver, lane_filter, n_per_option, name_idx, sha16, now,
 
 # --------------------------------------------------------------------- main
 
+def _run_all(cands, fn, jobs):
+    """Map fn over cands, concurrently when jobs > 1.
+
+    Parallelism is worth having: a position costs n_options * n_per_option full
+    games, so at the shipped n=45 a 3-option position is 135 JVM runs. Threads
+    (not processes) because every unit of work blocks in subprocess.run, which
+    releases the GIL -- and because the driver's probe cache is then shared
+    rather than duplicated per worker.
+
+    Results are collected INDEXED and re-sorted, so the output jsonl is
+    byte-identical regardless of jobs or of which worker finishes first. A
+    verification artifact whose contents depend on thread scheduling would not
+    be reproducible, which is the whole point of the seeded harness.
+    """
+    if jobs > 1 and len(cands) > 1:
+        import concurrent.futures as _cf
+        results = [None] * len(cands)
+        with _cf.ThreadPoolExecutor(max_workers=jobs) as pool:
+            futs = dict((pool.submit(fn, c), i) for i, c in enumerate(cands))
+            for fut in _cf.as_completed(futs):
+                results[futs[fut]] = fut.result()
+        return results
+    return [fn(c) for c in cands]
+
+
+def survives_screen(row, category, gap_threshold=DEFAULT_GAP_THRESHOLD,
+                    mulligan_gap_threshold=DEFAULT_MULLIGAN_GAP_THRESHOLD):
+    """Could this position PLAUSIBLY clear the bar at full n? (screening rule)
+
+    Deliberately generous, because the two error types are not symmetric: a
+    false negative silently deletes a real puzzle from the suite and nothing
+    downstream can ever recover it, while a false positive only costs one
+    position's worth of confirmation games. So the test is on the UPPER
+    confidence bound of the screened spread, not the point estimate --
+    spread + 1.96*se_spread >= base_threshold -- which keeps any position whose
+    small-n measurement is merely consistent with clearing the bar.
+
+    Rows that were never measured (no evidence, all-None wp, an already-decided
+    position aside) are KEPT rather than dropped: screening exists to save time
+    on flat positions, not to quietly resolve cases it has no reading on. The
+    one exception is position_already_decided, which no amount of extra
+    rollouts can change.
+    """
+    ev = (row or {}).get("rollout_evidence") or {}
+    if row.get("unverifiable_reason") == "position_already_decided":
+        return False
+    spread = ev.get("wp_spread")
+    if spread is None:
+        return True                      # unmeasured -> not screening's call
+    base = base_threshold_for(category, gap_threshold, mulligan_gap_threshold)
+    se = ev.get("wp_spread_se") or 0.0
+    return (spread + 1.96 * se) >= base
+
+
 def read_candidates(path, warnings):
     rows = []
     try:
@@ -1385,6 +1446,13 @@ def main(argv=None):
                     help="dimensionless multiple of the largest per-option "
                          "SE; the gate requires wp_max-wp_min >= "
                          "max(threshold, Z*max(se)) (default %(default)s)")
+    ap.add_argument("--screen-n", type=int, default=0,
+                    help="two-pass mode (engine driver only): first measure "
+                         "every position cheaply at this n, drop the ones whose "
+                         "spread could not plausibly clear the bar, then confirm "
+                         "survivors at --n-per-option using a DISJOINT rollout "
+                         "seed band (j >= screen-n) so selection cannot "
+                         "contaminate the key. 0 disables.")
     ap.add_argument("--max-positions", type=int, default=None)
     ap.add_argument("--jobs", type=int, default=1,
                     help="positions verified concurrently (each runs one JVM "
@@ -1428,39 +1496,76 @@ def main(argv=None):
     sha16 = contract_sha_or_unknown()
     now = _utcnow()
 
-    def _verify(cand):
-        row, lane, verified, reason, engine_missing = verify_one(
-            cand, driver, args.lane, args.n_per_option, name_idx, sha16, now,
-            args.gap_threshold, args.mulligan_gap_threshold,
-            args.min_separation_z)
-        if HAVE_PROMPT_CONTRACT:
-            try:
-                prompt_contract.stamp(row)
-            except Exception:
-                pass
-        return row, lane, verified, reason, engine_missing
+    def _make_verify(drv, n):
+        def _verify(cand):
+            row, lane, verified, reason, engine_missing = verify_one(
+                cand, drv, args.lane, n, name_idx, sha16, now,
+                args.gap_threshold, args.mulligan_gap_threshold,
+                args.min_separation_z)
+            if HAVE_PROMPT_CONTRACT:
+                try:
+                    prompt_contract.stamp(row)
+                except Exception:
+                    pass
+            return row, lane, verified, reason, engine_missing
+        return _verify
 
-    # Parallelism is worth having: a position costs n_options * n_per_option
-    # full games, so at the shipped n=45 a 3-option position is 135 JVM runs.
-    # Threads (not processes) because every unit of work blocks in
-    # subprocess.run, which releases the GIL -- and because the driver's probe
-    # cache is then shared rather than duplicated per worker.
-    #
-    # Results are collected INDEXED and re-sorted, so the output jsonl is
-    # byte-identical regardless of --jobs or of which thread finishes first.
-    # A verification artifact whose contents depend on scheduling would not be
-    # reproducible, which is the whole point of the seeded harness.
     jobs = max(1, int(args.jobs or 1))
-    if jobs > 1 and len(cands) > 1:
-        import concurrent.futures as _cf
-        results = [None] * len(cands)
-        with _cf.ThreadPoolExecutor(max_workers=jobs) as pool:
-            futs = dict((pool.submit(_verify, c), i)
-                        for i, c in enumerate(cands))
-            for fut in _cf.as_completed(futs):
-                results[futs[fut]] = fut.result()
+    screen_n = max(0, int(args.screen_n or 0))
+
+    if screen_n and args.driver == "engine":
+        # ---- two-pass: cheap screen, then confirm on a DISJOINT seed band ----
+        #
+        # Suite building is dominated by positions that turn out flat. Measured:
+        # ~153 games per position at n=45, ~2.7 min each, and 0/8 pilot
+        # positions cleared the bar -- so most of the budget is spent proving
+        # that a position was not worth measuring. Screening at n=8 costs 18%
+        # of a full position and discards most of them for that price.
+        #
+        # THE TRAP THIS AVOIDS. Selecting positions by measured spread and then
+        # minting the key from those SAME rollouts is winner's curse: the screen
+        # preferentially keeps positions whose sampling noise happened to run
+        # high, and re-reading that noise as evidence inflates every spread it
+        # selected on. So the confirm pass runs with j_offset=screen_n, which
+        # the seed function mix64(base ^ i*C1 ^ j*C2) makes a provably disjoint
+        # stream. No rollout is ever counted twice.
+        screen_driver = RolloutDriver(
+            forge_home=args.forge_home, n_per_option=screen_n,
+            work_dir=str(Path(args.out).resolve().parent / "verify-keys-work"),
+            dry_run=args.dry_run, determinize=args.determinize, j_offset=0,
+            engine_sha=os.environ.get("ENGINE_SHA") or None,
+            overlay_sha=os.environ.get("OVERLAY_SHA") or None)
+        driver.j_offset = screen_n
+        screened = _run_all(cands, _make_verify(screen_driver, screen_n), jobs)
+
+        keep, results = [], [None] * len(cands)
+        for i, (cand, res) in enumerate(zip(cands, screened)):
+            if survives_screen(res[0], cand.get("category"),
+                               args.gap_threshold,
+                               args.mulligan_gap_threshold):
+                keep.append(i)
+            else:
+                row = res[0]
+                row["status"] = "candidate"
+                row.pop("answer_key", None)
+                row["unverifiable_reason"] = "screened_out_low_spread"
+                row["screen"] = {"n_per_option": screen_n, "j_offset": 0,
+                                 "confirmed": False}
+                results[i] = (row, res[1], False,
+                              "screened_out_low_spread", res[4])
+        print("screen: %d/%d positions kept for confirmation at n=%d "
+              "(screened at n=%d, confirm uses disjoint j>=%d)"
+              % (len(keep), len(cands), args.n_per_option, screen_n, screen_n),
+              file=sys.stderr)
+        confirmed = _run_all([cands[i] for i in keep],
+                             _make_verify(driver, args.n_per_option), jobs)
+        for i, res in zip(keep, confirmed):
+            row = res[0]
+            row["screen"] = {"n_per_option": screen_n, "j_offset": 0,
+                             "confirmed": True}
+            results[i] = res
     else:
-        results = [_verify(c) for c in cands]
+        results = _run_all(cands, _make_verify(driver, args.n_per_option), jobs)
 
     out_rows = []
     rows_meta = []

@@ -482,12 +482,33 @@ hours. Output is collected by submission index and re-sorted, so the artifact
 is byte-identical at any `--jobs` — verified by a test whose fake driver
 finishes in reverse order on purpose.
 
+**`--screen-n` (two-pass) is how a suite build becomes affordable.** Most of the
+budget otherwise goes on proving a position was not worth measuring: ~153 games
+per position at n=45, and the pilot cleared the bar on 0/8. With `--screen-n 8`
+every position is first measured at n=8 (18% of full cost), positions whose
+spread could not plausibly clear the bar are dropped as
+`screened_out_low_spread`, and only survivors are confirmed at `--n-per-option`.
+
+Two properties make this safe rather than merely cheap:
+
+* **The confirm pass uses a disjoint rollout seed band** (`j >= screen-n`, via
+  `FORK_ROLLOUT_J_OFFSET`). Minting a key from the same rollouts that selected
+  the position is winner's curse — screening preferentially keeps positions
+  whose sampling noise ran high, and re-reading that noise as evidence inflates
+  every spread it selected on. The bias would be invisible in the output, so it
+  is enforced structurally and tested at the CLI level.
+* **The screen tests the upper confidence bound**, not the point estimate
+  (`spread + 1.96*se >= base`). A false negative deletes a real puzzle from the
+  suite forever; a false positive costs one position's games. The rule is
+  deliberately generous, and unmeasured positions are kept rather than dropped.
+
 ```bash
 python3 eval/verify_keys.py CANDIDATES.jsonl --out POSITIONS.jsonl \
     [--lane exhaustive|rollout|both] [--driver engine|fixture|none] \
     [--fixture FILE.jsonl] [--n-per-option 45] [--forge-home ~/code/forge] \
     [--determinize library|none] \
-    [--max-positions N] [--jobs 6] [--summary summary.json] [--json] [--dry-run]
+    [--max-positions N] [--jobs 6] [--screen-n 8] \
+    [--summary summary.json] [--json] [--dry-run]
 ```
 
 Default `--driver none` is pure exhaustive: zero engine, zero network,

@@ -646,6 +646,26 @@ public final class LlmSpikeFork {
             }
         }
 
+        // FORK_ROLLOUT_J_OFFSET shifts the j band this run draws from, so two runs over the
+        // same position can use PROVABLY DISJOINT rollout streams. That is what makes a cheap
+        // screening pass safe to build on: screen with j in [0, s), confirm with j in [s, s+n),
+        // and the confirming rollouts are not the ones that selected the position. Reusing them
+        // would be a winner's-curse bias -- the screen preferentially picks positions whose
+        // sampling noise ran high, and re-reading that same noise as evidence inflates every
+        // spread it minted a key from.
+        int jOffset = 0;
+        String jOffEnv = System.getenv("FORK_ROLLOUT_J_OFFSET");
+        if (jOffEnv != null && !jOffEnv.isEmpty()) {
+            try {
+                jOffset = Integer.parseInt(jOffEnv.trim());
+                if (jOffset < 0) throw new NumberFormatException("negative");
+            } catch (Exception e) {
+                System.err.println("[FORK] FORK_ROLLOUT_J_OFFSET must be a non-negative integer (got '"
+                        + jOffEnv + "')");
+                System.exit(2);
+            }
+        }
+
         String detEnv = System.getenv("FORK_ROLLOUT_DETERMINIZE");
         Boolean detParsed = parseDeterminize(detEnv);
         if (detParsed == null) {
@@ -695,6 +715,7 @@ public final class LlmSpikeFork {
                 .append(",\"source_choice\":").append(probe.choice)
                 .append(",\"options\":").append(jsonStringArray(probe.options))
                 .append(",\"n_per_option\":").append(nPerOption)
+                .append(",\"j_offset\":").append(jOffset)
                 .append(",\"seed_base\":").append(seedBase)
                 .append(",\"seed_fn\":\"mix64(base_seed ^ (i*C1) ^ (j*C2))\"}");
         out.println(pj.toString());
@@ -705,9 +726,9 @@ public final class LlmSpikeFork {
         int prefixDrifts = 0;
         int determinizeNoops = 0;
         for (int o : targets) {
-            for (int j = 0; j < nPerOption; j++) {
+            for (int j = jOffset; j < jOffset + nPerOption; j++) {
                 final long rseed = rolloutSeed(seedBase, o, j);
-                seeds[o][j] = rseed;
+                seeds[o][j - jOffset] = rseed;
                 final int optionToForce = o;
                 final AtomicBoolean fired = new AtomicBoolean(false);
                 final int[] loggedChoice = {Integer.MIN_VALUE};
@@ -793,6 +814,7 @@ public final class LlmSpikeFork {
                 .append(",\"n_options\":").append(probe.nOptions)
                 .append(",\"options\":").append(jsonStringArray(probe.options))
                 .append(",\"n_per_option\":").append(nPerOption)
+                .append(",\"j_offset\":").append(jOffset)
                 .append(",\"seed_base\":").append(seedBase)
                 .append(",\"seed_fn\":\"mix64(base_seed ^ (i*C1) ^ (j*C2))\"")
                 .append(",\"continuation\":\"").append(LlmSpikeGui.jsonEscape(ctlA + "/" + ctlB)).append('"')

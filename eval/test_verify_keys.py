@@ -1000,6 +1000,152 @@ def test_sub_threshold_reason():
           scores is None and reason == "position_already_decided", str(reason))
 
 
+def test_screen_rule_is_generous():
+    """Screening may waste games; it may not silently delete real puzzles.
+
+    WHAT WOULD MAKE THIS FAIL: testing the point estimate instead of its upper
+    confidence bound. That regression drops positions whose small-n spread
+    merely undershot -- a false negative that removes a real puzzle from the
+    suite permanently, with nothing downstream able to notice. A false positive
+    only costs one position's confirmation games, so the two errors are not
+    symmetric and the rule must not treat them as if they were.
+    """
+    def row(spread, se, reason=None):
+        r = {"rollout_evidence": {"wp_spread": spread, "wp_spread_se": se}}
+        if reason:
+            r["unverifiable_reason"] = reason
+        return r
+
+    check("screen: clearly flat is dropped",
+          not vk.survives_screen(row(0.01, 0.01), "graded-midgame"))
+    check("screen: clearly strong is kept",
+          vk.survives_screen(row(0.40, 0.05), "graded-midgame"))
+    # 0.12 point estimate is under the 0.20 bar, but 0.12 + 1.96*0.06 = 0.238
+    # -- consistent with clearing it, so it must survive to confirmation
+    check("screen: borderline-but-consistent survives (upper bound, not point)",
+          vk.survives_screen(row(0.12, 0.06), "graded-midgame"))
+    check("screen: same point estimate with TIGHT error is dropped",
+          not vk.survives_screen(row(0.12, 0.001), "graded-midgame"))
+    check("screen: mulligan uses its own lower 0.15 bar",
+          vk.survives_screen(row(0.15, 0.0), "mulligan")
+          and not vk.survives_screen(row(0.15, 0.0), "graded-midgame"))
+    check("screen: unmeasured positions are KEPT, not silently dropped",
+          vk.survives_screen({"rollout_evidence": {}}, "graded-midgame")
+          and vk.survives_screen({}, "graded-midgame"))
+    check("screen: an already-decided position is dropped (no n fixes it)",
+          not vk.survives_screen(row(0.0, 0.0, "position_already_decided"),
+                                 "graded-midgame"))
+
+
+def test_screen_confirm_uses_disjoint_seeds():
+    """The confirm pass must not re-read the rollouts that selected the position.
+
+    WHAT WOULD MAKE THIS FAIL: leaving the confirm driver at j_offset=0, so
+    both passes draw the same j band. That is winner's curse -- screening keeps
+    positions whose sampling noise ran high, and counting those same rollouts
+    as evidence inflates every spread it selected on. The bug is invisible in
+    any output (the numbers look fine, they are just biased upward), so it has
+    to be caught structurally, here.
+    """
+    seen = []
+
+    class SpyDriver(FakeEngine):
+        def _run(self, env, extra):
+            if extra["FORK_MODE"] == "rollout":
+                seen.append((int(extra["FORK_ROLLOUT_J_OFFSET"]),
+                             int(extra["FORK_ROLLOUT_N"])))
+            return FakeEngine._run(self, env, extra)
+
+    def outcome(o, j):
+        return {"winner": "A" if (o == 0) == (j % 4 != 0) else "B",
+                "forced_ok": True}
+
+    with tempfile.TemporaryDirectory() as td:
+        screen = SpyDriver(PROBE_2OPT, outcome, work_dir=td, n_per_option=8,
+                           j_offset=0)
+        confirm = SpyDriver(PROBE_2OPT, outcome, work_dir=td, n_per_option=45,
+                            j_offset=8)
+        screen.rollout(fake_address(), n_per_option=8)
+        confirm.rollout(fake_address(), n_per_option=45)
+
+        offsets = set(o for o, _ in seen)
+        check("screen/confirm: two distinct j offsets were used",
+              offsets == set([0, 8]), str(seen))
+        # the bands must not overlap: screen covers [0,8), confirm [8,53)
+        screen_band = set(range(0, 8))
+        confirm_band = set(range(8, 8 + 45))
+        check("screen/confirm: j bands are disjoint",
+              not (screen_band & confirm_band))
+        check("screen/confirm: offset is recorded on the result",
+              confirm.rollout(fake_address(),
+                              n_per_option=45).get("j_offset") == 8)
+
+    # The assertions above drive the drivers directly, so they pass even if
+    # main() never sets the confirm offset. That is the same weak-negative-
+    # control trap as "the function is still callable" -- so drive the real
+    # CLI two-pass path and require that the confirm rollouts used a j band
+    # disjoint from the screen's.
+    calls = []
+
+    real_cls = vk.RolloutDriver
+
+    def _spy_factory(**kw):
+        # FakeEngine.__init__ calls vk.RolloutDriver.__init__, so the real
+        # class has to be in place while the spy is being constructed --
+        # otherwise that call lands on the patched FUNCTION's object.__init__,
+        # silently skipping initialisation.
+        vk.RolloutDriver = real_cls
+        try:
+            d = SpyDriver(PROBE_2OPT, outcome, work_dir=kw.get("work_dir"),
+                          n_per_option=kw.get("n_per_option", 16),
+                          determinize=kw.get("determinize", "library"),
+                          j_offset=kw.get("j_offset", 0),
+                          engine_sha=kw.get("engine_sha"),
+                          overlay_sha=kw.get("overlay_sha"))
+        finally:
+            vk.RolloutDriver = _spy_factory
+        calls.append(d)
+        return d
+
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        cand = rollout_cand()
+        cpath = td / "c.jsonl"
+        cpath.write_text(json.dumps(cand) + "\n", encoding="utf-8")
+        del seen[:]
+        real = vk.RolloutDriver
+        real_idx = vk.deck_name_index
+        vk.RolloutDriver = _spy_factory
+        # main() resolves deck paths from the repo's real index; the synthetic
+        # candidate's seats are not in it, so without this the row fails with
+        # missing_deck_path and never reaches a rollout at all.
+        vk.deck_name_index = lambda: NAME_IDX_WITH_PATHS
+        try:
+            rc = vk.main([str(cpath), "--out", str(td / "o.jsonl"),
+                          "--lane", "rollout", "--driver", "engine",
+                          "--screen-n", "8", "--n-per-option", "45",
+                          "--summary", str(td / "s.json")])
+        finally:
+            vk.RolloutDriver = real
+            vk.deck_name_index = real_idx
+        check("screen/confirm via CLI: run succeeded", rc == 0, "rc=%r" % rc)
+        offsets = sorted(set(o for o, _ in seen))
+        check("screen/confirm via CLI: main() ran BOTH passes",
+              len(offsets) == 2, str(seen))
+        check("screen/confirm via CLI: confirm band starts at screen_n, not 0",
+              offsets == [0, 8], str(offsets))
+        # and the two (offset, n) pairs describe non-overlapping j ranges
+        bands = set()
+        for off, n in seen:
+            bands.add((off, off + n))
+        lo = sorted(bands)
+        check("screen/confirm via CLI: bands do not overlap",
+              len(lo) == 2
+              and all(lo[i][1] <= lo[i + 1][0] for i in range(len(lo) - 1)),
+              str(lo))  # len check first: this passed vacuously on an empty
+                        # `seen` before, which is exactly no evidence at all
+
+
 def test_power_check():
     """n must be able to certify the effect the gate itself asks for.
 
