@@ -185,6 +185,52 @@ def test_collapses_always_first():
           len(out) == len(rows), "%d vs %d" % (len(out), len(rows)))
 
 
+def test_salt_search_flattens_the_true_floor():
+    """always_first at chance is NOT proof the suite is balanced.
+
+    WHAT WOULD MAKE THIS FAIL: search_salt optimising always_first instead of
+    the best-constant-index policy, or the search discarding rows to hit its
+    target. Measured: a shuffled 23-position suite drew a 0.696 constant-index
+    floor on its first salt -- 'always answer 1' beat two thirds of it -- and
+    400 salts brought that to 0.348 while keeping every key.
+    """
+    # 3 options, PASS pinned -> 2 movable slots, so the achievable floor is
+    # ~0.5 and a bad draw is much worse.
+    opts = ["CAST A", "CAST B", "PASS (do nothing)"]
+    rows = [make_row("q%02d" % i, opts, 0) for i in range(20)]
+
+    first = sh.shuffle_all(rows, salt=1)[0]
+    found = sh.search_salt(rows, range(1, 200))
+    check("salt: the search returned a (salt, floor) pair", found is not None)
+    salt, floor = found
+    best = sh.shuffle_all(rows, salt=salt)[0]
+
+    check("salt: it never costs a key",
+          len(best) == len(rows), "%d vs %d" % (len(best), len(rows)))
+    check("salt: the chosen draw is no worse than the default draw",
+          floor <= sh.max_constant_index_baseline(first) + 1e-12,
+          "%r vs %r" % (floor, sh.max_constant_index_baseline(first)))
+    check("salt: it gets near the 2-movable-slot optimum of ~0.5",
+          floor <= 0.55, "floor=%r" % floor)
+    check("salt: the reported floor is what the suite actually measures",
+          abs(sh.max_constant_index_baseline(best) - floor) < 1e-12)
+    # the objective must be the MAX over constant policies, not slot 1 alone
+    check("salt: max_constant_index_baseline >= always_first on any draw",
+          all(sh.max_constant_index_baseline(sh.shuffle_all(rows, salt=s)[0])
+              >= vk.suite_composition(
+                  [{"verified": True, "options": r["options"],
+                    "option_scores": r["answer_key"]["option_scores"]}
+                   for r in sh.shuffle_all(rows, salt=s)[0]]
+              )["always_first_baseline"] - 1e-12
+              for s in (1, 2, 3, 7)))
+    check("salt: re-running the search is deterministic",
+          sh.search_salt(rows, range(1, 200)) == found)
+    # and the chosen salt alone must reproduce the suite, or the report lies
+    check("salt: --salt <chosen> reproduces it byte-for-byte",
+          [r["option_permutation"] for r in sh.shuffle_all(rows, salt=salt)[0]]
+          == [r["option_permutation"] for r in best])
+
+
 def test_cli_roundtrip():
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)

@@ -386,12 +386,32 @@ def build_puz_axis(path):
             "(or is unmeasured). puz.score_excl is not comparable across "
             "models; quote puz.score_incl only. selective_refusal_lift=%s"
             % (_fmt(ifr_est), IFACE_FAILURE_BAR, _fmt(lift)))
+    # Positional skew, reported only when it is real. The previous version
+    # fired this caveat whenever best_index_counts existed -- i.e. always,
+    # including on a suite whose floors sit at chance -- and pointed the reader
+    # at margin_over_always_first, which is the WRONG floor: slot 1 is one
+    # constant policy of many. A caveat that cannot distinguish a balanced
+    # suite from a skewed one is noise, and the repo already lost a night to a
+    # warning that cried wolf.
     af = (b.get("always_first") or {}).get("best_index_counts")
-    if af:
-        caveats.append(
-            "POSITIONAL SKEW: best-answer menu slot counts %s. Read "
-            "margin_over_always_first, not margin_over_random_choice, when "
-            "this is skewed toward slot 1." % json.dumps(af))
+    mci = (b.get("max_constant_index") or {}).get("pass_1") or {}
+    mci_est, rnd_est = mci.get("est"), \
+        ((b.get("random_choice") or {}).get("pass_1") or {}).get("est")
+    n_pos = ((b.get("always_first") or {}).get("pass_1") or {}).get("n")
+    if af and mci_est is not None and rnd_est is not None and n_pos:
+        # Skewed = the best constant policy beats uniform guessing by more
+        # than its own sampling noise. Same 1.96-sigma rule the rest of the
+        # repo uses, so the bar is not a new invented constant.
+        se = math.sqrt(max(mci_est * (1.0 - mci_est), 0.0) / float(n_pos))
+        if mci_est - rnd_est > 1.96 * se:
+            caveats.append(
+                "POSITIONAL SKEW: 'always answer %s' scores pass_1=%s against "
+                "a %s random baseline (slot counts %s). Quote "
+                "margin_over_max_constant_index -- NOT "
+                "margin_over_always_first, which measures only slot 1 and "
+                "reads as chance while the skew sits one slot over."
+                % ((b.get("max_constant_index") or {}).get("index"),
+                   _fmt(mci_est), _fmt(rnd_est), json.dumps(af)))
 
     return {
         "axis": "PUZ", "title": AXIS_TITLE["PUZ"], "status": "measured",

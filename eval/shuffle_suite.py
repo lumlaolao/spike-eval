@@ -184,6 +184,55 @@ def shuffle_all(rows, salt=DEFAULT_SALT, keep_pass_last=True):
     return out, refusals, report
 
 
+def max_constant_index_baseline(rows):
+    """Best score any 'always answer j' policy gets on `rows`, in [0,1].
+
+    This -- not always_first -- is the floor a shuffled suite has to push down.
+    A uniform permutation makes each slot equally likely PER ROW, but at suite
+    sizes in the tens the multinomial lands unevenly: the first shuffled
+    17-position suite drew answers {slot1:5, slot2:8, slot3:3, slot4:1}, so
+    "always answer 2" scored 0.47 while always_first read 0.29.
+    """
+    hits, n = {}, 0
+    for r in rows:
+        sc = (r.get("answer_key") or {}).get("option_scores")
+        if not isinstance(sc, list) or not sc:
+            continue
+        n += 1
+        for j, s in enumerate(sc):
+            if s == 10:
+                hits[j] = hits.get(j, 0) + 1
+    if not n or not hits:
+        return None
+    return max(hits.values()) / float(n)
+
+
+def search_salt(rows, salts, keep_pass_last=True):
+    """Pick the salt whose draw flattens the answer-slot distribution best.
+
+    Why this is not cheating: the menu order is arbitrary presentation that the
+    engine happened to choose, and every candidate salt is a legitimate uniform
+    permutation of it. Selecting among them changes only WHERE the answer is
+    printed -- never which positions are in the suite, never which option is
+    correct, and nothing about any model. It is what a well-built
+    multiple-choice exam does, and unlike `select_suite`'s discard-to-balance
+    it costs ZERO verified keys.
+
+    Deterministic and auditable: the chosen salt is recorded in the report, so
+    `--salt <chosen>` alone reproduces the suite byte-for-byte.
+    """
+    best = None
+    for salt in salts:
+        out, _refusals, _rep = shuffle_all(rows, salt, keep_pass_last)
+        score = max_constant_index_baseline(out)
+        if score is None:
+            continue
+        # ties -> lowest salt, so the search is order-independent
+        if best is None or score < best[1]:
+            best = (salt, score)
+    return best
+
+
 def _read(paths):
     rows = []
     for p in paths:
@@ -212,6 +261,12 @@ def main(argv=None):
     ap.add_argument("--report", default=None)
     ap.add_argument("--salt", type=int, default=DEFAULT_SALT,
                     help="permutation salt; same salt + same ids -> same suite")
+    ap.add_argument("--balance-salts", type=int, default=0, metavar="N",
+                    help="try N salts starting at --salt and keep the one that "
+                         "minimises the best-constant-index floor. Costs no "
+                         "keys (unlike select_suite's discard-to-balance); the "
+                         "winning salt is recorded so the result is "
+                         "reproducible with --salt alone.")
     ap.add_argument("--shuffle-pass-too", action="store_true",
                     help="also move the PASS slot. NOT recommended: "
                          "prompt_contract hardcodes pass_option_index to the "
@@ -220,8 +275,25 @@ def main(argv=None):
     args = ap.parse_args(argv)
 
     rows = _read(args.positions)
-    shuffled, refusals, report = shuffle_all(
-        rows, args.salt, keep_pass_last=not args.shuffle_pass_too)
+    keep_pass_last = not args.shuffle_pass_too
+
+    salt, search = args.salt, None
+    if args.balance_salts > 1:
+        candidates = list(range(args.salt, args.salt + args.balance_salts))
+        found = search_salt(rows, candidates, keep_pass_last)
+        if found is not None:
+            salt, floor = found
+            base = max_constant_index_baseline(
+                shuffle_all(rows, args.salt, keep_pass_last)[0])
+            search = {"n_salts": len(candidates), "salt_lo": candidates[0],
+                      "salt_hi": candidates[-1], "chosen_salt": salt,
+                      "floor_at_chosen": floor, "floor_at_first_salt": base,
+                      "objective": "max_constant_index_baseline"}
+
+    shuffled, refusals, report = shuffle_all(rows, salt, keep_pass_last)
+    report["salt_search"] = search
+    report["max_constant_index_baseline"] = \
+        max_constant_index_baseline(shuffled)
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)

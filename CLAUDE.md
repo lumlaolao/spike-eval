@@ -101,12 +101,38 @@ are only comparable within one engine version.
   Java rollout support: `forge-overlay/.../LlmSpikeFork.java` — **now produces real
   win probabilities** (2026-07-28). It did not before, and the reason is the
   cautionary tale below.
-  **The golden suite is started but not a benchmark yet** (2026-07-29): the
-  uncapped exhaustive lane minted **24 verified keys over 204 ai-log games**
-  (`runs/overnight-1/lethal-positions.jsonl`), up from 3 repo-wide. Quote it as
-  **15 DISTINCT positions with a 0.39 random-guess baseline**, never as "24
-  puzzles" — 11 are 2-option, so a coin flip scores 39%; `suite_composition` in
-  every verify summary reports this. All 24 carry `unprobed_replay_address`
+  **The golden suite (2026-07-29): 19 distinct positions, every trivial floor
+  at chance.** 71 verified keys across `runs/overnight-1` + `runs/overnight-2`
+  (up from 3 repo-wide) reduce to 19 quotable positions. Build it with the
+  canonical three-step pipeline, in this order:
+
+  ```bash
+  python3 eval/shuffle_suite.py RAW.jsonl ... --out shuffled.jsonl
+  python3 eval/select_suite.py shuffled.jsonl --out filtered.jsonl \
+      --min-options 3 --require-single-answer --filters-only
+  python3 eval/shuffle_suite.py filtered.jsonl --out suite.jsonl --balance-salts 400
+  ```
+
+  Order matters and each step fixes a floor the others cannot:
+  `--min-options 3` removes 2-option positions (one movable slot — no
+  permutation can move the answer, `always_first` ~0.92 forever);
+  `--require-single-answer` removes positions where the CI-overlap tie rule
+  marked several options 10 (no single best play to find); `--filters-only`
+  stops selection from discarding for SLOT balance, because `--balance-salts`
+  fixes that for free — but it deliberately still balances the PASS floor,
+  which shuffling cannot touch (PASS is pinned last by `pass_option_index`).
+  Result: `max_constant_index 0.32`, `random 0.30`, `always_pass 0.11`,
+  oracle 1.00.
+
+  **Quote `max_constant_index_baseline`, never `always_first_baseline`.**
+  always_first is one constant policy of many, and balancing it alone just
+  moves the skew one slot right: a shuffled 17-position suite read
+  always_first 0.29 — apparently chance — while 8 of 17 answers sat in slot 2,
+  so "always answer 2" scored 0.47. That is the 88% lesson recurring. Related:
+  the duplicate signature is now SORTED in both `suite_composition` and
+  `select_suite`; while it was order-sensitive, re-shuffling a "deduped" suite
+  dropped n_distinct 23 → 21, i.e. duplicates had been counted all along.
+  All keys carry `unprobed_replay_address`
   (minted with `--driver none`, so the replay address was never engine-probed).
   DQ is unmeasured (all corpora textlane-only — never add
   `punt.rate_textlane` to the rollout punt rate); PLAN resolves a deck only on

@@ -749,6 +749,30 @@ def compute_baselines(positions, k):
         best_index_counts[best] += 1
     af["best_index_counts"] = dict(sorted(best_index_counts.items()))
 
+    # "Always answer 1" is one constant policy of many, and it is not
+    # generally the strongest. Balancing slot 1 alone just moves the skew: a
+    # shuffled 17-position suite read always_first 0.29 -- apparently chance --
+    # while 8 of 17 answers sat in slot 2, so "always answer 2" scored 0.47.
+    # This block is the floor to actually quote. Deterministic tie-break to the
+    # lowest slot so the reported index does not depend on dict order.
+    best_slot = None
+    if best_index_counts:
+        best_slot = sorted(best_index_counts.items(),
+                           key=lambda kv: (-kv[1], kv[0]))[0][0]
+
+    def const_score(p, slot):
+        # A slot past this position's menu is an invalid reply, scoring 0 --
+        # the same thing the model would get for answering out of range.
+        return menu_score(p, slot) if slot in p["menu"] else 0.0
+
+    mci = blk(lambda p: const_score(p, best_slot)) if best_slot else None
+    if mci is not None:
+        mci_p1 = blk(lambda p: _solved(const_score(p, best_slot)))
+        mci["pass_1"] = mci_p1
+        mci["pass_k"] = mci_p1            # deterministic: same pick every time
+        mci["index"] = best_slot
+        mci["best_index_counts"] = af["best_index_counts"]
+
     oracle = blk(lambda p: max(menu_score(p, num) for num in p["menu"]))
     oracle["pass_1"] = blk(
         lambda p: max(_solved(menu_score(p, num)) for num in p["menu"]))
@@ -796,8 +820,11 @@ def compute_baselines(positions, k):
     # a maximal-scoring option" is a different predicate from `solved`
     # (score == 10) and can exceed the achievable ceiling.
     mc["frac_positions_maximal"] = blk(tok_maximal)["est"]
-    return {"random_choice": rc, "always_pass": ap, "always_first": af,
-            "majority_class": mc, "oracle_ceiling": oracle}
+    out = {"random_choice": rc, "always_pass": ap, "always_first": af,
+           "majority_class": mc, "oracle_ceiling": oracle}
+    if mci is not None:
+        out["max_constant_index"] = mci
+    return out
 
 
 def _margin(est, baseline_est):
@@ -808,7 +835,13 @@ def _margin(est, baseline_est):
 
 def attach_margins(metrics, baselines):
     """margin_over_<floor> next to every headline est (the 88%-lesson rule)."""
-    floors = ("random_choice", "always_pass", "always_first", "majority_class")
+    # max_constant_index dominates always_first by construction and is the
+    # floor a scorecard should lead with; always_first stays for continuity
+    # with artifacts minted before it existed. Skipped when absent (an empty
+    # suite mints no baseline block), so this never KeyErrors on old inputs.
+    floors = tuple(n for n in ("random_choice", "always_pass", "always_first",
+                               "max_constant_index", "majority_class")
+                   if n in baselines)
     for key in ("puz_score_incl", "puz_score_excl"):
         blk = metrics[key]
         for name in floors:

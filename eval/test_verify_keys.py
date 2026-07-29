@@ -1264,6 +1264,47 @@ def test_suite_composition():
           vk.suite_composition([{"verified": True, "options": ["A", "B"]}])
           ["always_first_baseline"] is None)
 
+    # always_first is ONE constant policy. Balancing it alone just relocates
+    # the skew: the first shuffled 17-position suite read always_first 0.29
+    # -- apparently chance -- while 8 of 17 answers sat in slot 2, so "always
+    # answer 2" scored 0.47. Quoting 0.29 there understates the beatable floor
+    # by 18 points, which is the 88% lesson recurring one slot to the right.
+    skewed = ([{"verified": True, "options": ["A", "B", "PASS (do nothing)"],
+                "option_scores": [0, 10, 0]}] * 3
+              + [{"verified": True, "options": ["A", "B", "PASS (do nothing)"],
+                  "option_scores": [10, 0, 0]}])
+    sc3 = vk.suite_composition(skewed)
+    check("suite: always_first looks tame on a slot-2-skewed suite",
+          abs(sc3["always_first_baseline"] - 0.25) < 1e-12,
+          str(sc3["always_first_baseline"]))
+    check("suite: max_constant_index_baseline catches the skew always_first misses",
+          abs(sc3["max_constant_index_baseline"] - 0.75) < 1e-12,
+          str(sc3["max_constant_index_baseline"]))
+    check("suite: it names the guilty slot, 1-based as the model answers",
+          sc3["max_constant_index"] == 2, str(sc3["max_constant_index"]))
+    check("suite: the per-slot tally is shown, not just the max",
+          sc3["constant_index_hits"] == {"1": 1, "2": 3},
+          str(sc3["constant_index_hits"]))
+    check("suite: max_constant >= always_first by construction, always",
+          all(vk.suite_composition(s)["max_constant_index_baseline"]
+              >= vk.suite_composition(s)["always_first_baseline"]
+              for s in (scored, skewed)))
+
+    # Duplicate detection a shuffle can move is not duplicate detection. The
+    # same decision printed in two orders read as two DISTINCT positions until
+    # the signature was sorted; re-shuffling a "deduped" 23-position suite then
+    # dropped n_distinct to 21, revealing 4 duplicates that had been counted
+    # all along.
+    same_set_two_orders = [
+        {"verified": True, "options": ["CAST A", "CAST B", "PASS (do nothing)"],
+         "option_scores": [10, 0, 0]},
+        {"verified": True, "options": ["CAST B", "PASS (do nothing)", "CAST A"],
+         "option_scores": [10, 0, 0]},
+    ]
+    check("suite: menu order cannot fake a distinct position",
+          vk.suite_composition(same_set_two_orders)["n_distinct"] == 1,
+          str(vk.suite_composition(same_set_two_orders)["n_distinct"]))
+
     check("suite: n_options histogram located the triviality",
           sc["n_options_histogram"] == {"2": 5, "4": 1},
           str(sc["n_options_histogram"]))

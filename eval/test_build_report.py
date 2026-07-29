@@ -86,16 +86,28 @@ def blk(est, se=0.1, ci=(0.0, 1.0), n=10, nc=5, method="wilson", **extra):
     return d
 
 
-def puz_summary(sha=None):
-    """A minimal but shape-faithful puzzle_run summary.json."""
+def puz_summary(sha=None, skew=None, n_pos=4):
+    """A minimal but shape-faithful puzzle_run summary.json.
+
+    `skew` is the pass_1 of the best constant-index policy. Default 0.90 on a
+    60-position suite is unambiguously skewed against a 0.35 random baseline;
+    pass skew=0.36 (or n_pos=4) to get a suite the caveat must stay quiet on.
+    """
     floors = {}
     for name, est in (("random_choice", 3.5), ("always_pass", 0.0),
                       ("always_first", 4.0), ("majority_class", 5.0),
                       ("oracle_ceiling", 10.0)):
-        floors[name] = blk(est, n=4, nc=2, method="cluster-bootstrap")
-        floors[name]["pass_1"] = blk(est / 10.0, n=4, nc=2)
-        floors[name]["pass_k"] = blk(est / 20.0, n=4, nc=2)
+        floors[name] = blk(est, n=n_pos, nc=2, method="cluster-bootstrap")
+        floors[name]["pass_1"] = blk(est / 10.0, n=n_pos, nc=2)
+        floors[name]["pass_k"] = blk(est / 20.0, n=n_pos, nc=2)
     floors["always_first"]["best_index_counts"] = {"1": 3, "2": 1}
+    if skew is not None:
+        mci = blk(skew * 10.0, n=n_pos, nc=2, method="cluster-bootstrap")
+        mci["pass_1"] = blk(skew, n=n_pos, nc=2)
+        mci["pass_k"] = blk(skew, n=n_pos, nc=2)
+        mci["index"] = 2
+        mci["best_index_counts"] = {"1": 3, "2": 1}
+        floors["max_constant_index"] = mci
     return {
         "schema": "puzzle-run-summary.v1",
         "contract": prompt_contract.CONTRACT_VERSION,
@@ -398,6 +410,40 @@ def test_plan_unresolved_is_not_measured():
               "unresolved" in (plan["reason"] or ""))
 
 
+def test_positional_skew_caveat_discriminates():
+    """A caveat that fires on every suite tells the reader nothing.
+
+    WHAT WOULD MAKE THIS FAIL: restoring the unconditional
+    `if best_index_counts: caveats.append(...)`, which raised POSITIONAL SKEW
+    even on a suite whose floors sat at chance; or pointing the reader back at
+    margin_over_always_first, which measures slot 1 alone and reads as chance
+    while the skew sits one slot over -- exactly the case that made this floor
+    necessary (8 of 17 answers in slot 2, always_first 0.29, true floor 0.47).
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        # 60 positions, best constant policy scores 0.90 vs 0.35 random:
+        # far outside sampling noise, so this must be flagged.
+        args = Args(puz_run=write_run(tmp, "puz",
+                                      puz_summary(skew=0.90, n_pos=60)))
+        puz = axes_by_name(br.build_scorecard([], None, {}, args, "T"))["PUZ"]
+        skew = [c for c in puz["caveats"] if "POSITIONAL SKEW" in c]
+        check("skewed suite is flagged", len(skew) == 1, str(puz["caveats"]))
+        check("the caveat names the guilty slot, not just slot 1",
+              "always answer 2" in skew[0], skew[0])
+        check("it points at the floor that actually binds",
+              "margin_over_max_constant_index" in skew[0], skew[0])
+
+    with tempfile.TemporaryDirectory() as tmp:
+        # Same suite size, best constant policy at 0.36 vs 0.35 random --
+        # a balanced suite. Silence is the correct output.
+        args = Args(puz_run=write_run(tmp, "puz",
+                                      puz_summary(skew=0.36, n_pos=60)))
+        puz = axes_by_name(br.build_scorecard([], None, {}, args, "T"))["PUZ"]
+        check("a balanced suite raises NO skew caveat",
+              not any("POSITIONAL SKEW" in c for c in puz["caveats"]),
+              str(puz["caveats"]))
+
+
 def test_selective_refusal_is_flagged():
     """interface_failure_rate 0.125 > the 0.10 bar: score_excl must be
     demoted out of the headline and the lift must be reported."""
@@ -414,8 +460,9 @@ def test_selective_refusal_is_flagged():
         check("selective-refusal caveat raised above the bar",
               any("SELECTIVE REFUSAL" in c for c in puz["caveats"]),
               str(puz["caveats"]))
-        check("positional-skew caveat carries best_index_counts",
-              any("POSITIONAL SKEW" in c for c in puz["caveats"]))
+        check("no skew caveat when the run has no max_constant_index floor",
+              not any("POSITIONAL SKEW" in c for c in puz["caveats"]),
+              str(puz["caveats"]))
         incl = [m for m in puz["metrics"]
                 if m["metric"] == "puz.score_incl"][0]
         got = {f["floor"] for f in incl["floors"]}

@@ -78,8 +78,17 @@ def answer_index(row):
 def option_signature(row):
     """Identity of a DECISION, not of a row: option text before the
     reminder-text bracket, so the same position mined from two seeds collapses
-    to one entry."""
-    return tuple(str(o).split(" [")[0] for o in (row.get("options") or []))
+    to one entry.
+
+    SORTED, so menu order cannot change the answer. This is not cosmetic: with
+    an order-sensitive signature, re-shuffling a deduped 23-position suite made
+    n_distinct read 21 -- the same decision printed in two orders had been
+    counted twice, and only a permutation that happened to align them revealed
+    it. Duplicate detection that a shuffle can move is not duplicate detection.
+    Must stay identical to verify_keys.suite_composition's rule; the two
+    drifting apart has already produced one wrong floor in this repo.
+    """
+    return tuple(sorted(str(o).split(" [")[0] for o in (row.get("options") or [])))
 
 
 def dedupe(rows):
@@ -323,7 +332,26 @@ def main(argv=None):
     ap.add_argument("--no-dedupe", action="store_true",
                     help="keep duplicate positions (NOT recommended: they "
                          "inflate the count while measuring one skill twice)")
+    ap.add_argument("--filters-only", action="store_true",
+                    help="apply dedupe/--min-options/--require-single-answer "
+                         "and still balance the PASS floor, but DISCARD NOTHING "
+                         "for SLOT position. Use this in the canonical "
+                         "pipeline: shuffle_suite --balance-salts fixes slot "
+                         "position afterwards at no cost in keys, so "
+                         "discarding here would throw away positions the "
+                         "shuffle can rescue.")
     args = ap.parse_args(argv)
+    if args.filters_only:
+        # 1.0 makes the slot ceiling unreachable, so no row is dropped for
+        # position. Expressed as a named flag because '--target-always-first
+        # 1.0' is a magic number nobody would recognise in a build script.
+        #
+        # The PASS ceiling deliberately KEEPS its default. PASS is pinned to
+        # the last slot (prompt_contract hardcodes pass_option_index), so no
+        # permutation can move it -- selection is the only tool that works on
+        # that floor, and handing it to the shuffle would silently leave it
+        # unbalanced.
+        args.target_always_first = 1.0
 
     rows = _read(args.positions)
     selected, report = select(rows, args.target_always_first,

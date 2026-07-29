@@ -1233,11 +1233,15 @@ def suite_composition(rows_meta):
     verified = [m for m in rows_meta if m.get("verified")]
     sigs, n_opts = set(), []
     n_first, n_pass, n_scored = 0, 0, 0
+    idx_hits = {}          # 0-based slot -> positions whose answer sits there
     for m in verified:
         opts = m.get("options") or []
         # collapse on the option TEXT before the reminder-text bracket, so the
-        # same decision from two seeds counts once
-        sigs.add(tuple(str(o).split(" [")[0] for o in opts))
+        # same decision from two seeds counts once. SORTED, so menu order
+        # cannot change the count -- an order-sensitive signature let one
+        # decision printed in two orders read as two distinct positions.
+        # Must stay identical to select_suite.option_signature.
+        sigs.add(tuple(sorted(str(o).split(" [")[0] for o in opts)))
         if opts:
             n_opts.append(len(opts))
         sc = m.get("option_scores")
@@ -1245,6 +1249,12 @@ def suite_composition(rows_meta):
             n_scored += 1
             if sc[0] == 10:
                 n_first += 1
+            # "always answer j+1" scores here iff slot j holds a 10. A slot
+            # past this position's menu is an invalid reply and scores 0, so
+            # it simply contributes nothing to that index's tally.
+            for j, s in enumerate(sc):
+                if s == 10:
+                    idx_hits[j] = idx_hits.get(j, 0) + 1
             for i, o in enumerate(opts):
                 if i < len(sc) and sc[i] == 10 and \
                         str(o).strip().upper().startswith("PASS"):
@@ -1269,6 +1279,21 @@ def suite_composition(rows_meta):
         # play skill; it is measuring nothing.
         "always_first_baseline": (n_first / float(n_scored)) if n_scored else None,
         "always_pass_baseline": (n_pass / float(n_scored)) if n_scored else None,
+        # THE floor to actually quote. always_first is one constant policy out
+        # of many, and balancing it alone just moves the skew somewhere else:
+        # the first shuffled 17-position suite came out always_first 0.29 --
+        # apparently at chance -- while "always answer 2" scored 0.47, because
+        # 8 of 17 answers happened to land in slot 2. Reporting 0.29 there
+        # would have understated the beatable floor by 18 points. The honest
+        # number is the best CONSTANT-index policy, and it is what balancing
+        # must target.
+        "max_constant_index_baseline": (max(idx_hits.values()) / float(n_scored))
+                                       if (n_scored and idx_hits) else None,
+        # 1-based, to match what the model is asked to reply.
+        "max_constant_index": (max(sorted(idx_hits), key=lambda j: idx_hits[j]) + 1)
+                              if idx_hits else None,
+        "constant_index_hits": dict((str(j + 1), c)
+                                    for j, c in sorted(idx_hits.items())),
         "n_scored": n_scored,
         "n_options_histogram": hist,
     }
