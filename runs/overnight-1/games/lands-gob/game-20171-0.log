@@ -1,0 +1,275 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20171
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/lands.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.plan
+[DECK] loaded 'Lands': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/lands.txt)
+[DECK] loaded 'Goblins': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.txt)
+[SEATS] A=Lands(ai-log,opus) B=Goblins(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: B after 10 turns (AllOpponentsLost) in 2s
+--- full game log ---
+  MULLIGAN: Lands has kept a hand of 7 cards
+  MULLIGAN: Goblins has kept a hand of 7 cards
+  TURN: Turn 1 (Lands)
+  PHASE: Lands' Untap step
+  PHASE: Lands' Upkeep step
+  PHASE: Lands' Draw step
+  PHASE: Lands' Main phase, precombat
+  LAND: Lands played Rishadan Port (48)
+  PHASE: Lands' Beginning of Combat Step
+  PHASE: Lands' Declare Attackers Step
+  PHASE: Lands' Declare Blockers Step
+  PHASE: Lands' First Strike Damage Step
+  PHASE: Lands' Combat Damage Step
+  PHASE: Lands' End of Combat Step
+  PHASE: Lands' Main phase, postcombat
+  PHASE: Lands' End step
+  PHASE: Lands' Cleanup step
+  TURN: Turn 2 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (91)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (91) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Aether Vial
+  STACK_RESOLVE: Aether Vial
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 3 (Lands)
+  PHASE: Lands' Untap step
+  PHASE: Lands' Upkeep step
+  PHASE: Lands' Draw step
+  PHASE: Lands' Main phase, precombat
+  LAND: Lands played Grove of the Burnwillows (10)
+  LIFE: Life: Goblins 20 > 21
+  MANA: Grove of the Burnwillows (10) - {T}: Add {R} or {G}. Each opponent gains 1 life.
+  ZONE_CHANGE: Grove of the Burnwillows (10) was put into Graveyard from Battlefield.
+  STACK_ADD: Lands cast Crop Rotation
+  EFFECT_REPLACED: Dark Depths enters with ten ice counters on it.
+  STACK_RESOLVE: Crop Rotation (19) - Lands searches their library for a land card, puts it onto the battlefield, then shuffles.
+  PHASE: Lands' Beginning of Combat Step
+  PHASE: Lands' Declare Attackers Step
+  PHASE: Lands' Declare Blockers Step
+  PHASE: Lands' First Strike Damage Step
+  PHASE: Lands' Combat Damage Step
+  PHASE: Lands' End of Combat Step
+  PHASE: Lands' Main phase, postcombat
+  PHASE: Lands' End step
+  PHASE: Lands' Cleanup step
+  TURN: Turn 4 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (80)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (91) - {T}: Add {R}.
+  MANA: Mountain (80) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Mogg War Marshal
+  STACK_RESOLVE: Mogg War Marshal - Creature 1 / 1
+  STACK_ADD: Goblins triggered Mogg War Marshal
+  STACK_RESOLVE: When Mogg War Marshal enters or dies, create a 1/1 red Goblin creature token. [Zone Changer: Mogg War Marshal (102)]
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 5 (Lands)
+  PHASE: Lands' Untap step
+  PHASE: Lands' Upkeep step
+  PHASE: Lands' Draw step
+  PHASE: Lands' Main phase, precombat
+  LAND: Lands played Wasteland (43)
+  PHASE: Lands' Beginning of Combat Step
+  PHASE: Lands' Declare Attackers Step
+  PHASE: Lands' Declare Blockers Step
+  PHASE: Lands' First Strike Damage Step
+  PHASE: Lands' Combat Damage Step
+  PHASE: Lands' End of Combat Step
+  PHASE: Lands' Main phase, postcombat
+  PHASE: Lands' End step
+  PHASE: Lands' Cleanup step
+  TURN: Turn 6 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Mogg War Marshal
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  MANA: Mountain (91) - {T}: Add {R}.
+  MANA: Mountain (80) - {T}: Add {R}.
+  STACK_RESOLVE: At the beginning of your upkeep, if this permanent came under your control since the beginning of your last upkeep, sacrifice it unless you pay its echo cost. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Karakas (77)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Mogg War Marshal (102) and Goblin Token (126) to attack Lands.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Lands didn't block Mogg War Marshal (102).
+Lands didn't block Goblin Token (126).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Mogg War Marshal (102) deals 1 combat damage to Lands.
+  DAMAGE: Goblin Token (126) deals 1 combat damage to Lands.
+  LIFE: Life: Lands 20 > 18
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 7 (Lands)
+  PHASE: Lands' Untap step
+  PHASE: Lands' Upkeep step
+  PHASE: Lands' Draw step
+  PHASE: Lands' Main phase, precombat
+  EFFECT_REPLACED: Tranquil Thicket enters tapped.
+  LAND: Lands played Tranquil Thicket (17)
+  PHASE: Lands' Beginning of Combat Step
+  PHASE: Lands' Declare Attackers Step
+  PHASE: Lands' Declare Blockers Step
+  PHASE: Lands' First Strike Damage Step
+  PHASE: Lands' Combat Damage Step
+  PHASE: Lands' End of Combat Step
+  PHASE: Lands' Main phase, postcombat
+  PHASE: Lands' End step
+  PHASE: Lands' Cleanup step
+  TURN: Turn 8 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  STACK_ADD: Goblins activated Aether Vial
+  STACK_RESOLVE: Aether Vial (72) - You may put a creature card with mana value equal to the number of charge counters on Aether Vial from your hand onto the battlefield.
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (85)
+  MANA: Mountain (91) - {T}: Add {R}.
+  MANA: Mountain (80) - {T}: Add {R}.
+  MANA: Mountain (85) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Krenko, Mob Boss
+  STACK_RESOLVE: Krenko, Mob Boss - Creature 3 / 3
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (106), Goblin Warchief (75), Mogg War Marshal (102) and Goblin Token (126) to attack Lands.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Lands didn't block Krenko, Mob Boss (106).
+Lands didn't block Goblin Warchief (75).
+Lands didn't block Mogg War Marshal (102).
+Lands didn't block Goblin Token (126).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Krenko, Mob Boss (106) deals 3 combat damage to Lands.
+  DAMAGE: Goblin Warchief (75) deals 2 combat damage to Lands.
+  DAMAGE: Mogg War Marshal (102) deals 1 combat damage to Lands.
+  DAMAGE: Goblin Token (126) deals 1 combat damage to Lands.
+  LIFE: Life: Lands 18 > 11
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 9 (Lands)
+  PHASE: Lands' Untap step
+  PHASE: Lands' Upkeep step
+  MANA: Tranquil Thicket (17) - {T}: Add {G}.
+  ZONE_CHANGE: Tranquil Thicket (17) was put into Graveyard from Battlefield.
+  STACK_ADD: Lands cast Crop Rotation
+  STACK_RESOLVE: Crop Rotation (20) - Lands searches their library for a land card, puts it onto the battlefield, then shuffles.
+  PHASE: Lands' Draw step
+  PHASE: Lands' Main phase, precombat
+  PHASE: Lands' Beginning of Combat Step
+  PHASE: Lands' Declare Attackers Step
+  PHASE: Lands' Declare Blockers Step
+  PHASE: Lands' First Strike Damage Step
+  PHASE: Lands' Combat Damage Step
+  PHASE: Lands' End of Combat Step
+  PHASE: Lands' Main phase, postcombat
+  MANA: Rishadan Port (48) - {T}: Add {C}.
+  MANA: Wasteland (43) - {T}: Add {C}.
+  MANA: Wasteland (44) - {T}: Add {C}.
+  STACK_ADD: Lands activated Dark Depths
+  STACK_RESOLVE: Dark Depths (26) - Remove 1 Ice counter fromDark Depths (26)Lands.
+  PHASE: Lands' End step
+  PHASE: Lands' Cleanup step
+  TURN: Turn 10 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  STACK_ADD: Goblins activated Aether Vial
+  STACK_RESOLVE: Aether Vial (72) - You may put a creature card with mana value equal to the number of charge counters on Aether Vial from your hand onto the battlefield.
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Rishadan Port (120)
+  MANA: Mountain (91) - {T}: Add {R}.
+  MANA: Mountain (80) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Warchief
+  STACK_RESOLVE: Goblin Warchief - Creature 2 / 2
+  MANA: Mountain (85) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Sharpshooter
+  STACK_RESOLVE: Goblin Sharpshooter - Creature 1 / 1
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (106), Goblin Warchief (75), Goblin Warchief (76), Mogg War Marshal (102), Goblin Token (126), Goblin Chieftain (105) and Goblin Sharpshooter (74) to attack Lands.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Lands didn't block Krenko, Mob Boss (106).
+Lands didn't block Goblin Warchief (75).
+Lands didn't block Goblin Warchief (76).
+Lands didn't block Mogg War Marshal (102).
+Lands didn't block Goblin Token (126).
+Lands didn't block Goblin Chieftain (105).
+Lands didn't block Goblin Sharpshooter (74).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Krenko, Mob Boss (106) deals 4 combat damage to Lands.
+  DAMAGE: Goblin Warchief (75) deals 3 combat damage to Lands.
+  DAMAGE: Goblin Warchief (76) deals 3 combat damage to Lands.
+  DAMAGE: Mogg War Marshal (102) deals 2 combat damage to Lands.
+  DAMAGE: Goblin Token (126) deals 2 combat damage to Lands.
+  DAMAGE: Goblin Chieftain (105) deals 2 combat damage to Lands.
+  DAMAGE: Goblin Sharpshooter (74) deals 2 combat damage to Lands.
+  LIFE: Life: Lands 11 > -7
+  PLAYER_CONTROL: Lands has restored control over themself
+  PLAYER_CONTROL: Goblins has restored control over themself
+  GAME_OUTCOME: Turn 5
+  GAME_OUTCOME: Lands has lost because life total reached 0
+  GAME_OUTCOME: Goblins has won because all opponents have lost
+  MATCH_RESULTS: Lands: 0 Goblins: 1 
+===============================

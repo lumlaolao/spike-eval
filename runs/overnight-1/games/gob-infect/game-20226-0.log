@@ -1,0 +1,253 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20226
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/infect.plan
+[DECK] loaded 'Goblins': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.txt)
+[DECK] loaded 'Infect': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/infect.txt)
+[SEATS] A=Goblins(ai-log,opus) B=Infect(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: B after 9 turns (AllOpponentsLost) in 1s
+--- full game log ---
+  MULLIGAN: Infect has mulliganed down to 6 cards.
+  MULLIGAN: Infect has kept a hand of 6 cards
+  MULLIGAN: Goblins has kept a hand of 7 cards
+  TURN: Turn 1 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Forest (102)
+  MANA: Forest (102) - {T}: Add {G}.
+  STACK_ADD: Infect cast Noble Hierarch
+  STACK_RESOLVE: Noble Hierarch - Creature 0 / 1
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  PHASE: Infect's Declare Blockers Step
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 2 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Rishadan Port (58)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 3 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Forest (99)
+  MANA: Forest (102) - {T}: Add {G}.
+  STACK_ADD: Infect cast Might of Old Krosa targeting [Noble Hierarch (65)]
+  STACK_RESOLVE: Might of Old Krosa (62) - Noble Hierarch (65) gets +4/+4  until end of turn.
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  COMBAT: Infect assigned Noble Hierarch (65) to attack Goblins.
+  STACK_ADD: Infect triggered Noble Hierarch
+  STACK_RESOLVE: Exalted (Whenever a creature you control attacks alone, that creature gets +1/+1 until end of turn.) [Attacker: Noble Hierarch (65)]
+  PHASE: Infect's Declare Blockers Step
+  COMBAT: Goblins didn't block Noble Hierarch (65).
+  LIFE: Life: Goblins 20 > 23
+  STACK_ADD: Infect cast Invigorate targeting [Noble Hierarch (65)]
+  STACK_RESOLVE: Invigorate (109) - Noble Hierarch (65) gets +4/+4  until end of turn.
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  DAMAGE: Noble Hierarch (65) deals 9 combat damage to Goblins.
+  LIFE: Life: Goblins 23 > 14
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 4 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (34)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 5 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Misty Rainforest (96)
+  LIFE: Life: Infect 20 > 19
+  ZONE_CHANGE: Misty Rainforest (96) was put into Graveyard from Battlefield.
+  STACK_ADD: Infect activated Misty Rainforest
+  STACK_RESOLVE: Misty Rainforest (96) - Infect searches their library for a Forest or Island card, puts it onto the battlefield, then shuffles.
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  COMBAT: Infect assigned Noble Hierarch (65) to attack Goblins.
+  STACK_ADD: Infect triggered Noble Hierarch
+  STACK_RESOLVE: Exalted (Whenever a creature you control attacks alone, that creature gets +1/+1 until end of turn.) [Attacker: Noble Hierarch (65)]
+  PHASE: Infect's Declare Blockers Step
+  COMBAT: Goblins didn't block Noble Hierarch (65).
+  MANA: Forest (102) - {T}: Add {G}.
+  STACK_ADD: Infect cast Groundswell targeting [Noble Hierarch (65)]
+  STACK_RESOLVE: Groundswell (69) - Noble Hierarch (65) gets +4/+4  until end of turn.
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  DAMAGE: Noble Hierarch (65) deals 5 combat damage to Goblins.
+  LIFE: Life: Goblins 14 > 9
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  MANA: Tropical Island (74) - {T}: Add {U}.
+  MANA: Forest (99) - {T}: Add {G}.
+  STACK_ADD: Infect cast Blighted Agent
+  STACK_RESOLVE: Blighted Agent - Creature 1 / 1
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 6 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Wasteland (51)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (34) - {T}: Add {R}.
+  MANA: Rishadan Port (58) - {T}: Add {C}.
+  MANA: Wasteland (51) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Goblin Matron
+  STACK_RESOLVE: Goblin Matron - Creature 1 / 1
+  STACK_ADD: Goblins triggered Goblin Matron
+  STACK_RESOLVE: When Goblin Matron enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle. [Zone Changer: Goblin Matron (54)]
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 7 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  COMBAT: Infect assigned Blighted Agent (117) to attack Goblins.
+  STACK_ADD: Infect triggered Noble Hierarch
+  STACK_RESOLVE: Exalted (Whenever a creature you control attacks alone, that creature gets +1/+1 until end of turn.) [Attacker: Blighted Agent (117)]
+  PHASE: Infect's Declare Blockers Step
+  COMBAT: Goblins didn't block Blighted Agent (117).
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  DAMAGE: Blighted Agent (117) deals 2 combat damage to Goblins(as poison counters).
+  DAMAGE: Goblins receives 2 poison counter from Infect
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  MANA: Tropical Island (74) - {T}: Add {U}.
+  STACK_ADD: Infect cast Brainstorm
+  STACK_RESOLVE: Brainstorm (82) - Infect draws three cards, then puts two cards from their hand on top of their library in any order.
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 8 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  ZONE_CHANGE: Wasteland (51) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins activated Wasteland targeting [Tropical Island (74)]
+  ZONE_CHANGE: Tropical Island (74) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (51) - Destroy Tropical Island (74).
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (24)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Goblin Matron (54) to attack Infect.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Infect didn't block Goblin Matron (54).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Goblin Matron (54) deals 1 combat damage to Infect.
+  LIFE: Life: Infect 19 > 18
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (34) - {T}: Add {R}.
+  MANA: Mountain (24) - {T}: Add {R}.
+  MANA: Rishadan Port (58) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Goblin Matron
+  STACK_RESOLVE: Goblin Matron - Creature 1 / 1
+  STACK_ADD: Goblins triggered Goblin Matron
+  STACK_RESOLVE: When Goblin Matron enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle. [Zone Changer: Goblin Matron (55)]
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 9 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  MANA: Noble Hierarch (65) - {T}: Add {W}, {U}, {G}.
+  STACK_ADD: Infect cast Ponder
+  STACK_RESOLVE: Ponder (103) - Look at the top 3 cards of Infect's library. Then put them back in any order.You may have that player shuffle their library. Infect draws a card.
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  COMBAT: Infect assigned Blighted Agent (117) to attack Goblins.
+  STACK_ADD: Infect triggered Noble Hierarch
+  STACK_RESOLVE: Exalted (Whenever a creature you control attacks alone, that creature gets +1/+1 until end of turn.) [Attacker: Blighted Agent (117)]
+  PHASE: Infect's Declare Blockers Step
+  COMBAT: Goblins didn't block Blighted Agent (117).
+  LIFE: Life: Goblins 9 > 12
+  STACK_ADD: Infect cast Invigorate targeting [Blighted Agent (117)]
+  STACK_RESOLVE: Invigorate (107) - Blighted Agent (117) gets +4/+4  until end of turn.
+  MANA: Forest (102) - {T}: Add {G}.
+  STACK_ADD: Infect cast Berserk targeting [Blighted Agent (117)]
+  STACK_RESOLVE: Berserk (91) - Blighted Agent (117) gets +12/+0 and gains trample until end of turn. At the beginning of the next end step, destroy that creature if it attacked this turn.
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  DAMAGE: Blighted Agent (117) deals 12 combat damage to Goblins(as poison counters).
+  DAMAGE: Goblins receives 12 poison counter from Infect
+  PLAYER_CONTROL: Goblins has restored control over themself
+  PLAYER_CONTROL: Infect has restored control over themself
+  GAME_OUTCOME: Turn 5
+  GAME_OUTCOME: Goblins has lost because of obtaining 10 poison counters
+  GAME_OUTCOME: Infect has won because all opponents have lost
+  MATCH_RESULTS: Goblins: 0 Infect: 1 
+===============================

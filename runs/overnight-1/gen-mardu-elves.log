@@ -1,0 +1,45 @@
+========================================================================
+  NOTE: some requested seed(s) are in RESERVED eval blocks (eval/EVAL-DESIGN.md §6.5).
+  That's fine if this run IS the frozen-anchor/mining/certification
+  use those blocks exist for — but games on these seeds must NEVER
+  be fed into make_sft_data.py / mine_puzzles.py as SFT/training data.
+  [puzzle-mining] 20184, 20185, 20186, 20187, 20188, 20189, 20190, 20191, 20192, 20193, 20194, 20195
+========================================================================
+========================================================================
+  EXPLORATORY MODE — numbers from this run are NOT citable.
+  Mirror-deck / forced-heuristics-off / jobs=1 guards are DISABLED.
+  Re-run without --exploratory (and a mirror deck) for a citable batch.
+========================================================================
+[provenance] engine=c1c64a53586459cd0d4c70f27abd1aa8bbc92891 overlay=487bbf8dc330 deck=4e7be5785b40 discipline=exploratory
+[provenance] checkpoint=unknown seed_bank=puzzle-mining
+[warn] no --checkpoint given: the game line will not say which weights played. The endpoint's served_* fields are then the only identity, and an alias spec (e.g. openrouter:default_model) may not resolve to one.
+[out] /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games/mardu-elves
+Running 12 games (jobs=6, out=/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games/mardu-elves, forge_home=/Users/lumlumlam/code/forge)
+[start] seed=20184 swap=0 -> game-20184-0.log
+[start] seed=20185 swap=0 -> game-20185-0.log
+[start] seed=20186 swap=0 -> game-20186-0.log
+[start] seed=20187 swap=0 -> game-20187-0.log
+[start] seed=20188 swap=0 -> game-20188-0.log
+[start] seed=20189 swap=0 -> game-20189-0.log
+[done] seed=20188 swap=0
+[start] seed=20190 swap=0 -> game-20190-0.log
+[done] seed=20187 swap=0
+[start] seed=20191 swap=0 -> game-20191-0.log
+[done] seed=20189 swap=0
+[start] seed=20192 swap=0 -> game-20192-0.log
+[done] seed=20184 swap=0
+[start] seed=20193 swap=0 -> game-20193-0.log
+[done] seed=20185 swap=0
+[start] seed=20194 swap=0 -> game-20194-0.log
+[done] seed=20186 swap=0
+[start] seed=20195 swap=0 -> game-20195-0.log
+[done] seed=20190 swap=0
+[done] seed=20191 swap=0
+[done] seed=20192 swap=0
+[done] seed=20193 swap=0
+[done] seed=20195 swap=0
+[done] seed=20194 swap=0
+
+=== batch summary ===
+completed: 12  skipped(resume): 0  problems: 0
+Aggregate with: python3 /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/aggregate.py /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games/mardu-elves

@@ -1,0 +1,45 @@
+========================================================================
+  NOTE: some requested seed(s) are in RESERVED eval blocks (eval/EVAL-DESIGN.md §6.5).
+  That's fine if this run IS the frozen-anchor/mining/certification
+  use those blocks exist for — but games on these seeds must NEVER
+  be fed into make_sft_data.py / mine_puzzles.py as SFT/training data.
+  [puzzle-mining] 20148, 20149, 20150, 20151, 20152, 20153, 20154, 20155, 20156, 20157, 20158, 20159
+========================================================================
+========================================================================
+  EXPLORATORY MODE — numbers from this run are NOT citable.
+  Mirror-deck / forced-heuristics-off / jobs=1 guards are DISABLED.
+  Re-run without --exploratory (and a mirror deck) for a citable batch.
+========================================================================
+[provenance] engine=c1c64a53586459cd0d4c70f27abd1aa8bbc92891 overlay=487bbf8dc330 deck=40b47fe9ce84 discipline=exploratory
+[provenance] checkpoint=unknown seed_bank=puzzle-mining
+[warn] no --checkpoint given: the game line will not say which weights played. The endpoint's served_* fields are then the only identity, and an alias spec (e.g. openrouter:default_model) may not resolve to one.
+[out] /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games/infect-burn
+Running 12 games (jobs=6, out=/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games/infect-burn, forge_home=/Users/lumlumlam/code/forge)
+[start] seed=20148 swap=0 -> game-20148-0.log
+[start] seed=20149 swap=0 -> game-20149-0.log
+[start] seed=20150 swap=0 -> game-20150-0.log
+[start] seed=20151 swap=0 -> game-20151-0.log
+[start] seed=20152 swap=0 -> game-20152-0.log
+[start] seed=20153 swap=0 -> game-20153-0.log
+[done] seed=20152 swap=0
+[start] seed=20154 swap=0 -> game-20154-0.log
+[done] seed=20150 swap=0
+[start] seed=20155 swap=0 -> game-20155-0.log
+[done] seed=20153 swap=0
+[start] seed=20156 swap=0 -> game-20156-0.log
+[done] seed=20149 swap=0
+[start] seed=20157 swap=0 -> game-20157-0.log
+[done] seed=20148 swap=0
+[start] seed=20158 swap=0 -> game-20158-0.log
+[done] seed=20151 swap=0
+[start] seed=20159 swap=0 -> game-20159-0.log
+[done] seed=20154 swap=0
+[done] seed=20155 swap=0
+[done] seed=20157 swap=0
+[done] seed=20158 swap=0
+[done] seed=20159 swap=0
+[done] seed=20156 swap=0
+
+=== batch summary ===
+completed: 12  skipped(resume): 0  problems: 0
+Aggregate with: python3 /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/aggregate.py /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games/infect-burn

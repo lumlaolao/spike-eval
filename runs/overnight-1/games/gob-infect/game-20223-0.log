@@ -1,0 +1,243 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 1 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20223
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/infect.plan
+[DECK] loaded 'Goblins': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.txt)
+[DECK] loaded 'Infect': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/infect.txt)
+[SEATS] A=Goblins(ai-log,opus) B=Infect(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: B after 9 turns (AllOpponentsLost) in 2s
+--- full game log ---
+  MULLIGAN: Infect has kept a hand of 7 cards
+  MULLIGAN: Goblins has kept a hand of 7 cards
+  TURN: Turn 1 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Tropical Island (73)
+  MANA: Tropical Island (73) - {T}: Add {U}.
+  STACK_ADD: Infect cast Ponder
+  STACK_RESOLVE: Ponder (103) - Look at the top 3 cards of Infect's library. Then put them back in any order.You may have that player shuffle their library. Infect draws a card.
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  PHASE: Infect's Declare Blockers Step
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 2 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (20)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (20) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Lackey
+  STACK_RESOLVE: Goblin Lackey - Creature 1 / 1
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 3 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Pendelhaven (83)
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  PHASE: Infect's Declare Blockers Step
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  MANA: Tropical Island (73) - {T}: Add {U}.
+  MANA: Pendelhaven (83) - {T}: Add {G}.
+  STACK_ADD: Infect cast Blighted Agent
+  STACK_RESOLVE: Blighted Agent - Creature 1 / 1
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 4 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Rishadan Port (58)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 5 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  COMBAT: Infect assigned Blighted Agent (119) to attack Goblins.
+  PHASE: Infect's Declare Blockers Step
+  COMBAT: Goblins didn't block Blighted Agent (119).
+  STACK_ADD: Infect activated Pendelhaven targeting [Blighted Agent (119)]
+  STACK_RESOLVE: Pendelhaven (83) - Blighted Agent (119) gets +1/+2  until end of turn.
+  MANA: Tropical Island (73) - {T}: Add {G}.
+  STACK_ADD: Infect cast Groundswell targeting [Blighted Agent (119)]
+  STACK_RESOLVE: Groundswell (69) - Blighted Agent (119) gets +2/+2  until end of turn.
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  DAMAGE: Blighted Agent (119) deals 4 combat damage to Goblins(as poison counters).
+  DAMAGE: Goblins receives 4 poison counter from Infect
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 6 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Wasteland (50)
+  ZONE_CHANGE: Wasteland (50) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins activated Wasteland targeting [Pendelhaven (83)]
+  ZONE_CHANGE: Pendelhaven (83) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (50) - Destroy Pendelhaven (83).
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Goblin Lackey (7) to attack Infect.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Infect didn't block Goblin Lackey (7).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Goblin Lackey (7) deals 1 combat damage to Infect.
+  LIFE: Life: Infect 20 > 19
+  STACK_ADD: Goblins triggered Goblin Lackey
+  STACK_RESOLVE: Whenever Goblin Lackey deals damage to a player, you may put a Goblin permanent card from your hand onto the battlefield. [Damage Source: Goblin Lackey (7), Damaged: Infect, Amount: 1]
+  STACK_ADD: Goblins triggered Goblin Matron
+  STACK_RESOLVE: When Goblin Matron enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle. [Zone Changer: Goblin Matron (53)]
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (20) - {T}: Add {R}.
+  MANA: Rishadan Port (58) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Mogg War Marshal
+  STACK_RESOLVE: Mogg War Marshal - Creature 1 / 1
+  STACK_ADD: Goblins triggered Mogg War Marshal
+  STACK_RESOLVE: When Mogg War Marshal enters or dies, create a 1/1 red Goblin creature token. [Zone Changer: Mogg War Marshal (42)]
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 7 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Forest (100)
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  COMBAT: Infect assigned Blighted Agent (119) to attack Goblins.
+  PHASE: Infect's Declare Blockers Step
+  COMBAT: Goblins didn't block Blighted Agent (119).
+  MANA: Forest (100) - {T}: Add {G}.
+  MANA: Tropical Island (73) - {T}: Add {G}.
+  STACK_ADD: Infect cast Vines of Vastwood targeting [Blighted Agent (119)]
+  STACK_RESOLVE: Vines of Vastwood (92) - Blighted Agent (119) gets +4/+4  until end of turn. 
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  DAMAGE: Blighted Agent (119) deals 5 combat damage to Goblins(as poison counters).
+  DAMAGE: Goblins receives 5 poison counter from Infect
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 8 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Mogg War Marshal
+  MANA: Mountain (20) - {T}: Add {R}.
+  MANA: Rishadan Port (58) - {T}: Add {C}.
+  STACK_RESOLVE: At the beginning of your upkeep, if this permanent came under your control since the beginning of your last upkeep, sacrifice it unless you pay its echo cost. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (31)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Goblin Lackey (7), Goblin Matron (53), Mogg War Marshal (42) and Goblin Token (124) to attack Infect.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Infect didn't block Goblin Lackey (7).
+Infect didn't block Goblin Matron (53).
+Infect didn't block Mogg War Marshal (42).
+Infect didn't block Goblin Token (124).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Goblin Lackey (7) deals 1 combat damage to Infect.
+  DAMAGE: Goblin Matron (53) deals 1 combat damage to Infect.
+  DAMAGE: Mogg War Marshal (42) deals 1 combat damage to Infect.
+  DAMAGE: Goblin Token (124) deals 1 combat damage to Infect.
+  LIFE: Life: Infect 19 > 15
+  STACK_ADD: Goblins triggered Goblin Lackey
+  STACK_RESOLVE: Whenever Goblin Lackey deals damage to a player, you may put a Goblin permanent card from your hand onto the battlefield. [Damage Source: Goblin Lackey (7), Damaged: Infect, Amount: 1]
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (31) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Skirk Prospector
+  STACK_RESOLVE: Skirk Prospector - Creature 1 / 1
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 9 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Forest (101)
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  COMBAT: Infect assigned Blighted Agent (119) to attack Goblins.
+  PHASE: Infect's Declare Blockers Step
+  COMBAT: Goblins didn't block Blighted Agent (119).
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  DAMAGE: Blighted Agent (119) deals 1 combat damage to Goblins(as poison counters).
+  DAMAGE: Goblins receives 1 poison counter from Infect
+  PLAYER_CONTROL: Goblins has restored control over themself
+  PLAYER_CONTROL: Infect has restored control over themself
+  GAME_OUTCOME: Turn 5
+  GAME_OUTCOME: Goblins has lost because of obtaining 10 poison counters
+  GAME_OUTCOME: Infect has won because all opponents have lost
+  MATCH_RESULTS: Goblins: 0 Infect: 1 
+===============================

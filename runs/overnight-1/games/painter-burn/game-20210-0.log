@@ -1,0 +1,353 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 1 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20210
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/painter.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/burn.plan
+[DECK] loaded 'Painter': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/painter.txt)
+[DECK] loaded 'Burn': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/burn.txt)
+[SEATS] A=Painter(ai-log,opus) B=Burn(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: B after 13 turns (AllOpponentsLost) in 3s
+--- full game log ---
+  MULLIGAN: Burn has mulliganed down to 6 cards.
+  MULLIGAN: Burn has kept a hand of 6 cards
+  MULLIGAN: Painter has kept a hand of 7 cards
+  TURN: Turn 1 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Sunbaked Canyon (95)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 2 (Painter)
+  PHASE: Painter's Untap step
+  PHASE: Painter's Upkeep step
+  PHASE: Painter's Draw step
+  PHASE: Painter's Main phase, precombat
+  LAND: Painter played Planar Nexus (58)
+  STACK_ADD: Painter cast Lotus Petal
+  STACK_RESOLVE: Lotus Petal
+  PHASE: Painter's Beginning of Combat Step
+  PHASE: Painter's Declare Attackers Step
+  PHASE: Painter's Declare Blockers Step
+  PHASE: Painter's First Strike Damage Step
+  PHASE: Painter's Combat Damage Step
+  PHASE: Painter's End of Combat Step
+  PHASE: Painter's Main phase, postcombat
+  MANA: Planar Nexus (58) - {T}: Add {C}.
+  ZONE_CHANGE: Lotus Petal (53) was put into Graveyard from Battlefield.
+  MANA: Lotus Petal (53) - {T}, Sacrifice Lotus Petal: Add one mana of any color.
+  STACK_ADD: Painter cast Grim Monolith
+  STACK_RESOLVE: Grim Monolith
+  MANA: Grim Monolith (35) - {T}: Add {C}{C}{C}.
+  STACK_ADD: Painter cast Grim Monolith
+  STACK_RESOLVE: Grim Monolith
+  MANA: Grim Monolith (33) - {T}: Add {C}{C}{C}.
+  STACK_ADD: Painter cast Karn, the Great Creator
+  EFFECT_REPLACED: Karn, the Great Creator enters with five loyalty counters on it.
+  STACK_RESOLVE: Karn, the Great Creator
+  STACK_ADD: Painter activated Karn, the Great Creator
+  LIFE: Life: Burn 20 > 19
+  MANA: Sunbaked Canyon (95) - {T}, Pay 1 life: Add {R} or {W}.
+  STACK_ADD: Burn cast Lightning Bolt targeting [Karn, the Great Creator (14)]
+  STACK_RESOLVE: Lightning Bolt (114) - Lightning Bolt (114) deals 3 damage to Karn, the Great Creator (14).
+  ZONE_CHANGE: Karn, the Great Creator (14) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Karn, the Great Creator (14) - Painter may reveal an artifact card they own from outside the game or in exile and put it into their hand.
+  PHASE: Painter's End step
+  PHASE: Painter's Cleanup step
+  TURN: Turn 3 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Sunbaked Canyon (94)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 4 (Painter)
+  PHASE: Painter's Untap step
+  PHASE: Painter's Upkeep step
+  PHASE: Painter's Draw step
+  PHASE: Painter's Main phase, precombat
+  EFFECT_REPLACED: Urza's Saga enters with a lore counter on it.
+  LAND: Painter played Urza's Saga (48)
+  STACK_ADD: Painter triggered Urza's Saga
+  STACK_RESOLVE: I — Urza's Saga gains "{T}: Add {C}." [Added once: Urza's Saga (48)]
+  STACK_ADD: Painter cast Lotus Petal
+  STACK_RESOLVE: Lotus Petal
+  PHASE: Painter's Beginning of Combat Step
+  PHASE: Painter's Declare Attackers Step
+  PHASE: Painter's Declare Blockers Step
+  PHASE: Painter's First Strike Damage Step
+  PHASE: Painter's Combat Damage Step
+  PHASE: Painter's End of Combat Step
+  PHASE: Painter's Main phase, postcombat
+  MANA: Urza's Saga (48) - {T}: Add {C}.
+  MANA: Planar Nexus (58) - {T}: Add {C}.
+  STACK_ADD: Painter cast Painter's Servant
+  EFFECT_REPLACED: As Painter's Servant enters, choose a color.
+  STACK_RESOLVE: Painter's Servant - Creature 1 / 3
+  PHASE: Painter's End step
+  PHASE: Painter's Cleanup step
+  TURN: Turn 5 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (101)
+  MANA: Mountain (101) - {T}: Add {R}.
+  STACK_ADD: Burn cast Chain Lightning targeting [Painter's Servant (74)]
+  DAMAGE: Chain Lightning (130) deals 3 damage to Painter's Servant (74).
+  STACK_RESOLVE: Chain Lightning (130) - Chain Lightning (130) deals 3 damage to Painter's Servant (74). 
+  ZONE_CHANGE: Painter's Servant (74) was put into Graveyard from Battlefield.
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 6 (Painter)
+  PHASE: Painter's Untap step
+  PHASE: Painter's Upkeep step
+  PHASE: Painter's Draw step
+  PHASE: Painter's Main phase, precombat
+  STACK_ADD: Painter triggered Urza's Saga
+  STACK_RESOLVE: II — Urza's Saga gains "{2}, {T}: Create a 0/0 colorless Construct artifact creature token with 'This creature gets +1/+1 for each artifact you control.'" [Added once: Urza's Saga (48)]
+  PHASE: Painter's Beginning of Combat Step
+  PHASE: Painter's Declare Attackers Step
+  PHASE: Painter's Declare Blockers Step
+  PHASE: Painter's First Strike Damage Step
+  PHASE: Painter's Combat Damage Step
+  PHASE: Painter's End of Combat Step
+  PHASE: Painter's Main phase, postcombat
+  PHASE: Painter's End step
+  PHASE: Painter's Cleanup step
+  TURN: Turn 7 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (111)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  MANA: Planar Nexus (58) - {T}: Add {C}.
+  MANA: Urza's Saga (48) - {T}: Add {C}.
+  ZONE_CHANGE: Lotus Petal (51) was put into Graveyard from Battlefield.
+  MANA: Lotus Petal (51) - {T}, Sacrifice Lotus Petal: Add one mana of any color.
+  STACK_ADD: Painter cast Kozilek's Command
+  STACK_RESOLVE: Painter scried 1 card(s) to the top of the library
+  STACK_RESOLVE: Kozilek's Command (15) -  Target player creates X 0/1 colorless Eldrazi Spawn creature tokens with "Sacrifice this creature: Add {C}." (Targeting: Painter) Target player scries X, then draws a card. (Targeting: Painter) Painter draws a card. (X=1)
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 8 (Painter)
+  PHASE: Painter's Untap step
+  PHASE: Painter's Upkeep step
+  PHASE: Painter's Draw step
+  PHASE: Painter's Main phase, precombat
+  STACK_ADD: Painter triggered Urza's Saga
+  STACK_RESOLVE: III — Search your library for an artifact card with mana cost {0} or {1}, put it onto the battlefield, then shuffle. [Added once: Urza's Saga (48)]
+  ZONE_CHANGE: Urza's Saga (48) was put into Graveyard from Battlefield.
+  LAND: Painter played Ancient Tomb (45)
+  MANA: Planar Nexus (58) - {T}: Add {C}.
+  DAMAGE: Ancient Tomb (45) deals 2 non-combat damage to Painter.
+  LIFE: Life: Painter 20 > 18
+  MANA: Ancient Tomb (45) - {T}: Add {C}{C}. Ancient Tomb deals 2 damage to you. 
+  STACK_ADD: Painter activated Grindstone targeting [Burn]
+  ZONE_CHANGE: Burn milled Searing Blaze (123) and Mountain (105).
+  STACK_RESOLVE: Grindstone (27) - Target player mills two cards. If two cards that share a color were milled this way, repeat this process. (Targeting: Burn) 
+  PHASE: Painter's Beginning of Combat Step
+  PHASE: Painter's Declare Attackers Step
+  PHASE: Painter's Declare Blockers Step
+  PHASE: Painter's First Strike Damage Step
+  PHASE: Painter's Combat Damage Step
+  PHASE: Painter's End of Combat Step
+  PHASE: Painter's Main phase, postcombat
+  PHASE: Painter's End step
+  PHASE: Painter's Cleanup step
+  TURN: Turn 9 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (106)
+  MANA: Mountain (101) - {T}: Add {R}.
+  ZONE_CHANGE: Sunbaked Canyon (95) was put into Graveyard from Battlefield.
+  STACK_ADD: Burn activated Sunbaked Canyon
+  STACK_RESOLVE: Sunbaked Canyon (95) - Burn draws a card.
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 10 (Painter)
+  PHASE: Painter's Untap step
+  PHASE: Painter's Upkeep step
+  MANA: Planar Nexus (58) - {T}: Add {C}.
+  DAMAGE: Ancient Tomb (45) deals 2 non-combat damage to Painter.
+  LIFE: Life: Painter 18 > 16
+  MANA: Ancient Tomb (45) - {T}: Add {C}{C}. Ancient Tomb deals 2 damage to you. 
+  STACK_ADD: Painter activated Grindstone targeting [Burn]
+  MANA: Mountain (111) - {T}: Add {R}.
+  MANA: Mountain (106) - {T}: Add {R}.
+  STACK_ADD: Burn cast Price of Progress
+  DAMAGE: Price of Progress (92) deals 4 non-combat damage to Painter.
+  DAMAGE: Price of Progress (92) deals 2 non-combat damage to Burn.
+  LIFE: Life: Painter 16 > 12
+  LIFE: Life: Burn 19 > 17
+  STACK_RESOLVE: Price of Progress (92) - Price of Progress deals 2 damage to each player for each nonbasic land they control.
+  ZONE_CHANGE: Burn milled Eidolon of the Great Revel (132) and Monastery Swiftspear (79).
+  ZONE_CHANGE: Burn milled Chain Lightning (128) and Price of Progress (91).
+  ZONE_CHANGE: Burn milled Mountain (104) and Fireblast (118).
+  STACK_RESOLVE: Grindstone (27) - Target player mills two cards. If two cards that share a color were milled this way, repeat this process. (Targeting: Burn) 
+  PHASE: Painter's Draw step
+  PHASE: Painter's Main phase, precombat
+  LAND: Painter played Planar Nexus (57)
+  PHASE: Painter's Beginning of Combat Step
+  PHASE: Painter's Declare Attackers Step
+  PHASE: Painter's Declare Blockers Step
+  PHASE: Painter's First Strike Damage Step
+  PHASE: Painter's Combat Damage Step
+  PHASE: Painter's End of Combat Step
+  PHASE: Painter's Main phase, postcombat
+  PHASE: Painter's End step
+  PHASE: Painter's Cleanup step
+  TURN: Turn 11 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (98)
+  MANA: Mountain (101) - {T}: Add {R}.
+  ZONE_CHANGE: Sunbaked Canyon (94) was put into Graveyard from Battlefield.
+  STACK_ADD: Burn activated Sunbaked Canyon
+  STACK_RESOLVE: Sunbaked Canyon (94) - Burn draws a card.
+  MANA: Mountain (111) - {T}: Add {R}.
+  STACK_ADD: Burn cast Goblin Guide
+  STACK_RESOLVE: Goblin Guide - Creature 2 / 2
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Goblin Guide (82) to attack Painter.
+  STACK_ADD: Burn triggered Goblin Guide
+  STACK_RESOLVE: Whenever Goblin Guide attacks, defending player reveals the top card of their library. If it's a land card, that player puts it into their hand. [Attacker: Goblin Guide (82)]
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Painter didn't block Goblin Guide (82).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Goblin Guide (82) deals 2 combat damage to Painter.
+  LIFE: Life: Painter 12 > 10
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 12 (Painter)
+  PHASE: Painter's Untap step
+  PHASE: Painter's Upkeep step
+  MANA: Planar Nexus (58) - {T}: Add {C}.
+  MANA: Planar Nexus (57) - {T}: Add {C}.
+  DAMAGE: Ancient Tomb (45) deals 2 non-combat damage to Painter.
+  LIFE: Life: Painter 10 > 8
+  MANA: Ancient Tomb (45) - {T}: Add {C}{C}. Ancient Tomb deals 2 damage to you. 
+  STACK_ADD: Painter activated Grindstone targeting [Burn]
+  ZONE_CHANGE: Burn milled Price of Progress (93) and Price of Progress (90).
+  ZONE_CHANGE: Burn milled Mountain (99) and Fireblast (121).
+  STACK_RESOLVE: Grindstone (27) - Target player mills two cards. If two cards that share a color were milled this way, repeat this process. (Targeting: Burn) 
+  PHASE: Painter's Draw step
+  PHASE: Painter's Main phase, precombat
+  LAND: Painter played Urza's Workshop (7)
+  PHASE: Painter's Beginning of Combat Step
+  PHASE: Painter's Declare Attackers Step
+  PHASE: Painter's Declare Blockers Step
+  PHASE: Painter's First Strike Damage Step
+  PHASE: Painter's Combat Damage Step
+  PHASE: Painter's End of Combat Step
+  PHASE: Painter's Main phase, postcombat
+  PHASE: Painter's End step
+  PHASE: Painter's Cleanup step
+  TURN: Turn 13 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (112)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Goblin Guide (82) to attack Painter.
+  STACK_ADD: Burn triggered Goblin Guide
+  STACK_RESOLVE: Whenever Goblin Guide attacks, defending player reveals the top card of their library. If it's a land card, that player puts it into their hand. [Attacker: Goblin Guide (82)]
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Painter didn't block Goblin Guide (82).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Goblin Guide (82) deals 2 combat damage to Painter.
+  LIFE: Life: Painter 8 > 6
+  MANA: Mountain (101) - {T}: Add {R}.
+  MANA: Mountain (111) - {T}: Add {R}.
+  STACK_ADD: Burn cast Searing Blaze targeting [Painter] [Eldrazi Spawn Token (160)]
+  DAMAGE: Searing Blaze (122) deals 3 non-combat damage to Painter.
+  DAMAGE: Searing Blaze (122) deals 3 damage to Eldrazi Spawn Token (160).
+  LIFE: Life: Painter 6 > 3
+  STACK_RESOLVE: Searing Blaze (122) - Searing Blaze (122) deals 3 damage to Painter. Searing Blaze (122) deals 3 damage to Eldrazi Spawn Token (160). 
+  ZONE_CHANGE: Eldrazi Spawn Token (160) was put into Graveyard from Battlefield.
+  MANA: Mountain (106) - {T}: Add {R}.
+  STACK_ADD: Burn cast Lightning Bolt targeting [Painter]
+  DAMAGE: Lightning Bolt (116) deals 3 non-combat damage to Painter.
+  LIFE: Life: Painter 3 > 0
+  STACK_RESOLVE: Lightning Bolt (116) - Lightning Bolt (116) deals 3 damage to Painter.
+  PLAYER_CONTROL: Painter has restored control over themself
+  PLAYER_CONTROL: Burn has restored control over themself
+  GAME_OUTCOME: Turn 7
+  GAME_OUTCOME: Painter has lost because life total reached 0
+  GAME_OUTCOME: Burn has won because all opponents have lost
+  MATCH_RESULTS: Painter: 0 Burn: 1 
+===============================

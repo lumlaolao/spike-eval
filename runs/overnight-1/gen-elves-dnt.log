@@ -21,3 +21,25 @@ Running 12 games (jobs=6, out=/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/
 [start] seed=20139 swap=0 -> game-20139-0.log
 [start] seed=20140 swap=0 -> game-20140-0.log
 [start] seed=20141 swap=0 -> game-20141-0.log
+[done] seed=20139 swap=0
+[start] seed=20142 swap=0 -> game-20142-0.log
+[done] seed=20141 swap=0
+[start] seed=20143 swap=0 -> game-20143-0.log
+[done] seed=20136 swap=0
+[start] seed=20144 swap=0 -> game-20144-0.log
+[done] seed=20140 swap=0
+[start] seed=20145 swap=0 -> game-20145-0.log
+[done] seed=20138 swap=0
+[start] seed=20146 swap=0 -> game-20146-0.log
+[done] seed=20137 swap=0
+[start] seed=20147 swap=0 -> game-20147-0.log
+[done] seed=20142 swap=0
+[done] seed=20145 swap=0
+[done] seed=20146 swap=0
+[done] seed=20147 swap=0
+[done] seed=20144 swap=0
+[done] seed=20143 swap=0
+
+=== batch summary ===
+completed: 12  skipped(resume): 0  problems: 0
+Aggregate with: python3 /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/aggregate.py /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games/elves-dnt

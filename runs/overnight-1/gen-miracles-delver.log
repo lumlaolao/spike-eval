@@ -1,0 +1,45 @@
+========================================================================
+  NOTE: some requested seed(s) are in RESERVED eval blocks (eval/EVAL-DESIGN.md §6.5).
+  That's fine if this run IS the frozen-anchor/mining/certification
+  use those blocks exist for — but games on these seeds must NEVER
+  be fed into make_sft_data.py / mine_puzzles.py as SFT/training data.
+  [puzzle-mining] 20172, 20173, 20174, 20175, 20176, 20177, 20178, 20179, 20180, 20181, 20182, 20183
+========================================================================
+========================================================================
+  EXPLORATORY MODE — numbers from this run are NOT citable.
+  Mirror-deck / forced-heuristics-off / jobs=1 guards are DISABLED.
+  Re-run without --exploratory (and a mirror deck) for a citable batch.
+========================================================================
+[provenance] engine=c1c64a53586459cd0d4c70f27abd1aa8bbc92891 overlay=487bbf8dc330 deck=f0df6ca90275 discipline=exploratory
+[provenance] checkpoint=unknown seed_bank=puzzle-mining
+[warn] no --checkpoint given: the game line will not say which weights played. The endpoint's served_* fields are then the only identity, and an alias spec (e.g. openrouter:default_model) may not resolve to one.
+[out] /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games/miracles-delver
+Running 12 games (jobs=6, out=/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games/miracles-delver, forge_home=/Users/lumlumlam/code/forge)
+[start] seed=20172 swap=0 -> game-20172-0.log
+[start] seed=20173 swap=0 -> game-20173-0.log
+[start] seed=20174 swap=0 -> game-20174-0.log
+[start] seed=20175 swap=0 -> game-20175-0.log
+[start] seed=20176 swap=0 -> game-20176-0.log
+[start] seed=20177 swap=0 -> game-20177-0.log
+[done] seed=20174 swap=0
+[start] seed=20178 swap=0 -> game-20178-0.log
+[done] seed=20175 swap=0
+[start] seed=20179 swap=0 -> game-20179-0.log
+[done] seed=20173 swap=0
+[start] seed=20180 swap=0 -> game-20180-0.log
+[done] seed=20177 swap=0
+[start] seed=20181 swap=0 -> game-20181-0.log
+[done] seed=20179 swap=0
+[start] seed=20182 swap=0 -> game-20182-0.log
+[done] seed=20172 swap=0
+[start] seed=20183 swap=0 -> game-20183-0.log
+[done] seed=20176 swap=0
+[done] seed=20180 swap=0
+[done] seed=20181 swap=0
+[done] seed=20178 swap=0
+[done] seed=20183 swap=0
+[done] seed=20182 swap=0
+
+=== batch summary ===
+completed: 12  skipped(resume): 0  problems: 0
+Aggregate with: python3 /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/aggregate.py /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games/miracles-delver

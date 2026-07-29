@@ -1,0 +1,232 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20228
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/infect.plan
+[DECK] loaded 'Goblins': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.txt)
+[DECK] loaded 'Infect': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/infect.txt)
+[SEATS] A=Goblins(ai-log,opus) B=Infect(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: A after 8 turns (AllOpponentsLost) in 2s
+--- full game log ---
+  MULLIGAN: Infect has mulliganed down to 6 cards.
+  MULLIGAN: Infect has kept a hand of 6 cards
+  MULLIGAN: Goblins has kept a hand of 7 cards
+  TURN: Turn 1 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Forest (102)
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  PHASE: Infect's Declare Blockers Step
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 2 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (26)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (26) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Skirk Prospector
+  STACK_RESOLVE: Skirk Prospector - Creature 1 / 1
+  ZONE_CHANGE: Skirk Prospector (39) was put into Graveyard from Battlefield.
+  MANA: Skirk Prospector (39) - Sacrifice a Goblin: Add {R}.
+  STACK_ADD: Goblins cast Goblin Lackey
+  STACK_RESOLVE: Goblin Lackey - Creature 1 / 1
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 3 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Pendelhaven (83)
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  PHASE: Infect's Declare Blockers Step
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 4 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Wasteland (50)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Goblin Lackey (8) to attack Infect.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Infect didn't block Goblin Lackey (8).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Goblin Lackey (8) deals 1 combat damage to Infect.
+  LIFE: Life: Infect 20 > 19
+  STACK_ADD: Goblins triggered Goblin Lackey
+  STACK_RESOLVE: Whenever Goblin Lackey deals damage to a player, you may put a Goblin permanent card from your hand onto the battlefield. [Damage Source: Goblin Lackey (8), Damaged: Infect, Amount: 1]
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (26) - {T}: Add {R}.
+  MANA: Wasteland (50) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Gempalm Incinerator
+  STACK_RESOLVE: Gempalm Incinerator - Creature 2 / 1
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 5 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Forest (101)
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  PHASE: Infect's Declare Blockers Step
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 6 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Rishadan Port (60)
+  MANA: Mountain (26) - {T}: Add {R}.
+  MANA: Wasteland (50) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Goblin Matron
+  STACK_RESOLVE: Goblin Matron - Creature 1 / 1
+  STACK_ADD: Goblins triggered Goblin Matron
+  STACK_RESOLVE: When Goblin Matron enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle. [Zone Changer: Goblin Matron (54)]
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Goblin Warchief (15), Gempalm Incinerator (56), Goblin Lackey (8) and Goblin Matron (54) to attack Infect.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Infect didn't block Goblin Warchief (15).
+Infect didn't block Gempalm Incinerator (56).
+Infect didn't block Goblin Lackey (8).
+Infect didn't block Goblin Matron (54).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Goblin Warchief (15) deals 2 combat damage to Infect.
+  DAMAGE: Gempalm Incinerator (56) deals 2 combat damage to Infect.
+  DAMAGE: Goblin Lackey (8) deals 1 combat damage to Infect.
+  DAMAGE: Goblin Matron (54) deals 1 combat damage to Infect.
+  LIFE: Life: Infect 19 > 13
+  STACK_ADD: Goblins triggered Goblin Lackey
+  STACK_RESOLVE: Whenever Goblin Lackey deals damage to a player, you may put a Goblin permanent card from your hand onto the battlefield. [Damage Source: Goblin Lackey (8), Damaged: Infect, Amount: 1]
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 7 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  PHASE: Infect's Declare Blockers Step
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  PHASE: Infect's End of Combat Step
+  STACK_ADD: Goblins activated Krenko, Mob Boss
+  STACK_RESOLVE: Krenko, Mob Boss (46) - Goblins creates ten 1/1 red Goblin creature tokens.
+  PHASE: Infect's Main phase, postcombat
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 8 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  MANA: Mountain (26) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Skirk Prospector
+  STACK_RESOLVE: Skirk Prospector - Creature 1 / 1
+  ZONE_CHANGE: Goblin Token (141) was put into Graveyard from Battlefield.
+  MANA: Skirk Prospector (40) - Sacrifice a Goblin: Add {R}.
+  STACK_ADD: Goblins cast Mogg War Marshal
+  STACK_RESOLVE: Mogg War Marshal - Creature 1 / 1
+  STACK_ADD: Goblins triggered Mogg War Marshal
+  STACK_RESOLVE: When Mogg War Marshal enters or dies, create a 1/1 red Goblin creature token. [Zone Changer: Mogg War Marshal (41)]
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (46), Goblin Warchief (15), Gempalm Incinerator (56), Goblin Lackey (8), Goblin Matron (54), Goblin Token (137), Goblin Token (138), Goblin Token (139), Goblin Token (140), Skirk Prospector (40), Mogg War Marshal (41) and Goblin Token (149) to attack Infect.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Infect didn't block Krenko, Mob Boss (46).
+Infect didn't block Goblin Warchief (15).
+Infect didn't block Gempalm Incinerator (56).
+Infect didn't block Goblin Lackey (8).
+Infect didn't block Goblin Matron (54).
+Infect didn't block Goblin Token (137).
+Infect didn't block Goblin Token (138).
+Infect didn't block Goblin Token (139).
+Infect didn't block Goblin Token (140).
+Infect didn't block Skirk Prospector (40).
+Infect didn't block Mogg War Marshal (41).
+Infect didn't block Goblin Token (149).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Krenko, Mob Boss (46) deals 3 combat damage to Infect.
+  DAMAGE: Goblin Warchief (15) deals 2 combat damage to Infect.
+  DAMAGE: Gempalm Incinerator (56) deals 2 combat damage to Infect.
+  DAMAGE: Goblin Lackey (8) deals 1 combat damage to Infect.
+  DAMAGE: Goblin Matron (54) deals 1 combat damage to Infect.
+  DAMAGE: Goblin Token (137) deals 1 combat damage to Infect.
+  DAMAGE: Goblin Token (138) deals 1 combat damage to Infect.
+  DAMAGE: Goblin Token (139) deals 1 combat damage to Infect.
+  DAMAGE: Goblin Token (140) deals 1 combat damage to Infect.
+  DAMAGE: Skirk Prospector (40) deals 1 combat damage to Infect.
+  DAMAGE: Mogg War Marshal (41) deals 1 combat damage to Infect.
+  DAMAGE: Goblin Token (149) deals 1 combat damage to Infect.
+  LIFE: Life: Infect 13 > -3
+  PLAYER_CONTROL: Goblins has restored control over themself
+  PLAYER_CONTROL: Infect has restored control over themself
+  GAME_OUTCOME: Turn 4
+  GAME_OUTCOME: Goblins has won because all opponents have lost
+  GAME_OUTCOME: Infect has lost because life total reached 0
+  MATCH_RESULTS: Goblins: 1 Infect: 0 
+===============================

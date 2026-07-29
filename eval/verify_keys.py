@@ -1199,6 +1199,53 @@ def verify_one(cand, driver, lane_filter, n_per_option, name_idx, sha16, now,
 
 # --------------------------------------------------------------------- main
 
+def suite_composition(rows_meta):
+    """What the verified set is actually WORTH as a suite, not just how big.
+
+    Born from a real near-miss: an uncapped exhaustive pass minted 24 verified
+    keys -- 8x the repo's lifetime total -- and "24 puzzles" would have been a
+    fair-sounding thing to report. It was not 24 puzzles. Only 15 option-sets
+    were distinct (one 2-option "cast Lava Spike or PASS" appeared 5 times),
+    and most positions had 2 options, which means a coin-flipping model scores
+    ~50%.
+
+    That is the 88% lesson (CLAUDE.md) turning up in a new place: a count
+    without its floor is not a score. So every verify run now reports, next to
+    n_verified:
+
+      * n_distinct -- verified rows collapsed by their option text, because
+        duplicates measure the same skill repeatedly while inflating the count
+      * random_baseline -- mean over verified positions of 1/n_options, i.e.
+        what uniform guessing scores. The project rule is to prefer metrics
+        whose trivial baseline is near ZERO; a suite of 2-option positions has
+        a baseline near 0.5 and is a bad suite however many rows it has
+      * n_options_histogram -- where the triviality actually sits
+
+    Diagnostic only: it mints nothing, blocks nothing, and no gate reads it.
+    """
+    verified = [m for m in rows_meta if m.get("verified")]
+    sigs, n_opts = set(), []
+    for m in verified:
+        opts = m.get("options") or []
+        # collapse on the option TEXT before the reminder-text bracket, so the
+        # same decision from two seeds counts once
+        sigs.add(tuple(str(o).split(" [")[0] for o in opts))
+        if opts:
+            n_opts.append(len(opts))
+    hist = {}
+    for n in n_opts:
+        hist[str(n)] = hist.get(str(n), 0) + 1
+    baseline = (sum(1.0 / n for n in n_opts) / len(n_opts)) if n_opts else None
+    return {
+        "n_verified": len(verified),
+        "n_distinct": len(sigs),
+        "duplicate_rate": (1.0 - len(sigs) / float(len(verified)))
+                          if verified else None,
+        "random_baseline": baseline,
+        "n_options_histogram": hist,
+    }
+
+
 def _run_all(cands, fn, jobs):
     """Map fn over cands, concurrently when jobs > 1.
 
@@ -1398,6 +1445,9 @@ def build_summary(rows_meta, driver_name, n_per_option, warnings,
         "n_per_option": n_per_option,
         "rollout_spread": spread_distribution(
             [m.get("rollout_evidence") for m in rows_meta]),
+        # Size is not worth. See suite_composition -- a count without its
+        # trivial floor is not a score (the 88% lesson).
+        "suite_composition": suite_composition(rows_meta),
         "thresholds": thresholds if thresholds is not None else {
             "gap_threshold": DEFAULT_GAP_THRESHOLD,
             "mulligan_gap_threshold": DEFAULT_MULLIGAN_GAP_THRESHOLD,
@@ -1602,6 +1652,7 @@ def main(argv=None):
         out_rows.append(row)
         rows_meta.append({"category": cand.get("category"), "lane": lane,
                           "verified": verified, "reason": reason,
+                          "options": row.get("options") or cand.get("options"),
                           "rollout_evidence": row.get("rollout_evidence")})
         any_engine_missing = any_engine_missing or engine_missing
 
@@ -1628,6 +1679,13 @@ def main(argv=None):
               % (summary["n_verified"], summary["n_in"],
                  summary["yield_rate"]["est"] or 0.0, out_path),
               file=sys.stderr)
+        sc = summary.get("suite_composition") or {}
+        if sc.get("n_verified"):
+            print("suite: %d verified / %d DISTINCT positions; random-guess "
+                  "baseline %.2f (n_options %s)"
+                  % (sc["n_verified"], sc["n_distinct"],
+                     sc.get("random_baseline") or 0.0,
+                     sc.get("n_options_histogram")), file=sys.stderr)
         pw = summary.get("power") or {}
         if pw.get("noise_bound") and summary["by_lane"].get("rollout"):
             print("WARNING: NOISE-BOUND RUN. n_per_option=%d gives a noise "

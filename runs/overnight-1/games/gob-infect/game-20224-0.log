@@ -1,0 +1,123 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 1 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20224
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/infect.plan
+[DECK] loaded 'Goblins': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.txt)
+[DECK] loaded 'Infect': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/infect.txt)
+[SEATS] A=Goblins(ai-log,opus) B=Infect(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: B after 4 turns (AllOpponentsLost) in 0s
+--- full game log ---
+  MULLIGAN: Goblins has mulliganed down to 6 cards.
+  MULLIGAN: Goblins has kept a hand of 6 cards
+  MULLIGAN: Infect has kept a hand of 7 cards
+  TURN: Turn 1 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Rishadan Port (58)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 2 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Tropical Island (72)
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  PHASE: Infect's Declare Blockers Step
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  MANA: Tropical Island (72) - {T}: Add {G}.
+  STACK_ADD: Infect cast Glistener Elf
+  STACK_RESOLVE: Glistener Elf - Creature 1 / 1
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 3 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (31)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 4 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Pendelhaven (84)
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  COMBAT: Infect assigned Glistener Elf (75) to attack Goblins.
+  PHASE: Infect's Declare Blockers Step
+  COMBAT: Goblins didn't block Glistener Elf (75).
+  STACK_ADD: Infect activated Pendelhaven targeting [Glistener Elf (75)]
+  STACK_RESOLVE: Pendelhaven (84) - Glistener Elf (75) gets +1/+2  until end of turn.
+  LIFE: Life: Goblins 20 > 23
+  STACK_ADD: Infect cast Invigorate targeting [Glistener Elf (75)]
+  STACK_RESOLVE: Invigorate (109) - Glistener Elf (75) gets +4/+4  until end of turn.
+  LIFE: Life: Goblins 23 > 26
+  STACK_ADD: Infect cast Invigorate targeting [Glistener Elf (75)]
+  STACK_RESOLVE: Invigorate (108) - Glistener Elf (75) gets +4/+4  until end of turn.
+  LIFE: Life: Goblins 26 > 29
+  STACK_ADD: Infect cast Invigorate targeting [Glistener Elf (75)]
+  STACK_RESOLVE: Invigorate (110) - Glistener Elf (75) gets +4/+4  until end of turn.
+  MANA: Tropical Island (72) - {T}: Add {G}.
+  STACK_ADD: Infect cast Berserk targeting [Glistener Elf (75)]
+  STACK_RESOLVE: Berserk (89) - Glistener Elf (75) gets +28/+0 and gains trample until end of turn. At the beginning of the next end step, destroy that creature if it attacked this turn.
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  DAMAGE: Glistener Elf (75) deals 28 combat damage to Goblins(as poison counters).
+  DAMAGE: Goblins receives 28 poison counter from Infect
+  PLAYER_CONTROL: Goblins has restored control over themself
+  PLAYER_CONTROL: Infect has restored control over themself
+  GAME_OUTCOME: Turn 2
+  GAME_OUTCOME: Goblins has lost because of obtaining 10 poison counters
+  GAME_OUTCOME: Infect has won because all opponents have lost
+  MATCH_RESULTS: Goblins: 0 Infect: 1 
+===============================

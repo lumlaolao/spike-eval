@@ -1,0 +1,291 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20169
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/lands.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.plan
+[DECK] loaded 'Lands': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/lands.txt)
+[DECK] loaded 'Goblins': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.txt)
+[SEATS] A=Lands(ai-log,opus) B=Goblins(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: B after 11 turns (AllOpponentsLost) in 2s
+--- full game log ---
+  MULLIGAN: Goblins has mulliganed down to 6 cards.
+  MULLIGAN: Goblins has mulliganed down to 5 cards.
+  MULLIGAN: Goblins has kept a hand of 5 cards
+  MULLIGAN: Lands has kept a hand of 7 cards
+  TURN: Turn 1 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Rishadan Port (119)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 2 (Lands)
+  PHASE: Lands' Untap step
+  PHASE: Lands' Upkeep step
+  PHASE: Lands' Draw step
+  PHASE: Lands' Main phase, precombat
+  STACK_ADD: Lands cast Mox Diamond
+  DISCARD: Lands discards Rishadan Port (50).
+  EFFECT_REPLACED: If Mox Diamond would enter, you may discard a land card instead. If you do, put Mox Diamond onto the battlefield. If you don't, put it into its owner's graveyard.
+  STACK_RESOLVE: Mox Diamond
+  LAND: Lands played Forest (36)
+  MANA: Forest (36) - {T}: Add {G}.
+  ZONE_CHANGE: Forest (36) was put into Graveyard from Battlefield.
+  STACK_ADD: Lands cast Crop Rotation
+  STACK_RESOLVE: Crop Rotation (20) - Lands searches their library for a land card, puts it onto the battlefield, then shuffles.
+  PHASE: Lands' Beginning of Combat Step
+  PHASE: Lands' Declare Attackers Step
+  PHASE: Lands' Declare Blockers Step
+  PHASE: Lands' First Strike Damage Step
+  PHASE: Lands' Combat Damage Step
+  PHASE: Lands' End of Combat Step
+  PHASE: Lands' Main phase, postcombat
+  PHASE: Lands' End step
+  PHASE: Lands' Cleanup step
+  TURN: Turn 3 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (82)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 4 (Lands)
+  PHASE: Lands' Untap step
+  PHASE: Lands' Upkeep step
+  PHASE: Lands' Draw step
+  PHASE: Lands' Main phase, precombat
+  LAND: Lands played Rishadan Port (48)
+  PHASE: Lands' Beginning of Combat Step
+  PHASE: Lands' Declare Attackers Step
+  PHASE: Lands' Declare Blockers Step
+  PHASE: Lands' First Strike Damage Step
+  PHASE: Lands' Combat Damage Step
+  PHASE: Lands' End of Combat Step
+  PHASE: Lands' Main phase, postcombat
+  PHASE: Lands' End step
+  PHASE: Lands' Cleanup step
+  TURN: Turn 5 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (81)
+  MANA: Mountain (82) - {T}: Add {R}.
+  MANA: Mountain (81) - {T}: Add {R}.
+  MANA: Rishadan Port (119) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Goblin Chieftain
+  STACK_RESOLVE: Goblin Chieftain - Creature 2 / 2
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Goblin Chieftain (105) to attack Lands.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Lands didn't block Goblin Chieftain (105).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Goblin Chieftain (105) deals 2 combat damage to Lands.
+  LIFE: Life: Lands 20 > 18
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 6 (Lands)
+  PHASE: Lands' Untap step
+  PHASE: Lands' Upkeep step
+  PHASE: Lands' Draw step
+  PHASE: Lands' Main phase, precombat
+  LAND: Lands played Forest (30)
+  PHASE: Lands' Beginning of Combat Step
+  PHASE: Lands' Declare Attackers Step
+  PHASE: Lands' Declare Blockers Step
+  PHASE: Lands' First Strike Damage Step
+  PHASE: Lands' Combat Damage Step
+  PHASE: Lands' End of Combat Step
+  PHASE: Lands' Main phase, postcombat
+  PHASE: Lands' End step
+  PHASE: Lands' Cleanup step
+  TURN: Turn 7 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Rishadan Port (117)
+  MANA: Mountain (82) - {T}: Add {R}.
+  MANA: Mountain (81) - {T}: Add {R}.
+  MANA: Rishadan Port (119) - {T}: Add {C}.
+  MANA: Rishadan Port (117) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Goblin Ringleader
+  STACK_RESOLVE: Goblin Ringleader - Creature 2 / 2
+  STACK_ADD: Goblins triggered Goblin Ringleader
+  STACK_RESOLVE: When Goblin Ringleader enters, reveal the top four cards of your library. Put all Goblin cards revealed this way into your hand and the rest on the bottom of your library in any order. [Zone Changer: Goblin Ringleader (64)]
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Goblin Ringleader (64) and Goblin Chieftain (105) to attack Lands.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Lands didn't block Goblin Ringleader (64).
+Lands didn't block Goblin Chieftain (105).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Goblin Ringleader (64) deals 3 combat damage to Lands.
+  DAMAGE: Goblin Chieftain (105) deals 2 combat damage to Lands.
+  LIFE: Life: Lands 18 > 13
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 8 (Lands)
+  PHASE: Lands' Untap step
+  PHASE: Lands' Upkeep step
+  PHASE: Lands' Draw step
+  PHASE: Lands' Main phase, precombat
+  LAND: Lands played Thespian's Stage (24)
+  PHASE: Lands' Beginning of Combat Step
+  PHASE: Lands' Declare Attackers Step
+  PHASE: Lands' Declare Blockers Step
+  PHASE: Lands' First Strike Damage Step
+  PHASE: Lands' Combat Damage Step
+  PHASE: Lands' End of Combat Step
+  PHASE: Lands' Main phase, postcombat
+  MANA: Forest (30) - {T}: Add {G}.
+  STACK_ADD: Lands cast Exploration
+  STACK_RESOLVE: Exploration
+  EFFECT_REPLACED: Dark Depths enters with ten ice counters on it.
+  LAND: Lands played Dark Depths (26)
+  MANA: Mox Diamond (59) - {T}: Add one mana of any color.
+  MANA: Rishadan Port (48) - {T}: Add {C}.
+  MANA: Thespian's Stage (24) - {T}: Add {C}.
+  STACK_ADD: Lands activated Dark Depths
+  STACK_RESOLVE: Dark Depths (26) - Remove 1 Ice counter fromDark Depths (26)Lands.
+  PHASE: Lands' End step
+  PHASE: Lands' Cleanup step
+  TURN: Turn 9 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Rishadan Port (118)
+  MANA: Mountain (82) - {T}: Add {R}.
+  MANA: Mountain (81) - {T}: Add {R}.
+  MANA: Rishadan Port (119) - {T}: Add {C}.
+  MANA: Rishadan Port (117) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Goblin Ringleader
+  STACK_RESOLVE: Goblin Ringleader - Creature 2 / 2
+  STACK_ADD: Goblins triggered Goblin Ringleader
+  STACK_RESOLVE: When Goblin Ringleader enters, reveal the top four cards of your library. Put all Goblin cards revealed this way into your hand and the rest on the bottom of your library in any order. [Zone Changer: Goblin Ringleader (63)]
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Goblin Ringleader (64), Goblin Ringleader (63) and Goblin Chieftain (105) to attack Lands.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Lands didn't block Goblin Ringleader (64).
+Lands didn't block Goblin Ringleader (63).
+Lands didn't block Goblin Chieftain (105).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Goblin Ringleader (64) deals 3 combat damage to Lands.
+  DAMAGE: Goblin Ringleader (63) deals 3 combat damage to Lands.
+  DAMAGE: Goblin Chieftain (105) deals 2 combat damage to Lands.
+  LIFE: Life: Lands 13 > 5
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 10 (Lands)
+  PHASE: Lands' Untap step
+  PHASE: Lands' Upkeep step
+  PHASE: Lands' Draw step
+  PHASE: Lands' Main phase, precombat
+  LAND: Lands played Forest (34)
+  PHASE: Lands' Beginning of Combat Step
+  PHASE: Lands' Declare Attackers Step
+  PHASE: Lands' Declare Blockers Step
+  PHASE: Lands' First Strike Damage Step
+  PHASE: Lands' Combat Damage Step
+  PHASE: Lands' End of Combat Step
+  PHASE: Lands' Main phase, postcombat
+  MANA: Forest (30) - {T}: Add {G}.
+  MANA: Forest (34) - {T}: Add {G}.
+  MANA: Mox Diamond (59) - {T}: Add one mana of any color.
+  STACK_ADD: Lands activated Dark Depths
+  STACK_RESOLVE: Dark Depths (26) - Remove 1 Ice counter fromDark Depths (26)Lands.
+  MANA: Rishadan Port (48) - {T}: Add {C}.
+  MANA: Thespian's Stage (24) - {T}: Add {C}.
+  MANA: Karakas (15) - {T}: Add {W}.
+  STACK_ADD: Lands activated Dark Depths
+  STACK_RESOLVE: Dark Depths (26) - Remove 1 Ice counter fromDark Depths (26)Lands.
+  PHASE: Lands' End step
+  PHASE: Lands' Cleanup step
+  TURN: Turn 11 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (94)
+  MANA: Mountain (82) - {T}: Add {R}.
+  MANA: Mountain (81) - {T}: Add {R}.
+  MANA: Mountain (94) - {T}: Add {R}.
+  MANA: Rishadan Port (119) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Krenko, Mob Boss
+  STACK_RESOLVE: Krenko, Mob Boss - Creature 3 / 3
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (106), Goblin Ringleader (64), Goblin Ringleader (63) and Goblin Chieftain (105) to attack Lands.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Lands didn't block Krenko, Mob Boss (106).
+Lands didn't block Goblin Ringleader (64).
+Lands didn't block Goblin Ringleader (63).
+Lands didn't block Goblin Chieftain (105).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Krenko, Mob Boss (106) deals 4 combat damage to Lands.
+  DAMAGE: Goblin Ringleader (64) deals 3 combat damage to Lands.
+  DAMAGE: Goblin Ringleader (63) deals 3 combat damage to Lands.
+  DAMAGE: Goblin Chieftain (105) deals 2 combat damage to Lands.
+  LIFE: Life: Lands 5 > -7
+  PLAYER_CONTROL: Lands has restored control over themself
+  PLAYER_CONTROL: Goblins has restored control over themself
+  GAME_OUTCOME: Turn 6
+  GAME_OUTCOME: Lands has lost because life total reached 0
+  GAME_OUTCOME: Goblins has won because all opponents have lost
+  MATCH_RESULTS: Lands: 0 Goblins: 1 
+===============================

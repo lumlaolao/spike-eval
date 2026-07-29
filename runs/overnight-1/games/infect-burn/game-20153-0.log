@@ -1,0 +1,339 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 1 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20153
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/infect.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/burn.plan
+[DECK] loaded 'Infect': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/infect.txt)
+[DECK] loaded 'Burn': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/burn.txt)
+[SEATS] A=Infect(ai-log,opus) B=Burn(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: B after 11 turns (AllOpponentsLost) in 2s
+--- full game log ---
+  MULLIGAN: Burn has mulliganed down to 6 cards.
+  MULLIGAN: Burn has kept a hand of 6 cards
+  MULLIGAN: Infect has kept a hand of 7 cards
+  TURN: Turn 1 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (91)
+  MANA: Mountain (91) - {T}: Add {R}.
+  STACK_ADD: Burn cast Monastery Swiftspear
+  STACK_RESOLVE: Monastery Swiftspear - Creature 1 / 2
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Monastery Swiftspear (62) to attack Infect.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Infect didn't block Monastery Swiftspear (62).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (62) deals 1 combat damage to Infect.
+  LIFE: Life: Infect 20 > 19
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 2 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Windswept Heath (54)
+  LIFE: Life: Infect 19 > 18
+  ZONE_CHANGE: Windswept Heath (54) was put into Graveyard from Battlefield.
+  STACK_ADD: Infect activated Windswept Heath
+  STACK_RESOLVE: Windswept Heath (54) - Infect searches their library for a Forest or Plains card, puts it onto the battlefield, then shuffles.
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  PHASE: Infect's Declare Blockers Step
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  MANA: Tropical Island (13) - {T}: Add {G}.
+  STACK_ADD: Infect cast Glistener Elf
+  STACK_RESOLVE: Glistener Elf - Creature 1 / 1
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 3 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  MANA: Mountain (91) - {T}: Add {R}.
+  STACK_ADD: Burn cast Lightning Bolt targeting [Glistener Elf (18)]
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Lightning Bolt (102), Activator: Burn, SpellAbility: Lightning Bolt deals 3 damage to any target.]
+  LIFE: Life: Burn 20 > 23
+  STACK_ADD: Infect cast Invigorate targeting [Glistener Elf (18)]
+  STACK_RESOLVE: Invigorate (48) - Glistener Elf (18) gets +4/+4  until end of turn.
+  DAMAGE: Lightning Bolt (102) deals 3 damage to Glistener Elf (18).
+  STACK_RESOLVE: Lightning Bolt (102) - Lightning Bolt (102) deals 3 damage to Glistener Elf (18).
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Sunbaked Canyon (80)
+  LIFE: Life: Burn 23 > 22
+  MANA: Sunbaked Canyon (80) - {T}, Pay 1 life: Add {R} or {W}.
+  STACK_ADD: Burn cast Monastery Swiftspear
+  STACK_RESOLVE: Monastery Swiftspear - Creature 1 / 2
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 4 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Windswept Heath (55)
+  LIFE: Life: Infect 18 > 17
+  ZONE_CHANGE: Windswept Heath (55) was put into Graveyard from Battlefield.
+  STACK_ADD: Infect activated Windswept Heath
+  STACK_RESOLVE: Windswept Heath (55) - Infect searches their library for a Forest or Plains card, puts it onto the battlefield, then shuffles.
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  PHASE: Infect's Declare Blockers Step
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  MANA: Tropical Island (13) - {T}: Add {U}.
+  MANA: Tropical Island (14) - {T}: Add {G}.
+  STACK_ADD: Infect cast Blighted Agent
+  STACK_RESOLVE: Blighted Agent - Creature 1 / 1
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 5 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  MANA: Mountain (91) - {T}: Add {R}.
+  STACK_ADD: Burn cast Lightning Bolt targeting [Blighted Agent (59)]
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Lightning Bolt (99), Activator: Burn, SpellAbility: Lightning Bolt deals 3 damage to any target.]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Lightning Bolt (99), Activator: Burn, SpellAbility: Lightning Bolt deals 3 damage to any target.]
+  DAMAGE: Lightning Bolt (99) deals 3 damage to Blighted Agent (59).
+  STACK_RESOLVE: Lightning Bolt (99) - Lightning Bolt (99) deals 3 damage to Blighted Agent (59).
+  ZONE_CHANGE: Blighted Agent (59) was put into Graveyard from Battlefield.
+  PHASE: Burn's Main phase, precombat
+  LIFE: Life: Burn 22 > 21
+  MANA: Sunbaked Canyon (80) - {T}, Pay 1 life: Add {R} or {W}.
+  STACK_RESOLVE: Burn has suspended Rift Bolt with 1 time counters on it.
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Monastery Swiftspear (62) and Monastery Swiftspear (64) to attack Infect.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Infect didn't block Monastery Swiftspear (62).
+Infect didn't block Monastery Swiftspear (64).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (62) deals 2 combat damage to Infect.
+  DAMAGE: Monastery Swiftspear (64) deals 2 combat damage to Infect.
+  LIFE: Life: Infect 17 > 13
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 6 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  MANA: Tropical Island (13) - {T}: Add {G}.
+  STACK_ADD: Infect cast Might of Old Krosa targeting [Glistener Elf (18)]
+  STACK_RESOLVE: Might of Old Krosa (4) - Glistener Elf (18) gets +4/+4  until end of turn.
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  COMBAT: Infect assigned Glistener Elf (18) to attack Burn.
+  PHASE: Infect's Declare Blockers Step
+  COMBAT: Burn didn't block Glistener Elf (18).
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  DAMAGE: Glistener Elf (18) deals 5 combat damage to Burn(as poison counters).
+  DAMAGE: Burn receives 5 poison counter from Infect
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  MANA: Tropical Island (14) - {T}: Add {G}.
+  STACK_ADD: Infect cast Glistener Elf
+  STACK_RESOLVE: Glistener Elf - Creature 1 / 1
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 7 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  STACK_ADD: Burn triggered Rift Bolt
+  STACK_RESOLVE: At the beginning of your upkeep, if this card is suspended, remove a time counter from it [Phase: Burn]
+  STACK_ADD: Burn triggered Rift Bolt
+  STACK_ADD: Burn cast Rift Bolt targeting [Glistener Elf (17)]
+  STACK_RESOLVE: When the last time counter is removed from this card, if it's exiled, you may play it without paying its mana cost if able.  If you can't, it remains exiled. If you cast a creature spell this way, it gains haste until you lose control of the spell or the permanent it becomes. [Removed from: Rift Bolt (109)]
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Rift Bolt (109), Activator: Burn, SpellAbility: Rift Bolt deals 3 damage to any target. (without paying its mana cost)]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Rift Bolt (109), Activator: Burn, SpellAbility: Rift Bolt deals 3 damage to any target. (without paying its mana cost)]
+  DAMAGE: Rift Bolt (109) deals 3 damage to Glistener Elf (17).
+  STACK_RESOLVE: Rift Bolt (109) - Rift Bolt (109) deals 3 damage to Glistener Elf (17).
+  ZONE_CHANGE: Glistener Elf (17) was put into Graveyard from Battlefield.
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Monastery Swiftspear (62) and Monastery Swiftspear (64) to attack Infect.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Infect didn't block Monastery Swiftspear (62).
+Infect didn't block Monastery Swiftspear (64).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (62) deals 2 combat damage to Infect.
+  DAMAGE: Monastery Swiftspear (64) deals 2 combat damage to Infect.
+  LIFE: Life: Infect 13 > 9
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 8 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  MANA: Tropical Island (13) - {T}: Add {U}.
+  STACK_ADD: Infect cast Ponder
+  STACK_RESOLVE: Ponder (46) - Look at the top 3 cards of Infect's library. Then put them back in any order.You may have that player shuffle their library. Infect draws a card.
+  LAND: Infect played Forest (42)
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  COMBAT: Infect assigned Glistener Elf (18) to attack Burn.
+  PHASE: Infect's Declare Blockers Step
+  COMBAT: Burn didn't block Glistener Elf (18).
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  DAMAGE: Glistener Elf (18) deals 1 combat damage to Burn(as poison counters).
+  DAMAGE: Burn receives 1 poison counter from Infect
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  MANA: Tropical Island (14) - {T}: Add {U}.
+  MANA: Forest (42) - {T}: Add {G}.
+  STACK_ADD: Infect cast Blighted Agent
+  STACK_RESOLVE: Blighted Agent - Creature 1 / 1
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 9 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Monastery Swiftspear (62) and Monastery Swiftspear (64) to attack Infect.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Infect didn't block Monastery Swiftspear (62).
+Infect didn't block Monastery Swiftspear (64).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (62) deals 1 combat damage to Infect.
+  DAMAGE: Monastery Swiftspear (64) deals 1 combat damage to Infect.
+  LIFE: Life: Infect 9 > 7
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  MANA: Mountain (91) - {T}: Add {R}.
+  STACK_ADD: Burn cast Chain Lightning targeting [Infect]
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Chain Lightning (113), Activator: Burn, SpellAbility: Chain Lightning deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may choose a new target for that copy. ]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Chain Lightning (113), Activator: Burn, SpellAbility: Chain Lightning deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may choose a new target for that copy. ]
+  DAMAGE: Chain Lightning (113) deals 3 non-combat damage to Infect.
+  LIFE: Life: Infect 7 > 4
+  STACK_RESOLVE: Chain Lightning (113) - Chain Lightning (113) deals 3 damage to Infect. 
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 10 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  COMBAT: Infect assigned Glistener Elf (18) and Blighted Agent (58) to attack Burn.
+  PHASE: Infect's Declare Blockers Step
+  COMBAT: Burn didn't block Glistener Elf (18).
+Burn didn't block Blighted Agent (58).
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  DAMAGE: Glistener Elf (18) deals 1 combat damage to Burn(as poison counters).
+  DAMAGE: Blighted Agent (58) deals 1 combat damage to Burn(as poison counters).
+  DAMAGE: Burn receives 2 poison counter from Infect
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  MANA: Forest (42) - {T}: Add {G}.
+  MANA: Tropical Island (13) - {T}: Add {G}.
+  MANA: Tropical Island (14) - {T}: Add {G}.
+  STACK_ADD: Infect cast Wild Defiance
+  STACK_RESOLVE: Wild Defiance
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 11 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  MANA: Mountain (91) - {T}: Add {R}.
+  LIFE: Life: Burn 21 > 20
+  MANA: Sunbaked Canyon (80) - {T}, Pay 1 life: Add {R} or {W}.
+  STACK_ADD: Burn cast Searing Blaze targeting [Infect] [Blighted Agent (58)]
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  STACK_ADD: Infect triggered Wild Defiance
+  STACK_RESOLVE: Whenever a creature you control becomes the target of an instant or sorcery spell, it gets +3/+3 until end of turn. [Source: Searing Blaze (107), Target: Blighted Agent (58)]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Searing Blaze (107), Activator: Burn, SpellAbility: Searing Blaze deals 1 damage to target player or planeswalker and 1 damage to target creature that player or that planeswalker's controller controls. Landfall — If you had a land enter the battlefield under your control this turn, Searing Blaze deals 3 damage to that player or planeswalker and 3 damage to that creature instead.  ]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Searing Blaze (107), Activator: Burn, SpellAbility: Searing Blaze deals 1 damage to target player or planeswalker and 1 damage to target creature that player or that planeswalker's controller controls. Landfall — If you had a land enter the battlefield under your control this turn, Searing Blaze deals 3 damage to that player or planeswalker and 3 damage to that creature instead.  ]
+  DAMAGE: Searing Blaze (107) deals 1 non-combat damage to Infect.
+  DAMAGE: Searing Blaze (107) deals 1 damage to Blighted Agent (58).
+  LIFE: Life: Infect 4 > 3
+  STACK_RESOLVE: Searing Blaze (107) - Searing Blaze (107) deals 1 damage to Infect. Searing Blaze (107) deals 1 damage to Blighted Agent (58). 
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Monastery Swiftspear (62) and Monastery Swiftspear (64) to attack Infect.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Infect didn't block Monastery Swiftspear (62).
+Infect didn't block Monastery Swiftspear (64).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (62) deals 2 combat damage to Infect.
+  DAMAGE: Monastery Swiftspear (64) deals 2 combat damage to Infect.
+  LIFE: Life: Infect 3 > -1
+  PLAYER_CONTROL: Infect has restored control over themself
+  PLAYER_CONTROL: Burn has restored control over themself
+  GAME_OUTCOME: Turn 6
+  GAME_OUTCOME: Infect has lost because life total reached 0
+  GAME_OUTCOME: Burn has won because all opponents have lost
+  MATCH_RESULTS: Infect: 0 Burn: 1 
+===============================

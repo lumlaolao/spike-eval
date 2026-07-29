@@ -1,0 +1,170 @@
+{
+  "by_category": {
+    "forced-block": {
+      "by_reason": {
+        "count_encoded_no_v1_rollout": 61
+      },
+      "in": 61,
+      "unverifiable": 61,
+      "verified": 0
+    },
+    "free-win": {
+      "by_reason": {
+        "non_empty_stack_v1_restriction": 400
+      },
+      "in": 400,
+      "unverifiable": 400,
+      "verified": 0
+    },
+    "graded-midgame": {
+      "by_reason": {
+        "count_encoded_no_v1_rollout": 15,
+        "lane_filtered_out": 385
+      },
+      "in": 400,
+      "unverifiable": 400,
+      "verified": 0
+    },
+    "lethal-now": {
+      "by_reason": {
+        "count_encoded_no_v1_rollout": 41,
+        "exhaustive_no_lethal_option": 281,
+        "non_empty_stack_v1_restriction": 71
+      },
+      "in": 400,
+      "unverifiable": 393,
+      "verified": 7
+    },
+    "mulligan": {
+      "by_reason": {
+        "lane_filtered_out": 400
+      },
+      "in": 400,
+      "unverifiable": 400,
+      "verified": 0
+    },
+    "save-vs-lethal": {
+      "by_reason": {
+        "lane_filtered_out": 400
+      },
+      "in": 400,
+      "unverifiable": 400,
+      "verified": 0
+    }
+  },
+  "by_lane": {
+    "exhaustive": {
+      "in": 359,
+      "unverifiable": 352,
+      "verified": 7
+    },
+    "none": {
+      "in": 1702,
+      "unverifiable": 1702,
+      "verified": 0
+    }
+  },
+  "caveats": [],
+  "contract": "prompt-contract.v1",
+  "contract_sha": "abaddd69db49a9d2",
+  "coverage_note": "v1 scope: per-option answer keys are DEFINED only for index-encoded decision types; verify_keys mints keys for lethal-now@play (exhaustive) and save-vs-lethal@play / mulligan / graded-midgame@play (rollout). attackers/blockers and every count-encoded type log a subset SIZE, not an index (no per-option object exists), and free-win positions have a non-empty stack (EVAL-DESIGN 3.1 forbids mid-stack forking in v1) \u2014 all such rows stay status=candidate with an explicit unverifiable_reason. A narrow honest key set beats a wide fake one.",
+  "driver": "none",
+  "engine_sha": "unknown",
+  "generated_utc": "20260729T071915Z",
+  "n_in": 2061,
+  "n_per_option": 45,
+  "n_unverifiable": 2054,
+  "n_verified": 7,
+  "overlay_sha": "unknown",
+  "power": {
+    "min_n_required": null,
+    "min_separation_z": 2.0,
+    "n_per_option": 45,
+    "noise_bound": false,
+    "noise_floor": 0.14907119849998599,
+    "per_category": {
+      "default": {
+        "base_threshold": 0.2,
+        "effective_required_gap": 0.2,
+        "min_n_required": 25,
+        "noise_bound": false
+      },
+      "mulligan": {
+        "base_threshold": 0.15,
+        "effective_required_gap": 0.15,
+        "min_n_required": 45,
+        "noise_bound": false
+      }
+    },
+    "worst_case_se": 0.07453559924999299
+  },
+  "rollout_spread": {
+    "n_decided": 0,
+    "n_no_wp": 0,
+    "n_positions_measured": 0,
+    "n_undecided": 0,
+    "note": "measured over rollout-lane positions where the driver returned a measurement, DECIDED AND UNDECIDED ALIKE. n_no_wp counts measured positions whose option_wp was all None (rollout produced no decided game) \u2014 those are broken, not tied. wp_spread is a measured quantity, not a claim of decision-relevance for any single position.",
+    "quantile_method": "linear interpolation (R type 7)",
+    "separation_z": {
+      "max": null,
+      "median": null,
+      "min": null,
+      "n": 0,
+      "p25": null,
+      "p75": null
+    },
+    "wp_spread": {
+      "max": null,
+      "median": null,
+      "min": null,
+      "n": 0,
+      "p25": null,
+      "p75": null
+    },
+    "wp_spread_hist": {
+      "bin_width": 0.05,
+      "bins_note": "bin i covers [i*0.05, (i+1)*0.05); last bin closed at 1.0",
+      "counts": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "n_bins": 20
+    }
+  },
+  "schema": "verify-keys-summary.v1",
+  "thresholds": {
+    "gap_threshold": 0.2,
+    "min_separation_z": 2.0,
+    "mulligan_gap_threshold": 0.15
+  },
+  "warnings": [],
+  "yield_rate": {
+    "ci95": [
+      0.0016461721650509178,
+      0.006994490634458741
+    ],
+    "est": 0.003396409509946628,
+    "method": "wilson",
+    "n": 2061,
+    "n_clusters": null,
+    "se": 0.0012815402533114329
+  }
+}

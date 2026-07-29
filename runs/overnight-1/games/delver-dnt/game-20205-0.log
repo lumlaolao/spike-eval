@@ -1,0 +1,497 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20205
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/ur-delver.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/death-and-taxes.plan
+[DECK] loaded 'UR Delver': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/ur-delver.txt)
+[DECK] loaded 'Death and Taxes': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/death-and-taxes.txt)
+[SEATS] A=UR Delver(ai-log,opus) B=Death and Taxes(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: B after 19 turns (AllOpponentsLost) in 6s
+--- full game log ---
+  MULLIGAN: Death and Taxes has kept a hand of 7 cards
+  MULLIGAN: UR Delver has kept a hand of 7 cards
+  TURN: Turn 1 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (95)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (95) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Mother of Runes
+  STACK_RESOLVE: Mother of Runes - Creature 1 / 1
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 2 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Volcanic Island (14)
+  MANA: Volcanic Island (14) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Ponder
+  STACK_RESOLVE: Ponder (35) - Look at the top 3 cards of UR Delver's library. Then put them back in any order.You may have that player shuffle their library. UR Delver draws a card.
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 3 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Rishadan Port (117)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 4 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Wasteland (53)
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  MANA: Volcanic Island (14) - {T}: Add {R}.
+  STACK_ADD: UR Delver cast Ragavan, Nimble Pilferer
+  STACK_RESOLVE: Ragavan, Nimble Pilferer - Creature 2 / 1
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 5 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (91)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (95) - {T}: Add {W}.
+  MANA: Plains (91) - {T}: Add {W}.
+  MANA: Rishadan Port (117) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Mirran Crusader
+  LIFE: Life: UR Delver 20 > 19
+  STACK_ADD: UR Delver cast Force of Will targeting [Mirran Crusader - Creature 2 / 2]
+  ZONE_CHANGE: Send countered spell to Graveyard
+  STACK_RESOLVE: Force of Will (19) - Counter Mirran Crusader (82).
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 6 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  MANA: Volcanic Island (14) - {T}: Add {R}.
+  STACK_ADD: UR Delver cast Lightning Bolt targeting [Mother of Runes (67)]
+  STACK_ADD: Death and Taxes activated Mother of Runes targeting [Mother of Runes (67)]
+  STACK_RESOLVE: Mother of Runes (67) - Mother of Runes (67) gains protection from your choice of white, blue, black, red, or green until end of turn.
+  STACK_RESOLVE: Lightning Bolt ability fizzles.
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  COMBAT: UR Delver assigned Ragavan, Nimble Pilferer (31) to attack Death and Taxes.
+  PHASE: UR Delver's Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Ragavan, Nimble Pilferer (31).
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  DAMAGE: Ragavan, Nimble Pilferer (31) deals 2 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 20 > 18
+  STACK_ADD: UR Delver triggered Ragavan, Nimble Pilferer
+  STACK_RESOLVE: Whenever Ragavan, Nimble Pilferer deals combat damage to a player, create a Treasure token and exile the top card of that player's library. Until end of turn, you may cast that card. [Damage Source: Ragavan, Nimble Pilferer (31), Damaged: Death and Taxes, Amount: 2]
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  ZONE_CHANGE: Treasure Token (123) was put into Graveyard from Battlefield.
+  MANA: Treasure Token (123) - {T}, Sacrifice this token: Add one mana of any color.
+  STACK_ADD: UR Delver cast Dragon's Rage Channeler
+  STACK_RESOLVE: Dragon's Rage Channeler - Creature 1 / 1
+  MANA: Wasteland (53) - {T}: Add {C}.
+  STACK_ADD: UR Delver cast Aether Vial
+  STACK_ADD: UR Delver triggered Dragon's Rage Channeler
+  STACK_RESOLVE: UR Delver surveiled 1 card(s) to the graveyard
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Aether Vial (69), Activator: UR Delver, SpellAbility: Aether Vial by Ragavan, Nimble Pilferer (31)]
+  STACK_RESOLVE: Aether Vial
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 7 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (102)
+  MANA: Plains (95) - {T}: Add {W}.
+  MANA: Plains (91) - {T}: Add {W}.
+  MANA: Plains (102) - {T}: Add {W}.
+  MANA: Rishadan Port (117) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Palace Jailer
+  STACK_RESOLVE: Palace Jailer - Creature 2 / 2
+  STACK_ADD: Death and Taxes triggered Palace Jailer
+  STACK_ADD: Death and Taxes triggered Palace Jailer targeting [Ragavan, Nimble Pilferer (31)]
+  ZONE_CHANGE: Ragavan, Nimble Pilferer (31) was put into Exile from Battlefield.
+  STACK_RESOLVE: When Palace Jailer enters, exile target creature an opponent controls until an opponent becomes the monarch. (Targeting: [[Ragavan, Nimble Pilferer (31)]]) [Zone Changer: Palace Jailer (76)]
+  STACK_RESOLVE: When Palace Jailer enters, you become the monarch. [Zone Changer: Palace Jailer (76)]
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  STACK_ADD: Death and Taxes triggered The Monarch
+  STACK_RESOLVE: At the beginning of your end step, draw a card. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 8 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  STACK_ADD: UR Delver triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: UR Delver]
+  STACK_ADD: UR Delver activated Aether Vial
+  STACK_RESOLVE: Aether Vial (69) - You may put a creature card with mana value equal to the number of charge counters on Aether Vial from your hand onto the battlefield.
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  MANA: Volcanic Island (14) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Brainstorm
+  STACK_ADD: UR Delver triggered Dragon's Rage Channeler
+  STACK_ADD: UR Delver triggered Dragon's Rage Channeler
+  STACK_RESOLVE: UR Delver surveiled 1 card(s) to the graveyard
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Brainstorm (16), Activator: UR Delver, SpellAbility: Draw three cards, then put two cards from your hand on top of your library in any order. ]
+  STACK_RESOLVE: UR Delver surveiled 1 card(s) to the graveyard
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Brainstorm (16), Activator: UR Delver, SpellAbility: Draw three cards, then put two cards from your hand on top of your library in any order. ]
+  STACK_RESOLVE: Brainstorm (16) - UR Delver draws three cards, then puts two cards from their hand on top of their library in any order.
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 9 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Wasteland (112)
+  ZONE_CHANGE: Wasteland (112) was put into Graveyard from Battlefield.
+  STACK_ADD: Death and Taxes activated Wasteland targeting [Volcanic Island (14)]
+  ZONE_CHANGE: Volcanic Island (14) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (112) - Destroy Volcanic Island (14).
+  STACK_ADD: Death and Taxes activated Mother of Runes targeting [Palace Jailer (76)]
+  STACK_RESOLVE: Mother of Runes (67) - Palace Jailer (76) gains protection from your choice of white, blue, black, red, or green until end of turn.
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Palace Jailer (76) to attack UR Delver.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: UR Delver didn't block Palace Jailer (76).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Palace Jailer (76) deals 2 combat damage to UR Delver.
+  LIFE: Life: UR Delver 19 > 17
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (95) - {T}: Add {W}.
+  MANA: Plains (91) - {T}: Add {W}.
+  MANA: Plains (102) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Flickerwisp
+  STACK_RESOLVE: Flickerwisp - Creature 3 / 1
+  STACK_ADD: Death and Taxes triggered Flickerwisp targeting [Aether Vial (69)]
+  ZONE_CHANGE: Aether Vial (69) was put into Exile from Battlefield.
+  STACK_RESOLVE: When Flickerwisp enters, exile another target permanent. Return that card to the battlefield under its owner's control at the beginning of the next end step. (Targeting: [[Aether Vial (69)]]) [Zone Changer: Flickerwisp (108)]
+  PHASE: Death and Taxes' End step
+  STACK_ADD: Death and Taxes triggered Flickerwisp
+  STACK_ADD: Death and Taxes triggered The Monarch
+  STACK_RESOLVE: At the beginning of your end step, draw a card. [Phase: Death and Taxes]
+  STACK_RESOLVE: Return exiled permanent to the battlefield. ([Aether Vial (69)]) [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 10 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 11 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  MANA: Plains (95) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Swords to Plowshares targeting [Dragon's Rage Channeler (29)]
+  ZONE_CHANGE: Dragon's Rage Channeler (29) was put into Exile from Battlefield.
+  LIFE: Life: UR Delver 17 > 18
+  STACK_RESOLVE: Swords to Plowshares (85) - Exile Dragon's Rage Channeler (29). UR Delver gains life equal to its power.
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Rishadan Port (118)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Flickerwisp (108) and Palace Jailer (76) to attack UR Delver.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: UR Delver didn't block Flickerwisp (108).
+UR Delver didn't block Palace Jailer (76).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Flickerwisp (108) deals 3 combat damage to UR Delver.
+  DAMAGE: Palace Jailer (76) deals 2 combat damage to UR Delver.
+  LIFE: Life: UR Delver 18 > 13
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  STACK_ADD: Death and Taxes triggered The Monarch
+  STACK_RESOLVE: At the beginning of your end step, draw a card. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 12 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  MANA: Plains (91) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Swords to Plowshares targeting [Dragon's Rage Channeler (28)]
+  ZONE_CHANGE: Dragon's Rage Channeler (28) was put into Exile from Battlefield.
+  LIFE: Life: UR Delver 13 > 14
+  STACK_RESOLVE: Swords to Plowshares (84) - Exile Dragon's Rage Channeler (28). UR Delver gains life equal to its power.
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 13 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (96)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Flickerwisp (108) and Palace Jailer (76) to attack UR Delver.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: UR Delver didn't block Flickerwisp (108).
+UR Delver didn't block Palace Jailer (76).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Flickerwisp (108) deals 3 combat damage to UR Delver.
+  DAMAGE: Palace Jailer (76) deals 2 combat damage to UR Delver.
+  LIFE: Life: UR Delver 14 > 9
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  STACK_ADD: Death and Taxes triggered The Monarch
+  STACK_RESOLVE: At the beginning of your end step, draw a card. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 14 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Scalding Tarn (26)
+  LIFE: Life: UR Delver 9 > 8
+  ZONE_CHANGE: Scalding Tarn (26) was put into Graveyard from Battlefield.
+  STACK_ADD: UR Delver activated Scalding Tarn
+  STACK_RESOLVE: Scalding Tarn (26) - UR Delver searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  MANA: Volcanic Island (11) - {T}: Add {R}.
+  STACK_ADD: UR Delver cast Lightning Bolt targeting [Flickerwisp (108)]
+  STACK_ADD: Death and Taxes activated Mother of Runes targeting [Flickerwisp (108)]
+  STACK_RESOLVE: Mother of Runes (67) - Flickerwisp (108) gains protection from your choice of white, blue, black, red, or green until end of turn.
+  STACK_RESOLVE: Lightning Bolt ability fizzles.
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 15 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (100)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Flickerwisp (108) and Palace Jailer (76) to attack UR Delver.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: UR Delver didn't block Flickerwisp (108).
+UR Delver didn't block Palace Jailer (76).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Flickerwisp (108) deals 3 combat damage to UR Delver.
+  DAMAGE: Palace Jailer (76) deals 2 combat damage to UR Delver.
+  LIFE: Life: UR Delver 8 > 3
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (95) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Mother of Runes
+  STACK_RESOLVE: Mother of Runes - Creature 1 / 1
+  PHASE: Death and Taxes' End step
+  STACK_ADD: Death and Taxes triggered The Monarch
+  STACK_RESOLVE: At the beginning of your end step, draw a card. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 16 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Island (41)
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  MANA: Island (41) - {T}: Add {U}.
+  MANA: Volcanic Island (11) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Murktide Regent
+  EFFECT_REPLACED: Murktide Regent enters with a +1/+1 counter on it for each instant and sorcery card exiled with it.
+  STACK_RESOLVE: Murktide Regent - Creature 3 / 3
+  MANA: Plains (91) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Swords to Plowshares targeting [Murktide Regent (59)]
+  ZONE_CHANGE: Murktide Regent (59) was put into Exile from Battlefield.
+  LIFE: Life: UR Delver 3 > 10
+  STACK_RESOLVE: Swords to Plowshares (86) - Exile Murktide Regent (59). UR Delver gains life equal to its power.
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 17 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  STACK_ADD: Death and Taxes activated Aether Vial
+  STACK_RESOLVE: Aether Vial (69) - You may put a creature card with mana value equal to the number of charge counters on Aether Vial from your hand onto the battlefield.
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (99)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Flickerwisp (108) and Palace Jailer (76) to attack UR Delver.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: UR Delver didn't block Flickerwisp (108).
+UR Delver didn't block Palace Jailer (76).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Flickerwisp (108) deals 3 combat damage to UR Delver.
+  DAMAGE: Palace Jailer (76) deals 2 combat damage to UR Delver.
+  LIFE: Life: UR Delver 10 > 5
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  STACK_ADD: Death and Taxes triggered The Monarch
+  STACK_RESOLVE: At the beginning of your end step, draw a card. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 18 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 19 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  EFFECT_REPLACED: As Cavern of Souls enters, choose a creature type.
+  LAND: Death and Taxes played Cavern of Souls (61)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Flickerwisp (108), Palace Jailer (76), Thalia, Guardian of Thraben (72), Mother of Runes (67) and Mother of Runes (65) to attack UR Delver.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: UR Delver didn't block Flickerwisp (108).
+UR Delver didn't block Palace Jailer (76).
+UR Delver didn't block Thalia, Guardian of Thraben (72).
+UR Delver didn't block Mother of Runes (67).
+UR Delver didn't block Mother of Runes (65).
+  PHASE: Death and Taxes' First Strike Damage Step
+  DAMAGE: Thalia, Guardian of Thraben (72) deals 2 combat damage to UR Delver.
+  LIFE: Life: UR Delver 5 > 3
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Flickerwisp (108) deals 3 combat damage to UR Delver.
+  DAMAGE: Palace Jailer (76) deals 2 combat damage to UR Delver.
+  DAMAGE: Mother of Runes (67) deals 1 combat damage to UR Delver.
+  DAMAGE: Mother of Runes (65) deals 1 combat damage to UR Delver.
+  LIFE: Life: UR Delver 3 > -4
+  PLAYER_CONTROL: UR Delver has restored control over themself
+  PLAYER_CONTROL: Death and Taxes has restored control over themself
+  GAME_OUTCOME: Turn 10
+  GAME_OUTCOME: UR Delver has lost because life total reached 0
+  GAME_OUTCOME: Death and Taxes has won because all opponents have lost
+  MATCH_RESULTS: UR Delver: 0 Death and Taxes: 1 
+===============================

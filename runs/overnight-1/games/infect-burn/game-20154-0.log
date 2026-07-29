@@ -1,0 +1,259 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20154
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/infect.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/burn.plan
+[DECK] loaded 'Infect': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/infect.txt)
+[DECK] loaded 'Burn': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/burn.txt)
+[SEATS] A=Infect(ai-log,opus) B=Burn(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: B after 7 turns (AllOpponentsLost) in 1s
+--- full game log ---
+  MULLIGAN: Burn has kept a hand of 7 cards
+  MULLIGAN: Infect has kept a hand of 7 cards
+  TURN: Turn 1 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (97)
+  MANA: Mountain (97) - {T}: Add {R}.
+  STACK_ADD: Burn cast Goblin Guide
+  STACK_RESOLVE: Goblin Guide - Creature 2 / 2
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Goblin Guide (66) to attack Infect.
+  STACK_ADD: Burn triggered Goblin Guide
+  STACK_RESOLVE: Whenever Goblin Guide attacks, defending player reveals the top card of their library. If it's a land card, that player puts it into their hand. [Attacker: Goblin Guide (66)]
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Infect didn't block Goblin Guide (66).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Goblin Guide (66) deals 2 combat damage to Infect.
+  LIFE: Life: Infect 20 > 18
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 2 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Forest (41)
+  MANA: Forest (41) - {T}: Add {G}.
+  STACK_ADD: Infect cast Noble Hierarch
+  STACK_RESOLVE: Noble Hierarch - Creature 0 / 1
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  PHASE: Infect's Declare Blockers Step
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 3 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (92)
+  MANA: Mountain (97) - {T}: Add {R}.
+  STACK_RESOLVE: Burn has suspended Rift Bolt with 1 time counters on it.
+  MANA: Mountain (92) - {T}: Add {R}.
+  STACK_RESOLVE: Burn has suspended Rift Bolt with 1 time counters on it.
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Goblin Guide (66) to attack Infect.
+  STACK_ADD: Burn triggered Goblin Guide
+  STACK_RESOLVE: Whenever Goblin Guide attacks, defending player reveals the top card of their library. If it's a land card, that player puts it into their hand. [Attacker: Goblin Guide (66)]
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Infect didn't block Goblin Guide (66).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Goblin Guide (66) deals 2 combat damage to Infect.
+  LIFE: Life: Infect 18 > 16
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 4 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Forest (38)
+  MANA: Forest (41) - {T}: Add {G}.
+  STACK_ADD: Infect cast Might of Old Krosa targeting [Noble Hierarch (7)]
+  STACK_RESOLVE: Might of Old Krosa (2) - Noble Hierarch (7) gets +4/+4  until end of turn.
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  COMBAT: Infect assigned Noble Hierarch (7) to attack Burn.
+  STACK_ADD: Infect triggered Noble Hierarch
+  STACK_RESOLVE: Exalted (Whenever a creature you control attacks alone, that creature gets +1/+1 until end of turn.) [Attacker: Noble Hierarch (7)]
+  PHASE: Infect's Declare Blockers Step
+  COMBAT: Burn didn't block Noble Hierarch (7).
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  DAMAGE: Noble Hierarch (7) deals 5 combat damage to Burn.
+  LIFE: Life: Burn 20 > 15
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  MANA: Forest (38) - {T}: Add {G}.
+  STACK_ADD: Infect cast Glistener Elf
+  STACK_RESOLVE: Glistener Elf - Creature 1 / 1
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 5 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  STACK_ADD: Burn triggered Rift Bolt
+  STACK_ADD: Burn triggered Rift Bolt
+  STACK_RESOLVE: At the beginning of your upkeep, if this card is suspended, remove a time counter from it [Phase: Burn]
+  STACK_ADD: Burn triggered Rift Bolt
+  STACK_ADD: Burn cast Rift Bolt targeting [Noble Hierarch (7)]
+  STACK_RESOLVE: When the last time counter is removed from this card, if it's exiled, you may play it without paying its mana cost if able.  If you can't, it remains exiled. If you cast a creature spell this way, it gains haste until you lose control of the spell or the permanent it becomes. [Removed from: Rift Bolt (109)]
+  DAMAGE: Rift Bolt (109) deals 3 damage to Noble Hierarch (7).
+  STACK_RESOLVE: Rift Bolt (109) - Rift Bolt (109) deals 3 damage to Noble Hierarch (7).
+  ZONE_CHANGE: Noble Hierarch (7) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: At the beginning of your upkeep, if this card is suspended, remove a time counter from it [Phase: Burn]
+  STACK_ADD: Burn triggered Rift Bolt
+  STACK_ADD: Burn cast Rift Bolt targeting [Glistener Elf (15)]
+  STACK_RESOLVE: When the last time counter is removed from this card, if it's exiled, you may play it without paying its mana cost if able.  If you can't, it remains exiled. If you cast a creature spell this way, it gains haste until you lose control of the spell or the permanent it becomes. [Removed from: Rift Bolt (110)]
+  DAMAGE: Rift Bolt (110) deals 3 damage to Glistener Elf (15).
+  STACK_RESOLVE: Rift Bolt (110) - Rift Bolt (110) deals 3 damage to Glistener Elf (15).
+  ZONE_CHANGE: Glistener Elf (15) was put into Graveyard from Battlefield.
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Arid Mesa (69)
+  LIFE: Life: Burn 15 > 14
+  ZONE_CHANGE: Arid Mesa (69) was put into Graveyard from Battlefield.
+  STACK_ADD: Burn activated Arid Mesa
+  STACK_RESOLVE: Arid Mesa (69) - Burn searches their library for a Mountain or Plains card, puts it onto the battlefield, then shuffles.
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Goblin Guide (66) to attack Infect.
+  STACK_ADD: Burn triggered Goblin Guide
+  STACK_RESOLVE: Whenever Goblin Guide attacks, defending player reveals the top card of their library. If it's a land card, that player puts it into their hand. [Attacker: Goblin Guide (66)]
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Infect didn't block Goblin Guide (66).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Goblin Guide (66) deals 2 combat damage to Infect.
+  LIFE: Life: Infect 16 > 14
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  MANA: Mountain (97) - {T}: Add {R}.
+  MANA: Mountain (92) - {T}: Add {R}.
+  STACK_ADD: Burn cast Eidolon of the Great Revel
+  STACK_RESOLVE: Eidolon of the Great Revel - Creature 2 / 2
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 6 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Windswept Heath (53)
+  LIFE: Life: Infect 14 > 13
+  ZONE_CHANGE: Windswept Heath (53) was put into Graveyard from Battlefield.
+  STACK_ADD: Infect activated Windswept Heath
+  STACK_RESOLVE: Windswept Heath (53) - Infect searches their library for a Forest or Plains card, puts it onto the battlefield, then shuffles.
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  PHASE: Infect's Declare Blockers Step
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  MANA: Tropical Island (11) - {T}: Add {U}.
+  STACK_ADD: Infect cast Brainstorm
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  DAMAGE: Eidolon of the Great Revel (120) deals 2 non-combat damage to Infect.
+  LIFE: Life: Infect 13 > 11
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Brainstorm (19), Activator: Infect, SpellAbility: Draw three cards, then put two cards from your hand on top of your library in any order. ]
+  STACK_RESOLVE: Brainstorm (19) - Infect draws three cards, then puts two cards from their hand on top of their library in any order.
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 7 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  MANA: Mountain (97) - {T}: Add {R}.
+  STACK_ADD: Burn cast Goblin Guide
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  DAMAGE: Eidolon of the Great Revel (120) deals 2 non-combat damage to Burn.
+  LIFE: Life: Burn 14 > 12
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Goblin Guide (65), Activator: Burn, SpellAbility: Goblin Guide - Creature 2 / 2]
+  STACK_RESOLVE: Goblin Guide - Creature 2 / 2
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Goblin Guide (66), Goblin Guide (65) and Eidolon of the Great Revel (120) to attack Infect.
+  STACK_ADD: Burn triggered Goblin Guide
+  STACK_ADD: Burn triggered Goblin Guide
+  STACK_RESOLVE: Whenever Goblin Guide attacks, defending player reveals the top card of their library. If it's a land card, that player puts it into their hand. [Attacker: Goblin Guide (65)]
+  STACK_RESOLVE: Whenever Goblin Guide attacks, defending player reveals the top card of their library. If it's a land card, that player puts it into their hand. [Attacker: Goblin Guide (66)]
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Infect didn't block Goblin Guide (66).
+Infect didn't block Goblin Guide (65).
+Infect didn't block Eidolon of the Great Revel (120).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Goblin Guide (66) deals 2 combat damage to Infect.
+  DAMAGE: Goblin Guide (65) deals 2 combat damage to Infect.
+  DAMAGE: Eidolon of the Great Revel (120) deals 2 combat damage to Infect.
+  LIFE: Life: Infect 11 > 5
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  MANA: Mountain (92) - {T}: Add {R}.
+  STACK_ADD: Burn cast Lava Spike targeting [Infect]
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  DAMAGE: Eidolon of the Great Revel (120) deals 2 non-combat damage to Burn.
+  LIFE: Life: Burn 12 > 10
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Lava Spike (72), Activator: Burn, SpellAbility: Lava Spike deals 3 damage to target player or planeswalker.]
+  DAMAGE: Lava Spike (72) deals 3 non-combat damage to Infect.
+  LIFE: Life: Infect 5 > 2
+  STACK_RESOLVE: Lava Spike (72) - Lava Spike (72) deals 3 damage to Infect.
+  MANA: Mountain (86) - {T}: Add {R}.
+  STACK_ADD: Burn cast Chain Lightning targeting [Infect]
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  DAMAGE: Eidolon of the Great Revel (120) deals 2 non-combat damage to Burn.
+  LIFE: Life: Burn 10 > 8
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Chain Lightning (113), Activator: Burn, SpellAbility: Chain Lightning deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may choose a new target for that copy. ]
+  DAMAGE: Chain Lightning (113) deals 3 non-combat damage to Infect.
+  LIFE: Life: Infect 2 > -1
+  STACK_RESOLVE: Chain Lightning (113) - Chain Lightning (113) deals 3 damage to Infect. 
+  PLAYER_CONTROL: Infect has restored control over themself
+  PLAYER_CONTROL: Burn has restored control over themself
+  GAME_OUTCOME: Turn 4
+  GAME_OUTCOME: Infect has lost because life total reached 0
+  GAME_OUTCOME: Burn has won because all opponents have lost
+  MATCH_RESULTS: Infect: 0 Burn: 1 
+===============================

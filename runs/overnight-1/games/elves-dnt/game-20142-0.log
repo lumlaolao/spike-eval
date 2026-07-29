@@ -1,0 +1,449 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20142
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/elves.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/death-and-taxes.plan
+[DECK] loaded 'Elves': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/elves.txt)
+[DECK] loaded 'Death and Taxes': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/death-and-taxes.txt)
+[SEATS] A=Elves(ai-log,opus) B=Death and Taxes(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: B after 15 turns (AllOpponentsLost) in 3s
+--- full game log ---
+  MULLIGAN: Death and Taxes has mulliganed down to 6 cards.
+  MULLIGAN: Death and Taxes has kept a hand of 6 cards
+  MULLIGAN: Elves has kept a hand of 7 cards
+  TURN: Turn 1 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (98)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (98) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Mother of Runes
+  STACK_RESOLVE: Mother of Runes - Creature 1 / 1
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 2 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (40)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (40) - {T}: Add {G}.
+  STACK_ADD: Elves cast Nettle Sentinel
+  STACK_RESOLVE: Nettle Sentinel - Creature 2 / 2
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 3 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Wasteland (115)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (98) - {T}: Add {W}.
+  MANA: Wasteland (115) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Thalia, Guardian of Thraben
+  STACK_RESOLVE: Thalia, Guardian of Thraben - Creature 2 / 1
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 4 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (33)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (40) - {T}: Add {G}.
+  MANA: Forest (33) - {T}: Add {G}.
+  STACK_ADD: Elves cast Elvish Visionary
+  STACK_ADD: Elves triggered Nettle Sentinel
+  STACK_RESOLVE: Whenever you cast a green spell, you may untap this creature. [Card: Elvish Visionary (8), Activator: Elves, SpellAbility: Elvish Visionary - Creature 1 / 1]
+  STACK_RESOLVE: Elvish Visionary - Creature 1 / 1
+  STACK_ADD: Elves triggered Elvish Visionary
+  STACK_RESOLVE: When Elvish Visionary enters, draw a card. [Zone Changer: Elvish Visionary (8)]
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 5 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (93)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Thalia, Guardian of Thraben (74) to attack Elves.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Elves didn't block Thalia, Guardian of Thraben (74).
+  PHASE: Death and Taxes' First Strike Damage Step
+  DAMAGE: Thalia, Guardian of Thraben (74) deals 2 combat damage to Elves.
+  LIFE: Life: Elves 20 > 18
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 6 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  MANA: Plains (98) - {T}: Add {W}.
+  MANA: Plains (93) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Swords to Plowshares targeting [Elvish Visionary (8)]
+  ZONE_CHANGE: Elvish Visionary (8) was put into Exile from Battlefield.
+  LIFE: Life: Elves 18 > 19
+  STACK_RESOLVE: Swords to Plowshares (87) - Exile Elvish Visionary (8). Elves gains life equal to its power.
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (42)
+  MANA: Forest (40) - {T}: Add {G}.
+  MANA: Forest (33) - {T}: Add {G}.
+  MANA: Forest (42) - {T}: Add {G}.
+  STACK_ADD: Elves cast Reclamation Sage
+  STACK_ADD: Elves triggered Nettle Sentinel
+  STACK_RESOLVE: Whenever you cast a green spell, you may untap this creature. [Card: Reclamation Sage (56), Activator: Elves, SpellAbility: Reclamation Sage - Creature 2 / 1]
+  STACK_RESOLVE: Reclamation Sage - Creature 2 / 1
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Nettle Sentinel (30) to attack Death and Taxes.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Nettle Sentinel (30).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Nettle Sentinel (30) deals 2 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 20 > 18
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 7 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Wasteland (112)
+  MANA: Plains (98) - {T}: Add {W}.
+  MANA: Plains (93) - {T}: Add {W}.
+  MANA: Wasteland (115) - {T}: Add {C}.
+  MANA: Wasteland (112) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Palace Jailer
+  STACK_RESOLVE: Palace Jailer - Creature 2 / 2
+  STACK_ADD: Death and Taxes triggered Palace Jailer targeting [Reclamation Sage (56)]
+  STACK_ADD: Death and Taxes triggered Palace Jailer
+  STACK_RESOLVE: When Palace Jailer enters, you become the monarch. [Zone Changer: Palace Jailer (76)]
+  ZONE_CHANGE: Reclamation Sage (56) was put into Exile from Battlefield.
+  STACK_RESOLVE: When Palace Jailer enters, exile target creature an opponent controls until an opponent becomes the monarch. (Targeting: [[Reclamation Sage (56)]]) [Zone Changer: Palace Jailer (76)]
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Thalia, Guardian of Thraben (74) to attack Elves.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Elves didn't block Thalia, Guardian of Thraben (74).
+  PHASE: Death and Taxes' First Strike Damage Step
+  DAMAGE: Thalia, Guardian of Thraben (74) deals 2 combat damage to Elves.
+  LIFE: Life: Elves 19 > 17
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  STACK_ADD: Death and Taxes triggered The Monarch
+  STACK_RESOLVE: At the beginning of your end step, draw a card. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 8 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (41)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (40) - {T}: Add {G}.
+  STACK_ADD: Elves cast Llanowar Elves
+  STACK_ADD: Elves triggered Nettle Sentinel
+  STACK_RESOLVE: Whenever you cast a green spell, you may untap this creature. [Card: Llanowar Elves (5), Activator: Elves, SpellAbility: Llanowar Elves - Creature 1 / 1]
+  STACK_RESOLVE: Llanowar Elves - Creature 1 / 1
+  MANA: Forest (33) - {T}: Add {G}.
+  STACK_ADD: Elves cast Nettle Sentinel
+  STACK_ADD: Elves triggered Nettle Sentinel
+  STACK_RESOLVE: Whenever you cast a green spell, you may untap this creature. [Card: Nettle Sentinel (28), Activator: Elves, SpellAbility: Nettle Sentinel - Creature 2 / 2]
+  STACK_RESOLVE: Nettle Sentinel - Creature 2 / 2
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 9 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (104)
+  MANA: Plains (98) - {T}: Add {W}.
+  MANA: Plains (93) - {T}: Add {W}.
+  MANA: Plains (104) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Umezawa's Jitte
+  STACK_RESOLVE: Umezawa's Jitte
+  MANA: Wasteland (115) - {T}: Add {C}.
+  MANA: Wasteland (112) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte targeting [Thalia, Guardian of Thraben (74)]
+  STACK_RESOLVE: Umezawa's Jitte (120) -  Attach to Thalia, Guardian of Thraben (74)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Thalia, Guardian of Thraben (74) to attack Elves.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Elves didn't block Thalia, Guardian of Thraben (74).
+  PHASE: Death and Taxes' First Strike Damage Step
+  DAMAGE: Thalia, Guardian of Thraben (74) deals 2 combat damage to Elves.
+  LIFE: Life: Elves 17 > 15
+  STACK_ADD: Death and Taxes triggered Umezawa's Jitte
+  STACK_RESOLVE: Whenever equipped creature deals combat damage, put two charge counters on Umezawa's Jitte. [Damage Source: Thalia, Guardian of Thraben (74), Damaged: [Elves], Amount: 2]
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte
+  STACK_RESOLVE: Umezawa's Jitte (120) -  Target creature gets -1/-1 until end of turn. (Targeting: Llanowar Elves (5))
+  ZONE_CHANGE: Llanowar Elves (5) was put into Graveyard from Battlefield.
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  STACK_ADD: Death and Taxes triggered The Monarch
+  STACK_RESOLVE: At the beginning of your end step, draw a card. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 10 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (34)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte
+  LIFE: Life: Death and Taxes 18 > 20
+  STACK_RESOLVE: Umezawa's Jitte (120) -  You gain 2 life.
+  PHASE: Elves' Cleanup step
+  TURN: Turn 11 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (95)
+  MANA: Plains (98) - {T}: Add {W}.
+  MANA: Plains (93) - {T}: Add {W}.
+  MANA: Plains (104) - {T}: Add {W}.
+  MANA: Plains (95) - {T}: Add {W}.
+  MANA: Wasteland (115) - {T}: Add {C}.
+  MANA: Wasteland (112) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Batterskull
+  STACK_RESOLVE: Batterskull
+  STACK_ADD: Death and Taxes triggered Batterskull
+  STACK_RESOLVE: Living Weapon (When this Equipment enters, create a 0/0 black Phyrexian Germ creature token, then attach this to it.) [Zone Changer: Batterskull (63)]
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Thalia, Guardian of Thraben (74) and Palace Jailer (76) to attack Elves.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Elves didn't block Thalia, Guardian of Thraben (74).
+Elves assigned Nettle Sentinel (30) to block Palace Jailer (76).
+  STACK_ADD: Death and Taxes activated Mother of Runes targeting [Palace Jailer (76)]
+  STACK_RESOLVE: Mother of Runes (65) - Palace Jailer (76) gains protection from your choice of white, blue, black, red, or green until end of turn.
+  PHASE: Death and Taxes' First Strike Damage Step
+  DAMAGE: Thalia, Guardian of Thraben (74) deals 2 combat damage to Elves.
+  LIFE: Life: Elves 15 > 13
+  STACK_ADD: Death and Taxes triggered Umezawa's Jitte
+  STACK_RESOLVE: Whenever equipped creature deals combat damage, put two charge counters on Umezawa's Jitte. [Damage Source: Thalia, Guardian of Thraben (74), Damaged: [Elves], Amount: 2]
+  PHASE: Death and Taxes' Combat Damage Step
+  EFFECT_REPLACED: Protection from green
+  DAMAGE: Palace Jailer (76) deals 2 damage to Nettle Sentinel (30).
+  ZONE_CHANGE: Nettle Sentinel (30) was put into Graveyard from Battlefield.
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  STACK_ADD: Death and Taxes triggered The Monarch
+  STACK_RESOLVE: At the beginning of your end step, draw a card. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 12 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Windswept Heath (59)
+  LIFE: Life: Elves 13 > 12
+  ZONE_CHANGE: Windswept Heath (59) was put into Graveyard from Battlefield.
+  STACK_ADD: Elves activated Windswept Heath
+  STACK_RESOLVE: Windswept Heath (59) - Elves searches their library for a Forest or Plains card, puts it onto the battlefield, then shuffles.
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (40) - {T}: Add {G}.
+  STACK_ADD: Elves cast Llanowar Elves
+  STACK_ADD: Elves triggered Nettle Sentinel
+  STACK_RESOLVE: Whenever you cast a green spell, you may untap this creature. [Card: Llanowar Elves (4), Activator: Elves, SpellAbility: Llanowar Elves - Creature 1 / 1]
+  STACK_RESOLVE: Llanowar Elves - Creature 1 / 1
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte
+  STACK_RESOLVE: Umezawa's Jitte (120) -  Target creature gets -1/-1 until end of turn. (Targeting: Llanowar Elves (4))
+  ZONE_CHANGE: Llanowar Elves (4) was put into Graveyard from Battlefield.
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 13 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  ZONE_CHANGE: Wasteland (115) was put into Graveyard from Battlefield.
+  STACK_ADD: Death and Taxes activated Wasteland targeting [Bayou (1)]
+  ZONE_CHANGE: Bayou (1) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (115) - Destroy Bayou (1).
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Rishadan Port (118)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Thalia, Guardian of Thraben (74), Palace Jailer (76) and Phyrexian Germ Token (138) to attack Elves.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Elves didn't block Thalia, Guardian of Thraben (74).
+Elves assigned Nettle Sentinel (28) to block Palace Jailer (76).
+Elves didn't block Phyrexian Germ Token (138).
+  STACK_ADD: Death and Taxes activated Mother of Runes targeting [Palace Jailer (76)]
+  STACK_RESOLVE: Mother of Runes (65) - Palace Jailer (76) gains protection from your choice of white, blue, black, red, or green until end of turn.
+  PHASE: Death and Taxes' First Strike Damage Step
+  DAMAGE: Thalia, Guardian of Thraben (74) deals 2 combat damage to Elves.
+  LIFE: Life: Elves 12 > 10
+  STACK_ADD: Death and Taxes triggered Umezawa's Jitte
+  STACK_RESOLVE: Whenever equipped creature deals combat damage, put two charge counters on Umezawa's Jitte. [Damage Source: Thalia, Guardian of Thraben (74), Damaged: [Elves], Amount: 2]
+  PHASE: Death and Taxes' Combat Damage Step
+  EFFECT_REPLACED: Protection from green
+  DAMAGE: Palace Jailer (76) deals 2 damage to Nettle Sentinel (28).
+  DAMAGE: Phyrexian Germ Token (138) deals 4 combat damage to Elves.
+  LIFE: Life: Death and Taxes 20 > 24
+  LIFE: Life: Elves 10 > 6
+  ZONE_CHANGE: Nettle Sentinel (28) was put into Graveyard from Battlefield.
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (98) - {T}: Add {W}.
+  MANA: Plains (93) - {T}: Add {W}.
+  MANA: Plains (104) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Mirran Crusader
+  STACK_RESOLVE: Mirran Crusader - Creature 2 / 2
+  MANA: Plains (95) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Mother of Runes
+  STACK_RESOLVE: Mother of Runes - Creature 1 / 1
+  PHASE: Death and Taxes' End step
+  STACK_ADD: Death and Taxes triggered The Monarch
+  STACK_RESOLVE: At the beginning of your end step, draw a card. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 14 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte
+  LIFE: Life: Death and Taxes 24 > 26
+  STACK_RESOLVE: Umezawa's Jitte (120) -  You gain 2 life.
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte
+  LIFE: Life: Death and Taxes 26 > 28
+  STACK_RESOLVE: Umezawa's Jitte (120) -  You gain 2 life.
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte
+  LIFE: Life: Death and Taxes 28 > 30
+  STACK_RESOLVE: Umezawa's Jitte (120) -  You gain 2 life.
+  PHASE: Elves' Cleanup step
+  TURN: Turn 15 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (102)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Phyrexian Germ Token (138), Thalia, Guardian of Thraben (74), Palace Jailer (76), Mirran Crusader (83), Mother of Runes (65) and Mother of Runes (64) to attack Elves.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Elves didn't block Phyrexian Germ Token (138).
+Elves didn't block Thalia, Guardian of Thraben (74).
+Elves didn't block Palace Jailer (76).
+Elves didn't block Mirran Crusader (83).
+Elves didn't block Mother of Runes (65).
+Elves didn't block Mother of Runes (64).
+  PHASE: Death and Taxes' First Strike Damage Step
+  DAMAGE: Thalia, Guardian of Thraben (74) deals 2 combat damage to Elves.
+  DAMAGE: Mirran Crusader (83) deals 2 combat damage to Elves.
+  LIFE: Life: Elves 6 > 2
+  STACK_ADD: Death and Taxes triggered Umezawa's Jitte
+  STACK_RESOLVE: Whenever equipped creature deals combat damage, put two charge counters on Umezawa's Jitte. [Damage Source: Thalia, Guardian of Thraben (74), Damaged: [Elves], Amount: 2]
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Phyrexian Germ Token (138) deals 4 combat damage to Elves.
+  LIFE: Life: Death and Taxes 30 > 34
+  DAMAGE: Palace Jailer (76) deals 2 combat damage to Elves.
+  DAMAGE: Mirran Crusader (83) deals 2 combat damage to Elves.
+  DAMAGE: Mother of Runes (65) deals 1 combat damage to Elves.
+  DAMAGE: Mother of Runes (64) deals 1 combat damage to Elves.
+  LIFE: Life: Elves 2 > -8
+  PLAYER_CONTROL: Elves has restored control over themself
+  PLAYER_CONTROL: Death and Taxes has restored control over themself
+  GAME_OUTCOME: Turn 8
+  GAME_OUTCOME: Elves has lost because life total reached 0
+  GAME_OUTCOME: Death and Taxes has won because all opponents have lost
+  MATCH_RESULTS: Elves: 0 Death and Taxes: 1 
+===============================

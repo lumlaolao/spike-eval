@@ -1,0 +1,20 @@
+
+wrote 2061 candidates -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/candidates.jsonl
+
+category           eligible    matched    emitted   per-corpus (eligible/matched)
+------------------------------------------------------------------------------------------
+lethal-now            38706       2001        400   /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games=28081/1166, runs/phase12-pilot=10625/835
+save-vs-lethal        37721       3375        400   /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games=27446/1997, runs/phase12-pilot=10275/1378
+forced-block            222         61         61   /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games=124/36, runs/phase12-pilot=98/25
+free-win              37723       1195        400   /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games=27448/1066, runs/phase12-pilot=10275/129
+mulligan                493        493        400   /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games=358/358, runs/phase12-pilot=135/135
+graded-midgame        14132      14132        400   /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games=10062/10062, runs/phase12-pilot=4070/4070
+
+relevance_score distribution of emitted candidates (unvalidated prior — calibrate vs rollout wp_spread before filtering on it):
+  category             n   min   max | [0,.2) [.2,.4) [.4,.6) [.6,.8) [.8,1]
+  lethal-now         400  0.00  1.00 |    105      46      40     154     55
+  save-vs-lethal     400  0.00  1.00 |    147      74      17     127     35
+  forced-block        61  0.35  0.45 |      0      29      32       0      0
+  free-win           400  0.00  1.00 |    182      27      95      53     43
+  mulligan           400  0.50  0.50 |      0       0     400       0      0
+  graded-midgame     400  0.00  1.00 |    195      58      58      51     38

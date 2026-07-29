@@ -2,3 +2,19 @@
 [00:11:40] generated burn-delver (12 games)
 [00:12:38] generated dnt-miracles (12 games)
 [00:13:19] generated gob-mardu (12 games)
+[00:13:59] generated elves-dnt (12 games)
+[00:14:34] generated infect-burn (12 games)
+[00:15:12] generated lands-gob (12 games)
+[00:15:54] generated miracles-delver (12 games)
+[00:16:32] generated mardu-elves (12 games)
+[00:17:14] generated delver-dnt (12 games)
+[00:17:52] generated painter-burn (12 games)
+[00:18:27] generated gob-infect (12 games)
+[00:19:14] generated miracles-elves (12 games)
+[00:19:14] PHASE A done:      144 games
+[00:19:14] PHASE B: mining
+[00:19:15] PHASE B done:     2061 candidates
+[00:19:15] PHASE C: exhaustive lane
+[00:19:15] PHASE C done: 7 verified
+[00:19:15] PHASE D: rollout lane (screened)
+rollout sample: 210

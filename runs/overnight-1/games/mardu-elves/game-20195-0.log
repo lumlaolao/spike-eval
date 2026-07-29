@@ -1,0 +1,354 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20195
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/mardu-energy.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/elves.plan
+[DECK] loaded 'Mardu Energy': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/mardu-energy.txt)
+[DECK] loaded 'Elves': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/elves.txt)
+[SEATS] A=Mardu Energy(ai-log,opus) B=Elves(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+SVar 'ConvertedManaCost' not found in ability, fallback to Card (Thoughtseize). Ability is (Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life. )
+SVar 'ConvertedManaCost' not defined in Card (Thoughtseize)
+========== GAME OVER ==========
+outcome: A after 11 turns (AllOpponentsLost) in 3s
+--- full game log ---
+  MULLIGAN: Mardu Energy has kept a hand of 7 cards
+  MULLIGAN: Elves has kept a hand of 7 cards
+  TURN: Turn 1 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Karakas (16)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Karakas (16) - {T}: Add {W}.
+  STACK_ADD: Mardu Energy cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 2 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (111)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (111) - {T}: Add {G}.
+  STACK_ADD: Elves cast Llanowar Elves
+  STACK_RESOLVE: Llanowar Elves - Creature 1 / 1
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 3 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  MANA: Karakas (16) - {T}: Add {W}.
+  STACK_ADD: Mardu Energy cast Swords to Plowshares targeting [Llanowar Elves (79)]
+  ZONE_CHANGE: Llanowar Elves (79) was put into Exile from Battlefield.
+  LIFE: Life: Elves 20 > 21
+  STACK_RESOLVE: Swords to Plowshares (28) - Exile Llanowar Elves (79). Elves gains life equal to its power.
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Wasteland (54)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Ocelot Pride (27) to attack Elves.
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Elves didn't block Ocelot Pride (27).
+  PHASE: Mardu Energy's First Strike Damage Step
+  DAMAGE: Ocelot Pride (27) deals 1 combat damage to Elves.
+  LIFE: Life: Mardu Energy 20 > 21
+  LIFE: Life: Elves 21 > 20
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  STACK_ADD: Mardu Energy triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Mardu Energy]
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 4 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Bayou (77)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (111) - {T}: Add {G}.
+  STACK_ADD: Elves cast Fyndhorn Elves
+  STACK_RESOLVE: Fyndhorn Elves - Creature 1 / 1
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 5 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Plateau (39)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Ocelot Pride (27) and Cat Token (138) to attack Elves.
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Elves didn't block Ocelot Pride (27).
+Elves didn't block Cat Token (138).
+  PHASE: Mardu Energy's First Strike Damage Step
+  DAMAGE: Ocelot Pride (27) deals 1 combat damage to Elves.
+  LIFE: Life: Mardu Energy 21 > 22
+  LIFE: Life: Elves 20 > 19
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Cat Token (138) deals 1 combat damage to Elves.
+  LIFE: Life: Elves 19 > 18
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Plateau (39) - {T}: Add {R}.
+  MANA: Wasteland (54) - {T}: Add {C}.
+  STACK_ADD: Mardu Energy cast Amped Raptor
+  STACK_RESOLVE: Amped Raptor - Creature 2 / 1
+  STACK_ADD: Mardu Energy triggered Amped Raptor
+  STACK_ADD: Mardu Energy cast Thoughtseize targeting [Elves]
+  STACK_RESOLVE: When Amped Raptor enters, you get {E}{E} (two energy counters). Then if you cast it from your hand, exile cards from the top of your library until you exile a nonland card. You may cast that card by paying an amount of {E} equal to its mana value rather than paying its mana cost. [Zone Changer: Amped Raptor (51)]
+  DISCARD: Elves discards Glimpse of Nature (130).
+  LIFE: Life: Mardu Energy 22 > 20
+  STACK_RESOLVE: Thoughtseize (44) - Elves reveals their hand. Mardu Energy chooses a nonland card from it. Elves discards that card. Mardu Energy loses 2 life.
+  MANA: Karakas (16) - {T}: Add {W}.
+  STACK_ADD: Mardu Energy cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  PHASE: Mardu Energy's End step
+  STACK_ADD: Mardu Energy triggered Ocelot Pride
+  STACK_ADD: Mardu Energy triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Mardu Energy]
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Mardu Energy]
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 6 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (113)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (111) - {T}: Add {G}.
+  MANA: Forest (113) - {T}: Add {G}.
+  MANA: Bayou (77) - {T}: Add {G}.
+  MANA: Fyndhorn Elves (124) - {T}: Add {G}.
+  ZONE_CHANGE: Fyndhorn Elves (124) was put into Graveyard from Battlefield.
+  STACK_ADD: Elves cast Natural Order
+  STACK_RESOLVE: Natural Order (81) - Elves searches their library for a Creature.Green card, puts it onto the battlefield, then shuffles.
+  STACK_ADD: Elves triggered Craterhoof Behemoth
+  STACK_RESOLVE: When Craterhoof Behemoth enters, creatures you control gain trample and get +X/+X until end of turn, where X is the number of creatures you control. [Zone Changer: Craterhoof Behemoth (106)]
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 7 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Marsh Flats (20)
+  LIFE: Life: Mardu Energy 20 > 19
+  ZONE_CHANGE: Marsh Flats (20) was put into Graveyard from Battlefield.
+  STACK_ADD: Mardu Energy activated Marsh Flats
+  EFFECT_REPLACED: Shadowy Backstreet enters tapped.
+  STACK_RESOLVE: Marsh Flats (20) - Mardu Energy searches their library for a Plains or Swamp card, puts it onto the battlefield, then shuffles.
+  STACK_ADD: Mardu Energy triggered Shadowy Backstreet
+  STACK_RESOLVE: Mardu Energy surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: When Shadowy Backstreet enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Shadowy Backstreet (56)]
+  MANA: Plateau (39) - {T}: Add {R}.
+  MANA: Wasteland (54) - {T}: Add {C}.
+  STACK_ADD: Mardu Energy cast Hexing Squelcher
+  STACK_RESOLVE: Hexing Squelcher - Creature 2 / 2
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 8 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (117)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Craterhoof Behemoth (106) to attack Mardu Energy.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Mardu Energy didn't block Craterhoof Behemoth (106).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Craterhoof Behemoth (106) deals 5 combat damage to Mardu Energy.
+  LIFE: Life: Mardu Energy 19 > 14
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 9 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  MANA: Shadowy Backstreet (56) - {T}: Add {B}.
+  MANA: Plateau (39) - {T}: Add {R}.
+  STACK_ADD: Mardu Energy cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Mardu Energy triggered Orcish Bowmasters targeting [Elves]
+  DAMAGE: Orcish Bowmasters (35) deals 1 non-combat damage to Elves.
+  LIFE: Life: Elves 18 > 17
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Elves]]) [Zone Changer: Orcish Bowmasters (35)]
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Amped Raptor (51), Hexing Squelcher (7), Ocelot Pride (27), Cat Token (138), Ocelot Pride (24), Cat Token (142) and Cat Token (144) to attack Elves.
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Elves didn't block Amped Raptor (51).
+Elves didn't block Hexing Squelcher (7).
+Elves didn't block Ocelot Pride (27).
+Elves didn't block Cat Token (138).
+Elves didn't block Ocelot Pride (24).
+Elves didn't block Cat Token (142).
+Elves didn't block Cat Token (144).
+  PHASE: Mardu Energy's First Strike Damage Step
+  DAMAGE: Amped Raptor (51) deals 2 combat damage to Elves.
+  DAMAGE: Ocelot Pride (27) deals 1 combat damage to Elves.
+  LIFE: Life: Mardu Energy 14 > 15
+  DAMAGE: Ocelot Pride (24) deals 1 combat damage to Elves.
+  LIFE: Life: Mardu Energy 15 > 16
+  LIFE: Life: Elves 17 > 13
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Hexing Squelcher (7) deals 2 combat damage to Elves.
+  DAMAGE: Cat Token (138) deals 1 combat damage to Elves.
+  DAMAGE: Cat Token (142) deals 1 combat damage to Elves.
+  DAMAGE: Cat Token (144) deals 1 combat damage to Elves.
+  LIFE: Life: Elves 13 > 8
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  STACK_ADD: Mardu Energy triggered Ocelot Pride
+  STACK_ADD: Mardu Energy triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Mardu Energy]
+  ZONE_CHANGE: Orc Army Token (154) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Mardu Energy]
+  ZONE_CHANGE: Orc Army Token (162) was put into Graveyard from Battlefield.
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 10 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (110)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 11 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  MANA: Shadowy Backstreet (56) - {T}: Add {B}.
+  MANA: Plateau (39) - {T}: Add {R}.
+  STACK_ADD: Mardu Energy cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Mardu Energy triggered Orcish Bowmasters targeting [Elves]
+  DAMAGE: Orcish Bowmasters (37) deals 1 non-combat damage to Elves.
+  LIFE: Life: Elves 8 > 7
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Elves]]) [Zone Changer: Orcish Bowmasters (37)]
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Amped Raptor (51), Hexing Squelcher (7), Orc Army Token (147), Ocelot Pride (27), Cat Token (138), Ocelot Pride (24), Cat Token (142), Cat Token (144), Orcish Bowmasters (35), Cat Token (151), Cat Token (155), Cat Token (157), Cat Token (163), Cat Token (164) and Cat Token (165) to attack Elves.
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Elves assigned Craterhoof Behemoth (106) to block Amped Raptor (51).
+Elves didn't block Hexing Squelcher (7).
+Elves didn't block Orc Army Token (147).
+Elves didn't block Ocelot Pride (27).
+Elves didn't block Cat Token (138).
+Elves didn't block Ocelot Pride (24).
+Elves didn't block Cat Token (142).
+Elves didn't block Cat Token (144).
+Elves didn't block Orcish Bowmasters (35).
+Elves didn't block Cat Token (151).
+Elves didn't block Cat Token (155).
+Elves didn't block Cat Token (157).
+Elves didn't block Cat Token (163).
+Elves didn't block Cat Token (164).
+Elves didn't block Cat Token (165).
+  PHASE: Mardu Energy's First Strike Damage Step
+  DAMAGE: Amped Raptor (51) deals 2 damage to Craterhoof Behemoth (106).
+  DAMAGE: Ocelot Pride (27) deals 1 combat damage to Elves.
+  LIFE: Life: Mardu Energy 16 > 17
+  DAMAGE: Ocelot Pride (24) deals 1 combat damage to Elves.
+  LIFE: Life: Mardu Energy 17 > 18
+  LIFE: Life: Elves 7 > 5
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Hexing Squelcher (7) deals 2 combat damage to Elves.
+  DAMAGE: Orc Army Token (147) deals 2 combat damage to Elves.
+  DAMAGE: Cat Token (138) deals 1 combat damage to Elves.
+  DAMAGE: Cat Token (142) deals 1 combat damage to Elves.
+  DAMAGE: Cat Token (144) deals 1 combat damage to Elves.
+  DAMAGE: Orcish Bowmasters (35) deals 1 combat damage to Elves.
+  DAMAGE: Cat Token (151) deals 1 combat damage to Elves.
+  DAMAGE: Cat Token (155) deals 1 combat damage to Elves.
+  DAMAGE: Cat Token (157) deals 1 combat damage to Elves.
+  DAMAGE: Cat Token (163) deals 1 combat damage to Elves.
+  DAMAGE: Cat Token (164) deals 1 combat damage to Elves.
+  DAMAGE: Cat Token (165) deals 1 combat damage to Elves.
+  DAMAGE: Craterhoof Behemoth (106) deals 5 damage to Amped Raptor (51).
+  LIFE: Life: Elves 5 > -9
+  PLAYER_CONTROL: Mardu Energy has restored control over themself
+  PLAYER_CONTROL: Elves has restored control over themself
+  GAME_OUTCOME: Turn 6
+  GAME_OUTCOME: Mardu Energy has won because all opponents have lost
+  GAME_OUTCOME: Elves has lost because life total reached 0
+  MATCH_RESULTS: Mardu Energy: 1 Elves: 0 
+===============================

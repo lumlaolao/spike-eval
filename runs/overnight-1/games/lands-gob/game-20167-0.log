@@ -1,0 +1,299 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20167
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/lands.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.plan
+[DECK] loaded 'Lands': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/lands.txt)
+[DECK] loaded 'Goblins': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.txt)
+[SEATS] A=Lands(ai-log,opus) B=Goblins(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: B after 10 turns (AllOpponentsLost) in 2s
+--- full game log ---
+  MULLIGAN: Lands has kept a hand of 7 cards
+  MULLIGAN: Goblins has kept a hand of 7 cards
+  TURN: Turn 1 (Lands)
+  PHASE: Lands' Untap step
+  PHASE: Lands' Upkeep step
+  PHASE: Lands' Draw step
+  PHASE: Lands' Main phase, precombat
+  STACK_ADD: Lands cast Mox Diamond
+  DISCARD: Lands discards Forest (34).
+  EFFECT_REPLACED: If Mox Diamond would enter, you may discard a land card instead. If you do, put Mox Diamond onto the battlefield. If you don't, put it into its owner's graveyard.
+  STACK_RESOLVE: Mox Diamond
+  LAND: Lands played Rishadan Port (47)
+  PHASE: Lands' Beginning of Combat Step
+  PHASE: Lands' Declare Attackers Step
+  PHASE: Lands' Declare Blockers Step
+  PHASE: Lands' First Strike Damage Step
+  PHASE: Lands' Combat Damage Step
+  PHASE: Lands' End of Combat Step
+  PHASE: Lands' Main phase, postcombat
+  MANA: Mox Diamond (60) - {T}: Add one mana of any color.
+  STACK_ADD: Lands cast Gamble
+  DISCARD: Lands discards Life from the Loam (41).
+  STACK_RESOLVE: Gamble (14) - Lands searches their library for a card, reveals it, puts it into their hand, then shuffles. Lands discards a card at random. Lands shuffles their library.
+  PHASE: Lands' End step
+  PHASE: Lands' Cleanup step
+  TURN: Turn 2 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (97)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (97) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Skirk Prospector
+  STACK_RESOLVE: Skirk Prospector - Creature 1 / 1
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 3 (Lands)
+  PHASE: Lands' Untap step
+  PHASE: Lands' Upkeep step
+  PHASE: Lands' Draw step
+  ZONE_CHANGE: Lands milled Wasteland (44), Taiga (2) and Grove of the Burnwillows (7).
+  EFFECT_REPLACED: Life from the Loam - Dredge 3
+  PHASE: Lands' Main phase, precombat
+  LAND: Lands played Maze of Ith (18)
+  PHASE: Lands' Beginning of Combat Step
+  PHASE: Lands' Declare Attackers Step
+  PHASE: Lands' Declare Blockers Step
+  PHASE: Lands' First Strike Damage Step
+  PHASE: Lands' Combat Damage Step
+  PHASE: Lands' End of Combat Step
+  PHASE: Lands' Main phase, postcombat
+  MANA: Mox Diamond (60) - {T}: Add one mana of any color.
+  MANA: Rishadan Port (47) - {T}: Add {C}.
+  STACK_ADD: Lands cast Life from the Loam targeting [Wasteland (44), Taiga (2), Forest (34)]
+  STACK_RESOLVE: Life from the Loam (40) - Return Wasteland (44), Taiga (2) and Forest (34) from the graveyard to their owner's hand.
+  PHASE: Lands' End step
+  PHASE: Lands' Cleanup step
+  TURN: Turn 4 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Rishadan Port (118)
+  MANA: Mountain (97) - {T}: Add {R}.
+  ZONE_CHANGE: Skirk Prospector (99) was put into Graveyard from Battlefield.
+  MANA: Skirk Prospector (99) - Sacrifice a Goblin: Add {R}.
+  MANA: Rishadan Port (118) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Goblin Warchief
+  STACK_RESOLVE: Goblin Warchief - Creature 2 / 2
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Goblin Warchief (76) to attack Lands.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Lands didn't block Goblin Warchief (76).
+  STACK_ADD: Lands activated Maze of Ith targeting [Goblin Warchief (76)]
+  STACK_RESOLVE: Maze of Ith (18) - Untap Goblin Warchief (76). Prevent all combat damage that would be dealt to and dealt by that creature this turn.
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  EFFECT_REPLACED: Prevent all combat damage that would be dealt to and dealt by that creature this turn.
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 5 (Lands)
+  PHASE: Lands' Untap step
+  PHASE: Lands' Upkeep step
+  PHASE: Lands' Draw step
+  ZONE_CHANGE: Lands milled The Tabernacle at Pendrell Vale (11), Forest (29) and Forest (32).
+  EFFECT_REPLACED: Life from the Loam - Dredge 3
+  PHASE: Lands' Main phase, precombat
+  LAND: Lands played Taiga (2)
+  PHASE: Lands' Beginning of Combat Step
+  PHASE: Lands' Declare Attackers Step
+  PHASE: Lands' Declare Blockers Step
+  PHASE: Lands' First Strike Damage Step
+  PHASE: Lands' Combat Damage Step
+  PHASE: Lands' End of Combat Step
+  PHASE: Lands' Main phase, postcombat
+  MANA: Taiga (2) - {T}: Add {G}.
+  MANA: Mox Diamond (60) - {T}: Add one mana of any color.
+  STACK_ADD: Lands cast Life from the Loam targeting [Forest (29), Forest (32), The Tabernacle at Pendrell Vale (11)]
+  STACK_RESOLVE: Life from the Loam (39) - Return Forest (29), Forest (32) and The Tabernacle at Pendrell Vale (11) from the graveyard to their owner's hand.
+  PHASE: Lands' End step
+  PHASE: Lands' Cleanup step
+  TURN: Turn 6 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  EFFECT_REPLACED: As Cavern of Souls enters, choose a creature type.
+  LAND: Goblins played Cavern of Souls (62)
+  MANA: Mountain (97) - {T}: Add {R}.
+  MANA: Cavern of Souls (62) - {T}: Add one mana of any color. Spend this mana only to cast a creature spell of the chosen type, and that spell can't be countered.
+  MANA: Rishadan Port (118) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Krenko, Mob Boss
+  STACK_RESOLVE: Krenko, Mob Boss - Creature 3 / 3
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (106) and Goblin Warchief (76) to attack Lands.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Lands didn't block Krenko, Mob Boss (106).
+Lands didn't block Goblin Warchief (76).
+  STACK_ADD: Lands activated Maze of Ith targeting [Krenko, Mob Boss (106)]
+  STACK_RESOLVE: Maze of Ith (18) - Untap Krenko, Mob Boss (106). Prevent all combat damage that would be dealt to and dealt by that creature this turn.
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  EFFECT_REPLACED: Prevent all combat damage that would be dealt to and dealt by that creature this turn.
+  DAMAGE: Goblin Warchief (76) deals 2 combat damage to Lands.
+  LIFE: Life: Lands 20 > 18
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 7 (Lands)
+  PHASE: Lands' Untap step
+  PHASE: Lands' Upkeep step
+  PHASE: Lands' Draw step
+  ZONE_CHANGE: Lands milled Wasteland (46), Punishing Fire (6) and Mox Diamond (57).
+  EFFECT_REPLACED: Life from the Loam - Dredge 3
+  PHASE: Lands' Main phase, precombat
+  LAND: Lands played Wasteland (44)
+  PHASE: Lands' Beginning of Combat Step
+  PHASE: Lands' Declare Attackers Step
+  STACK_ADD: Goblins activated Krenko, Mob Boss
+  STACK_RESOLVE: Krenko, Mob Boss (106) - Goblins creates four 1/1 red Goblin creature tokens.
+  PHASE: Lands' Declare Blockers Step
+  PHASE: Lands' First Strike Damage Step
+  PHASE: Lands' Combat Damage Step
+  PHASE: Lands' End of Combat Step
+  PHASE: Lands' Main phase, postcombat
+  PHASE: Lands' End step
+  PHASE: Lands' Cleanup step
+  TURN: Turn 8 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (90)
+  MANA: Mountain (97) - {T}: Add {R}.
+  MANA: Mountain (90) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Chieftain
+  STACK_RESOLVE: Goblin Chieftain - Creature 2 / 2
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (106), Goblin Warchief (76), Goblin Token (138), Goblin Token (139) and Goblin Chieftain (105) to attack Lands.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Lands didn't block Krenko, Mob Boss (106).
+Lands didn't block Goblin Warchief (76).
+Lands didn't block Goblin Token (138).
+Lands didn't block Goblin Token (139).
+Lands didn't block Goblin Chieftain (105).
+  STACK_ADD: Lands activated Maze of Ith targeting [Krenko, Mob Boss (106)]
+  STACK_RESOLVE: Maze of Ith (18) - Untap Krenko, Mob Boss (106). Prevent all combat damage that would be dealt to and dealt by that creature this turn.
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  EFFECT_REPLACED: Prevent all combat damage that would be dealt to and dealt by that creature this turn.
+  DAMAGE: Goblin Warchief (76) deals 3 combat damage to Lands.
+  DAMAGE: Goblin Token (138) deals 2 combat damage to Lands.
+  DAMAGE: Goblin Token (139) deals 2 combat damage to Lands.
+  DAMAGE: Goblin Chieftain (105) deals 2 combat damage to Lands.
+  LIFE: Life: Lands 18 > 9
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 9 (Lands)
+  PHASE: Lands' Untap step
+  PHASE: Lands' Upkeep step
+  PHASE: Lands' Draw step
+  PHASE: Lands' Main phase, precombat
+  LAND: Lands played Forest (34)
+  ZONE_CHANGE: Wasteland (44) was put into Graveyard from Battlefield.
+  STACK_ADD: Lands activated Wasteland targeting [Rishadan Port (118)]
+  ZONE_CHANGE: Rishadan Port (118) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (44) - Destroy Rishadan Port (118).
+  PHASE: Lands' Beginning of Combat Step
+  PHASE: Lands' Declare Attackers Step
+  STACK_ADD: Goblins activated Krenko, Mob Boss
+  STACK_RESOLVE: Krenko, Mob Boss (106) - Goblins creates ten 1/1 red Goblin creature tokens.
+  PHASE: Lands' Declare Blockers Step
+  PHASE: Lands' First Strike Damage Step
+  PHASE: Lands' Combat Damage Step
+  PHASE: Lands' End of Combat Step
+  PHASE: Lands' Main phase, postcombat
+  PHASE: Lands' End step
+  PHASE: Lands' Cleanup step
+  TURN: Turn 10 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (80)
+  MANA: Cavern of Souls (62) - {T}: Add one mana of any color. Spend this mana only to cast a creature spell of the chosen type, and that spell can't be countered.
+  MANA: Mountain (97) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Munitions Expert
+  STACK_RESOLVE: Munitions Expert - Creature 1 / 1
+  STACK_ADD: Goblins triggered Munitions Expert targeting [Goblin Token (138)]
+  STACK_RESOLVE: When Munitions Expert enters, you may have it deal damage to target creature or planeswalker equal to the number of Goblins you control. (Targeting: [[Goblin Token (138)]]) [Zone Changer: Munitions Expert (104)]
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (106), Goblin Warchief (76), Goblin Token (138), Goblin Token (139), Goblin Chieftain (105), Goblin Token (159), Goblin Token (160), Goblin Token (161), Goblin Token (162), Goblin Token (163) and Munitions Expert (104) to attack Lands.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Lands didn't block Krenko, Mob Boss (106).
+Lands didn't block Goblin Warchief (76).
+Lands didn't block Goblin Token (138).
+Lands didn't block Goblin Token (139).
+Lands didn't block Goblin Chieftain (105).
+Lands didn't block Goblin Token (159).
+Lands didn't block Goblin Token (160).
+Lands didn't block Goblin Token (161).
+Lands didn't block Goblin Token (162).
+Lands didn't block Goblin Token (163).
+Lands didn't block Munitions Expert (104).
+  STACK_ADD: Lands activated Maze of Ith targeting [Krenko, Mob Boss (106)]
+  STACK_RESOLVE: Maze of Ith (18) - Untap Krenko, Mob Boss (106). Prevent all combat damage that would be dealt to and dealt by that creature this turn.
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  EFFECT_REPLACED: Prevent all combat damage that would be dealt to and dealt by that creature this turn.
+  DAMAGE: Goblin Warchief (76) deals 3 combat damage to Lands.
+  DAMAGE: Goblin Token (138) deals 2 combat damage to Lands.
+  DAMAGE: Goblin Token (139) deals 2 combat damage to Lands.
+  DAMAGE: Goblin Chieftain (105) deals 2 combat damage to Lands.
+  DAMAGE: Goblin Token (159) deals 2 combat damage to Lands.
+  DAMAGE: Goblin Token (160) deals 2 combat damage to Lands.
+  DAMAGE: Goblin Token (161) deals 2 combat damage to Lands.
+  DAMAGE: Goblin Token (162) deals 2 combat damage to Lands.
+  DAMAGE: Goblin Token (163) deals 2 combat damage to Lands.
+  DAMAGE: Munitions Expert (104) deals 2 combat damage to Lands.
+  LIFE: Life: Lands 9 > -12
+  PLAYER_CONTROL: Lands has restored control over themself
+  PLAYER_CONTROL: Goblins has restored control over themself
+  GAME_OUTCOME: Turn 5
+  GAME_OUTCOME: Lands has lost because life total reached 0
+  GAME_OUTCOME: Goblins has won because all opponents have lost
+  MATCH_RESULTS: Lands: 0 Goblins: 1 
+===============================

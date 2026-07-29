@@ -1,0 +1,408 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20146
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/elves.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/death-and-taxes.plan
+[DECK] loaded 'Elves': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/elves.txt)
+[DECK] loaded 'Death and Taxes': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/death-and-taxes.txt)
+[SEATS] A=Elves(ai-log,opus) B=Death and Taxes(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: B after 16 turns (AllOpponentsLost) in 3s
+--- full game log ---
+  MULLIGAN: Elves has kept a hand of 7 cards
+  MULLIGAN: Death and Taxes has kept a hand of 7 cards
+  TURN: Turn 1 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (38)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (38) - {T}: Add {G}.
+  STACK_ADD: Elves cast Fyndhorn Elves
+  STACK_RESOLVE: Fyndhorn Elves - Creature 1 / 1
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 2 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (99)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 3 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Bayou (1)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Fyndhorn Elves (49) to attack Death and Taxes.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Fyndhorn Elves (49).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Fyndhorn Elves (49) deals 1 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 20 > 19
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (38) - {T}: Add {G}.
+  STACK_ADD: Elves cast Llanowar Elves
+  STACK_RESOLVE: Llanowar Elves - Creature 1 / 1
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 4 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (92)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (99) - {T}: Add {W}.
+  MANA: Plains (92) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Stoneforge Mystic
+  STACK_RESOLVE: Stoneforge Mystic - Creature 1 / 2
+  STACK_ADD: Death and Taxes triggered Stoneforge Mystic
+  STACK_RESOLVE: When Stoneforge Mystic enters, you may search your library for an Equipment card, reveal it, put it into your hand, then shuffle. [Zone Changer: Stoneforge Mystic (111)]
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 5 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Gaea's Cradle (51)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 6 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (98)
+  MANA: Plains (99) - {T}: Add {W}.
+  MANA: Plains (92) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Umezawa's Jitte
+  STACK_RESOLVE: Umezawa's Jitte
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Stoneforge Mystic (111) to attack Elves.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Elves didn't block Stoneforge Mystic (111).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Stoneforge Mystic (111) deals 1 combat damage to Elves.
+  LIFE: Life: Elves 20 > 19
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (98) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Mother of Runes
+  STACK_RESOLVE: Mother of Runes - Creature 1 / 1
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 7 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Verdant Catacombs (44)
+  LIFE: Life: Elves 19 > 18
+  ZONE_CHANGE: Verdant Catacombs (44) was put into Graveyard from Battlefield.
+  STACK_ADD: Elves activated Verdant Catacombs
+  STACK_RESOLVE: Verdant Catacombs (44) - Elves searches their library for a Swamp or Forest card, puts it onto the battlefield, then shuffles.
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (38) - {T}: Add {G}.
+  STACK_ADD: Elves cast Nettle Sentinel
+  STACK_RESOLVE: Nettle Sentinel - Creature 2 / 2
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 8 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  MANA: Plains (99) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Swords to Plowshares targeting [Fyndhorn Elves (49)]
+  ZONE_CHANGE: Fyndhorn Elves (49) was put into Exile from Battlefield.
+  LIFE: Life: Elves 18 > 19
+  STACK_RESOLVE: Swords to Plowshares (85) - Exile Fyndhorn Elves (49). Elves gains life equal to its power.
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (101)
+  MANA: Plains (92) - {T}: Add {W}.
+  MANA: Plains (98) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte targeting [Stoneforge Mystic (111)]
+  STACK_RESOLVE: Umezawa's Jitte (120) -  Attach to Stoneforge Mystic (111)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 9 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Nettle Sentinel (29) to attack Death and Taxes.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Nettle Sentinel (29).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Nettle Sentinel (29) deals 2 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 19 > 17
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (38) - {T}: Add {G}.
+  MANA: Bayou (1) - {T}: Add {G}.
+  STACK_ADD: Elves cast Elvish Visionary
+  STACK_ADD: Elves triggered Nettle Sentinel
+  STACK_RESOLVE: Whenever you cast a green spell, you may untap this creature. [Card: Elvish Visionary (7), Activator: Elves, SpellAbility: Elvish Visionary - Creature 1 / 1]
+  STACK_RESOLVE: Elvish Visionary - Creature 1 / 1
+  STACK_ADD: Elves triggered Elvish Visionary
+  STACK_RESOLVE: When Elvish Visionary enters, draw a card. [Zone Changer: Elvish Visionary (7)]
+  LAND: Elves played Forest (40)
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 10 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (105)
+  MANA: Plains (99) - {T}: Add {W}.
+  MANA: Plains (92) - {T}: Add {W}.
+  MANA: Plains (98) - {T}: Add {W}.
+  MANA: Plains (101) - {T}: Add {W}.
+  MANA: Plains (105) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Batterskull
+  STACK_RESOLVE: Batterskull
+  STACK_ADD: Death and Taxes triggered Batterskull
+  STACK_RESOLVE: Living Weapon (When this Equipment enters, create a 0/0 black Phyrexian Germ creature token, then attach this to it.) [Zone Changer: Batterskull (63)]
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 11 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (32)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 12 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (97)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Phyrexian Germ Token (130) to attack Elves.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Elves didn't block Phyrexian Germ Token (130).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Phyrexian Germ Token (130) deals 4 combat damage to Elves.
+  LIFE: Life: Death and Taxes 17 > 21
+  LIFE: Life: Elves 19 > 15
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (99) - {T}: Add {W}.
+  MANA: Plains (92) - {T}: Add {W}.
+  MANA: Plains (98) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Flickerwisp
+  STACK_RESOLVE: Flickerwisp - Creature 3 / 1
+  STACK_ADD: Death and Taxes triggered Flickerwisp targeting [Batterskull (63)]
+  ZONE_CHANGE: Batterskull (63) was put into Exile from Battlefield.
+  STACK_RESOLVE: When Flickerwisp enters, exile another target permanent. Return that card to the battlefield under its owner's control at the beginning of the next end step. (Targeting: [[Batterskull (63)]]) [Zone Changer: Flickerwisp (107)]
+  ZONE_CHANGE: Phyrexian Germ Token (130) was put into Graveyard from Battlefield.
+  MANA: Plains (101) - {T}: Add {W}.
+  MANA: Plains (105) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Thalia, Guardian of Thraben
+  STACK_RESOLVE: Thalia, Guardian of Thraben - Creature 2 / 1
+  PHASE: Death and Taxes' End step
+  STACK_ADD: Death and Taxes triggered Flickerwisp
+  STACK_RESOLVE: Return exiled permanent to the battlefield. ([Batterskull (63)]) [Phase: Death and Taxes]
+  STACK_ADD: Death and Taxes triggered Batterskull
+  STACK_RESOLVE: Living Weapon (When this Equipment enters, create a 0/0 black Phyrexian Germ creature token, then attach this to it.) [Zone Changer: Batterskull (63)]
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 13 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 14 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (94)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Flickerwisp (107), Thalia, Guardian of Thraben (72) and Phyrexian Germ Token (133) to attack Elves.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Elves didn't block Flickerwisp (107).
+Elves didn't block Thalia, Guardian of Thraben (72).
+Elves didn't block Phyrexian Germ Token (133).
+  PHASE: Death and Taxes' First Strike Damage Step
+  DAMAGE: Thalia, Guardian of Thraben (72) deals 2 combat damage to Elves.
+  LIFE: Life: Elves 15 > 13
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Flickerwisp (107) deals 3 combat damage to Elves.
+  DAMAGE: Phyrexian Germ Token (133) deals 4 combat damage to Elves.
+  LIFE: Life: Death and Taxes 21 > 25
+  LIFE: Life: Elves 13 > 6
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (99) - {T}: Add {W}.
+  MANA: Plains (92) - {T}: Add {W}.
+  MANA: Plains (98) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Recruiter of the Guard
+  STACK_RESOLVE: Recruiter of the Guard - Creature 1 / 1
+  STACK_ADD: Death and Taxes triggered Recruiter of the Guard
+  STACK_RESOLVE: When Recruiter of the Guard enters, you may search your library for a creature card with toughness 2 or less, reveal it, put it into your hand, then shuffle. [Zone Changer: Recruiter of the Guard (80)]
+  MANA: Plains (101) - {T}: Add {W}.
+  MANA: Plains (105) - {T}: Add {W}.
+  MANA: Plains (97) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Mirran Crusader
+  STACK_RESOLVE: Mirran Crusader - Creature 2 / 2
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 15 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 16 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Phyrexian Germ Token (133), Flickerwisp (107), Thalia, Guardian of Thraben (72), Mirran Crusader (83), Stoneforge Mystic (111), Mother of Runes (66) and Recruiter of the Guard (80) to attack Elves.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Elves assigned Nettle Sentinel (29) to block Phyrexian Germ Token (133).
+Elves didn't block Flickerwisp (107).
+Elves assigned Elvish Visionary (7) to block Thalia, Guardian of Thraben (72).
+Elves didn't block Mirran Crusader (83).
+Elves assigned Llanowar Elves (3) to block Stoneforge Mystic (111).
+Elves didn't block Mother of Runes (66).
+Elves didn't block Recruiter of the Guard (80).
+  PHASE: Death and Taxes' First Strike Damage Step
+  DAMAGE: Thalia, Guardian of Thraben (72) deals 2 damage to Elvish Visionary (7).
+  DAMAGE: Mirran Crusader (83) deals 2 combat damage to Elves.
+  LIFE: Life: Elves 6 > 4
+  ZONE_CHANGE: Elvish Visionary (7) was put into Graveyard from Battlefield.
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Phyrexian Germ Token (133) deals 4 damage to Nettle Sentinel (29).
+  LIFE: Life: Death and Taxes 25 > 29
+  DAMAGE: Flickerwisp (107) deals 3 combat damage to Elves.
+  DAMAGE: Mirran Crusader (83) deals 2 combat damage to Elves.
+  DAMAGE: Stoneforge Mystic (111) deals 1 damage to Llanowar Elves (3).
+  DAMAGE: Mother of Runes (66) deals 1 combat damage to Elves.
+  DAMAGE: Recruiter of the Guard (80) deals 1 combat damage to Elves.
+  DAMAGE: Nettle Sentinel (29) deals 2 damage to Phyrexian Germ Token (133).
+  DAMAGE: Llanowar Elves (3) deals 1 damage to Stoneforge Mystic (111).
+  LIFE: Life: Elves 4 > -3
+  PLAYER_CONTROL: Elves has restored control over themself
+  PLAYER_CONTROL: Death and Taxes has restored control over themself
+  GAME_OUTCOME: Turn 8
+  GAME_OUTCOME: Elves has lost because life total reached 0
+  GAME_OUTCOME: Death and Taxes has won because all opponents have lost
+  MATCH_RESULTS: Elves: 0 Death and Taxes: 1 
+===============================

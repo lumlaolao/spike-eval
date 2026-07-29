@@ -1,0 +1,45 @@
+========================================================================
+  NOTE: some requested seed(s) are in RESERVED eval blocks (eval/EVAL-DESIGN.md §6.5).
+  That's fine if this run IS the frozen-anchor/mining/certification
+  use those blocks exist for — but games on these seeds must NEVER
+  be fed into make_sft_data.py / mine_puzzles.py as SFT/training data.
+  [puzzle-mining] 20160, 20161, 20162, 20163, 20164, 20165, 20166, 20167, 20168, 20169, 20170, 20171
+========================================================================
+========================================================================
+  EXPLORATORY MODE — numbers from this run are NOT citable.
+  Mirror-deck / forced-heuristics-off / jobs=1 guards are DISABLED.
+  Re-run without --exploratory (and a mirror deck) for a citable batch.
+========================================================================
+[provenance] engine=c1c64a53586459cd0d4c70f27abd1aa8bbc92891 overlay=487bbf8dc330 deck=d2e18e2d3b26 discipline=exploratory
+[provenance] checkpoint=unknown seed_bank=puzzle-mining
+[warn] no --checkpoint given: the game line will not say which weights played. The endpoint's served_* fields are then the only identity, and an alias spec (e.g. openrouter:default_model) may not resolve to one.
+[out] /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games/lands-gob
+Running 12 games (jobs=6, out=/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games/lands-gob, forge_home=/Users/lumlumlam/code/forge)
+[start] seed=20160 swap=0 -> game-20160-0.log
+[start] seed=20161 swap=0 -> game-20161-0.log
+[start] seed=20162 swap=0 -> game-20162-0.log
+[start] seed=20163 swap=0 -> game-20163-0.log
+[start] seed=20164 swap=0 -> game-20164-0.log
+[start] seed=20165 swap=0 -> game-20165-0.log
+[done] seed=20164 swap=0
+[start] seed=20166 swap=0 -> game-20166-0.log
+[done] seed=20161 swap=0
+[start] seed=20167 swap=0 -> game-20167-0.log
+[done] seed=20163 swap=0
+[start] seed=20168 swap=0 -> game-20168-0.log
+[done] seed=20160 swap=0
+[start] seed=20169 swap=0 -> game-20169-0.log
+[done] seed=20165 swap=0
+[start] seed=20170 swap=0 -> game-20170-0.log
+[done] seed=20162 swap=0
+[start] seed=20171 swap=0 -> game-20171-0.log
+[done] seed=20166 swap=0
+[done] seed=20167 swap=0
+[done] seed=20169 swap=0
+[done] seed=20168 swap=0
+[done] seed=20171 swap=0
+[done] seed=20170 swap=0
+
+=== batch summary ===
+completed: 12  skipped(resume): 0  problems: 0
+Aggregate with: python3 /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/aggregate.py /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/games/lands-gob

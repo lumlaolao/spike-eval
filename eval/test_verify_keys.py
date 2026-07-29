@@ -1161,6 +1161,59 @@ def test_screen_confirm_uses_disjoint_seeds():
                         # `seen` before, which is exactly no evidence at all
 
 
+def test_suite_composition():
+    """n_verified alone overstates a suite. Report the floor beside the count.
+
+    WHAT WOULD MAKE THIS FAIL: counting duplicates as distinct, or dropping
+    random_baseline. Measured near-miss this guards: an uncapped exhaustive
+    pass minted 24 keys of which only 15 option-sets were distinct, and most
+    positions had 2 options -- a coin flip scores ~50% on that suite. Reporting
+    "24 puzzles" would have been true and misleading at once, which is exactly
+    the failure mode the 88% lesson exists to prevent.
+    """
+    lava = ["CAST Lava Spike {R} [deals 3 damage]", "PASS (do nothing)"]
+    # same decision, different reminder text -> must collapse to one position
+    lava_alt = ["CAST Lava Spike {R} [different reminder]", "PASS (do nothing)"]
+    four = ["CAST A", "CAST B", "CAST C", "PASS (do nothing)"]
+    def meta(opts, ok):
+        # category/lane/reason are what build_summary reads; suite_composition
+        # ignores them, but the summary check at the end of this test does not
+        return {"verified": ok, "options": opts, "category": "lethal-now",
+                "lane": "exhaustive", "reason": None if ok else "x",
+                "rollout_evidence": None}
+
+    rows = ([meta(lava, True)] * 4 + [meta(lava_alt, True)]
+            + [meta(four, True)] + [meta(four, False)])
+    sc = vk.suite_composition(rows)
+
+    check("suite: counts only verified rows",
+          sc["n_verified"] == 6, str(sc["n_verified"]))
+    check("suite: duplicates collapse (5 Lava Spike rows -> 1 position)",
+          sc["n_distinct"] == 2, str(sc["n_distinct"]))
+    check("suite: reminder-text differences do not fake diversity",
+          sc["n_distinct"] == 2)
+    check("suite: duplicate_rate is reported",
+          abs(sc["duplicate_rate"] - (1 - 2 / 6.0)) < 1e-12,
+          str(sc["duplicate_rate"]))
+    # 5 positions at 1/2 + 1 at 1/4 -> (5*0.5 + 0.25)/6
+    check("suite: random_baseline is mean(1/n_options)",
+          abs(sc["random_baseline"] - (5 * 0.5 + 0.25) / 6.0) < 1e-12,
+          str(sc["random_baseline"]))
+    check("suite: a 2-option-heavy suite has a baseline near 0.5 (the point)",
+          sc["random_baseline"] > 0.4, str(sc["random_baseline"]))
+    check("suite: n_options histogram located the triviality",
+          sc["n_options_histogram"] == {"2": 5, "4": 1},
+          str(sc["n_options_histogram"]))
+    check("suite: empty input degrades instead of dividing by zero",
+          vk.suite_composition([])["random_baseline"] is None
+          and vk.suite_composition([])["duplicate_rate"] is None)
+    # and it must reach the summary an operator actually reads
+    summary = vk.build_summary(rows, "none", 45, [])
+    check("suite: composition block lands in the summary",
+          (summary.get("suite_composition") or {}).get("n_distinct") == 2,
+          str(summary.get("suite_composition")))
+
+
 def test_power_check():
     """n must be able to certify the effect the gate itself asks for.
 

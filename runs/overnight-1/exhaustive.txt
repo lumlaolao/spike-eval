@@ -1,0 +1,2 @@
+verified 7 / 2061 (yield 0.003) -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/exhaustive-positions.jsonl
+summary -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/exhaustive-summary.json

@@ -1,0 +1,406 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20181
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/miracles.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/ur-delver.plan
+[DECK] loaded 'Miracles': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/miracles.txt)
+[DECK] loaded 'UR Delver': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/ur-delver.txt)
+[SEATS] A=Miracles(ai-log,opus) B=UR Delver(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: B after 15 turns (AllOpponentsLost) in 3s
+--- full game log ---
+  MULLIGAN: UR Delver has kept a hand of 7 cards
+  MULLIGAN: Miracles has kept a hand of 7 cards
+  TURN: Turn 1 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Island (98)
+  MANA: Island (98) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Ponder
+  STACK_RESOLVE: Ponder (95) - Look at the top 3 cards of UR Delver's library. Then put them back in any order.You may have that player shuffle their library. UR Delver draws a card.
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 2 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Tundra (38)
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 3 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Scalding Tarn (84)
+  LIFE: Life: UR Delver 20 > 19
+  ZONE_CHANGE: Scalding Tarn (84) was put into Graveyard from Battlefield.
+  STACK_ADD: UR Delver activated Scalding Tarn
+  STACK_RESOLVE: Scalding Tarn (84) - UR Delver searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  MANA: Volcanic Island (74) - {T}: Add {R}.
+  STACK_ADD: UR Delver cast Ragavan, Nimble Pilferer
+  STACK_RESOLVE: Ragavan, Nimble Pilferer - Creature 2 / 1
+  MANA: Island (98) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Brainstorm
+  STACK_RESOLVE: Brainstorm (76) - UR Delver draws three cards, then puts two cards from their hand on top of their library in any order.
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 4 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Island (43)
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Island (43) - {T}: Add {U}.
+  MANA: Tundra (38) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Counterbalance
+  STACK_RESOLVE: Counterbalance
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 5 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Island (97)
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  COMBAT: UR Delver assigned Ragavan, Nimble Pilferer (91) to attack Miracles.
+  PHASE: UR Delver's Declare Blockers Step
+  COMBAT: Miracles didn't block Ragavan, Nimble Pilferer (91).
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  DAMAGE: Ragavan, Nimble Pilferer (91) deals 2 combat damage to Miracles.
+  LIFE: Life: Miracles 20 > 18
+  STACK_ADD: UR Delver triggered Ragavan, Nimble Pilferer
+  STACK_RESOLVE: Whenever Ragavan, Nimble Pilferer deals combat damage to a player, create a Treasure token and exile the top card of that player's library. Until end of turn, you may cast that card. [Damage Source: Ragavan, Nimble Pilferer (91), Damaged: Miracles, Amount: 2]
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  MANA: Island (98) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Sensei's Divining Top
+  STACK_ADD: Miracles triggered Counterbalance
+  ZONE_CHANGE: Send countered spell to Graveyard
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Sensei's Divining Top (53), Activator: UR Delver, SpellAbility: Sensei's Divining Top by Ragavan, Nimble Pilferer (91)]
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 6 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Scalding Tarn (31)
+  LIFE: Life: Miracles 18 > 17
+  ZONE_CHANGE: Scalding Tarn (31) was put into Graveyard from Battlefield.
+  STACK_ADD: Miracles activated Scalding Tarn
+  STACK_RESOLVE: Scalding Tarn (31) - Miracles searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  MANA: Island (43) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Ponder
+  STACK_RESOLVE: Ponder (33) - Look at the top 3 cards of Miracles' library. Then put them back in any order.You may have that player shuffle their library. Miracles draws a card.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Tundra (38) - {T}: Add {U}.
+  MANA: Volcanic Island (16) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Counterbalance
+  STACK_RESOLVE: Counterbalance
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 7 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  COMBAT: UR Delver assigned Ragavan, Nimble Pilferer (91) to attack Miracles.
+  PHASE: UR Delver's Declare Blockers Step
+  COMBAT: Miracles didn't block Ragavan, Nimble Pilferer (91).
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  DAMAGE: Ragavan, Nimble Pilferer (91) deals 2 combat damage to Miracles.
+  LIFE: Life: Miracles 17 > 15
+  STACK_ADD: UR Delver triggered Ragavan, Nimble Pilferer
+  STACK_RESOLVE: Whenever Ragavan, Nimble Pilferer deals combat damage to a player, create a Treasure token and exile the top card of that player's library. Until end of turn, you may cast that card. [Damage Source: Ragavan, Nimble Pilferer (91), Damaged: Miracles, Amount: 2]
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 8 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Plains (32)
+  MANA: Plains (32) - {T}: Add {W}.
+  MANA: Tundra (38) - {T}: Add {W}.
+  MANA: Island (43) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Council's Judgment
+  MANA: Island (98) - {T}: Add {U}.
+  MANA: Island (97) - {T}: Add {U}.
+  MANA: Volcanic Island (74) - {T}: Add {R}.
+  ZONE_CHANGE: Treasure Token (127) was put into Graveyard from Battlefield.
+  MANA: Treasure Token (127) - {T}, Sacrifice this token: Add one mana of any color.
+  ZONE_CHANGE: Treasure Token (123) was put into Graveyard from Battlefield.
+  MANA: Treasure Token (123) - {T}, Sacrifice this token: Add one mana of any color.
+  STACK_ADD: UR Delver cast Force of Will targeting [Will of the Council — Starting with you, each player votes for a nonland permanent you don't control. Exile each permanent with the most votes or tied for most votes.]
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Force of Will (80), Activator: UR Delver, SpellAbility: Counter target spell.]
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Force of Will (80), Activator: UR Delver, SpellAbility: Counter target spell.]
+  ZONE_CHANGE: Send countered spell to Graveyard
+  STACK_RESOLVE: Force of Will (80) - Counter Council's Judgment (51).
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 9 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  COMBAT: UR Delver assigned Ragavan, Nimble Pilferer (91) to attack Miracles.
+  PHASE: UR Delver's Declare Blockers Step
+  COMBAT: Miracles didn't block Ragavan, Nimble Pilferer (91).
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  DAMAGE: Ragavan, Nimble Pilferer (91) deals 2 combat damage to Miracles.
+  LIFE: Life: Miracles 15 > 13
+  STACK_ADD: UR Delver triggered Ragavan, Nimble Pilferer
+  STACK_RESOLVE: Whenever Ragavan, Nimble Pilferer deals combat damage to a player, create a Treasure token and exile the top card of that player's library. Until end of turn, you may cast that card. [Damage Source: Ragavan, Nimble Pilferer (91), Damaged: Miracles, Amount: 2]
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  MANA: Island (98) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Portent targeting [UR Delver]
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Portent (10), Activator: UR Delver, SpellAbility: Look at the top three cards of target player's library, then put them back in any order. You may have that player shuffle. Draw a card at the beginning of the next turn's upkeep. by Ragavan, Nimble Pilferer (91) ]
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Portent (10), Activator: UR Delver, SpellAbility: Look at the top three cards of target player's library, then put them back in any order. You may have that player shuffle. Draw a card at the beginning of the next turn's upkeep. by Ragavan, Nimble Pilferer (91) ]
+  STACK_RESOLVE: Portent (10) - Look at the top 3 cards of UR Delver's library. Then put them back in any order.You may have that player shuffle their library. Draw a card.
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 10 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  STACK_ADD: UR Delver triggered Portent
+  STACK_RESOLVE: Draw a card. [Phase: Miracles]
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Island (46)
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  PHASE: Miracles' End step
+  MANA: Volcanic Island (74) - {T}: Add {R}.
+  STACK_ADD: UR Delver cast Lightning Bolt targeting [Miracles]
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_ADD: Miracles triggered Counterbalance
+  ZONE_CHANGE: Treasure Token (131) was put into Graveyard from Battlefield.
+  MANA: Treasure Token (131) - {T}, Sacrifice this token: Add one mana of any color.
+  STACK_ADD: UR Delver cast Lightning Bolt targeting [Miracles]
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Lightning Bolt (104), Activator: UR Delver, SpellAbility: Lightning Bolt deals 3 damage to any target.]
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Lightning Bolt (104), Activator: UR Delver, SpellAbility: Lightning Bolt deals 3 damage to any target.]
+  DAMAGE: Lightning Bolt (104) deals 3 non-combat damage to Miracles.
+  LIFE: Life: Miracles 13 > 10
+  STACK_RESOLVE: Lightning Bolt (104) - Lightning Bolt (104) deals 3 damage to Miracles.
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Lightning Bolt (105), Activator: UR Delver, SpellAbility: Lightning Bolt deals 3 damage to any target.]
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Lightning Bolt (105), Activator: UR Delver, SpellAbility: Lightning Bolt deals 3 damage to any target.]
+  DAMAGE: Lightning Bolt (105) deals 3 non-combat damage to Miracles.
+  LIFE: Life: Miracles 10 > 7
+  STACK_RESOLVE: Lightning Bolt (105) - Lightning Bolt (105) deals 3 damage to Miracles.
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 11 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  LAND: UR Delver played Wasteland (112)
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  COMBAT: UR Delver assigned Ragavan, Nimble Pilferer (91) to attack Miracles.
+  PHASE: UR Delver's Declare Blockers Step
+  COMBAT: Miracles didn't block Ragavan, Nimble Pilferer (91).
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  DAMAGE: Ragavan, Nimble Pilferer (91) deals 2 combat damage to Miracles.
+  LIFE: Life: Miracles 7 > 5
+  STACK_ADD: UR Delver triggered Ragavan, Nimble Pilferer
+  STACK_RESOLVE: Whenever Ragavan, Nimble Pilferer deals combat damage to a player, create a Treasure token and exile the top card of that player's library. Until end of turn, you may cast that card. [Damage Source: Ragavan, Nimble Pilferer (91), Damaged: Miracles, Amount: 2]
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  MANA: Island (98) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Delver of Secrets
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Delver of Secrets (68), Activator: UR Delver, SpellAbility: Delver of Secrets - Creature 1 / 1]
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Delver of Secrets (68), Activator: UR Delver, SpellAbility: Delver of Secrets - Creature 1 / 1]
+  STACK_RESOLVE: Delver of Secrets - Creature 1 / 1
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 12 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  STACK_ADD: Miracles triggered Terminus
+  MANA: Plains (32) - {T}: Add {W}.
+  STACK_ADD: Miracles cast Terminus
+  STACK_RESOLVE: Terminus - Miracle
+  STACK_RESOLVE: Terminus (49) - Put all creatures on the bottom of their owners' libraries.
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Island (47)
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 13 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  PHASE: UR Delver's Declare Blockers Step
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  PHASE: UR Delver's End of Combat Step
+  PHASE: UR Delver's Main phase, postcombat
+  MANA: Island (98) - {T}: Add {U}.
+  MANA: Island (97) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Murktide Regent
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Murktide Regent (119), Activator: UR Delver, SpellAbility: Murktide Regent - Creature 3 / 3]
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Murktide Regent (119), Activator: UR Delver, SpellAbility: Murktide Regent - Creature 3 / 3]
+  EFFECT_REPLACED: Murktide Regent enters with a +1/+1 counter on it for each instant and sorcery card exiled with it.
+  STACK_RESOLVE: Murktide Regent - Creature 3 / 3
+  PHASE: UR Delver's End step
+  PHASE: UR Delver's Cleanup step
+  TURN: Turn 14 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Scalding Tarn (28)
+  LIFE: Life: Miracles 5 > 4
+  ZONE_CHANGE: Scalding Tarn (28) was put into Graveyard from Battlefield.
+  STACK_ADD: Miracles activated Scalding Tarn
+  STACK_RESOLVE: Scalding Tarn (28) - Miracles searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  MANA: Island (43) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Portent targeting [UR Delver]
+  STACK_RESOLVE: Portent (11) - Look at the top 3 cards of UR Delver's library. Then put them back in any order.You may have that player shuffle their library. Draw a card.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 15 (UR Delver)
+  PHASE: UR Delver's Untap step
+  PHASE: UR Delver's Upkeep step
+  STACK_ADD: Miracles triggered Portent
+  STACK_RESOLVE: Draw a card. [Phase: UR Delver]
+  PHASE: UR Delver's Draw step
+  PHASE: UR Delver's Main phase, precombat
+  MANA: Island (98) - {T}: Add {U}.
+  STACK_ADD: UR Delver cast Ponder
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_ADD: Miracles triggered Counterbalance
+  ZONE_CHANGE: Send countered spell to Graveyard
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Ponder (92), Activator: UR Delver, SpellAbility: Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card. ]
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Ponder (92), Activator: UR Delver, SpellAbility: Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card. ]
+  PHASE: UR Delver's Beginning of Combat Step
+  PHASE: UR Delver's Declare Attackers Step
+  COMBAT: UR Delver assigned Murktide Regent (119) to attack Miracles.
+  PHASE: UR Delver's Declare Blockers Step
+  COMBAT: Miracles didn't block Murktide Regent (119).
+  PHASE: UR Delver's First Strike Damage Step
+  PHASE: UR Delver's Combat Damage Step
+  DAMAGE: Murktide Regent (119) deals 7 combat damage to Miracles.
+  LIFE: Life: Miracles 4 > -3
+  PLAYER_CONTROL: Miracles has restored control over themself
+  PLAYER_CONTROL: UR Delver has restored control over themself
+  GAME_OUTCOME: Turn 8
+  GAME_OUTCOME: Miracles has lost because life total reached 0
+  GAME_OUTCOME: UR Delver has won because all opponents have lost
+  MATCH_RESULTS: Miracles: 0 UR Delver: 1 
+===============================

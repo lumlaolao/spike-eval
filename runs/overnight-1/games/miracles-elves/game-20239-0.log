@@ -1,0 +1,428 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20239
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/miracles.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/elves.plan
+[DECK] loaded 'Miracles': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/miracles.txt)
+[DECK] loaded 'Elves': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/elves.txt)
+[SEATS] A=Miracles(ai-log,opus) B=Elves(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+Moving spell to Library
+Moving spell to Library
+========== GAME OVER ==========
+outcome: B after 15 turns (AllOpponentsLost) in 4s
+--- full game log ---
+  MULLIGAN: Elves has kept a hand of 7 cards
+  MULLIGAN: Miracles has kept a hand of 7 cards
+  TURN: Turn 1 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Bayou (61)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 2 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Island (45)
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Island (45) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 3 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (100)
+  MANA: Forest (100) - {T}: Add {G}.
+  MANA: Bayou (61) - {T}: Add {G}.
+  STACK_ADD: Elves cast Green Sun's Zenith
+  STACK_RESOLVE: Green Sun's Zenith (82) - Search your library for a green creature card with mana value X or less, put it onto the battlefield, then shuffle. Shuffle  into its owner's library. (X=1)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 4 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Scalding Tarn (29)
+  LIFE: Life: Miracles 20 > 19
+  ZONE_CHANGE: Scalding Tarn (29) was put into Graveyard from Battlefield.
+  STACK_ADD: Miracles activated Scalding Tarn
+  STACK_RESOLVE: Scalding Tarn (29) - Miracles searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Island (45) - {T}: Add {U}.
+  MANA: Tundra (38) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Counterbalance
+  STACK_RESOLVE: Counterbalance
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 5 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Verdant Catacombs (104)
+  LIFE: Life: Elves 20 > 19
+  ZONE_CHANGE: Verdant Catacombs (104) was put into Graveyard from Battlefield.
+  STACK_ADD: Elves activated Verdant Catacombs
+  STACK_RESOLVE: Verdant Catacombs (104) - Elves searches their library for a Swamp or Forest card, puts it onto the battlefield, then shuffles.
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Heritage Druid (72) to attack Miracles.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Miracles didn't block Heritage Druid (72).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Heritage Druid (72) deals 1 combat damage to Miracles.
+  LIFE: Life: Miracles 19 > 18
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (100) - {T}: Add {G}.
+  STACK_ADD: Elves cast Fyndhorn Elves
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Fyndhorn Elves (109), Activator: Elves, SpellAbility: Fyndhorn Elves - Creature 1 / 1]
+  STACK_RESOLVE: Fyndhorn Elves - Creature 1 / 1
+  MANA: Bayou (61) - {T}: Add {G}.
+  MANA: Bayou (62) - {T}: Add {G}.
+  STACK_ADD: Elves cast Elvish Visionary
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Elvish Visionary (70), Activator: Elves, SpellAbility: Elvish Visionary - Creature 1 / 1]
+  STACK_RESOLVE: Elvish Visionary - Creature 1 / 1
+  STACK_ADD: Elves triggered Elvish Visionary
+  STACK_RESOLVE: When Elvish Visionary enters, draw a card. [Zone Changer: Elvish Visionary (70)]
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 6 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 7 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (99)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Heritage Druid (72), Fyndhorn Elves (109) and Elvish Visionary (70) to attack Miracles.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Miracles didn't block Heritage Druid (72).
+Miracles didn't block Fyndhorn Elves (109).
+Miracles didn't block Elvish Visionary (70).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Heritage Druid (72) deals 1 combat damage to Miracles.
+  DAMAGE: Fyndhorn Elves (109) deals 1 combat damage to Miracles.
+  DAMAGE: Elvish Visionary (70) deals 1 combat damage to Miracles.
+  LIFE: Life: Miracles 18 > 15
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (100) - {T}: Add {G}.
+  STACK_ADD: Elves cast Llanowar Elves
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Llanowar Elves (64), Activator: Elves, SpellAbility: Llanowar Elves - Creature 1 / 1]
+  MANA: Island (45) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Brainstorm
+  STACK_RESOLVE: Brainstorm (20) - Miracles draws three cards, then puts two cards from their hand on top of their library in any order.
+  MANA: Tundra (38) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Brainstorm
+  STACK_RESOLVE: Brainstorm (19) - Miracles draws three cards, then puts two cards from their hand on top of their library in any order.
+  STACK_RESOLVE: Llanowar Elves - Creature 1 / 1
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 8 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Flooded Strand (6)
+  LIFE: Life: Miracles 15 > 14
+  ZONE_CHANGE: Flooded Strand (6) was put into Graveyard from Battlefield.
+  STACK_ADD: Miracles activated Flooded Strand
+  STACK_RESOLVE: Flooded Strand (6) - Miracles searches their library for a Plains or Island card, puts it onto the battlefield, then shuffles.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Island (45) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 9 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Windswept Heath (120)
+  LIFE: Life: Elves 19 > 18
+  ZONE_CHANGE: Windswept Heath (120) was put into Graveyard from Battlefield.
+  STACK_ADD: Elves activated Windswept Heath
+  STACK_RESOLVE: Windswept Heath (120) - Elves searches their library for a Forest or Plains card, puts it onto the battlefield, then shuffles.
+  MANA: Forest (100) - {T}: Add {G}.
+  MANA: Forest (99) - {T}: Add {G}.
+  MANA: Forest (95) - {T}: Add {G}.
+  MANA: Bayou (61) - {T}: Add {G}.
+  STACK_ADD: Elves cast Green Sun's Zenith
+  STACK_ADD: Miracles triggered Counterbalance
+  STACK_RESOLVE: Whenever an opponent casts a spell, you may reveal the top card of your library. If you do, counter that spell if it has the same mana value as the revealed card. [Card: Green Sun's Zenith (80), Activator: Elves, SpellAbility: Search your library for a green creature card with mana value X or less, put it onto the battlefield, then shuffle. Shuffle Green Sun's Zenith into its owner's library. ]
+  STACK_RESOLVE: Green Sun's Zenith (80) - Search your library for a green creature card with mana value X or less, put it onto the battlefield, then shuffle. Shuffle  into its owner's library. (X=3)
+  STACK_ADD: Elves triggered Reclamation Sage targeting [Counterbalance (2)]
+  ZONE_CHANGE: Counterbalance (2) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: When Reclamation Sage enters, you may destroy target artifact or enchantment. (Targeting: [[Counterbalance (2)]]) [Zone Changer: Reclamation Sage (116)]
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Heritage Druid (72), Fyndhorn Elves (109), Elvish Visionary (70) and Llanowar Elves (64) to attack Miracles.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Miracles didn't block Heritage Druid (72).
+Miracles didn't block Fyndhorn Elves (109).
+Miracles didn't block Elvish Visionary (70).
+Miracles didn't block Llanowar Elves (64).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Heritage Druid (72) deals 1 combat damage to Miracles.
+  DAMAGE: Fyndhorn Elves (109) deals 1 combat damage to Miracles.
+  DAMAGE: Elvish Visionary (70) deals 1 combat damage to Miracles.
+  DAMAGE: Llanowar Elves (64) deals 1 combat damage to Miracles.
+  LIFE: Life: Miracles 14 > 10
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Tundra (38) - {T}: Add {W}.
+  STACK_ADD: Miracles cast Swords to Plowshares targeting [Reclamation Sage (116)]
+  ZONE_CHANGE: Reclamation Sage (116) was put into Exile from Battlefield.
+  LIFE: Life: Elves 18 > 20
+  STACK_RESOLVE: Swords to Plowshares (12) - Exile Reclamation Sage (116). Elves gains life equal to its power.
+  PHASE: Elves' End step
+  MANA: Volcanic Island (17) - {T}: Add {R}.
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top (53) - Miracles draws a card. Put Sensei's Divining Top (53) on top of its owner's library.
+  STACK_RESOLVE: Sensei's Divining Top (53) - Look at the top 3 cards of Miracles' library. Then put them back in any order.
+  PHASE: Elves' Cleanup step
+  TURN: Turn 10 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Island (41)
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Island (45) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 11 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Heritage Druid (72), Fyndhorn Elves (109), Elvish Visionary (70) and Llanowar Elves (64) to attack Miracles.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Miracles didn't block Heritage Druid (72).
+Miracles didn't block Fyndhorn Elves (109).
+Miracles didn't block Elvish Visionary (70).
+Miracles didn't block Llanowar Elves (64).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Heritage Druid (72) deals 1 combat damage to Miracles.
+  DAMAGE: Fyndhorn Elves (109) deals 1 combat damage to Miracles.
+  DAMAGE: Elvish Visionary (70) deals 1 combat damage to Miracles.
+  DAMAGE: Llanowar Elves (64) deals 1 combat damage to Miracles.
+  LIFE: Life: Miracles 10 > 6
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  MANA: Island (41) - {T}: Add {U}.
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top (54) - Miracles draws a card. Put Sensei's Divining Top (54) on top of its owner's library.
+  MANA: Volcanic Island (17) - {T}: Add {R}.
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top (53) - Miracles draws a card. Put Sensei's Divining Top (53) on top of its owner's library.
+  STACK_RESOLVE: Sensei's Divining Top (53) - Look at the top 3 cards of Miracles' library. Then put them back in any order.
+  STACK_RESOLVE: Sensei's Divining Top (54) - Look at the top 3 cards of Miracles' library. Then put them back in any order.
+  PHASE: Elves' Cleanup step
+  TURN: Turn 12 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Volcanic Island (16)
+  MANA: Island (45) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Portent targeting [Miracles]
+  STACK_RESOLVE: Portent (10) - Look at the top 3 cards of Miracles' library. Then put them back in any order.You may have that player shuffle their library. Draw a card.
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Island (41) - {T}: Add {U}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 13 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  STACK_ADD: Miracles triggered Portent
+  STACK_RESOLVE: Draw a card. [Phase: Elves]
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Heritage Druid (72), Fyndhorn Elves (109), Elvish Visionary (70) and Llanowar Elves (64) to attack Miracles.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Miracles didn't block Heritage Druid (72).
+Miracles didn't block Fyndhorn Elves (109).
+Miracles didn't block Elvish Visionary (70).
+Miracles didn't block Llanowar Elves (64).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Heritage Druid (72) deals 1 combat damage to Miracles.
+  DAMAGE: Fyndhorn Elves (109) deals 1 combat damage to Miracles.
+  DAMAGE: Elvish Visionary (70) deals 1 combat damage to Miracles.
+  DAMAGE: Llanowar Elves (64) deals 1 combat damage to Miracles.
+  LIFE: Life: Miracles 6 > 2
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  MANA: Volcanic Island (17) - {T}: Add {R}.
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_ADD: Miracles activated Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top (54) - Miracles draws a card. Put Sensei's Divining Top (54) on top of its owner's library.
+  STACK_RESOLVE: Sensei's Divining Top (54) - Look at the top 3 cards of Miracles' library. Then put them back in any order.
+  PHASE: Elves' Cleanup step
+  TURN: Turn 14 (Miracles)
+  PHASE: Miracles' Untap step
+  PHASE: Miracles' Upkeep step
+  PHASE: Miracles' Draw step
+  PHASE: Miracles' Main phase, precombat
+  LAND: Miracles played Island (43)
+  PHASE: Miracles' Beginning of Combat Step
+  PHASE: Miracles' Declare Attackers Step
+  PHASE: Miracles' Declare Blockers Step
+  PHASE: Miracles' First Strike Damage Step
+  PHASE: Miracles' Combat Damage Step
+  PHASE: Miracles' End of Combat Step
+  PHASE: Miracles' Main phase, postcombat
+  MANA: Island (45) - {T}: Add {U}.
+  MANA: Island (41) - {T}: Add {U}.
+  MANA: Island (43) - {T}: Add {U}.
+  MANA: Volcanic Island (17) - {T}: Add {R}.
+  STACK_ADD: Miracles cast Jace, the Mind Sculptor
+  EFFECT_REPLACED: Jace, the Mind Sculptor enters with three loyalty counters on it.
+  STACK_RESOLVE: Jace, the Mind Sculptor
+  STACK_ADD: Miracles activated Jace, the Mind Sculptor targeting [Heritage Druid (72)]
+  STACK_RESOLVE: Jace, the Mind Sculptor (57) - Return Heritage Druid (72) to its owner's hand.
+  MANA: Volcanic Island (16) - {T}: Add {R}.
+  STACK_ADD: Miracles cast Sensei's Divining Top
+  STACK_RESOLVE: Sensei's Divining Top
+  PHASE: Miracles' End step
+  PHASE: Miracles' Cleanup step
+  TURN: Turn 15 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (92)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Fyndhorn Elves (109), Elvish Visionary (70) and Llanowar Elves (64) to attack Miracles.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Miracles didn't block Fyndhorn Elves (109).
+Miracles didn't block Elvish Visionary (70).
+Miracles didn't block Llanowar Elves (64).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Fyndhorn Elves (109) deals 1 combat damage to Miracles.
+  DAMAGE: Elvish Visionary (70) deals 1 combat damage to Miracles.
+  DAMAGE: Llanowar Elves (64) deals 1 combat damage to Miracles.
+  LIFE: Life: Miracles 2 > -1
+  PLAYER_CONTROL: Miracles has restored control over themself
+  PLAYER_CONTROL: Elves has restored control over themself
+  GAME_OUTCOME: Turn 8
+  GAME_OUTCOME: Miracles has lost because life total reached 0
+  GAME_OUTCOME: Elves has won because all opponents have lost
+  MATCH_RESULTS: Miracles: 0 Elves: 1 
+===============================

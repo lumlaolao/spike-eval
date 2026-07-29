@@ -1,0 +1,316 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20191
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/mardu-energy.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/elves.plan
+[DECK] loaded 'Mardu Energy': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/mardu-energy.txt)
+[DECK] loaded 'Elves': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/elves.txt)
+[SEATS] A=Mardu Energy(ai-log,opus) B=Elves(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: A after 11 turns (AllOpponentsLost) in 1s
+--- full game log ---
+  MULLIGAN: Mardu Energy has kept a hand of 7 cards
+  MULLIGAN: Elves has kept a hand of 7 cards
+  TURN: Turn 1 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Scrubland (42)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 2 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (109)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 3 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Plateau (39)
+  MANA: Scrubland (42) - {T}: Add {B}.
+  MANA: Plateau (39) - {T}: Add {R}.
+  STACK_ADD: Mardu Energy cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Mardu Energy triggered Orcish Bowmasters targeting [Elves]
+  DAMAGE: Orcish Bowmasters (37) deals 1 non-combat damage to Elves.
+  LIFE: Life: Elves 20 > 19
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Elves]]) [Zone Changer: Orcish Bowmasters (37)]
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 4 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Bayou (76)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (109) - {T}: Add {G}.
+  MANA: Bayou (76) - {T}: Add {G}.
+  STACK_ADD: Elves cast Elvish Visionary
+  STACK_RESOLVE: Elvish Visionary - Creature 1 / 1
+  STACK_ADD: Elves triggered Elvish Visionary
+  STACK_RESOLVE: When Elvish Visionary enters, draw a card. [Zone Changer: Elvish Visionary (84)]
+  STACK_ADD: Mardu Energy triggered Orcish Bowmasters targeting [Elvish Visionary (84)]
+  DAMAGE: Orcish Bowmasters (37) deals 1 damage to Elvish Visionary (84).
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Elvish Visionary (84)]]) [Player: Elves]
+  ZONE_CHANGE: Elvish Visionary (84) was put into Graveyard from Battlefield.
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 5 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  EFFECT_REPLACED: Elegant Parlor enters tapped.
+  LAND: Mardu Energy played Elegant Parlor (15)
+  STACK_ADD: Mardu Energy triggered Elegant Parlor
+  STACK_RESOLVE: Mardu Energy surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: When Elegant Parlor enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Elegant Parlor (15)]
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Orc Army Token (137) and Orcish Bowmasters (37) to attack Elves.
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Elves didn't block Orc Army Token (137).
+Elves didn't block Orcish Bowmasters (37).
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Orc Army Token (137) deals 2 combat damage to Elves.
+  DAMAGE: Orcish Bowmasters (37) deals 1 combat damage to Elves.
+  LIFE: Life: Elves 19 > 16
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Scrubland (42) - {T}: Add {W}.
+  MANA: Plateau (39) - {T}: Add {R}.
+  STACK_ADD: Mardu Energy cast Voice of Victory
+  STACK_RESOLVE: Voice of Victory - Creature 1 / 3
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 6 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (113)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (109) - {T}: Add {G}.
+  MANA: Forest (113) - {T}: Add {G}.
+  MANA: Bayou (76) - {T}: Add {G}.
+  STACK_ADD: Elves cast Reclamation Sage
+  STACK_RESOLVE: Reclamation Sage - Creature 2 / 1
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 7 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Wasteland (55)
+  ZONE_CHANGE: Wasteland (55) was put into Graveyard from Battlefield.
+  STACK_ADD: Mardu Energy activated Wasteland targeting [Bayou (76)]
+  ZONE_CHANGE: Bayou (76) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (55) - Destroy Bayou (76).
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Voice of Victory (33), Orc Army Token (137) and Orcish Bowmasters (37) to attack Elves.
+  STACK_ADD: Mardu Energy triggered Voice of Victory
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (33)]
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Elves didn't block Voice of Victory (33).
+Elves didn't block Orc Army Token (137).
+Elves didn't block Orcish Bowmasters (37).
+Elves didn't block Warrior Token (140).
+Elves didn't block Warrior Token (141).
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Voice of Victory (33) deals 1 combat damage to Elves.
+  DAMAGE: Orc Army Token (137) deals 2 combat damage to Elves.
+  DAMAGE: Orcish Bowmasters (37) deals 1 combat damage to Elves.
+  DAMAGE: Warrior Token (140) deals 1 combat damage to Elves.
+  DAMAGE: Warrior Token (141) deals 1 combat damage to Elves.
+  LIFE: Life: Elves 16 > 10
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  STACK_ADD: Mardu Energy triggered Voice of Victory
+  ZONE_CHANGE: Warrior Token (140) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Warrior Token (141) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Sacrifice Warrior Token (140) and Warrior Token (141) at the beginning of the next end step. ([Warrior Token (140), Warrior Token (141)]) [Phase: Mardu Energy]
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 8 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (115)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Reclamation Sage (131) to attack Mardu Energy.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Mardu Energy didn't block Reclamation Sage (131).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Reclamation Sage (131) deals 2 combat damage to Mardu Energy.
+  LIFE: Life: Mardu Energy 20 > 18
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (109) - {T}: Add {G}.
+  MANA: Forest (113) - {T}: Add {G}.
+  STACK_ADD: Elves cast Elvish Visionary
+  STACK_RESOLVE: Elvish Visionary - Creature 1 / 1
+  STACK_ADD: Elves triggered Elvish Visionary
+  STACK_RESOLVE: When Elvish Visionary enters, draw a card. [Zone Changer: Elvish Visionary (83)]
+  STACK_ADD: Mardu Energy triggered Orcish Bowmasters targeting [Reclamation Sage (131)]
+  DAMAGE: Orcish Bowmasters (37) deals 1 damage to Reclamation Sage (131).
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Reclamation Sage (131)]]) [Player: Elves]
+  ZONE_CHANGE: Reclamation Sage (131) was put into Graveyard from Battlefield.
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 9 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Plains (40)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Voice of Victory (33), Orc Army Token (137) and Orcish Bowmasters (37) to attack Elves.
+  STACK_ADD: Mardu Energy triggered Voice of Victory
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (33)]
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Elves didn't block Voice of Victory (33).
+Elves didn't block Orc Army Token (137).
+Elves assigned Elvish Visionary (83) to block Orcish Bowmasters (37).
+Elves didn't block Warrior Token (144).
+Elves didn't block Warrior Token (145).
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Voice of Victory (33) deals 1 combat damage to Elves.
+  DAMAGE: Orc Army Token (137) deals 3 combat damage to Elves.
+  DAMAGE: Orcish Bowmasters (37) deals 1 damage to Elvish Visionary (83).
+  DAMAGE: Warrior Token (144) deals 1 combat damage to Elves.
+  DAMAGE: Warrior Token (145) deals 1 combat damage to Elves.
+  DAMAGE: Elvish Visionary (83) deals 1 damage to Orcish Bowmasters (37).
+  LIFE: Life: Elves 10 > 4
+  ZONE_CHANGE: Orcish Bowmasters (37) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Elvish Visionary (83) was put into Graveyard from Battlefield.
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  STACK_ADD: Mardu Energy triggered Voice of Victory
+  ZONE_CHANGE: Warrior Token (144) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Warrior Token (145) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Sacrifice Warrior Token (144) and Warrior Token (145) at the beginning of the next end step. ([Warrior Token (144), Warrior Token (145)]) [Phase: Mardu Energy]
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 10 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (112)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 11 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Arid Mesa (10)
+  LIFE: Life: Mardu Energy 18 > 17
+  ZONE_CHANGE: Arid Mesa (10) was put into Graveyard from Battlefield.
+  STACK_ADD: Mardu Energy activated Arid Mesa
+  STACK_RESOLVE: Arid Mesa (10) - Mardu Energy searches their library for a Mountain or Plains card, puts it onto the battlefield, then shuffles.
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Orc Army Token (137) and Voice of Victory (33) to attack Elves.
+  STACK_ADD: Mardu Energy triggered Voice of Victory
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (33)]
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Elves didn't block Orc Army Token (137).
+Elves didn't block Voice of Victory (33).
+Elves didn't block Warrior Token (148).
+Elves didn't block Warrior Token (149).
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Orc Army Token (137) deals 3 combat damage to Elves.
+  DAMAGE: Voice of Victory (33) deals 1 combat damage to Elves.
+  DAMAGE: Warrior Token (148) deals 1 combat damage to Elves.
+  DAMAGE: Warrior Token (149) deals 1 combat damage to Elves.
+  LIFE: Life: Elves 4 > -2
+  PLAYER_CONTROL: Mardu Energy has restored control over themself
+  PLAYER_CONTROL: Elves has restored control over themself
+  GAME_OUTCOME: Turn 6
+  GAME_OUTCOME: Mardu Energy has won because all opponents have lost
+  GAME_OUTCOME: Elves has lost because life total reached 0
+  MATCH_RESULTS: Mardu Energy: 1 Elves: 0 
+===============================

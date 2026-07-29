@@ -1,0 +1,555 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20156
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/infect.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/burn.plan
+[DECK] loaded 'Infect': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/infect.txt)
+[DECK] loaded 'Burn': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/burn.txt)
+[SEATS] A=Infect(ai-log,opus) B=Burn(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: A after 24 turns (AllOpponentsLost) in 4s
+--- full game log ---
+  MULLIGAN: Burn has mulliganed down to 6 cards.
+  MULLIGAN: Infect has mulliganed down to 6 cards.
+  MULLIGAN: Burn has kept a hand of 6 cards
+  MULLIGAN: Infect has kept a hand of 6 cards
+  TURN: Turn 1 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Sunbaked Canyon (79)
+  LIFE: Life: Burn 20 > 19
+  MANA: Sunbaked Canyon (79) - {T}, Pay 1 life: Add {R} or {W}.
+  STACK_RESOLVE: Burn has suspended Rift Bolt with 1 time counters on it.
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 2 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Tropical Island (13)
+  MANA: Tropical Island (13) - {T}: Add {G}.
+  STACK_ADD: Infect cast Noble Hierarch
+  STACK_RESOLVE: Noble Hierarch - Creature 0 / 1
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  PHASE: Infect's Declare Blockers Step
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 3 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  STACK_ADD: Burn triggered Rift Bolt
+  STACK_RESOLVE: At the beginning of your upkeep, if this card is suspended, remove a time counter from it [Phase: Burn]
+  STACK_ADD: Burn triggered Rift Bolt
+  STACK_ADD: Burn cast Rift Bolt targeting [Noble Hierarch (6)]
+  STACK_RESOLVE: When the last time counter is removed from this card, if it's exiled, you may play it without paying its mana cost if able.  If you can't, it remains exiled. If you cast a creature spell this way, it gains haste until you lose control of the spell or the permanent it becomes. [Removed from: Rift Bolt (111)]
+  LIFE: Life: Burn 19 > 22
+  STACK_ADD: Infect cast Invigorate targeting [Noble Hierarch (6)]
+  STACK_RESOLVE: Invigorate (49) - Noble Hierarch (6) gets +4/+4  until end of turn.
+  DAMAGE: Rift Bolt (111) deals 3 damage to Noble Hierarch (6).
+  STACK_RESOLVE: Rift Bolt (111) - Rift Bolt (111) deals 3 damage to Noble Hierarch (6).
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (98)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 4 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Pendelhaven (24)
+  MANA: Tropical Island (13) - {T}: Add {U}.
+  STACK_ADD: Infect cast Ponder
+  STACK_RESOLVE: Ponder (43) - Look at the top 3 cards of Infect's library. Then put them back in any order.You may have that player shuffle their library. Infect draws a card.
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  COMBAT: Infect assigned Noble Hierarch (6) to attack Burn.
+  STACK_ADD: Infect triggered Noble Hierarch
+  STACK_RESOLVE: Exalted (Whenever a creature you control attacks alone, that creature gets +1/+1 until end of turn.) [Attacker: Noble Hierarch (6)]
+  PHASE: Infect's Declare Blockers Step
+  COMBAT: Burn didn't block Noble Hierarch (6).
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  DAMAGE: Noble Hierarch (6) deals 1 combat damage to Burn.
+  LIFE: Life: Burn 22 > 21
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  MANA: Pendelhaven (24) - {T}: Add {G}.
+  STACK_ADD: Infect cast Glistener Elf
+  STACK_RESOLVE: Glistener Elf - Creature 1 / 1
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 5 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (86)
+  MANA: Mountain (98) - {T}: Add {R}.
+  MANA: Mountain (86) - {T}: Add {R}.
+  LIFE: Life: Burn 21 > 20
+  MANA: Sunbaked Canyon (79) - {T}, Pay 1 life: Add {R} or {W}.
+  STACK_ADD: Burn cast Rift Bolt targeting [Noble Hierarch (6)]
+  LIFE: Life: Infect 20 > 19
+  STACK_ADD: Infect cast Force of Will targeting [Rift Bolt deals 3 damage to any target.]
+  ZONE_CHANGE: Send countered spell to Graveyard
+  STACK_RESOLVE: Force of Will (27) - Counter Rift Bolt (110).
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 6 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Tropical Island (11)
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  COMBAT: Infect assigned Glistener Elf (15) to attack Burn.
+  STACK_ADD: Infect triggered Noble Hierarch
+  STACK_RESOLVE: Exalted (Whenever a creature you control attacks alone, that creature gets +1/+1 until end of turn.) [Attacker: Glistener Elf (15)]
+  PHASE: Infect's Declare Blockers Step
+  COMBAT: Burn didn't block Glistener Elf (15).
+  MANA: Tropical Island (13) - {T}: Add {G}.
+  MANA: Tropical Island (11) - {T}: Add {G}.
+  STACK_ADD: Infect cast Vines of Vastwood targeting [Glistener Elf (15)]
+  STACK_RESOLVE: Vines of Vastwood (34) - Glistener Elf (15) gets +4/+4  until end of turn. 
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  DAMAGE: Glistener Elf (15) deals 6 combat damage to Burn(as poison counters).
+  DAMAGE: Burn receives 6 poison counter from Infect
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 7 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (91)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 8 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  MANA: Tropical Island (13) - {T}: Add {U}.
+  STACK_ADD: Infect cast Ponder
+  STACK_RESOLVE: Ponder (44) - Look at the top 3 cards of Infect's library. Then put them back in any order.You may have that player shuffle their library. Infect draws a card.
+  LAND: Infect played Forest (37)
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  COMBAT: Infect assigned Glistener Elf (15) to attack Burn.
+  STACK_ADD: Infect triggered Noble Hierarch
+  STACK_RESOLVE: Exalted (Whenever a creature you control attacks alone, that creature gets +1/+1 until end of turn.) [Attacker: Glistener Elf (15)]
+  PHASE: Infect's Declare Blockers Step
+  COMBAT: Burn didn't block Glistener Elf (15).
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  DAMAGE: Glistener Elf (15) deals 2 combat damage to Burn(as poison counters).
+  DAMAGE: Burn receives 2 poison counter from Infect
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 9 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (94)
+  MANA: Mountain (98) - {T}: Add {R}.
+  ZONE_CHANGE: Sunbaked Canyon (79) was put into Graveyard from Battlefield.
+  STACK_ADD: Burn activated Sunbaked Canyon
+  STACK_RESOLVE: Sunbaked Canyon (79) - Burn draws a card.
+  MANA: Mountain (86) - {T}: Add {R}.
+  STACK_ADD: Burn cast Monastery Swiftspear
+  STACK_RESOLVE: Monastery Swiftspear - Creature 1 / 2
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 10 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  MANA: Forest (37) - {T}: Add {G}.
+  STACK_ADD: Infect cast Noble Hierarch
+  STACK_RESOLVE: Noble Hierarch - Creature 0 / 1
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  PHASE: Infect's Declare Blockers Step
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 11 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (93)
+  MANA: Mountain (98) - {T}: Add {R}.
+  STACK_ADD: Burn cast Goblin Guide
+  STACK_RESOLVE: Goblin Guide - Creature 2 / 2
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Goblin Guide (67) to attack Infect.
+  STACK_ADD: Burn triggered Goblin Guide
+  STACK_RESOLVE: Whenever Goblin Guide attacks, defending player reveals the top card of their library. If it's a land card, that player puts it into their hand. [Attacker: Goblin Guide (67)]
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Infect didn't block Goblin Guide (67).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Goblin Guide (67) deals 2 combat damage to Infect.
+  LIFE: Life: Infect 19 > 17
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 12 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  PHASE: Infect's Beginning of Combat Step
+  MANA: Forest (37) - {T}: Add {G}.
+  STACK_ADD: Infect cast Groundswell targeting [Noble Hierarch (8)]
+  STACK_RESOLVE: Groundswell (9) - Noble Hierarch (8) gets +2/+2  until end of turn.
+  PHASE: Infect's Declare Attackers Step
+  COMBAT: Infect assigned Noble Hierarch (8) and Glistener Elf (15) to attack Burn.
+  PHASE: Infect's Declare Blockers Step
+  COMBAT: Burn didn't block Noble Hierarch (8).
+Burn assigned Monastery Swiftspear (62) to block Glistener Elf (15).
+  STACK_ADD: Infect activated Pendelhaven targeting [Glistener Elf (15)]
+  STACK_RESOLVE: Pendelhaven (24) - Glistener Elf (15) gets +1/+2  until end of turn.
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  DAMAGE: Noble Hierarch (8) deals 2 combat damage to Burn.
+  DAMAGE: Glistener Elf (15) deals 2 damage (As -1/-1 Counters) to Monastery Swiftspear (62).
+  DAMAGE: Monastery Swiftspear (62) deals 1 damage to Glistener Elf (15).
+  LIFE: Life: Burn 20 > 18
+  ZONE_CHANGE: Monastery Swiftspear (62) was put into Graveyard from Battlefield.
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 13 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  MANA: Mountain (98) - {T}: Add {R}.
+  MANA: Mountain (86) - {T}: Add {R}.
+  STACK_ADD: Burn cast Price of Progress
+  DAMAGE: Price of Progress (76) deals 6 non-combat damage to Infect.
+  LIFE: Life: Infect 17 > 11
+  STACK_RESOLVE: Price of Progress (76) - Price of Progress deals 2 damage to each player for each nonbasic land they control.
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Bloodstained Mire (81)
+  LIFE: Life: Burn 18 > 17
+  ZONE_CHANGE: Bloodstained Mire (81) was put into Graveyard from Battlefield.
+  STACK_ADD: Burn activated Bloodstained Mire
+  STACK_RESOLVE: Bloodstained Mire (81) - Burn searches their library for a Swamp or Mountain card, puts it onto the battlefield, then shuffles.
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 14 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  PHASE: Infect's Declare Blockers Step
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 15 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  ZONE_CHANGE: Mountain (96) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Mountain (93) was put into Graveyard from Battlefield.
+  STACK_ADD: Burn cast Fireblast targeting [Noble Hierarch (6)]
+  DAMAGE: Fireblast (105) deals 4 damage to Noble Hierarch (6).
+  STACK_RESOLVE: Fireblast (105) - Fireblast (105) deals 4 damage to Noble Hierarch (6).
+  ZONE_CHANGE: Noble Hierarch (6) was put into Graveyard from Battlefield.
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 16 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  PHASE: Infect's Declare Blockers Step
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 17 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Sunbaked Canyon (80)
+  MANA: Mountain (98) - {T}: Add {R}.
+  ZONE_CHANGE: Sunbaked Canyon (80) was put into Graveyard from Battlefield.
+  STACK_ADD: Burn activated Sunbaked Canyon
+  STACK_RESOLVE: Sunbaked Canyon (80) - Burn draws a card.
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 18 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  PHASE: Infect's Declare Blockers Step
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  MANA: Tropical Island (13) - {T}: Add {U}.
+  STACK_ADD: Infect cast Brainstorm
+  STACK_RESOLVE: Brainstorm (19) - Infect draws three cards, then puts two cards from their hand on top of their library in any order.
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 19 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (90)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 20 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  PHASE: Infect's Declare Blockers Step
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  MANA: Forest (37) - {T}: Add {G}.
+  MANA: Tropical Island (13) - {T}: Add {G}.
+  MANA: Tropical Island (11) - {T}: Add {G}.
+  STACK_ADD: Infect cast Wild Defiance
+  STACK_RESOLVE: Wild Defiance
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 21 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  MANA: Mountain (98) - {T}: Add {R}.
+  MANA: Mountain (86) - {T}: Add {R}.
+  STACK_ADD: Burn cast Price of Progress
+  DAMAGE: Price of Progress (78) deals 6 non-combat damage to Infect.
+  LIFE: Life: Infect 11 > 5
+  STACK_RESOLVE: Price of Progress (78) - Price of Progress deals 2 damage to each player for each nonbasic land they control.
+  MANA: Mountain (91) - {T}: Add {R}.
+  MANA: Mountain (94) - {T}: Add {R}.
+  STACK_ADD: Burn cast Searing Blaze targeting [Infect] [Noble Hierarch (8)]
+  STACK_ADD: Infect triggered Wild Defiance
+  STACK_RESOLVE: Whenever a creature you control becomes the target of an instant or sorcery spell, it gets +3/+3 until end of turn. [Source: Searing Blaze (107), Target: Noble Hierarch (8)]
+  DAMAGE: Searing Blaze (107) deals 1 non-combat damage to Infect.
+  DAMAGE: Searing Blaze (107) deals 1 damage to Noble Hierarch (8).
+  LIFE: Life: Infect 5 > 4
+  STACK_RESOLVE: Searing Blaze (107) - Searing Blaze (107) deals 1 damage to Infect. Searing Blaze (107) deals 1 damage to Noble Hierarch (8). 
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 22 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  LAND: Infect played Tropical Island (12)
+  PHASE: Infect's Beginning of Combat Step
+  LIFE: Life: Burn 17 > 20
+  STACK_ADD: Infect cast Invigorate targeting [Noble Hierarch (8)]
+  STACK_ADD: Infect triggered Wild Defiance
+  STACK_RESOLVE: Whenever a creature you control becomes the target of an instant or sorcery spell, it gets +3/+3 until end of turn. [Source: Invigorate (47), Target: Noble Hierarch (8)]
+  STACK_RESOLVE: Invigorate (47) - Noble Hierarch (8) gets +4/+4  until end of turn.
+  PHASE: Infect's Declare Attackers Step
+  COMBAT: Infect assigned Noble Hierarch (8) and Glistener Elf (15) to attack Burn.
+  PHASE: Infect's Declare Blockers Step
+  COMBAT: Burn didn't block Noble Hierarch (8).
+Burn assigned Goblin Guide (67) to block Glistener Elf (15).
+  STACK_ADD: Infect activated Pendelhaven targeting [Glistener Elf (15)]
+  STACK_RESOLVE: Pendelhaven (24) - Glistener Elf (15) gets +1/+2  until end of turn.
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  DAMAGE: Noble Hierarch (8) deals 7 combat damage to Burn.
+  DAMAGE: Glistener Elf (15) deals 2 damage (As -1/-1 Counters) to Goblin Guide (67).
+  DAMAGE: Goblin Guide (67) deals 2 damage to Glistener Elf (15).
+  LIFE: Life: Burn 20 > 13
+  ZONE_CHANGE: Goblin Guide (67) was put into Graveyard from Battlefield.
+  PHASE: Infect's End of Combat Step
+  PHASE: Infect's Main phase, postcombat
+  PHASE: Infect's End step
+  PHASE: Infect's Cleanup step
+  TURN: Turn 23 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  MANA: Mountain (98) - {T}: Add {R}.
+  MANA: Mountain (86) - {T}: Add {R}.
+  STACK_ADD: Burn cast Searing Blaze targeting [Infect] [Noble Hierarch (8)]
+  STACK_ADD: Infect triggered Wild Defiance
+  STACK_RESOLVE: Whenever a creature you control becomes the target of an instant or sorcery spell, it gets +3/+3 until end of turn. [Source: Searing Blaze (108), Target: Noble Hierarch (8)]
+  DAMAGE: Searing Blaze (108) deals 1 non-combat damage to Infect.
+  DAMAGE: Searing Blaze (108) deals 1 damage to Noble Hierarch (8).
+  LIFE: Life: Infect 4 > 3
+  STACK_RESOLVE: Searing Blaze (108) - Searing Blaze (108) deals 1 damage to Infect. Searing Blaze (108) deals 1 damage to Noble Hierarch (8). 
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (97)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 24 (Infect)
+  PHASE: Infect's Untap step
+  PHASE: Infect's Upkeep step
+  PHASE: Infect's Draw step
+  PHASE: Infect's Main phase, precombat
+  PHASE: Infect's Beginning of Combat Step
+  PHASE: Infect's Declare Attackers Step
+  COMBAT: Infect assigned Glistener Elf (15) to attack Burn.
+  STACK_ADD: Infect triggered Noble Hierarch
+  STACK_RESOLVE: Exalted (Whenever a creature you control attacks alone, that creature gets +1/+1 until end of turn.) [Attacker: Glistener Elf (15)]
+  PHASE: Infect's Declare Blockers Step
+  COMBAT: Burn didn't block Glistener Elf (15).
+  PHASE: Infect's First Strike Damage Step
+  PHASE: Infect's Combat Damage Step
+  DAMAGE: Glistener Elf (15) deals 2 combat damage to Burn(as poison counters).
+  DAMAGE: Burn receives 2 poison counter from Infect
+  PLAYER_CONTROL: Infect has restored control over themself
+  PLAYER_CONTROL: Burn has restored control over themself
+  GAME_OUTCOME: Turn 12
+  GAME_OUTCOME: Infect has won because all opponents have lost
+  GAME_OUTCOME: Burn has lost because of obtaining 10 poison counters
+  MATCH_RESULTS: Infect: 1 Burn: 0 
+===============================
