@@ -63,14 +63,30 @@ reproduces byte-identical output.
 
 Decision-relevance prior (ADDITIVE fields relevance_score /
 relevance_signals on every candidate; opt-in --min-relevance filter):
-  Motivated by measured data (seeds 20001-20016 corpus): the rollout lane
-  verified 0/4 graded-midgame candidates at n_per_option=16, all
-  rollout_noise_below_threshold — legal positions whose options did not
-  differ in win probability. score_relevance() is a TEXT-ONLY PRIOR that a
-  position's options MIGHT differ in value. It is UNVALIDATED: it has never
-  been calibrated against measured wp_spread from verify_keys' rollout
-  lane, and it MUST be calibrated before anyone trusts it as a filter (mine with the
-  fields, verify unfiltered, then regress score vs wp_spread). A high
+  score_relevance() is a TEXT-ONLY PRIOR that a position's options MIGHT
+  differ in value.
+
+  CALIBRATED 2026-07-28, AND IT DID NOT HOLD UP. First measurement with a
+  working rollout lane (runs/phase12-pilot, 60 ai-log games, 8 positions
+  verified at n_per_option=45, a run the power block confirms was NOT
+  noise-bound): Pearson r(relevance_score, wp_spread) = +0.16 over n=8 —
+  no usable signal, and n=8 is far too small to claim even that. Worse in
+  kind than the weak correlation: a relevance=1.0 candidate came back with
+  ALL FIVE options at wp=1.0, i.e. an already-won position with no decision
+  in it at all. The prior currently scores such positions HIGHEST, because
+  a won board offers many plausible-looking lines.
+
+  So: still UNVALIDATED, now with evidence pointing the wrong way. Do NOT
+  use --min-relevance to filter a suite build. Re-calibrate on a much larger
+  verified sample before trusting it, and treat "high relevance" as "worth
+  measuring", never as "the options differ".
+
+  (The earlier motivation cited here — 0/4 verified at n_per_option=16 —
+  has been RETRACTED. That run proved nothing about the positions: the
+  rollout continuation had no variance at the time, so every arm returned
+  0/n or n/n, and n=16 was below the gate's own noise floor anyway.)
+
+  A high
   score does NOT mean the options differ — only that they might; a low
   score means the option text itself shows nothing to disagree about
   (single real option, N near-identical land drops). Known blind spots are

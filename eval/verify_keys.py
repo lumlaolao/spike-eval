@@ -443,6 +443,40 @@ def power_check(n_per_option, gap_threshold=DEFAULT_GAP_THRESHOLD,
     return out
 
 
+#: A position is "already decided" when EVERY option leads to the same result.
+#: 0.95 rather than 1.0 so a single unlucky rollout out of n doesn't reclassify
+#: a won position as a live one (at n=45 one loss gives wp 0.978).
+DECIDED_WP_MARGIN = 0.95
+
+
+def sub_threshold_reason(option_wp):
+    """Why a sub-threshold spread happened — two very different causes.
+
+    Both used to report `rollout_noise_below_threshold`, which reads as "the
+    measurement was too noisy to tell the options apart". For one of them that
+    is simply false, and the conflation hides a MINING defect behind a
+    statistics label:
+
+      * position_already_decided — every option sits at the same extreme (all
+        win, or all lose). The rollout measured the position perfectly well;
+        there is no decision here to have an answer key ABOUT. Measured in the
+        first real pilot: a graded-midgame candidate with all 5 options at
+        wp=1.0. That is mine_puzzles emitting a position it should not have,
+        and no amount of extra rollouts will ever fix it.
+      * rollout_noise_below_threshold — the options genuinely differ, just by
+        less than the gate requires. More samples or a lower bar could change
+        this verdict.
+
+    Neither mints a key, so this splits a refusal in two rather than weakening
+    any gate. It exists so the yield report says which problem you have.
+    """
+    wp = [w for w in (option_wp or []) if w is not None]
+    if wp and (min(wp) >= DECIDED_WP_MARGIN
+               or max(wp) <= 1.0 - DECIDED_WP_MARGIN):
+        return "position_already_decided"
+    return "rollout_noise_below_threshold"
+
+
 def score_from_wp(option_wp, option_wp_se, category,
                   gap_threshold=DEFAULT_GAP_THRESHOLD,
                   mulligan_gap_threshold=DEFAULT_MULLIGAN_GAP_THRESHOLD,
@@ -469,7 +503,7 @@ def score_from_wp(option_wp, option_wp_se, category,
     # gap <= 0 is a total tie: never divisible, never decision-relevant, and
     # the only way a zeroed-out threshold could reach the division below.
     if gap <= 0.0 or gap < req:
-        return None, "rollout_noise_below_threshold"
+        return None, sub_threshold_reason(option_wp)
     scores = []
     for i, w in enumerate(option_wp):
         scores.append(int(math.floor(10.0 * (w - wp_min) / gap + 0.5)))

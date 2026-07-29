@@ -968,6 +968,38 @@ def test_determinize_contract():
             check("determinize: typo refused", True)
 
 
+def test_sub_threshold_reason():
+    """"Every option wins" and "options differ slightly" are not the same fact.
+
+    WHAT WOULD MAKE THIS FAIL: collapsing both back to a single reason. That
+    regression hides a MINING defect (a position with no decision in it) behind
+    a statistics label, and the yield report then cannot say which problem the
+    operator has. Measured in the first real pilot: a graded-midgame candidate
+    came back with all 5 options at wp=1.0 and was reported identically to a
+    position with a real 0.133 spread.
+    """
+    check("reason: all options win -> already decided",
+          vk.sub_threshold_reason([1.0, 1.0, 1.0, 1.0, 1.0])
+          == "position_already_decided")
+    check("reason: all options lose -> already decided",
+          vk.sub_threshold_reason([0.0, 0.02, 0.0]) == "position_already_decided")
+    check("reason: genuinely close mid-board -> noise, not decided",
+          vk.sub_threshold_reason([0.578, 0.6]) == "rollout_noise_below_threshold")
+    check("reason: near-extreme but SPLIT is not decided",
+          vk.sub_threshold_reason([1.0, 0.2]) == "rollout_noise_below_threshold")
+    check("reason: empty/None degrades to the noise reason",
+          vk.sub_threshold_reason([]) == "rollout_noise_below_threshold"
+          and vk.sub_threshold_reason(None) == "rollout_noise_below_threshold")
+    # one unlucky rollout out of n must not reclassify a won position
+    check("reason: 44/45 wins still reads as decided",
+          vk.sub_threshold_reason([1.0, 44.0 / 45.0]) == "position_already_decided")
+    # and it flows through the real scorer, not just the helper
+    scores, reason = vk.score_from_wp([1.0, 1.0, 1.0], [0.0, 0.0, 0.0],
+                                      "graded-midgame")
+    check("reason: score_from_wp reports it too",
+          scores is None and reason == "position_already_decided", str(reason))
+
+
 def test_power_check():
     """n must be able to certify the effect the gate itself asks for.
 

@@ -1,0 +1,130 @@
+{
+  "by_category": {
+    "graded-midgame": {
+      "by_reason": {
+        "rollout_noise_below_threshold": 6
+      },
+      "in": 6,
+      "unverifiable": 6,
+      "verified": 0
+    },
+    "mulligan": {
+      "by_reason": {
+        "rollout_noise_below_threshold": 2
+      },
+      "in": 2,
+      "unverifiable": 2,
+      "verified": 0
+    }
+  },
+  "by_lane": {
+    "rollout": {
+      "in": 8,
+      "unverifiable": 8,
+      "verified": 0
+    }
+  },
+  "caveats": [],
+  "contract": "prompt-contract.v1",
+  "contract_sha": "abaddd69db49a9d2",
+  "coverage_note": "v1 scope: per-option answer keys are DEFINED only for index-encoded decision types; verify_keys mints keys for lethal-now@play (exhaustive) and save-vs-lethal@play / mulligan / graded-midgame@play (rollout). attackers/blockers and every count-encoded type log a subset SIZE, not an index (no per-option object exists), and free-win positions have a non-empty stack (EVAL-DESIGN 3.1 forbids mid-stack forking in v1) \u2014 all such rows stay status=candidate with an explicit unverifiable_reason. A narrow honest key set beats a wide fake one.",
+  "driver": "engine",
+  "engine_sha": "unknown",
+  "generated_utc": "20260729T061102Z",
+  "n_in": 8,
+  "n_per_option": 45,
+  "n_unverifiable": 8,
+  "n_verified": 0,
+  "overlay_sha": "unknown",
+  "power": {
+    "min_n_required": null,
+    "min_separation_z": 2.0,
+    "n_per_option": 45,
+    "noise_bound": false,
+    "noise_floor": 0.14907119849998599,
+    "per_category": {
+      "default": {
+        "base_threshold": 0.2,
+        "effective_required_gap": 0.2,
+        "min_n_required": 25,
+        "noise_bound": false
+      },
+      "mulligan": {
+        "base_threshold": 0.15,
+        "effective_required_gap": 0.15,
+        "min_n_required": 45,
+        "noise_bound": false
+      }
+    },
+    "worst_case_se": 0.07453559924999299
+  },
+  "rollout_spread": {
+    "n_decided": 0,
+    "n_no_wp": 0,
+    "n_positions_measured": 8,
+    "n_undecided": 8,
+    "note": "measured over rollout-lane positions where the driver returned a measurement, DECIDED AND UNDECIDED ALIKE. n_no_wp counts measured positions whose option_wp was all None (rollout produced no decided game) \u2014 those are broken, not tied. wp_spread is a measured quantity, not a claim of decision-relevance for any single position.",
+    "quantile_method": "linear interpolation (R type 7)",
+    "separation_z": {
+      "max": 0.9583148474999101,
+      "median": 0.6725037594933304,
+      "min": 0.21428571428571458,
+      "n": 7,
+      "p25": 0.47155213843257865,
+      "p75": 0.8138589219282439
+    },
+    "wp_spread": {
+      "max": 0.13333333333333333,
+      "median": 0.05555555555555558,
+      "min": 0.0,
+      "n": 8,
+      "p25": 0.0388888888888889,
+      "p75": 0.0888888888888889
+    },
+    "wp_spread_hist": {
+      "bin_width": 0.05,
+      "bins_note": "bin i covers [i*0.05, (i+1)*0.05); last bin closed at 1.0",
+      "counts": [
+        4,
+        3,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "n_bins": 20
+    }
+  },
+  "schema": "verify-keys-summary.v1",
+  "thresholds": {
+    "gap_threshold": 0.2,
+    "min_separation_z": 2.0,
+    "mulligan_gap_threshold": 0.15
+  },
+  "warnings": [],
+  "yield_rate": {
+    "ci95": [
+      0.0,
+      0.3244156195108769
+    ],
+    "est": 0.0,
+    "method": "wilson",
+    "n": 8,
+    "n_clusters": null,
+    "se": 0.0
+  }
+}
