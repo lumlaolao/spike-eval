@@ -36,3 +36,8 @@ runs/runpod/*/pod.env
 runs/runpod/*/POD_ID
 runs/runpod/*/job.tar.gz.tmp
 runs/runpod/*/bootstrap.log
+
+# verify_keys rollout scratch: thousands of transient per-game jsonl files
+# written DURING a run. Never an artifact -- `git add -A` mid-run swept 10,208
+# of them (3.2M lines) into a docs commit.
+runs/**/verify-keys-work/

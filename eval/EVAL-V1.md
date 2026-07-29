@@ -5,11 +5,18 @@ modules actually do when run, not from what they were designed to do. Where
 the two differ, the observed behaviour is what is written down.
 
 **Headline honesty statement.** v1.0 is a working *harness* with a working
-*scorecard*. It is not yet a working *benchmark*, because the golden suite it
-would score models against does not exist: the answer-key generation run
-(EVAL-DESIGN Phase 1.2, ~2000 ai-vs-ai rollout games) has **not been
-executed**. Today the whole repository yields **3 verified puzzle positions**,
-all from the offline exhaustive lane. Nothing in this document should be read
+*scorecard*. It is not yet a working *benchmark*, because the golden suite is
+too small and too easy to rank models with.
+
+As of 2026-07-29 the exhaustive lane yields **24 verified keys — but 15
+distinct positions, at a 0.39 random-guess baseline** (11 of them are 2-option,
+so a coin flip scores 39%). Report the distinct count and the floor together;
+`suite_composition` emits both on every run, precisely so "24 puzzles" never
+gets quoted on its own. All 24 also carry `unprobed_replay_address`: they were
+minted with `--driver none`, so their replay addresses have not been
+engine-probed. The rollout lane now produces real win probabilities (the
+determinization fix) but has **not yet minted a single key** — across 19
+measured positions the largest spread was 0.178 against a 0.20 bar. Nothing in this document should be read
 as "we can rank frontier models now." See
 [§6 What v1.0 still cannot tell you](#6-what-v10-still-cannot-tell-you).
 

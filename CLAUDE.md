@@ -101,8 +101,14 @@ are only comparable within one engine version.
   Java rollout support: `forge-overlay/.../LlmSpikeFork.java` — **now produces real
   win probabilities** (2026-07-28). It did not before, and the reason is the
   cautionary tale below.
-  **No verified golden puzzle suite exists yet** (Phase 1.2 not run; 3 verified
-  positions repo-wide); DQ is unmeasured (all corpora textlane-only — never add
+  **The golden suite is started but not a benchmark yet** (2026-07-29): the
+  uncapped exhaustive lane minted **24 verified keys over 204 ai-log games**
+  (`runs/overnight-1/lethal-positions.jsonl`), up from 3 repo-wide. Quote it as
+  **15 DISTINCT positions with a 0.39 random-guess baseline**, never as "24
+  puzzles" — 11 are 2-option, so a coin flip scores 39%; `suite_composition` in
+  every verify summary reports this. All 24 carry `unprobed_replay_address`
+  (minted with `--driver none`, so the replay address was never engine-probed).
+  DQ is unmeasured (all corpora textlane-only — never add
   `punt.rate_textlane` to the rollout punt rate); PLAN resolves a deck only on
   `runs/stage0-calibration`.
 - `README.md` — full env-var table and the hard-won-lessons list. Read the lessons
