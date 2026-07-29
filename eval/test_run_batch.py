@@ -11,6 +11,7 @@ in CLAUDE.md, not by unit tests.
 import argparse
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 import run_batch
@@ -286,6 +287,85 @@ class TestSeedGuardWiring(unittest.TestCase):
         self.assertEqual(
             run_batch.seed_registry.seed_bank_label(registry, [30000, 30099]),
             "certification-holdout")
+
+
+class TestCitedJobsGuard(unittest.TestCase):
+    """The single-JVM guard must fire exactly where its reason applies.
+
+    Its stated reason is CPU contention starving the `claude -p` CLI, which
+    inflates timeouts and fallbacks and corrupts an LLM win rate. That hazard
+    needs a model in a seat. Applied blanket-wide it instead blocked the thing
+    the benchmark most needed: STR-AI had no floor next to it -- which by the
+    repo's own rule means it was not a score -- because measuring one meant
+    ~3,840 serial games at ~13 hours.
+
+    WHAT WOULD MAKE THIS FAIL:
+      * re-widening the guard to refuse every --jobs != 1 (test 2/3 below);
+      * opening it up for LLM seats, which would let CPU contention back into
+        a cited model measurement (test 1);
+      * dropping the ceiling, letting jobs climb until the wall-clock cap
+        decides which games finish -- that changes the measurement, not just
+        its speed (test 4).
+    """
+
+    #: A real mirror deck: guard 1 runs before guard 3 and refuses on unset
+    #: or mismatched decks, so a fixture without one would refuse for the
+    #: WRONG reason and the allow-cases below would look like passes.
+    DECK = str(Path(run_batch.__file__).parent / "decks" / "ur-delver.txt")
+
+    class _Args(object):
+        def __init__(self, jobs, ca, cb, deck):
+            self.jobs, self.controller_a, self.controller_b = jobs, ca, cb
+            self.env, self.plan_a, self.plan_b = [], None, None
+            self.deck_a = self.deck_b = deck
+            self.name_a, self.name_b = "A", "B"
+            self.seeds = [7100]
+
+    def _guard(self, jobs, ca, cb):
+        """-> None if allowed, or the SystemExit code if refused.
+
+        Drives the real cited_pre_guards, so patching only the jobs block
+        cannot make this pass. The deck/seed guards run first, so they are
+        stubbed out -- this test is about guard 3 alone.
+        """
+        args = self._Args(jobs, ca, cb, self.DECK)
+        saved = (run_batch.cited_seed_guard,)
+        run_batch.cited_seed_guard = lambda a: None
+        real_mirror = getattr(run_batch, "cited_mirror_guard", None)
+        try:
+            with mock.patch.object(run_batch, "_refuse",
+                                   side_effect=SystemExit(2)):
+                try:
+                    run_batch.cited_pre_guards(args)
+                except SystemExit as e:
+                    return e.code
+                except Exception:
+                    # an earlier guard we are not testing; re-raise so a
+                    # silently-skipped assertion cannot look like a pass
+                    raise
+            return None
+        finally:
+            run_batch.cited_seed_guard = saved[0]
+            if real_mirror is not None:
+                run_batch.cited_mirror_guard = real_mirror
+
+    def test_llm_seat_still_refused(self):
+        for ca, cb in (("llm", "ai"), ("ai", "llm"), ("llm", "llm")):
+            self.assertEqual(self._guard(6, ca, cb), 2,
+                             "jobs=6 with %s/%s must still refuse" % (ca, cb))
+
+    def test_model_free_controllers_are_allowed_to_parallelise(self):
+        for ca, cb in (("random", "ai"), ("floor", "ai"), ("ai", "ai")):
+            self.assertIsNone(self._guard(6, ca, cb),
+                              "jobs=6 with %s/%s should be allowed" % (ca, cb))
+
+    def test_serial_is_always_fine(self):
+        self.assertIsNone(self._guard(1, "llm", "llm"))
+
+    def test_there_is_still_a_ceiling(self):
+        self.assertEqual(
+            self._guard(run_batch.CITED_MAX_JOBS_NO_LLM + 1, "random", "ai"), 2)
+
 
 
 if __name__ == "__main__":

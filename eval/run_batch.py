@@ -340,6 +340,14 @@ def has_game_line(out_dir, seed, swap):
 
 FORGE_CP_FILE = "/tmp/forge_cp.txt"
 
+#: Cited-mode parallelism ceiling when NO seat runs an LLM. 6 is the figure
+#: eval/CONCURRENCY.md records as proven healthy on this machine (~1GB RSS per
+#: JVM, 7 concurrent observed stable); above it the wall-clock cap starts
+#: deciding which games finish, which would change the measurement rather than
+#: just its speed. Counted PER BATCH, so concurrent batches still have to be
+#: added up by hand -- see CONCURRENCY.md §7.
+CITED_MAX_JOBS_NO_LLM = 6
+
 
 def require_forge_classpath(cp_file=FORGE_CP_FILE, forge_home=None):
     """Refuse the batch up front if the maven classpath artifact is gone.
@@ -446,10 +454,34 @@ def cited_pre_guards(args):
         _refuse("plans (PLAN_A/PLAN_B) are an expert-knowledge confound and are "
                 "forbidden in cited mode.")
 
-    # --- guard 3: single JVM ---
+    # --- guard 3: single JVM, but only where the reason applies ---
+    #
+    # The reason this guard exists is CPU contention starving the `claude -p`
+    # CLI, which surfaces as inflated timeouts and fallbacks -- a real measured
+    # effect that corrupts an LLM win rate. It cannot happen when no seat runs
+    # a model: random / floor / ai are pure in-JVM policies making no external
+    # call, so a parallel batch of them is bit-identical to a serial one (each
+    # game is its own seeded JVM).
+    #
+    # Keeping the guard blanket-wide had a cost, and it was not hypothetical:
+    # STR-AI had no floor beside it -- which by this repo's own rule means it
+    # was not a score -- because measuring one meant 3,840 serial games at
+    # ~13 hours. Refusing a run for a hazard it cannot encounter is not
+    # safety, it is a guard that stops the benchmark being finished.
     if args.jobs != 1:
-        _refuse("cited mode requires --jobs 1 (got %d); parallel JVMs starve the "
-                "claude CLI and inflate fallbacks." % args.jobs)
+        llm_seats = [s for s, c in (("A", args.controller_a),
+                                    ("B", args.controller_b)) if c == "llm"]
+        if llm_seats:
+            _refuse("cited mode requires --jobs 1 (got %d) when a seat runs an "
+                    "LLM (seat %s); parallel JVMs starve the claude CLI and "
+                    "inflate fallbacks."
+                    % (args.jobs, "/".join(llm_seats)))
+        if args.jobs > CITED_MAX_JOBS_NO_LLM:
+            _refuse("cited mode allows at most --jobs %d for model-free "
+                    "controllers (got %d). Past that the JVMs contend for CPU "
+                    "and wall-clock caps start firing, which silently changes "
+                    "which games finish -- see eval/CONCURRENCY.md."
+                    % (CITED_MAX_JOBS_NO_LLM, args.jobs))
 
     # --- guard 3b: held-out seeds only ---
     cited_seed_guard(args)
