@@ -1,0 +1,10 @@
+{
+  "keep_pass_last": true,
+  "n_in": 234,
+  "n_shuffled": 39,
+  "refusals": {
+    "menu_unparseable": 7
+  },
+  "salt": 20260729,
+  "schema": "suite-shuffle.v1"
+}

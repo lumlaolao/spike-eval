@@ -184,10 +184,42 @@ def _max_total(n_first, n_pass, n_other, t_first, t_pass):
     return n_other, 0, 0
 
 
-def select(rows, target=None, dedupe_first=True, target_pass=None):
-    """-> (selected_rows, report). Pure; no I/O."""
+def n_top_options(row):
+    """How many options score 10. >1 means the key does not identify a single
+    best play."""
+    scores = (row.get("answer_key") or {}).get("option_scores") or []
+    return sum(1 for s in scores if s == 10)
+
+
+def select(rows, target=None, dedupe_first=True, target_pass=None,
+           min_options=1, require_single_answer=False):
+    """-> (selected_rows, report). Pure; no I/O.
+
+    `min_options` / `require_single_answer` are SUITE QUALITY filters, measured
+    rather than guessed. On the shuffled 39-position suite:
+
+      * 12 positions had n_options == 2 (one real action plus PASS). With PASS
+        pinned last there is exactly one movable slot, so shuffling cannot move
+        the answer at all and "answer 1" is correct whenever the answer is not
+        PASS. Those positions carry always_first 0.917 no matter what.
+      * 17 positions had MORE THAN ONE option scoring 10 -- score_from_wp's
+        CI-overlap tie rule marks every option whose interval touches the max.
+        A position with 3 of 5 options at 10 is nearly free for any policy, and
+        it is also not a puzzle: it has no single best play to find.
+
+    Filtering to single-answer, n_options>=3 took always_first from 0.692 to
+    0.400 against a 0.276 random baseline -- and 0.400 is then the EXPECTED
+    value, not a residual defect: with PASS pinned there are n-1 movable slots,
+    so a shuffled single-answer position sits at 1/(n-1), which is 0.5 for the
+    n=3 positions that dominate. Lowering it further needs bigger menus, not
+    better selection.
+    """
     usable = [r for r in rows
               if r.get("status") == "verified" and answer_index(r) is not None]
+    if min_options > 1:
+        usable = [r for r in usable if len(r.get("options") or []) >= min_options]
+    if require_single_answer:
+        usable = [r for r in usable if n_top_options(r) == 1]
     pool = dedupe(usable) if dedupe_first else list(usable)
 
     before = vk.suite_composition(
@@ -230,6 +262,8 @@ def select(rows, target=None, dedupe_first=True, target_pass=None):
         "target_always_pass": target_pass,
         "n_in": len(rows),
         "n_verified_usable": len(usable),
+        "min_options": min_options,
+        "require_single_answer": bool(require_single_answer),
         "n_after_dedupe": len(pool),
         "n_selected": len(selected),
         "n_dropped_for_balance": (len(first) - n_a) + (len(passers) - n_c),
@@ -276,6 +310,16 @@ def main(argv=None):
                          "pool's random baseline). Balanced JOINTLY with "
                          "--target-always-first: fixing position alone drove "
                          "always_pass 0.23 -> 0.33 on the first real suite.")
+    ap.add_argument("--min-options", type=int, default=1,
+                    help="drop positions with fewer options than this. 2-option "
+                         "positions (one action + PASS) have a single movable "
+                         "slot, so shuffling cannot move the answer and they "
+                         "carry always_first ~0.92 permanently.")
+    ap.add_argument("--require-single-answer", action="store_true",
+                    help="drop positions where more than one option scores 10 "
+                         "(score_from_wp's CI-overlap tie rule). Such a position "
+                         "has no single best play to find and is nearly free "
+                         "for any policy.")
     ap.add_argument("--no-dedupe", action="store_true",
                     help="keep duplicate positions (NOT recommended: they "
                          "inflate the count while measuring one skill twice)")
@@ -284,7 +328,9 @@ def main(argv=None):
     rows = _read(args.positions)
     selected, report = select(rows, args.target_always_first,
                               dedupe_first=not args.no_dedupe,
-                              target_pass=args.target_always_pass)
+                              target_pass=args.target_always_pass,
+                              min_options=args.min_options,
+                              require_single_answer=args.require_single_answer)
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)

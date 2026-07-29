@@ -275,8 +275,21 @@ def test_measured_axes_from_real_shaped_summaries():
         check("coverage incomplete while STR is absent",
               sc["coverage"]["complete"] is False)
         names = [m["metric"] for m in axes["PUZ"]["metrics"]]
-        check("PUZ headline is score_incl",
-              names[0] == "puz.score_incl", str(names))
+        # CHANGED 2026-07-29, deliberately: pass_1 leads, not score_incl.
+        # Measured on a suite balanced so the pass_1 floors sit at chance, a
+        # constant "answer 1" policy still scored 5.17/10 on score_incl while
+        # solving 25% of positions. Partial credit gives score_incl a trivial
+        # floor above 50%; the project rule is to prefer near-zero floors.
+        # Asserted on the `headline` FLAG, not just row order -- ordering alone
+        # would let a reordering slip through without changing what the
+        # scorecard actually calls the headline.
+        check("PUZ headline is pass_1",
+              names[0] == "puz.pass_1", str(names))
+        hl = [m["metric"] for m in axes["PUZ"]["metrics"] if m.get("headline")]
+        check("PUZ headline FLAG is on pass_1 and not on score_incl",
+              "puz.pass_1" in hl and "puz.score_incl" not in hl, str(hl))
+        check("score_incl is still reported, just demoted",
+              "puz.score_incl" in names, str(names))
         check("DQ wpl carries its random-choice floor",
               axes["DQ"]["metrics"][0]["floors"][0]["floor"]
               == "random_choice_wpl")

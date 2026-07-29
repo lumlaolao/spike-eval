@@ -328,13 +328,27 @@ def build_puz_axis(path):
     pk = m.get("pass_k") or {}
 
     metrics = [
+        # HEADLINE is pass_1, not score_incl. Measured 2026-07-29 on a suite
+        # deliberately balanced so the pass_1 floors sit at chance: a constant
+        # "answer 1" policy still collected 5.17/10 on score_incl while solving
+        # 25% of positions. Partial credit is forgiving, so score_incl carries a
+        # trivial floor above 50% where pass_1's is 0.25 -- and the project rule
+        # is to prefer metrics whose trivial baseline is near zero. score_incl
+        # stays reported (it is the finer-grained signal once a model is
+        # actually above the floor); it just does not lead.
+        metric_row("puz.pass_1", p1, kind="rate", floors=fl(p1, "pass_1"),
+                   denominator="all valid samples",
+                   note="HEADLINE. Fraction of positions solved outright "
+                        "(score == 10). Preferred over score_incl because its "
+                        "trivial floor is near chance, not ~50%."),
         metric_row("puz.score_incl", incl, kind="score_0_10",
                    floors=fl(incl),
                    denominator="all valid samples (interface failures score 0)",
-                   note="HEADLINE. 0..10 answer-key score; refusals count "
-                        "against you."),
-        metric_row("puz.pass_1", p1, kind="rate", floors=fl(p1, "pass_1"),
-                   denominator="all valid samples"),
+                   headline=False,
+                   note="0..10 partial-credit score; refusals count against "
+                        "you. NOT the headline: partial credit hands a "
+                        "constant policy ~5/10 even on a floor-balanced suite. "
+                        "Read it with margin_over_always_first."),
         metric_row("puz.pass_k", pk, kind="rate", floors=fl(pk, "pass_k"),
                    denominator="positions with a full set of k=%s samples"
                                % pk.get("k_used"),

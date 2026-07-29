@@ -156,10 +156,22 @@ Partial credit is forgiving: a policy that answers "1" every time, on a suite
 deliberately balanced so that `pass_1` floors sit at chance, still collects
 **5.17/10** on the headline metric — a trivial floor above 50%. `pass_1` on the
 same suite floors at 0.25. The project rule is to prefer metrics whose trivial
-baseline is near zero, so **quote `pass_1` as the headline and treat
-`score_incl` as the diagnostic**, or at minimum never show `score_incl` without
-`margin_over_always_first` beside it. This is recorded rather than acted on
-unilaterally: changing the headline is a suite-contract decision.
+baseline is near zero, so **`pass_1` IS the headline as of 2026-07-29** and `score_incl` is reported
+but demoted (`headline=False`), never shown without
+`margin_over_always_first`. Pinned by
+`test_build_report.py::"PUZ headline FLAG is on pass_1 and not on score_incl"`.
+
+**Suite build pipeline (2026-07-29).** Positional skew is fixed at source by
+`shuffle_suite.py`, a DATA transform that permutes each position's menu inside
+`prompt` and applies the same permutation to `option_scores` —
+`prompt_contract.py` and `contract_sha` are untouched. PASS stays pinned last
+because `pass_option_index` is hardcoded to `n_options-1`. Then
+`select_suite.py --min-options 3 --require-single-answer` drops the two
+position types that no shuffle can rescue: 2-option menus (one movable slot, so
+always_first 0.92 permanently) and multi-10 keys from the CI-overlap tie rule
+(no single best play to find). Finally it balances the always-PASS floor.
+Measured end to end on overnight-1: always_first 0.69 -> 0.25, always_pass
+0.21 -> 0.25, `score_incl`'s always-first floor 5.17 -> 3.88, oracle 10.0.
 
 Read `margin_over_always_first`, not just `margin_over_random_choice`. The
 engine emits menu options in its own order and nothing shuffles them, so a

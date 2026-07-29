@@ -1,0 +1,44 @@
+{
+  "after": {
+    "always_first_baseline": 0.25,
+    "always_pass_baseline": 0.25,
+    "duplicate_rate": 0.0,
+    "n_distinct": 8,
+    "n_options_histogram": {
+      "3": 3,
+      "4": 3,
+      "5": 1,
+      "7": 1
+    },
+    "n_scored": 8,
+    "n_verified": 8,
+    "random_baseline": 0.2616071428571428
+  },
+  "before": {
+    "always_first_baseline": 0.4,
+    "always_pass_baseline": 0.2,
+    "duplicate_rate": 0.0,
+    "n_distinct": 10,
+    "n_options_histogram": {
+      "3": 5,
+      "4": 3,
+      "5": 1,
+      "7": 1
+    },
+    "n_scored": 10,
+    "n_verified": 10,
+    "random_baseline": 0.27595238095238095
+  },
+  "min_options": 3,
+  "n_after_dedupe": 10,
+  "n_dropped_first": 2,
+  "n_dropped_for_balance": 2,
+  "n_dropped_pass": 0,
+  "n_in": 39,
+  "n_selected": 8,
+  "n_verified_usable": 10,
+  "require_single_answer": true,
+  "schema": "suite-selection.v1",
+  "target_always_first": 0.27595238095238095,
+  "target_always_pass": 0.27595238095238095
+}

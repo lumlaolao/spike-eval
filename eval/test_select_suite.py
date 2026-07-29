@@ -188,6 +188,43 @@ def test_dedupe_collapses_repeated_decisions():
           ["n_after_dedupe"] == 3)
 
 
+def test_quality_filters():
+    """min_options / require_single_answer are measured suite-quality gates.
+
+    WHAT WOULD MAKE THIS FAIL: letting 2-option positions or multi-10 keys
+    through. Measured on the shuffled 39-position suite: 12 rows had
+    n_options==2 (one action + PASS, so with PASS pinned there is a single
+    movable slot and shuffling cannot move the answer -- always_first 0.917
+    permanently), and 17 rows had MORE THAN ONE option scoring 10 via
+    score_from_wp's CI-overlap tie rule, which is both nearly free for any
+    policy and not a puzzle (no single best play to find). Filtering to
+    single-answer + n>=3 took always_first 0.692 -> 0.400.
+    """
+    two = pos("two", 2, 0)
+    three = pos("three", 3, 1)
+    tie = pos("tie", 4, 1)
+    tie["answer_key"]["option_scores"] = [0, 10, 10, 0]
+
+    check("quality: n_top_options counts the 10s",
+          ss.n_top_options(tie) == 2 and ss.n_top_options(three) == 1)
+    sel, rep = ss.select([two, three, tie], target=1.0, min_options=3)
+    check("quality: min_options drops 2-option positions",
+          all(len(r["options"]) >= 3 for r in sel) and len(sel) == 2,
+          str([r["id"] for r in sel]))
+    sel2, rep2 = ss.select([two, three, tie], target=1.0,
+                           require_single_answer=True)
+    check("quality: require_single_answer drops multi-10 keys",
+          [r["id"] for r in sel2] == ["three", "two"], str([r["id"] for r in sel2]))
+    sel3, rep3 = ss.select([two, three, tie], target=1.0, min_options=3,
+                           require_single_answer=True)
+    check("quality: both filters compose",
+          [r["id"] for r in sel3] == ["three"], str([r["id"] for r in sel3]))
+    check("quality: the filters are recorded in the report",
+          rep3["min_options"] == 3 and rep3["require_single_answer"] is True)
+    check("quality: default is unfiltered (no silent behaviour change)",
+          len(ss.select([two, three, tie], target=1.0)[0]) == 3)
+
+
 def test_determinism():
     rows = [pos("f%02d" % i, 4, 0) for i in range(10)] + \
            [pos("n%02d" % i, 4, 1) for i in range(5)]
