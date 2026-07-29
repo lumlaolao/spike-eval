@@ -1088,7 +1088,14 @@ def verify_one(cand, driver, lane_filter, n_per_option, name_idx, sha16, now,
                 return out, lane, False, "replay_drift", False
         else:
             preason = probe.get("reason") or "probe_failed"
-            probe_evidence = {"ok": False, "n_options": None, "matched": False}
+            # Carry WHY. Without the reason a failed probe renders as
+            # {"ok": false, "matched": false}, which reads identically to "the
+            # position replayed to something else" -- a wrong key -- when it
+            # usually means the probe never ran. Those need opposite responses
+            # (drift: discard the key; probe_failed: re-probe), and telling
+            # them apart otherwise means reading this function's source.
+            probe_evidence = {"ok": False, "n_options": None, "matched": False,
+                              "reason": preason}
             if preason in ("no_engine_available", "engine_launch_failed",
                            "probe_timeout"):
                 engine_missing = True

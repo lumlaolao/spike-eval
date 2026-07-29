@@ -1161,6 +1161,48 @@ def test_screen_confirm_uses_disjoint_seeds():
                         # `seen` before, which is exactly no evidence at all
 
 
+def test_probe_failure_is_distinguishable_from_drift():
+    """"probe never ran" and "position replayed elsewhere" must not look alike.
+
+    WHAT WOULD MAKE THIS FAIL: dropping `reason` from the failed-probe evidence.
+    Both cases then render as {"ok": false, "matched": false}, and they demand
+    OPPOSITE responses -- drift means the answer key describes a different
+    position and must be discarded, a failed probe just means re-probe. Hit for
+    real while probing the 24 exhaustive keys: one row came back matched=false
+    and telling which case it was required reading verify_one's source.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        # (a) probe cannot run -> exhaustive still adjudicates, caveat + reason
+        drv = FakeEngine(PROBE_2OPT, lambda o, j: {}, work_dir=td,
+                         rc_map={"enumerate": 5})
+        out, _, verified, _, _ = run_verify_one(
+            lethal_cand(), driver=drv, name_idx=NAME_IDX_WITH_PATHS)
+        pe = out.get("probe") or {}
+        check("probe: failure keeps the row verifiable on the exhaustive lane",
+              verified and out["status"] == "verified", str(out.get("status")))
+        check("probe: failure records a reason",
+              pe.get("ok") is False and pe.get("reason"), str(pe))
+        check("probe: failure carries the unprobed caveat",
+              "unprobed_replay_address"
+              in (out.get("answer_key") or {}).get("caveats", []),
+              str(out.get("answer_key")))
+
+        # (b) probe RUNS but finds a different menu -> drift, key refused
+        drifted = dict(PROBE_2OPT)
+        drifted["options"] = ["CAST Something Else", "PASS (do nothing)"]
+        drv2 = FakeEngine(drifted, lambda o, j: {}, work_dir=td)
+        out2, _, verified2, reason2, _ = run_verify_one(
+            lethal_cand(), driver=drv2, name_idx=NAME_IDX_WITH_PATHS)
+        check("probe: drift is REFUSED, never verified",
+              not verified2 and out2.get("status") != "verified"
+              and "answer_key" not in out2, str(out2.get("status")))
+        check("probe: drift is named as replay_drift",
+              reason2 == "replay_drift", str(reason2))
+        check("probe: drift evidence says the probe DID run",
+              (out2.get("probe") or {}).get("ok") is True,
+              str(out2.get("probe")))
+
+
 def test_suite_composition():
     """n_verified alone overstates a suite. Report the floor beside the count.
 
