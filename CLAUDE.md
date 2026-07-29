@@ -101,10 +101,15 @@ are only comparable within one engine version.
   Java rollout support: `forge-overlay/.../LlmSpikeFork.java` — **now produces real
   win probabilities** (2026-07-28). It did not before, and the reason is the
   cautionary tale below.
-  **The golden suite (2026-07-29): 19 distinct positions, every trivial floor
-  at chance.** 71 verified keys across `runs/overnight-1` + `runs/overnight-2`
-  (up from 3 repo-wide) reduce to 19 quotable positions. Build it with the
-  canonical three-step pipeline, in this order:
+  **The golden suite is frozen: `eval/suites/puz-v1.jsonl` + `puz-v1.json`
+  (2026-07-29) — 25 distinct positions, every trivial floor at or below
+  chance.** 103 verified keys across `runs/overnight-1` + `runs/overnight-2`
+  (up from 3 repo-wide) reduce to 25 quotable positions: `max_constant_index
+  0.28`, `random 0.29`, `always_pass 0.20`, `majority_class 0.32`, oracle
+  1.00. The manifest carries the sha256, the exact build command, and the
+  known limits — read `known_limits` before quoting anything. **No live model
+  has ever been scored against it**; only the offline floor policies have run.
+  Rebuild it with the canonical three-step pipeline, in this order:
 
   ```bash
   python3 eval/shuffle_suite.py RAW.jsonl ... --out shuffled.jsonl
@@ -121,8 +126,9 @@ are only comparable within one engine version.
   stops selection from discarding for SLOT balance, because `--balance-salts`
   fixes that for free — but it deliberately still balances the PASS floor,
   which shuffling cannot touch (PASS is pinned last by `pass_option_index`).
-  Result: `max_constant_index 0.32`, `random 0.30`, `always_pass 0.11`,
-  oracle 1.00.
+  21 verified MULLIGAN keys are **excluded**: their prompts carry no numbered
+  menu, so `shuffle_suite` refuses them rather than emit an unbalanced row.
+  That axis needs its own keep/mull balance treatment before it can be quoted.
 
   **Quote `max_constant_index_baseline`, never `always_first_baseline`.**
   always_first is one constant policy of many, and balancing it alone just

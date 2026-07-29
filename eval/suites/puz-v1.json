@@ -1,0 +1,70 @@
+{
+  "build": [
+    "python3 eval/shuffle_suite.py <sources> --out shuffled.jsonl",
+    "python3 eval/select_suite.py shuffled.jsonl --out filtered.jsonl --min-options 3 --require-single-answer --filters-only",
+    "python3 eval/shuffle_suite.py filtered.jsonl --out puz-v1.jsonl --balance-salts 600"
+  ],
+  "categories": {
+    "graded-midgame": 1,
+    "lethal-now": 15,
+    "save-vs-lethal": 9
+  },
+  "contract": "prompt-contract.v1",
+  "contract_sha": "abaddd69db49a9d2",
+  "floors": {
+    "always_first_baseline": 0.28,
+    "always_pass_baseline": 0.2,
+    "constant_index_hits": {
+      "1": 7,
+      "2": 7,
+      "3": 6,
+      "4": 4,
+      "5": 1
+    },
+    "duplicate_rate": 0.0,
+    "max_constant_index": 1,
+    "max_constant_index_baseline": 0.28,
+    "n_distinct": 25,
+    "n_options_histogram": {
+      "3": 16,
+      "4": 5,
+      "5": 2,
+      "7": 2
+    },
+    "n_scored": 25,
+    "n_verified": 25,
+    "random_baseline": 0.2907619047619047
+  },
+  "floors_confirmed_by": {
+    "note": "computed on a code path independent of suite_composition; both agree",
+    "pass_1": {
+      "always-pass": 0.2,
+      "first": 0.28,
+      "garbage": 0.0,
+      "oracle": 1.0,
+      "random": 0.31
+    },
+    "tool": "eval/puzzle_run.py --backend offline"
+  },
+  "frozen_utc": "20260729T155000Z",
+  "headline_metric": "puz.pass_1",
+  "known_limits": [
+    "21 verified MULLIGAN keys are EXCLUDED: their prompts carry no numbered menu, so shuffle_suite refuses them rather than emit an unbalanced row. The mulligan axis needs its own keep/mull balance treatment.",
+    "Every key carries unprobed_replay_address (minted with --driver none), so the replay address was never engine-probed.",
+    "n_clusters 23 < n 25: two pairs of positions come from the same game, so CIs are cluster-bootstrapped, not binomial.",
+    "No live model has ever been scored against this suite. Only offline policies (which are the floor generators) have run."
+  ],
+  "n_positions": 25,
+  "name": "puz-v1",
+  "positions_file": "eval/suites/puz-v1.jsonl",
+  "quote_floor_as": "max_constant_index_baseline",
+  "schema": "puz-suite.v1",
+  "sha256": "b5981a0789a52d90df960869b248b23d4b2c0bb4f089211c465363dbf0d89dbd",
+  "sources": [
+    "runs/overnight-1/lethal-positions.jsonl",
+    "runs/overnight-1/rollout-positions.jsonl",
+    "runs/overnight-1/exhaustive-positions.jsonl",
+    "runs/overnight-2/exhaustive-positions.jsonl",
+    "runs/overnight-2/rollout-positions.jsonl"
+  ]
+}
