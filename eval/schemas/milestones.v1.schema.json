@@ -1,0 +1,133 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "milestones.v1.schema.json",
+  "title": "milestones.v1 — per-archetype plan-milestone spec (eval/plans/<slug>.milestones.json)",
+  "description": "Data-driven milestone definitions consumed by eval/plan_adherence.py (axis 4, PLAN). All extractors are text/regex over logged decision rows and prompt snapshots — no judge model, no card database. Every card name listed anywhere in a spec MUST appear verbatim in the matching eval/decks/<slug>.txt decklist (validated by plan_adherence.py --strict-specs and test_plan_adherence.py); a typo'd name silently zeroes a milestone, which is the dominant failure mode of text extractors. Schema is ADDITIVE-ONLY: consumers read with .get().",
+  "type": "object",
+  "required": ["schema", "deck", "plan_file", "milestones"],
+  "properties": {
+    "schema": {"const": "milestones.v1"},
+    "deck": {
+      "type": "string",
+      "description": "Deck slug; MUST equal the filename stem (<slug>.milestones.json) and an eval/decks/<slug>.plan stem."
+    },
+    "plan_file": {
+      "type": "string",
+      "description": "Repo-relative path to the plan text the milestones were derived from, e.g. eval/decks/ur-delver.plan."
+    },
+    "threat_names": {
+      "type": "array", "items": {"type": "string"},
+      "description": "Card names used by the requires_state predicate 'own_threat_on_battlefield' (matched as substrings of the YOU board: line)."
+    },
+    "combo_pieces": {
+      "type": "array", "items": {"type": "string"},
+      "description": "Default piece list for combo_assembly_progress milestones that omit piece_names."
+    },
+    "milestones": {
+      "type": "array", "minItems": 1,
+      "items": {"$ref": "#/$defs/milestone"}
+    },
+    "fixtures": {
+      "type": "array", "items": {"type": "string"},
+      "description": "Repo-relative jsonl paths of REAL logged games hand-checked against this spec. May be [] when no logged games exist for the archetype yet (then set fixtures_note). Never invented paths; tests never read runs/."
+    },
+    "fixtures_note": {"type": "string"},
+    "notes": {"type": "string"}
+  },
+  "$defs": {
+    "names": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "requires_state": {
+      "description": "Predicate over the decision row's prompt snapshot. A string ('own_threat_on_battlefield': any spec threat_names substring-matches the YOU board line) or an object whose keys AND together. ONLY the keys below are derivable from the prompt text; in particular THERE IS NO STORM COUNT IN THE PROMPT — casts_this_turn_at_least is derived by counting RECENT EVENTS '<seat> cast <Card>' lines (both players) since the last 'Turn <N> (<seat>)' marker, and does not include the spell currently being decided.",
+      "oneOf": [
+        {"const": "own_threat_on_battlefield"},
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "own_board_contains": {"$ref": "#/$defs/names"},
+            "opp_life_at_most": {"type": "integer"},
+            "own_life_at_most": {"type": "integer"},
+            "own_yard_count_at_least": {
+              "type": "object",
+              "required": ["names", "n"],
+              "properties": {
+                "names": {"$ref": "#/$defs/names"},
+                "n": {"type": "integer"}
+              },
+              "description": "Sum of substring occurrences of the names in the YOU yard(N): line must be >= n."
+            },
+            "casts_this_turn_at_least": {"type": "integer"},
+            "opp_board_power_at_least": {"type": "integer"}
+          }
+        }
+      ]
+    },
+    "milestone": {
+      "type": "object",
+      "required": ["id", "kind", "weight", "description"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9_]+$"},
+        "kind": {
+          "enum": ["deploy_by_turn", "sequence_order", "resource_discipline",
+                   "combo_assembly_progress", "payoff_condition",
+                   "protection_usage", "target_split"]
+        },
+        "weight": {"type": "number"},
+        "description": {
+          "type": "string",
+          "description": "Must cite the exact .plan sentence the milestone comes from."
+        },
+        "turn_max": {
+          "type": "integer",
+          "description": "deploy_by_turn: attained iff the seat's first chosen option matching any name (with require_prefix if given) occurred at turn <= turn_max. 99 means 'ever'."
+        },
+        "chosen_option_matches": {"$ref": "#/$defs/names"},
+        "require_prefix": {
+          "type": ["string", "null"],
+          "enum": ["CAST", "PLAY LAND", null],
+          "description": "Prefix the chosen option text must start with. deploy_by_turn default null (any). sequence_order/payoff_condition default 'CAST' (activated abilities also render with the CAST prefix in these logs; null matches any prefix, needed e.g. for PLAY LAND or Show-and-Tell entity picks)."
+        },
+        "first": {"$ref": "#/$defs/names"},
+        "then": {"$ref": "#/$defs/names"},
+        "within_turn": {
+          "type": "boolean",
+          "description": "sequence_order: true = a first-match must precede a then-match WITHIN one turn; false = anywhere later in the game."
+        },
+        "denominator": {
+          "const": "offered",
+          "description": "resource_discipline: rate = times chosen / times offered in type=='play' option menus."
+        },
+        "piece_names": {"$ref": "#/$defs/names"},
+        "zones": {
+          "type": "array",
+          "items": {"enum": ["hand", "board", "yard"]},
+          "description": "combo_assembly_progress: YOU-section zones scanned for piece_names. Exile and library are NOT visible in the prompt."
+        },
+        "min_count": {"type": "integer"},
+        "requires_state": {"$ref": "#/$defs/requires_state"},
+        "spells": {
+          "$ref": "#/$defs/names",
+          "description": "target_split: only count target rows whose prompt contains 'TARGET for <spell>' for one of these."
+        },
+        "report": {"const": "face_vs_creature_ratio"}
+      },
+      "allOf": [
+        {"if": {"properties": {"kind": {"const": "deploy_by_turn"}}},
+         "then": {"required": ["turn_max", "chosen_option_matches"]}},
+        {"if": {"properties": {"kind": {"const": "sequence_order"}}},
+         "then": {"required": ["first", "then"]}},
+        {"if": {"properties": {"kind": {"const": "resource_discipline"}}},
+         "then": {"required": ["chosen_option_matches", "denominator"]}},
+        {"if": {"properties": {"kind": {"const": "combo_assembly_progress"}}},
+         "then": {"required": ["piece_names", "zones", "min_count"]}},
+        {"if": {"properties": {"kind": {"const": "payoff_condition"}}},
+         "then": {"required": ["chosen_option_matches"]}},
+        {"if": {"properties": {"kind": {"const": "protection_usage"}}},
+         "then": {"required": ["chosen_option_matches", "requires_state"]}},
+        {"if": {"properties": {"kind": {"const": "target_split"}}},
+         "then": {"required": ["spells", "report"]}}
+      ]
+    }
+  }
+}

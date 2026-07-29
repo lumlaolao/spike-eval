@@ -1,0 +1,116 @@
+{
+  "schema": "milestones.v1",
+  "deck": "doomsday",
+  "plan_file": "eval/decks/doomsday.plan",
+  "threat_names": [],
+  "combo_pieces": [
+    "Doomsday",
+    "Thassa's Oracle",
+    "Jace, Wielder of Mysteries",
+    "Dark Ritual",
+    "Lotus Petal",
+    "Lion's Eye Diamond"
+  ],
+  "milestones": [
+    {
+      "id": "cantrip_setup",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: 'Dig and set up with Brainstorm/Ponder/Consider' — rate a cantrip is cast when offered.",
+      "chosen_option_matches": [
+        "Brainstorm",
+        "Ponder",
+        "Consider"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "discard_first",
+      "kind": "sequence_order",
+      "weight": 1.0,
+      "description": "Plan: 'Protect the Doomsday resolution ... and Thoughtseize' — a discard spell strips the coast clear some turn before Doomsday.",
+      "first": [
+        "Thoughtseize"
+      ],
+      "then": [
+        "Doomsday"
+      ],
+      "within_turn": false,
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "ritual_into_doomsday",
+      "kind": "sequence_order",
+      "weight": 1.0,
+      "description": "Plan: 'power the pile with Dark Ritual, Lion's Eye Diamond, and Lotus Petal' — fast mana precedes Doomsday within the turn.",
+      "first": [
+        "Dark Ritual",
+        "Lotus Petal",
+        "Lion's Eye Diamond"
+      ],
+      "then": [
+        "Doomsday"
+      ],
+      "within_turn": true,
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "doomsday_cast",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'cast Doomsday to search out a 5-card library' — Doomsday ever cast.",
+      "turn_max": 99,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Doomsday"
+      ]
+    },
+    {
+      "id": "protection_in_hand",
+      "kind": "combo_assembly_progress",
+      "weight": 1.0,
+      "description": "Plan: 'Protect the Doomsday resolution and the payoff with Force of Will, Daze, Flusterstorm' and 'Never cast Doomsday without a mapped-out, protected win' — a protection spell visible in hand (hand is the only protection signal in the prompt; PLAN-hold measures keeping one up across turns).",
+      "piece_names": [
+        "Force of Will",
+        "Daze",
+        "Flusterstorm"
+      ],
+      "zones": [
+        "hand"
+      ],
+      "min_count": 1
+    },
+    {
+      "id": "doomsday_then_payoff",
+      "kind": "sequence_order",
+      "weight": 1.0,
+      "description": "Plan: 'win the same turn (or the next upkeep) by ... Thassa's Oracle ... or by ticking Jace, Wielder of Mysteries' — Doomsday then a payoff later.",
+      "first": [
+        "Doomsday"
+      ],
+      "then": [
+        "Thassa's Oracle",
+        "Jace, Wielder of Mysteries"
+      ],
+      "within_turn": false,
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "payoff_cast",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'drawing into and resolving Thassa's Oracle with an empty library' — a win payoff ever cast.",
+      "turn_max": 99,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Thassa's Oracle",
+        "Jace, Wielder of Mysteries"
+      ]
+    }
+  ],
+  "fixtures": [
+    "runs/d0-validate/game-900-1784832336440.jsonl"
+  ],
+  "notes": "Whether Doomsday was cast WITH protection is not directly extractable (the cast row and the hand snapshot are the same prompt, so protection_in_hand at the doomsday turn is the proxy); the pile contents are never visible."
+}

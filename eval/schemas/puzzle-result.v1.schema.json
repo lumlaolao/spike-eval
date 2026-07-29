@@ -1,0 +1,55 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "puzzle-result.v1",
+ "title": "One (position, k) sample of a PUZ run (eval/puzzle_run.py) — see eval/EVAL-DESIGN.md §3.3. The results.jsonl file holds one of these per sample plus a final {\"t\":\"summary\", ...puzzle-run-summary.v1} line. Schema is ADDITIVE-ONLY; consumers read via .get().",
+ "type": "object",
+ "required": [
+  "schema",
+  "position_id",
+  "k",
+  "backend",
+  "strictness",
+  "outcome",
+  "solved"
+ ],
+ "properties": {
+  "schema": {"const": "puzzle-result.v1"},
+  "contract": {"const": "prompt-contract.v1"},
+  "contract_sha": {"type": "string"},
+  "position_id": {"type": "string", "description": "puzzle-position.v1 id"},
+  "category": {"type": ["string", "null"]},
+  "split": {"type": ["string", "null"]},
+  "game_file": {"type": ["string", "null"], "description": "clustering unit (EVAL-DESIGN.md §6.1)"},
+  "seed": {"type": ["integer", "null"]},
+  "decision_type": {"type": ["string", "null"], "description": "play|mulligan (the v1 scoreable index-encoded types)"},
+  "n_options": {"type": ["integer", "null"]},
+  "k": {"type": "integer", "minimum": 1, "description": "1-based sample index within the position's k resamples"},
+  "backend": {"enum": ["offline", "http", "openrouter"]},
+  "model": {"type": ["string", "null"], "description": "model name, or offline:<policy> / offline-fixture"},
+  "strictness": {"enum": ["strict", "lenient"], "description": "the PRIMARY strictness this row's outcome/score used"},
+  "render_sha": {"type": ["string", "null"]},
+  "plan_sha": {"type": ["string", "null"]},
+  "plan_slug": {"type": ["string", "null"]},
+  "reply": {"type": ["string", "null"], "description": "verbatim model reply; null == no reply obtained"},
+  "outcome": {"enum": ["ok", "interface_failure"], "description": "interface_failure is NEVER scored as a wrong Magic play; it is excluded from the exclusive score denominator and rated separately"},
+  "interface_error": {"type": ["string", "null"]},
+  "recovered_by": {"type": ["string", "null"]},
+  "menu_number": {"type": ["integer", "null"], "description": "raw 1-based number the model emitted"},
+  "option_index": {"type": ["integer", "null"], "description": "0-based index into options; null == decline slot or interface failure"},
+  "choice": {"type": ["integer", "null"], "description": "harness encoding (contract §1.3): option_index, or -1 for the decline/PASS slot"},
+  "is_pass": {"type": "boolean"},
+  "score": {"type": ["integer", "null"], "minimum": 0, "maximum": 10, "description": "answer_key.option_scores[option_index]; null on interface failure (inclusive aggregation counts it as 0, exclusive excludes it)"},
+  "solved": {"type": "boolean", "description": "score == 10"},
+  "error": {"type": ["string", "null"], "description": "transport error text or 'fixture_miss'; non-null rows are missing DATA and are excluded from every scoring denominator"},
+  "latency_ms": {"type": ["integer", "null"]},
+  "lenient": {
+   "type": "object",
+   "description": "the same reply parsed leniently (the formatting-tax twin)",
+   "properties": {
+    "outcome": {"enum": ["ok", "interface_failure"]},
+    "option_index": {"type": ["integer", "null"]},
+    "score": {"type": ["integer", "null"]}
+   }
+  }
+ }
+}

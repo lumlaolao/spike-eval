@@ -1,0 +1,127 @@
+{
+  "schema": "milestones.v1",
+  "deck": "ant-storm",
+  "plan_file": "eval/decks/ant-storm.plan",
+  "threat_names": [],
+  "combo_pieces": [
+    "Dark Ritual",
+    "Cabal Ritual",
+    "Lotus Petal",
+    "Lion's Eye Diamond",
+    "Infernal Tutor",
+    "Ad Nauseam",
+    "Past in Flames",
+    "Tendrils of Agony"
+  ],
+  "milestones": [
+    {
+      "id": "ritual_before_payoff",
+      "kind": "sequence_order",
+      "weight": 1.0,
+      "description": "Plan: 'use rituals (Dark Ritual, Cabal Ritual, Lotus Petal, Lion's Eye Diamond) to generate a big mana burst, resolve Ad Nauseam or Past in Flames' — a ritual precedes a payoff within one turn.",
+      "first": [
+        "Dark Ritual",
+        "Cabal Ritual",
+        "Lotus Petal",
+        "Lion's Eye Diamond"
+      ],
+      "then": [
+        "Ad Nauseam",
+        "Past in Flames",
+        "Infernal Tutor"
+      ],
+      "within_turn": true,
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "tendrils_at_storm",
+      "kind": "payoff_condition",
+      "weight": 1.0,
+      "description": "Plan: 'build storm count, then kill with Tendrils of Agony' — Tendrils cast with at least 8 casts already logged this turn (derived from RECENT EVENTS; there is no storm count in the prompt).",
+      "chosen_option_matches": [
+        "Tendrils of Agony"
+      ],
+      "requires_state": {
+        "casts_this_turn_at_least": 8
+      }
+    },
+    {
+      "id": "cantrip_dig",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: 'Dig with Brainstorm/Ponder' — rate a cantrip is cast when offered on a play menu.",
+      "chosen_option_matches": [
+        "Brainstorm",
+        "Ponder",
+        "Preordain"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "discard_before_combo",
+      "kind": "sequence_order",
+      "weight": 1.0,
+      "description": "Plan: 'protect with Duress and disrupt with Cabal Therapy' — a discard spell cast some turn before the tutor/payoff turn.",
+      "first": [
+        "Duress",
+        "Cabal Therapy"
+      ],
+      "then": [
+        "Ad Nauseam",
+        "Infernal Tutor",
+        "Past in Flames"
+      ],
+      "within_turn": false,
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "combo_hand_assembled",
+      "kind": "combo_assembly_progress",
+      "weight": 1.0,
+      "description": "Plan: 'Win from nowhere in one explosive turn' requires holding rituals plus a business spell: 3+ distinct combo pieces visible in hand.",
+      "piece_names": [
+        "Dark Ritual",
+        "Cabal Ritual",
+        "Lotus Petal",
+        "Lion's Eye Diamond",
+        "Infernal Tutor",
+        "Ad Nauseam",
+        "Past in Flames",
+        "Tendrils of Agony"
+      ],
+      "zones": [
+        "hand"
+      ],
+      "min_count": 3
+    },
+    {
+      "id": "payoff_cast",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'resolve Ad Nauseam or Past in Flames to refuel' — a payoff/refuel spell ever cast (turn_max 99 = ever).",
+      "turn_max": 99,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Ad Nauseam",
+        "Past in Flames",
+        "Infernal Tutor"
+      ]
+    },
+    {
+      "id": "tendrils_cast",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'kill with Tendrils of Agony (Infernal Tutor fetches the payoff)' — Tendrils ever cast.",
+      "turn_max": 99,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Tendrils of Agony"
+      ]
+    }
+  ],
+  "fixtures": [
+    "runs/tournament-1/match-QF-2/game-346-1784502193721.jsonl"
+  ],
+  "notes": "casts_this_turn_at_least counts BOTH players' RECENT-EVENTS cast lines since the last turn marker and excludes the pending Tendrils itself; 8 prior casts gives Tendrils storm >= 8."
+}

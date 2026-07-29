@@ -116,6 +116,9 @@ the classic instant-speed action window). `[TALLY]` prints running `avgSmart`/`a
 | `CHECKPOINT_SHA` | `unknown` | identity of the weights under test, stamped on the game line. Set it via `run_batch.py --checkpoint <path-or-tag>` rather than by hand |
 | `SEED_BANK` | `unregistered` | which declared band (`eval/seed_registry.json`) the seeds came from; `run_batch.py` sets it |
 | `OPENROUTER_BASE_URL` | `https://openrouter.ai/api/v1` | endpoint for `openrouter:` specs; recorded on the game line, since a local server and openrouter.ai are different experiments even for an identical model string |
+| `OPENROUTER_API_KEY` | unset | OpenRouter credential. Holding a key is **not** consent to egress (see below) |
+| `OPENROUTER_ALLOW_EGRESS` | unset | explicit consent gate for ANY non-local network call — the Java factory refuses `openrouter:` specs without it, and every eval tool with a network backend (`eval/puzzle_run.py --backend http/openrouter`, `eval/replay_match.py`) refuses non-local hosts with exit 2 unless it is `1`. Never set it by default, never bake it into a script |
+| `SHADOW_AI` | 0 | `1` records the Forge-AI shadow choice per decision (`shadow_choice` in JSONL) — feeds the blunder shadow-disagreement lane; validated by `eval/shadow_canary.sh` |
 
 ## Multi-backend models (OpenRouter and beyond)
 
@@ -153,6 +156,19 @@ and `aggregate.py` (Wilson CIs, paired bootstrap on the win-rate delta, per-tier
 stats). See `eval/README.md` for the paired-mirror design and the statistical power math.
 Note: only the **headless** runner writes the game-summary line — `EVAL_OUT` on a GUI run yields
 decision lines only, which `aggregate.py` treats as a crashed/invalid game.
+
+**Eval v1.0 (2026-07):** a five-axis benchmark layer — STR (match strength), PUZ (puzzle
+accuracy against engine-verified answer keys), PLAN (deck-plan milestone adherence), DQ
+(decision quality) and PUNT (blunder rate) — assembled into one scorecard by
+`eval/build_report.py`, under a frozen versioned prompt contract (`eval/prompt_contract.py`).
+Every metric carries n/se/ci95 **and its trivial floor** (random-pick / always-PASS /
+majority-class); an unmeasured axis renders as an explicit `not measured`, never as 0.
+Full walkthrough: [`eval/EVAL-V1.md`](eval/EVAL-V1.md); per-tool docs: [`eval/README.md`](eval/README.md).
+Honest status: the harness works, but **no verified golden puzzle suite exists yet** — the
+answer-key generation run (EVAL-DESIGN Phase 1.2) has not been executed, so today's yield is
+3 verified positions out of 807 mined candidates and PUZ cannot rank models yet. DQ has never
+been measured (all corpora are textlane-only), and the only PUZ backend with end-to-end
+evidence is the zero-network `offline` lane.
 
 ## Build & run
 

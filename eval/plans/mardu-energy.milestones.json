@@ -1,0 +1,99 @@
+{
+  "schema": "milestones.v1",
+  "deck": "mardu-energy",
+  "plan_file": "eval/decks/mardu-energy.plan",
+  "threat_names": [
+    "Ajani, Nacatl Pariah",
+    "Ocelot Pride",
+    "Guide of Souls",
+    "Voice of Victory",
+    "Amped Raptor"
+  ],
+  "combo_pieces": [],
+  "milestones": [
+    {
+      "id": "threat_by_2",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'deploy efficient threats (Ajani, Ocelot Pride, Guide of Souls, Amped Raptor, Voice of Victory)' — one cast by turn 2.",
+      "turn_max": 2,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Ajani, Nacatl Pariah",
+        "Ocelot Pride",
+        "Guide of Souls",
+        "Amped Raptor",
+        "Voice of Victory"
+      ]
+    },
+    {
+      "id": "wide_board",
+      "kind": "combo_assembly_progress",
+      "weight": 1.0,
+      "description": "Plan: 'attack every turn and race their life total' — 2+ distinct threats on the battlefield at once (the AGGRESSOR board).",
+      "piece_names": [
+        "Ajani, Nacatl Pariah",
+        "Ocelot Pride",
+        "Guide of Souls",
+        "Amped Raptor",
+        "Voice of Victory",
+        "Orcish Bowmasters"
+      ],
+      "zones": [
+        "board"
+      ],
+      "min_count": 2
+    },
+    {
+      "id": "discard_disrupt",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: 'Disrupt with Thoughtseize, Cabal Therapy' / 'stripping their key piece' — rate a discard spell is cast when offered.",
+      "chosen_option_matches": [
+        "Thoughtseize",
+        "Cabal Therapy"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "bowmasters_deployed",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'Disrupt with ... Orcish Bowmasters' — Bowmasters ever cast.",
+      "turn_max": 99,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Orcish Bowmasters"
+      ]
+    },
+    {
+      "id": "swords_answers",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: 'and Swords to Plowshares' — rate Swords is cast when offered.",
+      "chosen_option_matches": [
+        "Swords to Plowshares"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "mana_denial",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: 'Wasteland/Karakas hit their mana' — rate the Wasteland activation is taken when offered.",
+      "chosen_option_matches": [
+        "Wasteland"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    }
+  ],
+  "fixtures": [
+    "runs/improve/iter-1/game-101-1784663978455.jsonl",
+    "runs/improve/iter-1/game-102-1784664796047.jsonl",
+    "runs/improve/iter-2/game-111-1784666114645.jsonl"
+  ],
+  "notes": ""
+}

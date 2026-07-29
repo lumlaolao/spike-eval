@@ -1,0 +1,105 @@
+{
+  "schema": "milestones.v1",
+  "deck": "lands",
+  "plan_file": "eval/decks/lands.plan",
+  "threat_names": [
+    "Dark Depths",
+    "Thespian's Stage"
+  ],
+  "combo_pieces": [
+    "Dark Depths",
+    "Thespian's Stage"
+  ],
+  "milestones": [
+    {
+      "id": "accel_by_2",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'Exploration/Mox Diamond accelerate' — one of them cast by turn 2.",
+      "turn_max": 2,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Exploration",
+        "Mox Diamond"
+      ]
+    },
+    {
+      "id": "loam_engine_started",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'grind resources with Life from the Loam' — Loam ever cast.",
+      "turn_max": 99,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Life from the Loam"
+      ]
+    },
+    {
+      "id": "loam_recur",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: 'Life from the Loam recurring Wasteland + Rishadan Port' — rate Loam is cast when offered (each recursion is an offer).",
+      "chosen_option_matches": [
+        "Life from the Loam"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "mana_denial",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: 'recurring Wasteland + Rishadan Port to strand the opponent off mana' — rate a denial activation is taken when offered.",
+      "chosen_option_matches": [
+        "Wasteland",
+        "Rishadan Port"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "depths_combo_assembled",
+      "kind": "combo_assembly_progress",
+      "weight": 1.0,
+      "description": "Plan: 'Assemble the Dark Depths + Thespian's Stage combo for a 20/20 Marit Lage' — both pieces visible in hand/board.",
+      "piece_names": [
+        "Dark Depths",
+        "Thespian's Stage"
+      ],
+      "zones": [
+        "hand",
+        "board"
+      ],
+      "min_count": 2
+    },
+    {
+      "id": "depths_then_stage",
+      "kind": "sequence_order",
+      "weight": 1.0,
+      "description": "Same plan sentence — Dark Depths deployed, then Thespian's Stage played/activated later (land drops and activations both count: no CAST prefix required).",
+      "first": [
+        "Dark Depths"
+      ],
+      "then": [
+        "Thespian's Stage"
+      ],
+      "within_turn": false,
+      "require_prefix": null
+    },
+    {
+      "id": "punishing_grind",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: 'Punishing Fire + Grove grinds small creatures' — rate Punishing Fire is cast when offered.",
+      "chosen_option_matches": [
+        "Punishing Fire"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    }
+  ],
+  "fixtures": [
+    "runs/tournament-1/match-QF-4/game-348-1784510850411.jsonl"
+  ],
+  "notes": "Marit Lage herself is a token; the 20/20 appearing is not chosen-option-visible, so the combo is measured at assembly, not activation."
+}

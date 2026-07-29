@@ -1,0 +1,95 @@
+{
+  "schema": "milestones.v1",
+  "deck": "painter",
+  "plan_file": "eval/decks/painter.plan",
+  "threat_names": [
+    "Painter's Servant",
+    "Grindstone"
+  ],
+  "combo_pieces": [
+    "Painter's Servant",
+    "Grindstone"
+  ],
+  "milestones": [
+    {
+      "id": "fast_mana_by_2",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'a fast-mana artifact prison — Ancient Tomb, Grim Monolith, Lotus Petal, Mox Opal' — a fast-mana artifact cast by turn 2.",
+      "turn_max": 2,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Grim Monolith",
+        "Lotus Petal",
+        "Mox Opal"
+      ]
+    },
+    {
+      "id": "combo_assembled",
+      "kind": "combo_assembly_progress",
+      "weight": 1.0,
+      "description": "Plan: 'the kill is Painter's Servant naming a color plus Grindstone' — both pieces visible in hand/board.",
+      "piece_names": [
+        "Painter's Servant",
+        "Grindstone"
+      ],
+      "zones": [
+        "hand",
+        "board"
+      ],
+      "min_count": 2
+    },
+    {
+      "id": "servant_then_grindstone",
+      "kind": "sequence_order",
+      "weight": 1.0,
+      "description": "Same kill sentence — Painter's Servant deployed, then Grindstone cast/activated later.",
+      "first": [
+        "Painter's Servant"
+      ],
+      "then": [
+        "Grindstone"
+      ],
+      "within_turn": false,
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "planeswalker_lock",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'power out Karn, the Great Creator and Tezzeret to lock the board and tutor pieces' — either ever cast.",
+      "turn_max": 99,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Karn, the Great Creator",
+        "Tezzeret, Cruel Captain"
+      ]
+    },
+    {
+      "id": "one_ring_value",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'The One Ring and Urza's Saga for card advantage' — The One Ring ever cast.",
+      "turn_max": 99,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "The One Ring"
+      ]
+    },
+    {
+      "id": "key_untap",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: '(Manifold Key / Voltaic Key untaps Grindstone to fire it early)' — rate a Key is cast/activated when offered.",
+      "chosen_option_matches": [
+        "Manifold Key",
+        "Voltaic Key"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    }
+  ],
+  "fixtures": [],
+  "notes": "Plan text itself warns several list names are from recent sets and need Forge-database validation; spec names were checked against eval/decks/painter.txt only.",
+  "fixtures_note": "no logged games for this archetype yet; extractors covered by synthetic fixtures in test_plan_adherence.py"
+}

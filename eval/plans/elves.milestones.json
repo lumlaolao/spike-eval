@@ -1,0 +1,118 @@
+{
+  "schema": "milestones.v1",
+  "deck": "elves",
+  "plan_file": "eval/decks/elves.plan",
+  "threat_names": [
+    "Craterhoof Behemoth"
+  ],
+  "combo_pieces": [
+    "Heritage Druid",
+    "Nettle Sentinel",
+    "Glimpse of Nature",
+    "Craterhoof Behemoth",
+    "Natural Order",
+    "Green Sun's Zenith"
+  ],
+  "milestones": [
+    {
+      "id": "mana_elf_by_1",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'flood the board with mana-elves (Heritage Druid, Nettle Sentinel, Fyndhorn/Llanowar Elves, Quirion Ranger)' — one cast on turn 1.",
+      "turn_max": 1,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Heritage Druid",
+        "Nettle Sentinel",
+        "Fyndhorn Elves",
+        "Llanowar Elves",
+        "Quirion Ranger"
+      ]
+    },
+    {
+      "id": "board_flooded",
+      "kind": "combo_assembly_progress",
+      "weight": 1.0,
+      "description": "Plan: 'flood the board' / 'Go wide' — 3+ distinct elves on the battlefield at once.",
+      "piece_names": [
+        "Heritage Druid",
+        "Nettle Sentinel",
+        "Elvish Visionary",
+        "Wirewood Symbiote",
+        "Quirion Ranger",
+        "Fyndhorn Elves",
+        "Llanowar Elves"
+      ],
+      "zones": [
+        "board"
+      ],
+      "min_count": 3
+    },
+    {
+      "id": "elves_then_glimpse",
+      "kind": "sequence_order",
+      "weight": 1.0,
+      "description": "Plan: 'chain them into Glimpse of Nature to draw your deck' — elves deployed first, Glimpse cast later.",
+      "first": [
+        "Heritage Druid",
+        "Nettle Sentinel",
+        "Llanowar Elves",
+        "Fyndhorn Elves"
+      ],
+      "then": [
+        "Glimpse of Nature"
+      ],
+      "within_turn": false,
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "glimpse_with_board",
+      "kind": "payoff_condition",
+      "weight": 1.0,
+      "description": "Plan: 'chain them into Glimpse of Nature' — Glimpse cast while at least one elf is already on our board.",
+      "chosen_option_matches": [
+        "Glimpse of Nature"
+      ],
+      "requires_state": {
+        "own_board_contains": [
+          "Heritage Druid",
+          "Nettle Sentinel",
+          "Elvish Visionary",
+          "Wirewood Symbiote",
+          "Quirion Ranger",
+          "Fyndhorn Elves",
+          "Llanowar Elves"
+        ]
+      }
+    },
+    {
+      "id": "gsz_used",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: 'finish with ... Green Sun's Zenith / Natural Order' — rate GSZ is cast when offered.",
+      "chosen_option_matches": [
+        "Green Sun's Zenith"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "finisher_cast",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'finish with a huge Craterhoof Behemoth overrun or Green Sun's Zenith / Natural Order for it' — a finisher ever cast.",
+      "turn_max": 99,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Craterhoof Behemoth",
+        "Natural Order",
+        "Green Sun's Zenith"
+      ]
+    }
+  ],
+  "fixtures": [
+    "runs/d0-validate/game-901-1784832341568.jsonl",
+    "runs/improve/validate/game-42-1784663748054.jsonl"
+  ],
+  "notes": ""
+}

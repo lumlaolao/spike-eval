@@ -1,0 +1,110 @@
+{
+  "schema": "milestones.v1",
+  "deck": "food-chain",
+  "plan_file": "eval/decks/food-chain.plan",
+  "threat_names": [
+    "Food Chain"
+  ],
+  "combo_pieces": [
+    "Food Chain",
+    "Squee, the Immortal",
+    "Walking Ballista",
+    "Sling-Gang Lieutenant",
+    "Broadside Bombardiers",
+    "Goblin Matron"
+  ],
+  "milestones": [
+    {
+      "id": "ramp_by_1",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'Ignoble Hierarch and Ancient Tomb accelerate Food Chain out early' — Ignoble Hierarch on turn 1.",
+      "turn_max": 1,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Ignoble Hierarch"
+      ]
+    },
+    {
+      "id": "food_chain_by_3",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'resolve Food Chain' accelerated 'out early' — Food Chain cast by turn 3.",
+      "turn_max": 3,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Food Chain"
+      ]
+    },
+    {
+      "id": "engine_assembled",
+      "kind": "combo_assembly_progress",
+      "weight": 1.0,
+      "description": "Plan: 'resolve Food Chain, then loop a creature that can be cast from exile — Squee, the Immortal' — both pieces visible in hand/board/yard (exile is not visible in the prompt).",
+      "piece_names": [
+        "Food Chain",
+        "Squee, the Immortal"
+      ],
+      "zones": [
+        "hand",
+        "board",
+        "yard"
+      ],
+      "min_count": 2
+    },
+    {
+      "id": "chain_then_payoff",
+      "kind": "sequence_order",
+      "weight": 1.0,
+      "description": "Plan: 'Pour that mana into a payoff: Walking Ballista for lethal, or a Goblin-Matron-fetched Sling-Gang Lieutenant / Broadside Bombardiers chain' — Food Chain first, payoff later.",
+      "first": [
+        "Food Chain"
+      ],
+      "then": [
+        "Walking Ballista",
+        "Sling-Gang Lieutenant",
+        "Broadside Bombardiers"
+      ],
+      "within_turn": false,
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "matron_tutors",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: 'Goblin Matron find the missing piece' — rate Matron is cast when offered.",
+      "chosen_option_matches": [
+        "Goblin Matron"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "finder_cast",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: 'Once Upon a Time and Goblin Matron find the missing piece' — rate Once Upon a Time is cast when offered.",
+      "chosen_option_matches": [
+        "Once Upon a Time"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "payoff_deployed",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'Walking Ballista for lethal, or ... Sling-Gang Lieutenant / Broadside Bombardiers ... for reach' — a payoff ever cast.",
+      "turn_max": 99,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Walking Ballista",
+        "Sling-Gang Lieutenant",
+        "Broadside Bombardiers"
+      ]
+    }
+  ],
+  "fixtures": [],
+  "notes": "Squee recast from exile is invisible to the zone scan (exile is not in the prompt); engine_assembled therefore under-counts mid-combo states. Documented limitation.",
+  "fixtures_note": "no logged games for this archetype yet; extractors covered by synthetic fixtures in test_plan_adherence.py"
+}

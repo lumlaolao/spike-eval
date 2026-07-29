@@ -1,0 +1,105 @@
+{
+  "schema": "milestones.v1",
+  "deck": "death-and-taxes",
+  "plan_file": "eval/decks/death-and-taxes.plan",
+  "threat_names": [
+    "Thalia, Guardian of Thraben",
+    "Stoneforge Mystic",
+    "Mirran Crusader",
+    "Flickerwisp",
+    "Palace Jailer"
+  ],
+  "combo_pieces": [
+    "Stoneforge Mystic",
+    "Batterskull",
+    "Umezawa's Jitte"
+  ],
+  "milestones": [
+    {
+      "id": "thalia_by_2",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'deploy taxing hatebears (Thalia, ...)' — Thalia, Guardian of Thraben cast by turn 2.",
+      "turn_max": 2,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Thalia, Guardian of Thraben"
+      ]
+    },
+    {
+      "id": "hatebear_by_2",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'deploy taxing hatebears (Thalia, Mother of Runes, Phyrexian Revoker)' — any of them by turn 2.",
+      "turn_max": 2,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Thalia, Guardian of Thraben",
+        "Mother of Runes",
+        "Phyrexian Revoker"
+      ]
+    },
+    {
+      "id": "vial_by_1",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Decklist enabler for the plan's tempo grind ('grind on tempo'): Aether Vial on turn 1.",
+      "turn_max": 1,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Aether Vial"
+      ]
+    },
+    {
+      "id": "mana_denial",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: 'Lock their mana with Rishadan Port + Wasteland' — rate a denial activation is taken when offered.",
+      "chosen_option_matches": [
+        "Wasteland",
+        "Rishadan Port"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "equip_line",
+      "kind": "sequence_order",
+      "weight": 1.0,
+      "description": "Plan: 'suit up a threat with Stoneforge Mystic -> Batterskull/Jitte' — Stoneforge first, Batterskull/Jitte cast/used later in the game.",
+      "first": [
+        "Stoneforge Mystic"
+      ],
+      "then": [
+        "Batterskull",
+        "Umezawa's Jitte"
+      ],
+      "within_turn": false,
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "mom_protects",
+      "kind": "protection_usage",
+      "weight": 1.0,
+      "description": "Plan: 'protect creatures with Mother of Runes' — a Mother of Runes cast/activation available while a threat is on board.",
+      "chosen_option_matches": [
+        "Mother of Runes"
+      ],
+      "requires_state": "own_threat_on_battlefield"
+    },
+    {
+      "id": "swords_answers",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: 'Swords to Plowshares removes their threats' — rate Swords is cast when offered.",
+      "chosen_option_matches": [
+        "Swords to Plowshares"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    }
+  ],
+  "fixtures": [],
+  "notes": "Mother of Runes protection activations render with the CAST prefix in these logs, so mom_protects counts casts and activations together.",
+  "fixtures_note": "no logged games for this archetype yet; extractors covered by synthetic fixtures in test_plan_adherence.py"
+}

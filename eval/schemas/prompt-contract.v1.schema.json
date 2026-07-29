@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "prompt-contract.v1",
+  "title": "prompt-contract.v1 — frozen render+parse contract objects (eval/prompt_contract.py). The contract exists so every track serves BYTE-IDENTICAL prompts and applies IDENTICAL reply-acceptance rules; contract_sha is the version pin that makes cross-run numbers comparable.",
+  "$defs": {
+    "sha16": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16}$",
+      "description": "First 16 hex chars of a sha256 — long enough to be collision-safe at corpus scale, short enough to eyeball-diff in logs."
+    },
+    "manifest": {
+      "type": "object",
+      "description": "Output of contract_manifest(): the self-description a run embeds so a reader can verify WHICH template/parser produced its prompts without re-reading code.",
+      "required": ["contract", "profile", "contract_sha", "parser_spec", "strictnesses", "system_template_sha", "plan_policy", "user_policy", "frozen_against_java_sha", "static_reference_included"],
+      "properties": {
+        "contract": {"const": "prompt-contract.v1"},
+        "profile": {"enum": ["puz-v1"], "description": "adding a profile mints a new contract_sha"},
+        "contract_sha": {"$ref": "#/$defs/sha16", "description": "stable id of the (template, plan policy, user policy, parser) tuple; depends on module constants ONLY — never on rows, env, clock, or the Java working tree"},
+        "parser_spec": {"const": "parser.v1", "description": "bumping the parser bumps contract_sha — acceptance-rule changes are version changes, not silent drift"},
+        "strictnesses": {"type": "array", "items": {"enum": ["strict", "lenient"]}},
+        "system_template_sha": {"$ref": "#/$defs/sha16", "description": "sha256 of the seven frozen SYS_*_V1 literals concatenated in assembly order, recomputed from the literals at call time; equals frozen_against_java_sha iff nobody tampered with the pasted literals"},
+        "plan_policy": {"const": "deck-plan-file", "description": "plans come from eval/decks/<slug>.plan; plan CONTENT is pinned per-render by plan_sha, deliberately OUTSIDE contract_sha so a .plan edit is detectable without moving the contract version"},
+        "user_policy": {"const": "row.prompt verbatim", "description": "the user message is the logged prompt byte-for-byte — no reflow, no normalization — so the model sees exactly what the original seat saw"},
+        "frozen_against_java_sha": {"$ref": "#/$defs/sha16", "description": "sha of the PreambleBuilder pieces AS OBSERVED AT FREEZE TIME. If the working-tree Java drifts later, v1 stays frozen on purpose; mint v2 to adopt."},
+        "static_reference_included": {"const": false, "description": "live games today (BUILDS['FIX']) do not send STATIC_REFERENCE on the smart tier, so the contract does not either — appending it would serve a preamble no logged game ever saw"}
+      }
+    },
+    "rendered": {
+      "type": "object",
+      "description": "Output of render(): the exact two-message prompt plus the parse geometry (menu numbers, decline slot, PASS index) the parser will enforce. render_sha pins the served bytes per item.",
+      "required": ["contract", "contract_sha", "profile", "strictness", "decision_type", "family", "n_options", "menu_numbers", "decline_menu_number", "pass_option_index", "plan_slug", "plan_sha", "plan_source", "messages", "render_sha"],
+      "properties": {
+        "contract": {"const": "prompt-contract.v1"},
+        "contract_sha": {"$ref": "#/$defs/sha16"},
+        "profile": {"enum": ["puz-v1"]},
+        "strictness": {"enum": ["strict", "lenient"]},
+        "decision_type": {"type": "string", "description": "harness decision type (play/target/mulligan/...); drives family and choice encoding"},
+        "family": {"enum": ["single", "count", "blocks", "mulligan", "unknown"], "description": "replay_match.decision_family(decision_type). 'unknown' renders (the prompt is verbatim anyway) but parse() returns unsupported_family — never a guessed acceptance rule"},
+        "n_options": {"type": "integer", "minimum": 2},
+        "menu_numbers": {"type": "array", "items": {"type": "integer", "minimum": 1}, "description": "the 1-based numbers the parser will accept as an OPTION. For type=='play' the LAST of these IS the PASS option; mulligan is [1,2] (KEEP=1, MULLIGAN=2 — wire format is the words, numbers exist only for lenient bare-number recovery)"},
+        "decline_menu_number": {"type": ["integer", "null"], "description": "non-play single types only: decideOne's extra decline slot at n_options+1, which has NO entry in options and logs choice=-1. null elsewhere (play declines VIA its PASS option)"},
+        "pass_option_index": {"type": ["integer", "null"], "description": "n_options-1 for type=='play' (the trailing 'PASS (do nothing)' option), null otherwise"},
+        "plan_slug": {"type": ["string", "null"], "description": "archetype slug the plan resolved to (eval/decks/*.plan stem), null when unresolved/unknown"},
+        "plan_sha": {"$ref": "#/$defs/sha16", "description": "sha256(plan_text)[:16] — pins the plan CONTENT per render, the deliberate counterpart to contract_sha pinning the template (a .plan edit moves this, not the contract version)"},
+        "plan_source": {"enum": ["explicit", "deck-plan-file", "unresolved"], "description": "how the plan text was obtained; 'unresolved' serves an empty plan block, exactly like the harness does for a seat with no plan"},
+        "messages": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "object",
+            "required": ["role", "content"],
+            "properties": {
+              "role": {"enum": ["system", "user"]},
+              "content": {"type": "string"}
+            }
+          },
+          "description": "messages[0] = frozen system template assembled with (seat, plan); messages[1] = row.prompt VERBATIM including the numbered menu and format tail"
+        },
+        "render_sha": {"$ref": "#/$defs/sha16", "description": "sha256(system + '\\x00' + user)[:16] — byte-level proof two runs served the same prompt"},
+        "warnings": {"type": "array", "items": {"enum": ["options_not_a_list", "non_string_options", "options_shorter_than_n_options"]}, "description": "additive row-hygiene notes; n_options (the harness's count) is trusted over len(options) and the discrepancy is recorded rather than silently patched"}
+      }
+    },
+    "parsed": {
+      "type": "object",
+      "description": "Output of parse(). THE core semantic: outcome=='interface_failure' means the reply could not become a legal action and is NEVER scored as a wrong Magic play — a model bad at output format must be distinguishable from a model bad at Magic.",
+      "required": ["outcome", "interface_error", "recovered_by", "menu_number", "option_index", "choice", "picks", "picks_size", "blocks_count", "raw", "is_pass"],
+      "properties": {
+        "outcome": {"enum": ["ok", "interface_failure"]},
+        "interface_error": {
+          "enum": [null, "empty_reply", "no_tag", "no_number", "out_of_range", "count_out_of_range", "unsupported_family"],
+          "description": "null when ok. empty_reply: reply None/blank. no_tag: no CHOICE/ANSWER/PICKS/BLOCKS/KEEP|MULLIGAN anywhere. no_number: tag present but no digit run after it (observed: replies truncated to 'CHOICE: '). out_of_range: number parsed but not a menu number nor the decline slot — an interface failure in BOTH strictnesses; the live harness's silent out-of-range->PASS coercion is deliberately refused. count_out_of_range: blocks family emitted more assignments than legal blockers. unsupported_family: v1 has no acceptance rule for this decision type."
+        },
+        "recovered_by": {"enum": [null, "bare_number"], "description": "lenient only: no tag found but the last non-empty line held exactly one digit run that was in range. Leniency is about FORMAT, never LEGALITY."},
+        "menu_number": {"type": ["integer", "null"], "description": "raw 1-based number the model emitted (recorded even when out of range, so the formatting tax is auditable)"},
+        "option_index": {"type": ["integer", "null"], "description": "0-based index into options; None when the model picked the decline slot (which has no options entry). For play PASS this IS n_options-1 (PASS is a real option) even though choice is -1."},
+        "choice": {"type": ["integer", "null"], "description": "harness log encoding (EVAL contract §1.3) so equality against logged rows is direct: single/mulligan -> option index or -1 for PASS/decline; count -> picks_size; blocks -> blocks_count. null on interface failure."},
+        "picks": {"type": ["array", "null"], "items": {"type": "integer", "minimum": 0}, "description": "count family: sorted 0-based distinct in-range picks. 'PICKS: NONE' is a VALID size-0 pick (matches the harness), not a failure."},
+        "picks_size": {"type": ["integer", "null"]},
+        "blocks_count": {"type": ["integer", "null"], "description": "blocks family: number of 'X->Y' assignments ('BLOCKS: NONE' -> 0). Pairings are not parseable into indices in v1 (they were never logged)."},
+        "raw": {"type": ["string", "null"], "description": "the reply exactly as given (None for transport failure), kept so failures stay auditable"},
+        "is_pass": {"type": "boolean", "description": "true only for type=='play' when the model chose the trailing PASS menu number; distinguishes an EXPLICIT pass from the harness's -1 sentinel that historically also swallowed formatting failures"}
+      }
+    }
+  }
+}

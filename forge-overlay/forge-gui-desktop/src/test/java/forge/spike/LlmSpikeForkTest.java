@@ -255,4 +255,109 @@ public class LlmSpikeForkTest {
     public void currentSeedString_numericGameSeedRendersCanonically() {
         Assert.assertEquals(LlmSpikeFork.currentSeedString(Map.of("GAME_SEED", "  4242  ")), "4242");
     }
+
+    // ================================================================================
+    // Rollout pure logic (Milestone D rollout implementation). These are the engine-independent
+    // pieces every WP number rests on: the seed mix, the forceable-type gate, the forced-index ->
+    // logged-choice mapping, the outcome tally, and the summary aggregation.
+    // ================================================================================
+
+    @Test
+    public void rolloutSeed_isDeterministicAndDistinguishesOptionAndJ() {
+        long base = 20017L;
+        // Same inputs -> same seed, every time (a rollout re-run with the same j must be byte-identical).
+        Assert.assertEquals(LlmSpikeFork.rolloutSeed(base, 0, 0), LlmSpikeFork.rolloutSeed(base, 0, 0));
+        // Different option or different j -> different continuation stream. Not a cryptographic
+        // guarantee, but SplitMix64's finalizer disperses single-bit input changes; equal outputs
+        // here would mean option/j collapse into one stream and all WPs collapse with them.
+        Assert.assertNotEquals(LlmSpikeFork.rolloutSeed(base, 0, 0), LlmSpikeFork.rolloutSeed(base, 1, 0));
+        Assert.assertNotEquals(LlmSpikeFork.rolloutSeed(base, 0, 0), LlmSpikeFork.rolloutSeed(base, 0, 1));
+        Assert.assertNotEquals(LlmSpikeFork.rolloutSeed(base, 1, 2), LlmSpikeFork.rolloutSeed(base, 2, 1));
+        // And a different base seed moves everything.
+        Assert.assertNotEquals(LlmSpikeFork.rolloutSeed(base, 0, 0), LlmSpikeFork.rolloutSeed(base + 1, 0, 0));
+    }
+
+    @Test
+    public void mix64_zeroIsNotAFixedPoint() {
+        // A naive xorshift without the multiply constants maps 0 -> 0; seed_base ^ 0 ^ 0 == seed_base
+        // makes (option 0, j 0) reuse the raw base seed unless the finalizer really mixes.
+        Assert.assertNotEquals(LlmSpikeFork.mix64(0L), 0L);
+    }
+
+    @Test
+    public void isForceableType_onlyPlayAndMulligan() {
+        Assert.assertTrue(LlmSpikeFork.isForceableType("play"));
+        Assert.assertTrue(LlmSpikeFork.isForceableType("mulligan"));
+        // Count-encoded types log a subset SIZE, not an index — forcing them is undefined in v1.
+        Assert.assertFalse(LlmSpikeFork.isForceableType("attackers"));
+        Assert.assertFalse(LlmSpikeFork.isForceableType("blockers"));
+        Assert.assertFalse(LlmSpikeFork.isForceableType("discard"));
+        Assert.assertFalse(LlmSpikeFork.isForceableType("target"));
+        Assert.assertFalse(LlmSpikeFork.isForceableType(null));
+    }
+
+    @Test
+    public void expectedLoggedChoice_playMapsPassSlotAndNegativesToMinusOne() {
+        // A 4-option play menu: 0..2 are real spells/lands, 3 is the trailing "PASS (do nothing)".
+        Assert.assertEquals(LlmSpikeFork.expectedLoggedChoice("play", 0, 4), 0);
+        Assert.assertEquals(LlmSpikeFork.expectedLoggedChoice("play", 2, 4), 2);
+        Assert.assertEquals(LlmSpikeFork.expectedLoggedChoice("play", 3, 4), -1); // PASS slot logs -1
+        Assert.assertEquals(LlmSpikeFork.expectedLoggedChoice("play", -1, 4), -1); // decline force
+    }
+
+    @Test
+    public void expectedLoggedChoice_mulliganMapsDeclineToKeep() {
+        Assert.assertEquals(LlmSpikeFork.expectedLoggedChoice("mulligan", 0, 2), 0);
+        Assert.assertEquals(LlmSpikeFork.expectedLoggedChoice("mulligan", 1, 2), 1);
+        Assert.assertEquals(LlmSpikeFork.expectedLoggedChoice("mulligan", -1, 2), 0); // decline == KEEP
+    }
+
+    @Test
+    public void outcomeSlot_forcedFailureIsInvalidNeverALoss() {
+        // The seat won but the force was not honoured -> invalid (3), NOT a win and NOT a loss.
+        Assert.assertEquals(LlmSpikeFork.outcomeSlot("A", true, false), 3);
+        Assert.assertEquals(LlmSpikeFork.outcomeSlot("B", true, false), 3);
+        Assert.assertEquals(LlmSpikeFork.outcomeSlot("invalid", true, true), 3);
+        Assert.assertEquals(LlmSpikeFork.outcomeSlot(null, true, true), 3);
+    }
+
+    @Test
+    public void outcomeSlot_identityKeyedWinLossDraw() {
+        Assert.assertEquals(LlmSpikeFork.outcomeSlot("A", true, true), 0);  // seat is A, A won -> win
+        Assert.assertEquals(LlmSpikeFork.outcomeSlot("B", true, true), 1);  // seat is A, B won -> loss
+        Assert.assertEquals(LlmSpikeFork.outcomeSlot("A", false, true), 1); // seat is B, A won -> loss
+        Assert.assertEquals(LlmSpikeFork.outcomeSlot("B", false, true), 0); // seat is B, B won -> win
+        Assert.assertEquals(LlmSpikeFork.outcomeSlot("draw", true, true), 2);
+    }
+
+    @Test
+    public void perOptionJson_aggregatesOnlyRolledOptionsInOrder() {
+        int[][] tally = new int[3][4];
+        tally[0] = new int[] {5, 2, 1, 0};
+        tally[2] = new int[] {0, 0, 0, 8};
+        long[][] seeds = new long[3][2];
+        seeds[0] = new long[] {11L, 22L};
+        seeds[2] = new long[] {33L, 44L};
+        String json = LlmSpikeFork.perOptionJson(tally, seeds, List.of(0, 2));
+        Assert.assertEquals(json,
+                "[{\"option\":0,\"wins\":5,\"losses\":2,\"draws\":1,\"invalid\":0,\"seeds\":[11,22]},"
+                + "{\"option\":2,\"wins\":0,\"losses\":0,\"draws\":0,\"invalid\":8,\"seeds\":[33,44]}]");
+    }
+
+    @Test
+    public void prefixMatches_detectsLengthAndRowDrift() {
+        List<String[]> a = new ArrayList<>();
+        a.add(new String[] {"play", "A", "3"});
+        a.add(new String[] {"mulligan", "B", "2"});
+        List<String[]> same = new ArrayList<>();
+        same.add(new String[] {"play", "A", "3"});
+        same.add(new String[] {"mulligan", "B", "2"});
+        Assert.assertTrue(LlmSpikeFork.prefixMatches(a, same));
+        List<String[]> shorter = new ArrayList<>(same.subList(0, 1));
+        Assert.assertFalse(LlmSpikeFork.prefixMatches(a, shorter));
+        List<String[]> drifted = new ArrayList<>();
+        drifted.add(new String[] {"play", "A", "3"});
+        drifted.add(new String[] {"mulligan", "B", "999"});
+        Assert.assertFalse(LlmSpikeFork.prefixMatches(a, drifted));
+    }
 }

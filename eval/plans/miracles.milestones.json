@@ -1,0 +1,104 @@
+{
+  "schema": "milestones.v1",
+  "deck": "miracles",
+  "plan_file": "eval/decks/miracles.plan",
+  "threat_names": [
+    "Monastery Mentor",
+    "Jace, the Mind Sculptor"
+  ],
+  "combo_pieces": [
+    "Counterbalance",
+    "Sensei's Divining Top"
+  ],
+  "milestones": [
+    {
+      "id": "top_by_2",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'card selection (Brainstorm, Ponder, Sensei's Divining Top)' — Top on the battlefield by turn 2.",
+      "turn_max": 2,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Sensei's Divining Top"
+      ]
+    },
+    {
+      "id": "cb_deployed",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'assemble the Counterbalance + Top soft-lock' — Counterbalance ever cast.",
+      "turn_max": 99,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Counterbalance"
+      ]
+    },
+    {
+      "id": "lock_assembled",
+      "kind": "combo_assembly_progress",
+      "weight": 1.0,
+      "description": "Plan: 'assemble the Counterbalance + Top soft-lock to counter their spells for free' — both pieces on the battlefield at once (PLAN-hold measures keeping the lock).",
+      "piece_names": [
+        "Counterbalance",
+        "Sensei's Divining Top"
+      ],
+      "zones": [
+        "board"
+      ],
+      "min_count": 2
+    },
+    {
+      "id": "swords_early",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: 'survive early with Swords to Plowshares' — rate Swords is cast when offered.",
+      "chosen_option_matches": [
+        "Swords to Plowshares"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "terminus_wipe",
+      "kind": "payoff_condition",
+      "weight": 1.0,
+      "description": "Plan: 'bury them with a miracled Terminus board wipe' — Terminus cast against a board of 4+ power.",
+      "chosen_option_matches": [
+        "Terminus"
+      ],
+      "requires_state": {
+        "opp_board_power_at_least": 4
+      }
+    },
+    {
+      "id": "cantrip_selection",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: 'card selection (Brainstorm, Ponder, ...)' — rate a cantrip is cast when offered.",
+      "chosen_option_matches": [
+        "Brainstorm",
+        "Ponder",
+        "Portent"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "wincon_deployed",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'Win slowly with Jace, the Mind Sculptor, Monastery Mentor, or Entreat the Angels' — a win condition ever cast.",
+      "turn_max": 99,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Jace, the Mind Sculptor",
+        "Monastery Mentor",
+        "Entreat the Angels"
+      ]
+    }
+  ],
+  "fixtures": [
+    "runs/tournament-1/match-QF-1/game-345-1784501361987.jsonl"
+  ],
+  "notes": ""
+}

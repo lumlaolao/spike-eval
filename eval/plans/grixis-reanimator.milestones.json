@@ -1,0 +1,120 @@
+{
+  "schema": "milestones.v1",
+  "deck": "grixis-reanimator",
+  "plan_file": "eval/decks/grixis-reanimator.plan",
+  "threat_names": [
+    "Griselbrand",
+    "Atraxa, Grand Unifier",
+    "Archon of Cruelty"
+  ],
+  "combo_pieces": [
+    "Griselbrand",
+    "Atraxa, Grand Unifier",
+    "Archon of Cruelty",
+    "Reanimate",
+    "Animate Dead",
+    "Shallow Grave"
+  ],
+  "milestones": [
+    {
+      "id": "enabler_by_2",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'a hand that can DISCARD a huge creature ... via Faithless Looting / Cabal Therapy / Unmask' — a discard enabler cast by turn 2.",
+      "turn_max": 2,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Faithless Looting",
+        "Cabal Therapy",
+        "Unmask",
+        "Thoughtseize"
+      ]
+    },
+    {
+      "id": "fatty_in_yard",
+      "kind": "combo_assembly_progress",
+      "weight": 1.0,
+      "description": "Plan: 'DISCARD a huge creature (Griselbrand, Atraxa Grand Unifier, Archon of Cruelty)' — a fatty visible in our graveyard.",
+      "piece_names": [
+        "Griselbrand",
+        "Atraxa, Grand Unifier",
+        "Archon of Cruelty"
+      ],
+      "zones": [
+        "yard"
+      ],
+      "min_count": 1
+    },
+    {
+      "id": "reanimate_by_3",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'then REANIMATE it turn 1-2 with Reanimate / Animate Dead / Shallow Grave' — a reanimation spell cast by turn 3 (log turns run one ahead of paper turns on the draw).",
+      "turn_max": 3,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Reanimate",
+        "Animate Dead",
+        "Shallow Grave"
+      ]
+    },
+    {
+      "id": "discard_then_reanimate",
+      "kind": "sequence_order",
+      "weight": 1.0,
+      "description": "Plan: discard enabler into reanimation — enabler first, reanimation spell later.",
+      "first": [
+        "Faithless Looting",
+        "Cabal Therapy",
+        "Unmask",
+        "Thoughtseize"
+      ],
+      "then": [
+        "Reanimate",
+        "Animate Dead",
+        "Shallow Grave"
+      ],
+      "within_turn": false,
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "reanimate_with_target",
+      "kind": "payoff_condition",
+      "weight": 1.0,
+      "description": "Plan: 'REANIMATE it' — a reanimation spell cast while a fatty is actually in our yard (not a blind cast).",
+      "chosen_option_matches": [
+        "Reanimate",
+        "Animate Dead",
+        "Shallow Grave"
+      ],
+      "requires_state": {
+        "own_yard_count_at_least": {
+          "names": [
+            "Griselbrand",
+            "Atraxa, Grand Unifier",
+            "Archon of Cruelty"
+          ],
+          "n": 1
+        }
+      }
+    },
+    {
+      "id": "ritual_speed",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: '(Dark Ritual + Lotus Petal for speed)' — rate fast mana is used when offered.",
+      "chosen_option_matches": [
+        "Dark Ritual",
+        "Lotus Petal"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    }
+  ],
+  "fixtures": [
+    "runs/improve/validate/game-41-1784663613519.jsonl",
+    "runs/tournament-1/match-QF-4/game-348-1784510850411.jsonl",
+    "runs/tournament-1/match-SF-2/game-348-1784514987630.jsonl"
+  ],
+  "notes": ""
+}

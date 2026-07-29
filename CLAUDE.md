@@ -82,12 +82,31 @@ are only comparable within one engine version.
   eval game-summary JSONL line. Use for all eval/batch work.
 - `run-llm-spike.sh` / `run-llm-headless.sh` — launchers (installed into the forge repo root).
 - `eval/` — batch driver + statistics (`run_batch.py`, `aggregate.py`; stdlib-only,
-  `python3 eval/test_aggregate.py` must pass).
+  Python 3.9 — no match statements, no `X | Y` runtime unions, no pip).
+- **Eval v1.0 modules** (2026-07, see `eval/EVAL-V1.md` for the full walkthrough):
+  `eval/prompt_contract.py` (frozen prompt/reply contract, `contract_sha`),
+  `eval/puzzle_run.py` (PUZ axis; only the `offline` backend has end-to-end evidence —
+  `--backend openrouter` sends no auth header and cannot work in v1),
+  `eval/verify_keys.py` (candidate→answer-key promotion),
+  `eval/plan_adherence.py` + `eval/plans/*.milestones.json` (PLAN axis),
+  `eval/blunder_flags.py` + `eval/blunder_report.py` (DQ/PUNT axes),
+  `eval/build_report.py` (five-axis scorecard, `scorecard.json`).
+  Java rollout support: `forge-overlay/.../LlmSpikeFork.java` — compiles + canary-green
+  but has NEVER produced win probabilities in a real run.
+  **No verified golden puzzle suite exists yet** (Phase 1.2 not run; 3 verified
+  positions repo-wide); DQ is unmeasured (all corpora textlane-only — never add
+  `punt.rate_textlane` to the rollout punt rate); PLAN resolves a deck only on
+  `runs/stage0-calibration`.
 - `README.md` — full env-var table and the hard-won-lessons list. Read the lessons
   before touching the priority loop or targeting code.
 
 ## Validation ladder (cheapest first — always start at the bottom)
 
+0. **Python eval suite** (free, seconds, no JVM): every `eval/test_*.py` must pass —
+   `for f in eval/test_*.py; do python3 "$f" >/dev/null || echo "FAIL $f"; done`
+   (20 files as of v1.0, incl. `test_prompt_contract` / `test_puzzle_run` /
+   `test_verify_keys` / `test_plan_adherence` / `test_blunder_flags` /
+   `test_blunder_report` / `test_build_report`). Never weaken a test to pass it.
 1. **Harness mechanics** (seeding, JSONL, arms, engine plumbing):
    `GAME_SEED=42 CONTROLLER_A=floor CONTROLLER_B=floor bash run-llm-headless.sh`
    — zero model calls, ~12s per full game, bit-reproducible. Seed 42 floor mirror

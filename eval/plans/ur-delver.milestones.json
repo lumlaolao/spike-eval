@@ -1,0 +1,96 @@
+{
+  "schema": "milestones.v1",
+  "deck": "ur-delver",
+  "plan_file": "eval/decks/ur-delver.plan",
+  "threat_names": [
+    "Delver of Secrets",
+    "Dragon's Rage Channeler",
+    "Ragavan, Nimble Pilferer",
+    "Murktide Regent"
+  ],
+  "combo_pieces": [],
+  "milestones": [
+    {
+      "id": "threat_by_2",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'land a cheap threat early (Delver of Secrets, Dragon's Rage Channeler, Ragavan, Murktide Regent)' — first threat cast by turn 2.",
+      "turn_max": 2,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Delver of Secrets",
+        "Dragon's Rage Channeler",
+        "Ragavan, Nimble Pilferer",
+        "Murktide Regent"
+      ]
+    },
+    {
+      "id": "threat_by_3",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Softer variant of threat_by_2 for the same plan sentence 'land a cheap threat early' — gradient between turn-2 and never.",
+      "turn_max": 3,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Delver of Secrets",
+        "Dragon's Rage Channeler",
+        "Ragavan, Nimble Pilferer",
+        "Murktide Regent"
+      ]
+    },
+    {
+      "id": "protect_held",
+      "kind": "protection_usage",
+      "weight": 1.0,
+      "description": "Plan: 'then protect it and race' / 'Counter their key spells with Daze, Force of Will, Spell Pierce' — protection castable while a threat is on our board. Ported from process_metrics.plan_adherence.",
+      "chosen_option_matches": [
+        "Daze",
+        "Force of Will",
+        "Spell Pierce",
+        "Force of Negation"
+      ],
+      "requires_state": "own_threat_on_battlefield"
+    },
+    {
+      "id": "burn_split",
+      "kind": "target_split",
+      "weight": 1.0,
+      "description": "Plan: 'burn their blockers and face with Lightning Bolt/Chain Lightning' — face vs creature split of burn targeting. Ported from process_metrics burn_target_split.",
+      "spells": [
+        "Lightning Bolt",
+        "Chain Lightning"
+      ],
+      "report": "face_vs_creature_ratio"
+    },
+    {
+      "id": "wasteland_on_nonbasic",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: 'Wasteland their duals' — rate the Wasteland sacrifice activation is taken when offered on a play menu.",
+      "chosen_option_matches": [
+        "Wasteland"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "reach_burn_low_life",
+      "kind": "payoff_condition",
+      "weight": 1.0,
+      "description": "Plan: 'race while denying their mana' / 'count clock vs their outs' — burn pointed while the opponent is at 6 or less (reach).",
+      "chosen_option_matches": [
+        "Lightning Bolt",
+        "Chain Lightning"
+      ],
+      "requires_state": {
+        "opp_life_at_most": 6
+      }
+    }
+  ],
+  "fixtures": [
+    "runs/ab-quality-1/fix/game-301-1784691234857.jsonl",
+    "runs/ab-quality-1/fix/game-301-1784691236396.jsonl",
+    "runs/ab-quality-1/fix/game-302-1784691463247.jsonl"
+  ],
+  "notes": "Generalisation of the UR-Delver triple in eval/process_metrics.py (THREATS/PROTECTION/BURN) into milestones.v1 data."
+}

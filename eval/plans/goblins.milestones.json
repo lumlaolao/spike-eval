@@ -1,0 +1,107 @@
+{
+  "schema": "milestones.v1",
+  "deck": "goblins",
+  "plan_file": "eval/decks/goblins.plan",
+  "threat_names": [
+    "Goblin Lackey",
+    "Krenko, Mob Boss"
+  ],
+  "combo_pieces": [
+    "Goblin Lackey",
+    "Aether Vial",
+    "Goblin Matron",
+    "Goblin Ringleader",
+    "Krenko, Mob Boss"
+  ],
+  "milestones": [
+    {
+      "id": "lackey_or_vial_by_1",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'explode with Goblin Lackey (put fatties into play) and Aether Vial' — one of them on turn 1.",
+      "turn_max": 1,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Goblin Lackey",
+        "Aether Vial"
+      ]
+    },
+    {
+      "id": "matron_chain",
+      "kind": "sequence_order",
+      "weight": 1.0,
+      "description": "Plan: 'chain card advantage via Goblin Ringleader and Goblin Matron tutors' — Matron first, the fetched threat cast later.",
+      "first": [
+        "Goblin Matron"
+      ],
+      "then": [
+        "Goblin Ringleader",
+        "Krenko, Mob Boss",
+        "Gempalm Incinerator",
+        "Munitions Expert"
+      ],
+      "within_turn": false,
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "ringleader_refill",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'refill with Ringleader' — Goblin Ringleader ever cast.",
+      "turn_max": 99,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Goblin Ringleader"
+      ]
+    },
+    {
+      "id": "lord_buff",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'buff the team with Goblin Warchief/Chieftain' — a lord ever cast.",
+      "turn_max": 99,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Goblin Warchief",
+        "Goblin Chieftain"
+      ]
+    },
+    {
+      "id": "mana_denial",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: 'Wasteland + Rishadan Port deny mana while you beat down' — rate a denial activation is taken when offered.",
+      "chosen_option_matches": [
+        "Wasteland",
+        "Rishadan Port"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "swarm_board",
+      "kind": "combo_assembly_progress",
+      "weight": 1.0,
+      "description": "Plan: 'Krenko, Mob Boss goes wide fast' / 'swarm' — 3+ distinct goblin names on the battlefield at once.",
+      "piece_names": [
+        "Goblin Lackey",
+        "Mogg War Marshal",
+        "Goblin Matron",
+        "Goblin Ringleader",
+        "Goblin Warchief",
+        "Krenko, Mob Boss",
+        "Skirk Prospector",
+        "Goblin Sharpshooter"
+      ],
+      "zones": [
+        "board"
+      ],
+      "min_count": 3
+    }
+  ],
+  "fixtures": [
+    "runs/d0-validate/game-900-1784832336440.jsonl",
+    "runs/tournament-1/match-QF-3/game-347-1784506647424.jsonl"
+  ],
+  "notes": "Vial and Lackey put creatures into play without casting; those deployments are invisible to chosen-option matching, so deploy milestones under-count Vial/Lackey games. Documented."
+}

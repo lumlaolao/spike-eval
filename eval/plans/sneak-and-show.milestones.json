@@ -1,0 +1,111 @@
+{
+  "schema": "milestones.v1",
+  "deck": "sneak-and-show",
+  "plan_file": "eval/decks/sneak-and-show.plan",
+  "threat_names": [
+    "Sneak Attack",
+    "Emrakul, the Aeons Torn",
+    "Griselbrand",
+    "Atraxa, Grand Unifier"
+  ],
+  "combo_pieces": [
+    "Show and Tell",
+    "Sneak Attack",
+    "Emrakul, the Aeons Torn",
+    "Griselbrand",
+    "Atraxa, Grand Unifier"
+  ],
+  "milestones": [
+    {
+      "id": "combo_in_hand",
+      "kind": "combo_assembly_progress",
+      "weight": 1.0,
+      "description": "Plan: 'Dig with Brainstorm/Ponder/Preordain to assemble enabler + fatty' — 2+ combo pieces held in hand.",
+      "piece_names": [
+        "Show and Tell",
+        "Sneak Attack",
+        "Emrakul, the Aeons Torn",
+        "Griselbrand",
+        "Atraxa, Grand Unifier"
+      ],
+      "zones": [
+        "hand"
+      ],
+      "min_count": 2
+    },
+    {
+      "id": "enabler_by_3",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'Ancient Tomb/City of Traitors power out turn-1-2 kills' — Show and Tell or Sneak Attack cast by turn 3.",
+      "turn_max": 3,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Show and Tell",
+        "Sneak Attack"
+      ]
+    },
+    {
+      "id": "enabler_then_fatty",
+      "kind": "sequence_order",
+      "weight": 1.0,
+      "description": "Plan: 'use Show and Tell or Sneak Attack to cheat Emrakul the Aeons Torn or Griselbrand into play' — enabler first, fatty chosen/deployed later (entity picks from Show and Tell carry no CAST prefix, so none is required).",
+      "first": [
+        "Show and Tell",
+        "Sneak Attack"
+      ],
+      "then": [
+        "Emrakul, the Aeons Torn",
+        "Griselbrand",
+        "Atraxa, Grand Unifier"
+      ],
+      "within_turn": false,
+      "require_prefix": null
+    },
+    {
+      "id": "fatty_in_play",
+      "kind": "combo_assembly_progress",
+      "weight": 1.0,
+      "description": "Plan: 'cheat Emrakul ... or Griselbrand into play far ahead of curve' — a fatty on our battlefield.",
+      "piece_names": [
+        "Emrakul, the Aeons Torn",
+        "Griselbrand",
+        "Atraxa, Grand Unifier"
+      ],
+      "zones": [
+        "board"
+      ],
+      "min_count": 1
+    },
+    {
+      "id": "protection_held",
+      "kind": "protection_usage",
+      "weight": 1.0,
+      "description": "Plan: 'protect the key spell with Force of Will and Spell Pierce' — protection castable while a combo permanent is on board.",
+      "chosen_option_matches": [
+        "Force of Will",
+        "Spell Pierce"
+      ],
+      "requires_state": "own_threat_on_battlefield"
+    },
+    {
+      "id": "cantrip_dig",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: 'Dig with Brainstorm/Ponder/Preordain' — rate a cantrip is cast when offered.",
+      "chosen_option_matches": [
+        "Brainstorm",
+        "Ponder",
+        "Preordain"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    }
+  ],
+  "fixtures": [
+    "runs/tournament-1/match-F-1/game-264-1784515705553.jsonl",
+    "runs/tournament-1/match-QF-3/game-347-1784506647424.jsonl",
+    "runs/tournament-1/match-SF-2/game-348-1784514987630.jsonl"
+  ],
+  "notes": "enabler_then_fatty with require_prefix null also matches a hard-cast fatty after an enabler; acceptable over-count, documented."
+}

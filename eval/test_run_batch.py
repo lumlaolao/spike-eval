@@ -92,11 +92,53 @@ class TestSeedGuardWiring(unittest.TestCase):
                 registry, list(range(7100, 7125))), [])
 
     def test_dagger_territory_is_refused(self):
+        """Dagger-band seeds must be refused on BOTH counts: policy (not
+        eval-only) and corpus presence.
+
+        The corpus half is checked against a synthetic datasets dir rather
+        than the repo's own. `datasets/` is gitignored, so scanning it made
+        this assertion depend on whether the author happened to have the
+        dagger corpora on disk -- it passed in a checkout that had them and
+        failed in a fresh worktree that did not, which is a test reporting
+        ambient state rather than code behavior.
+        """
         registry = run_batch.seed_registry.load_registry()
+
+        # Policy half: seed-band classification, no corpus scan involved.
+        # Empty seeds_by_corpus isolates this from any on-disk datasets.
         problems = run_batch.seed_registry.cited_seed_violations(
-            registry, [9100, 9101, 9102])
-        self.assertTrue(any("not eval-only" in p for p in problems))
-        self.assertTrue(any("training corpus" in p for p in problems))
+            registry, [9100, 9101, 9102], seeds_by_corpus={})
+        self.assertTrue(any("not eval-only" in p for p in problems), problems)
+
+        # Corpus half: a corpus that demonstrably contains those seeds.
+        with tempfile.TemporaryDirectory() as tmp:
+            corpus = Path(tmp) / "stage2-dagger-fixture"
+            corpus.mkdir()
+            (corpus / "meta.jsonl").write_text(
+                "".join('{"seed": %d}\n' % s for s in (9100, 9101, 9102)),
+                encoding="utf-8")
+            problems = run_batch.seed_registry.cited_seed_violations(
+                registry, [9100, 9101, 9102], datasets_dir=tmp)
+        self.assertTrue(any("training corpus" in p for p in problems),
+                        problems)
+        self.assertTrue(any("stage2-dagger-fixture" in p for p in problems),
+                        problems)
+
+    def test_a_clean_corpus_does_not_trip_the_corpus_check(self):
+        """Negative control for the fixture above: same seeds, a corpus that
+        does not contain them -> the 'training corpus' problem must NOT be
+        raised. Without this, the assertion above could pass on a check that
+        fires unconditionally."""
+        registry = run_batch.seed_registry.load_registry()
+        with tempfile.TemporaryDirectory() as tmp:
+            corpus = Path(tmp) / "unrelated-corpus"
+            corpus.mkdir()
+            (corpus / "meta.jsonl").write_text(
+                '{"seed": 12345}\n', encoding="utf-8")
+            problems = run_batch.seed_registry.cited_seed_violations(
+                registry, [9100, 9101, 9102], datasets_dir=tmp)
+        self.assertFalse(any("training corpus" in p for p in problems),
+                         problems)
 
     def test_seed_bank_labels(self):
         registry = run_batch.seed_registry.load_registry()

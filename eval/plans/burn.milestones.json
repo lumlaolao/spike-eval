@@ -1,0 +1,109 @@
+{
+  "schema": "milestones.v1",
+  "deck": "burn",
+  "plan_file": "eval/decks/burn.plan",
+  "threat_names": [
+    "Goblin Guide",
+    "Monastery Swiftspear",
+    "Eidolon of the Great Revel"
+  ],
+  "combo_pieces": [],
+  "milestones": [
+    {
+      "id": "one_drop_by_1",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'deploy one-drops (Goblin Guide, Monastery Swiftspear ...) for extra reach' — a one-drop cast on turn 1.",
+      "turn_max": 1,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Goblin Guide",
+        "Monastery Swiftspear"
+      ]
+    },
+    {
+      "id": "creature_by_2",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Same plan sentence, softer: any creature threat (including Eidolon of the Great Revel) by turn 2.",
+      "turn_max": 2,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Goblin Guide",
+        "Monastery Swiftspear",
+        "Eidolon of the Great Revel"
+      ]
+    },
+    {
+      "id": "eidolon_by_3",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'deploy one-drops (..., Eidolon of the Great Revel)' — the two-drop tax body on the battlefield by turn 3.",
+      "turn_max": 3,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Eidolon of the Great Revel"
+      ]
+    },
+    {
+      "id": "face_ratio",
+      "kind": "target_split",
+      "weight": 1.0,
+      "description": "Plan: 'point every burn spell ... at the opponent's FACE' and 'Only kill their creatures if you'd otherwise die' — face vs creature split over burn target menus.",
+      "spells": [
+        "Lightning Bolt",
+        "Chain Lightning",
+        "Lava Spike",
+        "Rift Bolt",
+        "Fireblast",
+        "Searing Blaze"
+      ],
+      "report": "face_vs_creature_ratio"
+    },
+    {
+      "id": "price_on_nonbasics",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: 'Price of Progress punishes nonbasics' — rate Price of Progress is cast when offered.",
+      "chosen_option_matches": [
+        "Price of Progress"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    },
+    {
+      "id": "burn_in_lethal_range",
+      "kind": "payoff_condition",
+      "weight": 1.0,
+      "description": "Plan: 'Count lethal every turn; you usually win by turn 4 — race, don't durdle' — a burn spell cast with the opponent at 9 or less (inside a 3-spell kill window).",
+      "chosen_option_matches": [
+        "Lightning Bolt",
+        "Chain Lightning",
+        "Lava Spike",
+        "Rift Bolt",
+        "Fireblast"
+      ],
+      "requires_state": {
+        "opp_life_at_most": 9
+      }
+    },
+    {
+      "id": "fireblast_finisher",
+      "kind": "payoff_condition",
+      "weight": 1.0,
+      "description": "Plan: '(..., Fireblast) at the opponent's FACE' — Fireblast fired with the opponent at 4 or less (the free-spell finisher).",
+      "chosen_option_matches": [
+        "Fireblast"
+      ],
+      "requires_state": {
+        "opp_life_at_most": 4
+      }
+    }
+  ],
+  "fixtures": [
+    "runs/ab-builds/STAGE0/smoke/game-42-1784690564004.jsonl",
+    "runs/ab-quality-1/fix/game-301-1784691234857.jsonl",
+    "runs/ab-quality-1/fix/game-301-1784691236396.jsonl"
+  ],
+  "notes": "Burn is a race deck; the profile is deploy-speed plus face discipline, there is no combo assembly to hold."
+}

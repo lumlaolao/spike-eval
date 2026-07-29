@@ -1,0 +1,99 @@
+{
+  "schema": "milestones.v1",
+  "deck": "cephalid-breakfast",
+  "plan_file": "eval/decks/cephalid-breakfast.plan",
+  "threat_names": [
+    "Cephalid Illusionist"
+  ],
+  "combo_pieces": [
+    "Cephalid Illusionist",
+    "Nomads en-Kor",
+    "Shuko",
+    "Narcomoeba",
+    "Dread Return",
+    "Thassa's Oracle"
+  ],
+  "milestones": [
+    {
+      "id": "illusionist_by_3",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'pair Cephalid Illusionist with a free-untap targeting outlet' — the Illusionist on the battlefield by turn 3.",
+      "turn_max": 3,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Cephalid Illusionist"
+      ]
+    },
+    {
+      "id": "combo_pair_assembled",
+      "kind": "combo_assembly_progress",
+      "weight": 1.0,
+      "description": "Plan: 'pair Cephalid Illusionist with a free-untap targeting outlet (Nomads en-Kor or a Shuko ...)' — 2+ of the pair visible in hand/board.",
+      "piece_names": [
+        "Cephalid Illusionist",
+        "Nomads en-Kor",
+        "Shuko"
+      ],
+      "zones": [
+        "hand",
+        "board"
+      ],
+      "min_count": 2
+    },
+    {
+      "id": "narcomoeba_online",
+      "kind": "combo_assembly_progress",
+      "weight": 1.0,
+      "description": "Plan: 'The dumped Narcomoebas hit the battlefield' — mill has started once a Narcomoeba is visible on board or in the yard.",
+      "piece_names": [
+        "Narcomoeba"
+      ],
+      "zones": [
+        "board",
+        "yard"
+      ],
+      "min_count": 1
+    },
+    {
+      "id": "payoff_cast",
+      "kind": "deploy_by_turn",
+      "weight": 1.0,
+      "description": "Plan: 'flash back Dread Return ... or resolve Thassa's Oracle with an empty library to win' — a payoff ever cast.",
+      "turn_max": 99,
+      "require_prefix": "CAST",
+      "chosen_option_matches": [
+        "Dread Return",
+        "Thassa's Oracle"
+      ]
+    },
+    {
+      "id": "protect_combo",
+      "kind": "protection_usage",
+      "weight": 1.0,
+      "description": "Plan: 'Set up and protect with Brainstorm, Ponder, Force of Will ...; Orim's Chant / Cabal Therapy buy a clean turn' — protection castable while the Illusionist is on board.",
+      "chosen_option_matches": [
+        "Force of Will",
+        "Orim's Chant",
+        "Cabal Therapy"
+      ],
+      "requires_state": "own_threat_on_battlefield"
+    },
+    {
+      "id": "cantrip_dig",
+      "kind": "resource_discipline",
+      "weight": 1.0,
+      "description": "Plan: 'Set up ... with Brainstorm, Ponder' — rate a cantrip is cast when offered.",
+      "chosen_option_matches": [
+        "Brainstorm",
+        "Ponder"
+      ],
+      "denominator": "offered",
+      "require_prefix": "CAST"
+    }
+  ],
+  "fixtures": [
+    "runs/d0-validate/game-901-1784832341568.jsonl"
+  ],
+  "notes": "The mill loop itself is stack-heavy activations; only its observable checkpoints (pair assembled, Narcomoeba visible, payoff cast) are text-extractable."
+}

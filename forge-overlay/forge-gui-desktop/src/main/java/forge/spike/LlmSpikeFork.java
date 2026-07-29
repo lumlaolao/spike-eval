@@ -1,6 +1,8 @@
 package forge.spike;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,6 +25,7 @@ import forge.game.player.RegisteredPlayer;
 import forge.gui.GuiBase;
 import forge.localinstance.properties.ForgePreferences.FPref;
 import forge.model.FModel;
+import forge.util.MyRandom;
 
 /**
  * Milestone D — replay-and-rollout harness (eval/EVAL-DESIGN.md §3.1). Delegated to from
@@ -52,8 +55,20 @@ import forge.model.FModel;
  *       describing that decision (type/seat/turn/phase/n_options/options/state snapshot), answer
  *       it exactly as the deterministic controller already had (unchanged), then terminate the
  *       game so the JVM exits promptly.</li>
- *   <li><b>rollout</b> — validates its args and stops: {@code FORK-ROLLOUT NOT-IMPLEMENTED (see
- *       HANDOFF)}, exit 3. See {@link #applyOptionAndRolloutSTUB()} for the scoped design.</li>
+ *   <li><b>rollout</b> — the EVAL-DESIGN §3.1(b) answer-key generator. Replays the deterministic
+ *       prefix from turn 1 (a fresh Match per rollout — replay-from-index, never a mid-stack
+ *       GameCopier; that is the v1-mandated mechanism), installs {@link LlmSpikeGui#FORK_FORCER} so
+ *       the decision at {@code FORK_DECISION_INDEX} takes option {@code o} instead of the
+ *       controller's own pick, reseeds the shared {@code MyRandom} stream at that exact moment with
+ *       {@code rollout_seed = mix64(seed_base ^ (o*C1) ^ (j*C2))}, and lets the game run to
+ *       completion. One {@code t:"fork_rollout"} jsonl row per (option, j) plus one
+ *       {@code t:"fork_rollout_summary"} row land in {@code FORK_ROLLOUT_OUT}. v1 forces ONLY
+ *       {@code play} and {@code mulligan} (index-encoded types); count-encoded types (attackers,
+ *       blockers, discard, ...) log a subset SIZE, not an index — there is no per-option object to
+ *       force, so they are refused (exit 2; the old exit 3 "not implemented" is RETIRED).
+ *       Continuation policy note: plain {@code ai} seats use untouched {@code LobbyPlayerAi} and
+ *       never reach the forcer or the decision log — the loggable+forceable ai arm is
+ *       {@code ai-log} (hence the driver-side ROLLOUT_CONTINUATION constant "ai-log/ai-log").</li>
  * </ul>
  */
 public final class LlmSpikeFork {
@@ -63,8 +78,10 @@ public final class LlmSpikeFork {
      *  that expects further work (mirrors {@link LlmSpikeHeadless#main}'s own explicit-exit
      *  discipline — bridges/subprocess pipes aside, an explicit exit keeps behavior identical
      *  across modes instead of depending on daemon-thread cleanup).
-     *  <p>Exit-code contract: 0 = OK, 2 = refused (bad args / provenance mismatch), 3 = rollout
-     *  not implemented, 4 = REPLAY-DRIFT, 5 = REPLAY-FAILED (worker error mid-game). Any
+     *  <p>Exit-code contract: 0 = OK, 2 = refused (bad args / provenance mismatch / decision type
+     *  not forceable in v1), 3 = RETIRED (was "rollout not implemented"; never returned now that
+     *  rollout is real — non-forceable targets refuse with 2 like every other refusal),
+     *  4 = REPLAY-DRIFT, 5 = REPLAY-FAILED (worker error mid-game / leaked game thread). Any
      *  exception escaping this method (e.g. {@code FModel} init failure, unreadable
      *  {@code FORK_SOURCE}) propagates to {@code main} and exits with the JVM default
      *  {@code 1} — callers switching on exit codes must treat 1 as "infrastructure failure,
@@ -82,7 +99,12 @@ public final class LlmSpikeFork {
 
     // ==================== shared arg validation ====================
 
-    private static final Set<String> DETERMINISTIC_CONTROLLERS = Set.of("floor", "random", "ai");
+    /** Bit-reproducible arms. "ai-log" (PlayerControllerAiLogging) was added for rollout: it is the
+     *  only ai arm that both LOGS decision rows (through emitDecisionRow, so fork indices exist) and
+     *  can be FORCED (LlmSpikeGui.forkForce is wired into its play/mulligan overrides); plain "ai"
+     *  is untouched LobbyPlayerAi and does neither. ai-log routes every decision through the same
+     *  Forge AI as "ai", so it is equally seed-deterministic. */
+    private static final Set<String> DETERMINISTIC_CONTROLLERS = Set.of("floor", "random", "ai", "ai-log");
 
     /** Refuses (exit 2) unless CONTROLLER_A/B are both set to a bit-reproducible arm and EVAL_OUT
      *  is set (every fork mode needs the decision jsonl — even the enumerate/rollout stub path
@@ -95,14 +117,14 @@ public final class LlmSpikeFork {
         String evalOut = System.getenv("EVAL_OUT");
         List<String> problems = new ArrayList<>();
         if (ctlA == null || !DETERMINISTIC_CONTROLLERS.contains(ctlA))
-            problems.add("CONTROLLER_A must be one of floor|random|ai (got '" + ctlA + "')");
+            problems.add("CONTROLLER_A must be one of floor|random|ai|ai-log (got '" + ctlA + "')");
         if (ctlB == null || !DETERMINISTIC_CONTROLLERS.contains(ctlB))
-            problems.add("CONTROLLER_B must be one of floor|random|ai (got '" + ctlB + "')");
+            problems.add("CONTROLLER_B must be one of floor|random|ai|ai-log (got '" + ctlB + "')");
         if (evalOut == null || evalOut.isEmpty())
             problems.add("EVAL_OUT must be set (fork modes read/write the decision jsonl)");
         if (!problems.isEmpty()) {
             System.err.println("[FORK] refusing: an llm controller cannot be replayed deterministically "
-                    + "(FORK_MODE requires floor|random|ai — see CLAUDE.md validation ladder).");
+                    + "(FORK_MODE requires floor|random|ai|ai-log — see CLAUDE.md validation ladder).");
             for (String p : problems) System.err.println("  - " + p);
             System.exit(2);
         }
@@ -401,79 +423,397 @@ public final class LlmSpikeFork {
         System.exit(0);
     }
 
-    // ==================== rollout mode (stub) ====================
+    // ==================== rollout mode ====================
 
-    private static void runRollout() throws Exception {
-        requireDeterministicControllers();
-        requireDecisionIndex(); // validated for parity with enumerate; unused until implemented
-        System.out.println("FORK-ROLLOUT NOT-IMPLEMENTED (see HANDOFF)");
-        System.exit(3);
+    // Two large odd constants for the SplitMix64-style rollout seed mix (see rolloutSeed).
+    static final long ROLLOUT_C1 = 0x9E3779B97F4A7C15L;
+    static final long ROLLOUT_C2 = 0xC2B2AE3D27D4EB4FL;
+
+    /** SplitMix64 finalizer. Pure; unit-tested in LlmSpikeForkTest. */
+    static long mix64(long z) {
+        z = (z ^ (z >>> 30)) * 0xBF58476D1CE4E5B9L;
+        z = (z ^ (z >>> 27)) * 0x94D049BB133111EBL;
+        return z ^ (z >>> 31);
+    }
+
+    /** {@code rollout_seed = mix64(base ^ (option*C1) ^ (j*C2))} — the exact function the Python
+     *  driver records as {@code seed_fn: "mix64(base_seed ^ (i*C1) ^ (j*C2))"}. */
+    static long rolloutSeed(long base, int option, int j) {
+        return mix64(base ^ (option * ROLLOUT_C1) ^ (j * ROLLOUT_C2));
+    }
+
+    /** v1 forceable gate: only index-encoded types whose forced index maps unambiguously to an
+     *  engine object. Count-encoded types (attackers/blockers/discard/...) log a subset SIZE, not
+     *  an index — there is nothing to force per option. */
+    static boolean isForceableType(String type) {
+        return "play".equals(type) || "mulligan".equals(type);
+    }
+
+    /** The {@code choice} value the decision row at the forced index must log if the forcer was
+     *  honoured: play logs the 0-based option index, except the trailing PASS slot (and any
+     *  negative force) which logs -1; mulligan logs 0 (KEEP, also for a -1 decline force) or 1. */
+    static int expectedLoggedChoice(String type, int option, int nOptions) {
+        if ("mulligan".equals(type)) return option == 1 ? 1 : 0;
+        return (option < 0 || option >= nOptions - 1) ? -1 : option;
+    }
+
+    /** Tally slot for one finished rollout: 0=win (the decision seat won), 1=loss, 2=draw,
+     *  3=invalid. A rollout whose force was NOT honoured is always invalid, never a loss. */
+    static int outcomeSlot(String winner, boolean seatIsA, boolean forcedOk) {
+        if (!forcedOk || winner == null || "invalid".equals(winner)) return 3;
+        if ("draw".equals(winner)) return 2;
+        if (!"A".equals(winner) && !"B".equals(winner)) return 3;
+        return "A".equals(winner) == seatIsA ? 0 : 1;
+    }
+
+    /** The summary row's per_option array. {@code targets} lists the option indices actually rolled
+     *  (FORK_ROLLOUT_OPTION may restrict to one). Pure; unit-tested in LlmSpikeForkTest. */
+    static String perOptionJson(int[][] tally, long[][] seeds, List<Integer> targets) {
+        StringBuilder sb = new StringBuilder("[");
+        boolean first = true;
+        for (int o : targets) {
+            if (!first) sb.append(',');
+            first = false;
+            sb.append("{\"option\":").append(o)
+                    .append(",\"wins\":").append(tally[o][0])
+                    .append(",\"losses\":").append(tally[o][1])
+                    .append(",\"draws\":").append(tally[o][2])
+                    .append(",\"invalid\":").append(tally[o][3])
+                    .append(",\"seeds\":[");
+            for (int j = 0; j < seeds[o].length; j++) {
+                if (j > 0) sb.append(',');
+                sb.append(seeds[o][j]);
+            }
+            sb.append("]}");
+        }
+        return sb.append(']').toString();
+    }
+
+    /** What the probe game captured at FORK_DECISION_INDEX, plus the pre-index decision-row prefix
+     *  every rollout's own prefix is diffed against (a perturbed prefix means every WP is wrong —
+     *  the rollout correctness gate, enforced per rollout, not just in the validation ladder). */
+    static final class ProbeResult {
+        String type; String seat; String phase;
+        int turn; int nOptions; int choice;
+        List<String> options;
+        final List<String[]> prefix = new ArrayList<>();
     }
 
     /**
-     * STUB — Milestone D rollout is not implemented. Unreachable in v1: {@link #runRollout()}
-     * always exits before this could be called. Left as the concrete entry point + design
-     * contract for the real implementation; see HANDOFF.md at the worktree root for the full
-     * writeup.
+     * FORK_MODE=rollout. Env contract (ALL validated before any engine work):
+     * FORK_DECISION_INDEX=&lt;i&gt;, FORK_ROLLOUT_OPTION=&lt;o or 'all' (default)&gt;,
+     * FORK_ROLLOUT_N=&lt;j count, default 16&gt;, FORK_ROLLOUT_SEED_BASE=&lt;long, default GAME_SEED&gt;,
+     * FORK_ROLLOUT_OUT=&lt;jsonl path or dir; defaults to EVAL_OUT&gt;, plus the usual
+     * EVAL_OUT/CONTROLLER_A/B/GAME_SEED/DECK_A/B/DECK_A_NAME/B_NAME.
      *
-     * <p>Intended behavior:
-     * <ol>
-     *   <li>Replay deterministically to {@code FORK_DECISION_INDEX} using the same mechanism as
-     *       {@link #runEnumerate()} / {@link #playDeterministicGame}, but instead of terminating
-     *       at the hook, capture the live option set and let the harness force a SPECIFIC option
-     *       (index {@code i} into the same {@code options} list the enumerate row already logs;
-     *       for "play" rows this includes the PASS slot, matching the play row's own
-     *       {@code choice=-1} PASS encoding). {@link LlmSpikeGui.ForkHook} today only receives the
-     *       string labels {@code emitDecisionRow} builds, not the underlying engine objects
-     *       (SpellAbility / blocker assignment / etc.) — extending the hook, or re-deriving those
-     *       objects by re-running the controller's own option-enumeration for that decision type,
-     *       is the first sub-task.</li>
-     *   <li>Add a "forced" controller mode (or an index-injection hook) to
-     *       {@code PlayerControllerLLM} so a specific decision can be steered to option {@code i}
-     *       instead of the deterministic controller's own floor/random pick, then let the game
-     *       continue normally from there.</li>
-     *   <li>Roll out to completion N times per option, reseeding ONLY the post-decision
-     *       randomness for each rollout {@code j}: {@code rollout_seed = f(base_seed, option_i, j)}.
-     *       Simplest sound choice (verify against MyRandom's actual contract before trusting it —
-     *       do not assume): a SplitMix64-style mix, e.g.
-     *       {@code rollout_seed = mix64(base_seed ^ (option_i * C1) ^ (j * C2))} for two large odd
-     *       constants, applied via {@code MyRandom.setRandom(...)} at the moment of the forced
-     *       decision — NOT at process start, since the pre-decision prefix must stay bit-identical
-     *       across every rollout of the same position; only the continuation's RNG stream should
-     *       vary by {@code j}. Confirm whether MyRandom's stream needs to preserve already-consumed
-     *       state for draws not yet made, or whether a fresh Random is correct — check the contract,
-     *       do not guess.</li>
-     *   <li>Each of the N rollouts needs a fresh Game/Match sharing an identical pre-decision
-     *       prefix. EVAL-DESIGN.md §3.1 explicitly rules out mid-stack GameCopier snapshots for v1
-     *       and restricts rollout points to EMPTY-STACK decisions (main-phase play, attackers,
-     *       blockers, mulligan) for exactly this reason. Replay-from-index (re-running the
-     *       deterministic prefix from turn 1 with the same seed up to decision_index — already
-     *       what {@link #playDeterministicGame} does) is the v1 mechanism, not a live state fork;
-     *       each rollout re-plays the full prefix (cheap: floor/random games run in seconds) then
-     *       diverges at decision_index. Only reach for GameCopier as plan B if replay-to-index
-     *       proves fragile, same empty-stack restriction still applies (design doc's own fallback
-     *       note).</li>
-     *   <li><b>Empty-stack restriction (non-negotiable in v1):</b> validate the target decision's
-     *       {@code type} against the empty-stack-safe set (play/attackers/blockers/mulligan; NOT
-     *       targets/discard/sacrifice/modes/entity/zone-change, which can fire mid-stack) and
-     *       refuse (exit 2) otherwise, BEFORE spending any rollout compute.</li>
-     *   <li>Emit one jsonl line per (position, option) with win counts — schema
-     *       {@code eval/schemas/puzzle-position.v1.schema.json} (EVAL-DESIGN.md §10.1; confirm
-     *       that schema file has actually landed before writing the emitter — it did not exist in
-     *       this worktree as of Milestone D).</li>
-     * </ol>
+     * <p>MyRandom's contract (READ from forge-core MyRandom.java, not assumed): a plain static
+     * mutable {@code Random} field behind getRandom()/setRandom(); every consumer fetches the
+     * current instance at call time and none preserves un-consumed stream state, so swapping in a
+     * fresh {@code new Random(rollout_seed)} at the MOMENT of the forced decision is sound — the
+     * pre-decision prefix's draws already happened and are untouched, and the whole continuation
+     * draws from the fresh stream. Documented caveat: components that derived their OWN Random
+     * from MyRandom at construction time (PlayerControllerLLM's random-arm {@code rnd}) keep their
+     * construction-time stream, so on random-arm seats j-variance enters only through direct
+     * MyRandom consumers (Forge-AI evaluators via percentTrue, shuffle-like effects) — which is why
+     * the recommended continuation is ai-log/ai-log, whose every decision draws through the AI
+     * evaluators.
      *
-     * <p>Estimated effort: 3-5 days. The replay-to-index plumbing this stub depends on
-     * ({@link #playDeterministicGame}, {@link LlmSpikeGui.ForkHook}) is done; what remains is (a)
-     * exposing engine-level option objects (not just labels) through the hook, (b) the
-     * forced-decision override in {@code PlayerControllerLLM}, (c) the seed function verified
-     * against MyRandom's real contract, (d) the N-rollout driver + win-count aggregation + schema
-     * emission, (e) validation against a handful of known-lethal positions before trusting it.
+     * <p>Exit codes: 0 OK (rows emitted; individual failed rollouts are counted invalid, never
+     * losses), 2 refused (bad args, non-forceable type — the old exit 3 "not implemented" is
+     * RETIRED and never returned), 4 every attempted rollout prefix-drifted (replay unsound),
+     * 5 probe/game infrastructure failure or a leaked game thread (results untrustworthy).
      */
-    private static void applyOptionAndRolloutSTUB() {
-        throw new UnsupportedOperationException(
-                "Milestone D rollout is not implemented -- see HANDOFF.md and this method's own "
-                + "doc comment for the intended design.");
+    private static void runRollout() throws Exception {
+        requireDeterministicControllers();
+        final int targetIdx = requireDecisionIndex();
+
+        String seedEnv = System.getenv("GAME_SEED");
+        long gameSeed = 0;
+        boolean seedOk = false;
+        try {
+            gameSeed = Long.parseLong(seedEnv.trim());
+            seedOk = true;
+        } catch (Exception ignore) { }
+        if (!seedOk) {
+            System.err.println("[FORK] rollout requires GAME_SEED (an unset seed draws a fresh random "
+                    + "prefix and can never re-reach the source position); got '" + seedEnv + "'");
+            System.exit(2);
+        }
+
+        int nPerOption = 16;
+        String nEnv = System.getenv("FORK_ROLLOUT_N");
+        if (nEnv != null && !nEnv.isEmpty()) {
+            try {
+                nPerOption = Integer.parseInt(nEnv.trim());
+                if (nPerOption <= 0) throw new NumberFormatException("non-positive");
+            } catch (Exception e) {
+                System.err.println("[FORK] FORK_ROLLOUT_N must be a positive integer (got '" + nEnv + "')");
+                System.exit(2);
+            }
+        }
+
+        long seedBase = gameSeed;
+        String sbEnv = System.getenv("FORK_ROLLOUT_SEED_BASE");
+        if (sbEnv != null && !sbEnv.isEmpty()) {
+            try { seedBase = Long.parseLong(sbEnv.trim()); } catch (Exception e) {
+                System.err.println("[FORK] FORK_ROLLOUT_SEED_BASE must be a long (got '" + sbEnv + "')");
+                System.exit(2);
+            }
+        }
+
+        String optSpec = System.getenv().getOrDefault("FORK_ROLLOUT_OPTION", "all");
+        int onlyOption = -1; // -1 == all
+        if (!"all".equals(optSpec)) {
+            try {
+                onlyOption = Integer.parseInt(optSpec.trim());
+                if (onlyOption < 0) throw new NumberFormatException("negative");
+            } catch (Exception e) {
+                System.err.println("[FORK] FORK_ROLLOUT_OPTION must be 'all' or a non-negative option index (got '" + optSpec + "')");
+                System.exit(2);
+            }
+        }
+
+        File outFile = resolveRolloutOut(gameSeed, targetIdx);
+
+        // ---- probe: re-reach the position once, capture its shape + prefix (exits 2/5 itself) ----
+        ProbeResult probe = runProbe(targetIdx);
+        if (!isForceableType(probe.type)) {
+            System.err.println("[FORK] REFUSE: decision at index " + targetIdx + " has type '" + probe.type
+                    + "' — v1 rollouts force only index-encoded types (play, mulligan). Count-encoded "
+                    + "types log a subset SIZE, not an index; there is no per-option object to force. "
+                    + "(exit 3 is retired; this refusal exits 2 like every other.)");
+            System.exit(2);
+        }
+        if (onlyOption >= probe.nOptions) {
+            System.err.println("[FORK] FORK_ROLLOUT_OPTION=" + onlyOption + " out of range (n_options="
+                    + probe.nOptions + " at index " + targetIdx + ")");
+            System.exit(2);
+        }
+
+        // Identity of the deciding seat. On a mirror-matchup name tie both idents match; equals()
+        // against DECK_A_NAME makes 'a' win the tie — same convention replay_match.seat_to_ident uses.
+        final boolean seatIsA = probe.seat != null
+                && probe.seat.equals(System.getenv().getOrDefault("DECK_A_NAME", "Grixis Reanimator"));
+
+        List<Integer> targets = new ArrayList<>();
+        if (onlyOption >= 0) targets.add(onlyOption);
+        else for (int o = 0; o < probe.nOptions; o++) targets.add(o);
+
+        PrintWriter out = new PrintWriter(new FileWriter(outFile, true), true);
+        StringBuilder pj = new StringBuilder(256);
+        pj.append("{\"t\":\"fork_rollout_probe\",\"idx\":").append(targetIdx)
+                .append(",\"seat\":\"").append(LlmSpikeGui.jsonEscape(probe.seat)).append('"')
+                .append(",\"turn\":").append(probe.turn)
+                .append(",\"phase\":\"").append(LlmSpikeGui.jsonEscape(probe.phase)).append('"')
+                .append(",\"decision_type\":\"").append(LlmSpikeGui.jsonEscape(probe.type)).append('"')
+                .append(",\"n_options\":").append(probe.nOptions)
+                .append(",\"source_choice\":").append(probe.choice)
+                .append(",\"options\":").append(jsonStringArray(probe.options))
+                .append(",\"n_per_option\":").append(nPerOption)
+                .append(",\"seed_base\":").append(seedBase)
+                .append(",\"seed_fn\":\"mix64(base_seed ^ (i*C1) ^ (j*C2))\"}");
+        out.println(pj.toString());
+
+        int[][] tally = new int[probe.nOptions][4];
+        long[][] seeds = new long[probe.nOptions][nPerOption];
+        int emitted = 0;
+        int prefixDrifts = 0;
+        for (int o : targets) {
+            for (int j = 0; j < nPerOption; j++) {
+                final long rseed = rolloutSeed(seedBase, o, j);
+                seeds[o][j] = rseed;
+                final int optionToForce = o;
+                final AtomicBoolean fired = new AtomicBoolean(false);
+                final int[] loggedChoice = {Integer.MIN_VALUE};
+                final List<String[]> prefixRows = new ArrayList<>();
+
+                LlmSpikeGui.ForkForcer forcer = (idx, pl, seat, type, nOptions, options) -> {
+                    if (idx != targetIdx || !fired.compareAndSet(false, true)) return null;
+                    // Shape guard: if the live decision no longer matches the probe (drift), do NOT
+                    // force a wrong menu — leave the decision alone; forced_ok stays false below.
+                    if (!Objects.equals(type, probe.type) || nOptions != probe.nOptions) return null;
+                    // Reseed the continuation stream at the exact moment of the forced decision
+                    // (see the MyRandom contract note in this method's javadoc).
+                    MyRandom.setRandom(new java.util.Random(rseed));
+                    return optionToForce;
+                };
+                LlmSpikeGui.ForkHook hook = (idx, pl, seat, type, nOptions, choice, options) -> {
+                    if (idx < targetIdx) prefixRows.add(new String[] {type, seat, String.valueOf(nOptions)});
+                    else if (idx == targetIdx) loggedChoice[0] = choice;
+                };
+
+                GameRunResult r = playDeterministicGame(hook, forcer);
+                if (r.threadLeaked) {
+                    System.err.println("[FORK] game thread leaked past cap+grace on option " + o + " j=" + j
+                            + " — later rollouts in this JVM would share a live game's statics; aborting.");
+                    System.exit(5);
+                }
+
+                boolean prefixOk = prefixMatches(probe.prefix, prefixRows);
+                if (!prefixOk) prefixDrifts++;
+                boolean honoured = fired.get()
+                        && loggedChoice[0] == expectedLoggedChoice(probe.type, o, probe.nOptions);
+                boolean forcedOk = prefixOk && honoured && r.workerError == null;
+
+                String winner = "invalid";
+                int turns = -1;
+                String winCond = "?";
+                if (r.workerError == null) {
+                    String[] oc = outcomeOf(r.game, r.capped);
+                    winner = oc[0];
+                    turns = Integer.parseInt(oc[1]);
+                    winCond = oc[2];
+                }
+                String note = r.workerError != null ? ("worker: " + r.workerError)
+                        : !prefixOk ? "prefix_drift"
+                        : !honoured ? "force_not_honoured" : null;
+
+                StringBuilder rj = new StringBuilder(256);
+                rj.append("{\"t\":\"fork_rollout\",\"idx\":").append(targetIdx)
+                        .append(",\"option\":").append(o)
+                        .append(",\"j\":").append(j)
+                        .append(",\"rollout_seed\":").append(rseed)
+                        .append(",\"winner\":\"").append(winner).append('"')
+                        .append(",\"turns\":").append(turns)
+                        .append(",\"win_condition\":\"").append(LlmSpikeGui.jsonEscape(winCond)).append('"')
+                        .append(",\"seat\":\"").append(LlmSpikeGui.jsonEscape(probe.seat)).append('"')
+                        .append(",\"decision_type\":\"").append(LlmSpikeGui.jsonEscape(probe.type)).append('"')
+                        .append(",\"n_options\":").append(probe.nOptions)
+                        .append(",\"options\":").append(jsonStringArray(probe.options))
+                        .append(",\"forced_ok\":").append(forcedOk);
+                if (note != null) rj.append(",\"note\":\"").append(LlmSpikeGui.jsonEscape(note)).append('"');
+                rj.append('}');
+                out.println(rj.toString());
+                emitted++;
+                tally[o][outcomeSlot(winner, seatIsA, forcedOk)]++;
+            }
+        }
+
+        String ctlA = System.getenv().getOrDefault("CONTROLLER_A", "llm");
+        String ctlB = System.getenv().getOrDefault("CONTROLLER_B", "llm");
+        StringBuilder sj = new StringBuilder(256);
+        sj.append("{\"t\":\"fork_rollout_summary\",\"idx\":").append(targetIdx)
+                .append(",\"seat\":\"").append(LlmSpikeGui.jsonEscape(probe.seat)).append('"')
+                .append(",\"decision_type\":\"").append(LlmSpikeGui.jsonEscape(probe.type)).append('"')
+                .append(",\"n_options\":").append(probe.nOptions)
+                .append(",\"options\":").append(jsonStringArray(probe.options))
+                .append(",\"n_per_option\":").append(nPerOption)
+                .append(",\"seed_base\":").append(seedBase)
+                .append(",\"seed_fn\":\"mix64(base_seed ^ (i*C1) ^ (j*C2))\"")
+                .append(",\"continuation\":\"").append(LlmSpikeGui.jsonEscape(ctlA + "/" + ctlB)).append('"')
+                .append(",\"per_option\":").append(perOptionJson(tally, seeds, targets))
+                .append('}');
+        out.println(sj.toString());
+        out.flush();
+
+        if (emitted > 0 && prefixDrifts == emitted) {
+            // Every rollout's pre-index decision stream disagreed with the probe's: the replay
+            // mechanism itself is unsound here, and no WP from this run can be trusted.
+            System.out.println("REPLAY-DRIFT at index " + targetIdx + ": every rollout prefix drifted ("
+                    + prefixDrifts + "/" + emitted + ")");
+            System.exit(4);
+        }
+        if (emitted == 0) {
+            System.out.println("[FORK] FORK-FAILED: no rollout was attempted");
+            System.exit(5);
+        }
+        System.out.println("[FORK] rollout OK: " + emitted + " rollouts over " + targets.size()
+                + " option(s) x " + nPerOption + " -> " + outFile);
+        System.exit(0);
+    }
+
+    /** One enumerate-style probe game: replay to {@code targetIdx}, capture the decision's shape and
+     *  the pre-index decision-row prefix, terminate. Exits 2 if the index is never reached, 5 on a
+     *  worker error — mirrors {@link #runEnumerate}'s error discipline. */
+    private static ProbeResult runProbe(int targetIdx) throws Exception {
+        final ProbeResult probe = new ProbeResult();
+        final AtomicBoolean hit = new AtomicBoolean(false);
+        LlmSpikeGui.ForkHook hook = (idx, pl, seat, type, nOptions, choice, options) -> {
+            if (idx < targetIdx) {
+                probe.prefix.add(new String[] {type, seat, String.valueOf(nOptions)});
+                return;
+            }
+            if (idx != targetIdx || !hit.compareAndSet(false, true)) return;
+            try {
+                probe.type = type;
+                probe.seat = seat;
+                probe.nOptions = nOptions;
+                probe.choice = choice;
+                probe.options = options == null ? Collections.<String>emptyList() : new ArrayList<>(options);
+                PhaseHandler ph = pl.getGame().getPhaseHandler();
+                probe.turn = ph.getTurn();
+                probe.phase = String.valueOf(ph.getPhase());
+            } catch (Throwable t) {
+                System.out.println("[FORK] rollout probe hook failed: " + t);
+            } finally {
+                try { pl.getGame().setGameOver(GameEndReason.Draw); } catch (Throwable ignore) { }
+            }
+        };
+        GameRunResult r = playDeterministicGame(hook, null);
+        if (r.workerError != null) {
+            System.out.println("[FORK] REPLAY-FAILED: probe game thread threw " + r.workerError);
+            System.exit(5);
+        }
+        if (!hit.get()) {
+            System.err.println("[FORK] FORK_DECISION_INDEX=" + targetIdx + " was never reached by the "
+                    + "rollout probe (the game logged only " + r.decisionCount + " decision(s))");
+            System.exit(2);
+        }
+        return probe;
+    }
+
+    /** Row-by-row prefix diff (same [type, seat, n_options] triple check mode uses). */
+    static boolean prefixMatches(List<String[]> expected, List<String[]> got) {
+        if (expected.size() != got.size()) return false;
+        for (int i = 0; i < expected.size(); i++) if (!rowsMatch(expected.get(i), got.get(i))) return false;
+        return true;
+    }
+
+    /** Winner/turns/win_condition for a finished rollout game — the same identity-keyed extraction
+     *  {@link LlmSpikeGui#writeGameSummary} performs, without writing a summary row or dumping the
+     *  full game log (a rollout run plays dozens of games; the fork_rollout rows are the record). */
+    static String[] outcomeOf(Game game, boolean capped) {
+        String nameA = System.getenv().getOrDefault("DECK_A_NAME", "Grixis Reanimator");
+        String nameB = System.getenv().getOrDefault("DECK_B_NAME", "Mardu Energy");
+        String winner = "draw";
+        int turns = -1;
+        String winCond = "?";
+        try {
+            if (game != null && game.getOutcome() != null) {
+                turns = game.getOutcome().getLastTurnNumber();
+                winCond = String.valueOf(game.getOutcome().getWinCondition());
+                var w = game.getOutcome().getWinningLobbyPlayer();
+                if (w != null) winner = nameA.equals(w.getName()) ? "A" : (nameB.equals(w.getName()) ? "B" : "invalid");
+            }
+        } catch (Exception ignore) { }
+        if (capped) winner = "invalid";
+        return new String[] {winner, String.valueOf(turns), winCond};
+    }
+
+    private static String jsonStringArray(List<String> items) {
+        StringBuilder sb = new StringBuilder("[");
+        if (items != null) {
+            for (int i = 0; i < items.size(); i++) {
+                if (i > 0) sb.append(',');
+                sb.append('"').append(LlmSpikeGui.jsonEscape(items.get(i))).append('"');
+            }
+        }
+        return sb.append(']').toString();
+    }
+
+    /** FORK_ROLLOUT_OUT resolution: a *.jsonl path is used as-is; a directory (or anything not
+     *  ending in .jsonl) gets a fork-rollout-&lt;seed&gt;-&lt;idx&gt;.jsonl inside it; unset falls back to
+     *  EVAL_OUT (already validated non-empty by requireDeterministicControllers). */
+    private static File resolveRolloutOut(long seed, int idx) {
+        String p = System.getenv("FORK_ROLLOUT_OUT");
+        if (p == null || p.isEmpty()) p = System.getenv("EVAL_OUT");
+        File f = new File(p);
+        if (f.isDirectory() || p.endsWith(File.separator) || !p.endsWith(".jsonl")) {
+            f.mkdirs();
+            return new File(f, "fork-rollout-" + seed + "-" + idx + ".jsonl");
+        }
+        if (f.getParentFile() != null) f.getParentFile().mkdirs();
+        return f;
     }
 
     // ==================== shared game-running boilerplate ====================
@@ -490,30 +830,27 @@ public final class LlmSpikeFork {
          *  run that ended this way did NOT complete a real game -- callers must report failure and
          *  exit non-zero instead of taking the success path (see runCheck/runEnumerate). */
         final Throwable workerError;
+        /** True iff the worker thread survived cap + grace. Rollout mode MUST abort on this: a live
+         *  game thread from a previous rollout shares FORK_HOOK/FORK_FORCER/EvalLog statics with the
+         *  next game and would silently corrupt its rows. check/enumerate (one game per JVM, exit
+         *  right after) ignore it — behavior unchanged from Milestone D. */
+        final boolean threadLeaked;
         GameRunResult(Game game, long seed, File jsonlFile, long durMs, long capMs, boolean capped,
-                int decisionCount, Throwable workerError) {
+                int decisionCount, Throwable workerError, boolean threadLeaked) {
             this.game = game; this.seed = seed; this.jsonlFile = jsonlFile;
             this.durMs = durMs; this.capMs = capMs; this.capped = capped; this.decisionCount = decisionCount;
-            this.workerError = workerError;
+            this.workerError = workerError; this.threadLeaked = threadLeaked;
         }
     }
 
-    /** Boilerplate shared by check/enumerate: init Forge headless (identical to
-     *  {@link LlmSpikeHeadless#main}), seed, EvalLog, build the deterministic-controller match,
-     *  run it on a worker thread with the SAME wall-clock-cap discipline LlmSpikeHeadless uses
-     *  (including the post-cap grace join long enough to outlast the slowest configured model
-     *  timeout -- irrelevant here since fork controllers never call a model, but kept identical so
-     *  a future llm-in-the-loop mode doesn't silently drop a row), and hand back everything the
-     *  caller needs to write its own game summary and read the jsonl back. If {@code hook} is
-     *  non-null it is installed as {@code LlmSpikeGui.FORK_HOOK} BEFORE the game starts, so it can
-     *  observe (and, for enumerate, terminate) the live decision stream; check mode passes null and
-     *  lets the game run to completion untouched. */
-    private static GameRunResult playDeterministicGame(LlmSpikeGui.ForkHook hook) throws Exception {
-        long capMs = 3 * 60 * 60 * 1000L;
-        try { String v = System.getenv("GAME_CAP_MS"); if (v != null) capMs = Long.parseLong(v.trim()); } catch (Exception ignore) { }
+    private static boolean forgeInitialized = false;
 
-        LlmSpikeGui.FORK_HOOK = hook;
-
+    /** One-time headless Forge init (identical to {@link LlmSpikeHeadless#main}'s). Factored out of
+     *  {@link #playDeterministicGame} so rollout mode can replay MANY games in one JVM — FModel is a
+     *  process singleton and must not be re-initialized per game. */
+    private static void initForgeOnce() {
+        if (forgeInitialized) return;
+        forgeInitialized = true;
         System.out.println("[FORK] initializing Forge model (no GUI)...");
         GuiBase.setInterface(new GuiDesktop());
         FModel.initialize(null, preferences -> {
@@ -521,39 +858,74 @@ public final class LlmSpikeFork {
             preferences.setPref(FPref.UI_LANGUAGE, "en-US");
             return null;
         });
+    }
 
-        long seed = LlmSpikeGui.applySeed();
-        LlmSpikeGui.EvalLog.init(seed);
-        List<RegisteredPlayer> players = LlmSpikeGui.buildPlayers();
+    private static GameRunResult playDeterministicGame(LlmSpikeGui.ForkHook hook) throws Exception {
+        return playDeterministicGame(hook, null);
+    }
 
-        GameRules rules = new GameRules(GameType.Constructed);
-        Match match = new Match(rules, players, "LlmFork");
-        final Game game = match.createGame();
+    /** Boilerplate shared by check/enumerate/rollout: init Forge headless (once per JVM), seed,
+     *  EvalLog, build the deterministic-controller match, run it on a worker thread with the SAME
+     *  wall-clock-cap discipline LlmSpikeHeadless uses (including the post-cap grace join long
+     *  enough to outlast the slowest configured model timeout -- irrelevant here since fork
+     *  controllers never call a model, but kept identical so a future llm-in-the-loop mode doesn't
+     *  silently drop a row), and hand back everything the caller needs to write its own game
+     *  summary and read the jsonl back. If {@code hook} is non-null it is installed as
+     *  {@code LlmSpikeGui.FORK_HOOK} BEFORE the game starts, so it can observe (and, for
+     *  enumerate/probe, terminate) the live decision stream; if {@code forcer} is non-null it is
+     *  installed as {@code LlmSpikeGui.FORK_FORCER} the same way (rollout only). Both are cleared
+     *  after the game so repeated in-JVM games never inherit a stale hook. Every game gets a FRESH
+     *  per-game jsonl (EvalLog.closeForTest + init — a no-op detach on the first game) and a reset
+     *  FORK_DECISION_SEQ, so decision indices are per-game in emission order for every mode. */
+    private static GameRunResult playDeterministicGame(LlmSpikeGui.ForkHook hook,
+            LlmSpikeGui.ForkForcer forcer) throws Exception {
+        long capMs = 3 * 60 * 60 * 1000L;
+        try { String v = System.getenv("GAME_CAP_MS"); if (v != null) capMs = Long.parseLong(v.trim()); } catch (Exception ignore) { }
 
-        long t0 = System.currentTimeMillis();
-        System.out.println("[FORK] game starting (cap=" + (capMs / 60000) + "min)");
-        java.util.concurrent.atomic.AtomicReference<Throwable> workerError = new java.util.concurrent.atomic.AtomicReference<>();
-        Thread worker = new Thread(() -> {
-            try { match.startGame(game); }
-            catch (Throwable t) {
-                System.out.println("[FORK] game thread threw: " + t);
-                workerError.set(t);
+        initForgeOnce();
+        LlmSpikeGui.FORK_HOOK = hook;
+        LlmSpikeGui.FORK_FORCER = forcer;
+        try {
+            long seed = LlmSpikeGui.applySeed();
+            LlmSpikeGui.EvalLog.closeForTest(); // no-op before the first game; fresh file for rollout N>1
+            LlmSpikeGui.EvalLog.init(seed);
+            LlmSpikeGui.FORK_DECISION_SEQ.set(-1); // per-game emission index (rollout replays many games/JVM)
+            List<RegisteredPlayer> players = LlmSpikeGui.buildPlayers();
+
+            GameRules rules = new GameRules(GameType.Constructed);
+            Match match = new Match(rules, players, "LlmFork");
+            final Game game = match.createGame();
+
+            long t0 = System.currentTimeMillis();
+            System.out.println("[FORK] game starting (cap=" + (capMs / 60000) + "min)");
+            java.util.concurrent.atomic.AtomicReference<Throwable> workerError = new java.util.concurrent.atomic.AtomicReference<>();
+            Thread worker = new Thread(() -> {
+                try { match.startGame(game); }
+                catch (Throwable t) {
+                    System.out.println("[FORK] game thread threw: " + t);
+                    workerError.set(t);
+                }
+            }, "forge-game-fork");
+            worker.setDaemon(true);
+            worker.start();
+            worker.join(capMs);
+            boolean capped = worker.isAlive();
+            if (capped) {
+                System.out.println("[FORK] wall-clock cap reached; forcing game over");
+                game.setGameOver(GameEndReason.Draw);
+                worker.join(LlmSpikeGui.ModelCfg.maxConfiguredTimeoutMs() + 10_000L);
             }
-        }, "forge-game-fork");
-        worker.setDaemon(true);
-        worker.start();
-        worker.join(capMs);
-        boolean capped = worker.isAlive();
-        if (capped) {
-            System.out.println("[FORK] wall-clock cap reached; forcing game over");
-            game.setGameOver(GameEndReason.Draw);
-            worker.join(LlmSpikeGui.ModelCfg.maxConfiguredTimeoutMs() + 10_000L);
-        }
-        long durMs = System.currentTimeMillis() - t0;
+            boolean threadLeaked = worker.isAlive();
+            long durMs = System.currentTimeMillis() - t0;
 
-        File jsonlFile = LlmSpikeGui.EvalLog.currentFile();
-        int decisionCount = LlmSpikeGui.FORK_DECISION_SEQ.get() + 1;
-        return new GameRunResult(game, seed, jsonlFile, durMs, capMs, capped, decisionCount, workerError.get());
+            File jsonlFile = LlmSpikeGui.EvalLog.currentFile();
+            int decisionCount = LlmSpikeGui.FORK_DECISION_SEQ.get() + 1;
+            return new GameRunResult(game, seed, jsonlFile, durMs, capMs, capped, decisionCount,
+                    workerError.get(), threadLeaked);
+        } finally {
+            LlmSpikeGui.FORK_HOOK = null;
+            LlmSpikeGui.FORK_FORCER = null;
+        }
     }
 
     // ==================== tiny jsonl scalar readers (numeric/bool; strings reuse LlmSpikeGui's) ====================

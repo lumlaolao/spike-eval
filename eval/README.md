@@ -1,5 +1,9 @@
 # eval/ — batch driver + statistics for the LLM-vs-LLM Forge eval
 
+All tools here are stdlib-only Python 3. The v1.0 five-axis benchmark layer
+(PUZ / PLAN / DQ / PUNT axes + the scorecard) is documented in its own
+section below and, end-to-end, in [`EVAL-V1.md`](EVAL-V1.md).
+
 Two stdlib-only Python 3 scripts:
 
 - `run_batch.py` — plays N headless games by invoking `bash run-llm-headless.sh`
@@ -293,3 +297,214 @@ anything, useful for checking flags before spending API budget or JVM time.
 `defect_analyzer.py` is also runnable standalone against any existing batch
 (including `runs/tournament-1/match-*/`) for one-off defect audits outside
 the loop.
+
+## v1.0 eval axes (PUZ / PLAN / DQ / PUNT + the scorecard)
+
+Five new stdlib-only modules landed 2026-07 and compose, via
+`build_report.py`, into one scorecard over five axes: **STR** (match
+strength, the existing `aggregate.py` arms), **PUZ** (puzzle accuracy),
+**PLAN** (plan adherence), **DQ** (decision quality) and **PUNT** (blunder
+rate). Full walkthrough with the real smoke transcript: [`EVAL-V1.md`](EVAL-V1.md).
+
+**Maturity, stated plainly: this is a working harness, not yet a working
+benchmark.** The answer-key generation run (EVAL-DESIGN Phase 1.2, ~2000
+ai-vs-ai rollout games) has **not** been executed. The whole repo currently
+yields **3 verified puzzle positions** (0.4% of 807 mined candidates), all
+from the offline exhaustive lane. DQ has never been measured (every blunder
+corpus is textlane-only, so `dq_wpl_mean` has n=0 everywhere). PLAN resolves a
+deck on exactly one corpus (`runs/stage0-calibration`). The only PUZ backend
+with end-to-end evidence is `offline`; `--backend openrouter` cannot succeed
+as written (no `Authorization` header is ever sent — safe, but it means no
+live model has ever been scored). Until Phase 1.2 runs, PUZ cannot rank
+anything.
+
+### `prompt_contract.py` — the frozen prompt/reply contract
+
+Not a metric: the versioned, content-hashed render+parse contract every axis
+stamps its artifacts with, so numbers from different runs are comparable only
+when their `contract_sha` matches. `--manifest` prints the identity
+(currently `prompt-contract.v1`, `contract_sha abaddd69db49a9d2`, parser
+`parser.v1.1`, frozen against Java sha `24fcfabcd2a71c25`);
+`--render POSITIONS_JSONL [--index N] [--strictness strict|lenient]
+[--profile PROFILE]` renders one row exactly as a backend would see it.
+`build_report.py` compares `contract_sha_running` against every input's
+stamped sha and raises a CONTRACT DRIFT caveat on mismatch.
+
+```bash
+python3 eval/prompt_contract.py --manifest
+python3 eval/test_prompt_contract.py
+```
+
+### `puzzle_run.py` — the PUZ axis runner
+
+Serves verified puzzle positions to a backend k times each, parses replies
+through the frozen contract, scores against engine-verified answer keys with
+partial credit (EVAL-DESIGN §3.3), and emits `results.jsonl` + `summary.json`.
+
+```bash
+python3 eval/puzzle_run.py POSITIONS.jsonl --out runs/puz/<name> \
+    [--backend offline|http|openrouter] [--offline-policy always-pass|random|first|oracle|garbage] \
+    [--offline-fixture FILE.jsonl] [--endpoint http://localhost:8080/v1] [--model NAME] \
+    [--k 4] [--strictness strict|lenient] [--split open|holdout|all] \
+    [--max-positions N] [--sample-seed N] [--generated-utc STAMP] [--json] [--dry-run]
+```
+
+- **Inputs:** `puzzle-position.v1` jsonl with verified answer keys (from
+  `verify_keys.py`). Unverified/malformed/unscoreable rows are counted in
+  named skip buckets, never silently dropped.
+- **Outputs:** `results.jsonl` (`puzzle-result.v1`) + `summary.json` — score
+  mean (cluster-bootstrapped by `source.game_file`), `pass_1`/`pass_k`,
+  `interface_failure_rate`, `transport_error_rate`.
+- **Backends:** `offline` (default, zero network — fixture replies or a
+  synthesized policy), `http` (OpenAI-compatible; non-local hosts refuse with
+  exit 2 unless `OPENROUTER_ALLOW_EGRESS=1`), `openrouter` (hard-refuses
+  without that flag; **also currently non-functional even with consent** —
+  no auth header is sent, so it 401s. Treat it as not implemented in v1).
+- **Trivial floors:** computed analytically from the same answer keys over
+  the same offered menu — `random_choice` (+ pass_1/pass_k twins),
+  `always_pass`, `majority_class`, and the `oracle_ceiling`; every headline
+  metric carries `margin_over_*` fields. Interface failures score 0 in the
+  inclusive variant and are excluded from the exclusive denominator — and
+  `puz.score_excl` is a selective-refusal channel, so the scorecard forces it
+  non-headline and gates it on `interface_failure_rate <= 0.10`.
+- **Exit codes:** 0 OK; 2 usage/egress refusal/zero scoreable positions;
+  3 INCOMPLETE (run happened, backend delivered no usable data — never a pass).
+
+```bash
+python3 eval/test_puzzle_run.py
+```
+
+### `verify_keys.py` — candidate → verified answer key promotion
+
+Turns `mine_puzzles.py` candidates into engine-adjudicated answer keys, or
+records exactly why it couldn't (`unverifiable_reason`, additive). Two lanes:
+**exhaustive** (pure, no engine: single-burn-spell face lethal, verified iff
+at least one option scores 10 and one scores 0) and **rollout**
+(play/mulligan only; per-option win probability with a gap gate
+`wp_max - wp_min >= max(threshold, 2*max(se))`, so statistically
+indistinguishable rollouts refuse to mint a key). Not a metric — its summary
+reports yield per lane and per unverifiable_reason. A narrow honest key set
+beats a wide fake one: current whole-repo yield is 3 verified / 807 mined.
+
+```bash
+python3 eval/verify_keys.py CANDIDATES.jsonl --out POSITIONS.jsonl \
+    [--lane exhaustive|rollout|both] [--driver engine|fixture|none] \
+    [--fixture FILE.jsonl] [--n-per-option 16] [--forge-home ~/code/forge] \
+    [--max-positions N] [--summary summary.json] [--json] [--dry-run]
+```
+
+Default `--driver none` is pure exhaustive: zero engine, zero network,
+runnable without a Forge checkout (keys minted that way carry the
+`unprobed_replay_address` caveat). The Java rollout support
+(`LlmSpikeFork.java`) compiles and passes the canary but **has never been run
+in anger** — no rollout-lane key exists yet. Exit 3 = INCOMPLETE when an
+engine driver was requested but unreachable.
+
+```bash
+python3 eval/test_verify_keys.py
+```
+
+### `plan_adherence.py` — the PLAN axis
+
+Milestone attainment per deck archetype, generalizing the UR-Delver triple in
+`process_metrics.py` to all 16 archetypes via data-driven specs
+(`eval/plans/<slug>.milestones.json`, schema `milestones.v1`). All extractors
+are text/regex over the logged prompts — no judge model, no engine.
+
+```bash
+python3 eval/plan_adherence.py DIR [DIR ...] --out runs/plan/<name> \
+    [--decks slug,slug] [--specs eval/plans] [--min-games 1] [--json] [--strict-specs]
+```
+
+- **Inputs:** run dirs scanned recursively for `game-*.jsonl`. The seat's
+  archetype is resolved from plan text (`deck_a`/`deck_b` carry MODEL names
+  in tournament runs and are never trusted); unresolvable seats are counted
+  (`n_seats_unresolved`), never guessed. **Today only
+  `runs/stage0-calibration` (ur-delver/burn) resolves** — the Identity-A/B
+  mirror runs that fill most of `runs/` render PLAN as `not measured`. A
+  one-deck profile is not a plan-adherence score.
+- **Outputs:** `milestones.jsonl` + `summary.json`. PLAN-attain is reported
+  as a per-deck **profile vector**, never collapsed to one number.
+- **Trivial floors:** `never_attained` 0.0 floor / `always_attained` 1.0
+  ceiling per milestone with `margin_over_never_attained`; rates carry the
+  take-it-always/take-it-never endpoints; `target_split` carries the
+  uniform-random face floor.
+- **Exit codes:** 0 OK; 2 usage error / invalid specs under `--strict-specs`
+  / nothing usable.
+
+```bash
+python3 eval/test_plan_adherence.py
+```
+
+### `blunder_flags.py` + `blunder_report.py` — the DQ and PUNT axes
+
+`blunder_flags.py` is a library (no CLI): pure text red-flag rules over
+already-played games in three lanes — 11 text rules, shadow-disagreement
+(**vacuous today**: zero rows in `runs/` carry `shadow_choice`), and a
+deterministic 5% audit sample that measures flagger leakage. Flags are
+triggers for adjudication, never verdicts.
+
+`blunder_report.py` consumes decision corpora, flags, adjudicates, and emits
+`blunder-report.v1` rows + a summary:
+
+```bash
+python3 eval/blunder_report.py DIR [DIR ...] --out runs/blunder/<name> \
+    [--model NAME] [--audit-rate 0.05] [--sample-seed N] \
+    [--adjudicate none|textlane|rollout] [--driver engine|fixture|none] \
+    [--fixture FILE.jsonl] [--n-per-option 16] [--max-adjudications N] [--json]
+```
+
+- **Adjudication methods:** `rollout` (wpl = wp_best − wp_chosen; classes per
+  EVAL-DESIGN §4.2, gated on `wpl > 2*wpl_se` so rollout noise never becomes
+  a blunder count), `textlane-verified` (the honest v1 path for
+  non-replayable LLM games — counted ONLY in `punt_rate_textlane`, **never**
+  added to the rollout `punt_rate`; these are different quantities), and
+  `unadjudicable` (with reason).
+- **Honesty invariants:** an unmeasured audit lane reports
+  `flaggers_leaky=None`, never a fake clean; **DQ has never been measured** —
+  every corpus in the repo is textlane-only, so `dq_wpl_mean` has n=0
+  everywhere. `punt_rate_textlane` (0.011, n=1606 on the current corpus) is
+  real evidence but of a different quantity.
+- **Exit codes:** 0 OK; 2 usage/nothing usable; 3 INCOMPLETE (`--adjudicate
+  rollout` requested but no driver available).
+
+```bash
+python3 eval/test_blunder_flags.py
+python3 eval/test_blunder_report.py
+```
+
+### `build_report.py` — the v1.0 scorecard (extended)
+
+The suite-report builder described above now also assembles the five-axis
+scorecard. The `suite` positional is optional; new flags:
+
+```bash
+# full scorecard, all five axes
+python3 eval/build_report.py eval/suites/stage3-v1.json \
+    --student openrouter:default_model \
+    --puz-run runs/puz/latest --plan-run runs/plan/latest \
+    --blunder-run runs/blunder/latest [--generated-utc STAMP] [--out DIR] [--json]
+
+# scorecard with no STR suite at all (STR renders "not measured")
+python3 eval/build_report.py --puz-run runs/puz/latest
+```
+
+Emits `scorecard.json` (schema `eval-scorecard.v1`) alongside
+`report.json`/`report.md`. Every measured row carries
+`est/se/ci95/n/n_clusters/method/denominator` plus a `floors[]` list with a
+`margin` per floor; no statistic is recomputed here (STR se is the
+normal-approximation binomial, labeled as such — do not reconstruct a Wilson
+interval from it). Axes are `measured`, `partial` (input present but every
+headline metric has n=0 — true today for PUNT on textlane-only corpora), or
+`not_measured` (zero metric rows + a `reason` + the verbatim command that
+would measure it — **never rendered as 0**). An unmeasured/partial axis can
+demote PASS to INCOMPLETE (exit 3) but can never read as PASS. The provenance
+header compares `contract_sha_running` / `engine_sha` / `overlay_sha` /
+`seed_bank` across inputs and raises CONTRACT DRIFT, MIXED-provenance,
+SELECTIVE REFUSAL and POSITIONAL SKEW caveats. Note the caveats warn but do
+not *prevent* mixing runs from different builds into one scorecard — read the
+header before quoting.
+
+```bash
+python3 eval/test_build_report.py
+```

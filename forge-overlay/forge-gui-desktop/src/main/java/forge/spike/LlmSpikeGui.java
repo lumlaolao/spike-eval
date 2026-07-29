@@ -162,7 +162,9 @@ public final class LlmSpikeGui {
         /** The file currently being written (null if EVAL_OUT unset). LlmSpikeFork's check mode reads
          *  this back after the game ends to compare the replayed decision stream against FORK_SOURCE. */
         static java.io.File currentFile() { return file; }
-        /** Test-only: flush + detach the writer so a subsequent {@link #initToDir} can open a fresh file. */
+        /** Flush + detach the writer so a subsequent {@link #init}/{@link #initToDir} can open a fresh
+         *  file. Originally test-only; LlmSpikeFork's rollout mode also uses it deliberately (one fresh
+         *  per-game jsonl per rollout replay within a single JVM) — it is exactly flush+detach. */
         static synchronized void closeForTest() {
             if (out != null) { out.flush(); out.close(); out = null; file = null; }
         }
@@ -184,6 +186,65 @@ public final class LlmSpikeGui {
     static volatile ForkHook FORK_HOOK = null;
     static final java.util.concurrent.atomic.AtomicInteger FORK_DECISION_SEQ =
             new java.util.concurrent.atomic.AtomicInteger(-1);
+
+    // ==================== FORK ROLLOUT FORCER (Milestone D rollout — additive, inert) ====================
+    // Everything in this fenced block is a no-op in every normal run: FORK_FORCER is null unless
+    // LlmSpikeFork's rollout mode installs one, and forkForce() returns null immediately in that case.
+    // The seed-42 floor/floor canary is the regression gate proving inertness.
+
+    /** Fork-mode decision forcer (LlmSpikeFork rollout, EVAL-DESIGN.md §3.1(b)). Consulted by exactly
+     *  two decision sites per controller — chooseSpellAbilityToPlay ("play") and mulliganKeepHand
+     *  ("mulligan"), in both PlayerControllerLLM and PlayerControllerAiLogging — the only v1 types
+     *  whose logged {@code choice} is index-encoded AND whose forced index maps unambiguously to an
+     *  engine object. Return {@code >= 0} to force that 0-based index into {@code options} (for
+     *  "play" the trailing PASS slot is a valid index), {@code -1} to force PASS/decline/KEEP, or
+     *  {@code null} to decide normally. */
+    interface ForkForcer {
+        Integer forceChoice(int index, Player pl, String seat, String type, int nOptions, List<String> options);
+    }
+    static volatile ForkForcer FORK_FORCER = null;
+
+    /** Consult FORK_FORCER with the decision index {@code emitDecisionRow} is ABOUT to assign
+     *  ({@code FORK_DECISION_SEQ.get() + 1}). This is sound ONLY because fork-mode games run on a
+     *  single worker thread (LlmSpikeFork.playDeterministicGame): between this call and the same
+     *  decision's own emitDecisionRow no other row can be emitted on that thread. That is a stated
+     *  limitation of the fork harness, not a tested cross-thread guarantee — do not install a forcer
+     *  in a run where two seats can decide concurrently. Null forcer (every normal run) returns null
+     *  with zero side effects. */
+    static Integer forkForce(Player pl, String seat, String type, int nOptions, List<String> options) {
+        ForkForcer f = FORK_FORCER;
+        if (f == null) return null;
+        return f.forceChoice(FORK_DECISION_SEQ.get() + 1, pl, seat, type, nOptions, options);
+    }
+
+    /** Deterministic first-legal targeting for a fork-FORCED SpellAbility on an ai-log seat. The AI
+     *  cast path does no targeting for ordinary spells it did not itself evaluate, and an untargeted
+     *  cast fizzles ("Couldn't add to stack, failed to target") — this is the engine gotcha
+     *  PlayerControllerLLM.ensureTargetsSet exists for. That method is instance-private and logs
+     *  through the LLM seat's evalDec; this static mirror applies only its deterministic core (first
+     *  legal candidate, topped up to minTargets), no model call, no jsonl row. The first-legal pick
+     *  is a rollout-POLICY caveat (targets are not optimized), matching the floor arm's own
+     *  "target(no-model)->first" behavior; verify_keys.py surfaces it via rollout caveats. Called
+     *  only from the fork-forced play path in PlayerControllerAiLogging — inert otherwise. */
+    static void forceTargetsFirstLegal(Player activator, SpellAbility root) {
+        for (SpellAbility sa = root; sa != null; sa = sa.getSubAbility()) {
+            try {
+                if (!sa.usesTargeting()) continue;
+                if (sa.getTargets() != null && !sa.getTargets().isEmpty()) continue; // already targeted
+                if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(activator);
+                TargetRestrictions tr = sa.getTargetRestrictions();
+                if (tr == null) continue;
+                List<GameEntity> cands = tr.getAllCandidates(sa, false);
+                if (cands == null || cands.isEmpty()) continue; // no legal target -> let engine cancel/handle
+                int min = Math.max(1, sa.getMinTargets());
+                sa.resetTargets();
+                sa.getTargets().add(cands.get(0));
+                for (int i = 1; sa.getTargets().size() < min && i < cands.size(); i++)
+                    sa.getTargets().add(cands.get(i));
+            } catch (Exception ignore) { /* leave targeting to the engine for this ability */ }
+        }
+    }
+    // ==================== end FORK ROLLOUT FORCER block ====================
 
     /** The seed applySeed() actually used. Read by the D4 shadow labeler to derive its ephemeral RNG
      *  streams, so shadow draws differ across games in a batch instead of replaying one fixed stream.
@@ -978,6 +1039,19 @@ public final class LlmSpikeGui {
         public boolean mulliganKeepHand(Player firstPlayer, int cardsToReturn) {
             clearLast();
             lastShadowChoice = shadowMulligan(firstPlayer, cardsToReturn); // all mulligan evalDec paths carry it
+            // FORK (rollout, additive — inert unless LlmSpikeFork installed a forcer): forced mulligan.
+            // 0 or -1 (decline) == KEEP, 1 == MULLIGAN. Deliberately consulted BEFORE the floor/heuristic
+            // guards — the forcer exists to explore the branch the policy would not take — and logged
+            // through the same evalDec funnel so the row records what actually happened.
+            Integer forkForcedMull = forkForce(player, seat, "mulligan", 2,
+                    java.util.Arrays.asList("KEEP", "MULLIGAN"));
+            if (forkForcedMull != null) {
+                boolean forcedKeep = forkForcedMull.intValue() != 1;
+                evalDec("mulligan", 2, forcedKeep ? 0 : 1, "auto", 0, null,
+                        java.util.Arrays.asList("KEEP", "MULLIGAN"));
+                p("[ROUTER] mulligan: FORK-FORCED " + (forcedKeep ? "KEEP" : "MULLIGAN"));
+                return forcedKeep;
+            }
             CardCollectionView hand = player.getCardsIn(ZoneType.Hand);
             int lands = CardLists.filter(hand, CardPredicates.LANDS).size();
             int size = hand.size();
@@ -1394,6 +1468,13 @@ public final class LlmSpikeGui {
                     }
                     choice = parseTagNumber(reply, "CHOICE:");
                 }
+                // FORK (rollout, additive — inert unless LlmSpikeFork installed a forcer): replace the
+                // computed choice at exactly one decision index so evalDec below still logs what
+                // ACTUALLY happened, and the forced pick takes the SAME branches the normal path would
+                // (incl. ensureTargetsSet — the AI cast path does no targeting and an untargeted cast
+                // fizzles). forced < 0 or forced == the PASS slot both map to the PASS menu number.
+                Integer forkForced = forkForce(me, seat, "play", passIdx, playLabels);
+                if (forkForced != null) choice = forkForced.intValue() < 0 ? passIdx : forkForced.intValue() + 1;
                 // D4 shadow: the AI's play over the SAME menu (choice resolved, before the row is written
                 // and before the chosen SA is targeted). shadowPlay's getAi() eval may set targets/X on the
                 // shared candidate SA objects; the SHADOW-guarded chosen.resetTargets() in the cast branch
@@ -3214,6 +3295,16 @@ public final class LlmSpikeGui {
                 for (Card c : hand) { if (n.length() > 0) n.append(", "); n.append(c.getName()); }
                 prompt = PlayerControllerLLM.buildMulliganPrompt(size, lands, n.toString());
             } catch (Exception ignore) { }
+            // FORK (rollout, additive — inert unless LlmSpikeFork installed a forcer): forced mulligan
+            // on the ai-log seat. 0 or -1 (decline) == KEEP, 1 == MULLIGAN. Skips super entirely — the
+            // forced decision REPLACES the AI's, and the row logs what actually happened.
+            Integer forced = LlmSpikeGui.forkForce(getPlayer(), seat, "mulligan", 2,
+                    java.util.Arrays.asList("KEEP", "MULLIGAN"));
+            if (forced != null) {
+                boolean forcedKeep = forced.intValue() != 1;
+                emit("mulligan", 2, forcedKeep ? 0 : 1, java.util.Arrays.asList("KEEP", "MULLIGAN"), prompt);
+                return forcedKeep;
+            }
             boolean keep = super.mulliganKeepHand(firstPlayer, cardsToReturn);
             emit("mulligan", 2, keep ? 0 : 1, java.util.Arrays.asList("KEEP", "MULLIGAN"), prompt);
             return keep;
@@ -3263,6 +3354,28 @@ public final class LlmSpikeGui {
                             + PlayerControllerLLM.PLAY_PROMPT_TAIL;
                 }
             } catch (Exception ignore) { }
+            // FORK (rollout, additive — inert unless LlmSpikeFork installed a forcer): forced play on
+            // the ai-log seat. Skips super entirely (the forced decision replaces the AI's). A forced
+            // SPELL gets deterministic first-legal targets via forceTargetsFirstLegal — the AI cast
+            // path does no targeting for a spell it did not evaluate, and an untargeted cast fizzles.
+            // forced == -1 or the PASS slot -> pass priority with null (never an empty list — empty
+            // spins the 999-iteration priority loop, see chooseSpellAbilityToPlay's own PASS note).
+            if (genuine && labels != null && po != null) {
+                Integer forced = LlmSpikeGui.forkForce(getPlayer(), seat, "play", labels.size(), labels);
+                if (forced != null) {
+                    int f = forced.intValue();
+                    int nSpells = po.spells.size();
+                    int passSlot = labels.size() - 1;
+                    if (f < 0 || f >= passSlot) {
+                        emit("play", labels.size(), -1, labels, prompt);
+                        return null;
+                    }
+                    SpellAbility chosen = f < nSpells ? po.spells.get(f) : po.landPlays.get(f - nSpells);
+                    if (f < nSpells) LlmSpikeGui.forceTargetsFirstLegal(getPlayer(), chosen);
+                    emit("play", labels.size(), f, labels, prompt);
+                    return Lists.newArrayList(chosen);
+                }
+            }
             List<SpellAbility> r = super.chooseSpellAbilityToPlay(); // the AI's real decision, returned unchanged
             try {
                 if (genuine && labels != null) {
