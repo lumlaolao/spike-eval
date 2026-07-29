@@ -1224,8 +1224,27 @@ def _run_all(cands, fn, jobs):
     return [fn(c) for c in cands]
 
 
+#: Screening z. 1.96 is the safe default: at that bound a cheap screen drops
+#: ONLY positions whose observed spread is exactly 0. That is not a tuning
+#: accident, it is structural — se_spread = sqrt(2)*0.5/sqrt(n), so
+#: 1.96*se_spread exceeds the 0.20 bar for every n up to and including the full
+#: n=45 (0.207). A screen cheap enough to be worth running can therefore never
+#: discriminate a BORDERLINE position; it can only reject flat ones.
+#:
+#: Measured slack (1.96 * se_spread) against the 0.20 bar:
+#:     n= 8  0.490     n=16  0.346     n=25  0.277     n=45  0.207
+#:
+#: So the safe screen's whole value is rejecting flat/decided positions — worth
+#: 26% of games on the pilot (4 of 12 candidates, every one at spread 0.000).
+#: Buying more than that means accepting false negatives, which delete real
+#: puzzles permanently. That is a judgement call about the suite, so it is a
+#: knob with a conservative default rather than a number chosen here.
+DEFAULT_SCREEN_Z = 1.96
+
+
 def survives_screen(row, category, gap_threshold=DEFAULT_GAP_THRESHOLD,
-                    mulligan_gap_threshold=DEFAULT_MULLIGAN_GAP_THRESHOLD):
+                    mulligan_gap_threshold=DEFAULT_MULLIGAN_GAP_THRESHOLD,
+                    screen_z=DEFAULT_SCREEN_Z):
     """Could this position PLAUSIBLY clear the bar at full n? (screening rule)
 
     Deliberately generous, because the two error types are not symmetric: a
@@ -1233,8 +1252,9 @@ def survives_screen(row, category, gap_threshold=DEFAULT_GAP_THRESHOLD,
     downstream can ever recover it, while a false positive only costs one
     position's worth of confirmation games. So the test is on the UPPER
     confidence bound of the screened spread, not the point estimate --
-    spread + 1.96*se_spread >= base_threshold -- which keeps any position whose
-    small-n measurement is merely consistent with clearing the bar.
+    spread + z*se_spread >= base_threshold -- which keeps any position whose
+    small-n measurement is merely consistent with clearing the bar. See
+    DEFAULT_SCREEN_Z for what lowering z actually buys and costs.
 
     Rows that were never measured (no evidence, all-None wp, an already-decided
     position aside) are KEPT rather than dropped: screening exists to save time
@@ -1250,7 +1270,7 @@ def survives_screen(row, category, gap_threshold=DEFAULT_GAP_THRESHOLD,
         return True                      # unmeasured -> not screening's call
     base = base_threshold_for(category, gap_threshold, mulligan_gap_threshold)
     se = ev.get("wp_spread_se") or 0.0
-    return (spread + 1.96 * se) >= base
+    return (spread + screen_z * se) >= base
 
 
 def read_candidates(path, warnings):
@@ -1453,6 +1473,12 @@ def main(argv=None):
                          "survivors at --n-per-option using a DISJOINT rollout "
                          "seed band (j >= screen-n) so selection cannot "
                          "contaminate the key. 0 disables.")
+    ap.add_argument("--screen-z", type=float, default=DEFAULT_SCREEN_Z,
+                    help="confidence multiplier for the --screen-n drop rule "
+                         "(default %(default)s = safe: drops only exactly-flat "
+                         "positions). Lowering it drops borderline positions "
+                         "too and buys speed by ACCEPTING FALSE NEGATIVES, "
+                         "which delete real puzzles from the suite permanently.")
     ap.add_argument("--max-positions", type=int, default=None)
     ap.add_argument("--jobs", type=int, default=1,
                     help="positions verified concurrently (each runs one JVM "
@@ -1542,7 +1568,8 @@ def main(argv=None):
         for i, (cand, res) in enumerate(zip(cands, screened)):
             if survives_screen(res[0], cand.get("category"),
                                args.gap_threshold,
-                               args.mulligan_gap_threshold):
+                               args.mulligan_gap_threshold,
+                               args.screen_z):
                 keep.append(i)
             else:
                 row = res[0]

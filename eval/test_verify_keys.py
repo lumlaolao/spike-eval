@@ -1036,6 +1036,21 @@ def test_screen_rule_is_generous():
           not vk.survives_screen(row(0.0, 0.0, "position_already_decided"),
                                  "graded-midgame"))
 
+    # The safe default is safe BY CONSTRUCTION, not by luck: at z=1.96 the
+    # slack exceeds the 0.20 bar for every n a screen could use, so only an
+    # exactly-flat position can be dropped. If this stops holding, the screen
+    # has quietly started deleting borderline puzzles.
+    import math
+    for n in (8, 16, 25, 45):
+        se_spread = math.sqrt(2) * 0.5 / math.sqrt(n)
+        check("screen: z=1.96 at n=%d cannot drop a nonzero spread" % n,
+              vk.survives_screen(row(1e-6, se_spread), "graded-midgame"),
+              "se_spread=%.3f" % se_spread)
+    check("screen: z is a real knob (lowering it drops borderline)",
+          not vk.survives_screen(row(0.05, 0.05), "graded-midgame",
+                                 screen_z=0.5),
+          "z=0.5 should drop 0.05 +/- 0.05")
+
 
 def test_screen_confirm_uses_disjoint_seeds():
     """The confirm pass must not re-read the rollouts that selected the position.

@@ -498,9 +498,20 @@ Two properties make this safe rather than merely cheap:
   every spread it selected on. The bias would be invisible in the output, so it
   is enforced structurally and tested at the CLI level.
 * **The screen tests the upper confidence bound**, not the point estimate
-  (`spread + 1.96*se >= base`). A false negative deletes a real puzzle from the
-  suite forever; a false positive costs one position's games. The rule is
-  deliberately generous, and unmeasured positions are kept rather than dropped.
+  (`spread + z*se >= base`, `--screen-z` default 1.96). A false negative
+  deletes a real puzzle from the suite forever; a false positive costs one
+  position's games. The rule is deliberately generous, and unmeasured positions
+  are kept rather than dropped.
+
+**Know what the safe screen can and cannot do.** At `z=1.96` it drops *only*
+positions whose observed spread is exactly 0 — structurally, not by tuning,
+because `se_spread = sqrt(2)*0.5/sqrt(n)` makes the slack exceed the 0.20 bar
+at every usable n (0.490 at n=8, 0.346 at 16, 0.277 at 25, 0.207 even at 45).
+A screen cheap enough to be worth running can never discriminate a *borderline*
+position; it can only reject flat ones. Measured on the pilot: 4 of 12
+candidates dropped, all at spread 0.000, **26% of games saved**. Buying more
+than that means lowering `--screen-z` and accepting false negatives — a
+judgement call about the suite, which is why it is a knob and not a default.
 
 ```bash
 python3 eval/verify_keys.py CANDIDATES.jsonl --out POSITIONS.jsonl \
