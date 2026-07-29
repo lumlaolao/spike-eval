@@ -126,9 +126,22 @@ are only comparable within one engine version.
   stops selection from discarding for SLOT balance, because `--balance-salts`
   fixes that for free — but it deliberately still balances the PASS floor,
   which shuffling cannot touch (PASS is pinned last by `pass_option_index`).
-  21 verified MULLIGAN keys are **excluded**: their prompts carry no numbered
-  menu, so `shuffle_suite` refuses them rather than emit an unbalanced row.
-  That axis needs its own keep/mull balance treatment before it can be quoted.
+  **Mine the 3–4 option band for the rollout lane.** Measured over 103
+  verified keys, the fraction with a SINGLE best answer collapses as the menu
+  grows — `n=2 1.00 | n=3 0.72 | n=4 0.55 | n=5 0.40 | n>=6 0.00` — because at
+  `n_per_option=45` the CI-overlap tie rule cannot separate many options at
+  once and marks them all maximal. Multi-10 positions are not puzzles, and
+  n=2 positions are unshufflable, so **only n_options 3–4 yields quotable
+  positions** and everything else costs ~153 games to prove useless. Round 2
+  spent ~39% of its rollout budget on n=2 candidates alone.
+
+  21 verified MULLIGAN keys are **excluded**, and "no numbered menu to
+  permute" is the mechanical reason, not the real one: mulligan is BINARY, so
+  its floor is 0.50 at best — above the near-zero-floor rule this suite rests
+  on. Measured, it is worse: 17 KEEP / 4 MULLIGAN, so "always KEEP" scores
+  **0.81**, and the mined prompt itself says *"Keeping a workable hand almost
+  always beats shrinking it"* — it hands the model the prior. Never fold this
+  axis into PUZ; report it separately if at all.
 
   **Quote `max_constant_index_baseline`, never `always_first_baseline`.**
   always_first is one constant policy of many, and balancing it alone just

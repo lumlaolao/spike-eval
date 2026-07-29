@@ -11,6 +11,18 @@
   },
   "contract": "prompt-contract.v1",
   "contract_sha": "abaddd69db49a9d2",
+  "excluded_axes": {
+    "mulligan": {
+      "answer_counts": {
+        "KEEP": 17,
+        "MULLIGAN": 4
+      },
+      "best_possible_floor": 0.5,
+      "majority_class_floor": 0.8095238095238095,
+      "n_verified_keys": 21,
+      "status": "not_quotable"
+    }
+  },
   "floors": {
     "always_first_baseline": 0.28,
     "always_pass_baseline": 0.2,
@@ -49,7 +61,7 @@
   "frozen_utc": "20260729T155000Z",
   "headline_metric": "puz.pass_1",
   "known_limits": [
-    "21 verified MULLIGAN keys are EXCLUDED: their prompts carry no numbered menu, so shuffle_suite refuses them rather than emit an unbalanced row. The mulligan axis needs its own keep/mull balance treatment.",
+    "21 verified MULLIGAN keys are EXCLUDED, and the mechanical reason (no numbered menu for shuffle_suite to permute) is not the real one. Mulligan is a BINARY decision, so its floor is 0.50 at the theoretical best -- above the 'prefer floors near zero' rule this whole suite is built on. Measured today it is far worse: the 21 keys split 17 KEEP / 4 MULLIGAN, so 'always KEEP' scores 0.81. Worse still, the mined prompt itself tells the model 'Keeping a workable hand almost always beats shrinking it', i.e. it leans toward the majority class. Before this axis can be quoted it needs class balance, many more MULLIGAN-answer keys, and a prompt that does not hand over the prior. Reported separately from PUZ if ever -- never folded into it.",
     "Every key carries unprobed_replay_address (minted with --driver none), so the replay address was never engine-probed.",
     "n_clusters 23 < n 25: two pairs of positions come from the same game, so CIs are cluster-bootstrapped, not binomial.",
     "No live model has ever been scored against this suite. Only offline policies (which are the floor generators) have run."
