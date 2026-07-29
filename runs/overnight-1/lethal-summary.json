@@ -29,7 +29,7 @@
   "coverage_note": "v1 scope: per-option answer keys are DEFINED only for index-encoded decision types; verify_keys mints keys for lethal-now@play (exhaustive) and save-vs-lethal@play / mulligan / graded-midgame@play (rollout). attackers/blockers and every count-encoded type log a subset SIZE, not an index (no per-option object exists), and free-win positions have a non-empty stack (EVAL-DESIGN 3.1 forbids mid-stack forking in v1) \u2014 all such rows stay status=candidate with an explicit unverifiable_reason. A narrow honest key set beats a wide fake one.",
   "driver": "none",
   "engine_sha": "unknown",
-  "generated_utc": "20260729T082901Z",
+  "generated_utc": "20260729T113508Z",
   "n_in": 2001,
   "n_per_option": 45,
   "n_unverifiable": 1977,
@@ -110,6 +110,8 @@
   },
   "schema": "verify-keys-summary.v1",
   "suite_composition": {
+    "always_first_baseline": 0.9166666666666666,
+    "always_pass_baseline": 0.0,
     "duplicate_rate": 0.375,
     "n_distinct": 15,
     "n_options_histogram": {
@@ -119,6 +121,7 @@
       "5": 1,
       "6": 1
     },
+    "n_scored": 24,
     "n_verified": 24,
     "random_baseline": 0.38680555555555557
   },

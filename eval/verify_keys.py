@@ -1232,6 +1232,7 @@ def suite_composition(rows_meta):
     """
     verified = [m for m in rows_meta if m.get("verified")]
     sigs, n_opts = set(), []
+    n_first, n_pass, n_scored = 0, 0, 0
     for m in verified:
         opts = m.get("options") or []
         # collapse on the option TEXT before the reminder-text bracket, so the
@@ -1239,6 +1240,16 @@ def suite_composition(rows_meta):
         sigs.add(tuple(str(o).split(" [")[0] for o in opts))
         if opts:
             n_opts.append(len(opts))
+        sc = m.get("option_scores")
+        if isinstance(sc, list) and sc:
+            n_scored += 1
+            if sc[0] == 10:
+                n_first += 1
+            for i, o in enumerate(opts):
+                if i < len(sc) and sc[i] == 10 and \
+                        str(o).strip().upper().startswith("PASS"):
+                    n_pass += 1
+                    break
     hist = {}
     for n in n_opts:
         hist[str(n)] = hist.get(str(n), 0) + 1
@@ -1249,6 +1260,16 @@ def suite_composition(rows_meta):
         "duplicate_rate": (1.0 - len(sigs) / float(len(verified)))
                           if verified else None,
         "random_baseline": baseline,
+        # THE floor that actually dominates. The engine emits options in its
+        # own order, nothing shuffles them, and the strong play tends to land
+        # at slot 0 -- so "always answer 1" is the policy to beat, not random
+        # guessing. Measured on the first real suite: always_first 0.92 on the
+        # exhaustive lane and 0.70 combined, against a 0.35 random baseline.
+        # A suite whose always_first floor is far above random is not measuring
+        # play skill; it is measuring nothing.
+        "always_first_baseline": (n_first / float(n_scored)) if n_scored else None,
+        "always_pass_baseline": (n_pass / float(n_scored)) if n_scored else None,
+        "n_scored": n_scored,
         "n_options_histogram": hist,
     }
 
@@ -1660,6 +1681,8 @@ def main(argv=None):
         rows_meta.append({"category": cand.get("category"), "lane": lane,
                           "verified": verified, "reason": reason,
                           "options": row.get("options") or cand.get("options"),
+                          "option_scores": (row.get("answer_key") or {}).get(
+                              "option_scores"),
                           "rollout_evidence": row.get("rollout_evidence")})
         any_engine_missing = any_engine_missing or engine_missing
 
@@ -1688,11 +1711,23 @@ def main(argv=None):
               file=sys.stderr)
         sc = summary.get("suite_composition") or {}
         if sc.get("n_verified"):
-            print("suite: %d verified / %d DISTINCT positions; random-guess "
-                  "baseline %.2f (n_options %s)"
+            print("suite: %d verified / %d DISTINCT positions; floors: "
+                  "random %.2f  always_first %.2f  always_pass %.2f "
+                  "(n_options %s)"
                   % (sc["n_verified"], sc["n_distinct"],
                      sc.get("random_baseline") or 0.0,
+                     sc.get("always_first_baseline") or 0.0,
+                     sc.get("always_pass_baseline") or 0.0,
                      sc.get("n_options_histogram")), file=sys.stderr)
+            af = sc.get("always_first_baseline")
+            if af is not None and af >= 0.5:
+                print("WARNING: POSITIONAL SKEW. A model that always answers "
+                      "'1' scores %.2f on this suite without reading the "
+                      "board. Nothing shuffles the engine's option order and "
+                      "the prompt embeds it verbatim, so this is a property of "
+                      "the CORPUS. Do not quote a model score against this "
+                      "suite until the answer position is balanced."
+                      % af, file=sys.stderr)
         pw = summary.get("power") or {}
         if pw.get("noise_bound") and summary["by_lane"].get("rollout"):
             print("WARNING: NOISE-BOUND RUN. n_per_option=%d gives a noise "

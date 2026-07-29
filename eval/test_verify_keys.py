@@ -1243,6 +1243,27 @@ def test_suite_composition():
           str(sc["random_baseline"]))
     check("suite: a 2-option-heavy suite has a baseline near 0.5 (the point)",
           sc["random_baseline"] > 0.4, str(sc["random_baseline"]))
+    # The positional floor is the one that actually dominates this corpus:
+    # nothing shuffles the engine's option order and the prompt embeds it
+    # verbatim, so "always answer 1" is the policy to beat. Measured on the
+    # first real suite: 0.92 exhaustive / 0.70 combined vs 0.35 random.
+    scored = [{"verified": True, "options": ["A", "B", "PASS (do nothing)"],
+               "option_scores": [10, 0, 0]}] * 3 \
+        + [{"verified": True, "options": ["A", "PASS (do nothing)"],
+            "option_scores": [0, 10]}]
+    sc2 = vk.suite_composition(scored)
+    check("suite: always_first floor is reported",
+          abs(sc2["always_first_baseline"] - 0.75) < 1e-12,
+          str(sc2["always_first_baseline"]))
+    check("suite: always_pass floor is reported",
+          abs(sc2["always_pass_baseline"] - 0.25) < 1e-12,
+          str(sc2["always_pass_baseline"]))
+    check("suite: always_first can exceed random -- that is the whole point",
+          sc2["always_first_baseline"] > sc2["random_baseline"])
+    check("suite: rows without a key are excluded from the floors",
+          vk.suite_composition([{"verified": True, "options": ["A", "B"]}])
+          ["always_first_baseline"] is None)
+
     check("suite: n_options histogram located the triviality",
           sc["n_options_histogram"] == {"2": 5, "4": 1},
           str(sc["n_options_histogram"]))

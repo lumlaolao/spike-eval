@@ -1,0 +1,149 @@
+{
+  "by_category": {
+    "graded-midgame": {
+      "by_reason": {
+        "no_engine_available": 1,
+        "non_empty_stack_v1_restriction": 6,
+        "position_already_decided": 1,
+        "rollout_noise_below_threshold": 15,
+        "screened_out_low_spread": 12
+      },
+      "in": 40,
+      "unverifiable": 35,
+      "verified": 5
+    },
+    "mulligan": {
+      "by_reason": {
+        "position_already_decided": 1,
+        "rollout_noise_below_threshold": 10,
+        "screened_out_low_spread": 2
+      },
+      "in": 20,
+      "unverifiable": 13,
+      "verified": 7
+    },
+    "save-vs-lethal": {
+      "by_reason": {
+        "no_engine_available": 2,
+        "non_empty_stack_v1_restriction": 36,
+        "position_already_decided": 2,
+        "replay_drift": 1,
+        "rollout_noise_below_threshold": 10,
+        "screened_out_low_spread": 89
+      },
+      "in": 150,
+      "unverifiable": 140,
+      "verified": 10
+    }
+  },
+  "by_lane": {
+    "rollout": {
+      "in": 210,
+      "unverifiable": 188,
+      "verified": 22
+    }
+  },
+  "caveats": [],
+  "contract": "prompt-contract.v1",
+  "contract_sha": "abaddd69db49a9d2",
+  "coverage_note": "v1 scope: per-option answer keys are DEFINED only for index-encoded decision types; verify_keys mints keys for lethal-now@play (exhaustive) and save-vs-lethal@play / mulligan / graded-midgame@play (rollout). attackers/blockers and every count-encoded type log a subset SIZE, not an index (no per-option object exists), and free-win positions have a non-empty stack (EVAL-DESIGN 3.1 forbids mid-stack forking in v1) \u2014 all such rows stay status=candidate with an explicit unverifiable_reason. A narrow honest key set beats a wide fake one.",
+  "driver": "engine",
+  "engine_sha": "unknown",
+  "generated_utc": "20260729T112933Z",
+  "n_in": 210,
+  "n_per_option": 45,
+  "n_unverifiable": 188,
+  "n_verified": 22,
+  "overlay_sha": "unknown",
+  "power": {
+    "min_n_required": null,
+    "min_separation_z": 2.0,
+    "n_per_option": 45,
+    "noise_bound": false,
+    "noise_floor": 0.14907119849998599,
+    "per_category": {
+      "default": {
+        "base_threshold": 0.2,
+        "effective_required_gap": 0.2,
+        "min_n_required": 25,
+        "noise_bound": false
+      },
+      "mulligan": {
+        "base_threshold": 0.15,
+        "effective_required_gap": 0.15,
+        "min_n_required": 45,
+        "noise_bound": false
+      }
+    },
+    "worst_case_se": 0.07453559924999299
+  },
+  "rollout_spread": {
+    "n_decided": 22,
+    "n_no_wp": 0,
+    "n_positions_measured": 164,
+    "n_undecided": 142,
+    "note": "measured over rollout-lane positions where the driver returned a measurement, DECIDED AND UNDECIDED ALIKE. n_no_wp counts measured positions whose option_wp was all None (rollout produced no decided game) \u2014 those are broken, not tied. wp_spread is a measured quantity, not a claim of decision-relevance for any single position.",
+    "quantile_method": "linear interpolation (R type 7)",
+    "separation_z": {
+      "max": 7.799204203436178,
+      "median": 0.9191935871449725,
+      "min": 0.0,
+      "n": 58,
+      "p25": 0.4234199742466439,
+      "p75": 1.4510040574150185
+    },
+    "wp_spread": {
+      "max": 1.0,
+      "median": 0.0,
+      "min": 0.0,
+      "n": 164,
+      "p25": 0.0,
+      "p75": 0.06666666666666667
+    },
+    "wp_spread_hist": {
+      "bin_width": 0.05,
+      "bins_note": "bin i covers [i*0.05, (i+1)*0.05); last bin closed at 1.0",
+      "counts": [
+        115,
+        16,
+        6,
+        7,
+        6,
+        0,
+        3,
+        2,
+        0,
+        2,
+        0,
+        0,
+        2,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        3
+      ],
+      "n_bins": 20
+    }
+  },
+  "schema": "verify-keys-summary.v1",
+  "thresholds": {
+    "gap_threshold": 0.2,
+    "min_separation_z": 2.0,
+    "mulligan_gap_threshold": 0.15
+  },
+  "warnings": [],
+  "yield_rate": {
+    "ci95": [
+      0.07020569922592686,
+      0.153518777208967
+    ],
+    "est": 0.10476190476190476,
+    "method": "wilson",
+    "n": 210,
+    "n_clusters": null,
+    "se": 0.021133008267654966
+  }
+}
