@@ -73,10 +73,21 @@ def log(msg):
 
 
 def _refuse(msg):
-    """Print a clear refusal to stderr and exit 2 (guard violation)."""
+    """Refuse a CITED-mode guard violation: exit 2, and name the bypass.
+
+    Only for guards `--exploratory` actually disables. A guard that runs in
+    both modes must use _refuse_always — telling someone to pass a flag they
+    already passed sends them looking for a second bug that isn't there.
+    """
     print("run_batch: REFUSING (cited mode): " + msg, file=sys.stderr)
     print("           pass --exploratory to bypass this guard "
           "(numbers become non-citable).", file=sys.stderr)
+    sys.exit(2)
+
+
+def _refuse_always(msg):
+    """Refuse a violation that holds in BOTH modes: exit 2, no bypass hint."""
+    print("run_batch: REFUSING: " + msg, file=sys.stderr)
     sys.exit(2)
 
 
@@ -327,6 +338,38 @@ def has_game_line(out_dir, seed, swap):
 
 # ----------------------------------------------------------- cited guards
 
+def resolve_deck_paths(args):
+    """Absolutise and existence-check DECK_A/DECK_B. Runs in BOTH modes.
+
+    This is deliberately NOT part of cited_pre_guards. Games are launched with
+    `cwd=args.forge_home`, so a repo-relative deck path (`eval/decks/x.txt`)
+    that is perfectly valid from the repo root resolves against ~/code/forge
+    inside the JVM and is not found. The engine then throws
+    NoSuchFileException out of loadDeck and every game dies -- one macOS
+    crash-report dialog PER PARALLEL JOB, with the real cause (a cwd
+    mismatch) nowhere in the message.
+
+    Exploratory runs used to skip this entirely because the resolve lived
+    inside the cited-only mirror guard, so the mode with the *least* guarding
+    was also the one that failed the most confusingly. Resolving here, before
+    any JVM launches, turns that storm into one line of stderr.
+    """
+    for attr in ("deck_a", "deck_b"):
+        raw = getattr(args, attr)
+        if not raw:
+            continue
+        p = Path(raw).expanduser().resolve()
+        if not p.is_file():
+            _refuse_always("deck file does not exist: %s\n"
+                    "           (--%s was %r; relative paths resolve against "
+                    "the CURRENT directory here, but games run with cwd=%s)"
+                    % (p, attr.replace("_", "-"), raw,
+                       Path(args.forge_home).expanduser()))
+        if p.stat().st_size == 0:
+            _refuse_always("deck file is empty: %s" % p)
+        setattr(args, attr, str(p))
+
+
 def cited_pre_guards(args):
     """Guards 1-3 (spec C). Pure — no forge-home, no dir creation. Runs
     FIRST so a misconfigured cited run refuses before anything launches."""
@@ -335,15 +378,13 @@ def cited_pre_guards(args):
     if not da or not db:
         _refuse("a mirror deck is required — pass --deck PATH (sets both seats) "
                 "or matching --deck-a/--deck-b.")
+    # Paths are already absolutised + existence-checked by resolve_deck_paths;
+    # what is cited-only is the mirror-EQUALITY requirement below.
     pa = Path(da).expanduser().resolve()
     pb = Path(db).expanduser().resolve()
     if pa != pb:
         _refuse("mirror-only: DECK_A and DECK_B must resolve to the SAME file "
                 "(got %s\n           vs %s)." % (pa, pb))
-    if not pa.is_file():
-        _refuse("deck file does not exist: %s" % pa)
-    if pa.stat().st_size == 0:
-        _refuse("deck file is empty: %s" % pa)
     args.deck_a = str(pa)
     args.deck_b = str(pb)
 
@@ -667,6 +708,10 @@ def main():
             _refuse("--deck sets both seats; do not also pass --deck-a/--deck-b.")
         args.deck_a = args.deck
         args.deck_b = args.deck
+
+    # Deck paths are absolutised + existence-checked in BOTH modes, before any
+    # JVM launches. See resolve_deck_paths for why this must not be cited-only.
+    resolve_deck_paths(args)
 
     # Cited guards 1-3 run FIRST: before forge-home is touched and before any
     # directory is created, so a mirror-guard violation refuses cleanly.

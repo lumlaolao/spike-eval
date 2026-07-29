@@ -8,11 +8,99 @@ guard. The rest of run_batch drives JVMs and is covered by the validation ladder
 in CLAUDE.md, not by unit tests.
 """
 
+import argparse
 import tempfile
 import unittest
 from pathlib import Path
 
 import run_batch
+
+
+class TestResolveDeckPaths(unittest.TestCase):
+    """Deck paths must be absolutised in BOTH modes, before any JVM launches.
+
+    WHAT WOULD MAKE THESE FAIL: moving the resolve back inside
+    cited_pre_guards (so --exploratory skips it), or dropping the
+    existence check. Either regression reproduces the original defect: a
+    repo-relative deck path is handed verbatim to a JVM launched with
+    cwd=$FORGE_HOME, loadDeck throws NoSuchFileException, and every game in
+    the batch dies -- one macOS crash-report dialog per parallel job, none of
+    which names the cwd mismatch that caused it.
+    """
+
+    def _args(self, deck_a, deck_b=None):
+        return argparse.Namespace(deck_a=deck_a, deck_b=deck_b,
+                                  forge_home="/nonexistent/forge-home")
+
+    def test_relative_path_becomes_absolute(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            deck = Path(tmp) / "d.txt"
+            deck.write_text("4 Mountain\n", encoding="utf-8")
+            # Pass a path with a redundant segment: resolve() must normalise it.
+            a = self._args(str(Path(tmp) / "." / "d.txt"))
+            run_batch.resolve_deck_paths(a)
+            self.assertEqual(a.deck_a, str(deck.resolve()))
+            self.assertTrue(Path(a.deck_a).is_absolute())
+
+    def test_missing_deck_refuses_with_exit_2(self):
+        a = self._args("definitely/not/here.txt")
+        with self.assertRaises(SystemExit) as cm:
+            run_batch.resolve_deck_paths(a)
+        self.assertEqual(cm.exception.code, 2)
+
+    def test_empty_deck_refuses(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            deck = Path(tmp) / "empty.txt"
+            deck.write_text("", encoding="utf-8")
+            with self.assertRaises(SystemExit) as cm:
+                run_batch.resolve_deck_paths(self._args(str(deck)))
+            self.assertEqual(cm.exception.code, 2)
+
+    def test_unset_seat_is_left_alone(self):
+        """--deck-b may legitimately be None (single-seat exploratory pokes);
+        that must not be mistaken for a missing file."""
+        with tempfile.TemporaryDirectory() as tmp:
+            deck = Path(tmp) / "d.txt"
+            deck.write_text("4 Island\n", encoding="utf-8")
+            a = self._args(str(deck), None)
+            run_batch.resolve_deck_paths(a)
+            self.assertIsNone(a.deck_b)
+
+    def test_refusal_names_the_cwd_mismatch(self):
+        """The message must explain WHY a path that exists from the shell fails
+        inside the JVM. Without this the operator sees only 'file not found'
+        for a file they can `cat`."""
+        import io
+        import contextlib
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), self.assertRaises(SystemExit):
+            run_batch.resolve_deck_paths(self._args("eval/decks/nope.txt"))
+        msg = err.getvalue()
+        self.assertIn("cwd=", msg)
+        # ...and must NOT advertise a bypass that does not exist for this guard.
+        self.assertNotIn("--exploratory", msg)
+
+
+class TestResolveIsActuallyWired(unittest.TestCase):
+    """The unit tests above call resolve_deck_paths() directly, so they pass
+    even if nothing in main() calls it. This drives the real CLI instead, so
+    deleting the call site fails here -- which is the regression that actually
+    happened."""
+
+    def test_cli_refuses_missing_deck_before_launching_any_jvm(self):
+        import subprocess
+        import sys
+        with tempfile.TemporaryDirectory() as tmp:
+            proc = subprocess.run(
+                [sys.executable, str(Path(run_batch.__file__).resolve()),
+                 "--seeds", "1", "--exploratory",
+                 "--deck-a", "definitely/not/here.txt",
+                 "--out", str(Path(tmp) / "out")],
+                capture_output=True, text=True, timeout=120)
+        self.assertEqual(proc.returncode, 2, proc.stderr)
+        self.assertIn("deck file does not exist", proc.stderr)
+        # No JVM should have been reached: the launcher banner never prints.
+        self.assertNotIn("[start]", proc.stdout)
 
 
 class TestCheckpointSha(unittest.TestCase):

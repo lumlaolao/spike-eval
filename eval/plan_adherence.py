@@ -860,7 +860,8 @@ def summarize_deck(slug, acc, spec):
             wins = int(sum(att))
             wb = wilson_block(wins, len(att))
             m["attain_rate"] = wb
-            m["attain_rate_clustered"] = cluster_block(by_file.values())
+            m["attain_rate_clustered"] = cluster_block(
+                [by_file[k] for k in sorted(by_file)])
             m["attain_turns"] = _turn_dist(
                 [r["attain_turn"] for r in results
                  if r["attained"] and r["attain_turn"] is not None])
@@ -871,7 +872,7 @@ def summarize_deck(slug, acc, spec):
             den = sum(r["denominator"] or 0 for r in results)
             for r in results:
                 by_file[r["_game_file"]].extend(r.get("_obs") or [])
-            cb = cluster_block(by_file.values())
+            cb = cluster_block([by_file[k] for k in sorted(by_file)])
             m["rate"] = cb
             m["rate_wilson"] = wilson_block(num, den)
             m["numerator"] = num
@@ -886,7 +887,7 @@ def summarize_deck(slug, acc, spec):
             for r in results:
                 by_file[r["_game_file"]].extend(r.get("_obs") or [])
                 floor_terms.extend(r.get("_floor_terms") or [])
-            cb = cluster_block(by_file.values())
+            cb = cluster_block([by_file[k] for k in sorted(by_file)])
             m["face_rate"] = cb
             m["face_rate_wilson"] = wilson_block(face, fc)
             m["face"] = face
@@ -908,7 +909,8 @@ def summarize_deck(slug, acc, spec):
                 hold_by_file[r["_game_file"]].extend(r.get("_hold_obs") or [])
             out["plan_hold"][mid] = {
                 "hold_num": hn, "hold_den": hd,
-                "rate": cluster_block(hold_by_file.values()),
+                "rate": cluster_block(
+                    [hold_by_file[k] for k in sorted(hold_by_file)]),
                 "note": "PLAN-hold: over adjacent observed turns where the "
                         "predicate held at t-1, fraction still holding at t."}
         if kind == "combo_assembly_progress":
@@ -980,7 +982,8 @@ CAVEATS = [
 ]
 
 
-def build_summary(rows, per_deck, counters, specs, warnings, min_games):
+def build_summary(rows, per_deck, counters, specs, warnings, min_games,
+                  generated_utc=None):
     by_deck = {}
     for slug in sorted(per_deck):
         acc = per_deck[slug]
@@ -992,7 +995,9 @@ def build_summary(rows, per_deck, counters, specs, warnings, min_games):
         by_deck[slug] = summarize_deck(slug, acc, specs.get(slug) or {})
     return {
         "schema": SCHEMA_SUMMARY,
-        "generated_utc": datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ"),
+        "generated_utc": (generated_utc if generated_utc is not None else
+                          datetime.datetime.utcnow().strftime(
+                              "%Y%m%dT%H%M%SZ")),
         "dirs": counters.get("dirs", []),
         "n_games": counters["n_games"],
         "n_seats_resolved": counters["n_seats_resolved"],
@@ -1069,11 +1074,17 @@ def main(argv=None):
     ap.add_argument("--strict-specs", action="store_true",
                     help="exit 2 if any spec fails schema/decklist validation "
                          "(default: warn)")
+    ap.add_argument("--generated-utc", default=None,
+                    help="override the summary timestamp (for byte-"
+                         "reproducible runs; defaults to now)")
     args = ap.parse_args(argv)
 
     if not args.out and not args.json:
         print("need --out and/or --json", file=sys.stderr)
         return 2
+    if args.generated_utc is None:
+        args.generated_utc = datetime.datetime.utcnow().strftime(
+            "%Y%m%dT%H%M%SZ")
 
     specs, spec_errors = load_specs(args.specs)
     if spec_errors:
@@ -1112,7 +1123,8 @@ def main(argv=None):
         return 2
 
     summary = build_summary(rows, per_deck, counters, specs, warnings,
-                            args.min_games)
+                            args.min_games,
+                            generated_utc=args.generated_utc)
 
     if args.out:
         out_dir = Path(args.out)

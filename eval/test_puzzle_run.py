@@ -32,11 +32,13 @@ WHAT WOULD MAKE THIS FAIL:
 
 import contextlib
 import hashlib
+import http.server
 import io
 import json
 import re
 import sys
 import tempfile
+import threading
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -178,6 +180,7 @@ except ImportError:
     sys.modules["prompt_contract"] = _build_stub()
     USING_STUB = True
 
+import bedrock  # noqa: E402
 import puzzle_run  # noqa: E402
 
 FAILURES = []
@@ -569,6 +572,224 @@ def test_summary_has_all_baselines():
               and len(s["contract_sha"]) == 16)
         check("summary: by_category has both categories",
               set(s["by_category"]) == {"lethal-now", "graded-midgame"})
+
+
+# ======================================================================
+# STREAMING SELECTION + THE DROPPED SOURCE ROW
+#
+# WHAT WOULD MAKE THESE FAIL
+#   * read_jsonl-ing the whole corpus again (or keeping every selected row
+#     when --max-positions caps the run): the weakref census below goes from
+#     max_positions to the corpus size.
+#   * the bounded heap picking a DIFFERENT set, or a different order, than the
+#     old sort-then-slice: the equivalence check compares ids element-wise, so
+#     a changed sample is a changed benchmark and must never happen silently.
+#   * prep_position keeping pos["row"] again: the census fails, and so does
+#     the explicit no-row assertion.
+# ======================================================================
+
+class _Row(dict):
+    """A dict that supports weakref, so the test can COUNT what is retained."""
+
+
+def _valid_rows(n, seed=20002):
+    return [make_position("s%03d" % i, "game-%d-0.jsonl" % (i % 4),
+                          "lethal-now", scores=[0, 3, 10, 0], seed=seed + i)
+            for i in range(n)]
+
+
+def test_selection_is_streamed_and_bounded():
+    import gc
+    import weakref
+
+    rows = _valid_rows(120)
+    cap = 7
+    seed = 20260728
+
+    # 1. EQUIVALENCE: the bounded heap must select exactly what the old
+    #    materialize-sort-slice selected, in the same corpus order.
+    expected_ids = [r["id"] for r in sorted(
+        rows, key=lambda r: puzzle_run._sample_hash(seed, str(r.get("id"))))
+        [:cap]]
+    expected_in_corpus_order = [r["id"] for r in rows
+                                if r["id"] in set(expected_ids)]
+    warnings = []
+    got, skips = puzzle_run.select_positions(iter(rows), "all", None, cap,
+                                             seed, warnings)
+    check("bounded selection keeps exactly --max-positions rows",
+          len(got) == cap, str(len(got)))
+    check("bounded selection picks the SAME set as sort-then-slice",
+          sorted(r["id"] for r in got) == sorted(expected_ids),
+          str([r["id"] for r in got]))
+    check("bounded selection preserves corpus order",
+          [r["id"] for r in got] == expected_in_corpus_order,
+          str([r["id"] for r in got]))
+    check("skipped_sampled_out counts everything dropped",
+          skips["skipped_sampled_out"] == 120 - cap,
+          str(skips["skipped_sampled_out"]))
+
+    # 2. MEMORY: PEAK retention is O(selected), not O(corpus).
+    #    Measured DURING the stream, not after: the old sort-then-slice
+    #    version also ends up holding only `cap` rows once it returns (the
+    #    filtered list is rebound), so a post-hoc census proves nothing. What
+    #    is actually being fixed is the high-water mark while the corpus is
+    #    being read, so that is what is sampled here.
+    refs = []
+    peak = [0]
+
+    def stream(n):
+        for i in range(n):
+            wrapped = _Row(make_position(
+                "s%03d" % i, "game-%d-0.jsonl" % (i % 4), "lethal-now",
+                scores=[0, 3, 10, 0], seed=20002 + i))
+            refs.append(weakref.ref(wrapped))
+            yield wrapped
+            # `wrapped` and the consumer's loop variable are still live here;
+            # everything EARLIER should already be gone unless it is retained.
+            del wrapped
+            peak[0] = max(peak[0], sum(1 for r in refs if r() is not None))
+
+    got2, _ = puzzle_run.select_positions(stream(120), "all", None, cap, seed,
+                                          warnings)
+    check("peak retention stays O(selected) while 120 rows stream past",
+          peak[0] <= cap + 2,
+          "peak %d rows held at once (expected <= %d)" % (peak[0], cap + 2))
+    gc.collect()
+    alive = sum(1 for ref in refs if ref() is not None)
+    check("120 rows streamed, only max_positions retained at the end",
+          alive == cap, "%d rows still alive (expected %d)" % (alive, cap))
+    check("streamed selection matches the list-fed selection",
+          [r["id"] for r in got2] == [r["id"] for r in got])
+
+    # 3. Uncapped selection keeps everything (no silent truncation).
+    got3, skips3 = puzzle_run.select_positions(iter(rows), "all", None, None,
+                                               seed, warnings)
+    check("no --max-positions -> every scoreable row kept", len(got3) == 120)
+    check("no --max-positions -> nothing sampled out",
+          skips3["skipped_sampled_out"] == 0)
+
+    # 4. select_positions must accept a bare generator (proof it streams).
+    gen = (r for r in rows)
+    got4, _ = puzzle_run.select_positions(gen, "all", None, 3, seed, warnings)
+    check("select_positions consumes a generator", len(got4) == 3)
+
+
+def test_position_drops_the_source_row():
+    import gc
+    import weakref
+
+    row = _Row(make_position("keepme", "game-1-0.jsonl", "lethal-now",
+                             scores=[0, 3, 10, 0]))
+    ref = weakref.ref(row)
+    skips = {"skipped_render_error": 0}
+    warnings = []
+    pos = puzzle_run.prep_position(row, "strict", skips, warnings)
+    check("prep_position renders", pos is not None)
+    check("the position does NOT carry the source row",
+          "row" not in pos, str(sorted(pos)))
+    # Everything the run needs downstream must already be extracted.
+    for key in ("id", "category", "split", "game_file", "seed", "dtype",
+                "family", "options", "n_options", "menu", "scores",
+                "key_caveats", "engine_sha", "overlay_sha", "rendered"):
+        check("position carries %r without the row" % key, key in pos,
+              str(sorted(pos)))
+    check("scores were extracted, not aliased through the row",
+          pos["scores"] == [0, 3, 10, 0], str(pos["scores"]))
+    del row
+    gc.collect()
+    check("the source row is collectable once prepped", ref() is None)
+
+
+# ======================================================================
+# AUTH + THE BEDROCK BACKEND
+# (No test here ever grants egress consent; the bedrock gate is exercised
+# by its REFUSAL, and the key plumbing against a localhost mock.)
+# ======================================================================
+
+class _AuthEcho(http.server.BaseHTTPRequestHandler):
+    SEEN = []
+
+    def log_message(self, *a):
+        pass
+
+    def do_POST(self):
+        n = int(self.headers.get("Content-Length", 0))
+        self.rfile.read(n)
+        _AuthEcho.SEEN.append(dict(self.headers))
+        payload = json.dumps({"choices": [{"message": {
+            "role": "assistant", "content": "CHOICE: 1"}}]}).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+
+def test_http_call_sends_the_api_key():
+    _AuthEcho.SEEN = []
+    srv = http.server.HTTPServer(("127.0.0.1", 0), _AuthEcho)
+    t = threading.Thread(target=srv.serve_forever, daemon=True)
+    t.start()
+    endpoint = "http://127.0.0.1:%d/v1" % srv.server_address[1]
+    try:
+        reply, err, _ = puzzle_run.http_call(
+            endpoint, "m", [{"role": "user", "content": "x"}], 8, 5.0, 1,
+            api_key="sk-test-KEY")
+        check("http_call succeeds", err is None and reply == "CHOICE: 1",
+              str(err))
+        check("http_call forwards the bearer token",
+              _AuthEcho.SEEN[-1].get("Authorization") == "Bearer sk-test-KEY",
+              str(_AuthEcho.SEEN[-1].get("Authorization")))
+        puzzle_run.http_call(endpoint, "m",
+                             [{"role": "user", "content": "x"}], 8, 5.0, 1)
+        check("no key -> no Authorization header",
+              "Authorization" not in _AuthEcho.SEEN[-1],
+              str(_AuthEcho.SEEN[-1]))
+        # A transport error must not carry the key into the error string.
+        _, err2, _ = puzzle_run.http_call("http://127.0.0.1:1/v1", "m", [],
+                                          8, 0.5, 1, api_key="sk-test-KEY")
+        check("a transport error never echoes the key",
+              err2 is not None and "sk-test-KEY" not in err2, str(err2))
+    finally:
+        srv.shutdown()
+        srv.server_close()
+
+
+def test_bedrock_backend_refuses_without_consent():
+    with tempfile.TemporaryDirectory() as tmp:
+        pos_path = write_jsonl(str(Path(tmp) / "p.jsonl"), main_fixture_rows())
+        out_dir = Path(tmp) / "out-br"
+        # Explicit env dict WITHOUT the flag. Note the env also has no AWS
+        # credentials: the refusal must come from the GATE, before any
+        # credential resolution, so it fires anyway.
+        rc, _, err = run_main([pos_path, "--out", str(out_dir),
+                               "--backend", "bedrock",
+                               "--model", "anthropic.claude-opus-5"], env={})
+        check("bedrock: refuses with exit 2", rc == 2, "rc=%s" % rc)
+        check("bedrock: refusal names the SHARED consent flag",
+              "OPENROUTER_ALLOW_EGRESS" in err, err)
+        check("bedrock: refusal names the bedrock host",
+              "bedrock-runtime" in err, err)
+        check("bedrock: says holding a key is not consent",
+              "not consent" in err, err)
+        check("bedrock: no outputs written", not out_dir.exists())
+
+
+def test_bedrock_call_reports_errors_without_leaking():
+    """bedrock_call must turn a failure into a transport error string (never
+    raise, never carry secret material) and flag the empty-reply config bug."""
+    warnings = []
+    creds = bedrock.Credentials("AKIDEXAMPLE", "SECRET-KEY-VALUE", "TOKENVAL",
+                                "test")
+    cfg = bedrock.ModelCfg(max_tokens=64, timeout_s=1, retries=0)
+    reply, err, _ = puzzle_run.bedrock_call(
+        "anthropic.claude-opus-5", [{"role": "user", "content": "x"}],
+        "us-east-2", creds, cfg, {}, warnings, "p1")
+    check("no egress consent -> bedrock_call returns an error, not a reply",
+          reply is None and err is not None, str(err))
+    check("the error is the egress refusal", "EgressRefused" in err, err)
+    check("the error carries no secret key", "SECRET-KEY-VALUE" not in err)
+    check("the error carries no session token", "TOKENVAL" not in err)
 
 
 def test_zero_scoreable_exits_2():

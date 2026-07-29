@@ -20,8 +20,16 @@ WHAT WOULD MAKE THIS FAIL:
     outside the schema enums for flag_lane / adjudication.method /
     adjudication.class.
   * The local rollout_key copy disagreeing with verify_keys.rollout_key.
+  * test_cluster_order_invariance — any _cb_block being fed per-game clusters
+    in dict-insertion order instead of key-sorted order (the bootstrap
+    resamples BY INDEX, so ordering silently changes se/ci95).
+  * test_determinism_byte_identical — main() ignoring --generated-utc, or any
+    nondeterminism creeping into summary.json / decisions.jsonl between two
+    runs over the identical corpus.
 """
 
+import contextlib
+import io
 import json
 import sys
 import tempfile
@@ -306,6 +314,89 @@ def test_noise_gate_via_driver():
           len(rows) == 1
           and rows[0]["adjudication"]["class"] == "good"
           and rows[0]["noise_limited"] is True)
+
+
+class _SeqDriver(StubDriver):
+    """StubDriver returning a DIFFERENT option_wp per call so per-game
+    cluster values are distinct (the bootstrap can then tell cluster
+    orderings apart)."""
+
+    def __init__(self, wps):
+        StubDriver.__init__(self, list(wps[0]), [0.01, 0.01])
+        self._wps = [list(w) for w in wps]
+
+    def rollout(self, address, n_per_option=None):
+        self.option_wp = self._wps[self.calls % len(self._wps)]
+        return StubDriver.rollout(self, address, n_per_option)
+
+
+def test_cluster_order_invariance():
+    """Every clustered metric block must be independent of the dict-insertion
+    order of per-game clusters: before the explicit key-sort, reversing the
+    rows (and the per_game_* stat dicts) changed se/ci95."""
+    # Distinct per-game wpl: 0.60 / 0.35 (blunders), 0.10 / 0.04 (not).
+    driver = _SeqDriver([[0.90, 0.30], [0.90, 0.55],
+                         [0.90, 0.80], [0.90, 0.86]])
+    entries = entries_fixture(n_games=4)
+    rows, stats = scan_and_adjudicate(entries, "rollout", driver,
+                                      audit_rate=1.0)
+    stamp = "20260101T000000Z"
+    s_fwd = br.build_summary(rows, stats, {}, generated_utc=stamp)
+    stats_rev = dict(stats)
+    for key in ("per_game_scoreable", "per_game_flagged"):
+        stats_rev[key] = dict(reversed(list(stats[key].items())))
+    s_rev = br.build_summary(list(reversed(rows)), stats_rev, {},
+                             generated_utc=stamp)
+    d1 = s_fwd["dq_wpl_mean"]
+    check("order_fixture_nontrivial",
+          d1["n_clusters"] == 4 and d1["se"] is not None and d1["se"] > 0
+          and s_fwd["punt_rate"]["n_clusters"] == 4, str(d1))
+    for k in ("dq_wpl_mean", "punt_rate", "punt_rate_textlane", "flag_rate",
+              "audit_lane_punt_rate", "flagged_lane_punt_rate",
+              "punt_rate_by_lane"):
+        check("order_invariant_%s" % k,
+              json.dumps(s_fwd[k], sort_keys=True)
+              == json.dumps(s_rev[k], sort_keys=True),
+              "fwd=%r rev=%r" % (s_fwd[k], s_rev[k]))
+    check("order_invariant_whole_summary",
+          json.dumps(s_fwd, sort_keys=True)
+          == json.dumps(s_rev, sort_keys=True))
+
+
+def test_determinism_byte_identical():
+    """Two full main() runs over the identical corpus with the same
+    --generated-utc must produce byte-identical summary.json and
+    decisions.jsonl."""
+    stamp = "20260101T000000Z"
+    with tempfile.TemporaryDirectory() as td:
+        corpus = Path(td) / "corpus"
+        corpus.mkdir()
+        for e in entries_fixture(n_games=3, decisions_per_game=lambda: [
+                lethal_pass_dec(), clean_dec(turn=4)]):
+            with open(corpus / e["file"], "w", encoding="utf-8") as f:
+                for d in e["decisions"]:
+                    f.write(json.dumps(d) + "\n")
+                f.write(json.dumps(e["game"]) + "\n")
+        out1 = Path(td) / "o1"
+        out2 = Path(td) / "o2"
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc1 = br.main([str(corpus), "--out", str(out1),
+                           "--audit-rate", "1.0",
+                           "--generated-utc", stamp])
+            rc2 = br.main([str(corpus), "--out", str(out2),
+                           "--audit-rate", "1.0",
+                           "--generated-utc", stamp])
+        check("byte_runs_exit_0", rc1 == 0 and rc2 == 0,
+              "rc1=%r rc2=%r" % (rc1, rc2))
+        s1 = (out1 / "summary.json").read_bytes()
+        s2 = (out2 / "summary.json").read_bytes()
+        d1 = (out1 / "decisions.jsonl").read_bytes()
+        d2 = (out2 / "decisions.jsonl").read_bytes()
+    check("summary_json_byte_identical", s1 == s2)
+    check("decisions_jsonl_byte_identical", d1 == d2)
+    check("generated_utc_pinned",
+          ('"generated_utc": "%s"' % stamp).encode() in s1)
 
 
 def test_schema_conformance():

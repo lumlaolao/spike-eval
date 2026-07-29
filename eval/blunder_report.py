@@ -347,7 +347,7 @@ def _lift_block(flagged_pg, audit_pg, resamples=2000, seed=20260728):
             "n_games": len(games), "method": "cluster-bootstrap"}
 
 
-def build_summary(rows, stats, params):
+def build_summary(rows, stats, params, generated_utc=None):
     """The aggregate block (EVAL-DESIGN S10.2). Every metric is a standard
     metric block; every denominator is explicit; every baseline is a field."""
     n_scoreable = stats["n_scoreable"]
@@ -364,8 +364,8 @@ def build_summary(rows, stats, params):
         wpl_pg.setdefault(_gk(r), []).append(r["adjudication"]["wpl"])
         if r.get("random_choice_wpl") is not None:
             rand_pg.setdefault(_gk(r), []).append(r["random_choice_wpl"])
-    dq_wpl_mean = _cb_block(wpl_pg.values())
-    random_choice_wpl = _cb_block(rand_pg.values())
+    dq_wpl_mean = _cb_block([wpl_pg[k] for k in sorted(wpl_pg)])
+    random_choice_wpl = _cb_block([rand_pg[k] for k in sorted(rand_pg)])
     dq_wpl_mean["denominator"] = "rollout-adjudicated decisions"
     dq_wpl_mean["baseline_random_choice_wpl"] = random_choice_wpl["est"]
     dq_wpl_mean["margin_over_random_choice"] = (
@@ -375,7 +375,7 @@ def build_summary(rows, stats, params):
 
     # punt_rate: blunders among ROLLOUT-adjudicated decisions only.
     punt_pg = _lane_rate_clusters(rows, "*")
-    punt_rate = _cb_block(punt_pg.values())
+    punt_rate = _cb_block([punt_pg[k] for k in sorted(punt_pg)])
     punt_rate["denominator"] = "rollout-adjudicated decisions"
     n_rollout_blunders = sum(int(x) for v in punt_pg.values() for x in v)
     punt_rate["per_100_scoreable"] = (
@@ -387,7 +387,8 @@ def build_summary(rows, stats, params):
 
     punt_rate_by_lane = {}
     for lane in ("shadow-disagree", "text-flag", "audit-sample"):
-        b = _cb_block(_lane_rate_clusters(rows, lane).values())
+        lane_pg = _lane_rate_clusters(rows, lane)
+        b = _cb_block([lane_pg[k] for k in sorted(lane_pg)])
         b["denominator"] = "rollout-adjudicated decisions in lane %r" % lane
         punt_rate_by_lane[lane] = b
 
@@ -401,21 +402,21 @@ def build_summary(rows, stats, params):
                 n_bl += 1
         if n_sc > 0:
             tl_pg[gk] = [1.0] * min(n_bl, n_sc) + [0.0] * max(0, n_sc - n_bl)
-    punt_rate_textlane = _cb_block(tl_pg.values())
+    punt_rate_textlane = _cb_block([tl_pg[k] for k in sorted(tl_pg)])
     punt_rate_textlane["denominator"] = "all scoreable decisions"
     punt_rate_textlane["label"] = (
         "textlane-verified only (rules engine-verifiable from the prompt "
         "snapshot); kept strictly separate from rollout punt_rate")
 
     # per_game_worst_p95: p95 across games of each game's max WPL.
-    worst = [max(v) for v in wpl_pg.values() if v]
+    worst = [max(wpl_pg[k]) for k in sorted(wpl_pg) if wpl_pg[k]]
     per_game_worst_p95 = metric_block(
         _p95(worst), None, [None, None], len(worst), len(worst), "exact")
     per_game_worst_p95["denominator"] = "games with >=1 rollout adjudication"
 
     # flag_rate: flagged (text or shadow lane) / scoreable, clustered by game.
     fr_pg = []
-    for gk, n_sc in per_game_scoreable.items():
+    for gk, n_sc in sorted(per_game_scoreable.items()):
         if n_sc <= 0:
             continue
         n_fl = min(stats["per_game_flagged"].get(gk, 0), n_sc)
@@ -426,11 +427,13 @@ def build_summary(rows, stats, params):
 
     # audit lane punt rate — THE LEAKAGE MEASUREMENT.
     audit_pg = _lane_rate_clusters(rows, "audit-sample")
-    audit_lane_punt_rate = _cb_block(audit_pg.values())
+    audit_lane_punt_rate = _cb_block(
+        [audit_pg[k] for k in sorted(audit_pg)])
     audit_lane_punt_rate["denominator"] = (
         "rollout-adjudicated decisions in the audit sample")
     flagged_pg = _lane_rate_clusters(rows, "flagged")
-    flagged_lane_punt_rate = _cb_block(flagged_pg.values())
+    flagged_lane_punt_rate = _cb_block(
+        [flagged_pg[k] for k in sorted(flagged_pg)])
     flagged_lane_punt_rate["denominator"] = (
         "rollout-adjudicated decisions in text-flag or shadow-disagree lanes")
 
@@ -489,7 +492,9 @@ def build_summary(rows, stats, params):
     summary = {
         "t": "summary",
         "summary_schema": "blunder-summary.v1",
-        "generated_utc": datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ"),
+        "generated_utc": (generated_utc if generated_utc is not None else
+                          datetime.datetime.utcnow().strftime(
+                              "%Y%m%dT%H%M%SZ")),
         "params": params,
         "counts": {
             "n_games": stats["n_games"],
@@ -650,11 +655,17 @@ def main(argv=None):
     ap.add_argument("--json", action="store_true",
                     help="dump the summary object to stdout as the only "
                          "stdout content")
+    ap.add_argument("--generated-utc", default=None,
+                    help="override the summary timestamp (for byte-"
+                         "reproducible runs; defaults to now)")
     args = ap.parse_args(argv)
 
     if not (0.0 <= args.audit_rate <= 1.0):
         print("audit-rate must be in [0,1]", file=sys.stderr)
         return 2
+    if args.generated_utc is None:
+        args.generated_utc = datetime.datetime.utcnow().strftime(
+            "%Y%m%dT%H%M%SZ")
     if args.driver == "fixture" and not args.fixture:
         print("--driver fixture requires --fixture FILE.jsonl",
               file=sys.stderr)
@@ -695,7 +706,8 @@ def main(argv=None):
               "max_adjudications": args.max_adjudications,
               "have_rollout_driver": HAVE_ROLLOUT_DRIVER,
               "have_prompt_contract": HAVE_PROMPT_CONTRACT}
-    summary = build_summary(rows, stats, params)
+    summary = build_summary(rows, stats, params,
+                            generated_utc=args.generated_utc)
     write_outputs(args.out, rows, summary)
 
     if args.json:

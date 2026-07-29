@@ -85,8 +85,15 @@ are only comparable within one engine version.
   Python 3.9 — no match statements, no `X | Y` runtime unions, no pip).
 - **Eval v1.0 modules** (2026-07, see `eval/EVAL-V1.md` for the full walkthrough):
   `eval/prompt_contract.py` (frozen prompt/reply contract, `contract_sha`),
-  `eval/puzzle_run.py` (PUZ axis; only the `offline` backend has end-to-end evidence —
-  `--backend openrouter` sends no auth header and cannot work in v1),
+  `eval/puzzle_run.py` (PUZ axis; backends `offline|http|openrouter|bedrock` —
+  `openrouter`/remote-`http` now send Bearer auth from `OPENROUTER_API_KEY`/`secrets.env`;
+  only `offline` has end-to-end evidence, no live model has ever been scored),
+  `eval/bedrock.py` (AWS Bedrock backend, hand-rolled stdlib SigV4, same
+  `OPENROUTER_ALLOW_EGRESS=1` gate; **never live-called** — signing proven only
+  against AWS known-answer vectors. Per-model `BEDROCK_MODEL_CFG` table mirrors
+  `ModelCfg`: thinking budget is carved OUT of `max_tokens` and rows leaving
+  <1024 answer tokens are rejected, so hidden-reasoning-eats-the-cap →
+  empty-reply cannot recur; override via `BEDROCK_MODEL_CFG` env JSON),
   `eval/verify_keys.py` (candidate→answer-key promotion),
   `eval/plan_adherence.py` + `eval/plans/*.milestones.json` (PLAN axis),
   `eval/blunder_flags.py` + `eval/blunder_report.py` (DQ/PUNT axes),
@@ -104,9 +111,10 @@ are only comparable within one engine version.
 
 0. **Python eval suite** (free, seconds, no JVM): every `eval/test_*.py` must pass —
    `for f in eval/test_*.py; do python3 "$f" >/dev/null || echo "FAIL $f"; done`
-   (20 files as of v1.0, incl. `test_prompt_contract` / `test_puzzle_run` /
+   (21 files, incl. `test_prompt_contract` / `test_puzzle_run` /
    `test_verify_keys` / `test_plan_adherence` / `test_blunder_flags` /
-   `test_blunder_report` / `test_build_report`). Never weaken a test to pass it.
+   `test_blunder_report` / `test_build_report` / `test_bedrock`). Never weaken a
+   test to pass it.
 1. **Harness mechanics** (seeding, JSONL, arms, engine plumbing):
    `GAME_SEED=42 CONTROLLER_A=floor CONTROLLER_B=floor bash run-llm-headless.sh`
    — zero model calls, ~12s per full game, bit-reproducible. Seed 42 floor mirror
@@ -155,6 +163,13 @@ SIGINT (not SIGKILL) so the recorder's shutdown hook finalizes the mp4.
   is a bug to investigate.
 - GUI matches are best-of-3 — a log with multiple mulligan clusters is one *match*,
   several *games*.
+- **Games launch with `cwd=$FORGE_HOME`**, so a repo-relative deck path
+  (`eval/decks/x.txt`) resolves against `~/code/forge` inside the JVM →
+  `NoSuchFileException` in `loadDeck` kills every game in the batch, surfacing as
+  one macOS crash-report dialog PER PARALLEL JOB with the cwd mismatch nowhere in
+  the message. `run_batch.py resolve_deck_paths` now absolutises + existence-checks
+  deck paths in BOTH cited and exploratory modes; always pass absolute paths to
+  anything that execs from FORGE_HOME.
 
 ## The improvement loop (added 2026-07-21, branch harness-fixes)
 

@@ -115,10 +115,17 @@ python3 eval/build_report.py --puz-run RUNDIR
 
 Backends: `offline` (fixture or one of the five `--offline-policy` values:
 `always-pass`, `random`, `first`, `oracle`, `garbage`), `http` (local endpoint),
-`openrouter`. **Egress refuses by default**: a non-local endpoint host aborts
-with exit 2 unless `OPENROUTER_ALLOW_EGRESS=1` is explicitly set. Do not set it
-casually — the payload is the full board snapshot. (`--backend openrouter` is
-additionally not wired for auth in v1; see §6.)
+`openrouter`, `bedrock` (AWS, via `eval/bedrock.py` — per-model
+max_tokens/thinking/timeout come from `BEDROCK_MODEL_CFG`, not the CLI flags,
+and are stamped into `summary.model_cfg`). **Egress refuses by default**: a
+non-local endpoint host aborts with exit 2 unless `OPENROUTER_ALLOW_EGRESS=1`
+is explicitly set — the same single switch for all backends, Bedrock included.
+Do not set it casually — the payload is the full board snapshot.
+`openrouter`/remote-`http` resolve `OPENROUTER_API_KEY` (env, then
+`<repo>/secrets.env`) and send it as a Bearer token, checked before any
+request so a missing key cannot spend the consent on a 401; the key never
+reaches an artifact (only `api_key_present`). No live backend has ever been
+exercised; see §6.
 
 | metric | trivial floors |
 |---|---|
@@ -353,27 +360,44 @@ Learned during integration:
     to nothing, so PLAN is measurable today only on `runs/stage0-calibration`
     (ur-delver / burn). A PLAN profile from one deck is not a plan-adherence
     score for a model.
-13. **`--backend openrouter` cannot currently work.** `replay_match._post_chat`
-    sends no `Authorization` header and nothing reads `OPENROUTER_API_KEY`, so
-    the call would spend the egress consent and then 401. This is *safe* (no
-    secret can leak through a path that does not read it) but it means no live
-    model has ever been scored on PUZ. `--backend http` against a local endpoint
-    is the intended lane and was **not** exercised in this pass either; the only
-    backend with real end-to-end evidence is `offline`.
+13. **No live model has ever been scored on PUZ — still true, for a different
+    reason.** The v1.0 auth gap (`_post_chat` sent no `Authorization` header)
+    is closed: `replay_match` and `puzzle_run` now resolve `OPENROUTER_API_KEY`
+    and send it as a Bearer token on the gated path, and a `bedrock` backend
+    exists (`eval/bedrock.py`, stdlib SigV4). But **no live OpenRouter or
+    Bedrock call has ever been made** through this harness (consent never
+    granted, by design). What is proven: the SigV4 math (AWS known-answer
+    vectors), the wire shape, retry/redirect/secret handling (localhost mock).
+    What is NOT proven: account permissions (`bedrock:InvokeModel`), that the
+    Bedrock model ids exist in the target region (they come from the brief,
+    unverified; cross-region `us.anthropic.*` profile ids also resolve in the
+    cfg table but are unexercised), and that live responses match the parsed
+    shape. The only backend with real end-to-end evidence remains `offline`.
+    Two further honesty notes: Bedrock thinking rows (opus/sonnet) omit
+    `temperature` (the API rejects `temperature != 1` with thinking on), so a
+    per-model determinism claim is false for those rows; and
+    `puzzle_run --backend bedrock` silently ignores
+    `--max-tokens`/`--req-timeout`/`--retries` — the `ModelCfg` row wins and
+    is stamped into `summary.model_cfg`.
 14. **Cross-axis comparability is asserted, not enforced.** The scorecard warns
     on `contract_sha` drift and mixed `engine_sha`/`overlay_sha`, but nothing
     stops you from passing a PUZ run from one build and a PLAN run from another
     and reading the result as one model's profile. Read the provenance caveats;
-    they are not decoration. Relatedly, `plan_adherence.py` and
-    `blunder_report.py` stamp `generated_utc` from the wall clock with no CLI
-    override, so their artifacts are not byte-reproducible the way
-    `puzzle_run.py --generated-utc` and `build_report.py --generated-utc` are.
+    they are not decoration. (The byte-reproducibility gap noted here in v1.0
+    is closed: `plan_adherence.py` and `blunder_report.py` now take
+    `--generated-utc` like `puzzle_run.py`/`build_report.py`, and their
+    cluster-bootstrap inputs are key-sorted, so equal inputs give
+    byte-identical summaries — enforced by `test_determinism_byte_identical`
+    in both test files.)
 
 ---
 
 ## 7. Tests
 
-20 self-tests, all stdlib, no network, no engine:
+21 self-tests, all stdlib, no network, no engine (`test_bedrock.py` is new —
+its SigV4 known-answer vectors and egress/redirect/secret checks run against
+localhost or pure fixtures only; the AWS example key `AKIDEXAMPLE` is a
+published test vector, not a credential):
 
 ```
 for t in eval/test_*.py; do python3 "$t" >/dev/null || echo "FAIL $t"; done

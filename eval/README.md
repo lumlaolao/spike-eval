@@ -8,7 +8,12 @@ Two stdlib-only Python 3 scripts:
 
 - `run_batch.py` — plays N headless games by invoking `bash run-llm-headless.sh`
   from FORGE_HOME with per-game env (`GAME_SEED`, `SWAP_SEATS`, `EVAL_OUT`,
-  `GAME_CAP_MS`, per-seat models/controllers/decks). Resumable.
+  `GAME_CAP_MS`, per-seat models/controllers/decks). Resumable. Deck paths are
+  absolutised and existence-checked up front (`resolve_deck_paths`) in BOTH
+  cited and exploratory modes — games run with `cwd=$FORGE_HOME`, so a
+  repo-relative deck path would otherwise resolve against the forge checkout
+  and crash every game in the batch (guards that hold in both modes refuse via
+  `_refuse_always`, which never suggests `--exploratory` as a bypass).
 - `aggregate.py` — turns a directory of `game-*.jsonl` logs into win rates
   with Wilson 95% CIs, a paired analysis with a paired-bootstrap CI on the
   win-rate delta, and decision-level latency/fallback stats. `--json` for
@@ -313,10 +318,11 @@ yields **3 verified puzzle positions** (0.4% of 807 mined candidates), all
 from the offline exhaustive lane. DQ has never been measured (every blunder
 corpus is textlane-only, so `dq_wpl_mean` has n=0 everywhere). PLAN resolves a
 deck on exactly one corpus (`runs/stage0-calibration`). The only PUZ backend
-with end-to-end evidence is `offline`; `--backend openrouter` cannot succeed
-as written (no `Authorization` header is ever sent — safe, but it means no
-live model has ever been scored). Until Phase 1.2 runs, PUZ cannot rank
-anything.
+with end-to-end evidence is `offline`: the `openrouter` auth gap is now closed
+(a Bearer token is resolved and sent — see AUTH below) and a `bedrock` backend
+exists, but **no live frontier model has ever been scored end-to-end** — no
+live OpenRouter or Bedrock call has been made through this harness. Until
+Phase 1.2 runs, PUZ cannot rank anything.
 
 ### `prompt_contract.py` — the frozen prompt/reply contract
 
@@ -343,8 +349,9 @@ partial credit (EVAL-DESIGN §3.3), and emits `results.jsonl` + `summary.json`.
 
 ```bash
 python3 eval/puzzle_run.py POSITIONS.jsonl --out runs/puz/<name> \
-    [--backend offline|http|openrouter] [--offline-policy always-pass|random|first|oracle|garbage] \
+    [--backend offline|http|openrouter|bedrock] [--offline-policy always-pass|random|first|oracle|garbage] \
     [--offline-fixture FILE.jsonl] [--endpoint http://localhost:8080/v1] [--model NAME] \
+    [--region us-east-2] [--no-api-key] \
     [--k 4] [--strictness strict|lenient] [--split open|holdout|all] \
     [--max-positions N] [--sample-seed N] [--generated-utc STAMP] [--json] [--dry-run]
 ```
@@ -358,8 +365,25 @@ python3 eval/puzzle_run.py POSITIONS.jsonl --out runs/puz/<name> \
 - **Backends:** `offline` (default, zero network — fixture replies or a
   synthesized policy), `http` (OpenAI-compatible; non-local hosts refuse with
   exit 2 unless `OPENROUTER_ALLOW_EGRESS=1`), `openrouter` (hard-refuses
-  without that flag; **also currently non-functional even with consent** —
-  no auth header is sent, so it 401s. Treat it as not implemented in v1).
+  without that flag), `bedrock` (AWS Bedrock via `eval/bedrock.py`; same
+  single consent flag, hard-refuses without it; needs an explicit `--model`).
+- **AUTH:** `openrouter` / a remote `http` endpoint require
+  `OPENROUTER_API_KEY` (environment, then `<repo>/secrets.env` — read without
+  mutating `os.environ`). The key is checked AFTER the pure egress gate but
+  BEFORE any request, so a missing key exits 1 without spending the consent on
+  a run that can only 401. It is sent as a Bearer token on the gated path
+  only — never to a localhost endpoint, never into `results.jsonl` /
+  `summary.json` / a log line (the summary records only `api_key_present`).
+  `--no-api-key` opts a remote endpoint out of the requirement.
+- **Bedrock specifics:** `--backend bedrock` takes its per-model
+  max_tokens / thinking budget / timeout / retries from
+  `bedrock.BEDROCK_MODEL_CFG` (env-overridable), **NOT** from
+  `--max-tokens`/`--req-timeout`/`--retries` (those flags are silently
+  ignored on this backend); the row used is stamped into `summary.model_cfg`
+  with `model_cfg_sha` (additive fields, plus `api_key_present`). A run at a
+  different thinking budget is a different measurement — quote the stamped
+  cfg with the number. `--region` picks the AWS region (default `AWS_REGION`
+  / `~/.aws/config` / `us-east-2`).
 - **Trivial floors:** computed analytically from the same answer keys over
   the same offered menu — `random_choice` (+ pass_1/pass_k twins),
   `always_pass`, `majority_class`, and the `oracle_ceiling`; every headline
@@ -372,6 +396,57 @@ python3 eval/puzzle_run.py POSITIONS.jsonl --out runs/puz/<name> \
 
 ```bash
 python3 eval/test_puzzle_run.py
+```
+
+### `bedrock.py` — AWS Bedrock backend (stdlib SigV4)
+
+Anthropic Messages over AWS Bedrock with hand-rolled SigV4 signing
+(`hmac`/`hashlib`/`urllib` — eval/ may not import boto3 or the anthropic SDK).
+Used by `puzzle_run.py --backend bedrock`; also a standalone CLI:
+
+```bash
+python3 eval/bedrock.py --print-cfg [MODEL]   # show the resolved per-model table
+python3 eval/bedrock.py --whoami              # credential SOURCE + akid prefix only
+python3 eval/bedrock.py --model anthropic.claude-opus-5 --prompt "hi" \
+    [--region us-east-2] [--system TEXT] [--dry-run] [--json]
+```
+
+- **Egress:** hard-refuses (exit 2) unless `OPENROUTER_ALLOW_EGRESS=1` — the
+  SAME single consent switch as OpenRouter, deliberately not a second flag, so
+  there is exactly one thing to audit. Holding AWS credentials is not consent.
+  The gate is enforced twice (`invoke()` and `send_signed()` for any
+  non-localhost host), and redirects are re-checked with `Authorization`
+  stripped on any cross-host redirect.
+- **Credentials:** env (`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY`/
+  `AWS_SESSION_TOKEN`) → `~/.aws/credentials` → `~/.aws/config`, honouring
+  `AWS_PROFILE`; assume-role/SSO/credential_process fail loudly rather than
+  half-work. Secrets never appear in output: every error string is scrubbed,
+  `--dry-run` redacts `Authorization` and scrubs the canonical request,
+  `--whoami` prints source + key-id prefix only.
+- **Per-model config** (`BEDROCK_MODEL_CFG`, ordered substring match + a
+  `default` row, env-JSON override, `model_cfg_sha` provenance): opus/sonnet
+  rows get `max_tokens 8000` with `thinking_budget_tokens 4000` (timeouts
+  300s/240s, temperature omitted — the API rejects `temperature != 1` with
+  thinking on, so thinking rows are non-deterministic); haiku gets 2000 / no
+  thinking / 120s / temperature 0.0 (the cheap control arm); `default` is
+  conservative and non-thinking (enabling thinking on a model without it is a
+  hard 400). The thinking budget is carved OUT of `max_tokens`, and
+  `validate()` rejects any row leaving <1024 visible-answer tokens — the
+  hidden-reasoning-burns-the-cap → empty-reply failure is unrepresentable,
+  including via env override. Retries (2) fire only on 429/5xx/transport
+  errors, never on a 4xx validation error.
+- **Evidence and its limits:** SigV4 is asserted against the AWS-published
+  `aws-sig-v4-test-suite` known-answer vectors (canonical request,
+  string-to-sign, and final signature separately); retry/redirect/secret
+  handling is exercised against a localhost mock. **No live Bedrock call has
+  ever been made** — bedrock:InvokeModel permission, model-id availability in
+  the region, and the live response shape are all unproven. First real run
+  should be the cheapest arm:
+  `OPENROUTER_ALLOW_EGRESS=1 python3 eval/bedrock.py --model anthropic.claude-haiku-4-5 --prompt 'reply with the word OK' --json`.
+- **Exit codes:** 0 OK; 1 transport/API error; 2 usage error or egress refusal.
+
+```bash
+python3 eval/test_bedrock.py
 ```
 
 ### `verify_keys.py` — candidate → verified answer key promotion
@@ -413,7 +488,8 @@ are text/regex over the logged prompts — no judge model, no engine.
 
 ```bash
 python3 eval/plan_adherence.py DIR [DIR ...] --out runs/plan/<name> \
-    [--decks slug,slug] [--specs eval/plans] [--min-games 1] [--json] [--strict-specs]
+    [--decks slug,slug] [--specs eval/plans] [--min-games 1] [--json] [--strict-specs] \
+    [--generated-utc STAMP]
 ```
 
 - **Inputs:** run dirs scanned recursively for `game-*.jsonl`. The seat's
@@ -431,6 +507,10 @@ python3 eval/plan_adherence.py DIR [DIR ...] --out runs/plan/<name> \
   uniform-random face floor.
 - **Exit codes:** 0 OK; 2 usage error / invalid specs under `--strict-specs`
   / nothing usable.
+- **Reproducibility:** cluster-bootstrap inputs are key-sorted at the point of
+  use (the `puzzle_run` `_clusters()` pattern), so summaries no longer depend
+  on dict/scan order; with `--generated-utc STAMP` two runs over the same
+  corpus are byte-identical (enforced by `test_determinism_byte_identical`).
 
 ```bash
 python3 eval/test_plan_adherence.py
@@ -451,7 +531,8 @@ triggers for adjudication, never verdicts.
 python3 eval/blunder_report.py DIR [DIR ...] --out runs/blunder/<name> \
     [--model NAME] [--audit-rate 0.05] [--sample-seed N] \
     [--adjudicate none|textlane|rollout] [--driver engine|fixture|none] \
-    [--fixture FILE.jsonl] [--n-per-option 16] [--max-adjudications N] [--json]
+    [--fixture FILE.jsonl] [--n-per-option 16] [--max-adjudications N] [--json] \
+    [--generated-utc STAMP]
 ```
 
 - **Adjudication methods:** `rollout` (wpl = wp_best − wp_chosen; classes per
@@ -467,6 +548,9 @@ python3 eval/blunder_report.py DIR [DIR ...] --out runs/blunder/<name> \
   real evidence but of a different quantity.
 - **Exit codes:** 0 OK; 2 usage/nothing usable; 3 INCOMPLETE (`--adjudicate
   rollout` requested but no driver available).
+- **Reproducibility:** `build_summary`'s per-game aggregates iterate in sorted
+  game order, and `--generated-utc STAMP` overrides the timestamp, so equal
+  inputs give byte-identical summaries.
 
 ```bash
 python3 eval/test_blunder_flags.py

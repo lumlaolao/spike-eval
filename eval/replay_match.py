@@ -60,6 +60,21 @@ to start unless OPENROUTER_ALLOW_EGRESS=1 is set explicitly (mirroring
 eval/model_sweep.py and the CLAUDE.md egress-boundary note). Never set that flag
 on the user's behalf.
 
+Three things hold that boundary, all of them BEFORE the first request:
+  1. enforce_egress_gate() — pure, host-based, exits 1 on a non-local endpoint
+     without consent.
+  2. require_api_key() — a REMOTE endpoint needs OPENROUTER_API_KEY (env, or
+     <repo>/secrets.env). Missing => exit 1 here, so the granted consent is
+     not spent on a run that can only 401. The key is sent as a Bearer token
+     ONLY on the gated (non-local) path, is never sent to a localhost
+     endpoint, and never appears in a log line, the report, or results.jsonl.
+     --no-api-key opts into an unauthenticated remote endpoint.
+  3. EgressRedirectHandler — urllib's default opener FOLLOWS redirects, so a
+     permitted localhost endpoint answering 302 could hand the snapshot (and
+     the key) to a host the gate never saw. Every redirect target is
+     re-checked with egress_allowed() and refused if it fails; the
+     Authorization header is stripped on any cross-host redirect.
+
 Usage:
   python3 eval/replay_match.py <corpus-dir-or-file> [more...] \
       [--endpoint http://localhost:8080/v1] [--model NAME] \
@@ -156,6 +171,111 @@ def enforce_egress_gate(endpoint, env=None):
 def transport_budget_exceeded(attempted, errors):
     """True when `errors`/`attempted` is STRICTLY above TRANSPORT_ERROR_BUDGET."""
     return attempted > 0 and (errors / attempted) > TRANSPORT_ERROR_BUDGET
+
+
+# ===========================================================================
+# REDIRECT GATE — the egress decision is made ONCE, on --endpoint. urllib's
+# default opener FOLLOWS REDIRECTS, so a permitted localhost endpoint that
+# answers 302 could hand the full game snapshot (and the API key) to an
+# arbitrary remote host that no gate ever saw. Re-check egress_allowed on
+# every redirect target and raise instead of following.
+# ===========================================================================
+
+class EgressRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Refuses any redirect whose TARGET would not itself have been allowed,
+    and strips the Authorization header on a cross-host redirect that IS
+    allowed (a key issued for one host must never be replayed at another)."""
+
+    def __init__(self, env=None):
+        self.env = env
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not egress_allowed(newurl, self.env):
+            raise urllib.error.HTTPError(
+                req.full_url, code,
+                "REFUSING to follow a %d redirect to non-local host %r without "
+                "egress consent (the redirect target is re-checked; the gate on "
+                "--endpoint does not transfer)."
+                % (code, endpoint_host(newurl)), headers, fp)
+        new = urllib.request.HTTPRedirectHandler.redirect_request(
+            self, req, fp, code, msg, headers, newurl)
+        if new is not None and endpoint_host(newurl) != endpoint_host(req.full_url):
+            # urllib copies every header onto the redirected Request.
+            for name in list(new.headers):
+                if name.lower() == "authorization":
+                    del new.headers[name]
+        return new
+
+
+def build_opener(env=None):
+    """An opener with the redirect gate installed. `env` defaults to the LIVE
+    os.environ (checked at redirect time, not at build time)."""
+    return urllib.request.build_opener(EgressRedirectHandler(env))
+
+
+_OPENER = build_opener()
+
+
+# ===========================================================================
+# API KEY — resolved ONLY for a gated (non-local) endpoint, never logged,
+# never persisted. Reads the environment first, then <repo>/secrets.env
+# (the same file tournament.py / model_sweep.py already load).
+# ===========================================================================
+
+API_KEY_VAR = "OPENROUTER_API_KEY"
+SECRETS_ENV = Path(__file__).resolve().parent.parent / "secrets.env"
+
+
+def read_secrets_env(path=None):
+    """Parse <repo>/secrets.env into a dict. Returns {} when absent. Does NOT
+    mutate os.environ (a replay must not leak a key into child processes)."""
+    path = SECRETS_ENV if path is None else Path(path)
+    out = {}
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return out
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        out[k.strip()] = v.strip()
+    return out
+
+
+def resolve_api_key(env=None, secrets_path=None):
+    """The bearer key, or None. Environment wins over secrets.env."""
+    env = os.environ if env is None else env
+    key = env.get(API_KEY_VAR)
+    if key and key.strip():
+        return key.strip()
+    key = read_secrets_env(secrets_path).get(API_KEY_VAR)
+    return key.strip() if key and key.strip() else None
+
+
+def require_api_key(endpoint, env=None, secrets_path=None, allow_missing=False):
+    """For a non-local endpoint: return the key, or exit 1 BEFORE any request
+    is made. Local endpoints get None — a key is never sent on-box.
+
+    Ordering matters: this runs after the pure egress gate but before the
+    health probe, so a missing key fails without ever spending the consent on
+    a request that would only 401."""
+    if is_local_endpoint(endpoint):
+        return None
+    key = resolve_api_key(env, secrets_path)
+    if key:
+        return key
+    if allow_missing:
+        return None
+    print("REFUSING to replay against remote endpoint host %r with no API key."
+          % endpoint_host(endpoint), file=sys.stderr)
+    print("Set %s in the environment or in %s (the request would only 401, "
+          "and the egress consent would be spent for nothing)."
+          % (API_KEY_VAR, SECRETS_ENV), file=sys.stderr)
+    print("Pass --no-api-key if this endpoint genuinely needs no auth.",
+          file=sys.stderr)
+    sys.exit(1)
 
 
 # ===========================================================================
@@ -561,10 +681,16 @@ def apply_filters(rows, args):
 # ENDPOINT
 # ===========================================================================
 
-def _post_chat(endpoint, model, messages, max_tokens, timeout):
+def _post_chat(endpoint, model, messages, max_tokens, timeout, api_key=None,
+               opener=None):
     """One OpenAI-compatible /chat/completions call. Returns the assistant text.
     Raises urllib.error.URLError / OSError / ValueError on transport/parse
-    failure (the caller decides how loud to be)."""
+    failure (the caller decides how loud to be).
+
+    `api_key` (when given) is sent as a Bearer token. It is set ONLY by the
+    already-egress-gated caller for a non-local endpoint, and is never logged
+    or written to an artifact. Redirects go through EgressRedirectHandler, so
+    neither the snapshot nor the key can be bounced to an unconsented host."""
     url = endpoint.rstrip("/") + "/chat/completions"
     body = json.dumps({
         "model": model,
@@ -572,9 +698,11 @@ def _post_chat(endpoint, model, messages, max_tokens, timeout):
         "temperature": 0,
         "max_tokens": max_tokens,
     }).encode("utf-8")
-    req = urllib.request.Request(
-        url, data=body, headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = "Bearer %s" % api_key
+    req = urllib.request.Request(url, data=body, headers=headers)
+    with (opener or _OPENER).open(req, timeout=timeout) as resp:
         obj = json.loads(resp.read().decode("utf-8", "replace"))
     # mlx_lm server omits the "content" key entirely when the token budget is
     # exhausted before any text token (e.g. a 1-token reply that spent its
@@ -584,13 +712,13 @@ def _post_chat(endpoint, model, messages, max_tokens, timeout):
     return obj["choices"][0]["message"].get("content", "")
 
 
-def health_probe(endpoint, model, timeout):
+def health_probe(endpoint, model, timeout, api_key=None):
     """Fail loudly unless the endpoint answers a 1-token request within
     `timeout` seconds. Returns the measured latency (s)."""
     t0 = time.time()
     _post_chat(endpoint, model,
                [{"role": "user", "content": "ping"}],
-               max_tokens=4, timeout=timeout)
+               max_tokens=4, timeout=timeout, api_key=api_key)
     return time.time() - t0
 
 
@@ -639,7 +767,8 @@ def replay(rows, preamble, args):
         for attempt in range(args.retries + 1):
             try:
                 reply = _post_chat(args.endpoint, args.model, messages,
-                                   args.max_tokens, args.req_timeout)
+                                   args.max_tokens, args.req_timeout,
+                                   api_key=getattr(args, "api_key", None))
                 err = None
                 break
             except (urllib.error.URLError, OSError, ValueError, KeyError) as e:
@@ -763,6 +892,9 @@ def build_report(results, rows, stats, args, health_s):
     return {
         "endpoint": args.endpoint,
         "model": args.model,
+        # Provenance only — the KEY ITSELF is never placed in the report,
+        # the results, or any log line.
+        "api_key_present": bool(getattr(args, "api_key", None)),
         "health_latency_s": round(health_s, 3) if health_s is not None else None,
         "corpora": list(args.corpora),
         "filters": {
@@ -952,6 +1084,10 @@ def build_arg_parser():
                     help="emit JSON summary (to PATH, or stdout if bare)")
     ap.add_argument("--dry-run", action="store_true",
                     help="filter + reconstruct only; do not query the endpoint")
+    ap.add_argument("--no-api-key", action="store_true",
+                    help="allow a REMOTE endpoint with no %s (default: refuse "
+                         "before spending the egress consent on a 401)"
+                         % API_KEY_VAR)
     return ap
 
 
@@ -968,8 +1104,14 @@ def main(argv=None):
 
     # Egress gate (pure, no network) — refuse to send snapshots off-box unless
     # opted in. Skipped for --dry-run, which never queries the endpoint.
+    # Then, still before ANY request, resolve the API key for a remote
+    # endpoint: an unauthenticated remote replay only 401s, and failing here
+    # means the granted consent is not spent on a doomed run.
+    args.api_key = None
     if not args.dry_run:
         enforce_egress_gate(args.endpoint)
+        args.api_key = require_api_key(args.endpoint,
+                                       allow_missing=args.no_api_key)
 
     try:
         rows, warnings = load_rows(args.corpora)
@@ -1016,7 +1158,8 @@ def main(argv=None):
 
     # Health-probe: fail loudly if the endpoint is down or slow.
     try:
-        health_s = health_probe(args.endpoint, args.model, args.health_timeout)
+        health_s = health_probe(args.endpoint, args.model, args.health_timeout,
+                                api_key=args.api_key)
     except (urllib.error.URLError, OSError, ValueError, KeyError) as e:
         print("HEALTH PROBE FAILED for %s (model=%s): %s"
               % (args.endpoint, args.model, e), file=sys.stderr)

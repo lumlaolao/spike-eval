@@ -7,7 +7,7 @@ and clustered uncertainty.
 
 Usage:
   python3 eval/puzzle_run.py POSITIONS.jsonl --out RUNDIR
-      [--backend offline|http|openrouter]   (default offline; zero egress)
+      [--backend offline|http|openrouter|bedrock]  (default offline; zero egress)
       [--offline-fixture FILE.jsonl] [--offline-policy always-pass|random|first|oracle|garbage]
       [--endpoint http://localhost:8080/v1] [--model NAME]
       [--k 4] [--max-tokens 512] [--req-timeout 120] [--retries 1] [--workers 4]
@@ -30,6 +30,22 @@ Backends:
              the environment, checked before any URL is even constructed.
              This module never sets that variable; holding an API key is not
              consent.
+  bedrock    AWS Bedrock via eval/bedrock.py (hand-rolled stdlib SigV4).
+             HARD-REFUSES with exit 2 unless OPENROUTER_ALLOW_EGRESS=1 — the
+             SAME single consent switch, deliberately not a second flag.
+             Needs an explicit --model (e.g. anthropic.claude-opus-5); the
+             per-model max_tokens / thinking budget / timeout / retries come
+             from bedrock.BEDROCK_MODEL_CFG (overridable with the
+             BEDROCK_MODEL_CFG env JSON), NOT from --max-tokens/--req-timeout,
+             and the row that was used is stamped into summary.model_cfg.
+
+AUTH: --backend openrouter / a remote --backend http endpoint require
+OPENROUTER_API_KEY (environment, or <repo>/secrets.env). It is resolved and
+checked BEFORE any request, so a missing key does not spend the egress
+consent on a run that can only 401; it is sent as a Bearer token on the gated
+path only, is never sent to a localhost endpoint, and never reaches
+results.jsonl, summary.json, or a log line (summary records only
+api_key_present).
 
 Scoring (EVAL-DESIGN.md §3.3):
   * interface_failure (could not be turned into a legal action) is NEVER
@@ -113,6 +129,7 @@ WHAT WOULD MAKE THIS FAIL
 
 import argparse
 import hashlib
+import heapq
 import json
 import math
 import os
@@ -127,6 +144,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 REPO = Path(__file__).resolve().parent.parent
 
+import bedrock  # noqa: E402  (stdlib SigV4 AWS Bedrock backend)
 import prompt_contract  # noqa: E402  (t1's frozen render+parse contract)
 import replay_match  # noqa: E402
 import seed_policy  # noqa: E402
@@ -241,19 +259,27 @@ def scaled_block(block, factor):
 # LOADING + SELECTION
 # ===========================================================================
 
-def read_jsonl(path, warnings):
-    """Tolerant jsonl reader: skips blank/unparseable lines into warnings."""
-    rows = []
+def iter_jsonl(path, warnings):
+    """Tolerant STREAMING jsonl reader: yields one row at a time and skips
+    blank/unparseable lines into warnings. Selection consumes this directly,
+    so peak memory is O(selected positions), not O(corpus) — a 100k-position
+    corpus with --max-positions 200 holds 200 rows, not 100k."""
     with open(path, "r", encoding="utf-8") as fh:
         for lineno, line in enumerate(fh, 1):
             line = line.strip()
             if not line:
                 continue
             try:
-                rows.append(json.loads(line))
+                yield json.loads(line)
             except ValueError:
-                warnings.append("%s:%d: unparseable line skipped" % (path, lineno))
-    return rows
+                warnings.append("%s:%d: unparseable line skipped"
+                                % (path, lineno))
+
+
+def read_jsonl(path, warnings):
+    """Materialized iter_jsonl. Kept for the fixture loader and for callers
+    that genuinely need the list; the corpus path uses iter_jsonl."""
+    return list(iter_jsonl(path, warnings))
 
 
 def _sample_hash(seed, rid):
@@ -280,13 +306,22 @@ def select_positions(rows, split, categories, max_positions, sample_seed,
                      warnings):
     """Apply the skip ladder; returns (selected_rows, skips OrderedDict).
     Check order: split/category filters, then unscoreable type (a structural
-    property of the row), then unverified, then malformed key."""
+    property of the row), then unverified, then malformed key.
+
+    `rows` may be ANY iterable (iter_jsonl streams it). With --max-positions
+    set, only that many rows are ever retained: a bounded max-heap keyed on
+    the same _sample_hash keeps the N smallest hashes and drops the rest as
+    they stream past. The retained SET and its corpus ORDER are identical to
+    sorting the whole list and slicing — the tie-break on the row's corpus
+    index reproduces the old stable sort exactly."""
     skips = OrderedDict((k, 0) for k in (
         "skipped_split", "skipped_category", "skipped_unscoreable_type",
         "skipped_unverified", "skipped_malformed_key", "skipped_render_error",
         "skipped_sampled_out"))
     selected = []
-    for row in rows:
+    heap = []            # max-heap of (-hash_int, -order, row), size <= N
+    n_selected = 0
+    for order, row in enumerate(rows):
         if not isinstance(row, dict) or row.get("t") == "summary":
             continue
         src = row.get("source") or {}
@@ -315,19 +350,31 @@ def select_positions(rows, split, categories, max_positions, sample_seed,
                             "(need %d numbers in [0,10])"
                             % (row.get("id"), n_options))
             continue
-        selected.append(row)
-    if max_positions is not None and len(selected) > max_positions:
-        keep = set(id(r) for r in sorted(
-            selected,
-            key=lambda r: _sample_hash(sample_seed, str(r.get("id"))))[:max_positions])
-        skips["skipped_sampled_out"] = len(selected) - max_positions
-        selected = [r for r in selected if id(r) in keep]
+        n_selected += 1
+        if max_positions is None:
+            selected.append(row)
+            continue
+        h = int(_sample_hash(sample_seed, str(row.get("id"))), 16)
+        heapq.heappush(heap, (-h, -order, row))
+        if len(heap) > max_positions:
+            heapq.heappop(heap)          # evict the LARGEST hash still held
+
+    if max_positions is not None:
+        skips["skipped_sampled_out"] = max(0, n_selected - len(heap))
+        selected = [row for _, _, row in
+                    sorted(heap, key=lambda t: -t[1])]   # back to corpus order
     return selected, skips
 
 
 def prep_position(row, strictness, skips, warnings):
     """Render a selected row once; returns the internal position dict or None
-    (render failure -> skipped_render_error)."""
+    (render failure -> skipped_render_error).
+
+    The source `row` is deliberately NOT retained: every field the run needs
+    (scores, caveats, provenance, menu) is extracted here, and holding the raw
+    row pinned the whole corpus in memory for the life of the run. Nothing
+    downstream reads it — result_row(), build_summary(), compute_metrics(),
+    compute_baselines() and group_summary() go through these keys only."""
     src = row.get("source") or {}
     try:
         rendered = prompt_contract.render(row, strictness=strictness)
@@ -339,7 +386,6 @@ def prep_position(row, strictness, skips, warnings):
         warnings.append("render warning for id=%s: %s" % (row.get("id"), w))
     return {
         "id": row.get("id"),
-        "row": row,
         "category": row.get("category"),
         "split": row.get("split") or "open",
         "game_file": src.get("game_file") or "unknown",
@@ -406,19 +452,54 @@ def policy_reply(policy, pos, k, sample_seed):
     raise ValueError("unknown offline policy %r" % policy)
 
 
-def http_call(endpoint, model, messages, max_tokens, timeout, tries):
+def http_call(endpoint, model, messages, max_tokens, timeout, tries,
+              api_key=None):
     """One sample over HTTP with retries. Returns (reply, error, latency_ms).
-    Never raises on transport failure."""
+    Never raises on transport failure.
+
+    `api_key` is set ONLY by the already-egress-gated caller and only for a
+    non-local endpoint (replay_match.require_api_key enforces both). It is
+    sent as a Bearer token and never lands in the error string: the error text
+    is the exception TYPE plus its message, and _post_chat never echoes its
+    headers."""
     last_err = None
     for _ in range(max(1, tries)):
         t0 = time.time()
         try:
             text = replay_match._post_chat(endpoint, model, messages,
-                                           max_tokens, timeout)
+                                           max_tokens, timeout,
+                                           api_key=api_key)
             return text, None, int((time.time() - t0) * 1000)
         except (urllib.error.URLError, OSError, ValueError, KeyError) as exc:
             last_err = "%s: %s" % (type(exc).__name__, exc)
     return None, last_err, None
+
+
+def bedrock_call(model, messages, region, creds, cfg, env, warnings, pos_id):
+    """One sample through the AWS Bedrock backend. Retries live inside
+    bedrock.send_signed (per-model cfg.retries, 429/5xx only). Returns
+    (reply, error, latency_ms) and never raises on transport failure.
+
+    An EMPTY reply with stop_reason=max_tokens is the CLAUDE.md failure mode
+    (hidden reasoning ate the whole cap): it is surfaced as a WARNING naming
+    the position, not silently scored as an interface failure, because the fix
+    is a config change (BEDROCK_MODEL_CFG) and not a model verdict."""
+    system, msgs = bedrock.split_system(messages)
+    try:
+        res = bedrock.invoke(model, msgs, system=system, region=region,
+                             creds=creds, cfg=cfg, env=env)
+    except bedrock.BedrockError as exc:
+        return None, "%s: %s" % (type(exc).__name__, exc), None
+    except (urllib.error.URLError, OSError, ValueError, KeyError) as exc:
+        return None, "%s: %s" % (type(exc).__name__, exc), None
+    if res.get("empty_reply"):
+        warnings.append(
+            "id=%s: EMPTY reply with stop_reason=max_tokens — the token cap "
+            "was spent (largely on hidden reasoning) before a visible token. "
+            "This scores as an interface failure but is a CONFIG problem: "
+            "raise max_tokens or lower thinking_budget_tokens via %s."
+            % (pos_id, bedrock.CFG_ENV))
+    return res.get("text"), None, res.get("latency_ms")
 
 
 def collect_replies(positions, args, env, warnings):
@@ -445,15 +526,39 @@ def collect_replies(positions, args, env, warnings):
                 reply = policy_reply(args.offline_policy, pos, k,
                                      args.sample_seed)
                 raw[(i, k)] = (reply, None, None)
+    elif args.backend == "bedrock":
+        # Resolved ONCE: credentials and the per-model config are the same for
+        # every sample, and re-reading ~/.aws per call would be pointless I/O.
+        region = getattr(args, "region", None) or bedrock.resolve_region(env)
+        creds = bedrock.resolve_credentials(env)
+        cfg = bedrock.resolve_model_cfg(args.model, env)
+
+        def one(task):
+            i, k = task
+            messages = positions[i]["rendered"]["messages"]
+            return task, bedrock_call(args.model, messages, region, creds,
+                                      cfg, env, warnings, positions[i]["id"])
+
+        if args.workers > 1:
+            from concurrent.futures import ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=args.workers) as pool:
+                for task, result in pool.map(one, tasks):
+                    raw[task] = result
+        else:
+            for task in tasks:
+                task, result = one(task)
+                raw[task] = result
     else:
         endpoint = args.endpoint
         tries = 1 + max(0, args.retries)
+        api_key = getattr(args, "api_key", None)
 
         def one(task):
             i, k = task
             messages = positions[i]["rendered"]["messages"]
             return task, http_call(endpoint, args.model, messages,
-                                   args.max_tokens, args.req_timeout, tries)
+                                   args.max_tokens, args.req_timeout, tries,
+                                   api_key=api_key)
 
         if args.workers > 1:
             from concurrent.futures import ThreadPoolExecutor
@@ -859,6 +964,14 @@ def build_summary(args, positions, samples, skips, warnings,
         "offline_policy": args.offline_policy if args.backend == "offline" and not args.offline_fixture else None,
         "endpoint_host": replay_match.endpoint_host(args.endpoint)
         if args.backend != "offline" else "",
+        # ADDITIVE provenance: WHICH per-model knobs produced these numbers.
+        # A run at a different max_tokens / thinking budget is a different
+        # measurement of the same model and must be distinguishable.
+        "model_cfg": (bedrock.resolve_model_cfg(args.model).as_dict()
+                      if args.backend == "bedrock" else None),
+        "model_cfg_sha": (bedrock.model_cfg_sha()
+                          if args.backend == "bedrock" else None),
+        "api_key_present": bool(getattr(args, "api_key", None)),
         "k": args.k,
         "strictness": args.strictness,
         "split": args.split,
@@ -904,8 +1017,17 @@ def build_parser():
         formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("positions", help="positions.jsonl (puzzle-position.v1)")
     ap.add_argument("--out", help="output run directory")
-    ap.add_argument("--backend", choices=("offline", "http", "openrouter"),
+    ap.add_argument("--backend",
+                    choices=("offline", "http", "openrouter", "bedrock"),
                     default="offline")
+    ap.add_argument("--region", default=None,
+                    help="AWS region for --backend bedrock (default: "
+                         "AWS_REGION / ~/.aws/config / %s)"
+                         % bedrock.DEFAULT_REGION)
+    ap.add_argument("--no-api-key", action="store_true",
+                    help="allow a REMOTE http endpoint with no %s (default: "
+                         "refuse before spending the egress consent)"
+                         % replay_match.API_KEY_VAR)
     ap.add_argument("--offline-fixture", help="jsonl of {id,k,reply}")
     ap.add_argument("--offline-policy", choices=OFFLINE_POLICIES,
                     default="always-pass")
@@ -940,15 +1062,56 @@ def main(argv=None, env=None):
     env = os.environ if env is None else env
 
     # ---- egress gates FIRST, pure, before anything else -------------------
+    args.api_key = None
     if args.backend == "openrouter":
         # checked before any URL is even constructed; never set this flag.
         if env.get("OPENROUTER_ALLOW_EGRESS") != "1":
             return refuse_egress("openrouter.ai")
         if replay_match.endpoint_host(args.endpoint) in replay_match.LOCAL_HOSTS:
             args.endpoint = OPENROUTER_DEFAULT_ENDPOINT
+    elif args.backend == "bedrock":
+        # bedrock.enforce_egress reads the SAME single consent flag; refuse
+        # before resolving credentials, reading ~/.aws, or building a URL.
+        if not bedrock.egress_allowed(env):
+            return refuse_egress(bedrock.bedrock_host(
+                args.region or bedrock.resolve_region(env)))
     elif args.backend == "http":
         if not replay_match.egress_allowed(args.endpoint, env):
             return refuse_egress(replay_match.endpoint_host(args.endpoint))
+
+    # ---- auth, still before ANY request ----------------------------------
+    # v1 gap: --backend openrouter sent no Authorization header, so the run
+    # spent the egress consent and then 401'd. Resolve the key here and fail
+    # loudly if it is missing, so the consent is not spent on a doomed run.
+    if args.backend in ("openrouter", "http"):
+        key = replay_match.resolve_api_key(env)
+        remote = not replay_match.is_local_endpoint(args.endpoint)
+        if remote and not key and not args.no_api_key:
+            print("REFUSING to run --backend %s against %r with no %s set."
+                  % (args.backend, replay_match.endpoint_host(args.endpoint),
+                     replay_match.API_KEY_VAR), file=sys.stderr)
+            print("Set it in the environment or in %s; the request would only "
+                  "401 and the egress consent would be spent for nothing. "
+                  "Pass --no-api-key if this endpoint needs no auth."
+                  % replay_match.SECRETS_ENV, file=sys.stderr)
+            return 2
+        # A key is NEVER sent to an on-box endpoint.
+        args.api_key = key if remote else None
+    elif args.backend == "bedrock":
+        if not args.model or args.model == "local-model":
+            print("--backend bedrock needs an explicit --model (e.g. "
+                  "anthropic.claude-opus-5); see `python3 eval/bedrock.py "
+                  "--print-cfg`.", file=sys.stderr)
+            return 2
+        try:
+            bedrock.resolve_credentials(env)
+        except bedrock.CredentialsNotFound as exc:
+            print("REFUSING to start: %s" % exc, file=sys.stderr)
+            return 2
+        args.region = args.region or bedrock.resolve_region(env)
+        # So endpoint_host() in the summary reports where the data actually
+        # went, instead of the unused localhost default.
+        args.endpoint = bedrock.invoke_url(args.region, args.model)
 
     if not args.dry_run and not args.out:
         print("--out is required (except with --dry-run)", file=sys.stderr)
@@ -971,15 +1134,19 @@ def main(argv=None, env=None):
         categories = set(c.strip() for c in args.categories.split(",") if c.strip())
 
     warnings = []
-    rows = read_jsonl(args.positions, warnings)
-    selected, skips = select_positions(rows, args.split, categories,
-                                       args.max_positions, args.sample_seed,
-                                       warnings)
+    # STREAMED: the corpus is never materialized as a list (see iter_jsonl /
+    # select_positions). Peak memory is O(selected), not O(corpus).
+    selected, skips = select_positions(
+        iter_jsonl(args.positions, warnings), args.split, categories,
+        args.max_positions, args.sample_seed, warnings)
     positions = []
-    for row in selected:
+    for i in range(len(selected)):
+        row = selected[i]
+        selected[i] = None          # release the raw row as we go
         pos = prep_position(row, args.strictness, skips, warnings)
         if pos is not None:
             positions.append(pos)
+    del selected
 
     if args.dry_run:
         report = {"schema": SCHEMA_SUMMARY, "dry_run": True,

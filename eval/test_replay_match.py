@@ -12,9 +12,12 @@ Run: python3 eval/test_replay_match.py
 """
 
 import json
+import os
 import threading
 import http.server
 import tempfile
+import urllib.error
+import urllib.request
 from pathlib import Path
 import sys
 
@@ -661,6 +664,250 @@ def test_majority_class_baseline():
     # Rows that cannot be scored contribute no floor (and don't crash).
     b3 = rm.majority_class_baseline([_R({"type": "play"})])
     check("unscoreable rows yield an empty baseline", b3["rate"] is None, str(b3))
+
+
+# ==========================================================================
+# AUTH + REDIRECT GATE
+#
+# WHAT WOULD MAKE THESE FAIL
+#   * _post_chat dropping the Authorization header again (the v1 gap: the
+#     egress consent was spent and the request then 401'd).
+#   * a key being sent to a LOCALHOST endpoint, or reaching the report /
+#     results / a log line.
+#   * a missing key being discovered only after the first remote request.
+#   * urllib's DEFAULT opener coming back: a permitted localhost endpoint
+#     could 302 the full game snapshot to an arbitrary remote host, because
+#     the egress gate only ever saw the ORIGINAL --endpoint string.
+#   * the Authorization header surviving a cross-host redirect.
+# ==========================================================================
+
+class AuthEchoHandler(http.server.BaseHTTPRequestHandler):
+    SEEN = []
+
+    def log_message(self, *a):
+        pass
+
+    def do_POST(self):
+        n = int(self.headers.get("Content-Length", 0))
+        self.rfile.read(n)
+        AuthEchoHandler.SEEN.append(dict(self.headers))
+        payload = json.dumps({"choices": [{"message": {
+            "role": "assistant", "content": "CHOICE: 1"}}]}).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+
+class RedirectHandler(http.server.BaseHTTPRequestHandler):
+    TARGET = "https://evil.example.com/v1/chat/completions"
+    SEEN = []
+
+    def log_message(self, *a):
+        pass
+
+    def _finish_ok(self):
+        payload = json.dumps({"choices": [{"message": {
+            "role": "assistant", "content": "CHOICE: 3"}}]}).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def do_GET(self):
+        RedirectHandler.SEEN.append(("GET", self.path))
+        self._finish_ok()
+
+    def do_POST(self):
+        n = int(self.headers.get("Content-Length", 0))
+        self.rfile.read(n)
+        RedirectHandler.SEEN.append(("POST", self.path))
+        if self.path.endswith("/landed"):
+            self._finish_ok()
+            return
+        self.send_response(302)
+        self.send_header("Location", self.TARGET)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+
+def _start(handler_cls):
+    srv = http.server.HTTPServer(("127.0.0.1", 0), handler_cls)
+    t = threading.Thread(target=srv.serve_forever, daemon=True)
+    t.start()
+    return srv, srv.server_address[1]
+
+
+def test_api_key_header_is_sent():
+    AuthEchoHandler.SEEN = []
+    srv, port = _start(AuthEchoHandler)
+    endpoint = "http://127.0.0.1:%d/v1" % port
+    try:
+        rm._post_chat(endpoint, "m", [{"role": "user", "content": "x"}],
+                      8, 5.0, api_key="sk-test-KEY")
+        got = AuthEchoHandler.SEEN[-1]
+        check("Authorization: Bearer <key> is sent when a key is given",
+              got.get("Authorization") == "Bearer sk-test-KEY",
+              str(got.get("Authorization")))
+        check("Content-Type is still sent",
+              got.get("Content-Type") == "application/json")
+        rm._post_chat(endpoint, "m", [{"role": "user", "content": "x"}],
+                      8, 5.0)
+        check("no key -> no Authorization header at all",
+              "Authorization" not in AuthEchoHandler.SEEN[-1],
+              str(AuthEchoHandler.SEEN[-1]))
+    finally:
+        srv.shutdown()
+        srv.server_close()
+
+
+def test_resolve_api_key():
+    with tempfile.TemporaryDirectory() as tmp:
+        sec = Path(tmp) / "secrets.env"
+        sec.write_text("# comment\nOPENROUTER_API_KEY=sk-from-file\n"
+                       "OPENROUTER_ALLOW_EGRESS_NOT_A_FLAG=x\n",
+                       encoding="utf-8")
+        check("env wins over secrets.env",
+              rm.resolve_api_key({"OPENROUTER_API_KEY": "sk-env"}, sec)
+              == "sk-env")
+        check("falls back to secrets.env",
+              rm.resolve_api_key({}, sec) == "sk-from-file")
+        check("blank env value falls through to the file",
+              rm.resolve_api_key({"OPENROUTER_API_KEY": "   "}, sec)
+              == "sk-from-file")
+        check("missing everywhere -> None",
+              rm.resolve_api_key({}, Path(tmp) / "nope.env") is None)
+        check("reading secrets.env does not mutate os.environ",
+              os.environ.get("OPENROUTER_API_KEY") != "sk-from-file")
+
+
+def test_require_api_key():
+    with tempfile.TemporaryDirectory() as tmp:
+        empty = Path(tmp) / "nope.env"
+        # A key is never sent to an on-box endpoint, even when one exists.
+        check("localhost endpoint -> no key sent on-box",
+              rm.require_api_key("http://localhost:8080/v1",
+                                 {"OPENROUTER_API_KEY": "sk-env"}, empty)
+              is None)
+        check("remote endpoint with a key -> the key",
+              rm.require_api_key("https://openrouter.ai/api/v1",
+                                 {"OPENROUTER_API_KEY": "sk-env"}, empty)
+              == "sk-env")
+        try:
+            rm.require_api_key("https://openrouter.ai/api/v1", {}, empty)
+            check("remote endpoint with no key exits", False, "no SystemExit")
+        except SystemExit as e:
+            check("remote endpoint with no key exits 1 BEFORE any request",
+                  e.code == 1, str(e.code))
+        check("--no-api-key opts into an unauthenticated remote endpoint",
+              rm.require_api_key("https://example.com/v1", {}, empty,
+                                 allow_missing=True) is None)
+
+
+def test_redirects_are_egress_rechecked():
+    RedirectHandler.SEEN = []
+    srv, port = _start(RedirectHandler)
+    endpoint = "http://127.0.0.1:%d/v1" % port
+    try:
+        # A PERMITTED localhost endpoint answering 302 -> evil.example.com.
+        try:
+            rm._post_chat(endpoint, "m", [{"role": "user", "content": "x"}],
+                          8, 5.0, api_key="sk-test-KEY")
+            check("302 to a remote host is refused", False, "no exception")
+        except urllib.error.HTTPError as e:
+            msg = str(e)
+            check("302 to a remote host is REFUSED, not followed",
+                  "REFUSING to follow" in msg, msg)
+            check("the refusal names the unconsented host",
+                  "evil.example.com" in msg, msg)
+        except urllib.error.URLError as e:
+            # We got as far as trying to CONTACT the redirect target: the gate
+            # is not installed and the snapshot would have left the box.
+            check("302 to a remote host is REFUSED, not followed", False,
+                  "the redirect was FOLLOWED off-box: %s" % e)
+            check("the refusal names the unconsented host", False, str(e))
+        check("nothing was re-posted anywhere after the 302",
+              RedirectHandler.SEEN == [("POST", "/v1/chat/completions")],
+              str(RedirectHandler.SEEN))
+    finally:
+        srv.shutdown()
+        srv.server_close()
+
+    # ...and a same-host redirect is still followed (we did not just break
+    # every redirect).
+    RedirectHandler.SEEN = []
+    handler = type("H", (RedirectHandler,), {"TARGET": "/v1/landed"})
+    srv, port = _start(handler)
+    try:
+        text = rm._post_chat("http://127.0.0.1:%d/v1" % port, "m",
+                             [{"role": "user", "content": "x"}], 8, 5.0)
+        check("a LOCAL redirect is still followed", text == "CHOICE: 3", text)
+        check("the redirect target was actually fetched",
+              any(p.endswith("/landed") for _, p in RedirectHandler.SEEN),
+              str(RedirectHandler.SEEN))
+    finally:
+        srv.shutdown()
+        srv.server_close()
+
+
+def test_redirect_handler_unit():
+    """redirect_request() directly: the two branches an end-to-end test
+    cannot reach without granting real egress consent."""
+    import http.client
+    h = rm.EgressRedirectHandler()
+    hdrs = http.client.HTTPMessage()
+
+    req = urllib.request.Request("http://127.0.0.1:9/v1/chat/completions",
+                                 data=b"{}",
+                                 headers={"Authorization": "Bearer sk-KEY",
+                                          "Content-Type": "application/json"})
+    try:
+        h.redirect_request(req, None, 302, "Found", hdrs,
+                           "http://attacker.example/v1")
+        check("non-local redirect target raises", False, "returned normally")
+    except urllib.error.HTTPError as e:
+        check("non-local redirect target raises HTTPError",
+              "REFUSING to follow" in str(e), str(e))
+
+    # localhost and 127.0.0.1 are BOTH local, but they are different hosts:
+    # an allowed cross-host redirect must still drop the bearer token.
+    new = h.redirect_request(req, None, 302, "Found", hdrs,
+                             "http://localhost:9/v1/chat/completions")
+    check("an allowed local redirect still returns a Request",
+          new is not None)
+    have_auth = any(k.lower() == "authorization" for k in new.headers)
+    check("Authorization is STRIPPED across a host change", not have_auth,
+          str(dict(new.headers)))
+
+    # Same host -> the header may ride along (same origin, same key holder).
+    new2 = h.redirect_request(req, None, 302, "Found", hdrs,
+                              "http://127.0.0.1:9/v2/chat/completions")
+    check("same-host redirect keeps the request",
+          new2 is not None and new2.full_url.endswith("/v2/chat/completions"))
+
+    check("the module default opener has the gate installed",
+          any(isinstance(hh, rm.EgressRedirectHandler)
+              for hh in rm._OPENER.handlers))
+
+
+def test_key_never_reaches_the_report():
+    with tempfile.TemporaryDirectory() as tmp:
+        game = game_line()
+        write_game(Path(tmp) / "game-7-7.jsonl", game,
+                   [dec(dtype="play", choice=0, prompt="ROW state")])
+        rows, _ = rm.load_rows([str(tmp)])
+        args = _args(endpoint="http://127.0.0.1:1/v1", model="m")
+        args.api_key = "sk-SECRET-KEY"
+        kept, stats = rm.apply_filters(rows, args)
+        results = [{"i": 0, "row": kept[0], "error": "boom", "reply": None,
+                    "match": False, "parse_ok": False, "detail": "transport"}]
+        report = rm.build_report(results, kept, stats, args, 0.1)
+        blob = json.dumps(report)
+        check("the API key is not in the report", "sk-SECRET-KEY" not in blob)
+        check("only its PRESENCE is recorded",
+              report["api_key_present"] is True)
 
 
 def main():

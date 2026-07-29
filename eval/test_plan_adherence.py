@@ -24,8 +24,16 @@ WHAT WOULD MAKE THIS FAIL:
   * test_cluster_bootstrap_pinned — the byte-identical shared
     cluster_bootstrap_ci copy drifting from the contract's pinned values.
   * test_no_runs_reads — this test file acquiring a dependency on real logs.
+  * test_cluster_order_invariance — cluster_block being fed clusters in
+    dict-insertion order instead of key-sorted order (the bootstrap resamples
+    BY INDEX, so ordering changes se/ci95 silently).
+  * test_determinism_byte_identical — main() ignoring --generated-utc, or any
+    nondeterminism creeping into summary.json / milestones.jsonl between two
+    runs over the identical corpus.
 """
 
+import contextlib
+import io
 import json
 import sys
 import tempfile
@@ -482,6 +490,107 @@ def test_cluster_bootstrap_pinned():
     check("cbci_single_cluster_no_se",
           pa.cluster_bootstrap_ci([[1.0, 0.0]])["se"] is None)
     check("cbci_empty", pa.cluster_bootstrap_ci([])["est"] is None)
+
+
+def _order_spec():
+    return {
+        "schema": "milestones.v1", "deck": "ur-delver",
+        "plan_file": "eval/decks/ur-delver.plan",
+        "threat_names": ["Delver of Secrets"],
+        "combo_pieces": [],
+        "milestones": [
+            {"id": "m_dep", "kind": "deploy_by_turn", "weight": 1.0,
+             "description": "synthetic", "turn_max": 99,
+             "require_prefix": "CAST",
+             "chosen_option_matches": ["Delver of Secrets"]},
+            {"id": "m_rate", "kind": "resource_discipline", "weight": 1.0,
+             "description": "synthetic", "denominator": "offered",
+             "require_prefix": "CAST",
+             "chosen_option_matches": ["Wasteland"]},
+        ],
+        "fixtures": [], "notes": "synthetic"}
+
+
+def _order_corpus(td):
+    """Three games with DISTINCT per-game cluster values so the bootstrap
+    can tell cluster orderings apart."""
+    plan = ur_plan()
+    delver = ["CAST Delver of Secrets {U} [..]", "PASS (do nothing)"]
+    wl = ["CAST Wasteland [{T}, Sacrifice CARDNAME: ..]", "PASS (do nothing)"]
+    per_game = [
+        # (delver_choice, wl_choice_1, wl_choice_2)
+        # NOT a palindrome in either metric: reversing the game order must
+        # yield a cluster sequence different from the key-sorted one, or the
+        # order-invariance test cannot detect an unsorted cluster_block feed.
+        (0, 0, -1),    # attained;     rate obs [1, 0]
+        (-1, 0, 0),    # not attained; rate obs [1, 1]
+        (-1, -1, -1),  # not attained; rate obs [0, 0]
+    ]
+    for i, (dc, w1, w2) in enumerate(per_game):
+        write_game(td, "game-%d-1.jsonl" % (i + 1),
+                   game_line(seed=i + 1, deck_a="P1", deck_b="Opp",
+                             plan_a=plan, winner="A"),
+                   [drow(seat="P1", turn=2, choice=dc, options=delver),
+                    drow(seat="P1", turn=3, choice=w1, options=wl),
+                    drow(seat="P1", turn=3, choice=w2, options=wl)])
+
+
+def test_cluster_order_invariance():
+    """se/ci95 of every clustered block must not depend on the dict-insertion
+    order of game files: the bootstrap resamples BY INDEX from a seeded RNG,
+    so before the explicit key-sort this reordering changed ci95."""
+    spec = _order_spec()
+    with tempfile.TemporaryDirectory() as td:
+        _order_corpus(td)
+        rows, per_deck, counters, warns = pa.evaluate_corpus(
+            [td], {"ur-delver": spec})
+        acc = per_deck["ur-delver"]
+        s_fwd = pa.summarize_deck("ur-delver", acc, spec)
+        # Reverse the per-milestone result lists: by_file is now built in an
+        # insertion order that DIFFERS from sorted order.
+        for mid in list(acc["results"]):
+            acc["results"][mid] = list(reversed(acc["results"][mid]))
+        s_rev = pa.summarize_deck("ur-delver", acc, spec)
+    a1 = s_fwd["milestones"]["m_dep"]["attain_rate_clustered"]
+    a2 = s_rev["milestones"]["m_dep"]["attain_rate_clustered"]
+    r1 = s_fwd["milestones"]["m_rate"]["rate"]
+    r2 = s_rev["milestones"]["m_rate"]["rate"]
+    check("order_fixture_nontrivial",
+          a1["n_clusters"] == 3 and a1["se"] is not None and a1["se"] > 0
+          and r1["n_clusters"] == 3, "%r %r" % (a1, r1))
+    check("attain_cluster_block_order_invariant", a1 == a2,
+          "fwd=%r rev=%r" % (a1, a2))
+    check("rate_cluster_block_order_invariant", r1 == r2,
+          "fwd=%r rev=%r" % (r1, r2))
+
+
+def test_determinism_byte_identical():
+    """Two full main() runs over the identical corpus with the same
+    --generated-utc must produce byte-identical summary.json and
+    milestones.jsonl."""
+    stamp = "20260101T000000Z"
+    with tempfile.TemporaryDirectory() as td:
+        corpus = Path(td) / "corpus"
+        corpus.mkdir()
+        _order_corpus(corpus)
+        out1 = Path(td) / "o1"
+        out2 = Path(td) / "o2"
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc1 = pa.main([str(corpus), "--out", str(out1),
+                           "--generated-utc", stamp])
+            rc2 = pa.main([str(corpus), "--out", str(out2),
+                           "--generated-utc", stamp])
+        check("byte_runs_exit_0", rc1 == 0 and rc2 == 0,
+              "rc1=%r rc2=%r" % (rc1, rc2))
+        s1 = (out1 / "summary.json").read_bytes()
+        s2 = (out2 / "summary.json").read_bytes()
+        m1 = (out1 / "milestones.jsonl").read_bytes()
+        m2 = (out2 / "milestones.jsonl").read_bytes()
+    check("summary_json_byte_identical", s1 == s2)
+    check("milestones_jsonl_byte_identical", m1 == m2)
+    check("generated_utc_pinned", ('"generated_utc": "%s"' % stamp).encode()
+          in s1, s1[:200].decode("utf-8", "replace"))
 
 
 def test_no_runs_reads():
