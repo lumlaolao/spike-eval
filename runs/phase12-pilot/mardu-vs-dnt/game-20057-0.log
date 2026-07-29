@@ -1,0 +1,510 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20057
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/mardu-energy.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/death-and-taxes.plan
+[DECK] loaded 'Mardu Energy': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/mardu-energy.txt)
+[DECK] loaded 'Death and Taxes': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/death-and-taxes.txt)
+[SEATS] A=Mardu Energy(ai-log,opus) B=Death and Taxes(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: A after 16 turns (AllOpponentsLost) in 4s
+--- full game log ---
+  MULLIGAN: Death and Taxes has kept a hand of 7 cards
+  MULLIGAN: Mardu Energy has kept a hand of 7 cards
+  TURN: Turn 1 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (105)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (105) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Aether Vial
+  STACK_RESOLVE: Aether Vial
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 2 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Plains (40)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Plains (40) - {T}: Add {W}.
+  STACK_ADD: Mardu Energy cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 3 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Rishadan Port (133)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (105) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Aether Vial
+  STACK_RESOLVE: Aether Vial
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 4 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Karakas (17)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Ocelot Pride (27) to attack Death and Taxes.
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Ocelot Pride (27).
+  PHASE: Mardu Energy's First Strike Damage Step
+  DAMAGE: Ocelot Pride (27) deals 1 combat damage to Death and Taxes.
+  LIFE: Life: Mardu Energy 20 > 21
+  LIFE: Life: Death and Taxes 20 > 19
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Plains (40) - {T}: Add {W}.
+  MANA: Karakas (17) - {T}: Add {W}.
+  STACK_ADD: Mardu Energy cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Mardu Energy triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (59)]
+  PHASE: Mardu Energy's End step
+  STACK_ADD: Mardu Energy triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Mardu Energy]
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 5 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (114)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (105) - {T}: Add {W}.
+  MANA: Plains (114) - {T}: Add {W}.
+  MANA: Rishadan Port (133) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Recruiter of the Guard
+  STACK_RESOLVE: Recruiter of the Guard - Creature 1 / 1
+  STACK_ADD: Death and Taxes triggered Recruiter of the Guard
+  STACK_RESOLVE: When Recruiter of the Guard enters, you may search your library for a creature card with toughness 2 or less, reveal it, put it into your hand, then shuffle. [Zone Changer: Recruiter of the Guard (95)]
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 6 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Arid Mesa (9)
+  LIFE: Life: Mardu Energy 21 > 20
+  ZONE_CHANGE: Arid Mesa (9) was put into Graveyard from Battlefield.
+  STACK_ADD: Mardu Energy activated Arid Mesa
+  EFFECT_REPLACED: Shadowy Backstreet enters tapped.
+  STACK_RESOLVE: Arid Mesa (9) - Mardu Energy searches their library for a Mountain or Plains card, puts it onto the battlefield, then shuffles.
+  STACK_ADD: Mardu Energy triggered Shadowy Backstreet
+  STACK_RESOLVE: Mardu Energy surveiled 1 card(s) to the graveyard
+  STACK_RESOLVE: When Shadowy Backstreet enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Shadowy Backstreet (56)]
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Cat Warrior Token (140), Ocelot Pride (27), Ajani, Nacatl Pariah (59) and Cat Token (143) to attack Death and Taxes.
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Cat Warrior Token (140).
+Death and Taxes didn't block Ocelot Pride (27).
+Death and Taxes didn't block Ajani, Nacatl Pariah (59).
+Death and Taxes didn't block Cat Token (143).
+  PHASE: Mardu Energy's First Strike Damage Step
+  DAMAGE: Ocelot Pride (27) deals 1 combat damage to Death and Taxes.
+  LIFE: Life: Mardu Energy 20 > 21
+  LIFE: Life: Death and Taxes 19 > 18
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Cat Warrior Token (140) deals 2 combat damage to Death and Taxes.
+  DAMAGE: Ajani, Nacatl Pariah (59) deals 1 combat damage to Death and Taxes.
+  DAMAGE: Cat Token (143) deals 1 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 18 > 14
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  STACK_ADD: Mardu Energy triggered Ocelot Pride
+  STACK_RESOLVE: At the beginning of your end step, if you gained life this turn, create a 1/1 white Cat creature token. Then if you have the city's blessing, for each token you control that entered this turn, create a token that's a copy of it. [Phase: Mardu Energy]
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 7 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  MANA: Plains (105) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Swords to Plowshares targeting [Ocelot Pride (27)]
+  ZONE_CHANGE: Ocelot Pride (27) was put into Exile from Battlefield.
+  LIFE: Life: Mardu Energy 21 > 22
+  STACK_RESOLVE: Swords to Plowshares (102) - Exile Ocelot Pride (27). Mardu Energy gains life equal to its power.
+  PHASE: Death and Taxes' Draw step
+  STACK_ADD: Death and Taxes activated Aether Vial
+  STACK_RESOLVE: Aether Vial (84) - You may put a creature card with mana value equal to the number of charge counters on Aether Vial from your hand onto the battlefield.
+  STACK_ADD: Mardu Energy activated Karakas targeting [Thalia, Guardian of Thraben (89)]
+  STACK_RESOLVE: Karakas (17) - Return Thalia, Guardian of Thraben (89) to its owner's hand.
+  STACK_ADD: Death and Taxes activated Aether Vial
+  STACK_RESOLVE: Aether Vial (83) - You may put a creature card with mana value equal to the number of charge counters on Aether Vial from your hand onto the battlefield.
+  MANA: Plains (114) - {T}: Add {W}.
+  MANA: Rishadan Port (133) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Swords to Plowshares targeting [Cat Warrior Token (140)]
+  ZONE_CHANGE: Cat Warrior Token (140) was put into Exile from Battlefield.
+  LIFE: Life: Mardu Energy 22 > 24
+  STACK_RESOLVE: Swords to Plowshares (100) - Exile Cat Warrior Token (140). Mardu Energy gains life equal to its power.
+  PHASE: Death and Taxes' Main phase, precombat
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 8 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  STACK_ADD: Mardu Energy activated Karakas targeting [Thalia, Guardian of Thraben (89)]
+  STACK_RESOLVE: Karakas (17) - Return Thalia, Guardian of Thraben (89) to its owner's hand.
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Ajani, Nacatl Pariah (59), Cat Token (143) and Cat Token (146) to attack Death and Taxes.
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Ajani, Nacatl Pariah (59).
+Death and Taxes didn't block Cat Token (143).
+Death and Taxes didn't block Cat Token (146).
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Ajani, Nacatl Pariah (59) deals 1 combat damage to Death and Taxes.
+  DAMAGE: Cat Token (143) deals 1 combat damage to Death and Taxes.
+  DAMAGE: Cat Token (146) deals 1 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 14 > 11
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Shadowy Backstreet (56) - {T}: Add {B}.
+  STACK_ADD: Mardu Energy cast Thoughtseize targeting [Death and Taxes]
+  DISCARD: Death and Taxes discards Mirran Crusader (97).
+  LIFE: Life: Mardu Energy 24 > 22
+  STACK_RESOLVE: Thoughtseize (44) - Death and Taxes reveals their hand. Mardu Energy chooses a nonland card from it. Death and Taxes discards that card. Mardu Energy loses 2 life.
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 9 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  MANA: Plains (105) - {T}: Add {W}.
+  MANA: Plains (114) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Umezawa's Jitte
+  STACK_RESOLVE: Umezawa's Jitte
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Recruiter of the Guard (95) to attack Mardu Energy.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Mardu Energy didn't block Recruiter of the Guard (95).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Recruiter of the Guard (95) deals 1 combat damage to Mardu Energy.
+  LIFE: Life: Mardu Energy 22 > 21
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 10 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Ajani, Nacatl Pariah (59), Cat Token (143) and Cat Token (146) to attack Death and Taxes.
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Ajani, Nacatl Pariah (59).
+Death and Taxes didn't block Cat Token (143).
+Death and Taxes didn't block Cat Token (146).
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Ajani, Nacatl Pariah (59) deals 1 combat damage to Death and Taxes.
+  DAMAGE: Cat Token (143) deals 1 combat damage to Death and Taxes.
+  DAMAGE: Cat Token (146) deals 1 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 11 > 8
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Shadowy Backstreet (56) - {T}: Add {B}.
+  STACK_ADD: Mardu Energy cast Thoughtseize targeting [Death and Taxes]
+  DISCARD: Death and Taxes discards Thalia, Guardian of Thraben (89).
+  LIFE: Life: Mardu Energy 21 > 19
+  STACK_RESOLVE: Thoughtseize (45) - Death and Taxes reveals their hand. Mardu Energy chooses a nonland card from it. Death and Taxes discards that card. Mardu Energy loses 2 life.
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 11 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  MANA: Plains (105) - {T}: Add {W}.
+  MANA: Plains (114) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte targeting [Recruiter of the Guard (95)]
+  STACK_RESOLVE: Umezawa's Jitte (135) -  Attach to Recruiter of the Guard (95)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Recruiter of the Guard (95) to attack Mardu Energy.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Mardu Energy didn't block Recruiter of the Guard (95).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Recruiter of the Guard (95) deals 1 combat damage to Mardu Energy.
+  LIFE: Life: Mardu Energy 19 > 18
+  STACK_ADD: Death and Taxes triggered Umezawa's Jitte
+  STACK_RESOLVE: Whenever equipped creature deals combat damage, put two charge counters on Umezawa's Jitte. [Damage Source: Recruiter of the Guard (95), Damaged: [Mardu Energy], Amount: 1]
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte
+  STACK_RESOLVE: Umezawa's Jitte (135) -  Target creature gets -1/-1 until end of turn. (Targeting: Cat Token (143))
+  ZONE_CHANGE: Cat Token (143) was put into Graveyard from Battlefield.
+  STACK_ADD: Mardu Energy triggered Ajani, Nacatl Pariah
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte
+  STACK_RESOLVE: Umezawa's Jitte (135) -  Target creature gets -1/-1 until end of turn. (Targeting: Cat Token (146))
+  ZONE_CHANGE: Cat Token (146) was put into Graveyard from Battlefield.
+  STACK_ADD: Mardu Energy triggered Ajani, Nacatl Pariah
+  ZONE_CHANGE: Ajani, Nacatl Pariah (59) was put into Exile from Battlefield.
+  EFFECT_REPLACED: Ajani, Nacatl Avenger enters with three loyalty counters on it.
+  STACK_RESOLVE: Whenever one or more other Cats you control die, you may exile Ajani, then return him to the battlefield transformed under his owner's control. [Amount: 1]
+  STACK_RESOLVE: Whenever one or more other Cats you control die, you may exile Ajani, then return him to the battlefield transformed under his owner's control. [Amount: 1]
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 12 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  STACK_ADD: Mardu Energy activated Ajani, Nacatl Avenger
+  STACK_RESOLVE: Ajani, Nacatl Avenger (59) - Mardu Energy creates a 2/1 white Cat Warrior creature token. When you do, if they control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures they control to any target. When you do, if you control a red permanent other than Ajani, Nacatl Avenger, he deals damage equal to the number of creatures you control to any target. 
+  MANA: Plains (40) - {T}: Add {W}.
+  MANA: Shadowy Backstreet (56) - {T}: Add {B}.
+  STACK_ADD: Mardu Energy cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Mardu Energy triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (60)]
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 13 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (116)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (105) - {T}: Add {W}.
+  MANA: Plains (114) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Thalia, Guardian of Thraben
+  STACK_RESOLVE: Thalia, Guardian of Thraben - Creature 2 / 1
+  MANA: Plains (116) - {T}: Add {W}.
+  MANA: Rishadan Port (133) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Stoneforge Mystic
+  STACK_ADD: Mardu Energy activated Karakas targeting [Thalia, Guardian of Thraben (90)]
+  STACK_RESOLVE: Karakas (17) - Return Thalia, Guardian of Thraben (90) to its owner's hand.
+  STACK_RESOLVE: Stoneforge Mystic - Creature 1 / 2
+  STACK_ADD: Death and Taxes triggered Stoneforge Mystic
+  STACK_RESOLVE: When Stoneforge Mystic enters, you may search your library for an Equipment card, reveal it, put it into your hand, then shuffle. [Zone Changer: Stoneforge Mystic (125)]
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 14 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Badlands (1)
+  STACK_ADD: Mardu Energy activated Ajani, Nacatl Avenger
+  STACK_RESOLVE: Ajani, Nacatl Avenger (59) - Put a +1/+1 counter on each valid permanent.
+  MANA: Badlands (1) - {T}: Add {R}.
+  MANA: Plains (40) - {T}: Add {W}.
+  STACK_ADD: Mardu Energy cast Hexing Squelcher
+  STACK_RESOLVE: Hexing Squelcher - Creature 2 / 2
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Cat Warrior Token (151), Cat Warrior Token (155) and Ajani, Nacatl Pariah (60) to attack Death and Taxes.
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Death and Taxes assigned Recruiter of the Guard (95) to block Cat Warrior Token (151).
+Death and Taxes assigned Stoneforge Mystic (125) to block Cat Warrior Token (155).
+Death and Taxes didn't block Ajani, Nacatl Pariah (60).
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Cat Warrior Token (151) deals 3 damage to Recruiter of the Guard (95).
+  DAMAGE: Cat Warrior Token (155) deals 3 damage to Stoneforge Mystic (125).
+  DAMAGE: Ajani, Nacatl Pariah (60) deals 2 combat damage to Death and Taxes.
+  DAMAGE: Recruiter of the Guard (95) deals 1 damage to Cat Warrior Token (151).
+  DAMAGE: Stoneforge Mystic (125) deals 1 damage to Cat Warrior Token (155).
+  LIFE: Life: Death and Taxes 8 > 6
+  ZONE_CHANGE: Recruiter of the Guard (95) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Stoneforge Mystic (125) was put into Graveyard from Battlefield.
+  STACK_ADD: Death and Taxes triggered Umezawa's Jitte
+  STACK_RESOLVE: Whenever equipped creature deals combat damage, put two charge counters on Umezawa's Jitte. [Damage Source: Recruiter of the Guard (95), Damaged: [Cat Warrior Token (151)], Amount: 1]
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte
+  STACK_ADD: Mardu Energy triggered Cat Warrior Token
+  LIFE: Life: Death and Taxes 6 > 4
+  STACK_RESOLVE: Ward—Pay 2 life. (Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player pays 2 life.) [Source: Umezawa's Jitte (135), Target: Cat Warrior Token (151)]
+  STACK_RESOLVE: Umezawa's Jitte (135) -  Target creature gets -1/-1 until end of turn. (Targeting: Cat Warrior Token (151))
+  ZONE_CHANGE: Cat Warrior Token (151) was put into Graveyard from Battlefield.
+  STACK_ADD: Mardu Energy triggered Ajani, Nacatl Pariah
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte
+  STACK_ADD: Mardu Energy triggered Cat Warrior Token
+  STACK_RESOLVE: Ward—Pay 2 life. (Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player pays 2 life.) [Source: Umezawa's Jitte (135), Target: Cat Warrior Token (155)]
+  ZONE_CHANGE: Ajani, Nacatl Pariah (60) was put into Exile from Battlefield.
+  EFFECT_REPLACED: Ajani, Nacatl Avenger enters with three loyalty counters on it.
+  STACK_RESOLVE: Whenever one or more other Cats you control die, you may exile Ajani, then return him to the battlefield transformed under his owner's control. [Amount: 1]
+  ZONE_CHANGE: Ajani, Nacatl Avenger (60) was put into Graveyard from Battlefield.
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Shadowy Backstreet (56) - {T}: Add {B}.
+  STACK_ADD: Mardu Energy cast Thoughtseize targeting [Death and Taxes]
+  DISCARD: Death and Taxes discards Batterskull (78).
+  LIFE: Life: Mardu Energy 18 > 16
+  STACK_RESOLVE: Thoughtseize (47) - Death and Taxes reveals their hand. Mardu Energy chooses a nonland card from it. Death and Taxes discards that card. Mardu Energy loses 2 life.
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 15 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  EFFECT_REPLACED: As Cavern of Souls enters, choose a creature type.
+  LAND: Death and Taxes played Cavern of Souls (77)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (105) - {T}: Add {W}.
+  MANA: Plains (114) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Thalia, Guardian of Thraben
+  STACK_RESOLVE: Thalia, Guardian of Thraben - Creature 2 / 1
+  MANA: Plains (116) - {T}: Add {W}.
+  MANA: Cavern of Souls (77) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte targeting [Thalia, Guardian of Thraben (90)]
+  STACK_ADD: Mardu Energy activated Karakas targeting [Thalia, Guardian of Thraben (90)]
+  STACK_RESOLVE: Karakas (17) - Return Thalia, Guardian of Thraben (90) to its owner's hand.
+  STACK_RESOLVE: Umezawa's Jitte ability fizzles.
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 16 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  STACK_ADD: Mardu Energy activated Ajani, Nacatl Avenger
+  ZONE_CHANGE: Aether Vial (84) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Aether Vial (83) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Ajani, Nacatl Avenger (59) - Each opponent chooses an artifact, a creature, an enchantment, and a planeswalker from among the nonland permanents they control, then sacrifices the rest. Sacrifice permanents. 
+  MANA: Badlands (1) - {T}: Add {R}.
+  MANA: Plains (40) - {T}: Add {W}.
+  STACK_ADD: Mardu Energy cast Hexing Squelcher
+  STACK_RESOLVE: Hexing Squelcher - Creature 2 / 2
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Cat Warrior Token (155) and Hexing Squelcher (7) to attack Death and Taxes.
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Cat Warrior Token (155).
+Death and Taxes didn't block Hexing Squelcher (7).
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Cat Warrior Token (155) deals 3 combat damage to Death and Taxes.
+  DAMAGE: Hexing Squelcher (7) deals 2 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 4 > -1
+  PLAYER_CONTROL: Mardu Energy has restored control over themself
+  PLAYER_CONTROL: Death and Taxes has restored control over themself
+  GAME_OUTCOME: Turn 8
+  GAME_OUTCOME: Mardu Energy has won because all opponents have lost
+  GAME_OUTCOME: Death and Taxes has lost because life total reached 0
+  MATCH_RESULTS: Mardu Energy: 1 Death and Taxes: 0 
+===============================

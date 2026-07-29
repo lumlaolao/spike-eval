@@ -1,0 +1,387 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 1 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20041
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/elves.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/burn.plan
+[DECK] loaded 'Elves': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/elves.txt)
+[DECK] loaded 'Burn': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/burn.txt)
+[SEATS] A=Elves(ai-log,opus) B=Burn(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+Moving spell to Library
+Moving spell to Library
+========== GAME OVER ==========
+outcome: B after 15 turns (AllOpponentsLost) in 3s
+--- full game log ---
+  MULLIGAN: Burn has mulliganed down to 6 cards.
+  MULLIGAN: Burn has mulliganed down to 5 cards.
+  MULLIGAN: Elves has kept a hand of 7 cards
+  MULLIGAN: Burn has kept a hand of 5 cards
+  TURN: Turn 1 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (34)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (34) - {T}: Add {G}.
+  STACK_ADD: Elves cast Llanowar Elves
+  STACK_RESOLVE: Llanowar Elves - Creature 1 / 1
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 2 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Sunbaked Canyon (79)
+  LIFE: Life: Burn 20 > 19
+  MANA: Sunbaked Canyon (79) - {T}, Pay 1 life: Add {R} or {W}.
+  STACK_ADD: Burn cast Goblin Guide
+  STACK_RESOLVE: Goblin Guide - Creature 2 / 2
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Goblin Guide (65) to attack Elves.
+  STACK_ADD: Burn triggered Goblin Guide
+  STACK_RESOLVE: Whenever Goblin Guide attacks, defending player reveals the top card of their library. If it's a land card, that player puts it into their hand. [Attacker: Goblin Guide (65)]
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Elves didn't block Goblin Guide (65).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Goblin Guide (65) deals 2 combat damage to Elves.
+  LIFE: Life: Elves 20 > 18
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 3 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (38)
+  MANA: Forest (34) - {T}: Add {G}.
+  MANA: Forest (38) - {T}: Add {G}.
+  MANA: Llanowar Elves (5) - {T}: Add {G}.
+  STACK_ADD: Elves cast Green Sun's Zenith
+  STACK_RESOLVE: Green Sun's Zenith (22) - Search your library for a green creature card with mana value X or less, put it onto the battlefield, then shuffle. Shuffle  into its owner's library. (X=2)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 4 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  LIFE: Life: Burn 19 > 18
+  MANA: Sunbaked Canyon (79) - {T}, Pay 1 life: Add {R} or {W}.
+  STACK_ADD: Burn cast Lightning Bolt targeting [Heritage Druid (14)]
+  DAMAGE: Lightning Bolt (99) deals 3 damage to Heritage Druid (14).
+  STACK_RESOLVE: Lightning Bolt (99) - Lightning Bolt (99) deals 3 damage to Heritage Druid (14).
+  ZONE_CHANGE: Heritage Druid (14) was put into Graveyard from Battlefield.
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Sunbaked Canyon (80)
+  LIFE: Life: Burn 18 > 17
+  MANA: Sunbaked Canyon (80) - {T}, Pay 1 life: Add {R} or {W}.
+  STACK_ADD: Burn cast Monastery Swiftspear
+  STACK_RESOLVE: Monastery Swiftspear - Creature 1 / 2
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Goblin Guide (65) and Monastery Swiftspear (64) to attack Elves.
+  STACK_ADD: Burn triggered Goblin Guide
+  STACK_RESOLVE: Whenever Goblin Guide attacks, defending player reveals the top card of their library. If it's a land card, that player puts it into their hand. [Attacker: Goblin Guide (65)]
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Elves didn't block Goblin Guide (65).
+Elves didn't block Monastery Swiftspear (64).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Goblin Guide (65) deals 2 combat damage to Elves.
+  DAMAGE: Monastery Swiftspear (64) deals 1 combat damage to Elves.
+  LIFE: Life: Elves 18 > 15
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 5 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (42)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Llanowar Elves (5) to attack Burn.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Burn didn't block Llanowar Elves (5).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Llanowar Elves (5) deals 1 combat damage to Burn.
+  LIFE: Life: Burn 17 > 16
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (34) - {T}: Add {G}.
+  STACK_ADD: Elves cast Nettle Sentinel
+  STACK_RESOLVE: Nettle Sentinel - Creature 2 / 2
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 6 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (91)
+  MANA: Mountain (91) - {T}: Add {R}.
+  STACK_ADD: Burn cast Chain Lightning targeting [Llanowar Elves (5)]
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Chain Lightning (115), Activator: Burn, SpellAbility: Chain Lightning deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may choose a new target for that copy. ]
+  DAMAGE: Chain Lightning (115) deals 3 damage to Llanowar Elves (5).
+  STACK_RESOLVE: Chain Lightning (115) - Chain Lightning (115) deals 3 damage to Llanowar Elves (5). 
+  ZONE_CHANGE: Llanowar Elves (5) was put into Graveyard from Battlefield.
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Goblin Guide (65) and Monastery Swiftspear (64) to attack Elves.
+  STACK_ADD: Burn triggered Goblin Guide
+  STACK_RESOLVE: Whenever Goblin Guide attacks, defending player reveals the top card of their library. If it's a land card, that player puts it into their hand. [Attacker: Goblin Guide (65)]
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Elves assigned Nettle Sentinel (28) to block Goblin Guide (65).
+Elves didn't block Monastery Swiftspear (64).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Goblin Guide (65) deals 2 damage to Nettle Sentinel (28).
+  DAMAGE: Monastery Swiftspear (64) deals 2 combat damage to Elves.
+  DAMAGE: Nettle Sentinel (28) deals 2 damage to Goblin Guide (65).
+  LIFE: Life: Elves 15 > 13
+  ZONE_CHANGE: Goblin Guide (65) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Nettle Sentinel (28) was put into Graveyard from Battlefield.
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  LIFE: Life: Burn 16 > 15
+  MANA: Sunbaked Canyon (80) - {T}, Pay 1 life: Add {R} or {W}.
+  LIFE: Life: Burn 15 > 14
+  MANA: Sunbaked Canyon (79) - {T}, Pay 1 life: Add {R} or {W}.
+  STACK_ADD: Burn cast Eidolon of the Great Revel
+  STACK_RESOLVE: Eidolon of the Great Revel - Creature 2 / 2
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 7 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (36)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 8 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  MANA: Mountain (91) - {T}: Add {R}.
+  ZONE_CHANGE: Sunbaked Canyon (79) was put into Graveyard from Battlefield.
+  STACK_ADD: Burn activated Sunbaked Canyon
+  STACK_RESOLVE: Sunbaked Canyon (79) - Burn draws a card.
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (95)
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Eidolon of the Great Revel (118) and Monastery Swiftspear (64) to attack Elves.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Elves didn't block Eidolon of the Great Revel (118).
+Elves didn't block Monastery Swiftspear (64).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Eidolon of the Great Revel (118) deals 2 combat damage to Elves.
+  DAMAGE: Monastery Swiftspear (64) deals 1 combat damage to Elves.
+  LIFE: Life: Elves 13 > 10
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 9 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (35)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 10 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Eidolon of the Great Revel (118) and Monastery Swiftspear (64) to attack Elves.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Elves didn't block Eidolon of the Great Revel (118).
+Elves didn't block Monastery Swiftspear (64).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Eidolon of the Great Revel (118) deals 2 combat damage to Elves.
+  DAMAGE: Monastery Swiftspear (64) deals 1 combat damage to Elves.
+  LIFE: Life: Elves 10 > 7
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 11 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (37)
+  MANA: Forest (34) - {T}: Add {G}.
+  MANA: Forest (38) - {T}: Add {G}.
+  MANA: Forest (42) - {T}: Add {G}.
+  MANA: Forest (36) - {T}: Add {G}.
+  STACK_ADD: Elves cast Green Sun's Zenith
+  STACK_RESOLVE: Green Sun's Zenith (20) - Search your library for a green creature card with mana value X or less, put it onto the battlefield, then shuffle. Shuffle  into its owner's library. (X=3)
+  STACK_ADD: Elves triggered Reclamation Sage targeting [Eidolon of the Great Revel (118)]
+  ZONE_CHANGE: Eidolon of the Great Revel (118) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: When Reclamation Sage enters, you may destroy target artifact or enchantment. (Targeting: [[Eidolon of the Great Revel (118)]]) [Zone Changer: Reclamation Sage (56)]
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 12 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (98)
+  MANA: Mountain (91) - {T}: Add {R}.
+  MANA: Mountain (95) - {T}: Add {R}.
+  STACK_ADD: Burn cast Searing Blaze targeting [Elves] [Reclamation Sage (56)]
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Searing Blaze (108), Activator: Burn, SpellAbility: Searing Blaze deals 1 damage to target player or planeswalker and 1 damage to target creature that player or that planeswalker's controller controls. Landfall — If you had a land enter the battlefield under your control this turn, Searing Blaze deals 3 damage to that player or planeswalker and 3 damage to that creature instead.  ]
+  DAMAGE: Searing Blaze (108) deals 3 non-combat damage to Elves.
+  DAMAGE: Searing Blaze (108) deals 3 damage to Reclamation Sage (56).
+  LIFE: Life: Elves 7 > 4
+  STACK_RESOLVE: Searing Blaze (108) - Searing Blaze (108) deals 3 damage to Elves. Searing Blaze (108) deals 3 damage to Reclamation Sage (56). 
+  ZONE_CHANGE: Reclamation Sage (56) was put into Graveyard from Battlefield.
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Monastery Swiftspear (64) to attack Elves.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Elves didn't block Monastery Swiftspear (64).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (64) deals 2 combat damage to Elves.
+  LIFE: Life: Elves 4 > 2
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 13 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (32)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 14 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Monastery Swiftspear (64) to attack Elves.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Elves didn't block Monastery Swiftspear (64).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (64) deals 1 combat damage to Elves.
+  LIFE: Life: Elves 2 > 1
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 15 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Windswept Heath (60)
+  MANA: Forest (34) - {T}: Add {G}.
+  MANA: Forest (38) - {T}: Add {G}.
+  MANA: Forest (42) - {T}: Add {G}.
+  STACK_ADD: Elves cast Green Sun's Zenith
+  MANA: Mountain (91) - {T}: Add {R}.
+  MANA: Mountain (95) - {T}: Add {R}.
+  STACK_ADD: Burn cast Price of Progress
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Price of Progress (78), Activator: Burn, SpellAbility: Price of Progress deals 2 damage to each player for each nonbasic land they control.]
+  DAMAGE: Price of Progress (78) deals 2 non-combat damage to Elves.
+  DAMAGE: Price of Progress (78) deals 2 non-combat damage to Burn.
+  LIFE: Life: Elves 1 > -1
+  LIFE: Life: Burn 14 > 12
+  STACK_RESOLVE: Price of Progress (78) - Price of Progress deals 2 damage to each player for each nonbasic land they control.
+  PLAYER_CONTROL: Elves has restored control over themself
+  PLAYER_CONTROL: Burn has restored control over themself
+  GAME_OUTCOME: Turn 8
+  GAME_OUTCOME: Elves has lost because life total reached 0
+  GAME_OUTCOME: Burn has won because all opponents have lost
+  MATCH_RESULTS: Elves: 0 Burn: 1 
+===============================

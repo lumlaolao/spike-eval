@@ -1,0 +1,582 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20016
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/elves.plan
+[DECK] loaded 'Goblins': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.txt)
+[DECK] loaded 'Elves': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/elves.txt)
+[SEATS] A=Goblins(ai-log,opus) B=Elves(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+Moving spell to Library
+========== GAME OVER ==========
+outcome: A after 22 turns (AllOpponentsLost) in 4s
+--- full game log ---
+  MULLIGAN: Elves has kept a hand of 7 cards
+  MULLIGAN: Goblins has kept a hand of 7 cards
+  TURN: Turn 1 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Bayou (61)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Bayou (61) - {T}: Add {G}.
+  STACK_ADD: Elves cast Nettle Sentinel
+  STACK_RESOLVE: Nettle Sentinel - Creature 2 / 2
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 2 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (20)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (20) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Skirk Prospector
+  STACK_RESOLVE: Skirk Prospector - Creature 1 / 1
+  ZONE_CHANGE: Skirk Prospector (40) was put into Graveyard from Battlefield.
+  MANA: Skirk Prospector (40) - Sacrifice a Goblin: Add {R}.
+  STACK_ADD: Goblins cast Goblin Lackey
+  STACK_RESOLVE: Goblin Lackey - Creature 1 / 1
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 3 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Verdant Catacombs (105)
+  LIFE: Life: Elves 20 > 19
+  ZONE_CHANGE: Verdant Catacombs (105) was put into Graveyard from Battlefield.
+  STACK_ADD: Elves activated Verdant Catacombs
+  STACK_RESOLVE: Verdant Catacombs (105) - Elves searches their library for a Swamp or Forest card, puts it onto the battlefield, then shuffles.
+  MANA: Bayou (61) - {T}: Add {G}.
+  MANA: Bayou (62) - {T}: Add {G}.
+  STACK_ADD: Elves cast Green Sun's Zenith
+  STACK_ADD: Elves triggered Nettle Sentinel
+  STACK_RESOLVE: Whenever you cast a green spell, you may untap this creature. [Card: Green Sun's Zenith (82), Activator: Elves, SpellAbility: Search your library for a green creature card with mana value X or less, put it onto the battlefield, then shuffle. Shuffle Green Sun's Zenith into its owner's library. ]
+  STACK_RESOLVE: Green Sun's Zenith (82) - Search your library for a green creature card with mana value X or less, put it onto the battlefield, then shuffle. Shuffle  into its owner's library. (X=1)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Nettle Sentinel (90) to attack Goblins.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Goblins didn't block Nettle Sentinel (90).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Nettle Sentinel (90) deals 2 combat damage to Goblins.
+  LIFE: Life: Goblins 20 > 18
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 4 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Rishadan Port (57)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 5 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Windswept Heath (120)
+  LIFE: Life: Elves 19 > 18
+  ZONE_CHANGE: Windswept Heath (120) was put into Graveyard from Battlefield.
+  STACK_ADD: Elves activated Windswept Heath
+  STACK_RESOLVE: Windswept Heath (120) - Elves searches their library for a Forest or Plains card, puts it onto the battlefield, then shuffles.
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (95) - {T}: Add {G}.
+  MANA: Bayou (61) - {T}: Add {G}.
+  STACK_ADD: Elves cast Elvish Visionary
+  STACK_ADD: Elves triggered Nettle Sentinel
+  STACK_RESOLVE: Whenever you cast a green spell, you may untap this creature. [Card: Elvish Visionary (67), Activator: Elves, SpellAbility: Elvish Visionary - Creature 1 / 1]
+  STACK_RESOLVE: Elvish Visionary - Creature 1 / 1
+  STACK_ADD: Elves triggered Elvish Visionary
+  STACK_RESOLVE: When Elvish Visionary enters, draw a card. [Zone Changer: Elvish Visionary (67)]
+  MANA: Bayou (62) - {T}: Add {G}.
+  MANA: Llanowar Elves (63) - {T}: Add {G}.
+  STACK_ADD: Elves cast Elvish Visionary
+  STACK_ADD: Elves triggered Nettle Sentinel
+  STACK_RESOLVE: Whenever you cast a green spell, you may untap this creature. [Card: Elvish Visionary (68), Activator: Elves, SpellAbility: Elvish Visionary - Creature 1 / 1]
+  STACK_RESOLVE: Elvish Visionary - Creature 1 / 1
+  STACK_ADD: Elves triggered Elvish Visionary
+  STACK_RESOLVE: When Elvish Visionary enters, draw a card. [Zone Changer: Elvish Visionary (68)]
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 6 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (18)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (20) - {T}: Add {R}.
+  MANA: Mountain (18) - {T}: Add {R}.
+  MANA: Rishadan Port (57) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Goblin Matron
+  STACK_RESOLVE: Goblin Matron - Creature 1 / 1
+  STACK_ADD: Goblins triggered Goblin Matron
+  STACK_RESOLVE: When Goblin Matron enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle. [Zone Changer: Goblin Matron (53)]
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 7 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Nettle Sentinel (90), Llanowar Elves (63), Elvish Visionary (67) and Elvish Visionary (68) to attack Goblins.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Goblins didn't block Nettle Sentinel (90).
+Goblins didn't block Llanowar Elves (63).
+Goblins didn't block Elvish Visionary (67).
+Goblins assigned Goblin Lackey (6) to block Elvish Visionary (68).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Nettle Sentinel (90) deals 2 combat damage to Goblins.
+  DAMAGE: Llanowar Elves (63) deals 1 combat damage to Goblins.
+  DAMAGE: Elvish Visionary (67) deals 1 combat damage to Goblins.
+  DAMAGE: Elvish Visionary (68) deals 1 damage to Goblin Lackey (6).
+  DAMAGE: Goblin Lackey (6) deals 1 damage to Elvish Visionary (68).
+  LIFE: Life: Goblins 18 > 14
+  ZONE_CHANGE: Elvish Visionary (68) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Goblin Lackey (6) was put into Graveyard from Battlefield.
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (95) - {T}: Add {G}.
+  STACK_ADD: Elves cast Nettle Sentinel
+  STACK_ADD: Elves triggered Nettle Sentinel
+  STACK_RESOLVE: Whenever you cast a green spell, you may untap this creature. [Card: Nettle Sentinel (87), Activator: Elves, SpellAbility: Nettle Sentinel - Creature 2 / 2]
+  STACK_RESOLVE: Nettle Sentinel - Creature 2 / 2
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 8 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (22)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (20) - {T}: Add {R}.
+  MANA: Mountain (18) - {T}: Add {R}.
+  MANA: Mountain (22) - {T}: Add {R}.
+  MANA: Rishadan Port (57) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Krenko, Mob Boss
+  STACK_RESOLVE: Krenko, Mob Boss - Creature 3 / 3
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 9 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 10 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  EFFECT_REPLACED: As Cavern of Souls enters, choose a creature type.
+  LAND: Goblins played Cavern of Souls (1)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (47) to attack Elves.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Elves didn't block Krenko, Mob Boss (47).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Krenko, Mob Boss (47) deals 3 combat damage to Elves.
+  LIFE: Life: Elves 18 > 15
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (20) - {T}: Add {R}.
+  MANA: Mountain (18) - {T}: Add {R}.
+  MANA: Mountain (22) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Matron
+  STACK_RESOLVE: Goblin Matron - Creature 1 / 1
+  STACK_ADD: Goblins triggered Goblin Matron
+  STACK_RESOLVE: When Goblin Matron enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle. [Zone Changer: Goblin Matron (52)]
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 11 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Nettle Sentinel (90), Nettle Sentinel (87), Llanowar Elves (63) and Elvish Visionary (67) to attack Goblins.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Goblins didn't block Nettle Sentinel (90).
+Goblins didn't block Nettle Sentinel (87).
+Goblins assigned Goblin Matron (53) to block Llanowar Elves (63).
+Goblins assigned Goblin Matron (52) to block Elvish Visionary (67).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Nettle Sentinel (90) deals 2 combat damage to Goblins.
+  DAMAGE: Nettle Sentinel (87) deals 2 combat damage to Goblins.
+  DAMAGE: Llanowar Elves (63) deals 1 damage to Goblin Matron (53).
+  DAMAGE: Elvish Visionary (67) deals 1 damage to Goblin Matron (52).
+  DAMAGE: Goblin Matron (53) deals 1 damage to Llanowar Elves (63).
+  DAMAGE: Goblin Matron (52) deals 1 damage to Elvish Visionary (67).
+  LIFE: Life: Goblins 14 > 10
+  ZONE_CHANGE: Llanowar Elves (63) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Elvish Visionary (67) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Goblin Matron (53) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Goblin Matron (52) was put into Graveyard from Battlefield.
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (95) - {T}: Add {G}.
+  STACK_ADD: Elves cast Llanowar Elves
+  STACK_ADD: Elves triggered Nettle Sentinel
+  STACK_ADD: Elves triggered Nettle Sentinel
+  STACK_RESOLVE: Whenever you cast a green spell, you may untap this creature. [Card: Llanowar Elves (64), Activator: Elves, SpellAbility: Llanowar Elves - Creature 1 / 1]
+  STACK_RESOLVE: Whenever you cast a green spell, you may untap this creature. [Card: Llanowar Elves (64), Activator: Elves, SpellAbility: Llanowar Elves - Creature 1 / 1]
+  STACK_RESOLVE: Llanowar Elves - Creature 1 / 1
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 12 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (19)
+  MANA: Mountain (20) - {T}: Add {R}.
+  MANA: Mountain (18) - {T}: Add {R}.
+  MANA: Mountain (22) - {T}: Add {R}.
+  MANA: Mountain (19) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Ringleader
+  STACK_RESOLVE: Goblin Ringleader - Creature 2 / 2
+  STACK_ADD: Goblins triggered Goblin Ringleader
+  STACK_RESOLVE: When Goblin Ringleader enters, reveal the top four cards of your library. Put all Goblin cards revealed this way into your hand and the rest on the bottom of your library in any order. [Zone Changer: Goblin Ringleader (5)]
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (47) to attack Elves.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Elves didn't block Krenko, Mob Boss (47).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Krenko, Mob Boss (47) deals 3 combat damage to Elves.
+  LIFE: Life: Elves 15 > 12
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Cavern of Souls (1) - {T}: Add one mana of any color. Spend this mana only to cast a creature spell of the chosen type, and that spell can't be countered.
+  STACK_ADD: Goblins cast Goblin Lackey
+  STACK_RESOLVE: Goblin Lackey - Creature 1 / 1
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 13 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Nettle Sentinel (90) and Nettle Sentinel (87) to attack Goblins.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Goblins didn't block Nettle Sentinel (90).
+Goblins didn't block Nettle Sentinel (87).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Nettle Sentinel (90) deals 2 combat damage to Goblins.
+  DAMAGE: Nettle Sentinel (87) deals 2 combat damage to Goblins.
+  LIFE: Life: Goblins 10 > 6
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 14 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (23)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (47), Goblin Ringleader (5) and Goblin Lackey (7) to attack Elves.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Elves didn't block Krenko, Mob Boss (47).
+Elves didn't block Goblin Ringleader (5).
+Elves assigned Llanowar Elves (64) to block Goblin Lackey (7).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Krenko, Mob Boss (47) deals 3 combat damage to Elves.
+  DAMAGE: Goblin Ringleader (5) deals 2 combat damage to Elves.
+  DAMAGE: Goblin Lackey (7) deals 1 damage to Llanowar Elves (64).
+  DAMAGE: Llanowar Elves (64) deals 1 damage to Goblin Lackey (7).
+  LIFE: Life: Elves 12 > 7
+  ZONE_CHANGE: Goblin Lackey (7) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Llanowar Elves (64) was put into Graveyard from Battlefield.
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 15 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (95) - {T}: Add {G}.
+  STACK_ADD: Elves cast Fyndhorn Elves
+  STACK_ADD: Elves triggered Nettle Sentinel
+  STACK_ADD: Elves triggered Nettle Sentinel
+  STACK_RESOLVE: Whenever you cast a green spell, you may untap this creature. [Card: Fyndhorn Elves (107), Activator: Elves, SpellAbility: Fyndhorn Elves - Creature 1 / 1]
+  STACK_RESOLVE: Whenever you cast a green spell, you may untap this creature. [Card: Fyndhorn Elves (107), Activator: Elves, SpellAbility: Fyndhorn Elves - Creature 1 / 1]
+  STACK_RESOLVE: Fyndhorn Elves - Creature 1 / 1
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 16 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (26)
+  MANA: Cavern of Souls (1) - {T}: Add one mana of any color. Spend this mana only to cast a creature spell of the chosen type, and that spell can't be countered.
+  MANA: Mountain (20) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Munitions Expert
+  STACK_RESOLVE: Munitions Expert - Creature 1 / 1
+  STACK_ADD: Goblins triggered Munitions Expert targeting [Fyndhorn Elves (107)]
+  DAMAGE: Munitions Expert (44) deals 3 damage to Fyndhorn Elves (107).
+  STACK_RESOLVE: When Munitions Expert enters, you may have it deal damage to target creature or planeswalker equal to the number of Goblins you control. (Targeting: [[Fyndhorn Elves (107)]]) [Zone Changer: Munitions Expert (44)]
+  ZONE_CHANGE: Fyndhorn Elves (107) was put into Graveyard from Battlefield.
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (47) to attack Elves.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Elves assigned Nettle Sentinel (87) and Nettle Sentinel (90) to block Krenko, Mob Boss (47).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Krenko, Mob Boss (47) deals 2 damage to Nettle Sentinel (87).
+  DAMAGE: Krenko, Mob Boss (47) deals 1 damage to Nettle Sentinel (90).
+  DAMAGE: Nettle Sentinel (87) deals 2 damage to Krenko, Mob Boss (47).
+  DAMAGE: Nettle Sentinel (90) deals 2 damage to Krenko, Mob Boss (47).
+  ZONE_CHANGE: Krenko, Mob Boss (47) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Nettle Sentinel (87) was put into Graveyard from Battlefield.
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (18) - {T}: Add {R}.
+  MANA: Mountain (22) - {T}: Add {R}.
+  MANA: Mountain (19) - {T}: Add {R}.
+  MANA: Mountain (23) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Krenko, Mob Boss
+  STACK_RESOLVE: Krenko, Mob Boss - Creature 3 / 3
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 17 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (92)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 18 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Wasteland (51)
+  ZONE_CHANGE: Wasteland (51) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins activated Wasteland targeting [Bayou (61)]
+  ZONE_CHANGE: Bayou (61) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (51) - Destroy Bayou (61).
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (46) and Goblin Ringleader (5) to attack Elves.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Elves didn't block Krenko, Mob Boss (46).
+Elves assigned Nettle Sentinel (90) to block Goblin Ringleader (5).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Krenko, Mob Boss (46) deals 3 combat damage to Elves.
+  DAMAGE: Goblin Ringleader (5) deals 2 damage to Nettle Sentinel (90).
+  DAMAGE: Nettle Sentinel (90) deals 2 damage to Goblin Ringleader (5).
+  LIFE: Life: Elves 7 > 4
+  ZONE_CHANGE: Goblin Ringleader (5) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Nettle Sentinel (90) was put into Graveyard from Battlefield.
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 19 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (95) - {T}: Add {G}.
+  STACK_ADD: Elves cast Nettle Sentinel
+  STACK_RESOLVE: Nettle Sentinel - Creature 2 / 2
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 20 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (34)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (46) to attack Elves.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Elves assigned Nettle Sentinel (88) to block Krenko, Mob Boss (46).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Krenko, Mob Boss (46) deals 3 damage to Nettle Sentinel (88).
+  DAMAGE: Nettle Sentinel (88) deals 2 damage to Krenko, Mob Boss (46).
+  ZONE_CHANGE: Nettle Sentinel (88) was put into Graveyard from Battlefield.
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (20) - {T}: Add {R}.
+  MANA: Mountain (18) - {T}: Add {R}.
+  MANA: Mountain (22) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Matron
+  STACK_RESOLVE: Goblin Matron - Creature 1 / 1
+  STACK_ADD: Goblins triggered Goblin Matron
+  STACK_RESOLVE: When Goblin Matron enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle. [Zone Changer: Goblin Matron (55)]
+  MANA: Mountain (19) - {T}: Add {R}.
+  MANA: Mountain (23) - {T}: Add {R}.
+  MANA: Mountain (26) - {T}: Add {R}.
+  MANA: Mountain (34) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Ringleader
+  STACK_RESOLVE: Goblin Ringleader - Creature 2 / 2
+  STACK_ADD: Goblins triggered Goblin Ringleader
+  STACK_RESOLVE: When Goblin Ringleader enters, reveal the top four cards of your library. Put all Goblin cards revealed this way into your hand and the rest on the bottom of your library in any order. [Zone Changer: Goblin Ringleader (3)]
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 21 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Windswept Heath (117)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 22 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (46), Goblin Ringleader (3), Munitions Expert (44) and Goblin Matron (55) to attack Elves.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Elves didn't block Krenko, Mob Boss (46).
+Elves didn't block Goblin Ringleader (3).
+Elves didn't block Munitions Expert (44).
+Elves didn't block Goblin Matron (55).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Krenko, Mob Boss (46) deals 3 combat damage to Elves.
+  DAMAGE: Goblin Ringleader (3) deals 2 combat damage to Elves.
+  DAMAGE: Munitions Expert (44) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Matron (55) deals 1 combat damage to Elves.
+  LIFE: Life: Elves 4 > -3
+  PLAYER_CONTROL: Goblins has restored control over themself
+  PLAYER_CONTROL: Elves has restored control over themself
+  GAME_OUTCOME: Turn 11
+  GAME_OUTCOME: Goblins has won because all opponents have lost
+  GAME_OUTCOME: Elves has lost because life total reached 0
+  MATCH_RESULTS: Goblins: 1 Elves: 0 
+===============================

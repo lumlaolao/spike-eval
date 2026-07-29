@@ -1,0 +1,519 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20059
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/mardu-energy.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/death-and-taxes.plan
+[DECK] loaded 'Mardu Energy': 60 main, 15 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/mardu-energy.txt)
+[DECK] loaded 'Death and Taxes': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/death-and-taxes.txt)
+[SEATS] A=Mardu Energy(ai-log,opus) B=Death and Taxes(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+SVar 'ConvertedManaCost' not defined in Card (Goblin Bombardment)
+========== GAME OVER ==========
+outcome: A after 17 turns (AllOpponentsLost) in 4s
+--- full game log ---
+  MULLIGAN: Mardu Energy has kept a hand of 7 cards
+  MULLIGAN: Death and Taxes has kept a hand of 7 cards
+  TURN: Turn 1 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Plains (41)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  PHASE: Mardu Energy's Declare Blockers Step
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Plains (41) - {T}: Add {W}.
+  STACK_ADD: Mardu Energy cast Ocelot Pride
+  STACK_RESOLVE: Ocelot Pride - Creature 1 / 1
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 2 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (112)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 3 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Wasteland (53)
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Ocelot Pride (27) to attack Death and Taxes.
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Ocelot Pride (27).
+  MANA: Plains (112) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Swords to Plowshares targeting [Ocelot Pride (27)]
+  ZONE_CHANGE: Ocelot Pride (27) was put into Exile from Battlefield.
+  LIFE: Life: Mardu Energy 20 > 21
+  STACK_RESOLVE: Swords to Plowshares (102) - Exile Ocelot Pride (27). Mardu Energy gains life equal to its power.
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Plains (41) - {T}: Add {W}.
+  MANA: Wasteland (53) - {T}: Add {C}.
+  STACK_ADD: Mardu Energy cast Ajani, Nacatl Pariah
+  STACK_RESOLVE: Ajani, Nacatl Pariah - Creature 1 / 2
+  STACK_ADD: Mardu Energy triggered Ajani, Nacatl Pariah
+  STACK_RESOLVE: When Ajani, Nacatl Pariah enters, create a 2/1 white Cat Warrior creature token. [Zone Changer: Ajani, Nacatl Pariah (58)]
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 4 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Rishadan Port (134)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 5 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Arid Mesa (8)
+  LIFE: Life: Mardu Energy 21 > 20
+  ZONE_CHANGE: Arid Mesa (8) was put into Graveyard from Battlefield.
+  STACK_ADD: Mardu Energy activated Arid Mesa
+  STACK_RESOLVE: Arid Mesa (8) - Mardu Energy searches their library for a Mountain or Plains card, puts it onto the battlefield, then shuffles.
+  MANA: Badlands (1) - {T}: Add {R}.
+  MANA: Plains (41) - {T}: Add {W}.
+  STACK_ADD: Mardu Energy cast Hexing Squelcher
+  STACK_RESOLVE: Hexing Squelcher - Creature 2 / 2
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Cat Warrior Token (139) and Ajani, Nacatl Pariah (58) to attack Death and Taxes.
+  MANA: Plains (112) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Swords to Plowshares targeting [Cat Warrior Token (139)]
+  STACK_ADD: Mardu Energy triggered Cat Warrior Token
+  LIFE: Life: Death and Taxes 20 > 18
+  STACK_RESOLVE: Ward—Pay 2 life. (Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player pays 2 life.) [Source: Swords to Plowshares (99), Target: Cat Warrior Token (139)]
+  ZONE_CHANGE: Cat Warrior Token (139) was put into Exile from Battlefield.
+  LIFE: Life: Mardu Energy 20 > 22
+  STACK_RESOLVE: Swords to Plowshares (99) - Exile Cat Warrior Token (139). Mardu Energy gains life equal to its power.
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Ajani, Nacatl Pariah (58).
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Ajani, Nacatl Pariah (58) deals 1 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 18 > 17
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 6 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Rishadan Port (133)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (112) - {T}: Add {W}.
+  MANA: Rishadan Port (134) - {T}: Add {C}.
+  MANA: Rishadan Port (133) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Recruiter of the Guard
+  STACK_RESOLVE: Recruiter of the Guard - Creature 1 / 1
+  STACK_ADD: Death and Taxes triggered Recruiter of the Guard
+  STACK_RESOLVE: When Recruiter of the Guard enters, you may search your library for a creature card with toughness 2 or less, reveal it, put it into your hand, then shuffle. [Zone Changer: Recruiter of the Guard (96)]
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 7 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  MANA: Plains (41) - {T}: Add {W}.
+  STACK_ADD: Mardu Energy cast Swords to Plowshares targeting [Recruiter of the Guard (96)]
+  ZONE_CHANGE: Recruiter of the Guard (96) was put into Exile from Battlefield.
+  LIFE: Life: Death and Taxes 17 > 18
+  STACK_RESOLVE: Swords to Plowshares (28) - Exile Recruiter of the Guard (96). Death and Taxes gains life equal to its power.
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Hexing Squelcher (5) and Ajani, Nacatl Pariah (58) to attack Death and Taxes.
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Hexing Squelcher (5).
+Death and Taxes didn't block Ajani, Nacatl Pariah (58).
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Hexing Squelcher (5) deals 2 combat damage to Death and Taxes.
+  DAMAGE: Ajani, Nacatl Pariah (58) deals 1 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 18 > 15
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Badlands (1) - {T}: Add {R}.
+  MANA: Wasteland (53) - {T}: Add {C}.
+  STACK_ADD: Mardu Energy cast Amped Raptor
+  STACK_RESOLVE: Amped Raptor - Creature 2 / 1
+  STACK_ADD: Mardu Energy triggered Amped Raptor
+  STACK_ADD: Mardu Energy cast Goblin Bombardment
+  STACK_RESOLVE: When Amped Raptor enters, you get {E}{E} (two energy counters). Then if you cast it from your hand, exile cards from the top of your library until you exile a nonland card. You may cast that card by paying an amount of {E} equal to its mana value rather than paying its mana cost. [Zone Changer: Amped Raptor (51)]
+  STACK_RESOLVE: Goblin Bombardment
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 8 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  EFFECT_REPLACED: As Cavern of Souls enters, choose a creature type.
+  LAND: Death and Taxes played Cavern of Souls (77)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (112) - {T}: Add {W}.
+  MANA: Cavern of Souls (77) - {T}: Add one mana of any color. Spend this mana only to cast a creature spell of the chosen type, and that spell can't be countered.
+  MANA: Rishadan Port (134) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Mirran Crusader
+  STACK_RESOLVE: Mirran Crusader - Creature 2 / 2
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 9 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  MANA: Badlands (1) - {T}: Add {B}.
+  MANA: Plains (41) - {T}: Add {W}.
+  STACK_ADD: Mardu Energy cast Orcish Bowmasters
+  STACK_RESOLVE: Orcish Bowmasters - Creature 1 / 1
+  STACK_ADD: Mardu Energy triggered Orcish Bowmasters targeting [Death and Taxes]
+  DAMAGE: Orcish Bowmasters (37) deals 1 non-combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 15 > 14
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Death and Taxes]]) [Zone Changer: Orcish Bowmasters (37)]
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Amped Raptor (51) to attack Death and Taxes.
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Amped Raptor (51).
+  PHASE: Mardu Energy's First Strike Damage Step
+  DAMAGE: Amped Raptor (51) deals 2 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 14 > 12
+  PHASE: Mardu Energy's Combat Damage Step
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 10 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (120)
+  MANA: Plains (112) - {T}: Add {W}.
+  MANA: Plains (120) - {T}: Add {W}.
+  MANA: Cavern of Souls (77) - {T}: Add one mana of any color. Spend this mana only to cast a creature spell of the chosen type, and that spell can't be countered.
+  MANA: Rishadan Port (134) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Palace Jailer
+  STACK_RESOLVE: Palace Jailer - Creature 2 / 2
+  STACK_ADD: Death and Taxes triggered Palace Jailer
+  STACK_ADD: Death and Taxes triggered Palace Jailer targeting [Amped Raptor (51)]
+  STACK_ADD: Mardu Energy triggered Amped Raptor
+  LIFE: Life: Death and Taxes 12 > 10
+  STACK_RESOLVE: Ward—Pay 2 life. (Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player pays 2 life.) [Source: Palace Jailer (91), Target: Amped Raptor (51)]
+  ZONE_CHANGE: Amped Raptor (51) was put into Exile from Battlefield.
+  STACK_RESOLVE: When Palace Jailer enters, exile target creature an opponent controls until an opponent becomes the monarch. (Targeting: [[Amped Raptor (51)]]) [Zone Changer: Palace Jailer (91)]
+  STACK_RESOLVE: When Palace Jailer enters, you become the monarch. [Zone Changer: Palace Jailer (91)]
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Mirran Crusader (98) to attack Mardu Energy.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Mardu Energy didn't block Mirran Crusader (98).
+  PHASE: Death and Taxes' First Strike Damage Step
+  DAMAGE: Mirran Crusader (98) deals 2 combat damage to Mardu Energy.
+  LIFE: Life: Mardu Energy 22 > 20
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Mirran Crusader (98) deals 2 combat damage to Mardu Energy.
+  LIFE: Life: Mardu Energy 20 > 18
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  STACK_ADD: Death and Taxes triggered The Monarch
+  STACK_RESOLVE: At the beginning of your end step, draw a card. [Phase: Death and Taxes]
+  STACK_ADD: Mardu Energy triggered Orcish Bowmasters targeting [Death and Taxes]
+  DAMAGE: Orcish Bowmasters (37) deals 1 non-combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 10 > 9
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Death and Taxes]]) [Player: Death and Taxes]
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 11 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  MANA: Plains (41) - {T}: Add {W}.
+  STACK_ADD: Mardu Energy cast Swords to Plowshares targeting [Mirran Crusader (98)]
+  ZONE_CHANGE: Mirran Crusader (98) was put into Exile from Battlefield.
+  LIFE: Life: Death and Taxes 9 > 11
+  STACK_RESOLVE: Swords to Plowshares (31) - Exile Mirran Crusader (98). Death and Taxes gains life equal to its power.
+  PHASE: Mardu Energy's Main phase, precombat
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Hexing Squelcher (5) and Orc Army Token (142) to attack Death and Taxes.
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Hexing Squelcher (5).
+Death and Taxes didn't block Orc Army Token (142).
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Hexing Squelcher (5) deals 2 combat damage to Death and Taxes.
+  DAMAGE: Orc Army Token (142) deals 2 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 11 > 7
+  STACK_ADD: Death and Taxes triggered The Monarch
+  STACK_ADD: Death and Taxes triggered The Monarch
+  STACK_RESOLVE: Whenever a creature deals combat damage to you, its controller becomes the monarch. [Damage Source: Orc Army Token (142), Damaged: Death and Taxes, Amount: 2]
+  STACK_ADD: Mardu Energy triggered Amped Raptor
+  STACK_RESOLVE: When Amped Raptor enters, you get {E}{E} (two energy counters). Then if you cast it from your hand, exile cards from the top of your library until you exile a nonland card. You may cast that card by paying an amount of {E} equal to its mana value rather than paying its mana cost. [Zone Changer: Amped Raptor (51)]
+  STACK_RESOLVE: Whenever a creature deals combat damage to you, its controller becomes the monarch. [Damage Source: Hexing Squelcher (5), Damaged: Death and Taxes, Amount: 2]
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  STACK_ADD: Mardu Energy triggered The Monarch
+  STACK_RESOLVE: At the beginning of your end step, draw a card. [Phase: Mardu Energy]
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 12 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Rishadan Port (131)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (112) - {T}: Add {W}.
+  MANA: Plains (120) - {T}: Add {W}.
+  MANA: Cavern of Souls (77) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Flickerwisp
+  STACK_RESOLVE: Flickerwisp - Creature 3 / 1
+  STACK_ADD: Death and Taxes triggered Flickerwisp targeting [Palace Jailer (91)]
+  ZONE_CHANGE: Palace Jailer (91) was put into Exile from Battlefield.
+  STACK_RESOLVE: When Flickerwisp enters, exile another target permanent. Return that card to the battlefield under its owner's control at the beginning of the next end step. (Targeting: [[Palace Jailer (91)]]) [Zone Changer: Flickerwisp (122)]
+  PHASE: Death and Taxes' End step
+  STACK_ADD: Death and Taxes triggered Flickerwisp
+  STACK_RESOLVE: Return exiled permanent to the battlefield. ([Palace Jailer (91)]) [Phase: Death and Taxes]
+  STACK_ADD: Death and Taxes triggered Palace Jailer
+  STACK_ADD: Death and Taxes triggered Palace Jailer targeting [Amped Raptor (51)]
+  STACK_ADD: Mardu Energy triggered Amped Raptor
+  LIFE: Life: Death and Taxes 7 > 5
+  STACK_RESOLVE: Ward—Pay 2 life. (Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player pays 2 life.) [Source: Palace Jailer (91), Target: Amped Raptor (51)]
+  ZONE_CHANGE: Amped Raptor (51) was put into Exile from Battlefield.
+  STACK_RESOLVE: When Palace Jailer enters, exile target creature an opponent controls until an opponent becomes the monarch. (Targeting: [[Amped Raptor (51)]]) [Zone Changer: Palace Jailer (91)]
+  STACK_RESOLVE: When Palace Jailer enters, you become the monarch. [Zone Changer: Palace Jailer (91)]
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 13 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Plateau (39)
+  ZONE_CHANGE: Wasteland (53) was put into Graveyard from Battlefield.
+  STACK_ADD: Mardu Energy activated Wasteland targeting [Rishadan Port (134)]
+  ZONE_CHANGE: Rishadan Port (134) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (53) - Destroy Rishadan Port (134).
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Hexing Squelcher (5) and Orc Army Token (142) to attack Death and Taxes.
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Death and Taxes assigned Palace Jailer (91) to block Hexing Squelcher (5).
+Death and Taxes assigned Flickerwisp (122) to block Orc Army Token (142).
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Hexing Squelcher (5) deals 2 damage to Palace Jailer (91).
+  DAMAGE: Orc Army Token (142) deals 2 damage to Flickerwisp (122).
+  DAMAGE: Palace Jailer (91) deals 2 damage to Hexing Squelcher (5).
+  DAMAGE: Flickerwisp (122) deals 3 damage to Orc Army Token (142).
+  ZONE_CHANGE: Hexing Squelcher (5) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Orc Army Token (142) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Flickerwisp (122) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Palace Jailer (91) was put into Graveyard from Battlefield.
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  MANA: Plains (41) - {T}: Add {W}.
+  STACK_ADD: Mardu Energy cast Guide of Souls
+  STACK_RESOLVE: Guide of Souls - Creature 1 / 2
+  PHASE: Mardu Energy's End step
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 14 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  EFFECT_REPLACED: As Cavern of Souls enters, choose a creature type.
+  LAND: Death and Taxes played Cavern of Souls (76)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (112) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Mother of Runes
+  STACK_RESOLVE: Mother of Runes - Creature 1 / 1
+  PHASE: Death and Taxes' End step
+  STACK_ADD: Death and Taxes triggered The Monarch
+  STACK_RESOLVE: At the beginning of your end step, draw a card. [Phase: Death and Taxes]
+  STACK_ADD: Mardu Energy triggered Orcish Bowmasters targeting [Death and Taxes]
+  DAMAGE: Orcish Bowmasters (37) deals 1 non-combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 5 > 4
+  STACK_RESOLVE: When Orcish Bowmasters enters and whenever an opponent draws a card except the first one they draw in each of their draw steps, Orcish Bowmasters deals 1 damage to any target. Then amass Orcs 1. (Targeting: [[Death and Taxes]]) [Player: Death and Taxes]
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  LIFE: Life: Mardu Energy 18 > 19
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Orc Army Token (149)]
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 15 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Wasteland (52)
+  ZONE_CHANGE: Wasteland (52) was put into Graveyard from Battlefield.
+  STACK_ADD: Mardu Energy activated Wasteland targeting [Rishadan Port (133)]
+  ZONE_CHANGE: Rishadan Port (133) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (52) - Destroy Rishadan Port (133).
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Ajani, Nacatl Pariah (58), Orcish Bowmasters (37), Guide of Souls (11) and Orc Army Token (149) to attack Death and Taxes.
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Ajani, Nacatl Pariah (58), Orcish Bowmasters (37), Guide of Souls (11), Orc Army Token (149)]]
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Ajani, Nacatl Pariah (58).
+Death and Taxes assigned Mother of Runes (82) to block Orcish Bowmasters (37).
+Death and Taxes didn't block Guide of Souls (11).
+Death and Taxes didn't block Orc Army Token (149).
+  PHASE: Mardu Energy's First Strike Damage Step
+  PHASE: Mardu Energy's Combat Damage Step
+  DAMAGE: Ajani, Nacatl Pariah (58) deals 1 combat damage to Death and Taxes.
+  DAMAGE: Orcish Bowmasters (37) deals 1 damage to Mother of Runes (82).
+  DAMAGE: Guide of Souls (11) deals 1 combat damage to Death and Taxes.
+  DAMAGE: Orc Army Token (149) deals 1 combat damage to Death and Taxes.
+  DAMAGE: Mother of Runes (82) deals 1 damage to Orcish Bowmasters (37).
+  LIFE: Life: Death and Taxes 4 > 1
+  ZONE_CHANGE: Orcish Bowmasters (37) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Mother of Runes (82) was put into Graveyard from Battlefield.
+  STACK_ADD: Death and Taxes triggered The Monarch
+  STACK_ADD: Death and Taxes triggered The Monarch
+  STACK_ADD: Death and Taxes triggered The Monarch
+  STACK_RESOLVE: Whenever a creature deals combat damage to you, its controller becomes the monarch. [Damage Source: Orc Army Token (149), Damaged: Death and Taxes, Amount: 1]
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_ADD: Mardu Energy triggered Amped Raptor
+  STACK_RESOLVE: When Amped Raptor enters, you get {E}{E} (two energy counters). Then if you cast it from your hand, exile cards from the top of your library until you exile a nonland card. You may cast that card by paying an amount of {E} equal to its mana value rather than paying its mana cost. [Zone Changer: Amped Raptor (51)]
+  LIFE: Life: Mardu Energy 19 > 20
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Amped Raptor (51)]
+  STACK_RESOLVE: Whenever a creature deals combat damage to you, its controller becomes the monarch. [Damage Source: Guide of Souls (11), Damaged: Death and Taxes, Amount: 1]
+  STACK_RESOLVE: Whenever a creature deals combat damage to you, its controller becomes the monarch. [Damage Source: Ajani, Nacatl Pariah (58), Damaged: Death and Taxes, Amount: 1]
+  PHASE: Mardu Energy's End of Combat Step
+  PHASE: Mardu Energy's Main phase, postcombat
+  PHASE: Mardu Energy's End step
+  STACK_ADD: Mardu Energy triggered The Monarch
+  STACK_RESOLVE: At the beginning of your end step, draw a card. [Phase: Mardu Energy]
+  PHASE: Mardu Energy's Cleanup step
+  TURN: Turn 16 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Wasteland (130)
+  ZONE_CHANGE: Wasteland (130) was put into Graveyard from Battlefield.
+  STACK_ADD: Death and Taxes activated Wasteland targeting [Badlands (1)]
+  ZONE_CHANGE: Badlands (1) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (130) - Destroy Badlands (1).
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 17 (Mardu Energy)
+  PHASE: Mardu Energy's Untap step
+  PHASE: Mardu Energy's Upkeep step
+  PHASE: Mardu Energy's Draw step
+  PHASE: Mardu Energy's Main phase, precombat
+  LAND: Mardu Energy played Plateau (38)
+  MANA: Plateau (39) - {T}: Add {R}.
+  MANA: Plains (41) - {T}: Add {W}.
+  STACK_ADD: Mardu Energy cast Hexing Squelcher
+  STACK_RESOLVE: Hexing Squelcher - Creature 2 / 2
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  LIFE: Life: Mardu Energy 20 > 21
+  STACK_RESOLVE: Whenever another creature you control enters, you gain 1 life and get {E} (an energy counter). [Zone Changer: Hexing Squelcher (7)]
+  PHASE: Mardu Energy's Beginning of Combat Step
+  PHASE: Mardu Energy's Declare Attackers Step
+  COMBAT: Mardu Energy assigned Amped Raptor (51), Ajani, Nacatl Pariah (58), Guide of Souls (11) and Orc Army Token (149) to attack Death and Taxes.
+  STACK_ADD: Mardu Energy triggered Guide of Souls
+  STACK_RESOLVE: Whenever you attack, you may pay {E}{E}{E}. When you do, put two +1/+1 counters and a flying counter on target attacking creature. It becomes an Angel in addition to its other types. [Number Attackers: [Amped Raptor (51), Ajani, Nacatl Pariah (58), Guide of Souls (11), Orc Army Token (149)]]
+  PHASE: Mardu Energy's Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Amped Raptor (51).
+Death and Taxes didn't block Ajani, Nacatl Pariah (58).
+Death and Taxes didn't block Guide of Souls (11).
+Death and Taxes didn't block Orc Army Token (149).
+  PHASE: Mardu Energy's First Strike Damage Step
+  DAMAGE: Amped Raptor (51) deals 2 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 1 > -1
+  PLAYER_CONTROL: Mardu Energy has restored control over themself
+  PLAYER_CONTROL: Death and Taxes has restored control over themself
+  GAME_OUTCOME: Turn 9
+  GAME_OUTCOME: Mardu Energy has won because all opponents have lost
+  GAME_OUTCOME: Death and Taxes has lost because life total reached 0
+  MATCH_RESULTS: Mardu Energy: 1 Death and Taxes: 0 
+===============================

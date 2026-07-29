@@ -968,6 +968,54 @@ def test_determinize_contract():
             check("determinize: typo refused", True)
 
 
+def test_power_check():
+    """n must be able to certify the effect the gate itself asks for.
+
+    WHAT WOULD MAKE THIS FAIL: dropping DEFAULT_N_PER_OPTION back below 25
+    (the point where the 0.20 base threshold starts binding), or power_check
+    reporting noise_bound=False for an n where the noise floor still exceeds
+    the base threshold. Both regressions restore a lane that silently cannot
+    mint keys: a noise-bound run does not error, it returns yield 0 and is
+    indistinguishable from "no position had a real difference".
+    """
+    # The arithmetic, stated independently of the implementation:
+    # floor = z*0.5/sqrt(n) <= base  <->  n >= (z/(2*base))**2 = (2/0.4)**2 = 25
+    check("power: min n for 0.20 @ z=2 is 25",
+          vk.min_n_for_threshold(0.20, 2.0) == 25,
+          str(vk.min_n_for_threshold(0.20, 2.0)))
+    # A LOWER bar needs MORE samples to get the noise floor underneath it,
+    # so mulligan's 0.15 is the binding category, not the lenient one.
+    check("power: min n for 0.15 (mulligan) @ z=2 is 45",
+          vk.min_n_for_threshold(0.15, 2.0) == 45,
+          str(vk.min_n_for_threshold(0.15, 2.0)))
+    check("power: base<=0 is meaningless, not a crash",
+          vk.min_n_for_threshold(0.0, 2.0) is None)
+
+    # n=16 -- the OLD default -- is noise-bound, which is the whole finding.
+    p16 = vk.power_check(16)
+    check("power: n=16 is noise-bound", p16["noise_bound"] is True)
+    check("power: n=16 noise floor 0.25 exceeds the 0.20 bar",
+          abs(p16["noise_floor"] - 0.25) < 1e-12, str(p16["noise_floor"]))
+    check("power: n=16 reports the n it would need",
+          p16["min_n_required"] == 45, str(p16["min_n_required"]))
+
+    # ...and the shipped default is not.
+    pdef = vk.power_check(vk.DEFAULT_N_PER_OPTION)
+    check("power: shipped default is noise-bound in NO category",
+          pdef["noise_bound"] is False, str(pdef))
+    check("power: shipped default covers the binding (mulligan) category too",
+          vk.DEFAULT_N_PER_OPTION >= vk.min_n_for_threshold(0.15, 2.0),
+          "DEFAULT_N_PER_OPTION=%r" % vk.DEFAULT_N_PER_OPTION)
+    check("power: n=0 degrades instead of dividing by zero",
+          vk.power_check(0)["noise_floor"] is None)
+
+    # and it reaches the summary, where an operator can actually see it
+    summary = vk.build_summary([], "engine", 16, [])
+    check("power: block lands in the summary",
+          (summary.get("power") or {}).get("noise_bound") is True,
+          str(summary.get("power")))
+
+
 def test_replay_drift_rc4():
     with tempfile.TemporaryDirectory() as td:
         drv = FakeEngine(PROBE_2OPT, lambda o, j: {}, work_dir=td,

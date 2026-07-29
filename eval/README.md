@@ -461,10 +461,23 @@ indistinguishable rollouts refuse to mint a key). Not a metric — its summary
 reports yield per lane and per unverifiable_reason. A narrow honest key set
 beats a wide fake one: current whole-repo yield is 3 verified / 807 mined.
 
+**`--n-per-option` has a hard statistical floor; the old default was below it.**
+The gate is `max(base, z*max(se))` and `se` peaks at `0.5/sqrt(n)` at `p=0.5` —
+exactly the balanced positions worth putting in a suite. So the noise floor
+only drops under the base threshold at `n >= (z/(2*base))^2`: **25** for the
+0.20 default bar and **45** for mulligan's 0.15 bar (a *lower* bar needs *more*
+samples to get beneath it). At the old default of 16 the floor was 0.25 — above
+the 0.20 bar — so a true 0.20-magnitude effect could never be certified, and
+the lane returned yield 0 in a way indistinguishable from "no position had a
+real difference". The default is now **45**, and every run's `summary.json`
+carries a `power` block plus a loud stderr `NOISE-BOUND RUN` warning if you
+lower it back under the floor. Cost is linear: `n_options * n` games per
+position (a 3-option position is 135 games).
+
 ```bash
 python3 eval/verify_keys.py CANDIDATES.jsonl --out POSITIONS.jsonl \
     [--lane exhaustive|rollout|both] [--driver engine|fixture|none] \
-    [--fixture FILE.jsonl] [--n-per-option 16] [--forge-home ~/code/forge] \
+    [--fixture FILE.jsonl] [--n-per-option 45] [--forge-home ~/code/forge] \
     [--determinize library|none] \
     [--max-positions N] [--summary summary.json] [--json] [--dry-run]
 ```

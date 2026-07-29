@@ -1,0 +1,621 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 1 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20010
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/elves.plan
+[DECK] loaded 'Goblins': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.txt)
+[DECK] loaded 'Elves': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/elves.txt)
+[SEATS] A=Goblins(ai-log,opus) B=Elves(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+Moving spell to Library
+Moving spell to Library
+========== GAME OVER ==========
+outcome: A after 22 turns (AllOpponentsLost) in 16s
+--- full game log ---
+  MULLIGAN: Elves has kept a hand of 7 cards
+  MULLIGAN: Goblins has kept a hand of 7 cards
+  TURN: Turn 1 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (100)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (100) - {T}: Add {G}.
+  STACK_ADD: Elves cast Nettle Sentinel
+  STACK_RESOLVE: Nettle Sentinel - Creature 2 / 2
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 2 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (21)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (21) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Lackey
+  STACK_RESOLVE: Goblin Lackey - Creature 1 / 1
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 3 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Bayou (61)
+  MANA: Forest (100) - {T}: Add {G}.
+  MANA: Bayou (61) - {T}: Add {G}.
+  STACK_ADD: Elves cast Green Sun's Zenith
+  STACK_ADD: Elves triggered Nettle Sentinel
+  STACK_RESOLVE: Whenever you cast a green spell, you may untap this creature. [Card: Green Sun's Zenith (82), Activator: Elves, SpellAbility: Search your library for a green creature card with mana value X or less, put it onto the battlefield, then shuffle. Shuffle Green Sun's Zenith into its owner's library. ]
+  STACK_RESOLVE: Green Sun's Zenith (82) - Search your library for a green creature card with mana value X or less, put it onto the battlefield, then shuffle. Shuffle  into its owner's library. (X=1)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Nettle Sentinel (87) to attack Goblins.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Goblins didn't block Nettle Sentinel (87).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Nettle Sentinel (87) deals 2 combat damage to Goblins.
+  LIFE: Life: Goblins 20 > 18
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 4 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Rishadan Port (59)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (21) - {T}: Add {R}.
+  MANA: Rishadan Port (59) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Mogg War Marshal
+  STACK_RESOLVE: Mogg War Marshal - Creature 1 / 1
+  STACK_ADD: Goblins triggered Mogg War Marshal
+  STACK_RESOLVE: When Mogg War Marshal enters or dies, create a 1/1 red Goblin creature token. [Zone Changer: Mogg War Marshal (42)]
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 5 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  MANA: Forest (100) - {T}: Add {G}.
+  MANA: Bayou (61) - {T}: Add {G}.
+  STACK_ADD: Elves cast Green Sun's Zenith
+  STACK_ADD: Elves triggered Nettle Sentinel
+  STACK_RESOLVE: Whenever you cast a green spell, you may untap this creature. [Card: Green Sun's Zenith (81), Activator: Elves, SpellAbility: Search your library for a green creature card with mana value X or less, put it onto the battlefield, then shuffle. Shuffle Green Sun's Zenith into its owner's library. ]
+  STACK_RESOLVE: Green Sun's Zenith (81) - Search your library for a green creature card with mana value X or less, put it onto the battlefield, then shuffle. Shuffle  into its owner's library. (X=1)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Nettle Sentinel (87) to attack Goblins.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Goblins didn't block Nettle Sentinel (87).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Nettle Sentinel (87) deals 2 combat damage to Goblins.
+  LIFE: Life: Goblins 18 > 16
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 6 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Mogg War Marshal
+  MANA: Mountain (21) - {T}: Add {R}.
+  MANA: Rishadan Port (59) - {T}: Add {C}.
+  STACK_RESOLVE: At the beginning of your upkeep, if this permanent came under your control since the beginning of your last upkeep, sacrifice it unless you pay its echo cost. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Wasteland (51)
+  ZONE_CHANGE: Wasteland (51) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins activated Wasteland targeting [Bayou (61)]
+  ZONE_CHANGE: Bayou (61) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (51) - Destroy Bayou (61).
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Goblin Lackey (8), Mogg War Marshal (42) and Goblin Token (126) to attack Elves.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Elves didn't block Goblin Lackey (8).
+Elves didn't block Mogg War Marshal (42).
+Elves didn't block Goblin Token (126).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Goblin Lackey (8) deals 1 combat damage to Elves.
+  DAMAGE: Mogg War Marshal (42) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (126) deals 1 combat damage to Elves.
+  LIFE: Life: Elves 20 > 17
+  STACK_ADD: Goblins triggered Goblin Lackey
+  STACK_RESOLVE: Whenever Goblin Lackey deals damage to a player, you may put a Goblin permanent card from your hand onto the battlefield. [Damage Source: Goblin Lackey (8), Damaged: Elves, Amount: 1]
+  STACK_ADD: Goblins triggered Goblin Ringleader
+  STACK_RESOLVE: When Goblin Ringleader enters, reveal the top four cards of your library. Put all Goblin cards revealed this way into your hand and the rest on the bottom of your library in any order. [Zone Changer: Goblin Ringleader (4)]
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 7 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (100) - {T}: Add {G}.
+  STACK_ADD: Elves cast Fyndhorn Elves
+  STACK_ADD: Elves triggered Nettle Sentinel
+  STACK_RESOLVE: Whenever you cast a green spell, you may untap this creature. [Card: Fyndhorn Elves (108), Activator: Elves, SpellAbility: Fyndhorn Elves - Creature 1 / 1]
+  STACK_RESOLVE: Fyndhorn Elves - Creature 1 / 1
+  MANA: Llanowar Elves (64) - {T}: Add {G}.
+  MANA: Heritage Druid (72) - Tap three untapped Elfs you control: Add {G}{G}{G}.
+  ZONE_CHANGE: Nettle Sentinel (87) was put into Graveyard from Battlefield.
+  STACK_ADD: Elves cast Natural Order
+  STACK_RESOLVE: Natural Order (66) - Elves searches their library for a Creature.Green card, puts it onto the battlefield, then shuffles.
+  STACK_ADD: Elves triggered Craterhoof Behemoth
+  STACK_RESOLVE: When Craterhoof Behemoth enters, creatures you control gain trample and get +X/+X until end of turn, where X is the number of creatures you control. [Zone Changer: Craterhoof Behemoth (91)]
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 8 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (30)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (21) - {T}: Add {R}.
+  MANA: Mountain (30) - {T}: Add {R}.
+  MANA: Rishadan Port (59) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Goblin Matron
+  STACK_RESOLVE: Goblin Matron - Creature 1 / 1
+  STACK_ADD: Goblins triggered Goblin Matron
+  STACK_RESOLVE: When Goblin Matron enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle. [Zone Changer: Goblin Matron (53)]
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 9 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Bayou (62)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Craterhoof Behemoth (91) to attack Goblins.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Goblins didn't block Craterhoof Behemoth (91).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Craterhoof Behemoth (91) deals 5 combat damage to Goblins.
+  LIFE: Life: Goblins 16 > 11
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (100) - {T}: Add {G}.
+  STACK_ADD: Elves cast Nettle Sentinel
+  STACK_RESOLVE: Nettle Sentinel - Creature 2 / 2
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 10 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Wasteland (50)
+  ZONE_CHANGE: Wasteland (50) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins activated Wasteland targeting [Bayou (62)]
+  ZONE_CHANGE: Bayou (62) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (50) - Destroy Bayou (62).
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (21) - {T}: Add {R}.
+  MANA: Mountain (30) - {T}: Add {R}.
+  MANA: Rishadan Port (59) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Goblin Matron
+  STACK_RESOLVE: Goblin Matron - Creature 1 / 1
+  STACK_ADD: Goblins triggered Goblin Matron
+  STACK_RESOLVE: When Goblin Matron enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle. [Zone Changer: Goblin Matron (55)]
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 11 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Craterhoof Behemoth (91) and Nettle Sentinel (90) to attack Goblins.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Goblins didn't block Craterhoof Behemoth (91).
+Goblins didn't block Nettle Sentinel (90).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Craterhoof Behemoth (91) deals 5 combat damage to Goblins.
+  DAMAGE: Nettle Sentinel (90) deals 2 combat damage to Goblins.
+  LIFE: Life: Goblins 11 > 4
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (100) - {T}: Add {G}.
+  STACK_ADD: Elves cast Llanowar Elves
+  STACK_ADD: Elves triggered Nettle Sentinel
+  STACK_RESOLVE: Whenever you cast a green spell, you may untap this creature. [Card: Llanowar Elves (63), Activator: Elves, SpellAbility: Llanowar Elves - Creature 1 / 1]
+  STACK_RESOLVE: Llanowar Elves - Creature 1 / 1
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 12 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (36)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (21) - {T}: Add {R}.
+  MANA: Mountain (30) - {T}: Add {R}.
+  MANA: Mountain (36) - {T}: Add {R}.
+  MANA: Rishadan Port (59) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Krenko, Mob Boss
+  STACK_RESOLVE: Krenko, Mob Boss - Creature 3 / 3
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 13 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (102)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Craterhoof Behemoth (91) to attack Goblins.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Goblins assigned Goblin Token (126) to block Craterhoof Behemoth (91).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Craterhoof Behemoth (91) deals 5 damage to Goblin Token (126).
+  DAMAGE: Goblin Token (126) deals 1 damage to Craterhoof Behemoth (91).
+  ZONE_CHANGE: Goblin Token (126) was put into Graveyard from Battlefield.
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 14 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (25)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (21) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Skirk Prospector
+  STACK_RESOLVE: Skirk Prospector - Creature 1 / 1
+  MANA: Mountain (30) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Lackey
+  STACK_RESOLVE: Goblin Lackey - Creature 1 / 1
+  MANA: Mountain (36) - {T}: Add {R}.
+  MANA: Mountain (25) - {T}: Add {R}.
+  MANA: Rishadan Port (59) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Goblin Sharpshooter
+  STACK_RESOLVE: Goblin Sharpshooter - Creature 1 / 1
+  ZONE_CHANGE: Goblin Lackey (9) was put into Graveyard from Battlefield.
+  MANA: Skirk Prospector (39) - Sacrifice a Goblin: Add {R}.
+  STACK_ADD: Goblins cast Aether Vial
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Goblin Lackey (9)]
+  STACK_RESOLVE: Aether Vial
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 15 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Craterhoof Behemoth (91) to attack Goblins.
+  STACK_ADD: Goblins activated Krenko, Mob Boss
+  STACK_RESOLVE: Krenko, Mob Boss (47) - Goblins creates sixteen 1/1 red Goblin creature tokens.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Goblins assigned Goblin Sharpshooter (14) to block Craterhoof Behemoth (91).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Craterhoof Behemoth (91) deals 5 damage to Goblin Sharpshooter (14).
+  DAMAGE: Goblin Sharpshooter (14) deals 1 damage to Craterhoof Behemoth (91).
+  ZONE_CHANGE: Goblin Sharpshooter (14) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Goblin Sharpshooter (14)]
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  MANA: Forest (100) - {T}: Add {G}.
+  STACK_ADD: Elves cast Fyndhorn Elves
+  STACK_ADD: Elves triggered Nettle Sentinel
+  STACK_RESOLVE: Whenever you cast a green spell, you may untap this creature. [Card: Fyndhorn Elves (109), Activator: Elves, SpellAbility: Fyndhorn Elves - Creature 1 / 1]
+  STACK_RESOLVE: Fyndhorn Elves - Creature 1 / 1
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 16 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (47) to attack Elves.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Elves didn't block Krenko, Mob Boss (47).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Krenko, Mob Boss (47) deals 3 combat damage to Elves.
+  LIFE: Life: Elves 17 > 14
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (21) - {T}: Add {R}.
+  MANA: Mountain (30) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Mogg War Marshal
+  STACK_RESOLVE: Mogg War Marshal - Creature 1 / 1
+  STACK_ADD: Goblins triggered Mogg War Marshal
+  STACK_RESOLVE: When Mogg War Marshal enters or dies, create a 1/1 red Goblin creature token. [Zone Changer: Mogg War Marshal (41)]
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 17 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Verdant Catacombs (105)
+  LIFE: Life: Elves 14 > 13
+  ZONE_CHANGE: Verdant Catacombs (105) was put into Graveyard from Battlefield.
+  STACK_ADD: Elves activated Verdant Catacombs
+  STACK_RESOLVE: Verdant Catacombs (105) - Elves searches their library for a Swamp or Forest card, puts it onto the battlefield, then shuffles.
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  COMBAT: Elves assigned Craterhoof Behemoth (91) and Nettle Sentinel (90) to attack Goblins.
+  PHASE: Elves' Declare Blockers Step
+  COMBAT: Goblins assigned Goblin Token (146) to block Craterhoof Behemoth (91).
+Goblins assigned Goblin Ringleader (4) to block Nettle Sentinel (90).
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  DAMAGE: Craterhoof Behemoth (91) deals 5 damage to Goblin Token (146).
+  DAMAGE: Nettle Sentinel (90) deals 2 damage to Goblin Ringleader (4).
+  DAMAGE: Goblin Ringleader (4) deals 2 damage to Nettle Sentinel (90).
+  DAMAGE: Goblin Token (146) deals 1 damage to Craterhoof Behemoth (91).
+  ZONE_CHANGE: Nettle Sentinel (90) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Goblin Ringleader (4) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Goblin Token (146) was put into Graveyard from Battlefield.
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 18 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Mogg War Marshal
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  MANA: Mountain (21) - {T}: Add {R}.
+  MANA: Mountain (30) - {T}: Add {R}.
+  STACK_RESOLVE: At the beginning of your upkeep, if this permanent came under your control since the beginning of your last upkeep, sacrifice it unless you pay its echo cost. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (35)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (47) to attack Elves.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Elves didn't block Krenko, Mob Boss (47).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Krenko, Mob Boss (47) deals 3 combat damage to Elves.
+  LIFE: Life: Elves 13 > 10
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 19 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Gaea's Cradle (110)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 20 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Rishadan Port (60)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 21 (Elves)
+  PHASE: Elves' Untap step
+  PHASE: Elves' Upkeep step
+  PHASE: Elves' Draw step
+  PHASE: Elves' Main phase, precombat
+  LAND: Elves played Forest (96)
+  PHASE: Elves' Beginning of Combat Step
+  PHASE: Elves' Declare Attackers Step
+  STACK_ADD: Goblins activated Krenko, Mob Boss
+  STACK_RESOLVE: Krenko, Mob Boss (47) - Goblins creates thirty  1/1 red Goblin creature tokens.
+  PHASE: Elves' Declare Blockers Step
+  PHASE: Elves' First Strike Damage Step
+  PHASE: Elves' Combat Damage Step
+  PHASE: Elves' End of Combat Step
+  PHASE: Elves' Main phase, postcombat
+  PHASE: Elves' End step
+  PHASE: Elves' Cleanup step
+  TURN: Turn 22 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  EFFECT_REPLACED: As Cavern of Souls enters, choose a creature type.
+  LAND: Goblins played Cavern of Souls (2)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (47), Goblin Lackey (8), Mogg War Marshal (42), Goblin Matron (53), Goblin Matron (55), Skirk Prospector (39), Goblin Token (147), Goblin Token (148), Goblin Token (149), Goblin Token (150), Goblin Token (151), Goblin Token (152), Goblin Token (153), Mogg War Marshal (41), Goblin Token (161), Goblin Token (181), Goblin Token (182), Goblin Token (183), Goblin Token (184), Goblin Token (185), Goblin Token (186), Goblin Token (187), Goblin Token (188), Goblin Token (189), Goblin Token (190), Goblin Token (191), Goblin Token (192), Goblin Token (193), Goblin Token (194) and Goblin Token (195) to attack Elves.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Elves assigned Heritage Druid (72) to block Krenko, Mob Boss (47).
+Elves didn't block Goblin Lackey (8).
+Elves assigned Fyndhorn Elves (109) to block Mogg War Marshal (42).
+Elves assigned Fyndhorn Elves (108) to block Goblin Matron (53).
+Elves assigned Llanowar Elves (63) to block Goblin Matron (55).
+Elves assigned Llanowar Elves (64) to block Skirk Prospector (39).
+Elves didn't block Goblin Token (147).
+Elves didn't block Goblin Token (148).
+Elves didn't block Goblin Token (149).
+Elves didn't block Goblin Token (150).
+Elves didn't block Goblin Token (151).
+Elves didn't block Goblin Token (152).
+Elves didn't block Goblin Token (153).
+Elves assigned Craterhoof Behemoth (91) to block Mogg War Marshal (41).
+Elves didn't block Goblin Token (161).
+Elves didn't block Goblin Token (181).
+Elves didn't block Goblin Token (182).
+Elves didn't block Goblin Token (183).
+Elves didn't block Goblin Token (184).
+Elves didn't block Goblin Token (185).
+Elves didn't block Goblin Token (186).
+Elves didn't block Goblin Token (187).
+Elves didn't block Goblin Token (188).
+Elves didn't block Goblin Token (189).
+Elves didn't block Goblin Token (190).
+Elves didn't block Goblin Token (191).
+Elves didn't block Goblin Token (192).
+Elves didn't block Goblin Token (193).
+Elves didn't block Goblin Token (194).
+Elves didn't block Goblin Token (195).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Krenko, Mob Boss (47) deals 3 damage to Heritage Druid (72).
+  DAMAGE: Goblin Lackey (8) deals 1 combat damage to Elves.
+  DAMAGE: Mogg War Marshal (42) deals 1 damage to Fyndhorn Elves (109).
+  DAMAGE: Goblin Matron (53) deals 1 damage to Fyndhorn Elves (108).
+  DAMAGE: Goblin Matron (55) deals 1 damage to Llanowar Elves (63).
+  DAMAGE: Skirk Prospector (39) deals 1 damage to Llanowar Elves (64).
+  DAMAGE: Goblin Token (147) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (148) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (149) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (150) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (151) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (152) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (153) deals 1 combat damage to Elves.
+  DAMAGE: Mogg War Marshal (41) deals 1 damage to Craterhoof Behemoth (91).
+  DAMAGE: Goblin Token (161) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (181) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (182) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (183) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (184) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (185) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (186) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (187) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (188) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (189) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (190) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (191) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (192) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (193) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (194) deals 1 combat damage to Elves.
+  DAMAGE: Goblin Token (195) deals 1 combat damage to Elves.
+  DAMAGE: Heritage Druid (72) deals 1 damage to Krenko, Mob Boss (47).
+  DAMAGE: Llanowar Elves (64) deals 1 damage to Skirk Prospector (39).
+  DAMAGE: Fyndhorn Elves (108) deals 1 damage to Goblin Matron (53).
+  DAMAGE: Llanowar Elves (63) deals 1 damage to Goblin Matron (55).
+  DAMAGE: Fyndhorn Elves (109) deals 1 damage to Mogg War Marshal (42).
+  DAMAGE: Craterhoof Behemoth (91) deals 5 damage to Mogg War Marshal (41).
+  LIFE: Life: Elves 10 > -14
+  PLAYER_CONTROL: Goblins has restored control over themself
+  PLAYER_CONTROL: Elves has restored control over themself
+  GAME_OUTCOME: Turn 11
+  GAME_OUTCOME: Goblins has won because all opponents have lost
+  GAME_OUTCOME: Elves has lost because life total reached 0
+  MATCH_RESULTS: Goblins: 1 Elves: 0 
+===============================

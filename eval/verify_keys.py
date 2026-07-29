@@ -165,7 +165,30 @@ EMPTY_STACK_TYPES = frozenset(("play", "attackers", "blockers", "mulligan"))
 V1_FORCEABLE_TYPES = frozenset(("play", "mulligan"))
 DETERMINISTIC_CONTROLLERS = frozenset(("floor", "random", "ai", "ai-log"))
 ROLLOUT_CONTINUATION = "ai-log/ai-log"
-DEFAULT_N_PER_OPTION = 16
+# Raised 16 -> 36 on 2026-07-28. 16 was not merely noisy, it was structurally
+# incapable of certifying the effect size the gate itself asks for.
+#
+# The gate is required_gap = max(base_threshold, MIN_SEPARATION_Z * max(se)),
+# and se = sqrt(p(1-p)/n) peaks at 0.5/sqrt(n) when p = 0.5 -- i.e. exactly on
+# the balanced positions worth putting in a puzzle suite. At n=16 that noise
+# floor is 2.0 * 0.125 = 0.25, which EXCEEDS the 0.20 base threshold, so the
+# base threshold never binds and a true 0.20-magnitude effect can never pass
+# no matter how real it is. The lane could only ever mint keys for effects it
+# was not designed to require.
+#
+# The floor stops dominating at z*0.5/sqrt(n) <= base, i.e. n >= (z/(2*base))^2:
+# n >= 25 for the 0.20 default bar, and n >= 45 for mulligan's 0.15 bar (a LOWER
+# bar needs MORE samples to get the noise floor underneath it). 45 is the value
+# that makes every category effect-bound rather than noise-bound; anything less
+# leaves at least one category unable to certify its own threshold.
+#
+# Cost is linear and real: n_options * n games per position, so a 3-option
+# position is 135 games. That is the honest price of the thresholds as written
+# -- the alternative is a lane that runs cheaply and mints nothing.
+#
+# power_check() below reports this per run, so an operator who lowers
+# --n-per-option is told when they have re-entered the noise-bound regime.
+DEFAULT_N_PER_OPTION = 45
 
 # Gate knobs — formerly literals inside score_from_wp, now the CLI defaults.
 # Units: the two gap thresholds are absolute win-probability units in [0,1];
@@ -367,6 +390,56 @@ def required_gap(ses, category, gap_threshold=DEFAULT_GAP_THRESHOLD,
         return base, base, None
     floor = min_separation_z * max(usable)
     return max(base, floor), base, floor
+
+
+def min_n_for_threshold(base_threshold, min_separation_z=DEFAULT_MIN_SEPARATION_Z):
+    """Smallest n at which the base threshold, not the noise floor, binds.
+
+    Worst-case (p=0.5) se is 0.5/sqrt(n), so the floor is
+    z*0.5/sqrt(n); it stops dominating when that is <= base, i.e.
+    n >= (z / (2*base))**2. Returns None when the inputs make the
+    question meaningless (base <= 0 disables the bar entirely).
+    """
+    if not base_threshold or base_threshold <= 0 or min_separation_z <= 0:
+        return None
+    return int(math.ceil((min_separation_z / (2.0 * base_threshold)) ** 2))
+
+
+def power_check(n_per_option, gap_threshold=DEFAULT_GAP_THRESHOLD,
+                mulligan_gap_threshold=DEFAULT_MULLIGAN_GAP_THRESHOLD,
+                min_separation_z=DEFAULT_MIN_SEPARATION_Z):
+    """Is this run's n large enough to certify the effect its own gate asks for?
+
+    Reported per run because the failure it catches is invisible in the output:
+    a noise-bound run does not error, it just verifies nothing, and reads
+    exactly like a run where no position happened to have a real difference.
+    That ambiguity cost a full pilot round -- see DEFAULT_N_PER_OPTION.
+    """
+    n = int(n_per_option or 0)
+    out = {"n_per_option": n, "min_separation_z": min_separation_z,
+           "worst_case_se": None, "noise_floor": None, "per_category": {},
+           "noise_bound": False, "min_n_required": None}
+    if n <= 0:
+        return out
+    worst_se = 0.5 / math.sqrt(n)
+    out["worst_case_se"] = worst_se
+    out["noise_floor"] = min_separation_z * worst_se
+    needed = []
+    for cat, base in (("mulligan", mulligan_gap_threshold),
+                      ("default", gap_threshold)):
+        min_n = min_n_for_threshold(base, min_separation_z)
+        bound = min_n is not None and n < min_n
+        out["per_category"][cat] = {
+            "base_threshold": base, "min_n_required": min_n,
+            "noise_bound": bound,
+            "effective_required_gap": max(base, out["noise_floor"]),
+        }
+        if bound:
+            needed.append(min_n)
+    if needed:
+        out["noise_bound"] = True
+        out["min_n_required"] = max(needed)
+    return out
 
 
 def score_from_wp(option_wp, option_wp_se, category,
@@ -1207,6 +1280,16 @@ def build_summary(rows_meta, driver_name, n_per_option, warnings,
             "mulligan_gap_threshold": DEFAULT_MULLIGAN_GAP_THRESHOLD,
             "min_separation_z": DEFAULT_MIN_SEPARATION_Z,
         },
+        # Whether this run's n could certify the effect its own gate asks for.
+        # A noise-bound run verifies nothing and looks exactly like a run where
+        # nothing was worth verifying -- this block is what tells them apart.
+        "power": power_check(
+            n_per_option,
+            (thresholds or {}).get("gap_threshold", DEFAULT_GAP_THRESHOLD),
+            (thresholds or {}).get("mulligan_gap_threshold",
+                                   DEFAULT_MULLIGAN_GAP_THRESHOLD),
+            (thresholds or {}).get("min_separation_z",
+                                   DEFAULT_MIN_SEPARATION_Z)),
         "engine_sha": os.environ.get("ENGINE_SHA", "unknown"),
         "overlay_sha": os.environ.get("OVERLAY_SHA", "unknown"),
         "contract_sha": sha16,
@@ -1342,6 +1425,18 @@ def main(argv=None):
               % (summary["n_verified"], summary["n_in"],
                  summary["yield_rate"]["est"] or 0.0, out_path),
               file=sys.stderr)
+        pw = summary.get("power") or {}
+        if pw.get("noise_bound") and summary["by_lane"].get("rollout"):
+            print("WARNING: NOISE-BOUND RUN. n_per_option=%d gives a noise "
+                  "floor of %.3f, above the %.2f base threshold, so NO true "
+                  "effect of the size this gate asks for can pass -- a zero "
+                  "yield here is uninformative, not evidence that the "
+                  "positions are flat. Use --n-per-option %d or more."
+                  % (pw.get("n_per_option") or 0, pw.get("noise_floor") or 0.0,
+                     (summary.get("thresholds") or {}).get(
+                         "gap_threshold", DEFAULT_GAP_THRESHOLD),
+                     pw.get("min_n_required") or 0),
+                  file=sys.stderr)
         rs = summary["rollout_spread"]
         if rs["n_positions_measured"]:
             q = rs["wp_spread"]

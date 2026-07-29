@@ -1,0 +1,464 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 1 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20033
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/death-and-taxes.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.plan
+[DECK] loaded 'Death and Taxes': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/death-and-taxes.txt)
+[DECK] loaded 'Goblins': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.txt)
+[SEATS] A=Death and Taxes(ai-log,opus) B=Goblins(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: A after 17 turns (AllOpponentsLost) in 5s
+--- full game log ---
+  MULLIGAN: Death and Taxes has kept a hand of 7 cards
+  MULLIGAN: Goblins has kept a hand of 7 cards
+  TURN: Turn 1 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  EFFECT_REPLACED: As Cavern of Souls enters, choose a creature type.
+  LAND: Death and Taxes played Cavern of Souls (2)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 2 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (95)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (95) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Lackey
+  STACK_RESOLVE: Goblin Lackey - Creature 1 / 1
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 3 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (44)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 4 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Rishadan Port (119)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Goblin Lackey (67) to attack Death and Taxes.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Goblin Lackey (67).
+  MANA: Plains (44) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Swords to Plowshares targeting [Goblin Lackey (67)]
+  ZONE_CHANGE: Goblin Lackey (67) was put into Exile from Battlefield.
+  LIFE: Life: Goblins 20 > 21
+  STACK_RESOLVE: Swords to Plowshares (24) - Exile Goblin Lackey (67). Goblins gains life equal to its power.
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (95) - {T}: Add {R}.
+  MANA: Rishadan Port (119) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Mogg War Marshal
+  STACK_RESOLVE: Mogg War Marshal - Creature 1 / 1
+  STACK_ADD: Goblins triggered Mogg War Marshal
+  STACK_RESOLVE: When Mogg War Marshal enters or dies, create a 1/1 red Goblin creature token. [Zone Changer: Mogg War Marshal (103)]
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 5 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (30)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (44) - {T}: Add {W}.
+  MANA: Plains (30) - {T}: Add {W}.
+  MANA: Cavern of Souls (2) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Flickerwisp
+  STACK_RESOLVE: Flickerwisp - Creature 3 / 1
+  STACK_ADD: Death and Taxes triggered Flickerwisp targeting [Goblin Token (126)]
+  ZONE_CHANGE: Goblin Token (126) was put into Exile from Battlefield.
+  STACK_RESOLVE: When Flickerwisp enters, exile another target permanent. Return that card to the battlefield under its owner's control at the beginning of the next end step. (Targeting: [[Goblin Token (126)]]) [Zone Changer: Flickerwisp (49)]
+  PHASE: Death and Taxes' End step
+  STACK_ADD: Death and Taxes triggered Flickerwisp
+  STACK_RESOLVE: Return exiled permanent to the battlefield. ([Goblin Token (126)]) [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 6 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Mogg War Marshal
+  MANA: Mountain (95) - {T}: Add {R}.
+  MANA: Rishadan Port (119) - {T}: Add {C}.
+  STACK_RESOLVE: At the beginning of your upkeep, if this permanent came under your control since the beginning of your last upkeep, sacrifice it unless you pay its echo cost. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Wasteland (108)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 7 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  MANA: Plains (44) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Swords to Plowshares targeting [Mogg War Marshal (103)]
+  ZONE_CHANGE: Mogg War Marshal (103) was put into Exile from Battlefield.
+  LIFE: Life: Goblins 21 > 22
+  STACK_RESOLVE: Swords to Plowshares (27) - Exile Mogg War Marshal (103). Goblins gains life equal to its power.
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (31)
+  MANA: Plains (30) - {T}: Add {W}.
+  MANA: Plains (31) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Umezawa's Jitte
+  STACK_RESOLVE: Umezawa's Jitte
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Flickerwisp (49) to attack Goblins.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Goblins didn't block Flickerwisp (49).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Flickerwisp (49) deals 3 combat damage to Goblins.
+  LIFE: Life: Goblins 22 > 19
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 8 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Wasteland (110)
+  ZONE_CHANGE: Wasteland (108) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins activated Wasteland targeting [Cavern of Souls (2)]
+  ZONE_CHANGE: Cavern of Souls (2) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (108) - Destroy Cavern of Souls (2).
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (95) - {T}: Add {R}.
+  MANA: Rishadan Port (119) - {T}: Add {C}.
+  MANA: Wasteland (110) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Goblin Matron
+  STACK_RESOLVE: Goblin Matron - Creature 1 / 1
+  STACK_ADD: Goblins triggered Goblin Matron
+  STACK_RESOLVE: When Goblin Matron enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle. [Zone Changer: Goblin Matron (113)]
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 9 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  MANA: Plains (44) - {T}: Add {W}.
+  MANA: Plains (30) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte targeting [Flickerwisp (49)]
+  STACK_RESOLVE: Umezawa's Jitte (60) -  Attach to Flickerwisp (49)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Flickerwisp (49) to attack Goblins.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Goblins didn't block Flickerwisp (49).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Flickerwisp (49) deals 3 combat damage to Goblins.
+  LIFE: Life: Goblins 19 > 16
+  STACK_ADD: Death and Taxes triggered Umezawa's Jitte
+  STACK_RESOLVE: Whenever equipped creature deals combat damage, put two charge counters on Umezawa's Jitte. [Damage Source: Flickerwisp (49), Damaged: [Goblins], Amount: 3]
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte
+  STACK_RESOLVE: Umezawa's Jitte (60) -  Target creature gets -1/-1 until end of turn. (Targeting: Goblin Matron (113))
+  ZONE_CHANGE: Goblin Matron (113) was put into Graveyard from Battlefield.
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 10 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Rishadan Port (118)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte
+  LIFE: Life: Death and Taxes 20 > 22
+  STACK_RESOLVE: Umezawa's Jitte (60) -  You gain 2 life.
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 11 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Flickerwisp (49) to attack Goblins.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Goblins didn't block Flickerwisp (49).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Flickerwisp (49) deals 3 combat damage to Goblins.
+  LIFE: Life: Goblins 16 > 13
+  STACK_ADD: Death and Taxes triggered Umezawa's Jitte
+  STACK_RESOLVE: Whenever equipped creature deals combat damage, put two charge counters on Umezawa's Jitte. [Damage Source: Flickerwisp (49), Damaged: [Goblins], Amount: 3]
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (44) - {T}: Add {W}.
+  MANA: Plains (30) - {T}: Add {W}.
+  MANA: Plains (31) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Mirran Crusader
+  STACK_RESOLVE: Mirran Crusader - Creature 2 / 2
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 12 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (93)
+  MANA: Mountain (95) - {T}: Add {R}.
+  MANA: Mountain (93) - {T}: Add {R}.
+  MANA: Rishadan Port (119) - {T}: Add {C}.
+  MANA: Wasteland (110) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Goblin Ringleader
+  STACK_RESOLVE: Goblin Ringleader - Creature 2 / 2
+  STACK_ADD: Goblins triggered Goblin Ringleader
+  STACK_RESOLVE: When Goblin Ringleader enters, reveal the top four cards of your library. Put all Goblin cards revealed this way into your hand and the rest on the bottom of your library in any order. [Zone Changer: Goblin Ringleader (63)]
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte
+  LIFE: Life: Death and Taxes 22 > 24
+  STACK_RESOLVE: Umezawa's Jitte (60) -  You gain 2 life.
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte
+  LIFE: Life: Death and Taxes 24 > 26
+  STACK_RESOLVE: Umezawa's Jitte (60) -  You gain 2 life.
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 13 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Rishadan Port (57)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Flickerwisp (49) and Mirran Crusader (23) to attack Goblins.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Goblins didn't block Flickerwisp (49).
+Goblins didn't block Mirran Crusader (23).
+  PHASE: Death and Taxes' First Strike Damage Step
+  DAMAGE: Mirran Crusader (23) deals 2 combat damage to Goblins.
+  LIFE: Life: Goblins 13 > 11
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Flickerwisp (49) deals 3 combat damage to Goblins.
+  DAMAGE: Mirran Crusader (23) deals 2 combat damage to Goblins.
+  LIFE: Life: Goblins 11 > 6
+  STACK_ADD: Death and Taxes triggered Umezawa's Jitte
+  STACK_RESOLVE: Whenever equipped creature deals combat damage, put two charge counters on Umezawa's Jitte. [Damage Source: Flickerwisp (49), Damaged: [Goblins], Amount: 3]
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (44) - {T}: Add {W}.
+  MANA: Plains (30) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Stoneforge Mystic
+  STACK_RESOLVE: Stoneforge Mystic - Creature 1 / 2
+  STACK_ADD: Death and Taxes triggered Stoneforge Mystic
+  STACK_RESOLVE: When Stoneforge Mystic enters, you may search your library for an Equipment card, reveal it, put it into your hand, then shuffle. [Zone Changer: Stoneforge Mystic (50)]
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 14 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  ZONE_CHANGE: Wasteland (110) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins activated Wasteland targeting [Rishadan Port (57)]
+  ZONE_CHANGE: Rishadan Port (57) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (110) - Destroy Rishadan Port (57).
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (80)
+  MANA: Mountain (95) - {T}: Add {R}.
+  MANA: Mountain (93) - {T}: Add {R}.
+  MANA: Mountain (80) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Warchief
+  STACK_RESOLVE: Goblin Warchief - Creature 2 / 2
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Goblin Ringleader (63) to attack Death and Taxes.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Goblin Ringleader (63).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Goblin Ringleader (63) deals 2 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 26 > 24
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte
+  LIFE: Life: Death and Taxes 24 > 26
+  STACK_RESOLVE: Umezawa's Jitte (60) -  You gain 2 life.
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte
+  LIFE: Life: Death and Taxes 26 > 28
+  STACK_RESOLVE: Umezawa's Jitte (60) -  You gain 2 life.
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 15 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (43)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Flickerwisp (49) and Mirran Crusader (23) to attack Goblins.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Goblins didn't block Flickerwisp (49).
+Goblins assigned Goblin Warchief (76) to block Mirran Crusader (23).
+  MANA: Plains (44) - {T}: Add {W}.
+  MANA: Plains (30) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes activated Stoneforge Mystic
+  STACK_RESOLVE: Stoneforge Mystic (50) - Death and Taxes puts an Equipment card from their hand onto the battlefield.
+  STACK_ADD: Death and Taxes triggered Batterskull
+  STACK_RESOLVE: Living Weapon (When this Equipment enters, create a 0/0 black Phyrexian Germ creature token, then attach this to it.) [Zone Changer: Batterskull (3)]
+  PHASE: Death and Taxes' First Strike Damage Step
+  DAMAGE: Mirran Crusader (23) deals 2 damage to Goblin Warchief (76).
+  ZONE_CHANGE: Goblin Warchief (76) was put into Graveyard from Battlefield.
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Flickerwisp (49) deals 3 combat damage to Goblins.
+  LIFE: Life: Goblins 6 > 3
+  STACK_ADD: Death and Taxes triggered Umezawa's Jitte
+  STACK_RESOLVE: Whenever equipped creature deals combat damage, put two charge counters on Umezawa's Jitte. [Damage Source: Flickerwisp (49), Damaged: [Goblins], Amount: 3]
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 16 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  MANA: Mountain (95) - {T}: Add {R}.
+  MANA: Mountain (93) - {T}: Add {R}.
+  MANA: Mountain (80) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Chieftain
+  STACK_RESOLVE: Goblin Chieftain - Creature 2 / 2
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte
+  LIFE: Life: Death and Taxes 28 > 30
+  STACK_RESOLVE: Umezawa's Jitte (60) -  You gain 2 life.
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte
+  LIFE: Life: Death and Taxes 30 > 32
+  STACK_RESOLVE: Umezawa's Jitte (60) -  You gain 2 life.
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 17 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (34)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Phyrexian Germ Token (131), Flickerwisp (49), Mirran Crusader (23) and Stoneforge Mystic (50) to attack Goblins.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Goblins assigned Goblin Chieftain (105) to block Phyrexian Germ Token (131).
+Goblins didn't block Flickerwisp (49).
+Goblins assigned Goblin Ringleader (63) to block Mirran Crusader (23).
+Goblins didn't block Stoneforge Mystic (50).
+  PHASE: Death and Taxes' First Strike Damage Step
+  DAMAGE: Mirran Crusader (23) deals 2 damage to Goblin Ringleader (63).
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Phyrexian Germ Token (131) deals 4 damage to Goblin Chieftain (105).
+  LIFE: Life: Death and Taxes 32 > 36
+  DAMAGE: Flickerwisp (49) deals 3 combat damage to Goblins.
+  DAMAGE: Mirran Crusader (23) deals 2 damage to Goblin Ringleader (63).
+  DAMAGE: Stoneforge Mystic (50) deals 1 combat damage to Goblins.
+  DAMAGE: Goblin Chieftain (105) deals 2 damage to Phyrexian Germ Token (131).
+  DAMAGE: Goblin Ringleader (63) deals 3 damage to Mirran Crusader (23).
+  LIFE: Life: Goblins 3 > -1
+  PLAYER_CONTROL: Death and Taxes has restored control over themself
+  PLAYER_CONTROL: Goblins has restored control over themself
+  GAME_OUTCOME: Turn 9
+  GAME_OUTCOME: Death and Taxes has won because all opponents have lost
+  GAME_OUTCOME: Goblins has lost because life total reached 0
+  MATCH_RESULTS: Death and Taxes: 1 Goblins: 0 
+===============================

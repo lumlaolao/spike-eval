@@ -1,0 +1,556 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20038
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/death-and-taxes.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.plan
+[DECK] loaded 'Death and Taxes': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/death-and-taxes.txt)
+[DECK] loaded 'Goblins': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/goblins.txt)
+[SEATS] A=Death and Taxes(ai-log,opus) B=Goblins(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: A after 18 turns (AllOpponentsLost) in 5s
+--- full game log ---
+  MULLIGAN: Goblins has kept a hand of 7 cards
+  MULLIGAN: Death and Taxes has kept a hand of 7 cards
+  TURN: Turn 1 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (86)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (86) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Lackey
+  STACK_RESOLVE: Goblin Lackey - Creature 1 / 1
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 2 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (45)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (45) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Mother of Runes
+  STACK_RESOLVE: Mother of Runes - Creature 1 / 1
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 3 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Rishadan Port (119)
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  MANA: Mountain (86) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Aether Vial
+  STACK_RESOLVE: Aether Vial
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 4 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  MANA: Plains (45) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Swords to Plowshares targeting [Goblin Lackey (67)]
+  ZONE_CHANGE: Goblin Lackey (67) was put into Exile from Battlefield.
+  LIFE: Life: Goblins 20 > 21
+  STACK_RESOLVE: Swords to Plowshares (25) - Exile Goblin Lackey (67). Goblins gains life equal to its power.
+  PHASE: Death and Taxes' Main phase, precombat
+  EFFECT_REPLACED: As Cavern of Souls enters, choose a creature type.
+  LAND: Death and Taxes played Cavern of Souls (2)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 5 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (90)
+  MANA: Mountain (86) - {T}: Add {R}.
+  MANA: Mountain (90) - {T}: Add {R}.
+  MANA: Rishadan Port (119) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Goblin Chieftain
+  STACK_RESOLVE: Goblin Chieftain - Creature 2 / 2
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Goblin Chieftain (105) to attack Death and Taxes.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Goblin Chieftain (105).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Goblin Chieftain (105) deals 2 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 20 > 18
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 6 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Wasteland (54)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (45) - {T}: Add {W}.
+  MANA: Cavern of Souls (2) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Stoneforge Mystic
+  STACK_RESOLVE: Stoneforge Mystic - Creature 1 / 2
+  STACK_ADD: Death and Taxes triggered Stoneforge Mystic
+  STACK_RESOLVE: When Stoneforge Mystic enters, you may search your library for an Equipment card, reveal it, put it into your hand, then shuffle. [Zone Changer: Stoneforge Mystic (50)]
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 7 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (83)
+  MANA: Mountain (86) - {T}: Add {R}.
+  MANA: Mountain (90) - {T}: Add {R}.
+  MANA: Mountain (83) - {T}: Add {R}.
+  MANA: Rishadan Port (119) - {T}: Add {C}.
+  STACK_ADD: Goblins cast Krenko, Mob Boss
+  STACK_RESOLVE: Krenko, Mob Boss - Creature 3 / 3
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (106) and Goblin Chieftain (105) to attack Death and Taxes.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Krenko, Mob Boss (106).
+Death and Taxes didn't block Goblin Chieftain (105).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Krenko, Mob Boss (106) deals 4 combat damage to Death and Taxes.
+  DAMAGE: Goblin Chieftain (105) deals 2 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 18 > 12
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 8 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (33)
+  ZONE_CHANGE: Wasteland (54) was put into Graveyard from Battlefield.
+  STACK_ADD: Death and Taxes activated Wasteland targeting [Rishadan Port (119)]
+  ZONE_CHANGE: Rishadan Port (119) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (54) - Destroy Rishadan Port (119).
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Stoneforge Mystic (50) to attack Goblins.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Goblins didn't block Stoneforge Mystic (50).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Stoneforge Mystic (50) deals 1 combat damage to Goblins.
+  LIFE: Life: Goblins 21 > 20
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (45) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Aether Vial
+  STACK_RESOLVE: Aether Vial
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 9 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  STACK_ADD: Goblins activated Aether Vial
+  STACK_RESOLVE: Aether Vial (72) - You may put a creature card with mana value equal to the number of charge counters on Aether Vial from your hand onto the battlefield.
+  STACK_ADD: Goblins triggered Goblin Matron
+  STACK_RESOLVE: When Goblin Matron enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle. [Zone Changer: Goblin Matron (113)]
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  MANA: Mountain (86) - {T}: Add {R}.
+  MANA: Mountain (90) - {T}: Add {R}.
+  MANA: Mountain (83) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Matron
+  STACK_RESOLVE: Goblin Matron - Creature 1 / 1
+  STACK_ADD: Goblins triggered Goblin Matron
+  STACK_RESOLVE: When Goblin Matron enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle. [Zone Changer: Goblin Matron (115)]
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (106), Goblin Chieftain (105), Goblin Matron (113) and Goblin Matron (115) to attack Death and Taxes.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Death and Taxes assigned Mother of Runes (6) to block Krenko, Mob Boss (106).
+Death and Taxes didn't block Goblin Chieftain (105).
+Death and Taxes didn't block Goblin Matron (113).
+Death and Taxes didn't block Goblin Matron (115).
+  STACK_ADD: Death and Taxes activated Mother of Runes targeting [Mother of Runes (6)]
+  STACK_RESOLVE: Mother of Runes (6) - Mother of Runes (6) gains protection from your choice of white, blue, black, red, or green until end of turn.
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  EFFECT_REPLACED: Protection from red
+  DAMAGE: Goblin Chieftain (105) deals 2 combat damage to Death and Taxes.
+  DAMAGE: Goblin Matron (113) deals 2 combat damage to Death and Taxes.
+  DAMAGE: Goblin Matron (115) deals 2 combat damage to Death and Taxes.
+  DAMAGE: Mother of Runes (6) deals 1 damage to Krenko, Mob Boss (106).
+  LIFE: Life: Death and Taxes 12 > 6
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 10 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (43)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  MANA: Plains (45) - {T}: Add {W}.
+  MANA: Plains (33) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes activated Stoneforge Mystic
+  STACK_RESOLVE: Stoneforge Mystic (50) - Death and Taxes puts an Equipment card from their hand onto the battlefield.
+  STACK_ADD: Death and Taxes triggered Batterskull
+  STACK_RESOLVE: Living Weapon (When this Equipment enters, create a 0/0 black Phyrexian Germ creature token, then attach this to it.) [Zone Changer: Batterskull (3)]
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 11 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  STACK_ADD: Goblins activated Aether Vial
+  STACK_RESOLVE: Aether Vial (72) - You may put a creature card with mana value equal to the number of charge counters on Aether Vial from your hand onto the battlefield.
+  STACK_ADD: Goblins activated Goblin Sharpshooter targeting [Mother of Runes (6)]
+  DAMAGE: Goblin Sharpshooter (74) deals 1 damage to Mother of Runes (6).
+  STACK_RESOLVE: Goblin Sharpshooter (74) - Goblin Sharpshooter (74) deals 1 damage to Mother of Runes (6).
+  ZONE_CHANGE: Mother of Runes (6) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Mother of Runes (6)]
+  PHASE: Goblins' Main phase, precombat
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Krenko, Mob Boss (106), Goblin Chieftain (105), Goblin Matron (113), Goblin Matron (115) and Goblin Sharpshooter (74) to attack Death and Taxes.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Death and Taxes assigned Phyrexian Germ Token (136) to block Krenko, Mob Boss (106).
+Death and Taxes didn't block Goblin Chieftain (105).
+Death and Taxes didn't block Goblin Matron (113).
+Death and Taxes didn't block Goblin Matron (115).
+Death and Taxes didn't block Goblin Sharpshooter (74).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Krenko, Mob Boss (106) deals 4 damage to Phyrexian Germ Token (136).
+  DAMAGE: Goblin Chieftain (105) deals 2 combat damage to Death and Taxes.
+  DAMAGE: Goblin Matron (113) deals 2 combat damage to Death and Taxes.
+  DAMAGE: Goblin Matron (115) deals 2 combat damage to Death and Taxes.
+  DAMAGE: Goblin Sharpshooter (74) deals 2 combat damage to Death and Taxes.
+  DAMAGE: Phyrexian Germ Token (136) deals 4 damage to Krenko, Mob Boss (106).
+  LIFE: Life: Death and Taxes 6 > 10
+  LIFE: Life: Death and Taxes 10 > 2
+  ZONE_CHANGE: Krenko, Mob Boss (106) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Phyrexian Germ Token (136) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Phyrexian Germ Token (136)]
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Krenko, Mob Boss (106)]
+  STACK_ADD: Goblins activated Goblin Sharpshooter targeting [Death and Taxes]
+  DAMAGE: Goblin Sharpshooter (74) deals 1 non-combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 2 > 1
+  STACK_RESOLVE: Goblin Sharpshooter (74) - Goblin Sharpshooter (74) deals 1 damage to Death and Taxes.
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 12 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (37)
+  MANA: Plains (45) - {T}: Add {W}.
+  MANA: Plains (33) - {T}: Add {W}.
+  MANA: Plains (43) - {T}: Add {W}.
+  MANA: Plains (37) - {T}: Add {W}.
+  MANA: Cavern of Souls (2) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes activated Batterskull targeting [Stoneforge Mystic (50)]
+  STACK_RESOLVE: Batterskull (3) -  Attach to Stoneforge Mystic (50)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Stoneforge Mystic (50) to attack Goblins.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Goblins didn't block Stoneforge Mystic (50).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Stoneforge Mystic (50) deals 5 combat damage to Goblins.
+  LIFE: Life: Death and Taxes 1 > 6
+  LIFE: Life: Goblins 20 > 15
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 13 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  MANA: Mountain (86) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Lackey
+  STACK_RESOLVE: Goblin Lackey - Creature 1 / 1
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  COMBAT: Goblins assigned Goblin Chieftain (105), Goblin Matron (113), Goblin Matron (115) and Goblin Lackey (66) to attack Death and Taxes.
+  PHASE: Goblins' Declare Blockers Step
+  COMBAT: Death and Taxes assigned Stoneforge Mystic (50) to block Goblin Chieftain (105).
+Death and Taxes didn't block Goblin Matron (113).
+Death and Taxes didn't block Goblin Matron (115).
+Death and Taxes didn't block Goblin Lackey (66).
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  DAMAGE: Goblin Chieftain (105) deals 2 damage to Stoneforge Mystic (50).
+  DAMAGE: Goblin Matron (113) deals 2 combat damage to Death and Taxes.
+  DAMAGE: Goblin Matron (115) deals 2 combat damage to Death and Taxes.
+  DAMAGE: Goblin Lackey (66) deals 2 combat damage to Death and Taxes.
+  DAMAGE: Stoneforge Mystic (50) deals 5 damage to Goblin Chieftain (105).
+  LIFE: Life: Death and Taxes 6 > 11
+  LIFE: Life: Death and Taxes 11 > 5
+  ZONE_CHANGE: Goblin Chieftain (105) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Lackey
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Goblin Chieftain (105)]
+  STACK_RESOLVE: Whenever Goblin Lackey deals damage to a player, you may put a Goblin permanent card from your hand onto the battlefield. [Damage Source: Goblin Lackey (66), Damaged: Death and Taxes, Amount: 2]
+  STACK_ADD: Goblins activated Goblin Sharpshooter targeting [Death and Taxes]
+  DAMAGE: Goblin Sharpshooter (74) deals 1 non-combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 5 > 4
+  STACK_RESOLVE: Goblin Sharpshooter (74) - Goblin Sharpshooter (74) deals 1 damage to Death and Taxes.
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 14 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  STACK_ADD: Death and Taxes activated Aether Vial
+  STACK_RESOLVE: Aether Vial (11) - You may put a creature card with mana value equal to the number of charge counters on Aether Vial from your hand onto the battlefield.
+  STACK_ADD: Death and Taxes triggered Recruiter of the Guard
+  STACK_RESOLVE: When Recruiter of the Guard enters, you may search your library for a creature card with toughness 2 or less, reveal it, put it into your hand, then shuffle. [Zone Changer: Recruiter of the Guard (19)]
+  PHASE: Death and Taxes' Draw step
+  MANA: Plains (45) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Swords to Plowshares targeting [Krenko, Mob Boss (107)]
+  ZONE_CHANGE: Krenko, Mob Boss (107) was put into Exile from Battlefield.
+  LIFE: Life: Goblins 15 > 18
+  STACK_RESOLVE: Swords to Plowshares (27) - Exile Krenko, Mob Boss (107). Goblins gains life equal to its power.
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (30)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Stoneforge Mystic (50) to attack Goblins.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Goblins didn't block Stoneforge Mystic (50).
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Stoneforge Mystic (50) deals 5 combat damage to Goblins.
+  LIFE: Life: Death and Taxes 4 > 9
+  LIFE: Life: Goblins 18 > 13
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (33) - {T}: Add {W}.
+  MANA: Plains (43) - {T}: Add {W}.
+  MANA: Plains (37) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Mirran Crusader
+  STACK_RESOLVE: Mirran Crusader - Creature 2 / 2
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 15 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  EFFECT_REPLACED: As Cavern of Souls enters, choose a creature type.
+  LAND: Goblins played Cavern of Souls (62)
+  MANA: Mountain (86) - {T}: Add {R}.
+  MANA: Mountain (90) - {T}: Add {R}.
+  MANA: Mountain (83) - {T}: Add {R}.
+  MANA: Cavern of Souls (62) - {T}: Add one mana of any color. Spend this mana only to cast a creature spell of the chosen type, and that spell can't be countered.
+  STACK_ADD: Goblins cast Goblin Ringleader
+  STACK_RESOLVE: Goblin Ringleader - Creature 2 / 2
+  STACK_ADD: Goblins triggered Goblin Ringleader
+  STACK_RESOLVE: When Goblin Ringleader enters, reveal the top four cards of your library. Put all Goblin cards revealed this way into your hand and the rest on the bottom of your library in any order. [Zone Changer: Goblin Ringleader (65)]
+  STACK_ADD: Goblins activated Aether Vial
+  STACK_RESOLVE: Aether Vial (72) - You may put a creature card with mana value equal to the number of charge counters on Aether Vial from your hand onto the battlefield.
+  STACK_ADD: Goblins triggered Goblin Matron
+  STACK_RESOLVE: When Goblin Matron enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle. [Zone Changer: Goblin Matron (112)]
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 16 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (41)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Mirran Crusader (22) and Stoneforge Mystic (50) to attack Goblins.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Goblins didn't block Mirran Crusader (22).
+Goblins didn't block Stoneforge Mystic (50).
+  PHASE: Death and Taxes' First Strike Damage Step
+  DAMAGE: Mirran Crusader (22) deals 2 combat damage to Goblins.
+  LIFE: Life: Goblins 13 > 11
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Mirran Crusader (22) deals 2 combat damage to Goblins.
+  DAMAGE: Stoneforge Mystic (50) deals 5 combat damage to Goblins.
+  LIFE: Life: Death and Taxes 9 > 14
+  LIFE: Life: Goblins 11 > 4
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (45) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Mother of Runes
+  STACK_RESOLVE: Mother of Runes - Creature 1 / 1
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 17 (Goblins)
+  PHASE: Goblins' Untap step
+  PHASE: Goblins' Upkeep step
+  STACK_ADD: Goblins triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Goblins]
+  PHASE: Goblins' Draw step
+  PHASE: Goblins' Main phase, precombat
+  LAND: Goblins played Mountain (88)
+  MANA: Mountain (86) - {T}: Add {R}.
+  MANA: Mountain (90) - {T}: Add {R}.
+  MANA: Mountain (83) - {T}: Add {R}.
+  MANA: Mountain (88) - {T}: Add {R}.
+  STACK_ADD: Goblins cast Goblin Ringleader
+  STACK_RESOLVE: Goblin Ringleader - Creature 2 / 2
+  STACK_ADD: Goblins triggered Goblin Ringleader
+  STACK_RESOLVE: When Goblin Ringleader enters, reveal the top four cards of your library. Put all Goblin cards revealed this way into your hand and the rest on the bottom of your library in any order. [Zone Changer: Goblin Ringleader (64)]
+  PHASE: Goblins' Beginning of Combat Step
+  PHASE: Goblins' Declare Attackers Step
+  PHASE: Goblins' Declare Blockers Step
+  PHASE: Goblins' First Strike Damage Step
+  PHASE: Goblins' Combat Damage Step
+  PHASE: Goblins' End of Combat Step
+  PHASE: Goblins' Main phase, postcombat
+  PHASE: Goblins' End step
+  PHASE: Goblins' Cleanup step
+  TURN: Turn 18 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (42)
+  STACK_ADD: Death and Taxes activated Mother of Runes targeting [Stoneforge Mystic (50)]
+  STACK_RESOLVE: Mother of Runes (5) - Stoneforge Mystic (50) gains protection from your choice of white, blue, black, red, or green until end of turn.
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Stoneforge Mystic (50), Mirran Crusader (22) and Recruiter of the Guard (19) to attack Goblins.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Goblins didn't block Stoneforge Mystic (50).
+Goblins assigned Goblin Lackey (66) to block Mirran Crusader (22).
+Goblins assigned Goblin Matron (113) to block Recruiter of the Guard (19).
+  PHASE: Death and Taxes' First Strike Damage Step
+  DAMAGE: Mirran Crusader (22) deals 2 damage to Goblin Lackey (66).
+  ZONE_CHANGE: Goblin Lackey (66) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Goblin Lackey (66)]
+  STACK_ADD: Goblins activated Goblin Sharpshooter targeting [Mother of Runes (5)]
+  DAMAGE: Goblin Sharpshooter (74) deals 1 damage to Mother of Runes (5).
+  STACK_RESOLVE: Goblin Sharpshooter (74) - Goblin Sharpshooter (74) deals 1 damage to Mother of Runes (5).
+  ZONE_CHANGE: Mother of Runes (5) was put into Graveyard from Battlefield.
+  STACK_ADD: Goblins triggered Goblin Sharpshooter
+  STACK_RESOLVE: Whenever a creature dies, untap this creature. [Zone Changer: Mother of Runes (5)]
+  PHASE: Death and Taxes' Combat Damage Step
+  DAMAGE: Stoneforge Mystic (50) deals 5 combat damage to Goblins.
+  LIFE: Life: Death and Taxes 14 > 19
+  DAMAGE: Recruiter of the Guard (19) deals 1 damage to Goblin Matron (113).
+  DAMAGE: Goblin Matron (113) deals 1 damage to Recruiter of the Guard (19).
+  LIFE: Life: Goblins 4 > -1
+  PLAYER_CONTROL: Death and Taxes has restored control over themself
+  PLAYER_CONTROL: Goblins has restored control over themself
+  GAME_OUTCOME: Turn 9
+  GAME_OUTCOME: Death and Taxes has won because all opponents have lost
+  GAME_OUTCOME: Goblins has lost because life total reached 0
+  MATCH_RESULTS: Death and Taxes: 1 Goblins: 0 
+===============================

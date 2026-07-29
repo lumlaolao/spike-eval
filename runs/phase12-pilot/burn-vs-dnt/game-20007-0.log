@@ -1,0 +1,352 @@
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 33290 files in 0 ms (25 parts) using thread pool
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Star Trek (TRK) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 821 files in 0 ms (8 parts) using thread pool
+[SEED] 20007
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/burn.plan
+[PLAN] sidecar -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/death-and-taxes.plan
+[DECK] loaded 'Burn': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/burn.txt)
+[DECK] loaded 'Death and Taxes': 60 main, 0 sideboard  (/Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/eval/decks/death-and-taxes.txt)
+[SEATS] A=Burn(ai-log,opus) B=Death and Taxes(ai-log,opus)
+[HEADLESS] game starting (cap=12min)
+========== GAME OVER ==========
+outcome: A after 12 turns (AllOpponentsLost) in 2s
+--- full game log ---
+  MULLIGAN: Death and Taxes has kept a hand of 7 cards
+  MULLIGAN: Burn has kept a hand of 7 cards
+  TURN: Turn 1 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Karakas (78)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 2 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (27)
+  MANA: Mountain (27) - {T}: Add {R}.
+  STACK_ADD: Burn cast Monastery Swiftspear
+  STACK_RESOLVE: Monastery Swiftspear - Creature 1 / 2
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Monastery Swiftspear (2) to attack Death and Taxes.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Monastery Swiftspear (2).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (2) deals 1 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 20 > 19
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 3 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Wasteland (113)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Karakas (78) - {T}: Add {W}.
+  MANA: Wasteland (113) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Thalia, Guardian of Thraben
+  STACK_RESOLVE: Thalia, Guardian of Thraben - Creature 2 / 1
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 4 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (37)
+  MANA: Mountain (27) - {T}: Add {R}.
+  STACK_RESOLVE: Burn has suspended Rift Bolt with 1 time counters on it.
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  PHASE: Burn's Declare Blockers Step
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 5 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (101)
+  MANA: Plains (101) - {T}: Add {W}.
+  MANA: Wasteland (113) - {T}: Add {C}.
+  MANA: Karakas (78) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Umezawa's Jitte
+  STACK_RESOLVE: Umezawa's Jitte
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  COMBAT: Death and Taxes assigned Thalia, Guardian of Thraben (73) to attack Burn.
+  PHASE: Death and Taxes' Declare Blockers Step
+  COMBAT: Burn didn't block Thalia, Guardian of Thraben (73).
+  PHASE: Death and Taxes' First Strike Damage Step
+  DAMAGE: Thalia, Guardian of Thraben (73) deals 2 combat damage to Burn.
+  LIFE: Life: Burn 20 > 18
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 6 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  STACK_ADD: Burn triggered Rift Bolt
+  STACK_RESOLVE: At the beginning of your upkeep, if this card is suspended, remove a time counter from it [Phase: Burn]
+  STACK_ADD: Burn triggered Rift Bolt
+  MANA: Mountain (27) - {T}: Add {R}.
+  STACK_ADD: Burn cast Rift Bolt targeting [Thalia, Guardian of Thraben (73)]
+  STACK_RESOLVE: When the last time counter is removed from this card, if it's exiled, you may play it without paying its mana cost if able.  If you can't, it remains exiled. If you cast a creature spell this way, it gains haste until you lose control of the spell or the permanent it becomes. [Removed from: Rift Bolt (51)]
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Rift Bolt (51), Activator: Burn, SpellAbility: Rift Bolt deals 3 damage to any target. (without paying its mana cost)]
+  DAMAGE: Rift Bolt (51) deals 3 damage to Thalia, Guardian of Thraben (73).
+  STACK_RESOLVE: Rift Bolt (51) - Rift Bolt (51) deals 3 damage to Thalia, Guardian of Thraben (73).
+  ZONE_CHANGE: Thalia, Guardian of Thraben (73) was put into Graveyard from Battlefield.
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (35)
+  MANA: Mountain (37) - {T}: Add {R}.
+  STACK_ADD: Burn cast Monastery Swiftspear
+  STACK_RESOLVE: Monastery Swiftspear - Creature 1 / 2
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Monastery Swiftspear (2) and Monastery Swiftspear (3) to attack Death and Taxes.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Monastery Swiftspear (2).
+Death and Taxes didn't block Monastery Swiftspear (3).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (2) deals 2 combat damage to Death and Taxes.
+  DAMAGE: Monastery Swiftspear (3) deals 1 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 19 > 16
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  PHASE: Burn's Cleanup step
+  TURN: Turn 7 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Wasteland (114)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (101) - {T}: Add {W}.
+  MANA: Karakas (78) - {T}: Add {W}.
+  MANA: Wasteland (113) - {T}: Add {C}.
+  MANA: Wasteland (114) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Palace Jailer
+  STACK_RESOLVE: Palace Jailer - Creature 2 / 2
+  STACK_ADD: Death and Taxes triggered Palace Jailer targeting [Monastery Swiftspear (2)]
+  STACK_ADD: Death and Taxes triggered Palace Jailer
+  STACK_RESOLVE: When Palace Jailer enters, you become the monarch. [Zone Changer: Palace Jailer (77)]
+  ZONE_CHANGE: Monastery Swiftspear (2) was put into Exile from Battlefield.
+  STACK_RESOLVE: When Palace Jailer enters, exile target creature an opponent controls until an opponent becomes the monarch. (Targeting: [[Monastery Swiftspear (2)]]) [Zone Changer: Palace Jailer (77)]
+  PHASE: Death and Taxes' End step
+  STACK_ADD: Death and Taxes triggered The Monarch
+  MANA: Mountain (35) - {T}: Add {R}.
+  STACK_ADD: Burn cast Lightning Bolt targeting [Palace Jailer (77)]
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Lightning Bolt (39), Activator: Burn, SpellAbility: Lightning Bolt deals 3 damage to any target.]
+  DAMAGE: Lightning Bolt (39) deals 3 damage to Palace Jailer (77).
+  STACK_RESOLVE: Lightning Bolt (39) - Lightning Bolt (39) deals 3 damage to Palace Jailer (77).
+  ZONE_CHANGE: Palace Jailer (77) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: At the beginning of your end step, draw a card. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 8 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Monastery Swiftspear (3) to attack Death and Taxes.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Monastery Swiftspear (3).
+  PHASE: Burn's First Strike Damage Step
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (3) deals 1 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 16 > 15
+  STACK_ADD: Death and Taxes triggered The Monarch
+  STACK_RESOLVE: Whenever a creature deals combat damage to you, its controller becomes the monarch. [Damage Source: Monastery Swiftspear (3), Damaged: Death and Taxes, Amount: 1]
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  MANA: Mountain (27) - {T}: Add {R}.
+  MANA: Mountain (37) - {T}: Add {R}.
+  STACK_ADD: Burn cast Eidolon of the Great Revel
+  STACK_RESOLVE: Eidolon of the Great Revel - Creature 2 / 2
+  PHASE: Burn's End step
+  STACK_ADD: Burn triggered The Monarch
+  STACK_RESOLVE: At the beginning of your end step, draw a card. [Phase: Burn]
+  PHASE: Burn's Cleanup step
+  TURN: Turn 9 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  LAND: Death and Taxes played Plains (94)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  MANA: Plains (101) - {T}: Add {W}.
+  MANA: Plains (94) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes cast Thalia, Guardian of Thraben
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  DAMAGE: Eidolon of the Great Revel (60) deals 2 non-combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 15 > 13
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Thalia, Guardian of Thraben (75), Activator: Death and Taxes, SpellAbility: Thalia, Guardian of Thraben - Creature 2 / 1]
+  STACK_RESOLVE: Thalia, Guardian of Thraben - Creature 2 / 1
+  MANA: Wasteland (113) - {T}: Add {C}.
+  MANA: Wasteland (114) - {T}: Add {C}.
+  STACK_ADD: Death and Taxes cast Aether Vial
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  DAMAGE: Eidolon of the Great Revel (60) deals 2 non-combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 13 > 11
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Aether Vial (68), Activator: Death and Taxes, SpellAbility: Aether Vial]
+  STACK_RESOLVE: Aether Vial
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 10 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  MANA: Mountain (27) - {T}: Add {R}.
+  MANA: Mountain (37) - {T}: Add {R}.
+  MANA: Mountain (35) - {T}: Add {R}.
+  STACK_ADD: Burn cast Price of Progress
+  STACK_ADD: Burn triggered Eidolon of the Great Revel
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Price of Progress (16), Activator: Burn, SpellAbility: Price of Progress deals 2 damage to each player for each nonbasic land they control.]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Price of Progress (16), Activator: Burn, SpellAbility: Price of Progress deals 2 damage to each player for each nonbasic land they control.]
+  DAMAGE: Eidolon of the Great Revel (60) deals 2 non-combat damage to Burn.
+  LIFE: Life: Burn 18 > 16
+  STACK_RESOLVE: Whenever a player casts a spell with mana value 3 or less, Eidolon of the Great Revel deals 2 damage to that player. [Card: Price of Progress (16), Activator: Burn, SpellAbility: Price of Progress deals 2 damage to each player for each nonbasic land they control.]
+  DAMAGE: Price of Progress (16) deals 6 non-combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 11 > 5
+  STACK_RESOLVE: Price of Progress (16) - Price of Progress deals 2 damage to each player for each nonbasic land they control.
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Bloodstained Mire (22)
+  LIFE: Life: Burn 16 > 15
+  ZONE_CHANGE: Bloodstained Mire (22) was put into Graveyard from Battlefield.
+  STACK_ADD: Burn activated Bloodstained Mire
+  STACK_RESOLVE: Bloodstained Mire (22) - Burn searches their library for a Swamp or Mountain card, puts it onto the battlefield, then shuffles.
+  PHASE: Burn's Beginning of Combat Step
+  PHASE: Burn's Declare Attackers Step
+  COMBAT: Burn assigned Monastery Swiftspear (3), Monastery Swiftspear (2) and Eidolon of the Great Revel (60) to attack Death and Taxes.
+  PHASE: Burn's Declare Blockers Step
+  COMBAT: Death and Taxes didn't block Monastery Swiftspear (3).
+Death and Taxes didn't block Monastery Swiftspear (2).
+Death and Taxes assigned Thalia, Guardian of Thraben (75) to block Eidolon of the Great Revel (60).
+  PHASE: Burn's First Strike Damage Step
+  DAMAGE: Thalia, Guardian of Thraben (75) deals 2 damage to Eidolon of the Great Revel (60).
+  ZONE_CHANGE: Eidolon of the Great Revel (60) was put into Graveyard from Battlefield.
+  PHASE: Burn's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (3) deals 2 combat damage to Death and Taxes.
+  DAMAGE: Monastery Swiftspear (2) deals 2 combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 5 > 1
+  PHASE: Burn's End of Combat Step
+  PHASE: Burn's Main phase, postcombat
+  PHASE: Burn's End step
+  STACK_ADD: Burn triggered The Monarch
+  STACK_RESOLVE: At the beginning of your end step, draw a card. [Phase: Burn]
+  PHASE: Burn's Cleanup step
+  TURN: Turn 11 (Death and Taxes)
+  PHASE: Death and Taxes' Untap step
+  PHASE: Death and Taxes' Upkeep step
+  STACK_ADD: Death and Taxes triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Death and Taxes]
+  PHASE: Death and Taxes' Draw step
+  PHASE: Death and Taxes' Main phase, precombat
+  EFFECT_REPLACED: As Cavern of Souls enters, choose a creature type.
+  LAND: Death and Taxes played Cavern of Souls (62)
+  MANA: Plains (101) - {T}: Add {W}.
+  MANA: Plains (94) - {T}: Add {W}.
+  STACK_ADD: Death and Taxes activated Umezawa's Jitte targeting [Thalia, Guardian of Thraben (75)]
+  STACK_RESOLVE: Umezawa's Jitte (120) -  Attach to Thalia, Guardian of Thraben (75)
+  PHASE: Death and Taxes' Beginning of Combat Step
+  PHASE: Death and Taxes' Declare Attackers Step
+  PHASE: Death and Taxes' Declare Blockers Step
+  PHASE: Death and Taxes' First Strike Damage Step
+  PHASE: Death and Taxes' Combat Damage Step
+  PHASE: Death and Taxes' End of Combat Step
+  PHASE: Death and Taxes' Main phase, postcombat
+  PHASE: Death and Taxes' End step
+  PHASE: Death and Taxes' Cleanup step
+  TURN: Turn 12 (Burn)
+  PHASE: Burn's Untap step
+  PHASE: Burn's Upkeep step
+  PHASE: Burn's Draw step
+  PHASE: Burn's Main phase, precombat
+  LAND: Burn played Mountain (25)
+  MANA: Mountain (27) - {T}: Add {R}.
+  MANA: Mountain (37) - {T}: Add {R}.
+  STACK_ADD: Burn cast Chain Lightning targeting [Death and Taxes]
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  STACK_ADD: Burn triggered Monastery Swiftspear
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Chain Lightning (55), Activator: Burn, SpellAbility: Chain Lightning deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may choose a new target for that copy. ]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Chain Lightning (55), Activator: Burn, SpellAbility: Chain Lightning deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may choose a new target for that copy. ]
+  DAMAGE: Chain Lightning (55) deals 3 non-combat damage to Death and Taxes.
+  LIFE: Life: Death and Taxes 1 > -2
+  STACK_RESOLVE: Chain Lightning (55) - Chain Lightning (55) deals 3 damage to Death and Taxes. 
+  PLAYER_CONTROL: Burn has restored control over themself
+  PLAYER_CONTROL: Death and Taxes has restored control over themself
+  GAME_OUTCOME: Turn 6
+  GAME_OUTCOME: Burn has won because all opponents have lost
+  GAME_OUTCOME: Death and Taxes has lost because life total reached 0
+  MATCH_RESULTS: Burn: 1 Death and Taxes: 0 
+===============================
