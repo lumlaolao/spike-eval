@@ -1016,6 +1016,73 @@ def test_power_check():
           str(summary.get("power")))
 
 
+def test_jobs_parallelism_is_order_stable():
+    """--jobs must change only the wall clock, never the artifact.
+
+    WHAT WOULD MAKE THIS FAIL: collecting results in completion order instead
+    of by submission index. That regression is invisible on a fast fixture
+    driver (everything finishes near-instantly, often in order) which is why
+    the fake driver here sleeps by a per-row amount chosen to INVERT the
+    natural order -- the last candidate finishes first. Appending as futures
+    complete then produces a different file, and a verification artifact whose
+    bytes depend on thread scheduling is not reproducible.
+    """
+    import time
+
+    class SlowFixture(vk.FixtureRolloutDriver):
+        def rollout(self, address, n_per_option=None):
+            # later candidates return sooner -> completion order is reversed
+            time.sleep(0.15 * (1.0 / (1 + address.get("decision_index", 0))))
+            # super(), not vk.FixtureRolloutDriver -- the module attribute is
+            # monkeypatched to THIS class below, so naming it here would
+            # recurse into itself. super() resolves through the MRO captured
+            # when the class was defined, which is the real base.
+            return super(SlowFixture, self).rollout(address, n_per_option)
+
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        cands, recs = [], []
+        for i in range(6):
+            c = rollout_cand()
+            c["decision_index"] = 40 + i
+            c["source"] = dict(c["source"], decision_index=40 + i)
+            addr = vk.address_of(c, {})
+            # distinct WPs so a mis-ordered file differs in content, not just
+            # in line order -- an order bug must be impossible to miss
+            recs.append(fixture_record(addr, [0.9 - 0.01 * i, 0.2],
+                                       [0.02, 0.02], c["options"]))
+            cands.append(c)
+        cpath = td / "cands.jsonl"
+        cpath.write_text("".join(json.dumps(c) + "\n" for c in cands),
+                         encoding="utf-8")
+        fx = td / "fixture.jsonl"
+        fx.write_text("".join(json.dumps(r) + "\n" for r in recs),
+                      encoding="utf-8")
+
+        outs = {}
+        for jobs in (1, 4):
+            op = td / ("out-j%d.jsonl" % jobs)
+            real = vk.FixtureRolloutDriver
+            vk.FixtureRolloutDriver = SlowFixture
+            try:
+                rc = vk.main([str(cpath), "--out", str(op), "--lane", "rollout",
+                              "--driver", "fixture", "--fixture", str(fx),
+                              "--jobs", str(jobs),
+                              "--summary", str(td / ("s%d.json" % jobs))])
+            finally:
+                vk.FixtureRolloutDriver = real
+            check("jobs=%d: run succeeded" % jobs, rc == 0, "rc=%r" % rc)
+            outs[jobs] = op.read_text(encoding="utf-8")
+
+        check("jobs: parallel output is byte-identical to sequential",
+              outs[1] == outs[4],
+              "sequential %d bytes vs parallel %d bytes"
+              % (len(outs[1]), len(outs[4])))
+        check("jobs: output is non-trivial (the comparison means something)",
+              len(outs[1].strip().splitlines()) == 6,
+              str(len(outs[1].strip().splitlines())))
+
+
 def test_replay_drift_rc4():
     with tempfile.TemporaryDirectory() as td:
         drv = FakeEngine(PROBE_2OPT, lambda o, j: {}, work_dir=td,

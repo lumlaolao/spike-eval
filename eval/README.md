@@ -474,12 +474,20 @@ carries a `power` block plus a loud stderr `NOISE-BOUND RUN` warning if you
 lower it back under the floor. Cost is linear: `n_options * n` games per
 position (a 3-option position is 135 games).
 
+`--jobs` verifies that many positions concurrently — one JVM each, ~1GB RSS
+apiece, so treat it like the batch-driver caps in `CONCURRENCY.md` (4–8 for
+engine-only arms). It was a documented no-op before 2026-07-28 ("reserved; v1
+verifies sequentially regardless"), which made a realistic Phase-1.2 pass take
+hours. Output is collected by submission index and re-sorted, so the artifact
+is byte-identical at any `--jobs` — verified by a test whose fake driver
+finishes in reverse order on purpose.
+
 ```bash
 python3 eval/verify_keys.py CANDIDATES.jsonl --out POSITIONS.jsonl \
     [--lane exhaustive|rollout|both] [--driver engine|fixture|none] \
     [--fixture FILE.jsonl] [--n-per-option 45] [--forge-home ~/code/forge] \
     [--determinize library|none] \
-    [--max-positions N] [--summary summary.json] [--json] [--dry-run]
+    [--max-positions N] [--jobs 6] [--summary summary.json] [--json] [--dry-run]
 ```
 
 Default `--driver none` is pure exhaustive: zero engine, zero network,

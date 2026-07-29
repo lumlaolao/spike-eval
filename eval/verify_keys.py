@@ -140,6 +140,7 @@ import math
 import os
 import subprocess
 import sys
+import threading
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -600,6 +601,11 @@ class RolloutDriver(object):
         self.engine_sha = engine_sha
         self.overlay_sha = overlay_sha
         self._probe_cache = {}
+        # Guards _probe_cache when --jobs > 1 runs verify_one on several
+        # positions concurrently. The scratch dirs are already collision-free
+        # (rollout_key differs per position; see _work_subdir), so this dict is
+        # the only cross-position shared state.
+        self._probe_lock = threading.Lock()
         # Unique per driver instance; see _work_subdir.
         self._run_nonce = next(RolloutDriver._RUN_NONCE_COUNTER)
 
@@ -723,8 +729,9 @@ class RolloutDriver(object):
         if self._launcher() is None:
             return {"ok": False, "reason": "no_engine_available"}
         key = rollout_key(address)
-        if key in self._probe_cache:
-            return self._probe_cache[key]
+        with self._probe_lock:
+            if key in self._probe_cache:
+                return self._probe_cache[key]
         out_dir = self._work_subdir(address, "enum")
         env = self._base_env(address, out_dir)
         try:
@@ -744,7 +751,8 @@ class RolloutDriver(object):
                "phase": row.get("phase"), "n_options": row.get("n_options"),
                "choice": row.get("choice"), "options": row.get("options"),
                "snapshot": row.get("snapshot")}
-        self._probe_cache[key] = res
+        with self._probe_lock:
+            self._probe_cache[key] = res
         return res
 
     @staticmethod
@@ -1345,7 +1353,10 @@ def main(argv=None):
                          "max(threshold, Z*max(se)) (default %(default)s)")
     ap.add_argument("--max-positions", type=int, default=None)
     ap.add_argument("--jobs", type=int, default=1,
-                    help="reserved; v1 verifies sequentially regardless")
+                    help="positions verified concurrently (each runs one JVM "
+                         "at a time, so this is the JVM count; ~1GB RSS each "
+                         "— see eval/CONCURRENCY.md. Output order is "
+                         "independent of this value).")
     ap.add_argument("--summary", default=None,
                     help="summary json path (default: <out dir>/summary.json)")
     ap.add_argument("--json", action="store_true",
@@ -1383,10 +1394,7 @@ def main(argv=None):
     sha16 = contract_sha_or_unknown()
     now = _utcnow()
 
-    out_rows = []
-    rows_meta = []
-    any_engine_missing = False
-    for cand in cands:
+    def _verify(cand):
         row, lane, verified, reason, engine_missing = verify_one(
             cand, driver, args.lane, args.n_per_option, name_idx, sha16, now,
             args.gap_threshold, args.mulligan_gap_threshold,
@@ -1396,6 +1404,35 @@ def main(argv=None):
                 prompt_contract.stamp(row)
             except Exception:
                 pass
+        return row, lane, verified, reason, engine_missing
+
+    # Parallelism is worth having: a position costs n_options * n_per_option
+    # full games, so at the shipped n=45 a 3-option position is 135 JVM runs.
+    # Threads (not processes) because every unit of work blocks in
+    # subprocess.run, which releases the GIL -- and because the driver's probe
+    # cache is then shared rather than duplicated per worker.
+    #
+    # Results are collected INDEXED and re-sorted, so the output jsonl is
+    # byte-identical regardless of --jobs or of which thread finishes first.
+    # A verification artifact whose contents depend on scheduling would not be
+    # reproducible, which is the whole point of the seeded harness.
+    jobs = max(1, int(args.jobs or 1))
+    if jobs > 1 and len(cands) > 1:
+        import concurrent.futures as _cf
+        results = [None] * len(cands)
+        with _cf.ThreadPoolExecutor(max_workers=jobs) as pool:
+            futs = dict((pool.submit(_verify, c), i)
+                        for i, c in enumerate(cands))
+            for fut in _cf.as_completed(futs):
+                results[futs[fut]] = fut.result()
+    else:
+        results = [_verify(c) for c in cands]
+
+    out_rows = []
+    rows_meta = []
+    any_engine_missing = False
+    for cand, (row, lane, verified, reason, engine_missing) in zip(cands,
+                                                                  results):
         out_rows.append(row)
         rows_meta.append({"category": cand.get("category"), "lane": lane,
                           "verified": verified, "reason": reason,
