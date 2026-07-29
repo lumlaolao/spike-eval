@@ -340,13 +340,22 @@ def has_game_line(out_dir, seed, swap):
 
 FORGE_CP_FILE = "/tmp/forge_cp.txt"
 
-#: Cited-mode parallelism ceiling when NO seat runs an LLM. 6 is the figure
-#: eval/CONCURRENCY.md records as proven healthy on this machine (~1GB RSS per
-#: JVM, 7 concurrent observed stable); above it the wall-clock cap starts
-#: deciding which games finish, which would change the measurement rather than
-#: just its speed. Counted PER BATCH, so concurrent batches still have to be
-#: added up by hand -- see CONCURRENCY.md §7.
-CITED_MAX_JOBS_NO_LLM = 6
+#: Cited-mode parallelism ceiling when NO seat runs an LLM.
+#:
+#: Was 6, inherited from eval/CONCURRENCY.md -- but that figure was calibrated
+#: for LLM games, where each JVM blocks on an API and the binding concern was
+#: CPU contention starving the `claude` CLI. Model-free games are pure CPU and
+#: that limit is simply the wrong one. Measured on this machine mid-run:
+#:
+#:     18 cores / 24 GB; 6 JVMs drew 596% CPU (one core each) and 5.6 GB RSS
+#:     (0.93 GB/JVM), leaving ~8 cores idle at load average 9.65.
+#:
+#: So the real ceiling is ~14 on cores and ~20 on RAM. 12 leaves genuine
+#: headroom for the OS and a concurrent batch, which matters because this is
+#: counted PER BATCH and concurrent batches still have to be summed by hand
+#: (CONCURRENCY.md 7). Past the true ceiling the wall-clock cap starts deciding
+#: which games finish, which changes the measurement, not just its speed.
+CITED_MAX_JOBS_NO_LLM = 12
 
 
 def require_forge_classpath(cp_file=FORGE_CP_FILE, forge_home=None):
