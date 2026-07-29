@@ -48,6 +48,28 @@ WHAT WOULD MAKE THIS FAIL (per test, the code change that breaks it):
     losing n_in/n_verified/yield_rate/coverage_note, --lane exhaustive
     letting a rollout row through, or unparseable lines killing the run
     instead of landing in warnings.
+  * test_rollout_evidence_math: wp_spread, wp_spread_se, best/runner-up
+    indices or separation_z drifting from the hand-worked constants pinned
+    below (spread = max-min, spread_se = sqrt(se_hi^2+se_lo^2), separation_z
+    = (best-runner_up)/sqrt(se_best^2+se_ru^2)); a zero denominator producing
+    inf/NaN instead of None; ties ranking non-deterministically.
+  * test_rejected_row_retains_evidence: a rollout_noise_below_threshold row
+    coming back WITHOUT rollout_evidence, or with option_wp emptied/nulled —
+    that is exactly the discarded-measurement regression this guards; also an
+    all-invalid rollout (option_wp all None) failing to be distinguishable
+    from a genuine tie via option_invalid + wp_spread=None.
+  * test_verified_row_carries_evidence: a verified row NOT carrying
+    rollout_evidence (spread must be comparable across decided/undecided).
+  * test_answer_key_unchanged: answer_key growing/losing a field, or
+    rollout_evidence leaking INSIDE answer_key, or any candidate row gaining
+    an answer_key — every existing answer_key consumer must be untouched.
+  * test_threshold_flags: --gap-threshold / --mulligan-gap-threshold /
+    --min-separation-z not being honoured, their defaults drifting from
+    0.20 / 0.15 / 2.0, or the summary failing to record the bar it used.
+  * test_summary_spread_distribution: quantiles drifting from the pinned
+    linear-interpolation values, the histogram mis-binning (0.30 landing in
+    bin 5 through float underestimation), or the block counting exhaustive
+    rows / dropping n_no_wp.
   * test_no_egress: ANY code path of a full --driver fixture CLI run opening
     a socket (socket.socket is replaced with a raiser and the run must still
     succeed), the module source importing a network module, _base_env adding
@@ -180,6 +202,28 @@ def fixture_record(address, option_wp, option_wp_se, options,
         "caveats": [], "engine_sha": "c1c64a5", "overlay_sha": "6c3b0bd",
         "wall_ms": 1,
     }
+
+
+def null_wp_record(address, options, dtype="play", n_per_option=16):
+    """A rollout that RAN but decided nothing: every replay invalid, so every
+    per-option wp is None. The engine's own all-garbage output shape."""
+    n = len(options)
+    rec = fixture_record(address, [0.5] * n, [0.1] * n, options,
+                         dtype=dtype, n_per_option=n_per_option)
+    rec["option_wp"] = [None] * n
+    rec["option_wp_se"] = [None] * n
+    rec["option_wins"] = [0] * n
+    rec["option_losses"] = [0] * n
+    rec["option_draws"] = [0] * n
+    rec["option_invalid"] = [n_per_option] * n
+    return rec
+
+
+def at_decision(cand, decision_index):
+    """Same candidate, distinct replay address (=> distinct rollout_key)."""
+    cand["source"]["decision_index"] = decision_index
+    cand["id"] = "cafe%012d" % decision_index
+    return cand
 
 
 def run_verify_one(cand, driver=None, lane="both", name_idx=None):
@@ -406,6 +450,386 @@ def test_score_from_wp():
           vk.score_from_wp([None, 0.5], [0.1, 0.1], "x")[0] is None)
     check("empty se rejected",
           vk.score_from_wp([0.9, 0.1], [None, None], "x")[0] is None)
+
+
+def _result(wp, se, n_per_option=16, **kw):
+    """Minimal rollout-result.v1 for the evidence builder."""
+    n = len(wp)
+    rec = {"schema": "rollout-result.v1", "ok": True, "reason": None,
+           "option_wp": wp, "option_wp_se": se, "n_options": n,
+           "option_wins": [0] * n, "option_losses": [0] * n,
+           "option_draws": [0] * n, "option_invalid": [0] * n,
+           "n_per_option": n_per_option, "continuation": "ai-log/ai-log",
+           "seed_fn": vk.SEED_FN, "engine_sha": "c1c64a5",
+           "overlay_sha": "6c3b0bd"}
+    rec.update(kw)
+    return rec
+
+
+def test_rollout_evidence_math():
+    # HAND-WORKED CASE A: wp [0.75, 0.25], se [0.10, 0.05].
+    #   spread     = 0.75 - 0.25                   = 0.5
+    #   spread_se  = sqrt(0.10^2 + 0.05^2)
+    #              = sqrt(0.0125)                  = 0.1118033988749895
+    #   sep_z      = 0.5 / 0.1118033988749895      = 4.472135954999579
+    #   gate       = max(0.20, 2.0*0.10)           = 0.20  -> decided
+    ev = vk.build_rollout_evidence(_result([0.75, 0.25], [0.10, 0.05]),
+                                   True, None, "graded-midgame")
+    check("evidence A: wp_spread 0.5", abs(ev["wp_spread"] - 0.5) < 1e-12,
+          repr(ev["wp_spread"]))
+    check("evidence A: wp_spread_se sqrt(0.0125)",
+          abs(ev["wp_spread_se"] - 0.1118033988749895) < 1e-12,
+          repr(ev["wp_spread_se"]))
+    check("evidence A: separation_z 4.472135954999579",
+          abs(ev["separation_z"] - 4.472135954999579) < 1e-9,
+          repr(ev["separation_z"]))
+    check("evidence A: best/runner-up indices",
+          ev["best_index"] == 0 and ev["runner_up_index"] == 1)
+    check("evidence A: gate numbers recorded",
+          abs(ev["gate"]["base_threshold"] - 0.20) < 1e-12
+          and abs(ev["gate"]["noise_floor"] - 0.20) < 1e-12
+          and abs(ev["gate"]["required_gap"] - 0.20) < 1e-12
+          and abs(ev["gate"]["min_separation_z"] - 2.0) < 1e-12,
+          str(ev["gate"]))
+    check("evidence A: decided flag + null reason",
+          ev["decided"] is True and ev["reason"] is None)
+    check("evidence A: measurement echoed verbatim",
+          ev["option_wp"] == [0.75, 0.25]
+          and ev["option_wp_se"] == [0.10, 0.05]
+          and ev["n_options"] == 2 and ev["n_per_option"] == 16
+          and ev["continuation"] == "ai-log/ai-log"
+          and ev["seed_fn"] == vk.SEED_FN)
+
+    # HAND-WORKED CASE B (3 options, best is NOT index 0, runner-up is NOT
+    # the min): wp [0.30, 0.90, 0.50], se [0.05, 0.05, 0.05].
+    #   best=1, runner_up=2, worst=0
+    #   spread     = 0.90 - 0.30                   = 0.6
+    #   spread_se  = sqrt(0.0025 + 0.0025)
+    #              = sqrt(0.005)                   = 0.07071067811865476
+    #   sep_z      = (0.90-0.50) / 0.07071067811865476
+    #              = 0.4 / 0.07071067811865476     = 5.656854249492381
+    ev = vk.build_rollout_evidence(
+        _result([0.30, 0.90, 0.50], [0.05, 0.05, 0.05]), True, None,
+        "graded-midgame")
+    check("evidence B: best=1 runner_up=2 (not the min)",
+          ev["best_index"] == 1 and ev["runner_up_index"] == 2,
+          str((ev["best_index"], ev["runner_up_index"])))
+    check("evidence B: wp_spread 0.6", abs(ev["wp_spread"] - 0.6) < 1e-12,
+          repr(ev["wp_spread"]))
+    check("evidence B: wp_spread_se sqrt(0.005)",
+          abs(ev["wp_spread_se"] - 0.07071067811865476) < 1e-12,
+          repr(ev["wp_spread_se"]))
+    check("evidence B: separation_z 5.656854249492381",
+          abs(ev["separation_z"] - 5.656854249492381) < 1e-9,
+          repr(ev["separation_z"]))
+
+    # separation_z is a DIAGNOSTIC, not the gate: this row's z is 3.53 (well
+    # over 2) yet the 0.20 spread bar still rejects it. Conflating the two is
+    # the exact mistake this field must not invite.
+    #   wp [0.55, 0.45], se [0.02, 0.02]
+    #   spread = 0.1, spread_se = sqrt(0.0008) = 0.028284271247461902
+    #   sep_z  = 0.1 / 0.028284271247461902 = 3.5355339059327378
+    ev = vk.build_rollout_evidence(_result([0.55, 0.45], [0.02, 0.02]),
+                                   False, "rollout_noise_below_threshold",
+                                   "graded-midgame")
+    check("evidence C: separation_z 3.5355339059327378",
+          abs(ev["separation_z"] - 3.5355339059327378) < 1e-9,
+          repr(ev["separation_z"]))
+    check("evidence C: high z, still under the spread bar",
+          ev["separation_z"] > 2.0
+          and ev["wp_spread"] < ev["gate"]["required_gap"]
+          and ev["decided"] is False
+          and ev["reason"] == "rollout_noise_below_threshold")
+
+    # zero SE: the difference is undefined, not infinite — must be None, and
+    # must stay JSON-serialisable (json.dumps would emit invalid `Infinity`).
+    ev = vk.build_rollout_evidence(_result([0.6, 0.4], [0.0, 0.0]),
+                                   True, None, "graded-midgame")
+    check("evidence: zero-SE separation_z is None, not inf",
+          ev["separation_z"] is None and ev["wp_spread_se"] == 0.0)
+    check("evidence: serialises as valid JSON",
+          "Infinity" not in json.dumps(ev) and "NaN" not in json.dumps(ev))
+
+    # exact tie: spread 0, z 0 — measured, comparable, never decided
+    ev = vk.build_rollout_evidence(_result([0.5, 0.5], [0.05, 0.05]),
+                                   False, "rollout_noise_below_threshold",
+                                   "graded-midgame")
+    check("evidence: exact tie -> spread 0, z 0, deterministic ranking",
+          ev["wp_spread"] == 0.0 and abs(ev["separation_z"]) < 1e-12
+          and ev["best_index"] == 0 and ev["runner_up_index"] == 1)
+
+    # all-None wp (every replay invalid): evidence still emitted, derived
+    # numbers None, and option_invalid says WHY. This is the "garbage" case
+    # that must be distinguishable from a genuine tie.
+    res = _result([None, None], [None, None])
+    res["option_invalid"] = [16, 16]
+    ev = vk.build_rollout_evidence(res, False,
+                                   "rollout_noise_below_threshold",
+                                   "graded-midgame")
+    check("evidence: all-invalid rollout still emits evidence",
+          ev["option_wp"] == [None, None] and ev["wp_spread"] is None
+          and ev["wp_spread_se"] is None and ev["separation_z"] is None
+          and ev["best_index"] is None
+          and ev["option_invalid"] == [16, 16]
+          and ev["gate"]["measurable"] is False)
+
+    # single-option degenerate shape: no runner-up, no z, no crash
+    ev = vk.build_rollout_evidence(_result([0.7], [0.05]), False,
+                                   "rollout_noise_below_threshold",
+                                   "graded-midgame")
+    check("evidence: 1 option -> runner_up/sep_z None, spread 0",
+          ev["runner_up_index"] is None and ev["separation_z"] is None
+          and ev["wp_spread"] == 0.0)
+
+    # mulligan uses the 0.15 bar in the recorded gate too
+    ev = vk.build_rollout_evidence(_result([0.62, 0.45], [0.03, 0.03]),
+                                   True, None, "mulligan")
+    check("evidence: mulligan gate records the 0.15 bar",
+          abs(ev["gate"]["base_threshold"] - 0.15) < 1e-12
+          and abs(ev["gate"]["required_gap"] - 0.15) < 1e-12,
+          str(ev["gate"]))
+
+
+def test_rejected_row_retains_evidence():
+    cand = rollout_cand()
+    addr = vk.address_of(cand, {})
+    with tempfile.TemporaryDirectory() as td:
+        fx = Path(td) / "fixture.jsonl"
+        # noise-rejected: measured wp MUST survive on the failing row
+        fx.write_text(json.dumps(fixture_record(
+            addr, [0.55, 0.45], [0.02, 0.02], cand["options"])) + "\n",
+            encoding="utf-8")
+        out, lane, verified, reason, _ = run_verify_one(
+            cand, driver=vk.FixtureRolloutDriver(str(fx)))
+        check("rejected row: still a candidate with the reason",
+              not verified and out["status"] == "candidate"
+              and out.get("unverifiable_reason")
+              == "rollout_noise_below_threshold")
+        ev = out.get("rollout_evidence")
+        check("rejected row: rollout_evidence present", isinstance(ev, dict))
+        check("rejected row: option_wp POPULATED (not None, not empty)",
+              ev.get("option_wp") == [0.55, 0.45]
+              and ev.get("option_wp_se") == [0.02, 0.02],
+              str(ev.get("option_wp")))
+        check("rejected row: spread/z computed on the failing row",
+              abs(ev["wp_spread"] - 0.1) < 1e-12
+              and abs(ev["separation_z"] - 3.5355339059327378) < 1e-9,
+              str((ev.get("wp_spread"), ev.get("separation_z"))))
+        check("rejected row: decided=False + verbatim reason",
+              ev["decided"] is False
+              and ev["reason"] == "rollout_noise_below_threshold")
+        check("rejected row: still NO answer_key", "answer_key" not in out)
+        # garbage vs tie: an all-invalid rollout is now distinguishable
+        fx.write_text(json.dumps(null_wp_record(addr, cand["options"])) + "\n",
+                      encoding="utf-8")
+        out2, _, verified2, reason2, _ = run_verify_one(
+            cand, driver=vk.FixtureRolloutDriver(str(fx)))
+        ev2 = out2.get("rollout_evidence") or {}
+        check("rejected row: all-invalid rollout distinguishable from a tie",
+              not verified2 and reason2 == "rollout_noise_below_threshold"
+              and ev2.get("wp_spread") is None
+              and ev2.get("option_invalid") == [16, 16]
+              and ev["wp_spread"] is not None,
+              str(ev2.get("option_invalid")))
+        # no measurement at all -> field ABSENT (absent != measured-and-tied)
+        out3, _, _, reason3, _ = run_verify_one(
+            cand, driver=vk.FixtureRolloutDriver(str(Path(td) / "none.jsonl")))
+        check("no measurement -> rollout_evidence absent, not empty",
+              reason3 == "no_engine_available"
+              and "rollout_evidence" not in out3)
+        out4, _, _, reason4, _ = run_verify_one(cand, driver=None)
+        check("no driver -> rollout_evidence absent",
+              reason4 == "no_engine_available"
+              and "rollout_evidence" not in out4)
+
+
+def test_verified_row_carries_evidence():
+    cand = rollout_cand()
+    addr = vk.address_of(cand, {})
+    with tempfile.TemporaryDirectory() as td:
+        fx = Path(td) / "fixture.jsonl"
+        # wp [0.9, 0.2], se [0.05, 0.05]:
+        #   spread    = 0.7
+        #   spread_se = sqrt(0.005) = 0.07071067811865476
+        #   sep_z     = 0.7 / 0.07071067811865476 = 9.899494936611665
+        fx.write_text(json.dumps(fixture_record(
+            addr, [0.9, 0.2], [0.05, 0.05], cand["options"])) + "\n",
+            encoding="utf-8")
+        out, lane, verified, reason, _ = run_verify_one(
+            cand, driver=vk.FixtureRolloutDriver(str(fx)))
+        check("verified row: promoted", verified, str(reason))
+        ev = out.get("rollout_evidence") or {}
+        check("verified row: carries rollout_evidence too",
+              ev.get("option_wp") == [0.9, 0.2]
+              and ev.get("decided") is True and ev.get("reason") is None)
+        check("verified row: spread comparable with rejected rows",
+              abs(ev["wp_spread"] - 0.7) < 1e-12
+              and abs(ev["wp_spread_se"] - 0.07071067811865476) < 1e-12
+              and abs(ev["separation_z"] - 9.899494936611665) < 1e-9,
+              str((ev.get("wp_spread"), ev.get("separation_z"))))
+
+
+def test_answer_key_unchanged():
+    """Nothing that previously read answer_key sees a behaviour change."""
+    # exhaustive lane: same three keys as before, evidence never added
+    out, _, verified, _, _ = run_verify_one(lethal_cand())
+    ak = out.get("answer_key") or {}
+    check("answer_key (exhaustive) key set frozen",
+          verified and set(ak) == {"verified_by", "option_scores", "caveats"},
+          str(sorted(ak)))
+    check("exhaustive row has no rollout_evidence (nothing was rolled out)",
+          "rollout_evidence" not in out)
+    cand = rollout_cand()
+    addr = vk.address_of(cand, {})
+    with tempfile.TemporaryDirectory() as td:
+        fx = Path(td) / "fixture.jsonl"
+        fx.write_text(json.dumps(fixture_record(
+            addr, [0.9, 0.2], [0.05, 0.05], cand["options"])) + "\n",
+            encoding="utf-8")
+        out, _, verified, _, _ = run_verify_one(
+            cand, driver=vk.FixtureRolloutDriver(str(fx)))
+        ak = out.get("answer_key") or {}
+        check("answer_key (rollout) key set frozen",
+              verified and set(ak) == {"verified_by", "rollout",
+                                       "option_scores", "option_wp",
+                                       "option_wp_se", "caveats"},
+              str(sorted(ak)))
+        check("answer_key values unchanged",
+              ak["verified_by"] == "rollout"
+              and ak["option_scores"] == [10, 0]
+              and ak["option_wp"] == [0.9, 0.2]
+              and ak["option_wp_se"] == [0.05, 0.05]
+              and ak["rollout"]["n_per_option"] == 16
+              and ak["caveats"] == ["single_deal_hidden_info"])
+        check("rollout_evidence is TOP LEVEL, never inside answer_key",
+              "rollout_evidence" not in ak
+              and "rollout_evidence" in out)
+        # and a rejected row never grows a half-filled answer_key
+        fx.write_text(json.dumps(fixture_record(
+            addr, [0.55, 0.45], [0.02, 0.02], cand["options"])) + "\n",
+            encoding="utf-8")
+        out, _, verified, _, _ = run_verify_one(
+            cand, driver=vk.FixtureRolloutDriver(str(fx)))
+        check("candidate row carries evidence but NO answer_key",
+              not verified and "answer_key" not in out
+              and out["status"] == "candidate"
+              and "rollout_evidence" in out)
+
+
+def test_threshold_flags():
+    # defaults are exactly the pre-flag constants
+    check("default gap threshold 0.20",
+          abs(vk.DEFAULT_GAP_THRESHOLD - 0.20) < 1e-12)
+    check("default mulligan gap threshold 0.15",
+          abs(vk.DEFAULT_MULLIGAN_GAP_THRESHOLD - 0.15) < 1e-12)
+    check("default min separation z 2.0",
+          abs(vk.DEFAULT_MIN_SEPARATION_Z - 2.0) < 1e-12)
+    # gap 0.10, se 0.02: rejected at the default bar, accepted at 0.05
+    scores, reason = vk.score_from_wp([0.55, 0.45], [0.02, 0.02],
+                                      "graded-midgame")
+    check("flag: default bar still rejects gap 0.10", scores is None)
+    scores, reason = vk.score_from_wp([0.55, 0.45], [0.02, 0.02],
+                                      "graded-midgame", 0.05)
+    check("flag: --gap-threshold 0.05 admits it",
+          scores == [10, 0] and reason is None, str(scores))
+    # raising Z re-rejects it: required = max(0.05, 6.0*0.02) = 0.12 > 0.10
+    scores, reason = vk.score_from_wp([0.55, 0.45], [0.02, 0.02],
+                                      "graded-midgame", 0.05, 0.15, 6.0)
+    check("flag: --min-separation-z 6.0 re-rejects it (0.12 bar)",
+          scores is None and reason == "rollout_noise_below_threshold")
+    # mulligan bar is independently tunable
+    scores, _ = vk.score_from_wp([0.62, 0.45], [0.03, 0.03], "mulligan",
+                                 0.20, 0.30)
+    check("flag: --mulligan-gap-threshold 0.30 rejects gap 0.17",
+          scores is None)
+    # a tightened bar must never be silently bypassed by a zeroed threshold
+    scores, _ = vk.score_from_wp([0.5, 0.5], [0.0, 0.0], "graded-midgame",
+                                 0.0, 0.0, 0.0)
+    check("flag: zeroed thresholds still reject a zero gap (no div-by-zero)",
+          scores is None)
+    # end to end: the flag reaches verify_one and the summary records it
+    cand = rollout_cand()
+    addr = vk.address_of(cand, vk.deck_name_index())
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        fx = td / "f.jsonl"
+        fx.write_text(json.dumps(fixture_record(
+            addr, [0.55, 0.45], [0.02, 0.02], cand["options"])) + "\n",
+            encoding="utf-8")
+        cands = td / "c.jsonl"
+        cands.write_text(json.dumps(cand) + "\n", encoding="utf-8")
+        with contextlib.redirect_stderr(io.StringIO()):
+            rc = vk.main([str(cands), "--out", str(td / "p.jsonl"),
+                          "--driver", "fixture", "--fixture", str(fx),
+                          "--summary", str(td / "s.json")])
+        s = json.loads((td / "s.json").read_text(encoding="utf-8"))
+        check("cli: default thresholds recorded in summary",
+              rc == 0 and s["n_verified"] == 0
+              and abs(s["thresholds"]["gap_threshold"] - 0.20) < 1e-12
+              and abs(s["thresholds"]["min_separation_z"] - 2.0) < 1e-12,
+              str(s.get("thresholds")))
+        with contextlib.redirect_stderr(io.StringIO()):
+            rc = vk.main([str(cands), "--out", str(td / "p2.jsonl"),
+                          "--driver", "fixture", "--fixture", str(fx),
+                          "--summary", str(td / "s2.json"),
+                          "--gap-threshold", "0.05"])
+        s2 = json.loads((td / "s2.json").read_text(encoding="utf-8"))
+        check("cli: --gap-threshold 0.05 verifies the same row",
+              rc == 0 and s2["n_verified"] == 1
+              and abs(s2["thresholds"]["gap_threshold"] - 0.05) < 1e-12,
+              str((s2["n_verified"], s2.get("thresholds"))))
+
+
+def test_summary_spread_distribution():
+    # hand-worked quantiles over spreads [0.1, 0.2, 0.3, 0.9] (type 7):
+    #   p25: pos = 0.25*3 = 0.75 -> 0.1 + 0.75*(0.2-0.1) = 0.175
+    #   p50: pos = 0.50*3 = 1.5  -> 0.2 + 0.50*(0.3-0.2) = 0.25
+    #   p75: pos = 0.75*3 = 2.25 -> 0.3 + 0.25*(0.9-0.3) = 0.45
+    vals = [0.1, 0.2, 0.3, 0.9]
+    check("quantile p25 = 0.175", abs(vk.quantile(vals, 0.25) - 0.175) < 1e-12,
+          repr(vk.quantile(vals, 0.25)))
+    check("quantile median = 0.25", abs(vk.quantile(vals, 0.5) - 0.25) < 1e-12,
+          repr(vk.quantile(vals, 0.5)))
+    check("quantile p75 = 0.45", abs(vk.quantile(vals, 0.75) - 0.45) < 1e-12,
+          repr(vk.quantile(vals, 0.75)))
+    check("quantile of a single value", vk.quantile([0.42], 0.5) == 0.42)
+    check("quantile of nothing is None", vk.quantile([], 0.5) is None)
+    evs = [vk.build_rollout_evidence(_result([0.5 + s / 2.0, 0.5 - s / 2.0],
+                                             [0.01, 0.01]),
+                                     s >= 0.2, None if s >= 0.2 else
+                                     "rollout_noise_below_threshold",
+                                     "graded-midgame")
+           for s in vals]
+    res = _result([None, None], [None, None])
+    res["option_invalid"] = [16, 16]
+    evs.append(vk.build_rollout_evidence(
+        res, False, "rollout_noise_below_threshold", "graded-midgame"))
+    d = vk.spread_distribution(evs + [None])  # None = an exhaustive row
+    check("dist: counts measured rows only",
+          d["n_positions_measured"] == 5 and d["n_no_wp"] == 1
+          and d["wp_spread"]["n"] == 4,
+          str((d["n_positions_measured"], d["n_no_wp"])))
+    check("dist: decided/undecided split",
+          d["n_decided"] == 3 and d["n_undecided"] == 2,
+          str((d["n_decided"], d["n_undecided"])))
+    q = d["wp_spread"]
+    check("dist: quantiles match the hand-worked values",
+          abs(q["min"] - 0.1) < 1e-9 and abs(q["p25"] - 0.175) < 1e-9
+          and abs(q["median"] - 0.25) < 1e-9 and abs(q["p75"] - 0.45) < 1e-9
+          and abs(q["max"] - 0.9) < 1e-9, str(q))
+    # bins of 0.05: 0.1->2, 0.2->4, 0.3->6 (NOT 5: float underestimation),
+    # 0.9->18; every measured spread lands in exactly one bin.
+    counts = d["wp_spread_hist"]["counts"]
+    check("dist: histogram bins (0.30 in bin 6, not 5)",
+          len(counts) == 20 and sum(counts) == 4
+          and counts[2] == 1 and counts[4] == 1 and counts[6] == 1
+          and counts[18] == 1 and counts[5] == 0, str(counts))
+    check("dist: spread 1.0 lands in the closed top bin",
+          vk.spread_distribution([vk.build_rollout_evidence(
+              _result([1.0, 0.0], [0.01, 0.01]), True, None,
+              "graded-midgame")])["wp_spread_hist"]["counts"][19] == 1)
+    check("dist: empty input is None-safe",
+          vk.spread_distribution([])["wp_spread"]["median"] is None)
 
 
 def test_rollout_lane_fake_engine():
@@ -637,6 +1061,12 @@ def test_cli_end_to_end():
               all(k in yr for k in ("est", "se", "ci95", "n"))
               and abs(yr["est"] - 2.0 / 3.0) < 1e-9)
         check("cli: coverage_note present", bool(s.get("coverage_note")))
+        rs = s.get("rollout_spread") or {}
+        check("cli: summary carries the wp_spread distribution",
+              rs.get("n_positions_measured") == 1 and rs.get("n_decided") == 1
+              and rs.get("n_no_wp") == 0
+              and abs(rs["wp_spread"]["median"] - 0.7) < 1e-9
+              and len(rs["wp_spread_hist"]["counts"]) == 20, str(rs))
         check("cli: bad line landed in warnings",
               any("unparseable" in w for w in s.get("warnings", [])))
         # --lane exhaustive filters the rollout row out instead of running it

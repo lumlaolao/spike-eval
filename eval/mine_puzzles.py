@@ -60,6 +60,24 @@ DIR is scanned recursively for game-*.jsonl (so both a flat corpus like
 runs/stage0-calibration and a tree like runs/tournament-1/match-*/ work).
 Deterministic given --sample-seed: re-running with the same inputs and seed
 reproduces byte-identical output.
+
+Decision-relevance prior (ADDITIVE fields relevance_score /
+relevance_signals on every candidate; opt-in --min-relevance filter):
+  Motivated by measured data (seeds 20001-20016 corpus): the rollout lane
+  verified 0/4 graded-midgame candidates at n_per_option=16, all
+  rollout_noise_below_threshold — legal positions whose options did not
+  differ in win probability. score_relevance() is a TEXT-ONLY PRIOR that a
+  position's options MIGHT differ in value. It is UNVALIDATED: it has never
+  been calibrated against measured wp_spread from verify_keys' rollout
+  lane, and it MUST be calibrated before anyone trusts it as a filter (mine with the
+  fields, verify unfiltered, then regress score vs wp_spread). A high
+  score does NOT mean the options differ — only that they might; a low
+  score means the option text itself shows nothing to disagree about
+  (single real option, N near-identical land drops). Known blind spots are
+  documented on score_relevance(). Default behavior is UNCHANGED: without
+  --min-relevance nothing is filtered — every candidate is still emitted,
+  carrying its score and the exact signals that fired so a low score can
+  be audited rather than trusted.
 """
 
 import argparse
@@ -302,6 +320,182 @@ CHECKS = {
 }
 
 
+# ------------------------------------------------- decision-relevance prior
+
+# Score composition weights, module-level so audits and the calibration run
+# can see exactly what a number was made of (relevance_signals["fired"]
+# repeats the contributing terms per candidate). Sum of all terms == 1.0.
+RELEVANCE_WEIGHTS = {
+    # >=2 distinct real (non-PASS) options exist at all — the minimum bar
+    # for "there is something to decide". Weak on its own.
+    "base": 0.2,
+    # The real options span >=2 distinct ACTION KINDS (cast vs play-land vs
+    # activate vs ...). Strongest text-only signal: same-kind menus are
+    # where the measured degenerate cases live (N fetchlands, N basics).
+    # Blind spot: attackers/blockers menus are all one kind ("object") by
+    # construction, so they never earn this term and lean on board_tension.
+    "kind_diversity": 0.3,
+    # Some real option is removal/burn/counter/bounce — matched from the
+    # oracle text in the option's [brackets] plus the curated DAMAGE_SPELLS
+    # / ANSWER_CARDS names. Interaction spells are the classic "when you
+    # cast this matters" cards. Curated + regex, so unknown wordings are
+    # invisible (affects yield only, stated limitation).
+    "interaction": 0.25,
+    # Life totals are within reach of board power (either direction) per
+    # the same helpers the category checks use. WEAK signal: prompt text
+    # cannot see combat math subtleties, and _castable_burn is color-blind.
+    "board_tension": 0.15,
+    # >=3 distinct card names among real options — a wide menu. Weakest
+    # signal (wide can still be homogeneous); deliberately smallest weight.
+    "wide_menu": 0.1,
+}
+# Ceiling for menus whose every real option is a land drop (basic OR fetch
+# activation): "play Polluted Delta" vs "play Bloodstained Mire" is usually
+# not a decision. Near-floor, not zero — land sequencing is OCCASIONALLY
+# real, and this is a prior, not a verdict.
+RELEVANCE_ALL_LAND_CEILING = 0.05
+
+_LANDISH_KINDS = frozenset(("play-land", "fetch-land"))
+
+# Oracle-text interaction cues (options embed rules text in [brackets]).
+_INTERACTION_TEXT_RE = re.compile(
+    r"deals \d+ damage|counter target|destroy target|exile target"
+    r"|return target|sacrifices? (a|target)", re.I)
+
+_OPTION_NAME_CUT_RE = re.compile(r"\s*\d*\{|\s*\[|\s+\(")
+
+
+def classify_option(opt):
+    """Bucket one option string into a coarse action kind, from the menu
+    formats actually observed in the corpora (see mining ground-truth note
+    in the module docstring): 'PASS (do nothing)', 'PLAY LAND X',
+    'CAST X {cost} [oracle]', fetch/utility-land activations printed as
+    'CAST X [{T}, ...]', KEEP/MULLIGAN, YES/NO confirms, and object menus
+    ('Name (P/T)', 'Name [Deck's Hand]'). Unknown formats -> 'other'
+    (never dropped, just uninformative)."""
+    s = (opt or "").strip()
+    u = s.upper()
+    if u.startswith("PASS") or "(DO NOTHING)" in u or "(DECLINE)" in u or u == "NO":
+        return "pass"
+    if u.startswith("PLAY LAND"):
+        return "play-land"
+    if u.startswith("CAST "):
+        bracket = s.find("[")
+        if bracket != -1 and s[bracket + 1:].lstrip().startswith("{T}"):
+            # tap-activation printed by the menu as CAST (Wasteland, fetches)
+            if "search your library" in s.lower():
+                return "fetch-land"
+            return "activate"
+        return "cast"
+    if u.startswith("ACTIVATE"):
+        return "activate"
+    if u == "KEEP":
+        return "keep"
+    if u == "MULLIGAN":
+        return "mulligan"
+    if u.startswith("YES"):
+        return "yes"
+    if _PT_RE.search(s) or "'s Hand]" in s or "'s Battlefield]" in s:
+        return "object"
+    return "other"
+
+
+def _option_name(opt):
+    """Approximate card name of an option: strip the action verb, cut at
+    the first cost/bracket/paren. Good enough for counting DISTINCT names;
+    not a card-database lookup."""
+    s = (opt or "").strip()
+    for pre in ("CAST ", "PLAY LAND ", "ACTIVATE "):
+        if s.startswith(pre):
+            s = s[len(pre):]
+            break
+    m = _OPTION_NAME_CUT_RE.search(s)
+    return (s[:m.start()] if m else s).strip()
+
+
+def score_relevance(d):
+    """UNVALIDATED text-only PRIOR that this decision's options might
+    differ in value. Returns (score in [0,1], signals dict).
+
+    This CANNOT compute win probability — mining is text-only. Decision-
+    relevance is only ever CONFIRMED downstream, from the wp_spread the
+    verify_keys rollout lane measures; this score must be calibrated
+    against that before being used as a filter (see module docstring).
+
+    Floors (returned score is the floor regardless of other signals):
+      * 0 or 1 real options after excluding the PASS/decline slot -> 0.0.
+        Nothing to choose between. HONEST BLIND SPOT: this floors
+        cast-X-vs-PASS timing decisions and YES/NO confirms (e.g. pay for
+        Daze?), some of which are real decisions — text alone cannot rank
+        "now vs later", and the measured corpus says most of these don't
+        move WP. The signals object records n_real_options so any
+        calibration pass can revisit this choice.
+      * every real option is a land drop -> RELEVANCE_ALL_LAND_CEILING.
+    Otherwise a weighted sum of RELEVANCE_WEIGHTS terms (documented there,
+    weaknesses included); signals["fired"] lists the contributing terms."""
+    options = d.get("options") or ()
+    prompt = d.get("prompt") or ""
+
+    kinds = [classify_option(o) for o in options]
+    real = [(o, k) for o, k in zip(options, kinds) if k != "pass"]
+    real_kinds = sorted(set(k for _o, k in real))
+    kind_counts = {}
+    for _o, k in sorted(real, key=lambda p: p[1]):
+        kind_counts[k] = kind_counts.get(k, 0) + 1
+    names = sorted(set(_option_name(o) for o, _k in real))
+
+    interaction = []
+    for o, _k in real:
+        hit = bool(_INTERACTION_TEXT_RE.search(o))
+        if not hit:
+            hit = any(n in o for n in DAMAGE_SPELLS) or any(n in o for n in ANSWER_CARDS)
+        if hit:
+            interaction.append(_option_name(o))
+    interaction = sorted(set(interaction))
+
+    you_part, opp_part = split_you_opp(prompt)
+    own_life = _first_int(_OWN_LIFE_RE, prompt)
+    opp_life = _first_int(_OPP_LIFE_RE, prompt)
+    own_untapped = _board_power(you_part, skip_tapped_or_sick=True)
+    opp_power = _board_power(opp_part)
+    burn, _burn_names = _castable_burn(you_part)
+    tension_offense = bool(opp_life) and (own_untapped + burn) * 2 >= opp_life
+    tension_defense = bool(own_life) and opp_power * 2 >= own_life
+
+    signals = {
+        "n_options": len(options),
+        "n_real_options": len(real),
+        "kind_counts": kind_counts,
+        "n_distinct_kinds": len(real_kinds),
+        "n_distinct_names": len(names),
+        "all_real_landish": bool(real) and all(k in _LANDISH_KINDS for _o, k in real),
+        "interaction_options": interaction,
+        "tension_offense": tension_offense,
+        "tension_defense": tension_defense,
+        "fired": {},
+    }
+
+    if len(real) <= 1:
+        signals["floor_reason"] = ("no_real_options" if not real
+                                    else "single_real_option")
+        return 0.0, signals
+    if signals["all_real_landish"]:
+        signals["floor_reason"] = "all_land_options"
+        return RELEVANCE_ALL_LAND_CEILING, signals
+
+    fired = {"base": RELEVANCE_WEIGHTS["base"]}
+    if len(real_kinds) >= 2:
+        fired["kind_diversity"] = RELEVANCE_WEIGHTS["kind_diversity"]
+    if interaction:
+        fired["interaction"] = RELEVANCE_WEIGHTS["interaction"]
+    if tension_offense or tension_defense:
+        fired["board_tension"] = RELEVANCE_WEIGHTS["board_tension"]
+    if len(names) >= 3:
+        fired["wide_menu"] = RELEVANCE_WEIGHTS["wide_menu"]
+    signals["fired"] = fired
+    return round(min(1.0, sum(fired.values())), 2), signals
+
+
 # ---------------------------------------------------------------- sampling
 
 def _sample_hash(seed, rid):
@@ -431,6 +625,14 @@ def make_candidate(category, d, g, corpus, game_file, decision_index,
         "split": "open",
         "category_evidence": evidence,
     }
+    # ADDITIVE (schema v1 consumers read via .get() and ignore these):
+    # unvalidated decision-relevance prior + audit trail of which text
+    # signals produced it. Present on EVERY candidate — a low score is
+    # emitted and auditable, never silently dropped (only the opt-in
+    # --min-relevance flag filters).
+    rel_score, rel_signals = score_relevance(d)
+    out["relevance_score"] = rel_score
+    out["relevance_signals"] = rel_signals
     if seed_block is not None:
         out["seed_block"] = seed_block
     if excluded_from_sft_overlap is not None:
@@ -541,6 +743,38 @@ def print_summary(categories, stats, final_rows, corpus_totals, any_meta_given, 
               % (cat, eligible_n, matched_n, emitted_n, per_corpus or "-"), file=out)
 
 
+def print_relevance_summary(categories, final_rows, relevance_dropped,
+                            min_relevance, out):
+    """Per-category distribution of the emitted candidates' relevance
+    scores (UNVALIDATED prior — see module docstring), plus, when
+    --min-relevance was given, how many raw candidates it dropped before
+    capping."""
+    print("\nrelevance_score distribution of emitted candidates "
+          "(unvalidated prior — calibrate vs rollout wp_spread before "
+          "filtering on it):", file=out)
+    edges = "  %-16s %5s %5s %5s | [0,.2) [.2,.4) [.4,.6) [.6,.8) [.8,1]"
+    print(edges % ("category", "n", "min", "max"), file=out)
+    for cat in categories:
+        scores = sorted(score_relevance(r["d"])[0]
+                        for r in final_rows.get(cat, []))
+        if not scores:
+            print("  %-16s %5d %5s %5s |" % (cat, 0, "-", "-"), file=out)
+            continue
+        buckets = [0, 0, 0, 0, 0]
+        for s in scores:
+            buckets[min(int(s * 5), 4)] += 1
+        print("  %-16s %5d %5.2f %5.2f | %6d %7d %7d %7d %6d"
+              % (cat, len(scores), scores[0], scores[-1],
+                 buckets[0], buckets[1], buckets[2], buckets[3], buckets[4]),
+              file=out)
+    if min_relevance is not None:
+        total = sum(relevance_dropped.values())
+        per = ", ".join("%s=%d" % (c, relevance_dropped[c])
+                        for c in categories if relevance_dropped.get(c))
+        print("  --min-relevance %.2f dropped %d raw candidates before "
+              "capping (%s)" % (min_relevance, total, per or "none"), file=out)
+
+
 # --------------------------------------------------------------------- CLI
 
 def main(argv=None):
@@ -557,6 +791,14 @@ def main(argv=None):
                           "mulligan's default of no cap)")
     ap.add_argument("--sample-seed", type=int, default=20260725,
                      help="determinism seed for cap/stratified sampling")
+    ap.add_argument("--min-relevance", type=float, default=None,
+                     metavar="SCORE",
+                     help="drop candidates whose relevance_score is below "
+                          "SCORE (applied BEFORE per-category caps, so caps "
+                          "fill from the higher-prior pool). Default: no "
+                          "filtering — the score is an UNVALIDATED prior "
+                          "(see module docstring); do not filter until it "
+                          "has been calibrated against rollout wp_spread")
     ap.add_argument("--exclude-train-meta", nargs="*", default=[],
                      metavar="PATH", help="datasets/*/meta.jsonl file(s); "
                      "games that fed an SFT dataset are skipped")
@@ -581,9 +823,15 @@ def main(argv=None):
         print("WARNING: %s" % w, file=sys.stderr)
 
     final_rows = {}
+    relevance_dropped = {}
     for cat in categories:
         cap = args.max_per_category if args.max_per_category is not None else DEFAULT_TARGETS[cat]
         rows = raw_rows.get(cat, [])
+        if args.min_relevance is not None:
+            kept = [r for r in rows
+                    if score_relevance(r["d"])[0] >= args.min_relevance]
+            relevance_dropped[cat] = len(rows) - len(kept)
+            rows = kept
         if cat == "graded-midgame":
             final_rows[cat] = stratified_by_turn(rows, cap, args.sample_seed)
         else:
@@ -604,6 +852,8 @@ def main(argv=None):
 
     print("\nwrote %d candidates -> %s" % (n_written, out_path))
     print_summary(categories, stats, final_rows, corpus_totals, any_meta_given, sys.stdout)
+    print_relevance_summary(categories, final_rows, relevance_dropped,
+                            args.min_relevance, sys.stdout)
     return 0
 
 

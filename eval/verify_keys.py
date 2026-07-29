@@ -25,9 +25,33 @@ lanes:
     driver.rollout() and EVAL-DESIGN §3.3 scoring:
       score(o) = round_half_up(10 * (wp[o]-wp_min) / (wp_max-wp_min)),
       any option with wp[o] + 1.96*se[o] >= wp_max is forced to 10,
-      gap gate: wp_max - wp_min >= max(threshold, 2*max(se)) where threshold
+      gap gate: wp_max - wp_min >= max(threshold, Z*max(se)) where threshold
       is 0.15 for mulligan (EVAL-DESIGN §3.2's mulligan-specific bar) and
-      0.20 otherwise, else `rollout_noise_below_threshold`.
+      0.20 otherwise and Z is --min-separation-z (default 2.0), else
+      `rollout_noise_below_threshold`.
+
+ROLLOUT EVIDENCE (additive, both outcomes). Whenever the driver actually
+returns a measurement (ok=True), the row carries `rollout_evidence` — the
+per-option WPs, their SEs, the raw win/loss/draw/invalid counts, the spread
+(wp_max - wp_min) with a propagated SE, best / runner-up indices, a
+`separation_z` diagnostic, and the exact gate numbers the decision used. It is
+emitted for VERIFIED rows too, so spread is comparable across decided and
+undecided positions, and it is written at the TOP LEVEL of the row — never
+inside answer_key, which stays the verified key and only exists on
+status="verified" rows. Without it, "the options genuinely tie" and "the
+rollout returned garbage" (every replay invalid -> wp all None) are
+indistinguishable from the artifact, and that is the only decision-relevance
+diagnostic available before committing to a large generation block.
+`rollout_evidence` is ABSENT when no measurement happened (driver missing,
+precondition refused, probe drift): absent = never measured, present with
+option_wp all-None = measured and useless, present with a small wp_spread =
+measured and genuinely tied.
+
+separation_z is a DIAGNOSTIC, not the gate: it is
+(wp_best - wp_runner_up) / sqrt(se_best^2 + se_runner_up^2), while the gate
+compares the full spread (max - min) against max(threshold, Z*max(se)). A
+position can have a large separation_z and still be rejected (and vice versa);
+`rollout_evidence.gate` records exactly what was compared.
 
 v1 COVERAGE (the scope decision, do not widen — reported in the summary):
   lethal-now @ play          -> exhaustive lane
@@ -58,7 +82,24 @@ Usage:
       [--lane exhaustive|rollout|both] [--n-per-option 16] \\
       [--forge-home ~/code/forge] [--driver engine|fixture|none] \\
       [--fixture FILE.jsonl] [--max-positions N] [--jobs 1] \\
+      [--gap-threshold 0.20] [--mulligan-gap-threshold 0.15] \\
+      [--min-separation-z 2.0] \\
       [--summary summary.json] [--json] [--dry-run]
+
+Gate knobs (all three were hard-coded constants before; the defaults below
+reproduce the previous behaviour byte-for-byte, and the summary echoes the
+values actually used in `thresholds`):
+  --gap-threshold           0.20  absolute win-probability units [0,1]; the
+                                  floor on wp_max - wp_min for non-mulligan.
+  --mulligan-gap-threshold  0.15  same units, mulligan-only bar (EVAL-DESIGN
+                                  §3.2).
+  --min-separation-z        2.0   dimensionless multiple of the LARGEST
+                                  per-option SE; the noise floor is
+                                  Z*max(se) and the gate requires
+                                  wp_max - wp_min >= max(threshold, Z*max(se)).
+Raising any of them makes the lane stricter; lowering them makes it looser —
+a lowered bar is a real weakening and the summary records it so an artifact
+can never hide which bar it was verified under.
 
 Default --driver is `none`: pure exhaustive lane, zero engine, zero egress —
 runnable and testable with no Forge checkout. Nothing in this tool ever
@@ -73,7 +114,15 @@ WHAT WOULD MAKE THIS FAIL:
     smaller than OPP life, where every option is lethal (degenerate), or
     where the stack is not empty — test_verify_keys.py exercises all three;
   * the rollout lane minting a key from a rollout whose WP gap the rollout
-    cannot statistically distinguish (gap < max(threshold, 2*SE));
+    cannot statistically distinguish (gap < max(threshold, Z*SE));
+  * a REJECTED rollout row losing the measured evidence — rollout_evidence
+    missing, or its option_wp emptied — which would make "genuine tie" and
+    "rollout returned garbage" indistinguishable again;
+  * rollout_evidence appearing INSIDE answer_key, or answer_key appearing on
+    a status="candidate" row (a half-filled answer_key later misread as a key);
+  * wp_spread / wp_spread_se / separation_z drifting from
+    max-min / sqrt(se_hi^2+se_lo^2) / (best-runner_up)/sqrt(se^2+se^2) — the
+    tests pin hand-worked numbers for all three;
   * a count-encoded row (attackers/blockers/discard/...) receiving a
     per-option key — undefined by construction, asserted never to happen;
   * dropping or repurposing any field the miner emitted (schemas are
@@ -85,6 +134,7 @@ WHAT WOULD MAKE THIS FAIL:
 import argparse
 import datetime
 import hashlib
+import itertools
 import json
 import math
 import os
@@ -117,6 +167,18 @@ DETERMINISTIC_CONTROLLERS = frozenset(("floor", "random", "ai", "ai-log"))
 ROLLOUT_CONTINUATION = "ai-log/ai-log"
 DEFAULT_N_PER_OPTION = 16
 
+# Gate knobs — formerly literals inside score_from_wp, now the CLI defaults.
+# Units: the two gap thresholds are absolute win-probability units in [0,1];
+# MIN_SEPARATION_Z is a dimensionless multiple of the largest per-option SE.
+DEFAULT_GAP_THRESHOLD = 0.20
+DEFAULT_MULLIGAN_GAP_THRESHOLD = 0.15
+DEFAULT_MIN_SEPARATION_Z = 2.0
+
+# wp_spread histogram: 20 fixed bins of width 0.05 over [0, 1]. Bin i covers
+# [i*0.05, (i+1)*0.05); the last bin is closed so spread == 1.0 lands in it.
+SPREAD_BIN_WIDTH = 0.05
+SPREAD_N_BINS = 20
+
 SEED_FN = "mix64(base_seed ^ (i*C1) ^ (j*C2))"
 EMPTY_STACK_MARK = "stack (top first): (empty)"
 
@@ -144,6 +206,10 @@ COVERAGE_NOTE = (
 
 def _utcnow():
     return datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+
+
+def _fmt3(x):
+    return "n/a" if x is None else "%.3f" % x
 
 
 def rollout_key(address):
@@ -251,14 +317,38 @@ def adjudicate_exhaustive(cand):
 
 # ------------------------------------------------------------ rollout scoring
 
-def score_from_wp(option_wp, option_wp_se, category):
+def base_threshold_for(category, gap_threshold=DEFAULT_GAP_THRESHOLD,
+                       mulligan_gap_threshold=DEFAULT_MULLIGAN_GAP_THRESHOLD):
+    """The category-specific absolute WP bar (EVAL-DESIGN 3.2/3.3)."""
+    return mulligan_gap_threshold if category == "mulligan" else gap_threshold
+
+
+def required_gap(ses, category, gap_threshold=DEFAULT_GAP_THRESHOLD,
+                 mulligan_gap_threshold=DEFAULT_MULLIGAN_GAP_THRESHOLD,
+                 min_separation_z=DEFAULT_MIN_SEPARATION_Z):
+    """max(category bar, Z*max(se)) — the spread a rollout must show to decide.
+    -> (required, base_threshold, noise_floor); noise_floor None when no SE."""
+    base = base_threshold_for(category, gap_threshold, mulligan_gap_threshold)
+    usable = [s for s in (ses or []) if s is not None]
+    if not usable:
+        return base, base, None
+    floor = min_separation_z * max(usable)
+    return max(base, floor), base, floor
+
+
+def score_from_wp(option_wp, option_wp_se, category,
+                  gap_threshold=DEFAULT_GAP_THRESHOLD,
+                  mulligan_gap_threshold=DEFAULT_MULLIGAN_GAP_THRESHOLD,
+                  min_separation_z=DEFAULT_MIN_SEPARATION_Z):
     """EVAL-DESIGN 3.3 mapping. -> (option_scores or None, reason or None).
 
-    Gap gate: wp_max - wp_min >= max(threshold, 2*max(se)); threshold 0.15
-    for mulligan (3.2's category-specific bar), 0.20 otherwise. round is
-    HALF-UP (floor(x+0.5)) so scores don't depend on Python's banker's
-    rounding. Options whose 95% CI overlaps wp_max are forced to 10 (never
-    punish ties the rollout cannot distinguish)."""
+    Gap gate: wp_max - wp_min >= max(threshold, Z*max(se)); threshold 0.15
+    for mulligan (3.2's category-specific bar), 0.20 otherwise, Z 2.0 —
+    all three are the CLI defaults, and calling this with three positional
+    args reproduces the pre-flag behaviour exactly. round is HALF-UP
+    (floor(x+0.5)) so scores don't depend on Python's banker's rounding.
+    Options whose 95% CI overlaps wp_max are forced to 10 (never punish ties
+    the rollout cannot distinguish)."""
     if not option_wp or any(w is None for w in option_wp):
         return None, "rollout_noise_below_threshold"
     ses = [s for s in (option_wp_se or []) if s is not None]
@@ -267,8 +357,11 @@ def score_from_wp(option_wp, option_wp_se, category):
     wp_min = min(option_wp)
     wp_max = max(option_wp)
     gap = wp_max - wp_min
-    threshold = 0.15 if category == "mulligan" else 0.20
-    if gap < max(threshold, 2.0 * max(ses)):
+    req, _base, _floor = required_gap(ses, category, gap_threshold,
+                                      mulligan_gap_threshold, min_separation_z)
+    # gap <= 0 is a total tie: never divisible, never decision-relevant, and
+    # the only way a zeroed-out threshold could reach the division below.
+    if gap <= 0.0 or gap < req:
         return None, "rollout_noise_below_threshold"
     scores = []
     for i, w in enumerate(option_wp):
@@ -278,6 +371,86 @@ def score_from_wp(option_wp, option_wp_se, category):
         if se is not None and w + 1.96 * se >= wp_max:
             scores[i] = 10
     return scores, None
+
+
+# ------------------------------------------------------------ rollout evidence
+
+def _rank_indices(option_wp):
+    """Indices sorted by WP descending, ties broken by lowest index (stable
+    and deterministic — two options at the same WP always rank the same way)."""
+    return sorted(range(len(option_wp)), key=lambda i: (-option_wp[i], i))
+
+
+def _se_of_difference(se_a, se_b):
+    """SE of (wp_a - wp_b) treating the two rollout batches as independent
+    (they are: disjoint seed streams). None if either SE is missing."""
+    if se_a is None or se_b is None:
+        return None
+    return math.sqrt(se_a * se_a + se_b * se_b)
+
+
+def build_rollout_evidence(result, decided, reason, category,
+                           gap_threshold=DEFAULT_GAP_THRESHOLD,
+                           mulligan_gap_threshold=DEFAULT_MULLIGAN_GAP_THRESHOLD,
+                           min_separation_z=DEFAULT_MIN_SEPARATION_Z):
+    """The measured rollout, retained on the row WHATEVER the verdict.
+
+    Emitted for verified and unverifiable rows alike so wp_spread is
+    comparable across them. Every derived number degrades to None rather than
+    raising: an all-invalid rollout (option_wp all None) must still produce a
+    row that SAYS SO instead of vanishing. `separation_z` is a diagnostic on
+    best-vs-runner-up; the gate block records the spread comparison that
+    actually decided the row."""
+    wp = list(result.get("option_wp") or [])
+    se = list(result.get("option_wp_se") or [])
+    n_opt = result.get("n_options")
+    ev = {
+        "schema": "rollout-evidence.v1",
+        "option_wp": wp,
+        "option_wp_se": se,
+        "option_wins": list(result.get("option_wins") or []),
+        "option_losses": list(result.get("option_losses") or []),
+        "option_draws": list(result.get("option_draws") or []),
+        "option_invalid": list(result.get("option_invalid") or []),
+        "n_per_option": result.get("n_per_option"),
+        "n_options": n_opt if n_opt is not None else len(wp),
+        "wp_spread": None,
+        "wp_spread_se": None,
+        "best_index": None,
+        "runner_up_index": None,
+        "separation_z": None,
+        "continuation": result.get("continuation"),
+        "seed_fn": result.get("seed_fn"),
+        "engine_sha": result.get("engine_sha"),
+        "overlay_sha": result.get("overlay_sha"),
+        "decided": bool(decided),
+        "reason": reason,
+    }
+    req, base, floor = required_gap(se, category, gap_threshold,
+                                    mulligan_gap_threshold, min_separation_z)
+    ev["gate"] = {"base_threshold": base, "min_separation_z": min_separation_z,
+                  "noise_floor": floor, "required_gap": req,
+                  "measurable": floor is not None}
+    if not wp or any(w is None for w in wp):
+        # measured, but unusable — kept deliberately: option_invalid above is
+        # what tells the reader the forcer/replay failed rather than tied.
+        return ev
+    order = _rank_indices(wp)
+    best = order[0]
+    worst = order[-1]
+    ev["best_index"] = best
+    ev["runner_up_index"] = order[1] if len(order) > 1 else None
+    ev["wp_spread"] = wp[best] - wp[worst]
+    ev["wp_spread_se"] = _se_of_difference(
+        se[best] if best < len(se) else None,
+        se[worst] if worst < len(se) else None)
+    ru = ev["runner_up_index"]
+    if ru is not None:
+        denom = _se_of_difference(se[best] if best < len(se) else None,
+                                  se[ru] if ru < len(se) else None)
+        if denom:  # None or exactly 0.0 -> undefined, not infinite
+            ev["separation_z"] = (wp[best] - wp[ru]) / denom
+    return ev
 
 
 # --------------------------------------------------------------- the drivers
@@ -313,6 +486,8 @@ class RolloutDriver(object):
         self.engine_sha = engine_sha
         self.overlay_sha = overlay_sha
         self._probe_cache = {}
+        # Unique per driver instance; see _work_subdir.
+        self._run_nonce = next(RolloutDriver._RUN_NONCE_COUNTER)
 
     # -------------------------------------------------- support verdicts
 
@@ -395,9 +570,32 @@ class RolloutDriver(object):
             timeout=self.timeout_s)
         return proc.returncode, proc.stdout.decode("utf-8", "replace")
 
+    #: Per-instance nonce so two verify_keys invocations never share a work
+    #: directory. See _work_subdir for why this is load-bearing.
+    _RUN_NONCE_COUNTER = itertools.count()
+
     def _work_subdir(self, address, label):
+        """Scratch dir for one (position, label), UNIQUE PER DRIVER INSTANCE.
+
+        The nonce is not cosmetic. rollout_key(address) is deterministic per
+        position, so before this the directory -- and therefore the engine's
+        output jsonl -- was reused across invocations. The engine appends, and
+        _collect_rows counts EVERY fork_rollout row it finds for an option, so
+        a second run over the same position tallied its own rollouts PLUS
+        every earlier run's.
+
+        Measured on real data: the same position reported 16 wins/option at
+        --n-per-option 16, then 18 at n=2, then 23 at n=5 -- i.e. 16, +2, +5.
+        Win counts exceeded n_per_option, which is impossible for a single
+        batch and is the tell. Every derived number (option_wp, wp_spread,
+        separation_z) was computed over that polluted pool, so answer keys
+        minted from a repeated run were silently wrong rather than merely
+        noisy.
+        """
         base = self.work_dir or (REPO / "runs" / "verify-keys-work")
-        d = Path(base) / ("%s-%s" % (rollout_key(address), label))
+        d = (Path(base) /
+             ("%s-%s-run%s-%d" % (rollout_key(address), label,
+                                  self._run_nonce, os.getpid())))
         d.mkdir(parents=True, exist_ok=True)
         return d
 
@@ -687,9 +885,15 @@ def probe_matches(cand, probe):
             and list(probe.get("options") or []) == list(cand.get("options") or []))
 
 
-def verify_one(cand, driver, lane_filter, n_per_option, name_idx, sha16, now):
+def verify_one(cand, driver, lane_filter, n_per_option, name_idx, sha16, now,
+               gap_threshold=DEFAULT_GAP_THRESHOLD,
+               mulligan_gap_threshold=DEFAULT_MULLIGAN_GAP_THRESHOLD,
+               min_separation_z=DEFAULT_MIN_SEPARATION_Z):
     """-> (out_row, lane_used, verified_bool, reason_or_None,
-    engine_needed_but_unavailable_bool)."""
+    engine_needed_but_unavailable_bool).
+
+    The three gate knobs are trailing optional args defaulting to the pre-flag
+    constants: a 7-positional-arg call behaves exactly as it did before."""
     out = dict(cand)  # additive echo: never drop a miner field
     out["status"] = "candidate"
     lane, reason = route_lane(cand)
@@ -781,7 +985,15 @@ def verify_one(cand, driver, lane_filter, n_per_option, name_idx, sha16, now):
 
     scores, sreason = score_from_wp(result.get("option_wp"),
                                     result.get("option_wp_se"),
-                                    cand.get("category"))
+                                    cand.get("category"),
+                                    gap_threshold, mulligan_gap_threshold,
+                                    min_separation_z)
+    # RETAIN THE MEASUREMENT on both paths. The engine already spent the
+    # compute; a rejected row that drops its WPs cannot tell a genuine tie
+    # from a broken rollout. Top level, never inside answer_key.
+    out["rollout_evidence"] = build_rollout_evidence(
+        result, scores is not None, sreason, cand.get("category"),
+        gap_threshold, mulligan_gap_threshold, min_separation_z)
     if scores is None:
         out["unverifiable_reason"] = sreason
         if probe_evidence is not None:
@@ -834,7 +1046,76 @@ def read_candidates(path, warnings):
     return rows
 
 
-def build_summary(rows_meta, driver_name, n_per_option, warnings):
+def quantile(sorted_vals, q):
+    """Linear-interpolation (R type 7 / numpy default) quantile of an already
+    sorted list. Pinned method, not an implementation detail: the summary's
+    p25/median/p75 are compared across corpora."""
+    if not sorted_vals:
+        return None
+    if len(sorted_vals) == 1:
+        return sorted_vals[0]
+    pos = q * (len(sorted_vals) - 1)
+    lo = int(math.floor(pos))
+    hi = int(math.ceil(pos))
+    if lo == hi:
+        return sorted_vals[lo]
+    return sorted_vals[lo] + (sorted_vals[hi] - sorted_vals[lo]) * (pos - lo)
+
+
+def _spread_bin(value):
+    """Bin index for a wp_spread in [0,1]. The 1e-9 nudge keeps 0.30/0.05 from
+    landing in bin 5 through binary-float underestimation; the top bin is
+    closed so spread == 1.0 counts."""
+    idx = int(math.floor(value / SPREAD_BIN_WIDTH + 1e-9))
+    return max(0, min(SPREAD_N_BINS - 1, idx))
+
+
+def spread_distribution(evidences):
+    """Distribution of measured wp_spread over rollout-lane positions.
+
+    THE ONE-COMMAND ANSWER to "is this corpus decision-relevant at all?" — a
+    corpus whose median spread sits under the 0.20 bar cannot verify no matter
+    how many rollouts are thrown at it, and that is visible here without
+    re-parsing every row."""
+    evs = [e for e in evidences if e]
+    spreads = sorted(e["wp_spread"] for e in evs
+                     if e.get("wp_spread") is not None)
+    zs = sorted(e["separation_z"] for e in evs
+                if e.get("separation_z") is not None)
+    counts = [0] * SPREAD_N_BINS
+    for s in spreads:
+        counts[_spread_bin(s)] += 1
+    def q5(vals):
+        if not vals:
+            return {"min": None, "p25": None, "median": None, "p75": None,
+                    "max": None, "n": 0}
+        return {"min": vals[0], "p25": quantile(vals, 0.25),
+                "median": quantile(vals, 0.5), "p75": quantile(vals, 0.75),
+                "max": vals[-1], "n": len(vals)}
+    return {
+        "n_positions_measured": len(evs),
+        "n_decided": sum(1 for e in evs if e.get("decided")),
+        "n_undecided": sum(1 for e in evs if not e.get("decided")),
+        "n_no_wp": len(evs) - len(spreads),
+        "wp_spread": q5(spreads),
+        "separation_z": q5(zs),
+        "wp_spread_hist": {"bin_width": SPREAD_BIN_WIDTH,
+                           "n_bins": SPREAD_N_BINS,
+                           "counts": counts,
+                           "bins_note": "bin i covers [i*0.05, (i+1)*0.05); "
+                                        "last bin closed at 1.0"},
+        "quantile_method": "linear interpolation (R type 7)",
+        "note": "measured over rollout-lane positions where the driver "
+                "returned a measurement, DECIDED AND UNDECIDED ALIKE. "
+                "n_no_wp counts measured positions whose option_wp was all "
+                "None (rollout produced no decided game) — those are broken, "
+                "not tied. wp_spread is a measured quantity, not a claim of "
+                "decision-relevance for any single position.",
+    }
+
+
+def build_summary(rows_meta, driver_name, n_per_option, warnings,
+                  thresholds=None):
     n_in = len(rows_meta)
     n_verified = sum(1 for m in rows_meta if m["verified"])
     n_unver = n_in - n_verified
@@ -870,6 +1151,13 @@ def build_summary(rows_meta, driver_name, n_per_option, warnings):
         "yield_rate": metric_block(n_verified, n_in),
         "driver": driver_name,
         "n_per_option": n_per_option,
+        "rollout_spread": spread_distribution(
+            [m.get("rollout_evidence") for m in rows_meta]),
+        "thresholds": thresholds if thresholds is not None else {
+            "gap_threshold": DEFAULT_GAP_THRESHOLD,
+            "mulligan_gap_threshold": DEFAULT_MULLIGAN_GAP_THRESHOLD,
+            "min_separation_z": DEFAULT_MIN_SEPARATION_Z,
+        },
         "engine_sha": os.environ.get("ENGINE_SHA", "unknown"),
         "overlay_sha": os.environ.get("OVERLAY_SHA", "unknown"),
         "contract_sha": sha16,
@@ -903,6 +1191,19 @@ def main(argv=None):
                     help="default none: pure exhaustive lane, zero engine")
     ap.add_argument("--fixture", default=None,
                     help="RolloutResult jsonl for --driver fixture")
+    ap.add_argument("--gap-threshold", type=float,
+                    default=DEFAULT_GAP_THRESHOLD,
+                    help="absolute win-probability units [0,1]: floor on "
+                         "wp_max-wp_min for non-mulligan categories "
+                         "(default %(default)s)")
+    ap.add_argument("--mulligan-gap-threshold", type=float,
+                    default=DEFAULT_MULLIGAN_GAP_THRESHOLD,
+                    help="same units, mulligan-only bar (default %(default)s)")
+    ap.add_argument("--min-separation-z", type=float,
+                    default=DEFAULT_MIN_SEPARATION_Z,
+                    help="dimensionless multiple of the largest per-option "
+                         "SE; the gate requires wp_max-wp_min >= "
+                         "max(threshold, Z*max(se)) (default %(default)s)")
     ap.add_argument("--max-positions", type=int, default=None)
     ap.add_argument("--jobs", type=int, default=1,
                     help="reserved; v1 verifies sequentially regardless")
@@ -948,7 +1249,9 @@ def main(argv=None):
     any_engine_missing = False
     for cand in cands:
         row, lane, verified, reason, engine_missing = verify_one(
-            cand, driver, args.lane, args.n_per_option, name_idx, sha16, now)
+            cand, driver, args.lane, args.n_per_option, name_idx, sha16, now,
+            args.gap_threshold, args.mulligan_gap_threshold,
+            args.min_separation_z)
         if HAVE_PROMPT_CONTRACT:
             try:
                 prompt_contract.stamp(row)
@@ -956,7 +1259,8 @@ def main(argv=None):
                 pass
         out_rows.append(row)
         rows_meta.append({"category": cand.get("category"), "lane": lane,
-                          "verified": verified, "reason": reason})
+                          "verified": verified, "reason": reason,
+                          "rollout_evidence": row.get("rollout_evidence")})
         any_engine_missing = any_engine_missing or engine_missing
 
     out_path = Path(args.out)
@@ -965,7 +1269,11 @@ def main(argv=None):
         for row in out_rows:
             f.write(json.dumps(row, sort_keys=True) + "\n")
 
-    summary = build_summary(rows_meta, args.driver, args.n_per_option, warnings)
+    summary = build_summary(
+        rows_meta, args.driver, args.n_per_option, warnings,
+        thresholds={"gap_threshold": args.gap_threshold,
+                    "mulligan_gap_threshold": args.mulligan_gap_threshold,
+                    "min_separation_z": args.min_separation_z})
     summary_path = Path(args.summary) if args.summary else out_path.parent / "summary.json"
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     with open(str(summary_path), "w", encoding="utf-8") as f:
@@ -978,6 +1286,15 @@ def main(argv=None):
               % (summary["n_verified"], summary["n_in"],
                  summary["yield_rate"]["est"] or 0.0, out_path),
               file=sys.stderr)
+        rs = summary["rollout_spread"]
+        if rs["n_positions_measured"]:
+            q = rs["wp_spread"]
+            print("rollout wp_spread over %d measured positions: "
+                  "min %s p25 %s median %s p75 %s max %s (%d with no wp)"
+                  % (rs["n_positions_measured"],
+                     _fmt3(q["min"]), _fmt3(q["p25"]), _fmt3(q["median"]),
+                     _fmt3(q["p75"]), _fmt3(q["max"]), rs["n_no_wp"]),
+                  file=sys.stderr)
         print("summary -> %s" % summary_path, file=sys.stderr)
 
     if args.driver == "engine" and any_engine_missing:

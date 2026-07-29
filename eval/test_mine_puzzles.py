@@ -463,9 +463,156 @@ def test_schema_file_cross_check():
         missing = [k for k in schema["required"] if k not in sample]
         check("emitted candidate carries every schema-required field",
               not missing, "missing: %r" % missing)
-        unknown = [k for k in sample if k not in schema["properties"]]
-        check("emitted candidate has no fields absent from the schema",
+        # Additive fields the miner emits that the (separately-owned) schema
+        # file has not documented yet — eval/schemas/puzzle-position.v1.
+        # schema.json should gain `relevance_score` and `relevance_signals`
+        # properties; until then this explicit allowlist keeps the drift
+        # check strict for everything else.
+        additive_pending_schema = {"relevance_score", "relevance_signals"}
+        unknown = [k for k in sample
+                   if k not in schema["properties"]
+                   and k not in additive_pending_schema]
+        check("emitted candidate has no fields absent from the schema "
+              "(relevance_* allowlisted pending schema update)",
               not unknown, "unknown: %r" % unknown)
+
+
+# ------------------------------------------------- decision-relevance prior
+
+# Hand-built option menus in the REAL corpus formats (verified against
+# runs/stage0-calibration option strings before writing these).
+PASS_OPT = "PASS (do nothing)"
+BOLT_OPT = "CAST Lightning Bolt {R} [CARDNAME deals 3 damage to any target.]"
+DELVER_OPT = "CAST Delver of Secrets {U} [Delver of Secrets - Creature 1 / 1]"
+ISLAND_OPT = "PLAY LAND Island"
+TARN_OPT = ("CAST Scalding Tarn [{T}, Pay 1 life, Sacrifice CARDNAME: "
+            "Search your library for a Island or Mountain card, put it onto "
+            "the battlefield, then shuffle.]")
+DELTA_OPT = "PLAY LAND Polluted Delta"
+MIRE_OPT = "PLAY LAND Bloodstained Mire"
+
+
+def _rel(options, prompt=None):
+    d = dec(dtype="play", n_options=len(options), options=options,
+            prompt=prompt if prompt is not None else build_prompt())
+    return mp.score_relevance(d)
+
+
+def test_relevance_degenerate_menus_score_at_floor():
+    # N fetchlands / basics — the classic degenerate case: distinct names,
+    # zero decision. Must sit at the all-land ceiling, near the floor.
+    s_fetch, sig_fetch = _rel([DELTA_OPT, MIRE_OPT, PASS_OPT])
+    check("all-fetchland menu scores at the all-land ceiling",
+          s_fetch == mp.RELEVANCE_ALL_LAND_CEILING,
+          "score=%r signals=%r" % (s_fetch, sig_fetch))
+    check("all-fetchland menu records floor_reason=all_land_options",
+          sig_fetch.get("floor_reason") == "all_land_options", repr(sig_fetch))
+
+    # fetch ACTIVATION prints as 'CAST X [{T}, ... Search your library ...]'
+    # — still a land drop, still degenerate when mixed only with basics.
+    s_mix, sig_mix = _rel([TARN_OPT, ISLAND_OPT, PASS_OPT])
+    check("fetch-activation + basic menu is still all-land (ceiling)",
+          s_mix == mp.RELEVANCE_ALL_LAND_CEILING,
+          "score=%r signals=%r" % (s_mix, sig_mix))
+
+    # single real option: cast-or-pass — nothing to rank from text.
+    s_one, sig_one = _rel([BOLT_OPT, PASS_OPT])
+    check("single real option scores 0.0 (floor)", s_one == 0.0,
+          "score=%r signals=%r" % (s_one, sig_one))
+    check("single real option records floor_reason",
+          sig_one.get("floor_reason") == "single_real_option", repr(sig_one))
+
+    # PASS/decline-only menu: zero real options.
+    s_none, sig_none = _rel([PASS_OPT, "NO (decline)"])
+    check("PASS/decline-only menu scores 0.0 (floor)", s_none == 0.0,
+          "score=%r signals=%r" % (s_none, sig_none))
+    check("PASS-only menu records floor_reason=no_real_options",
+          sig_none.get("floor_reason") == "no_real_options", repr(sig_none))
+
+
+def test_relevance_mixed_menu_scores_higher():
+    # removal vs threat vs land, with real board tension in the prompt:
+    # every weighted term fires -> 1.0, and strictly above every degenerate
+    # fixture above.
+    tense = build_prompt(you_life=4, opp_board="Goblin Guide(2/2)")
+    s_mixed, sig = _rel([BOLT_OPT, DELVER_OPT, ISLAND_OPT, PASS_OPT],
+                        prompt=tense)
+    check("mixed removal/threat/land menu under tension scores 1.0",
+          s_mixed == 1.0, "score=%r signals=%r" % (s_mixed, sig))
+    check("mixed menu strictly outscores all degenerate menus",
+          s_mixed > mp.RELEVANCE_ALL_LAND_CEILING > 0.0)
+    fired = sig.get("fired", {})
+    check("mixed menu audit trail names every contributing term",
+          set(fired) == {"base", "kind_diversity", "interaction",
+                         "board_tension", "wide_menu"}, repr(fired))
+    check("interaction signal names the removal spell",
+          sig.get("interaction_options") == ["Lightning Bolt"], repr(sig))
+
+    # same menu without tension: board_tension term must NOT fire — this is
+    # also the "prove a test can fail" lever (inverting the tension check in
+    # score_relevance flips this assertion).
+    s_calm, sig_calm = _rel([BOLT_OPT, DELVER_OPT, ISLAND_OPT, PASS_OPT])
+    check("same menu without board tension loses exactly the tension term",
+          s_calm == round(1.0 - mp.RELEVANCE_WEIGHTS["board_tension"], 2),
+          "score=%r signals=%r" % (s_calm, sig_calm))
+
+
+def test_relevance_fields_on_every_candidate_never_dropped():
+    with tempfile.TemporaryDirectory() as tmp:
+        corpus = make_scan_dir(tmp)
+        lines = _run_mine(tmp, corpus)
+        check("every emitted candidate carries relevance_score and "
+              "relevance_signals",
+              all(isinstance(l.get("relevance_score"), (int, float))
+                  and isinstance(l.get("relevance_signals"), dict)
+                  for l in lines))
+        floors = [l for l in lines if l["relevance_score"] == 0.0]
+        check("score-0.0 candidates are still emitted by default (never "
+              "silently dropped)", len(floors) > 0)
+
+
+def test_min_relevance_flag_filters_as_documented():
+    with tempfile.TemporaryDirectory() as tmp:
+        corpus = make_scan_dir(tmp)
+        default_lines = _run_mine(tmp, corpus, out_name="default.jsonl")
+        filtered = _run_mine(tmp, corpus, out_name="filtered.jsonl",
+                             min_relevance="0.1")
+        check("--min-relevance 0.1 emits only candidates scoring >= 0.1",
+              filtered and all(l["relevance_score"] >= 0.1 for l in filtered),
+              "scores=%r" % sorted(l["relevance_score"] for l in filtered))
+        default_cats = {l["category"] for l in default_lines}
+        filtered_cats = {l["category"] for l in filtered}
+        check("fixture's floor-scoring categories (cast-vs-PASS menus) are "
+              "dropped by the filter but present by default",
+              "lethal-now" in default_cats and "lethal-now" not in filtered_cats
+              and "graded-midgame" in default_cats
+              and "graded-midgame" not in filtered_cats)
+        check("above-threshold categories survive the filter (mulligan=0.5)",
+              "mulligan" in filtered_cats, repr(filtered_cats))
+
+
+def test_default_output_unchanged_except_additive_fields():
+    # Legacy candidate key set as emitted before the relevance prior landed
+    # (make_candidate + the two optional flags) — the ONLY delta the default
+    # run may show versus that baseline is the two additive fields.
+    legacy_keys = {"schema", "id", "category", "source", "prompt", "options",
+                   "n_options", "status", "replayable", "split",
+                   "category_evidence", "seed_block",
+                   "excluded_from_sft_overlap"}
+    additive = {"relevance_score", "relevance_signals"}
+    with tempfile.TemporaryDirectory() as tmp:
+        corpus = make_scan_dir(tmp)
+        default_path = Path(tmp) / "default.jsonl"
+        zero_path = Path(tmp) / "zero.jsonl"
+        default_lines = _run_mine(tmp, corpus, out_name="default.jsonl")
+        _run_mine(tmp, corpus, out_name="zero.jsonl", min_relevance="0.0")
+        check("--min-relevance at the floor (0.0) is byte-identical to the "
+              "default (no-flag) run",
+              default_path.read_bytes() == zero_path.read_bytes())
+        offenders = [sorted(set(l) - legacy_keys - additive)
+                     for l in default_lines if set(l) - legacy_keys - additive]
+        check("default run adds ONLY the two additive fields on top of the "
+              "legacy key set", not offenders, repr(offenders))
 
 
 def main():
