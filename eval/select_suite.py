@@ -91,6 +91,42 @@ def option_signature(row):
     return tuple(sorted(str(o).split(" [")[0] for o in (row.get("options") or [])))
 
 
+
+def indistinguishable_answer(row):
+    """True if two options render IDENTICALLY but score differently.
+
+    Such a position is not hard, it is UNANSWERABLE: the model is shown the
+    same string twice and the key says one of them is right. No amount of play
+    skill picks correctly, so it measures a coin flip and silently caps the
+    achievable score.
+
+    This is real, not theoretical. Cards reach the prompt by NAME only --
+    nothing in the overlay reads Forge's unique object id (there is not a
+    single getId()/getUniqueNumber() call in it) -- so two copies of the same
+    card in one menu are indistinguishable by construction:
+
+        1) CAST Wasteland [{T}, Sacrifice CARDNAME: Destroy target ...]
+        2) CAST Wasteland [{T}, Sacrifice CARDNAME: Destroy target ...]
+
+    2 of puz-v1's 25 positions already look like this. Both happen to score
+    [0, 0], so the suite is currently sound -- by luck. The proper fix is
+    upstream (emit a per-card id when a name repeats within a menu, which is a
+    DATA change and leaves contract_sha alone); this guard is what stops a
+    corrupted position reaching a scorecard in the meantime.
+    """
+    opts = [str(o) for o in (row.get("options") or [])]
+    scores = (row.get("answer_key") or {}).get("option_scores") or []
+    if len(scores) != len(opts):
+        return False
+    by_text = {}
+    for i, o in enumerate(opts):
+        by_text.setdefault(o, []).append(i)
+    for idxs in by_text.values():
+        if len(idxs) > 1 and len(set(scores[i] for i in idxs)) > 1:
+            return True
+    return False
+
+
 def dedupe(rows):
     """Keep one row per distinct option signature, lowest id first so the
     choice does not depend on input order."""
@@ -225,6 +261,13 @@ def select(rows, target=None, dedupe_first=True, target_pass=None,
     """
     usable = [r for r in rows
               if r.get("status") == "verified" and answer_index(r) is not None]
+    # ALWAYS-ON, not a --flag. min_options and require_single_answer are taste
+    # (how hard a suite should be); this is correctness. A position whose key
+    # distinguishes two options the model is shown as identical text cannot be
+    # answered by play skill at all, so quoting a score against it is wrong at
+    # any suite size.
+    n_ambiguous = sum(1 for r in usable if indistinguishable_answer(r))
+    usable = [r for r in usable if not indistinguishable_answer(r)]
     if min_options > 1:
         usable = [r for r in usable if len(r.get("options") or []) >= min_options]
     if require_single_answer:
@@ -273,6 +316,7 @@ def select(rows, target=None, dedupe_first=True, target_pass=None,
         "n_verified_usable": len(usable),
         "min_options": min_options,
         "require_single_answer": bool(require_single_answer),
+        "n_dropped_indistinguishable": n_ambiguous,
         "n_after_dedupe": len(pool),
         "n_selected": len(selected),
         "n_dropped_for_balance": (len(first) - n_a) + (len(passers) - n_c),

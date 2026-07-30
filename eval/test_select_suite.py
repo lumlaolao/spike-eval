@@ -272,6 +272,52 @@ def test_cli_roundtrip():
               <= rep["after"]["random_baseline"] + 1e-9, json.dumps(rep["after"]))
 
 
+
+def test_indistinguishable_options_are_dropped():
+    """Two options the model sees as the SAME STRING, scored differently.
+
+    WHAT WOULD MAKE THIS FAIL: making this a --flag instead of always-on, or
+    only comparing option text before the reminder bracket (the duplicates in
+    the real corpus are byte-identical INCLUDING the bracket).
+
+    Not hypothetical. Nothing in the overlay reads Forge's unique object id --
+    zero getId()/getUniqueNumber() calls -- so cards reach the prompt by name
+    only, and two copies of one card in a menu are indistinguishable by
+    construction. puz-v1 already has 2 such positions; they are harmless only
+    because both happen to score [0, 0].
+    """
+    dup = "CAST Wasteland [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]"
+    def row(pid, opts, scores):
+        return {"id": pid, "status": "verified", "options": opts,
+                "answer_key": {"option_scores": scores}}
+
+    broken = row("bad", [dup, dup, "CAST Bolt", "PASS (do nothing)"],
+                 [10, 0, 0, 0])
+    check("ambiguous: detected when identical text scores differently",
+          ss.indistinguishable_answer(broken) is True)
+
+    benign = row("ok1", [dup, dup, "CAST Bolt", "PASS (do nothing)"],
+                 [0, 0, 10, 0])
+    check("ambiguous: identical text with EQUAL scores is fine",
+          ss.indistinguishable_answer(benign) is False)
+
+    clean = row("ok2", ["CAST A", "CAST B", "PASS (do nothing)"], [10, 0, 0])
+    check("ambiguous: distinct text is never flagged",
+          ss.indistinguishable_answer(clean) is False)
+
+    # and it must be enforced without opting in
+    selected, report = ss.select([broken, benign, clean], target=1.0,
+                                 target_pass=1.0)
+    ids = set(r["id"] for r in selected)
+    check("ambiguous: the unanswerable position is DROPPED by default",
+          "bad" not in ids, str(sorted(ids)))
+    check("ambiguous: answerable positions survive",
+          {"ok1", "ok2"} <= ids, str(sorted(ids)))
+    check("ambiguous: the drop is reported, not silent",
+          report.get("n_dropped_indistinguishable") == 1,
+          str(report.get("n_dropped_indistinguishable")))
+
+
 def main():
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):
