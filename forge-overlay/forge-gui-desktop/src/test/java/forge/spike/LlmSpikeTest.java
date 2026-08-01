@@ -192,6 +192,44 @@ public class LlmSpikeTest {
         Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.parseTagNumber("My pick: `CHOICE: 5`", "CHOICE:"), 5);
     }
 
+    // ---- disambiguate(): repeated menu labels get " #N" ordinals; unique menus pass through ----
+
+    @Test
+    public void disambiguate_noDuplicates_returnsSameListUnchanged() {
+        List<String> in = Lists.newArrayList("CAST Bolt", "PLAY LAND Mountain", "PASS (do nothing)");
+        // The contract is "UNCHANGED unless a label repeats" — same list identity, no copy, so
+        // the no-dup fast path can never perturb byte-identical teacher/student menus.
+        Assert.assertSame(LlmSpikeGui.PlayerControllerLLM.disambiguate(in), in);
+    }
+
+    @Test
+    public void disambiguate_repeatsGetOrdinals_uniqueEntriesUntouched() {
+        List<String> out = LlmSpikeGui.PlayerControllerLLM.disambiguate(Lists.newArrayList(
+                "CAST Wasteland [{T}, Sacrifice CARDNAME: ...]",
+                "CAST Wasteland [{T}, Sacrifice CARDNAME: ...]",
+                "PASS (do nothing)"));
+        Assert.assertEquals(out, Lists.newArrayList(
+                "CAST Wasteland [{T}, Sacrifice CARDNAME: ...] #1",
+                "CAST Wasteland [{T}, Sacrifice CARDNAME: ...] #2",
+                "PASS (do nothing)"));
+    }
+
+    @Test
+    public void disambiguate_multipleGroupsAndTriples_occurrenceOrder() {
+        List<String> out = LlmSpikeGui.PlayerControllerLLM.disambiguate(
+                Lists.newArrayList("A", "B", "A", "C", "A", "B"));
+        Assert.assertEquals(out, Lists.newArrayList("A #1", "B #1", "A #2", "C", "A #3", "B #2"));
+    }
+
+    @Test
+    public void disambiguate_idempotent() {
+        // Applied at both prompt builders AND log choke points (evalDec/emit), so double
+        // application on an already-suffixed list must be a no-op.
+        List<String> once = LlmSpikeGui.PlayerControllerLLM.disambiguate(Lists.newArrayList(
+                "Griselbrand (7/7)", "Griselbrand (7/7)", "Unmask", "Unmask"));
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.disambiguate(once), once);
+    }
+
     @Test
     public void parseTagNumber_dashSeparator() {
         Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.parseTagNumber("CHOICE - 5", "CHOICE:"), 5);

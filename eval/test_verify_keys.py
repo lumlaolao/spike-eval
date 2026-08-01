@@ -1684,6 +1684,125 @@ def test_no_egress():
         socket.create_connection = real_create
 
 
+def _sci_fields(path):
+    """id -> the SCIENTIFIC fields of a row. Deliberately NOT raw bytes:
+    verified_utc and rollout_evidence.wall_ms legitimately differ between a
+    sharded/resumed run and a monolithic one — equality is claimed only for
+    the fields a consumer scores with."""
+    out = {}
+    for line in Path(path).read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        ak = row.get("answer_key") or {}
+        out[row["id"]] = {
+            "option_scores": ak.get("option_scores"),
+            "option_wp": ak.get("option_wp"),
+            "status": row.get("status"),
+            "unverifiable_reason": row.get("unverifiable_reason"),
+        }
+    return out
+
+
+def _shard_resume_fixture(td, n=6):
+    """n distinct rollout candidates + fixture records, ids stamped."""
+    cands, recs = [], []
+    for i in range(n):
+        c = rollout_cand()
+        c["id"] = "cand-%02d" % i
+        c["source"] = dict(c["source"], decision_index=60 + i)
+        addr = vk.address_of(c, {})
+        recs.append(fixture_record(addr, [0.9 - 0.01 * i, 0.2],
+                                   [0.02, 0.02], c["options"]))
+        cands.append(c)
+    cpath = td / "src-cands.jsonl"
+    cpath.write_text("".join(json.dumps(c) + "\n" for c in cands),
+                     encoding="utf-8")
+    fx = td / "src-fixture.jsonl"
+    fx.write_text("".join(json.dumps(r) + "\n" for r in recs),
+                  encoding="utf-8")
+    return cpath, fx
+
+
+def test_shard_merge_equals_monolithic():
+    """Merging shards 0/3, 1/3, 2/3 must equal one monolithic run on the
+    scientific fields. This is the evidence behind --shard's help text —
+    sharding is safe by construction (rollout seeds derive from the address,
+    not the list position), but that is an argument, and this is the test."""
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        cpath, fx = _shard_resume_fixture(td)
+        with contextlib.redirect_stderr(io.StringIO()):
+            rc = vk.main([str(cpath), "--out", str(td / "mono.jsonl"),
+                          "--lane", "rollout", "--driver", "fixture",
+                          "--fixture", str(fx),
+                          "--summary", str(td / "mono-s.json")])
+        check("shard: monolithic run ok", rc == 0, "rc=%r" % rc)
+        merged = {}
+        for i in range(3):
+            op = td / ("shard-%d.jsonl" % i)
+            with contextlib.redirect_stderr(io.StringIO()):
+                rc = vk.main([str(cpath), "--out", str(op),
+                              "--lane", "rollout", "--driver", "fixture",
+                              "--fixture", str(fx), "--shard", "%d/3" % i,
+                              "--summary", str(td / ("shard-%d-s.json" % i))])
+            check("shard %d/3: run ok" % i, rc == 0, "rc=%r" % rc)
+            part = _sci_fields(op)
+            dup = set(part) & set(merged)
+            check("shard %d/3: disjoint from other shards" % i, not dup,
+                  str(dup))
+            merged.update(part)
+            s = json.loads((td / ("shard-%d-s.json" % i)).read_text())
+            check("shard %d/3: provenance stamped" % i,
+                  s.get("shard") == {"index": i, "count": 3}, str(s.get("shard")))
+        mono = _sci_fields(td / "mono.jsonl")
+        check("shard: merged == monolithic on scientific fields",
+              merged == mono,
+              "merged %d rows vs mono %d" % (len(merged), len(mono)))
+        check("shard: comparison is non-trivial", len(mono) == 6,
+              str(len(mono)))
+
+
+def test_resume_equals_uninterrupted():
+    """An interrupted run (--max-positions 3) finished with --resume must
+    equal an uninterrupted run on the scientific fields, and the interrupted
+    run's out file must ALREADY contain its completed rows (incremental
+    output — the property that makes interruption survivable at all)."""
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        cpath, fx = _shard_resume_fixture(td)
+        with contextlib.redirect_stderr(io.StringIO()):
+            rc = vk.main([str(cpath), "--out", str(td / "mono.jsonl"),
+                          "--lane", "rollout", "--driver", "fixture",
+                          "--fixture", str(fx),
+                          "--summary", str(td / "mono-s.json")])
+        check("resume: uninterrupted run ok", rc == 0, "rc=%r" % rc)
+        op = td / "partial.jsonl"
+        with contextlib.redirect_stderr(io.StringIO()):
+            rc = vk.main([str(cpath), "--out", str(op),
+                          "--lane", "rollout", "--driver", "fixture",
+                          "--fixture", str(fx), "--max-positions", "3",
+                          "--summary", str(td / "p-s.json")])
+        check("resume: partial run ok", rc == 0, "rc=%r" % rc)
+        check("resume: partial out already holds its rows (incremental)",
+              len(_sci_fields(op)) == 3, str(len(_sci_fields(op))))
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc = vk.main([str(cpath), "--out", str(op),
+                          "--lane", "rollout", "--driver", "fixture",
+                          "--fixture", str(fx), "--resume",
+                          "--summary", str(td / "r-s.json")])
+        check("resume: completion run ok", rc == 0, "rc=%r" % rc)
+        check("resume: logs the skip in run_batch phrasing",
+              "Resuming: skipping 3/6 combos already complete"
+              in err.getvalue(), err.getvalue()[:200])
+        check("resume: final == uninterrupted on scientific fields",
+              _sci_fields(op) == _sci_fields(td / "mono.jsonl"))
+        s = json.loads((td / "r-s.json").read_text())
+        check("resume: summary records resumed_rows", s.get("resumed_rows") == 3,
+              str(s.get("resumed_rows")))
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:

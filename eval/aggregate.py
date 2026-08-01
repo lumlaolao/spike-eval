@@ -359,6 +359,142 @@ def summarize_paired(games, resamples, bootstrap_seed):
     return result
 
 
+# cluster_bootstrap_ci is deliberately BYTE-IDENTICAL across t2/t4/t5 (shared
+# contract §5) — puzzle_run.py holds the pinned reference and
+# test_puzzle_run.py::test_cluster_bootstrap_pinned detects drift. Hoisted
+# here (2026-07-31) for --pool; do not "improve" it independently.
+def cluster_bootstrap_ci(clusters, resamples=2000, seed=20260728):
+    """Percentile bootstrap CI for a pooled mean, resampling CLUSTERS with
+    replacement (EVAL-DESIGN.md S6.1: decision/position metrics cluster by
+    game; naive SEs understate up to 3x).
+
+    clusters: iterable of iterables of floats; each inner iterable is one
+    cluster's observations. Returns {"est","se","ci95","n","n_clusters",
+    "resamples","bootstrap_seed"}. est is the POOLED mean over all
+    observations (not the mean of cluster means). se is the sd of the
+    bootstrap distribution. <2 clusters -> se/ci95 None (an interval a
+    single cluster cannot earn)."""
+    clusters = [list(c) for c in clusters if c]
+    n_clusters = len(clusters)
+    n = sum(len(c) for c in clusters)
+    if n == 0:
+        return {"est": None, "se": None, "ci95": [None, None], "n": 0,
+                "n_clusters": 0, "resamples": resamples,
+                "bootstrap_seed": seed}
+    est = sum(sum(c) for c in clusters) / n
+    if n_clusters < 2:
+        return {"est": est, "se": None, "ci95": [None, None], "n": n,
+                "n_clusters": n_clusters, "resamples": resamples,
+                "bootstrap_seed": seed}
+    rng = random.Random(seed)
+    means = []
+    for _ in range(resamples):
+        tot = 0.0
+        cnt = 0
+        for _ in range(n_clusters):
+            c = clusters[rng.randrange(n_clusters)]
+            tot += sum(c)
+            cnt += len(c)
+        means.append(tot / cnt if cnt else 0.0)
+    means.sort()
+    mu = sum(means) / len(means)
+    var = sum((m - mu) ** 2 for m in means) / (len(means) - 1)
+    lo = means[int(0.025 * resamples)]
+    hi = means[min(resamples - 1, int(0.975 * resamples))]
+    return {"est": est, "se": math.sqrt(var), "ci95": [lo, hi], "n": n,
+            "n_clusters": n_clusters, "resamples": resamples,
+            "bootstrap_seed": seed}
+
+
+def build_pool_summary(parent, prefix=None, resamples=2000,
+                       bootstrap_seed=20260728):
+    """--pool: each immediate SUBDIRECTORY of `parent` is one CLUSTER (one
+    deck-arm dir of game-*.jsonl), and the pooled identity-A win rate is
+    reported with BOTH intervals side by side:
+
+      naive     Wilson over all decisive games pooled — what you'd quote if
+                decks were exchangeable. They are not: the measured random
+                floor ranges 26x by deck (death-and-taxes 1.3% to
+                grixis-reanimator 31.9%).
+      clustered percentile bootstrap resampling DECKS with replacement —
+                the interval that admits deck choice is a modeling decision.
+
+    Per-deck rows are PRIMARY; the pooled scalar is secondary and carries an
+    explicit near-meaningless-alone note. Games are counted ONCE each from
+    identity A's perspective (parse_dir already dedupes (seed, swap) reruns)
+    — the previously quoted 610/5120 floor double-counted each game from
+    both arms' perspectives; the correct figure on the same data is 305/2560.
+    """
+    parent = Path(parent)
+    per_deck = []
+    clusters = []
+    skipped = []
+    for sub in sorted(p for p in parent.iterdir() if p.is_dir()):
+        if prefix and not sub.name.startswith(prefix):
+            skipped.append(sub.name)
+            continue
+        games, _decisions, warns = parse_dir(sub)
+        obs = [1.0 if g.get("winner") == "A" else 0.0
+               for g in games if g.get("winner") in ("A", "B")]
+        if not obs:
+            skipped.append(sub.name)
+            continue
+        wins = int(sum(obs))
+        lo, hi = wilson_ci(wins, len(obs))
+        per_deck.append({"dir": sub.name, "wins": wins, "games": len(obs),
+                         "win_rate": wins / len(obs),
+                         "wilson95": [lo, hi],
+                         "n_files_warnings": len(warns)})
+        clusters.append(obs)
+    wins = sum(d["wins"] for d in per_deck)
+    n = sum(d["games"] for d in per_deck)
+    naive = wilson_ci(wins, n) if n else (None, None)
+    clustered = cluster_bootstrap_ci(clusters, resamples=resamples,
+                                     seed=bootstrap_seed)
+    return {
+        "schema": "aggregate-pool.v1",
+        "parent": str(parent),
+        "prefix": prefix,
+        "per_deck": per_deck,             # PRIMARY
+        "pooled": {                        # secondary
+            "wins": wins, "games": n,
+            "win_rate": (wins / n) if n else None,
+            "naive_wilson95": list(naive),
+            "clustered": clustered,
+            "note": "identity-A win rate pooled across decks. A pooled "
+                    "scalar over a per-deck spread this wide (26x measured "
+                    "on the random floor) is near-meaningless alone — quote "
+                    "per-deck rows, and if you must pool, quote the "
+                    "CLUSTERED interval.",
+        },
+        "skipped_dirs": skipped,
+    }
+
+
+def print_pool_human(s):
+    print("== per-deck (PRIMARY) ==")
+    for d in s["per_deck"]:
+        print("  %-28s %4d/%4d  %6.2f%%  wilson95 [%5.2f%%, %5.2f%%]"
+              % (d["dir"], d["wins"], d["games"], 100 * d["win_rate"],
+                 100 * d["wilson95"][0], 100 * d["wilson95"][1]))
+    p = s["pooled"]
+    if p["games"]:
+        cl = p["clustered"]
+        print("== pooled (secondary; %d decks) ==" % len(s["per_deck"]))
+        print("  %d/%d = %.2f%%" % (p["wins"], p["games"],
+                                    100 * p["win_rate"]))
+        print("  naive wilson95     [%5.2f%%, %5.2f%%]   (treats decks as "
+              "exchangeable — they are not)"
+              % (100 * p["naive_wilson95"][0], 100 * p["naive_wilson95"][1]))
+        if cl["ci95"][0] is not None:
+            print("  deck-clustered95   [%5.2f%%, %5.2f%%]   (resamples "
+                  "decks; the quotable interval)"
+                  % (100 * cl["ci95"][0], 100 * cl["ci95"][1]))
+        print("  NOTE: " + p["note"])
+    if s["skipped_dirs"]:
+        print("  (skipped: %s)" % ", ".join(s["skipped_dirs"]))
+
+
 def summarize_decisions(decisions):
     tiers = defaultdict(lambda: {"n": 0, "latencies": [], "fallbacks": 0})
     types = Counter()
@@ -745,11 +881,34 @@ def main():
                     help="fallback-gate ceiling over llm-identity decisions; exceeding "
                          "it exits 2 (default %.2f). A cited run whose serving endpoint "
                          "never named the model exits 3." % DEFAULT_MAX_FALLBACK_RATE)
+    ap.add_argument("--pool", action="store_true",
+                    help="treat DIR's immediate subdirectories as deck "
+                         "clusters and report the pooled identity-A win rate "
+                         "with BOTH the naive Wilson interval and a "
+                         "deck-clustered bootstrap. Per-deck rows are "
+                         "primary. Existing single-directory behaviour is "
+                         "untouched when this flag is absent.")
+    ap.add_argument("--pool-prefix", default=None, metavar="PREFIX",
+                    help="with --pool: include only subdirectories whose "
+                         "name starts with PREFIX (e.g. 'random-') so one "
+                         "arm's floor is never silently pooled with "
+                         "another's")
     args = ap.parse_args()
 
     path = Path(args.dir).expanduser()
     if not path.is_dir():
         raise SystemExit("not a directory: %s" % path)
+
+    if args.pool:
+        pool = build_pool_summary(path, prefix=args.pool_prefix,
+                                  resamples=args.resamples,
+                                  bootstrap_seed=args.bootstrap_seed)
+        if args.json:
+            json.dump(pool, sys.stdout, indent=2)
+            print()
+        else:
+            print_pool_human(pool)
+        return
 
     summary = build_summary(path, args.resamples, args.bootstrap_seed,
                             args.max_fallback_rate)

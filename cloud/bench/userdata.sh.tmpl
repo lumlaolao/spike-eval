@@ -1,0 +1,74 @@
+#!/bin/bash
+# EC2 user-data template for the model-free CPU bench (mining rollouts, STR
+# floors). Ported VERBATIM from the working 2026-07-29 run (userdata5.sh) —
+# the comments below are the evidence for four porting bugs that were each
+# paid for with a failed run. Do not "clean them up".
+#
+# Template placeholders (fill before launch):
+#   {{FORGE_COMMIT}}     engine SHA — MUST equal the repo's FORGE_COMMIT file;
+#                        results are only comparable within one engine version
+#   {{PAYLOAD_URL}}      where to fetch payload.tgz (repo overlay + eval/ +
+#                        decks). SECURITY: the 07-29 run used a presigned URL,
+#                        which embeds a live AKIA key id readable via IMDS by
+#                        anything on the box. Prefer an IAM instance role with
+#                        s3:GetObject on payload/* + s3:PutObject on
+#                        results/*, and plain `aws s3 cp` here.
+#   {{DEADMAN_MINUTES}}  hard shutdown backstop (07-29 used 40 for the smoke
+#                        bench; size to workload + margin). NOTE: until
+#                        verify_keys --resume lands everywhere, a deadman
+#                        firing mid-run loses the whole run's output — ship
+#                        results to S3 incrementally.
+#   {{BENCH_CMD}}        the actual workload (the 07-29 run benchmarked
+#                        floor-mirror throughput; a mining round runs
+#                        eval/pipelines/mine_round.sh instead)
+#
+# SECURITY INVARIANT (non-negotiable): no model API keys on rented boxes,
+# ever. Cloud does model-free CPU work only; anything touching a model API
+# stays local. Holding a key is not consent (CLAUDE.md egress boundary).
+shutdown -h +{{DEADMAN_MINUTES}}
+exec > >(tee /var/log/bench.log) 2>&1
+T0=$(date +%s)
+dnf install -y java-17-amazon-corretto-devel maven git tar gzip >/dev/null 2>&1
+cd /opt
+git clone --filter=blob:none --no-checkout https://github.com/Card-Forge/forge.git >/dev/null 2>&1
+cd forge && git checkout {{FORGE_COMMIT}} >/dev/null 2>&1
+mkdir -p /opt/agent && cd /opt/agent
+curl -sS -o payload.tgz "{{PAYLOAD_URL}}" && tar xzf payload.tgz 2>/dev/null
+# AppleDouble ._* files from a macOS tar break checkstyle — the payload must
+# be built with COPYFILE_DISABLE=1 tar --exclude '._*'; the find is belt+braces.
+cp -r /opt/agent/forge-overlay/forge-gui-desktop/src/main/java/forge/spike \
+      /opt/forge/forge-gui-desktop/src/main/java/forge/
+find /opt/forge -name '._*' -delete
+cp /opt/agent/run-llm-headless.sh /opt/forge/forge-gui-desktop/ && chmod +x /opt/forge/forge-gui-desktop/run-llm-headless.sh
+cd /opt/forge
+
+# INSTALL, not compile. build-classpath resolves siblings as SNAPSHOT jars from
+# the local m2 repo; `compile` never puts them there, which is why run 3
+# produced a 1232-byte classpath (local is 10693 / 103 jars) and the JVM then
+# hung with no engine classes.
+mvn -pl forge-gui-desktop -am install -DskipTests -Dcheckstyle.skip=true \
+    -Dmaven.javadoc.skip=true > /tmp/build.log 2>&1
+grep -q "BUILD SUCCESS" /tmp/build.log || { echo "BUILD_FAILED"; grep -E "ERROR" /tmp/build.log | head -10; echo "BENCH_ABORT"; sleep 120; shutdown -h now; }
+echo "BUILD_OK"
+# No -am here: with -am each module overwrites the same outputFile and the LAST
+# one wins, which is how run 3 got a sibling's tiny classpath.
+mvn -pl forge-gui-desktop org.apache.maven.plugins:maven-dependency-plugin:3.6.0:build-classpath \
+    -Dmdep.outputFile=/tmp/forge_cp.txt > /tmp/cp.log 2>&1
+CPB=$(wc -c < /tmp/forge_cp.txt 2>/dev/null || echo 0)
+echo "CLASSPATH bytes=$CPB jars=$(tr ':' '\n' < /tmp/forge_cp.txt 2>/dev/null | wc -l)"
+# Local reference is 10693 bytes / 103 jars. Anything under 5000 is the run-3
+# failure recurring, and must abort rather than hang for 20 minutes.
+[ "$CPB" -lt 5000 ] && { echo "CLASSPATH_TOO_SMALL"; tail -5 /tmp/cp.log; echo "BENCH_ABORT"; sleep 120; shutdown -h now; }
+echo "CLASSPATH_OK"
+echo "TIMING setup_total $(( $(date +%s) - T0 ))s"
+NPROC=$(nproc); echo "NPROC $NPROC"
+
+# cwd MUST be the module dir: the launcher's CP starts with a RELATIVE
+# "target/classes", and forge root has none.
+# EC2 serial console does not populate for short-lived instances — results
+# MUST go to S3 (via the instance role); console output alone is a black hole.
+{{BENCH_CMD}}
+
+echo "BENCH_COMPLETE"
+sleep 120
+shutdown -h now

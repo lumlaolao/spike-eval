@@ -484,9 +484,68 @@ def test_mixed_checkpoint_is_mixed_provenance():
               "checkpoint_sha" in p["mixed_fields"], str(p["mixed_fields"]))
 
 
+def _write_pool_fixture(root):
+    """4 deck subdirs with DELIBERATELY heterogeneous win rates (0.05, 0.10,
+    0.40, 0.45 over 40 games each) — cross-deck variance is what makes the
+    clustered interval wider than the naive one, mirroring the measured 26x
+    per-deck spread of the real random floor."""
+    rates = {"random-low1": 2, "random-low2": 4,
+             "random-high1": 16, "random-high2": 18}
+    for deck, wins in rates.items():
+        d = Path(root) / deck
+        d.mkdir(parents=True)
+        for i in range(40):
+            g = game_line(7000 + i, False, "A" if i < wins else "B",
+                          ctrl_a="random", ctrl_b="ai")
+            with open(str(d / ("game-%d-%03d.jsonl" % (7000 + i, i))), "w",
+                      encoding="utf-8") as f:
+                f.write(json.dumps(g) + "\n")
+    # a non-matching arm dir that --pool-prefix must exclude
+    d = Path(root) / "floor-low1"
+    d.mkdir()
+    with open(str(d / "game-7000-000.jsonl"), "w", encoding="utf-8") as f:
+        f.write(json.dumps(game_line(7000, False, "B", ctrl_a="floor",
+                                     ctrl_b="ai")) + "\n")
+
+
+def test_pool_clustered_wider_than_naive():
+    """--pool must emit BOTH intervals, the clustered one strictly wider on
+    heterogeneous decks, with pinned values at a fixed bootstrap seed — a new
+    statistic with no pinned fixture is exactly what silently drifts."""
+    import tempfile as _tf
+    with _tf.TemporaryDirectory() as td:
+        _write_pool_fixture(td)
+        s = aggregate.build_pool_summary(td, prefix="random-",
+                                         resamples=2000,
+                                         bootstrap_seed=20260728)
+        check("pool: 4 per-deck rows (prefix filters the floor dir)",
+              len(s["per_deck"]) == 4 and s["skipped_dirs"] == ["floor-low1"],
+              "%d rows, skipped %s" % (len(s["per_deck"]), s["skipped_dirs"]))
+        p = s["pooled"]
+        check("pool: pooled count is per-game, never per-arm-perspective",
+              p["wins"] == 40 and p["games"] == 160,
+              "%s/%s" % (p["wins"], p["games"]))
+        check("pool: pooled rate", approx(p["win_rate"], 0.25))
+        naive_w = p["naive_wilson95"][1] - p["naive_wilson95"][0]
+        cl = p["clustered"]
+        clus_w = cl["ci95"][1] - cl["ci95"][0]
+        check("pool: clustered interval strictly wider than naive",
+              clus_w > naive_w, "clustered %.4f vs naive %.4f"
+              % (clus_w, naive_w))
+        # Pinned at seed 20260728 / 2000 resamples. If cluster_bootstrap_ci
+        # or the pooling changes, this MUST move — that is the point.
+        check("pool: clustered ci95 pinned",
+              approx(cl["ci95"][0], 0.075, tol=1e-9)
+              and approx(cl["ci95"][1], 0.425, tol=1e-9),
+              str(cl["ci95"]))
+        check("pool: per-deck rows are dicts with wilson95",
+              all(len(d["wilson95"]) == 2 for d in s["per_deck"]))
+
+
 def main():
     test_wilson()
     test_p90()
+    test_pool_clustered_wider_than_naive()
     test_bootstrap_determinism()
     test_fixture_summary()
     test_identity_keyed_no_seat_flip()

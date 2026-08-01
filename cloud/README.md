@@ -1,4 +1,45 @@
-# Cloud runbook — GPU generation on RunPod / Vast.ai / AWS
+# Cloud runbook
+
+## Current use (2026-07-31): model-free CPU benching on EC2 — `cloud/bench/`
+
+The eval's cloud workload changed: it is now pure-CPU Java (mining-round
+rollout confirms ~66 CPU-hours, STR floor arms ~67 JVM-hours), model-free by
+security design (no API keys on rented boxes, ever — cloud runs only what
+needs no secrets; anything touching a model API stays local).
+
+Verdict from the 2026-07-29 measurement + 07-31 review:
+
+- **EC2, not RunPod, for this workload.** RunPod CPU pods cap at 8 vCPU/pod,
+  so a 32-vCPU round means 4-way hand-sharding with no shared FS, no IAM/S3
+  equivalent — to save at most ~$2.50/round. The RunPod material below is a
+  **GPU/training-era appendix (archived 2026-07-31)**: it becomes the right
+  answer again only if a training phase needs GPUs without an AWS quota wait.
+- **Cost is flat in instance size** (EC2 prices per-vCPU): a ~66 CPU-hour
+  round is ~$2.94 on c7i.8xlarge (32 vCPU, 2.2h wall) and barely more at 64
+  or 128 vCPU — a quota raise buys wall-clock, not dollars. Prefer c7i
+  ($0.0446/vCPU-h) over c7a ($0.0513). Spot is ~4x cheaper (~$0.81/round);
+  the "spot refused all afternoon" verdict of 07-29 pinned one subnet and one
+  type — use a multi-AZ, multi-type `create-fleet --type instant` with an
+  on-demand fallback instead.
+- **Forge builds from bare metal in ~90s at the pinned SHA** — shipping the
+  engine is NOT awkward (an earlier claim to the contrary was wrong). Four
+  porting bugs are already paid for and encoded, with their evidence, in
+  `cloud/bench/userdata.sh.tmpl`. Read that file before changing anything.
+- **Results go to S3 via an IAM instance role** (s3:GetObject payload/*,
+  s3:PutObject results/*), zero-inbound SG, terminate-on-shutdown. Never a
+  presigned URL in user-data (embeds a live key id readable via IMDS), never
+  a public bucket (S3 Block Public Access refusing one was correct).
+- **Do not launch a paid round until** `verify_keys --resume/--shard` output
+  survives an interrupt (landed 2026-07-31) and `eval/preflight.py` is green
+  on the exact payload — a case-typo cost 30/320 positions in round 3.
+
+---
+
+# ARCHIVED (2026-07-31): GPU generation on RunPod / Vast.ai / AWS
+
+Everything below is the GPU/training-era runbook, kept because it is the
+right starting point again if a training phase needs GPUs. It is NOT the
+path for eval/mining compute.
 
 Plain-language guide for going from zero to a running data-generation box and
 back, without surprises on the bill. Placeholders you must replace are written

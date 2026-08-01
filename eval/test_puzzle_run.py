@@ -755,6 +755,120 @@ def test_http_call_sends_the_api_key():
         srv.server_close()
 
 
+class _TruncEcho(http.server.BaseHTTPRequestHandler):
+    """finish_reason='length' + empty content below CUTOFF max_tokens; a
+    valid 'CHOICE: 1' above. The reply-shape of a reasoning model whose cap
+    was eaten by hidden thinking — the kimi-k3 failure mode."""
+    CUTOFF = 16
+    CALLS = []          # max_tokens per request, in order
+    SMALL_CONTENT = ""  # what a below-cutoff request returns
+
+    def log_message(self, *a):
+        pass
+
+    def do_POST(self):
+        n = int(self.headers.get("Content-Length", 0))
+        body = json.loads(self.rfile.read(n).decode("utf-8"))
+        mt = body.get("max_tokens")
+        _TruncEcho.CALLS.append(mt)
+        if mt is not None and mt < _TruncEcho.CUTOFF:
+            payload = {"choices": [{"message": {
+                "role": "assistant", "content": _TruncEcho.SMALL_CONTENT},
+                "finish_reason": "length"}]}
+        else:
+            payload = {"choices": [{"message": {
+                "role": "assistant", "content": "CHOICE: 1"},
+                "finish_reason": "stop"}]}
+        raw = json.dumps(payload).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(raw)))
+        self.end_headers()
+        self.wfile.write(raw)
+
+
+def test_truncation_retry_ladder():
+    """The ported Java ladder: finish_reason=length with no decision tag ->
+    ONE retry at 2x tokens, adopted; a truncated reply that already carries a
+    tag does NOT retry; '...CHOICE: ' with no digit DOES (the bare-substring
+    bug the Java side already paid for)."""
+    srv = http.server.HTTPServer(("127.0.0.1", 0), _TruncEcho)
+    t = threading.Thread(target=srv.serve_forever, daemon=True)
+    t.start()
+    endpoint = "http://127.0.0.1:%d/v1" % srv.server_address[1]
+    msgs = [{"role": "user", "content": "x"}]
+    try:
+        # (i) empty truncated reply -> retry fires at 2x and is adopted
+        _TruncEcho.CALLS, _TruncEcho.SMALL_CONTENT = [], ""
+        counters = {}
+        reply, err, _ = puzzle_run.http_call(endpoint, "m", msgs, 8, 5.0, 1,
+                                             counters=counters)
+        check("trunc: retry fired and was adopted",
+              err is None and reply == "CHOICE: 1", "%r %r" % (reply, err))
+        check("trunc: exactly one retry, at doubled tokens",
+              _TruncEcho.CALLS == [8, 16], str(_TruncEcho.CALLS))
+        check("trunc: counters recorded fire + adoption",
+              counters.get("truncation_retries") == 1
+              and counters.get("truncation_retries_adopted") == 1,
+              str(counters))
+        # (ii) truncated reply ALREADY carrying a tag -> no retry
+        _TruncEcho.CALLS, _TruncEcho.SMALL_CONTENT = [], "CHOICE: 2"
+        counters = {}
+        reply, err, _ = puzzle_run.http_call(endpoint, "m", msgs, 8, 5.0, 1,
+                                             counters=counters)
+        check("trunc: tagged reply kept without retry",
+              reply == "CHOICE: 2" and _TruncEcho.CALLS == [8],
+              "%r %s" % (reply, _TruncEcho.CALLS))
+        check("trunc: no counter movement on tagged reply",
+              counters.get("truncation_retries", 0) == 0, str(counters))
+        # (iii) '...CHOICE: ' with NO digit -> retries (digit rule)
+        _TruncEcho.CALLS, _TruncEcho.SMALL_CONTENT = [], "I pick CHOICE: "
+        counters = {}
+        reply, err, _ = puzzle_run.http_call(endpoint, "m", msgs, 8, 5.0, 1,
+                                             counters=counters)
+        check("trunc: digit-less tag retries and adopts",
+              reply == "CHOICE: 1" and _TruncEcho.CALLS == [8, 16],
+              "%r %s" % (reply, _TruncEcho.CALLS))
+    finally:
+        srv.shutdown()
+        srv.server_close()
+
+
+def test_truncation_counters_and_max_tokens_reach_summary():
+    """(iv) the ladder's tallies and the run's max_tokens are provenance:
+    they must land in summary.json for a real http run."""
+    srv = http.server.HTTPServer(("127.0.0.1", 0), _TruncEcho)
+    t = threading.Thread(target=srv.serve_forever, daemon=True)
+    t.start()
+    endpoint = "http://127.0.0.1:%d/v1" % srv.server_address[1]
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            pos_path = write_jsonl(str(Path(tmp) / "p.jsonl"),
+                                   main_fixture_rows())
+            out_dir = Path(tmp) / "out-trunc"
+            _TruncEcho.CALLS, _TruncEcho.SMALL_CONTENT = [], ""
+            rc, _, err = run_main([pos_path, "--out", str(out_dir),
+                                   "--backend", "http",
+                                   "--endpoint", endpoint,
+                                   "--model", "m", "--max-tokens", "8"])
+            check("trunc summary: run ok", rc == 0, "rc=%s %s" % (rc, err))
+            s = json.loads((out_dir / "summary.json")
+                           .read_text(encoding="utf-8"))
+            check("trunc summary: max_tokens recorded",
+                  s.get("max_tokens") == 8, str(s.get("max_tokens")))
+            check("trunc summary: ladder state recorded",
+                  (s.get("truncation_ladder") or {}).get("enabled") is True,
+                  str(s.get("truncation_ladder")))
+            c = s.get("counters") or {}
+            check("trunc summary: retries counted",
+                  c.get("truncation_retries", 0) >= 1
+                  and c.get("truncation_retries_adopted", 0) >= 1,
+                  str({k: v for k, v in c.items() if "trunc" in k}))
+    finally:
+        srv.shutdown()
+        srv.server_close()
+
+
 def test_bedrock_backend_refuses_without_consent():
     with tempfile.TemporaryDirectory() as tmp:
         pos_path = write_jsonl(str(Path(tmp) / "p.jsonl"), main_fixture_rows())

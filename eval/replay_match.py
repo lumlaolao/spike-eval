@@ -682,10 +682,13 @@ def apply_filters(rows, args):
 # ===========================================================================
 
 def _post_chat(endpoint, model, messages, max_tokens, timeout, api_key=None,
-               opener=None):
-    """One OpenAI-compatible /chat/completions call. Returns the assistant text.
-    Raises urllib.error.URLError / OSError / ValueError on transport/parse
-    failure (the caller decides how loud to be).
+               opener=None, return_meta=False):
+    """One OpenAI-compatible /chat/completions call. Returns the assistant text
+    — or, with return_meta=True, (text, finish_reason), because a caller that
+    discards finish_reason cannot tell a truncated reply from a complete one
+    (that asymmetry vs the Java bridge produced the kimi-k3 0.600-vs-0.720
+    measurement error). Raises urllib.error.URLError / OSError / ValueError on
+    transport/parse failure (the caller decides how loud to be).
 
     `api_key` (when given) is sent as a Bearer token. It is set ONLY by the
     already-egress-gated caller for a non-local endpoint, and is never logged
@@ -709,7 +712,11 @@ def _post_chat(endpoint, model, messages, max_tokens, timeout, api_key=None,
     # budget on a leading newline). Treat as empty text, not a transport error
     # — an empty scoring reply lands in the parse-failure bucket, which is the
     # honest outcome.
-    return obj["choices"][0]["message"].get("content", "")
+    choice = obj["choices"][0]
+    content = choice["message"].get("content", "")
+    if return_meta:
+        return content, choice.get("finish_reason")
+    return content
 
 
 def health_probe(endpoint, model, timeout, api_key=None):

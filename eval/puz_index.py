@@ -50,8 +50,17 @@ INDEX_NAME = "INDEX.jsonl"
 
 #: Fields that must match before two rows may be ranked against each other.
 #: suite_sha256 covers the positions; contract_sha covers how they were
-#: rendered; k and strictness change what pass_1 even means.
-COMPARABILITY_KEYS = ("suite_sha256", "contract_sha", "k", "strictness")
+#: rendered; k and strictness change what pass_1 even means. max_tokens is a
+#: measurement knob, not a model property: kimi-k3 scored 0.600 at 4k tokens
+#: (33% interface failures) and 0.720 at 16k — the same model, two different
+#: measurements, and they indexed as the same thing until this key existed.
+#: RESOLUTION for legacy rows: a MISSING max_tokens is the explicit sentinel
+#: 'unrecorded' (None) — it refuses to rank against a RECORDED value but
+#: ranks fine against other unrecorded rows, so pre-existing artifact sets
+#: (e.g. runs/puz/tournament-8) stay internally rankable while a 4k and a 16k
+#: run can never again silently share a table.
+COMPARABILITY_KEYS = ("suite_sha256", "contract_sha", "k", "strictness",
+                      "max_tokens")
 
 
 def _get(d, *path):
@@ -120,6 +129,7 @@ def row_from_run(run_dir):
         "offline_policy": s.get("offline_policy"),
         "k": s.get("k"),
         "strictness": s.get("strictness"),
+        "max_tokens": s.get("max_tokens"),
         "split": s.get("split"),
         "n_positions": s.get("n_positions"),
         "n_samples": s.get("n_samples"),
@@ -286,15 +296,24 @@ def cmd_compare(args):
     return 0
 
 
-def position_solve_rates(run_dirs):
-    """-> {model: {position_id: mean solved over k}} plus the position order.
+def position_solve_rates(run_dirs, pick_latest=False):
+    """-> ({model: {position_id: mean solved over k}}, position order).
 
     Read from results.jsonl, not summary.json: the per-position detail is the
     only thing that can tell a suite's FREE positions from its discriminating
     ones, and that distinction is what decides whether a leaderboard means
     anything.
+
+    A DUPLICATE model name across run_dirs is an ERROR, not an overwrite:
+    the silent `per[model] = ...` this replaces scored kimi-k3 from a
+    SUPERSEDED 4k-token run (0.600, 33% iface) instead of the 16k rerun
+    (0.720, 7%) when the caller globbed both — two contradictory published
+    numbers from one command. pick_latest=True is the explicit opt-in: keep
+    the run with the newest generated_utc (falling back to run-dir mtime) and
+    SAY which one won.
     """
     per, order = {}, []
+    model_src = {}   # model -> (run_dir, sort_key) that produced its rows
     seen = set()
     for d in run_dirs:
         rp = Path(d) / "results.jsonl"
@@ -310,6 +329,8 @@ def position_solve_rates(run_dirs):
                 r = json.loads(line)
             except ValueError:
                 continue
+            if r.get("t") == "summary":
+                continue
             pid = r.get("position_id")
             if not pid:
                 continue
@@ -318,10 +339,63 @@ def position_solve_rates(run_dirs):
             if pid not in seen:
                 seen.add(pid)
                 order.append(pid)
-        if model:
-            per[model] = dict((k, sum(v) / float(len(v)))
-                              for k, v in acc.items() if v)
+        if not model:
+            continue
+        sort_key = _run_sort_key(d)
+        if model in per:
+            prev_dir, prev_key = model_src[model]
+            if not pick_latest:
+                raise DuplicateModelError(
+                    "model %r appears in BOTH %s and %s — refusing to pick "
+                    "silently (the overwrite this replaces published a "
+                    "superseded score). Re-run with --pick-latest to keep "
+                    "the newest run, or pass only the run_dirs you mean."
+                    % (model, prev_dir, d))
+            if sort_key <= prev_key:
+                print("duplicate model %r: keeping %s (newer), ignoring %s"
+                      % (model, prev_dir, d), file=sys.stderr)
+                continue
+            print("duplicate model %r: keeping %s (newer), ignoring %s"
+                  % (model, d, prev_dir), file=sys.stderr)
+        per[model] = dict((k, sum(v) / float(len(v)))
+                          for k, v in acc.items() if v)
+        model_src[model] = (str(d), sort_key)
     return per, order
+
+
+class DuplicateModelError(RuntimeError):
+    pass
+
+
+def _run_sort_key(run_dir):
+    """generated_utc from summary.json when readable, else dir mtime — a
+    total order for --pick-latest that survives missing summaries."""
+    try:
+        s = json.loads((Path(run_dir) / "summary.json")
+                       .read_text(encoding="utf-8"))
+        utc = s.get("generated_utc")
+        if utc:
+            return (1, str(utc))
+    except (OSError, ValueError):
+        pass
+    try:
+        return (0, "%020.6f" % Path(run_dir).stat().st_mtime)
+    except OSError:
+        return (0, "")
+
+
+def exact_mcnemar_p(b, c):
+    """Two-sided exact McNemar / sign test: b positions where A beat B, c
+    where B beat A (ties dropped). p = P(X <= min(b,c) or X >= max(b,c)) for
+    X ~ Binomial(b+c, 0.5). Stdlib only — sum of binomial tail terms."""
+    n = b + c
+    if n == 0:
+        return 1.0
+    from math import comb
+    lo = min(b, c)
+    tail = sum(comb(n, i) for i in range(0, lo + 1))
+    p = 2.0 * tail / (2.0 ** n)
+    return min(1.0, p)
 
 
 def discrimination(per, order):
@@ -357,7 +431,12 @@ def discrimination(per, order):
 
 def cmd_leaderboard(args):
     dirs = args.dirs
-    per, order = position_solve_rates(dirs)
+    try:
+        per, order = position_solve_rates(
+            dirs, pick_latest=getattr(args, "pick_latest", False))
+    except DuplicateModelError as exc:
+        print("ERROR: %s" % exc, file=sys.stderr)
+        return 4
     if not per:
         print("no results.jsonl found in the given dirs", file=sys.stderr)
         return 3
@@ -390,15 +469,43 @@ def cmd_leaderboard(args):
                          se))
         for est, m, ov, se in sorted(rows, reverse=True):
             print("  %-30s %8.3f %8.3f   +/- %.3f" % (m, ov, est, 1.96 * se))
-        worst = min(r[0] for r in rows)
-        best = max(r[0] for r in rows)
-        se_max = max(r[3] for r in rows)
-        if (best - worst) < 1.96 * se_max * (2 ** 0.5):
+        # PAIRED test, because every model answered the IDENTICAL positions:
+        # the old independent-samples check (1.96*se_max*sqrt(2)) threw away
+        # the pairing and could neither confirm nor deny an ordering. Exact
+        # McNemar / sign test per pair: b = positions where A beat B, c = the
+        # reverse, ties dropped, two-sided exact binomial.
+        import itertools
+        pair_stats = []
+        for ma, mb in itertools.combinations(models, 2):
+            shared = [p for p in order if p in per[ma] and p in per[mb]]
+            b = sum(1 for p in shared if per[ma][p] > per[mb][p])
+            c = sum(1 for p in shared if per[ma][p] < per[mb][p])
+            pair_stats.append((exact_mcnemar_p(b, c), ma, mb, b, c))
+        if pair_stats:
+            n_sig = sum(1 for p, _a, _b, _bb, _cc in pair_stats if p < 0.05)
+            best_pair = min(pair_stats)
             print()
-            print("  ORDERING NOT SIGNIFICANT: the best-to-worst spread (%.3f) "
-                  "is inside the\n  noise of a single %d-position estimate "
-                  "(+/-%.3f). Report the scores, not the rank."
-                  % (best - worst, n, 1.96 * se_max))
+            if n_sig == 0:
+                print("  ORDERING NOT SIGNIFICANT: exact McNemar over shared "
+                      "positions finds 0 of %d\n  model pairs significant at "
+                      "p<0.05 (best pair %s vs %s: b=%d c=%d p=%.3f).\n"
+                      "  The cause is suite DIFFICULTY, not sample size — "
+                      "most positions are solved by\n  every model, so more "
+                      "positions from the same distribution will not "
+                      "separate\n  these models. Report the scores, never the "
+                      "rank."
+                      % (len(pair_stats), best_pair[1], best_pair[2],
+                         best_pair[3], best_pair[4], best_pair[0]))
+            else:
+                print("  paired significance (exact McNemar, shared "
+                      "positions): %d of %d pairs\n  significant at p<0.05. "
+                      "Rank claims are supported ONLY for those pairs:"
+                      % (n_sig, len(pair_stats)))
+                for p, ma, mb, b, c in sorted(pair_stats):
+                    if p < 0.05:
+                        print("    %s > %s  (b=%d c=%d p=%.4f)"
+                              % ((ma if b > c else mb),
+                                 (mb if b > c else ma), b, c, p))
     return 0
 
 
@@ -462,11 +569,15 @@ def main(argv=None):
     p.add_argument("--suite", default=None)
     p.set_defaults(fn=cmd_compare)
 
-    p = sub.add_parser("leaderboard",
-                       help="split the suite into free/dead/discriminating "
-                            "positions and rank on the part that ranks")
-    p.add_argument("dirs", nargs="+")
-    p.set_defaults(fn=cmd_leaderboard)
+    p_lb = sub.add_parser("leaderboard",
+                          help="split the suite into free/dead/discriminating "
+                               "positions and rank on the part that ranks")
+    p_lb.add_argument("dirs", nargs="+")
+    p_lb.add_argument("--pick-latest", action="store_true",
+                      help="when one model appears in several run_dirs, keep "
+                           "the newest run (by generated_utc) and print which "
+                           "won — without this, duplicates are an ERROR")
+    p_lb.set_defaults(fn=cmd_leaderboard)
 
     p = sub.add_parser("replies", help="read the model's answers back out")
     p.add_argument("dir")

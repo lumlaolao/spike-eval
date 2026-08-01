@@ -452,26 +452,92 @@ def policy_reply(policy, pos, k, sample_seed):
     raise ValueError("unknown offline policy %r" % policy)
 
 
+# Port of LlmSpikeGui.looksLikeDecisionTag (Java, ~:4248), EXACTLY: KEEP and
+# MULLIGAN match as bare substrings; the menu tags require a DIGIT somewhere
+# after the keyword. The bare-substring version wrongly treated a reply
+# truncated at "...CHOICE: " as an answer and skipped the retry — the digit
+# requirement is the fix the Java side already paid for.
+_DIGIT_TAGS = ("CHOICE", "PICKS:", "BLOCKS:", "ANSWER:")
+
+
+def _looks_like_decision_tag(content):
+    if not content:
+        return False
+    u = content.upper()
+    if "KEEP" in u or "MULLIGAN" in u:
+        return True
+    for tag in _DIGIT_TAGS:
+        i = u.find(tag)
+        if i >= 0 and any(ch.isdigit() for ch in u[i:]):
+            return True
+    return False
+
+
+#: Truncation-retry ceiling, mirroring the Java bridge's Math.min(2x, 64000).
+TRUNCATION_RETRY_CAP = 64000
+
+
 def http_call(endpoint, model, messages, max_tokens, timeout, tries,
-              api_key=None):
+              api_key=None, counters=None, counters_lock=None):
     """One sample over HTTP with retries. Returns (reply, error, latency_ms).
     Never raises on transport failure.
+
+    TRUNCATION LADDER (ported from the Java bridge, HARNESS-ANALYSIS F2/
+    Infra-3): if the reply finished with finish_reason='length' and does not
+    already contain a recognizable decision tag, re-send ONCE at
+    min(2*max_tokens, 64000) and adopt the retry unless it came back empty.
+    THE ORDERING IS LOAD-BEARING: this check runs BEFORE any is-this-empty /
+    non-answer judgment — a reply whose budget was entirely consumed by hidden
+    reasoning is EMPTY, and when the emptiness check ran first on the Java
+    side the retry was dead code for exactly the case it exists for (0
+    firings across 18 finish_reason=length events). Without this ladder,
+    per-model token guessing decides scores: kimi-k3 measured 0.600 with 33%
+    interface failures at 4k tokens and 0.720 with 8% at 16k.
+
+    `counters` (optional dict, guarded by `counters_lock` when fanning out
+    over threads) accumulates truncation_retries / truncation_retries_adopted
+    so summary.json shows how often the ladder saved a sample.
 
     `api_key` is set ONLY by the already-egress-gated caller and only for a
     non-local endpoint (replay_match.require_api_key enforces both). It is
     sent as a Bearer token and never lands in the error string: the error text
     is the exception TYPE plus its message, and _post_chat never echoes its
     headers."""
+    def _bump(key):
+        if counters is None:
+            return
+        if counters_lock is not None:
+            with counters_lock:
+                counters[key] = counters.get(key, 0) + 1
+        else:
+            counters[key] = counters.get(key, 0) + 1
+
     last_err = None
     for _ in range(max(1, tries)):
         t0 = time.time()
         try:
-            text = replay_match._post_chat(endpoint, model, messages,
-                                           max_tokens, timeout,
-                                           api_key=api_key)
-            return text, None, int((time.time() - t0) * 1000)
+            text, finish_reason = replay_match._post_chat(
+                endpoint, model, messages, max_tokens, timeout,
+                api_key=api_key, return_meta=True)
         except (urllib.error.URLError, OSError, ValueError, KeyError) as exc:
             last_err = "%s: %s" % (type(exc).__name__, exc)
+            continue
+        if finish_reason == "length" and not _looks_like_decision_tag(text):
+            _bump("truncation_retries")
+            retry_tokens = min(max_tokens * 2, TRUNCATION_RETRY_CAP)
+            try:
+                rtext, _rfr = replay_match._post_chat(
+                    endpoint, model, messages, retry_tokens, timeout,
+                    api_key=api_key, return_meta=True)
+                # Adopt unless the retry is itself empty: a truncated-but-
+                # substantive original beats a garbled/empty retry (Java
+                # bridge rule).
+                if rtext and rtext.strip():
+                    text = rtext
+                    _bump("truncation_retries_adopted")
+            except (urllib.error.URLError, OSError, ValueError, KeyError):
+                pass  # keep the truncated original; scoring gets final say
+        return text, None, int((time.time() - t0) * 1000)
     return None, last_err, None
 
 
@@ -502,11 +568,12 @@ def bedrock_call(model, messages, region, creds, cfg, env, warnings, pos_id):
     return res.get("text"), None, res.get("latency_ms")
 
 
-def collect_replies(positions, args, env, warnings):
+def collect_replies(positions, args, env, warnings, net_counters=None):
     """-> list of raw sample dicts {pos_idx, k, reply, error, latency_ms} in
     deterministic (position order, k) order. Offline never touches the
     network; http fans out over --workers threads. Fixture-parse warnings are
-    appended to `warnings` (never dropped)."""
+    appended to `warnings` (never dropped). `net_counters` (optional dict)
+    accumulates the truncation-ladder tallies across all samples."""
     tasks = [(i, k) for i in range(len(positions))
              for k in range(1, args.k + 1)]
     raw = {}
@@ -552,13 +619,16 @@ def collect_replies(positions, args, env, warnings):
         endpoint = args.endpoint
         tries = 1 + max(0, args.retries)
         api_key = getattr(args, "api_key", None)
+        import threading as _threading
+        _clock = _threading.Lock()
 
         def one(task):
             i, k = task
             messages = positions[i]["rendered"]["messages"]
             return task, http_call(endpoint, args.model, messages,
                                    args.max_tokens, args.req_timeout, tries,
-                                   api_key=api_key)
+                                   api_key=api_key, counters=net_counters,
+                                   counters_lock=_clock)
 
         if args.workers > 1:
             from concurrent.futures import ThreadPoolExecutor
@@ -1004,6 +1074,20 @@ def build_summary(args, positions, samples, skips, warnings,
                       if args.backend == "bedrock" else None),
         "model_cfg_sha": (bedrock.model_cfg_sha()
                           if args.backend == "bedrock" else None),
+        # ADDITIVE provenance for ALL backends: the kimi-k3 4k-vs-16k runs
+        # (0.600 vs 0.720) were the same model at different token caps and
+        # were indistinguishable in their summaries. For bedrock the
+        # authoritative cap lives in model_cfg; args.max_tokens is still the
+        # CLI-level record. puz_index treats a MISSING value as the explicit
+        # sentinel 'unrecorded' for ranking comparability.
+        "max_tokens": getattr(args, "max_tokens", None),
+        "truncation_ladder": {
+            "enabled": args.backend in ("http", "openrouter"),
+            "retry_cap": TRUNCATION_RETRY_CAP,
+            "note": "finish_reason=length + no decision tag -> one retry at "
+                    "min(2x, cap); bedrock handles caps via model_cfg; "
+                    "offline never truncates",
+        },
         "api_key_present": bool(getattr(args, "api_key", None)),
         "k": args.k,
         "strictness": args.strictness,
@@ -1197,7 +1281,9 @@ def main(argv=None, env=None):
               "(skips: %s)" % json.dumps(dict(skips)), file=sys.stderr)
         return 2
 
-    raws = collect_replies(positions, args, env, warnings)
+    net_counters = {}
+    raws = collect_replies(positions, args, env, warnings,
+                           net_counters=net_counters)
     samples = build_samples(positions, raws)
     attempted = len(samples)
     transport_errors = sum(1 for s in samples
@@ -1207,6 +1293,12 @@ def main(argv=None, env=None):
 
     summary = build_summary(args, positions, samples, skips, warnings,
                             transport_errors, missing_fixture, attempted)
+    # Ladder tallies: how often a length-truncated reply was retried, and how
+    # often the retry produced the sample that got scored.
+    summary["counters"]["truncation_retries"] = net_counters.get(
+        "truncation_retries", 0)
+    summary["counters"]["truncation_retries_adopted"] = net_counters.get(
+        "truncation_retries_adopted", 0)
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)

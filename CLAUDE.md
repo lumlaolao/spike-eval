@@ -21,7 +21,7 @@ score):
    over the full 16-deck pool, reported per-matchup and pooled.
 2. **STR-HELDOUT** — the same measurement on a seed band mechanically blocked from
    every training corpus (`eval/seed_registry.json` + `eval/seed_policy.py`,
-   enforced by `run_batch.py` and CI). The gap between STR-AI and STR-HELDOUT is
+   enforced by `run_batch.py`). The gap between STR-AI and STR-HELDOUT is
    the memorization estimate.
 3. **PUZ** — the golden puzzle suite: per-puzzle *solved / not solved*, *count
    solved*, and *time-to-solve*. Teacher-independent, so it survives the teacher
@@ -126,14 +126,28 @@ are only comparable within one engine version.
   stops selection from discarding for SLOT balance, because `--balance-salts`
   fixes that for free — but it deliberately still balances the PASS floor,
   which shuffling cannot touch (PASS is pinned last by `pass_option_index`).
-  **Mine the 3–4 option band for the rollout lane.** Measured over 103
-  verified keys, the fraction with a SINGLE best answer collapses as the menu
-  grows — `n=2 1.00 | n=3 0.72 | n=4 0.55 | n=5 0.40 | n>=6 0.00` — because at
-  `n_per_option=45` the CI-overlap tie rule cannot separate many options at
-  once and marks them all maximal. Multi-10 positions are not puzzles, and
-  n=2 positions are unshufflable, so **only n_options 3–4 yields quotable
-  positions** and everything else costs ~153 games to prove useless. Round 2
-  spent ~39% of its rollout budget on n=2 candidates alone.
+  **Sample the rollout lane RANDOMLY across all option counts.** The 3–4-band
+  guidance previously here optimized the wrong quantity. Two metrics pull
+  opposite ways: the fraction of VERIFIED KEYS that survive the suite filters
+  (favours n=3–4 — that is what was measured) versus the fraction of ATTEMPTED
+  POSITIONS that verify at all (favours random sampling). Measured once each:
+  random sampling **32/300 = 0.107** in 4h01m (`runs/overnight-2`); 3–4-band
+  targeting **6/320 = 0.019** raw / 6/252 = 0.024 after excluding 68
+  infrastructure failures, in 7h29m (`runs/overnight-3`). n=1 round each —
+  treat as directional, not a law. Per-option-count verification rates:
+  `n=2 0.139 | n=3 0.055 | n=4 0.073 | n>=5 ~0.05`. n=2 has the best
+  verification rate and ~0% suite survival — if re-admitted, score it against
+  an explicit 0.50 floor, never silently.
+  **Mine for INFORMATIVENESS, not yield.** Measured over the 7 models in
+  `runs/puz/tournament-8`, 9 of puz-v1's 25 positions solve at 1.000 and 6
+  more at 0.964; only 9 fall in the informative band `0.05 < solve < 0.95`,
+  and mean model pass_1 is 0.811. Paired significance
+  (`puz_index.py leaderboard` runs an exact McNemar/sign test over shared
+  positions): only 3 of 21 model pairs separate at p<0.05 on mean solve
+  rates (1 of 21 on binary pass@1) — isolated pairs, never the ordering.
+  Quote only the pairs the tool certifies. More positions from the same
+  distribution arrive ~64% free — the suite's bottleneck is DIFFICULTY,
+  not size.
 
   21 verified MULLIGAN keys are **excluded**, and "no numbered menu to
   permute" is the mechanical reason, not the real one: mulligan is BINARY, so
@@ -159,19 +173,37 @@ are only comparable within one engine version.
 - `README.md` — full env-var table and the hard-won-lessons list. Read the lessons
   before touching the priority loop or targeting code.
 
+## Tooling entry points (2026-07-31)
+
+The repo-root **`Makefile` is the single implementation** of the ladder and
+pipelines — `make help` lists targets (`test`, `jtest`, `canary`, `ladder`,
+`preflight`, `mine`, `str-floors`, `scorecard`, `leaderboard`). Slash commands
+(`/ladder`, `/mine-round`, `/handoff`, `/verify-diff` in `.claude/commands/`)
+and docs must WRAP make targets, never re-implement them — two copies of one
+procedure is how prose drift happens. Subagent roles live in
+`.claude/agents/` (`run-analyst`, `floor-checker`, `suite-builder`).
+Recurring run scripts are VERSIONED in `eval/pipelines/` + `cloud/bench/` —
+never leave a load-bearing script in a job tmp dir again.
+`eval/preflight.py` gates every game-launching pipeline (deck names,
+classpath, engine pin, disk); `eval/test_docs_claims.py` mechanically checks
+doc claims that have drifted before. `secrets.env` lives at the MAIN repo
+root and worktrees cannot see it — source it by absolute path:
+`source /Users/lumlumlam/code/mtg-forge-llm-agent/secrets.env`.
+
 ## Validation ladder (cheapest first — always start at the bottom)
 
 0. **Python eval suite** (free, seconds, no JVM): every `eval/test_*.py` must pass —
    `for f in eval/test_*.py; do python3 "$f" >/dev/null || echo "FAIL $f"; done`
-   (21 files, incl. `test_prompt_contract` / `test_puzzle_run` /
+   (26 files, incl. `test_prompt_contract` / `test_puzzle_run` /
    `test_verify_keys` / `test_plan_adherence` / `test_blunder_flags` /
    `test_blunder_report` / `test_build_report` / `test_bedrock`). Never weaken a
    test to pass it.
-0b. **Java unit tests** (free, ~1 min, no game): `cd ~/code/forge && mvn -q -pl
-   forge-gui-desktop -am -o test -Dtest=LlmSpikeForkTest
-   -Dsurefire.failIfNoSpecifiedTests=false` — 32 tests, the pure logic every WP
-   rests on (seed mix, forceable-type gate, forced-index mapping, tally,
-   determinize parsing). **Run it: it was absent from this ladder until
+0b. **Java unit tests** (free, ~1 min, no game): `make jtest` (canonical; it
+   runs `-Dtest='LlmSpikeForkTest+LlmSpikeTest'`) — 98+ tests: the pure logic
+   every WP rests on (seed mix, forceable-type gate, forced-index mapping,
+   tally, determinize parsing) plus the menu/label pins (numberedPlayMenu
+   byte-for-byte, saLabel truncation, disambiguate). **Run it: LlmSpikeForkTest
+   was absent from this ladder until
    2026-07-28 and had been failing the whole time** on an assertion that was
    arithmetically impossible (`mix64(0) != 0`; zero is a genuine fixed point of
    the SplitMix64 finalizer). A test nobody runs is not a test.

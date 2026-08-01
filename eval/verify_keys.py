@@ -1373,6 +1373,34 @@ def survives_screen(row, category, gap_threshold=DEFAULT_GAP_THRESHOLD,
     return (spread + screen_z * se) >= base
 
 
+def resume_key(cand):
+    """Stable identity of a position across runs: the miner-assigned id, or a
+    hash of the replay address when an id is absent. Used by --resume (skip
+    already-written rows) and by shard-merge provenance."""
+    cid = cand.get("id")
+    if cid:
+        return str(cid)
+    src = cand.get("source") or {}
+    basis = dict((k, src.get(k)) for k in
+                 ("deck_a", "deck_b", "controllers", "seed", "swap",
+                  "decision_index", "decision_type", "game_file"))
+    return hashlib.sha256(
+        json.dumps(basis, sort_keys=True).encode("utf-8")).hexdigest()[:16]
+
+
+def meta_from_row(row):
+    """Reconstruct the (row, lane, verified, reason, engine_missing) tuple for
+    a row RELOADED from a previous run's output (--resume). Lossy only in
+    engine_missing (a resumed row cannot re-report a transient engine state,
+    so it is False) — the scientific fields are all carried by the row."""
+    verified = row.get("status") == "verified"
+    reason = None if verified else (row.get("unverifiable_reason") or "unknown")
+    lane = (row.get("answer_key") or {}).get("verified_by")
+    if not lane:
+        lane = route_lane(row)[0] or "none"
+    return row, lane, verified, reason, False
+
+
 def read_candidates(path, warnings):
     rows = []
     try:
@@ -1459,11 +1487,30 @@ def spread_distribution(evidences):
     }
 
 
+# driver_reason values that are INFRASTRUCTURE failures, not scientific
+# outcomes. A run's yield is only meaningful net of these: overnight-3 read
+# "yield 1.9%" when 68/320 positions were infra failures (missing_deck_path
+# from a deck-name case typo, rollout_timeout) — the corrected 2.4% changes
+# which mining strategy looks better. Surfacing this per-run is what lets a
+# health gate refuse the round instead of publishing a poisoned number.
+INFRA_DRIVER_REASONS = frozenset((
+    "missing_deck_path", "rollout_timeout", "engine_error",
+    "probe_failed", "force_not_honoured",
+))
+
+
 def build_summary(rows_meta, driver_name, n_per_option, warnings,
                   thresholds=None):
     n_in = len(rows_meta)
     n_verified = sum(1 for m in rows_meta if m["verified"])
     n_unver = n_in - n_verified
+    by_driver_reason = {}
+    n_infra = 0
+    for m in rows_meta:
+        dr = m.get("driver_reason") or "ok"
+        by_driver_reason[dr] = by_driver_reason.get(dr, 0) + 1
+        if dr in INFRA_DRIVER_REASONS:
+            n_infra += 1
     by_category = {}
     by_lane = {}
     for m in rows_meta:
@@ -1493,6 +1540,12 @@ def build_summary(rows_meta, driver_name, n_per_option, warnings,
         "n_unverifiable": n_unver,
         "by_category": by_category,
         "by_lane": by_lane,
+        # Additive (schema policy): the true per-row driver_reason tallied
+        # across ALL rows ('ok' = no driver failure recorded). by_reason above
+        # collapses seven distinct causes into no_engine_available; this is
+        # the uncollapsed view that makes infra failure visible per-run.
+        "by_driver_reason": by_driver_reason,
+        "infra_failure_rate": (float(n_infra) / n_in) if n_in else 0.0,
         "yield_rate": metric_block(n_verified, n_in),
         "driver": driver_name,
         "n_per_option": n_per_option,
@@ -1588,11 +1641,29 @@ def main(argv=None):
                          "at a time, so this is the JVM count; ~1GB RSS each "
                          "— see eval/CONCURRENCY.md. Output order is "
                          "independent of this value).")
+    ap.add_argument("--resume", action="store_true",
+                    help="skip positions already present in --out (matched by "
+                         "miner id / address hash) and append only the rest. "
+                         "The out file is now also written INCREMENTALLY, so "
+                         "an interrupted run keeps every completed position "
+                         "and --resume finishes it.")
+    ap.add_argument("--shard", default=None, metavar="I/N",
+                    help="verify only slice I of N (0-based, modulo over the "
+                         "filtered candidate order). Shard provenance is "
+                         "stamped into the summary. Safe by construction "
+                         "(rollout seeds derive from the address, not the "
+                         "list position) — and by test_verify_keys's "
+                         "shard-merge equality test, which is the evidence.")
     ap.add_argument("--summary", default=None,
                     help="summary json path (default: <out dir>/summary.json)")
     ap.add_argument("--json", action="store_true",
                     help="dump the summary object to stdout as the ONLY "
                          "stdout content")
+    ap.add_argument("--strict", action="store_true",
+                    help="exit non-zero when infra_failure_rate > 0.05. "
+                         "Calibration: round 1 measured 0.014, round 2 "
+                         "0.000, round 3 0.213 (the round a deck-name typo "
+                         "broke) — 0.05 fires on exactly the broken round.")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)
 
@@ -1604,6 +1675,26 @@ def main(argv=None):
         return 2
     if args.max_positions is not None:
         cands = cands[:args.max_positions]
+
+    # --shard I/N: a deterministic slice taken AFTER all filtering/ordering,
+    # so N shards partition exactly the monolithic run's work.
+    shard_info = None
+    if args.shard:
+        try:
+            si_s, sn_s = args.shard.split("/", 1)
+            si, sn = int(si_s), int(sn_s)
+        except ValueError:
+            print("--shard wants I/N (e.g. 0/3), got %r" % args.shard,
+                  file=sys.stderr)
+            return 2
+        if sn < 1 or not (0 <= si < sn):
+            print("--shard %r out of range" % args.shard, file=sys.stderr)
+            return 2
+        n_before = len(cands)
+        cands = [c for i, c in enumerate(cands) if i % sn == si]
+        shard_info = {"index": si, "count": sn}
+        print("shard %d/%d: %d of %d positions" % (si, sn, len(cands),
+                                                   n_before), file=sys.stderr)
 
     driver = None
     if args.driver == "fixture":
@@ -1642,6 +1733,50 @@ def main(argv=None):
     jobs = max(1, int(args.jobs or 1))
     screen_n = max(0, int(args.screen_n or 0))
 
+    # ---- resume + incremental output plumbing --------------------------------
+    #
+    # The output used to be written ONCE, after every rollout completed — so an
+    # interrupt (SIGINT, spot reclaim, deadman shutdown) lost 100% of a run
+    # whose per-position work was already durable in verify-keys-work/. Now
+    # every FINALIZED row is appended as it completes (finalized = after any
+    # screen-mode post-processing, so a resumed run never trusts a
+    # half-measured row), and the terminal pass rewrites the file in candidate
+    # order so the artifact stays byte-deterministic regardless of completion
+    # order or interruption history.
+    out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    resumed = {}
+    if args.resume and out_path.exists():
+        for line in out_path.read_text(encoding="utf-8",
+                                       errors="replace").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            resumed[resume_key(row)] = row
+    todo = [c for c in cands if resume_key(c) not in resumed]
+    if len(todo) < len(cands):
+        # run_batch.py's resume phrasing, verbatim shape, so the two read the
+        # same in a log.
+        print("Resuming: skipping %d/%d combos already complete"
+              % (len(cands) - len(todo), len(cands)), file=sys.stderr)
+    if not args.resume:
+        # fresh incremental file (truncate before the first append)
+        with open(str(out_path), "w", encoding="utf-8"):
+            pass
+
+    _append_lock = threading.Lock()
+
+    def _record(row):
+        with _append_lock:
+            with open(str(out_path), "a", encoding="utf-8") as f:
+                f.write(json.dumps(row, sort_keys=True) + "\n")
+                f.flush()
+
     if screen_n and args.driver == "engine":
         # ---- two-pass: cheap screen, then confirm on a DISJOINT seed band ----
         #
@@ -1665,10 +1800,10 @@ def main(argv=None):
             engine_sha=os.environ.get("ENGINE_SHA") or None,
             overlay_sha=os.environ.get("OVERLAY_SHA") or None)
         driver.j_offset = screen_n
-        screened = _run_all(cands, _make_verify(screen_driver, screen_n), jobs)
+        screened = _run_all(todo, _make_verify(screen_driver, screen_n), jobs)
 
-        keep, results = [], [None] * len(cands)
-        for i, (cand, res) in enumerate(zip(cands, screened)):
+        keep, results = [], [None] * len(todo)
+        for i, (cand, res) in enumerate(zip(todo, screened)):
             if survives_screen(res[0], cand.get("category"),
                                args.gap_threshold,
                                args.mulligan_gap_threshold,
@@ -1683,45 +1818,85 @@ def main(argv=None):
                                  "confirmed": False}
                 results[i] = (row, res[1], False,
                               "screened_out_low_spread", res[4])
+                _record(row)  # finalized: screened-out rows never confirm
         print("screen: %d/%d positions kept for confirmation at n=%d "
               "(screened at n=%d, confirm uses disjoint j>=%d)"
-              % (len(keep), len(cands), args.n_per_option, screen_n, screen_n),
+              % (len(keep), len(todo), args.n_per_option, screen_n, screen_n),
               file=sys.stderr)
-        confirmed = _run_all([cands[i] for i in keep],
-                             _make_verify(driver, args.n_per_option), jobs)
+
+        conf_verify = _make_verify(driver, args.n_per_option)
+
+        def _confirm_and_record(cand):
+            # The screen marker is applied HERE, before the incremental
+            # append, so a row on disk is always in its final shape — a
+            # crash-resume must never mistake a screen-pass row (n=8
+            # evidence) for a confirmed one.
+            res = conf_verify(cand)
+            res[0]["screen"] = {"n_per_option": screen_n, "j_offset": 0,
+                                "confirmed": True}
+            _record(res[0])
+            return res
+
+        confirmed = _run_all([todo[i] for i in keep], _confirm_and_record,
+                             jobs)
         for i, res in zip(keep, confirmed):
-            row = res[0]
-            row["screen"] = {"n_per_option": screen_n, "j_offset": 0,
-                             "confirmed": True}
             results[i] = res
     else:
-        results = _run_all(cands, _make_verify(driver, args.n_per_option), jobs)
+        base_verify = _make_verify(driver, args.n_per_option)
+
+        def _verify_and_record(cand):
+            res = base_verify(cand)
+            _record(res[0])
+            return res
+
+        results = _run_all(todo, _verify_and_record, jobs)
+
+    # Align by candidate OBJECT, not by resume_key: two candidates may share
+    # an address (e.g. one game decision mined into two categories), and
+    # collapsing them here would silently drop a row.
+    results_by_obj = {}
+    for cand, res in zip(todo, results):
+        results_by_obj[id(cand)] = res
 
     out_rows = []
     rows_meta = []
     any_engine_missing = False
-    for cand, (row, lane, verified, reason, engine_missing) in zip(cands,
-                                                                  results):
+    for cand in cands:
+        res = results_by_obj.get(id(cand))
+        if res is None:
+            res = meta_from_row(resumed[resume_key(cand)])
+        row, lane, verified, reason, engine_missing = res
         out_rows.append(row)
         rows_meta.append({"category": cand.get("category"), "lane": lane,
                           "verified": verified, "reason": reason,
+                          "driver_reason": row.get("driver_reason"),
                           "options": row.get("options") or cand.get("options"),
                           "option_scores": (row.get("answer_key") or {}).get(
                               "option_scores"),
                           "rollout_evidence": row.get("rollout_evidence")})
         any_engine_missing = any_engine_missing or engine_missing
 
-    out_path = Path(args.out)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(str(out_path), "w", encoding="utf-8") as f:
+    # Terminal deterministic rewrite: candidate order, independent of
+    # completion order, resume history, or thread scheduling. ATOMIC via
+    # tmp + os.replace — truncating out_path in place would destroy the
+    # incrementally-appended rows if THIS step were interrupted, i.e. lose
+    # durability at the finish line of the feature that bought it.
+    tmp_path = out_path.with_suffix(out_path.suffix + ".tmp")
+    with open(str(tmp_path), "w", encoding="utf-8") as f:
         for row in out_rows:
             f.write(json.dumps(row, sort_keys=True) + "\n")
+    os.replace(str(tmp_path), str(out_path))
 
     summary = build_summary(
         rows_meta, args.driver, args.n_per_option, warnings,
         thresholds={"gap_threshold": args.gap_threshold,
                     "mulligan_gap_threshold": args.mulligan_gap_threshold,
                     "min_separation_z": args.min_separation_z})
+    if shard_info is not None:
+        # A merged artifact must declare its provenance: which slice this was.
+        summary["shard"] = shard_info
+    if resumed:
+        summary["resumed_rows"] = len(cands) - len(todo)
     summary_path = Path(args.summary) if args.summary else out_path.parent / "summary.json"
     summary_path.parent.mkdir(parents=True, exist_ok=True)
     with open(str(summary_path), "w", encoding="utf-8") as f:
@@ -1775,6 +1950,18 @@ def main(argv=None):
                      _fmt3(q["p75"]), _fmt3(q["max"]), rs["n_no_wp"]),
                   file=sys.stderr)
         print("summary -> %s" % summary_path, file=sys.stderr)
+
+    if args.strict:
+        rate = summary.get("infra_failure_rate") or 0.0
+        if rate > 0.05:
+            print("STRICT HEALTH GATE: infra_failure_rate %.3f > 0.05 "
+                  "(by_driver_reason: %s) — this run's yield is not a "
+                  "measurement of mining strategy, it is a measurement of a "
+                  "broken harness. Fix the infra cause and re-run."
+                  % (rate, json.dumps(summary.get("by_driver_reason") or {},
+                                      sort_keys=True)),
+                  file=sys.stderr)
+            return 4
 
     if args.driver == "engine" and any_engine_missing:
         return 3

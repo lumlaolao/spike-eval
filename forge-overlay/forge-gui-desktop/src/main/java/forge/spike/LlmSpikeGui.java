@@ -598,6 +598,10 @@ public final class LlmSpikeGui {
          *  none/parse-failure. `noneLabel` (nullable) adds an extra "decline" option. */
         private int decideOne(LLMBridge b, String type, String question, List<String> options, String noneLabel) {
             clearLast();
+            // Repeated labels (two blockers sharing a name, two copies of one card as targets) become
+            // "label #1"/"label #2" in the prompt AND the evalDec-logged options array, in one place.
+            // Indices are untouched, so callers keep indexing their original lists.
+            options = disambiguate(options);
             long t0 = System.currentTimeMillis();
             // RANDOM arm: uniform over the same legal menu (incl. the decline option when present).
             if (rnd != null) {
@@ -636,6 +640,8 @@ public final class LlmSpikeGui {
         /** Ask a bridge to pick BETWEEN min..max options; returns 0-based indices, or null on failure. */
         private List<Integer> decideMany(LLMBridge b, String type, String question, List<String> options, int min, int max) {
             clearLast();
+            // Same repeat-label disambiguation as decideOne (two blockers sharing a name).
+            options = disambiguate(options);
             long t0 = System.currentTimeMillis();
             // RANDOM arm: uniformly sized random subset of the same legal menu.
             if (rnd != null) {
@@ -2565,6 +2571,10 @@ public final class LlmSpikeGui {
          *  or null when no model was consulted. */
         private void evalDec(String type, int nOptions, int choice, String tier, long ms, String fallback, List<String> options) {
             if (!EvalLog.on()) return;
+            // Log choke point: several callers log their own labels list after decideOne/decideMany
+            // disambiguated only its local copy — dedupe HERE so the logged options always match the
+            // prompt the model saw. disambiguate is idempotent, so double application is a no-op.
+            if (options != null) options = disambiguate(options);
             // Many call sites pass ms=0 because their timing happens inside ask(); when a model
             // round-trip WAS captured for this decision (lastPrompt != null — clearLast() guards
             // every path), substitute lastSuccessMs — the SUCCESSFUL final attempt's own wall time only,
@@ -3068,7 +3078,32 @@ public final class LlmSpikeGui {
             for (SpellAbility sa : options) playLabels.add("CAST " + saLabel(sa));
             for (Card lc : landCards) playLabels.add("PLAY LAND " + lc.getName());
             playLabels.add("PASS (do nothing)");
-            return playLabels;
+            return disambiguate(playLabels);
+        }
+
+        /** Returns the list UNCHANGED unless a label repeats; only then are the repeated entries
+         *  suffixed " #1", " #2"... in occurrence order, so two copies of one card stop being the
+         *  same menu string (2 of puz-v1's 25 positions show the model two identical CAST lines —
+         *  the model literally cannot say which one it means, and the suite survived only by a
+         *  select_suite guard plus luck). ORDINALS, not Forge ids, deliberately: decideOne/decideMany
+         *  see only pre-built strings and can never do better than an ordinal, while buildPlayLabels
+         *  has the real Card — a hybrid would make the two call sites inconsistent, and the teacher/
+         *  student prompt pairing (process_metrics state_key) needs them byte-identical. This is a
+         *  DATA change, not a contract change: the menu is baked into row prompts by the game, so
+         *  contract_sha and all existing artifacts are untouched. */
+        static List<String> disambiguate(List<String> labels) {
+            java.util.Map<String, Integer> counts = new java.util.HashMap<>();
+            for (String s : labels) counts.merge(s, 1, Integer::sum);
+            boolean anyDup = false;
+            for (int v : counts.values()) if (v > 1) { anyDup = true; break; }
+            if (!anyDup) return labels;
+            java.util.Map<String, Integer> seen = new java.util.HashMap<>();
+            List<String> out = new ArrayList<>(labels.size());
+            for (String s : labels) {
+                if (counts.get(s) > 1) out.add(s + " #" + seen.merge(s, 1, Integer::sum));
+                else out.add(s);
+            }
+            return out;
         }
 
         // ---- shared prompt-template builders --------------------------------------------------------
@@ -3101,6 +3136,7 @@ public final class LlmSpikeGui {
         /** The exact attempt-0 prompt {@link #decideOne} sends: snapshot + question + numbered options
          *  (options via {@code oneLine}, the trailing decline option raw) + the CHOICE tail. */
         static String buildDecideOnePrompt(String snapshot, String question, List<String> options, String noneLabel) {
+            options = disambiguate(options); // idempotent; keeps prompt == logged options at every caller
             StringBuilder menu = new StringBuilder();
             int n = 1;
             for (String o : options) menu.append("  ").append(n++).append(") ").append(oneLine(o)).append('\n');
@@ -3111,6 +3147,7 @@ public final class LlmSpikeGui {
 
         /** The exact attempt-0 prompt {@link #decideMany} sends (PICKS-style, min..max). */
         static String buildDecideManyPrompt(String snapshot, String question, List<String> options, int min, int max) {
+            options = disambiguate(options); // idempotent; keeps prompt == logged options at every caller
             StringBuilder menu = new StringBuilder();
             int n = 1;
             for (String o : options) menu.append("  ").append(n++).append(") ").append(oneLine(o)).append('\n');
@@ -3276,6 +3313,9 @@ public final class LlmSpikeGui {
         }
         private void emit(String type, int nOptions, int choice, String fallback, List<String> options, String prompt) {
             try {
+                // Same log-choke dedupe as evalDec: shadow rows' options must match their prompt
+                // (built via buildDecideOne/ManyPrompt, which disambiguates). Idempotent.
+                if (options != null) options = PlayerControllerLLM.disambiguate(options);
                 emitDecisionRow(getPlayer(), seat, type, nOptions, choice, "ai-teacher", 0, fallback, options,
                         prompt, null, 0, 0, null, null, -1, -1);
             } catch (Exception ignore) { }
