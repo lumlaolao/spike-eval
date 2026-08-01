@@ -50,9 +50,13 @@ mvn -pl forge-gui-desktop -am install -DskipTests -Dcheckstyle.skip=true \
     -Dmaven.javadoc.skip=true > /tmp/build.log 2>&1
 grep -q "BUILD SUCCESS" /tmp/build.log || { echo "BUILD_FAILED"; grep -E "ERROR" /tmp/build.log | head -10; echo "BENCH_ABORT"; sleep 120; shutdown -h now; }
 echo "BUILD_OK"
-# No -am here: with -am each module overwrites the same outputFile and the LAST
-# one wins, which is how run 3 got a sibling's tiny classpath.
-mvn -pl forge-gui-desktop org.apache.maven.plugins:maven-dependency-plugin:3.6.0:build-classpath \
+# HISTORY, both halves measured: run 3 (2026-07-29) got a sibling's tiny
+# classpath WITH -am when invoked without -pl; the 2026-07-31 bake died in
+# 0.7s WITHOUT -am because forge-core then resolves from m2 with an
+# unflattened ${revision} parent. The working form is -pl forge-gui-desktop
+# WITH -am (reactor ends at the -pl target, so the shared outputFile lands
+# right), and the byte gate below is the real guard either way.
+mvn -pl forge-gui-desktop -am org.apache.maven.plugins:maven-dependency-plugin:3.6.0:build-classpath \
     -Dmdep.outputFile=/tmp/forge_cp.txt > /tmp/cp.log 2>&1
 CPB=$(wc -c < /tmp/forge_cp.txt 2>/dev/null || echo 0)
 echo "CLASSPATH bytes=$CPB jars=$(tr ':' '\n' < /tmp/forge_cp.txt 2>/dev/null | wc -l)"
