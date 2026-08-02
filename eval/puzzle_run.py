@@ -513,9 +513,11 @@ def http_call(endpoint, model, messages, max_tokens, timeout, tries,
             counters[key] = counters.get(key, 0) + 1
 
     last_err = None
+    attempts = 0
     for _ in range(max(1, tries)):
         t0 = time.time()
         try:
+            attempts += 1
             text, finish_reason = replay_match._post_chat(
                 endpoint, model, messages, max_tokens, timeout,
                 api_key=api_key, return_meta=True)
@@ -526,6 +528,7 @@ def http_call(endpoint, model, messages, max_tokens, timeout, tries,
             _bump("truncation_retries")
             retry_tokens = min(max_tokens * 2, TRUNCATION_RETRY_CAP)
             try:
+                attempts += 1
                 rtext, _rfr = replay_match._post_chat(
                     endpoint, model, messages, retry_tokens, timeout,
                     api_key=api_key, return_meta=True)
@@ -537,8 +540,8 @@ def http_call(endpoint, model, messages, max_tokens, timeout, tries,
                     _bump("truncation_retries_adopted")
             except (urllib.error.URLError, OSError, ValueError, KeyError):
                 pass  # keep the truncated original; scoring gets final say
-        return text, None, int((time.time() - t0) * 1000)
-    return None, last_err, None
+        return text, None, int((time.time() - t0) * 1000), attempts
+    return None, last_err, None, attempts
 
 
 def bedrock_call(model, messages, region, creds, cfg, env, warnings, pos_id):
@@ -640,7 +643,8 @@ def collect_replies(positions, args, env, warnings, net_counters=None):
                 task, result = one(task)
                 raw[task] = result
     return [{"pos_idx": i, "k": k, "reply": raw[(i, k)][0],
-             "error": raw[(i, k)][1], "latency_ms": raw[(i, k)][2]}
+             "error": raw[(i, k)][1], "latency_ms": raw[(i, k)][2],
+             "attempts": (raw[(i, k)][3] if len(raw[(i, k)]) > 3 else None)}
             for (i, k) in tasks]
 
 
@@ -680,6 +684,7 @@ def build_samples(positions, raws):
         samples.append({
             "pos": pos, "k": r["k"], "reply": r["reply"],
             "error": r["error"], "latency_ms": r["latency_ms"],
+            "attempts": r.get("attempts"),
             "primary": primary, "lenient": lenient,
             "score": score, "solved": solved, "is_pass": is_pass,
             "declined": declined, "iface": iface,
@@ -976,9 +981,43 @@ def result_row(sample, args):
         "solved": sample["solved"],
         "error": sample["error"],
         "latency_ms": sample["latency_ms"],
+        "attempts": sample.get("attempts"),
         "lenient": {"outcome": lenient.get("outcome"),
                     "option_index": lenient.get("option_index"),
                     "score": sample["lenient_score"]},
+    }
+
+
+def solve_dynamics(samples, args):
+    """Latency percentiles, attempt counts, and the time-capped first-try
+    solve rate over k=1 valid samples. Latency None (offline) counts as
+    within cap and is excluded from percentiles."""
+    k1 = [smp for smp in samples if smp["k"] == 1 and smp["valid"]]
+    lats = sorted(smp["latency_ms"] for smp in k1
+                  if smp.get("latency_ms") is not None)
+    def pct(q):
+        if not lats:
+            return None
+        i = min(len(lats) - 1, int(q * (len(lats) - 1) + 0.5))
+        return lats[i]
+    atts = [smp["attempts"] for smp in k1 if smp.get("attempts")]
+    cap_ms = args.time_cap_s * 1000.0
+    n = len(k1)
+    within = sum(1 for smp in k1 if smp["solved"]
+                 and (smp.get("latency_ms") is None
+                      or smp["latency_ms"] <= cap_ms))
+    return {
+        "time_cap_s": args.time_cap_s,
+        "n_first_try_samples": n,
+        "latency_ms_p50": pct(0.50),
+        "latency_ms_p90": pct(0.90),
+        "latency_ms_max": (lats[-1] if lats else None),
+        "attempts_mean": (sum(atts) / float(len(atts))) if atts else None,
+        "attempts_max": (max(atts) if atts else None),
+        "pass_1_within_cap": (within / float(n)) if n else None,
+        "note": "k=1 valid samples; latency None (offline) counts as within "
+                "cap and is excluded from percentiles; attempts counts "
+                "actual backend calls incl. the truncation-retry ladder",
     }
 
 
@@ -1100,6 +1139,9 @@ def build_summary(args, positions, samples, skips, warnings,
         "skips": dict(skips),
         "counters": counters,
         "metrics": metrics,
+        # ADDITIVE (2026-08-02 user directive): HOW the model solved, not
+        # just whether. First-try (k=1) valid samples only.
+        "solve_dynamics": solve_dynamics(samples, args),
         "baselines": baselines,
         "by_category": by_category,
         "by_decision_type": by_dtype,
@@ -1151,6 +1193,14 @@ def build_parser():
     ap.add_argument("--endpoint", default="http://localhost:8080/v1")
     ap.add_argument("--model", default="local-model")
     ap.add_argument("--k", type=int, default=DEFAULT_K)
+    ap.add_argument("--time-cap-s", type=float, default=60.0,
+                    help="solve-dynamics cap: pass_1_within_cap counts a "
+                         "first-try solve only when its wall-clock latency "
+                         "is <= this many seconds. 'They can think and "
+                         "think, but it matters whether the first try was "
+                         "right' — and how long it took. Samples with no "
+                         "recorded latency (offline floors) count as within "
+                         "cap; the summary says so.")
     ap.add_argument("--max-tokens", type=int, default=512)
     ap.add_argument("--req-timeout", type=int, default=120)
     ap.add_argument("--retries", type=int, default=1)

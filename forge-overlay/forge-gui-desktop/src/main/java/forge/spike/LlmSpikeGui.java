@@ -831,7 +831,11 @@ public final class LlmSpikeGui {
          *  tapped copy. Grouped (not one line per card) so the count still reads at a glance. */
         static String landSummary(Player pl) {
             int untapped = 0, total = 0;
-            java.util.LinkedHashMap<String, int[]> byName = new java.util.LinkedHashMap<>(); // name -> [untappedCount, tappedCount]
+            // name -> [untappedCount, tappedCount] + the @ids per state, so the
+            // aggregate stays compact but each physical land remains nameable
+            // (Wasteland targets, "tap @12 not @31" — 2026-08-02 directive).
+            java.util.LinkedHashMap<String, int[]> byName = new java.util.LinkedHashMap<>();
+            java.util.LinkedHashMap<String, StringBuilder[]> idsByName = new java.util.LinkedHashMap<>();
             for (Card c : pl.getCardsIn(ZoneType.Battlefield)) {
                 if (!c.isLand()) continue;
                 total++;
@@ -839,12 +843,20 @@ public final class LlmSpikeGui {
                 if (!tapped) untapped++;
                 int[] counts = byName.computeIfAbsent(c.getName(), k -> new int[2]);
                 counts[tapped ? 1 : 0]++;
+                StringBuilder[] ids = idsByName.computeIfAbsent(c.getName(),
+                        k -> new StringBuilder[]{new StringBuilder(), new StringBuilder()});
+                try {
+                    StringBuilder tgt = ids[tapped ? 1 : 0];
+                    if (tgt.length() > 0) tgt.append(' ');
+                    tgt.append('@').append(c.getId());
+                } catch (Exception ignore) { }
             }
             StringBuilder kinds = new StringBuilder();
             for (Map.Entry<String, int[]> e : byName.entrySet()) {
                 int u = e.getValue()[0], t = e.getValue()[1];
-                if (u > 0) { if (kinds.length() > 0) kinds.append(", "); kinds.append(e.getKey()).append(" x").append(u).append(" [untapped]"); }
-                if (t > 0) { if (kinds.length() > 0) kinds.append(", "); kinds.append(e.getKey()).append(" x").append(t).append(" [tapped]"); }
+                StringBuilder[] ids = idsByName.get(e.getKey());
+                if (u > 0) { if (kinds.length() > 0) kinds.append(", "); kinds.append(e.getKey()).append(" x").append(u).append(" [untapped").append(ids[0].length() > 0 ? " " + ids[0] : "").append(']'); }
+                if (t > 0) { if (kinds.length() > 0) kinds.append(", "); kinds.append(e.getKey()).append(" x").append(t).append(" [tapped").append(ids[1].length() > 0 ? " " + ids[1] : "").append(']'); }
             }
             return untapped + " untapped / " + total + " total"
                     + (kinds.length() == 0 ? "" : " (" + kinds + ")");
@@ -1035,6 +1047,9 @@ public final class LlmSpikeGui {
                         if (cb.length() > 0) b.append('[').append(cb).append(']');
                     }
                 } catch (Exception ignore) { }
+                // Same @id the menus carry (candidateLabel) — the snapshot and the
+                // targeting menus must name objects identically or the id is noise.
+                try { b.append('@').append(c.getId()); } catch (Exception ignore) { }
             }
             return b.length() == 0 ? "(no nonland permanents)" : b.toString();
         }
@@ -2901,6 +2916,13 @@ public final class LlmSpikeGui {
                     if (cb.length() > 0) s.append('[').append(cb).append(']');
                 }
             } catch (Exception ignore) { }
+            // Persistent object identity (2026-08-02 user directive): the engine's
+            // per-game card id, for IN-PLAY cards only, "@42". Two same-name
+            // same-state permanents become distinct objects the model can track
+            // across turns and name as targets — the within-menu " #N" ordinals
+            // from disambiguate() cannot do either (they are per-menu, not
+            // per-object). Battlefield-only keeps hand/yard text stable.
+            try { if (c.isInPlay()) s.append('@').append(c.getId()); } catch (Exception ignore) { }
             return s.toString();
         }
         private static String entityLabel(GameEntity e) {

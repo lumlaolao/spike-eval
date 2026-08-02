@@ -732,7 +732,7 @@ def test_http_call_sends_the_api_key():
     t.start()
     endpoint = "http://127.0.0.1:%d/v1" % srv.server_address[1]
     try:
-        reply, err, _ = puzzle_run.http_call(
+        reply, err, _, _att = puzzle_run.http_call(
             endpoint, "m", [{"role": "user", "content": "x"}], 8, 5.0, 1,
             api_key="sk-test-KEY")
         check("http_call succeeds", err is None and reply == "CHOICE: 1",
@@ -746,8 +746,9 @@ def test_http_call_sends_the_api_key():
               "Authorization" not in _AuthEcho.SEEN[-1],
               str(_AuthEcho.SEEN[-1]))
         # A transport error must not carry the key into the error string.
-        _, err2, _ = puzzle_run.http_call("http://127.0.0.1:1/v1", "m", [],
-                                          8, 0.5, 1, api_key="sk-test-KEY")
+        _, err2, _, _att2 = puzzle_run.http_call("http://127.0.0.1:1/v1", "m",
+                                                 [], 8, 0.5, 1,
+                                                 api_key="sk-test-KEY")
         check("a transport error never echoes the key",
               err2 is not None and "sk-test-KEY" not in err2, str(err2))
     finally:
@@ -801,8 +802,9 @@ def test_truncation_retry_ladder():
         # (i) empty truncated reply -> retry fires at 2x and is adopted
         _TruncEcho.CALLS, _TruncEcho.SMALL_CONTENT = [], ""
         counters = {}
-        reply, err, _ = puzzle_run.http_call(endpoint, "m", msgs, 8, 5.0, 1,
-                                             counters=counters)
+        reply, err, _, att = puzzle_run.http_call(endpoint, "m", msgs, 8, 5.0,
+                                                  1, counters=counters)
+        check("trunc: retried sample records 2 attempts", att == 2, str(att))
         check("trunc: retry fired and was adopted",
               err is None and reply == "CHOICE: 1", "%r %r" % (reply, err))
         check("trunc: exactly one retry, at doubled tokens",
@@ -814,8 +816,9 @@ def test_truncation_retry_ladder():
         # (ii) truncated reply ALREADY carrying a tag -> no retry
         _TruncEcho.CALLS, _TruncEcho.SMALL_CONTENT = [], "CHOICE: 2"
         counters = {}
-        reply, err, _ = puzzle_run.http_call(endpoint, "m", msgs, 8, 5.0, 1,
-                                             counters=counters)
+        reply, err, _, att = puzzle_run.http_call(endpoint, "m", msgs, 8, 5.0,
+                                                  1, counters=counters)
+        check("trunc: non-retried sample records 1 attempt", att == 1, str(att))
         check("trunc: tagged reply kept without retry",
               reply == "CHOICE: 2" and _TruncEcho.CALLS == [8],
               "%r %s" % (reply, _TruncEcho.CALLS))
@@ -824,8 +827,8 @@ def test_truncation_retry_ladder():
         # (iii) '...CHOICE: ' with NO digit -> retries (digit rule)
         _TruncEcho.CALLS, _TruncEcho.SMALL_CONTENT = [], "I pick CHOICE: "
         counters = {}
-        reply, err, _ = puzzle_run.http_call(endpoint, "m", msgs, 8, 5.0, 1,
-                                             counters=counters)
+        reply, err, _, att = puzzle_run.http_call(endpoint, "m", msgs, 8, 5.0,
+                                                  1, counters=counters)
         check("trunc: digit-less tag retries and adopts",
               reply == "CHOICE: 1" and _TruncEcho.CALLS == [8, 16],
               "%r %s" % (reply, _TruncEcho.CALLS))

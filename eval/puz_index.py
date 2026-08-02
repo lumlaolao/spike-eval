@@ -130,6 +130,9 @@ def row_from_run(run_dir):
         "k": s.get("k"),
         "strictness": s.get("strictness"),
         "max_tokens": s.get("max_tokens"),
+        "latency_ms_p50": _get(s, "solve_dynamics", "latency_ms_p50"),
+        "pass_1_within_cap": _get(s, "solve_dynamics", "pass_1_within_cap"),
+        "time_cap_s": _get(s, "solve_dynamics", "time_cap_s"),
         "split": s.get("split"),
         "n_positions": s.get("n_positions"),
         "n_samples": s.get("n_samples"),
@@ -469,6 +472,30 @@ def cmd_leaderboard(args):
                          se))
         for est, m, ov, se in sorted(rows, reverse=True):
             print("  %-30s %8.3f %8.3f   +/- %.3f" % (m, ov, est, 1.96 * se))
+        # Solve dynamics (2026-08-02 directive): HOW each model earned its
+        # score — first-try-within-cap and wall-clock percentiles, from each
+        # run's summary.json when present.
+        dyn_rows = []
+        for d in dirs:
+            try:
+                sm = json.loads((Path(d) / "summary.json").read_text())
+            except (OSError, ValueError):
+                continue
+            sd = sm.get("solve_dynamics") or {}
+            if sd.get("n_first_try_samples"):
+                dyn_rows.append((sm.get("model") or "?", sd))
+        if dyn_rows:
+            print()
+            print("  %-30s %10s %8s %8s %9s" % (
+                "solve dynamics", "pass1<=%.0fs" % (dyn_rows[0][1].get("time_cap_s") or 60),
+                "p50(s)", "p90(s)", "attempts"))
+            for m, sd in sorted(dyn_rows, key=lambda t: -(t[1].get("pass_1_within_cap") or 0)):
+                print("  %-30s %10s %8s %8s %9s" % (
+                    m[:30],
+                    ("%.3f" % sd["pass_1_within_cap"]) if sd.get("pass_1_within_cap") is not None else "-",
+                    ("%.1f" % (sd["latency_ms_p50"] / 1000.0)) if sd.get("latency_ms_p50") else "-",
+                    ("%.1f" % (sd["latency_ms_p90"] / 1000.0)) if sd.get("latency_ms_p90") else "-",
+                    ("%.2f" % sd["attempts_mean"]) if sd.get("attempts_mean") else "-"))
         # PAIRED test, because every model answered the IDENTICAL positions:
         # the old independent-samples check (1.96*se_max*sqrt(2)) threw away
         # the pairing and could neither confirm nor deny an ordering. Exact
