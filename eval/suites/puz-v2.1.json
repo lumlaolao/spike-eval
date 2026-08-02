@@ -1,0 +1,52 @@
+{
+ "build": {
+  "command": "bash eval/pipelines/build_suite_v2.sh eval/suites/puz-v2.1",
+  "sources": "runs/overnight-{1,2} + runs/mine-round-{4,5,6,7}/exhaustive + runs/mine-round-4{,pilot} cloud rollout keys (229 distinct verified non-mulligan keys -> 52 after min-options-3 + single-answer filters)"
+ },
+ "categories": {
+  "graded-midgame": 11,
+  "lethal-now": 35,
+  "save-vs-lethal": 19
+ },
+ "contract": "prompt-contract.v1",
+ "contract_sha": "abaddd69db49a9d2",
+ "excluded_axes": {
+  "mulligan": {
+   "answer_counts": {
+    "KEEP": 17,
+    "MULLIGAN": 4
+   },
+   "best_possible_floor": 0.5,
+   "majority_class_floor": 0.8095238095238095,
+   "n_verified_keys": 21,
+   "status": "not_quotable"
+  }
+ },
+ "floors": {
+  "always_first": 0.25,
+  "always_pass": 0.12,
+  "note": "from select/shuffle at freeze; offline confirms in runs/puz/v2.1-floors",
+  "random": 0.26
+ },
+ "floors_confirmed_by": "pending offline floor runs",
+ "frozen_utc": "2026-08-02T17:51:15Z",
+ "headline_metric": "puz.pass_1",
+ "known_limits": [
+  "NO live model has been scored against this suite at freeze time; informative-position count is unknown until the v2 tournament runs.",
+  "39 rollout keys were minted on linux-x86_64 (EC2) replays of darwin-mined games. probe_matches enforced byte-identical decision menus per position; however the seed-42 full-game canary shows an identity-label flip between platforms, so cross-platform FULL-GAME outcomes are not interchangeable \u2014 only replay-validated forks were used.",
+  "Category skew: 35/52 lethal-now. Free-position fraction unknown until scored; expect the discriminating subset to be substantially smaller than 52.",
+  "All overnight-1/2 keys carry unprobed_replay_address (see puz-v1 manifest); round-4-7 exhaustive keys likewise (--driver none).",
+  "113 rollout keys minted on linux-x86_64 across 4 cloud passes; same replay-fork caveat as v2.",
+  "Screen-priority finding (measured this suite): three-way panel splits verify at 6.3% vs two-way ~21% \u2014 maximal panel disagreement selects ambiguous positions; wave-3+ should prioritize two-way splits."
+ ],
+ "n_positions": 65,
+ "name": "puz-v2.1",
+ "positions_file": "eval/suites/puz-v2.1.jsonl",
+ "quote_floor_as": "max_constant_index_baseline",
+ "schema": "puz-suite.v1",
+ "sha256": "afc4ff93e5991f3d41178b81e6cfaeef2b5eb15e3aa2cb7b076fa071437d2f6d",
+ "sources": {
+  "suite_positions": 65,
+  "total_verified_keys": 303
+ }
+}
