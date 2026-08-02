@@ -71,6 +71,15 @@ Supporting axes (PLAN adherence, DQ/blunder rate) exist and are reported with
 their own documented limits; they never headline until their measurement
 holes are closed.
 
+**A stated asymmetry, by design:** the built-in Forge AI evaluates choices by
+simulating resulting game states (it "sees the board after the move"), while
+the evaluated model receives one static snapshot and must plan in its head.
+STR-AI therefore measures **search-free play against a searching baseline** —
+a well-defined target, stated here so nobody mistakes it for an oversight.
+A search-augmented variant (the model may request "what would the state look
+like after option N?") is a legitimate FUTURE axis, reported separately,
+never folded into the base score.
+
 ## What "done" looks like
 
 **v1 (the current campaign):**
