@@ -97,7 +97,9 @@ exec > /var/log/bake.log 2>&1
 set -x
 # Xvfb: forge.GuiDesktop touches AWT screen state even headless; bare Linux
 # needs a virtual display (HeadlessException measured, probe 2026-07-31).
-dnf install -y java-17-amazon-corretto-devel maven git tar gzip xorg-x11-server-Xvfb
+dnf install -y java-17-amazon-corretto-devel java-17-amazon-corretto maven git tar gzip \
+    xorg-x11-server-Xvfb libX11 libXext libXrender libXtst libXi \
+    libXrandr libXinerama alsa-lib fontconfig freetype
 cd /opt
 git clone --filter=blob:none --no-checkout https://github.com/Card-Forge/forge.git
 cd forge && git checkout $PIN

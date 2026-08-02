@@ -54,17 +54,46 @@ STAMP=$(date +%Y%m%d-%H%M%S)
 UD=$(mktemp)
 cat > "$UD" <<EOF
 #!/bin/bash
-shutdown -h +45   # deadman: nothing here is worth a forgotten instance
+shutdown -h +${DEADMAN_MIN:-45}   # deadman: nothing here is worth a forgotten instance
 exec > /var/log/probe.log 2>&1
 set -x
 T0=\$(date +%s)
+# Status uploader from second zero: two probe attempts died with their
+# diagnostics because uploads only happened at the END — a hang uploads
+# nothing. Every 60s the logs-so-far land in S3.
+( while true; do sleep 60; tar czf /tmp/status.tgz /var/log/probe.log /tmp/canary.log /tmp/build.log /tmp/g-*.log 2>/dev/null; \
+    aws s3 cp /tmp/status.tgz s3://$BUCKET/results/probe/$STAMP-status.tgz 2>/dev/null; done ) &
 # forge.GuiDesktop.initializeScreenScale touches AWT screen state even in the
 # headless runner; macOS provides it natively, bare Linux throws
 # HeadlessException (measured, probe 2026-07-31). One shared Xvfb serves all
 # concurrent games. (Baked into the NEXT AMI; installed here for this one.)
-dnf install -y xorg-x11-server-Xvfb >/dev/null 2>&1
-Xvfb :99 -screen 0 1280x800x24 &
+# Xvfb alone is NOT enough (measured 2026-08-01): Corretto's headful AWT
+# (libawt_xawt) dlopens the X CLIENT libs, which the server package does not
+# pull on AL2023 — "no headful library support was found" with Xvfb running.
+dnf install -y xorg-x11-server-Xvfb libX11 libXext libXrender libXtst libXi \
+    libXrandr libXinerama alsa-lib fontconfig freetype 2>&1 | tail -3
+# AL2023 ships corretto as headless + full SEPARATELY; devel alone may leave
+# libawt_xawt.so absent = "no headful library support was found", verbatim.
+dnf install -y java-17-amazon-corretto 2>&1 | tail -2
+JHOME=\$(dirname \$(dirname \$(readlink -f \$(command -v java))))
+echo "JHOME=\$JHOME"
+ls "\$JHOME/lib/libawt_xawt.so" 2>&1
+ldd "\$JHOME/lib/libawt_xawt.so" 2>&1 | grep -i 'not found' && echo AWT_XAWT_DEPS_MISSING || echo AWT_XAWT_DEPS_OK
+command -v Xvfb || { echo "XVFB_MISSING after xorg-x11-server-Xvfb; trying alternates"; \
+  dnf install -y Xvfb 2>&1 | tail -2; dnf install -y xorg-server-Xvfb 2>&1 | tail -2; }
+command -v Xvfb && echo XVFB_PRESENT || echo XVFB_STILL_MISSING
+Xvfb :99 -screen 0 1280x800x24 > /tmp/xvfb.log 2>&1 &
+sleep 2
 export DISPLAY=:99
+ls -la /tmp/.X11-unix/ 2>&1 | head -3; tail -3 /tmp/xvfb.log 2>/dev/null
+# Pure-AWT micro-probe: isolates the JVM/display question from Forge entirely
+cat > /tmp/P.java <<'JEOF'
+public class P { public static void main(String[] a) throws Exception {
+  System.out.println("isHeadless=" + java.awt.GraphicsEnvironment.isHeadless());
+  System.out.println("screen=" + java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice());
+} }
+JEOF
+(cd /tmp && javac P.java && java P) 2>&1 | tail -3
 cd /opt/agent 2>/dev/null || mkdir -p /opt/agent && cd /opt/agent
 aws s3 cp s3://$BUCKET/payload/probe-$PIN12.tgz payload.tgz
 tar xzf payload.tgz
@@ -89,20 +118,24 @@ mvn -pl forge-gui-desktop -am org.apache.maven.plugins:maven-dependency-plugin:3
 CPB=\$(wc -c < /tmp/forge_cp.txt || echo 0)
 [ "\$CPB" -lt 5000 ] && { echo "CLASSPATH_TOO_SMALL \$CPB" > /tmp/probe.txt; \
   aws s3 cp /tmp/probe.txt s3://$BUCKET/results/probe/$STAMP.txt; shutdown -h now; }
+PROBE_LEVELS="${PROBE_LEVELS:-1 16 32}"
 {
 echo "probe ami=$AMI pin=$PIN nproc=\$(nproc) build_s=\$(( \$(date +%s) - T0 )) cp_bytes=\$CPB"
-DA=/opt/agent/eval/decks/ur-delver.txt
+# Default decks (Grixis Reanimator vs Mardu Energy): the 108-turn canary pin
+# is DEFINED on them, and floor mirrors on untested decks risk the unbounded
+# game-loop pathology measured on floor-sneak-and-show 2026-08-01 (13 GB
+# logs). Do not pass DECK_A/DECK_B here.
 # 1) CANARY FIRST (the thing the last run lost): seed-42 floor mirror.
 ( cd /opt/forge && GAME_SEED=42 CONTROLLER_A=floor CONTROLLER_B=floor \
-  DECK_A=\$DA DECK_B=\$DA timeout 600 bash run-llm-headless.sh > /tmp/canary.log 2>&1 )
+  timeout 600 bash run-llm-headless.sh > /tmp/canary.log 2>&1 )
 echo "canary: \$(grep -m1 'outcome:' /tmp/canary.log || echo NO_OUTCOME)"
 echo "--- canary log tail ---"; tail -8 /tmp/canary.log
 # 2) throughput at several parallelism levels
-for N in 1 16 32; do
+for N in \$PROBE_LEVELS; do
   t0=\$(date +%s)
   for i in \$(seq 1 \$N); do
     ( cd /opt/forge && GAME_SEED=\$((100+i)) CONTROLLER_A=floor CONTROLLER_B=floor \
-      DECK_A=\$DA DECK_B=\$DA timeout 600 bash run-llm-headless.sh > /tmp/g-\$N-\$i.log 2>&1 ) &
+      timeout 600 bash run-llm-headless.sh > /tmp/g-\$N-\$i.log 2>&1 ) &
   done
   wait
   e=\$(( \$(date +%s) - t0 ))
@@ -117,7 +150,7 @@ EOF
 
 log "launching probe instance c7i.8xlarge from $AMI"
 IID=$(aws ec2 run-instances --region "$REGION" --image-id "$AMI" \
-  --instance-type c7i.8xlarge --iam-instance-profile Name="$ROLE" \
+  --instance-type "${PROBE_ITYPE:-c7i.8xlarge}" --iam-instance-profile Name="$ROLE" \
   --security-group-ids "$SG" \
   --instance-initiated-shutdown-behavior terminate \
   --user-data "file://$UD" \

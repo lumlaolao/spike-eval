@@ -14,17 +14,21 @@
 #     n_per_option 45 (the measured power floor for the mulligan bar),
 #     --strict so an infra-broken round refuses to publish a yield number
 #
-# Usage: bash eval/pipelines/mine_round.sh ROUND [JOBS]
-#   ROUND     integer round id; output goes to runs/mine-round-$ROUND and the
-#             gen seed base is 20000 + ROUND*1000 (each round gets a fresh
-#             200-seed slice of the mining band; rounds 0-9 fit)
-#   JOBS      verify/gen parallelism (default 6; see eval/CONCURRENCY.md — 12
-#             is sanctioned for model-free runs, count JVMs across ALL
-#             concurrent batches)
+# Usage: bash eval/pipelines/mine_round.sh ROUND [JOBS] [STOP_AFTER]
+#   ROUND      integer round id; output goes to runs/mine-round-$ROUND and the
+#              gen seed base is 20000 + ROUND*1000 (each round gets a fresh
+#              200-seed slice of the mining band; rounds 0-9 fit)
+#   JOBS       verify/gen parallelism (default 6; see eval/CONCURRENCY.md — 12
+#              is sanctioned for model-free runs, count JVMs across ALL
+#              concurrent batches)
+#   STOP_AFTER gen | mine | exhaustive | all (default all). 'exhaustive'
+#              stops before the local rollout so the confirm pass can run on
+#              cloud shards (cloud/bench/) or after a panel screen instead.
 set -u
 
-ROUND=${1:?usage: mine_round.sh ROUND [JOBS]}
+ROUND=${1:?usage: mine_round.sh ROUND [JOBS] [STOP_AFTER]}
 JOBS=${2:-6}
+STOP_AFTER=${3:-all}
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=$(cd "$HERE/../.." && pwd)
 D=$REPO/eval/decks
@@ -109,11 +113,13 @@ echo "$MATCHUPS" | while IFS='|' read -r NA SA NB SB TAG; do
   i=$((i + 1))
 done
 log "PHASE A done: $(find "$W/games" -name 'game-*.jsonl' | wc -l) games"
+[ "$STOP_AFTER" = "gen" ] && { log "STOP_AFTER=gen"; exit 0; }
 
 log "PHASE B: mining (all categories, uncapped)"
 python3 eval/mine_puzzles.py "$W/games" --out "$W/candidates.jsonl" \
   --max-per-category 100000 > "$W/mine.txt" 2>&1
 log "PHASE B done: $(wc -l < "$W/candidates.jsonl") candidates"
+[ "$STOP_AFTER" = "mine" ] && { log "STOP_AFTER=mine"; exit 0; }
 
 # Preflight again on the REAL candidates (they carry the deck names the
 # rollout lane will resolve) — cheap, and catches anything gen renamed.
@@ -126,6 +132,7 @@ python3 eval/verify_keys.py "$W/candidates.jsonl" \
   --lane exhaustive --driver none \
   --summary "$W/exhaustive-summary.json" > "$W/exhaustive.txt" 2>&1
 tail -3 "$W/exhaustive.txt"
+[ "$STOP_AFTER" = "exhaustive" ] && { log "STOP_AFTER=exhaustive (confirm pass handed off — see cloud/bench/)"; exit 0; }
 
 log "PHASE D: rollout lane, category-weighted RANDOM sample (seed $SELECT_SEED)"
 python3 eval/pipelines/select_sample.py "$W/candidates.jsonl" \
