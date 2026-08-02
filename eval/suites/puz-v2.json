@@ -1,0 +1,51 @@
+{
+ "build": {
+  "command": "bash eval/pipelines/build_suite_v2.sh eval/suites/puz-v2",
+  "sources": "runs/overnight-{1,2} + runs/mine-round-{4,5,6,7}/exhaustive + runs/mine-round-4{,pilot} cloud rollout keys (229 distinct verified non-mulligan keys -> 52 after min-options-3 + single-answer filters)"
+ },
+ "categories": {
+  "graded-midgame": 7,
+  "lethal-now": 35,
+  "save-vs-lethal": 10
+ },
+ "contract": "prompt-contract.v1",
+ "contract_sha": "abaddd69db49a9d2",
+ "excluded_axes": {
+  "mulligan": {
+   "answer_counts": {
+    "KEEP": 17,
+    "MULLIGAN": 4
+   },
+   "best_possible_floor": 0.5,
+   "majority_class_floor": 0.8095238095238095,
+   "n_verified_keys": 21,
+   "status": "not_quotable"
+  }
+ },
+ "floors": {
+  "always_first": 0.27,
+  "always_pass": 0.1,
+  "note": "from select_suite/shuffle_suite output at freeze; re-derive max_constant_index via puzzle_run offline floors before quoting",
+  "random": 0.28
+ },
+ "floors_confirmed_by": "offline runs 2026-08-02 (runs/puz/v2-floors): always-pass 0.096, first 0.308, oracle 1.000; random single-draw 0.404 vs analytic 0.28 (one k=1 realization, 2sigma-high \u2014 quote the analytic value)",
+ "frozen_utc": "2026-08-02T07:20:40Z",
+ "headline_metric": "puz.pass_1",
+ "known_limits": [
+  "NO live model has been scored against this suite at freeze time; informative-position count is unknown until the v2 tournament runs.",
+  "39 rollout keys were minted on linux-x86_64 (EC2) replays of darwin-mined games. probe_matches enforced byte-identical decision menus per position; however the seed-42 full-game canary shows an identity-label flip between platforms, so cross-platform FULL-GAME outcomes are not interchangeable \u2014 only replay-validated forks were used.",
+  "The cloud confirm pass stalled at ~84% (26 rollout_timeout rows, 2.9% infra rate, under the 0.05 gate); ~175 sampled positions were never measured and remain available for a v2.1 extension.",
+  "Category skew: 35/52 lethal-now. Free-position fraction unknown until scored; expect the discriminating subset to be substantially smaller than 52.",
+  "All overnight-1/2 keys carry unprobed_replay_address (see puz-v1 manifest); round-4-7 exhaustive keys likewise (--driver none)."
+ ],
+ "n_positions": 52,
+ "name": "puz-v2",
+ "positions_file": "eval/suites/puz-v2.jsonl",
+ "quote_floor_as": "max_constant_index_baseline",
+ "schema": "puz-suite.v1",
+ "sha256": "2327bf999ba06063897e6c6d01fab1fd5c681183f437a5fad362578b50593c6f",
+ "sources": {
+  "suite_positions": 52,
+  "total_verified_keys": 229
+ }
+}
