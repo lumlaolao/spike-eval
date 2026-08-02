@@ -93,7 +93,9 @@ MODEL_TIERS = ("smart", "fast")  # only model-authored tiers become examples
 # body, tail, and both FORMAT branches are byte-identical — so terse framing
 # (fast tier, ai-teacher, dagger) reconstructs exactly as before. A stale pin is
 # a pin that can't fail: re-pin deliberately, never delete.
-EXPECT_STATIC_REFERENCE_LEN = 8154
+# 8154 -> 8832 (2026-08-02): @N object-id legend + PICKS: NONE zero-pick rule
+# + the parse-retry consequence sentence, per the external prompt review.
+EXPECT_STATIC_REFERENCE_LEN = 8832
 
 
 # ------------------------------------------------------- Java literal parsing

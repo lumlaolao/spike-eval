@@ -630,3 +630,37 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+def test_v2_static_reference_matches_java():
+    """The whole point of puz-v2: the puzzle lane and the live smart-tier lane
+    show the model the SAME interface documentation. If the Java constant
+    changes without a new frozen profile, this fails — lane drift becomes a
+    test failure, not an archaeology find (the v1 exclusion rationale was
+    discovered to be false 11 days after freeze)."""
+    import make_sft_data
+    pb = make_sft_data.PreambleBuilder(str(REPO / make_sft_data.DEFAULT_JAVA)
+                                       if hasattr(make_sft_data, 'DEFAULT_JAVA')
+                                       else 'forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java')
+    check("v2 legend parity with live Java constant",
+          pb.static_reference == prompt_contract.SYS_STATIC_REFERENCE_V2,
+          "java %d chars vs frozen %d" % (len(pb.static_reference),
+                                          len(prompt_contract.SYS_STATIC_REFERENCE_V2)))
+
+
+def test_v2_profile_mints_new_sha_and_renders():
+    sha1 = prompt_contract.contract_sha("puz-v1")
+    sha2 = prompt_contract.contract_sha("puz-v2")
+    check("v2 sha differs from v1", sha1 != sha2, "%s vs %s" % (sha1, sha2))
+    row = {"prompt": "state\nOptions:\n  1) A\n  2) B", "options": ["A", "B"],
+           "n_options": 2, "source": {"decision_type": "play", "seat": "X"}}
+    r1 = prompt_contract.render(row, profile="puz-v1")
+    r2 = prompt_contract.render(row, profile="puz-v2")
+    s1 = r1["messages"][0]["content"]
+    s2 = r2["messages"][0]["content"]
+    check("v2 system message appends the legend",
+          s2.startswith(s1) and "SNAPSHOT LEGEND" in s2
+          and "@N" in s2 and "re-ask ONCE" in s2,
+          "v2 len %d v1 len %d" % (len(s2), len(s1)))
+    check("v1 system message unchanged (era preserved)",
+          "SNAPSHOT LEGEND" not in s1)

@@ -535,6 +535,10 @@ public final class LlmSpikeGui {
               + "execute it or consciously deviate.\n"
               + "Option lists label each card the same way: `Name (P/T)[loyalty N][tapped]/[untapped][counters]`,\n"
               + "so duplicate-named permanents are always distinguishable — read the tag before you pick.\n"
+              + "`@N` after an in-play card (board, lands, and option lists alike) is that specific permanent's\n"
+              + "durable object id for this game: `Swamp x2 [untapped @53 @61]` is two distinct Swamps you can\n"
+              + "tell apart and track across turns — the SAME id always means the SAME physical card. Numbers in\n"
+              + "plain (parentheses) inside RECENT EVENTS lines are raw engine text, NOT these ids.\n"
               + "\n"
               + "=== ANSWER CONTRACT (the exact final line I parse for each decision kind) ===\n"
               + "- Numbered single pick -> `CHOICE: <number>` (one number from the Options list; a 'decline/none'\n"
@@ -543,10 +547,15 @@ public final class LlmSpikeGui {
               + "  `PICKS: <comma-separated numbers>`, honoring the stated 'choose between MIN and MAX' bound.\n"
               + "  For scry/surveil, list the ones to KEEP ON TOP in order (first = new top card); anything you\n"
               + "  omit goes to the bottom/graveyard.\n"
-              + "- Declare attackers -> `PICKS:` the numbers of the creatures that attack (empty/none = no attack).\n"
+              + "- Choosing ZERO when the stated MIN is 0 -> write exactly `PICKS: NONE` (an empty list must be\n"
+              + "  declared, never implied by a blank line).\n"
+              + "- Declare attackers -> `PICKS:` the numbers of the creatures that attack, or `PICKS: NONE` for\n"
+              + "  no attack.\n"
               + "- Declare blockers -> `BLOCKS: blocker->attacker, blocker->attacker` (or `BLOCKS: NONE`).\n"
               + "- Mulligan -> exactly one word, `KEEP` or `MULLIGAN`.\n"
-              + "I read ONLY that final line; write it verbatim with nothing after it.\n"
+              + "I read ONLY that final line; write it verbatim with nothing after it. If I cannot parse it I\n"
+              + "will re-ask ONCE; if I still cannot parse it I will choose the decline/PASS option for you — so\n"
+              + "a malformed answer costs you the decision.\n"
               + "\n"
               + "=== WORKED EXAMPLES (format + the kind of reasoning that wins; illustrative, not this game) ===\n"
               + "Example A - sequencing a cantrip before a threat: 'I have UU open, a Brainstorm, and a\n"
@@ -873,14 +882,23 @@ public final class LlmSpikeGui {
             int[] t = new int[7];
             for (Card card : pl.getCardsIn(ZoneType.Battlefield)) {
                 if (card.isTapped()) continue;
-                boolean any = false;
+                // Per-CARD color SET, then each color bucket +1 once per card.
+                // The old code incremented per-signal instead: a basic Mountain
+                // counted once for its Mountain SUBTYPE and again for its
+                // intrinsic {T}: add {R} mana ABILITY, so 2 untapped Mountains
+                // rendered "{R:4}" — arithmetically wrong state in 50/65 rows
+                // of frozen puz-v2.1 (found by an external prompt review
+                // 2026-08-02; suites annotated in known_limits). Duals still
+                // rightly add BOTH their colors (one card, two colors — the
+                // documented over-count vs "sources" stays).
+                boolean[] can = new boolean[6];
                 try {
                     var ty = card.getType();
-                    if (ty.hasSubtype("Plains"))   { t[0]++; any = true; }
-                    if (ty.hasSubtype("Island"))   { t[1]++; any = true; }
-                    if (ty.hasSubtype("Swamp"))    { t[2]++; any = true; }
-                    if (ty.hasSubtype("Mountain")) { t[3]++; any = true; }
-                    if (ty.hasSubtype("Forest"))   { t[4]++; any = true; }
+                    if (ty.hasSubtype("Plains"))   can[0] = true;
+                    if (ty.hasSubtype("Island"))   can[1] = true;
+                    if (ty.hasSubtype("Swamp"))    can[2] = true;
+                    if (ty.hasSubtype("Mountain")) can[3] = true;
+                    if (ty.hasSubtype("Forest"))   can[4] = true;
                 } catch (Exception ignore) { }
                 try {
                     for (SpellAbility ab : card.getManaAbilities()) {
@@ -890,18 +908,22 @@ public final class LlmSpikeGui {
                         if (produced == null) continue;
                         for (String tok : produced.toUpperCase(Locale.ROOT).split("\\s+")) {
                             switch (tok) {
-                                case "W": t[0]++; any = true; break;
-                                case "U": t[1]++; any = true; break;
-                                case "B": t[2]++; any = true; break;
-                                case "R": t[3]++; any = true; break;
-                                case "G": t[4]++; any = true; break;
-                                case "C": t[5]++; any = true; break;
-                                case "ANY": t[0]++; t[1]++; t[2]++; t[3]++; t[4]++; any = true; break;
+                                case "W": can[0] = true; break;
+                                case "U": can[1] = true; break;
+                                case "B": can[2] = true; break;
+                                case "R": can[3] = true; break;
+                                case "G": can[4] = true; break;
+                                case "C": can[5] = true; break;
+                                case "ANY": can[0] = can[1] = can[2] = can[3] = can[4] = true; break;
                                 default: break; // COMBO/CHOSEN/SPECIAL/COLORIDENTITY etc. — no single color to name, safe undercount
                             }
                         }
                     }
                 } catch (Exception ignore) { }
+                boolean any = false;
+                for (int i = 0; i < 6; i++) {
+                    if (can[i]) { t[i]++; any = true; }
+                }
                 if (any) t[6]++;
             }
             return t;
@@ -1099,7 +1121,8 @@ public final class LlmSpikeGui {
             for (Card c : hand) { if (n.length() > 0) n.append(", "); n.append(c.getName()); }
             // Shared template (single source; the ai-teacher seat rebuilds byte-identically via the same
             // builder). afterKeep == size: this Forge deals a shrinking hand each mulligan; you keep what you see.
-            String basePrompt = buildMulliganPrompt(size, lands, n.toString());
+            String basePrompt = buildMulliganPrompt(size, lands, n.toString(),
+                    getPlayer() == firstPlayer);
             p("[ROUTER] mulligan: " + lands + "/" + size + " lands -> asking " + smart.getModel() + "...");
             List<String> mullOpts = java.util.Arrays.asList("KEEP", "MULLIGAN");
             // Retry once on an unparseable reply (matching every decideOne/decideMany site). Read the
@@ -3175,15 +3198,17 @@ public final class LlmSpikeGui {
             for (String o : options) menu.append("  ").append(n++).append(") ").append(oneLine(o)).append('\n');
             return snapshot + "\nPRIORITY: you\nDECISION: " + question + "\nChoose between " + min + " and " + max
                     + " of these (by number):\n" + menu
-                    + "Reason briefly, then end with EXACTLY: PICKS: <comma-separated numbers>";
+                    + "Reason briefly, then end with EXACTLY: PICKS: <comma-separated numbers>"
+                    + (min == 0 ? " (or PICKS: NONE to choose zero)" : "");
         }
 
         /** The LLM seat's bespoke mulligan prompt body (not a decideOne/Many template — a KEEP/MULLIGAN
          *  free-text ask). {@code handNames} is the comma-joined card-name list both seats build the same
          *  way. Shared so the ai-teacher seat's reconstruction can never drift from the LLM seat's wire
          *  format. See {@link #mulliganKeepHand} (LLM seat) and PlayerControllerAiLogging.mulliganKeepHand. */
-        static String buildMulliganPrompt(int size, int lands, String handNames) {
-            return "MULLIGAN DECISION. This is a " + size + "-card hand with " + lands + " land(s): " + handNames
+        static String buildMulliganPrompt(int size, int lands, String handNames, boolean onThePlay) {
+            return "MULLIGAN DECISION. You are " + (onThePlay ? "ON THE PLAY (you go first)" : "ON THE DRAW (opponent goes first; you draw an extra card turn 1)")
+                    + ". This is a " + size + "-card hand with " + lands + " land(s): " + handNames
                     + ". If you MULLIGAN you will look at a NEW hand of only " + Math.max(0, size - 1)
                     + " cards (each mulligan costs you a card), and you can never go below 5. If you KEEP you play this "
                     + size + "-card hand as-is. Keeping a workable hand almost always beats shrinking it. "
@@ -3355,7 +3380,8 @@ public final class LlmSpikeGui {
                 int size = hand.size();
                 StringBuilder n = new StringBuilder();
                 for (Card c : hand) { if (n.length() > 0) n.append(", "); n.append(c.getName()); }
-                prompt = PlayerControllerLLM.buildMulliganPrompt(size, lands, n.toString());
+                prompt = PlayerControllerLLM.buildMulliganPrompt(size, lands, n.toString(),
+                        getPlayer() == firstPlayer);
             } catch (Exception ignore) { }
             // FORK (rollout, additive — inert unless LlmSpikeFork installed a forcer): forced mulligan
             // on the ai-log seat. 0 or -1 (decline) == KEEP, 1 == MULLIGAN. Skips super entirely — the

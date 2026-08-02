@@ -26,12 +26,16 @@ WHAT THIS FREEZES
       seat_prefix + seat + seat_suffix
       + ("" if not plan else plan_prefix + plan + plan_suffix)
       + body + format_verbose + tail
-  STATIC_REFERENCE is deliberately NOT appended: the current build
-  (make_sft_data.BUILDS["FIX"]) has static_reference_on_smart=False — live
-  games today do not send it — and PreambleBuilder.system(..., "STAGE0")
-  currently raises SystemExit on its length pin (STAGE0 pinned 7492 chars vs
-  the working tree's 8154), so appending it would emit a preamble no current
-  game ever saw. FROZEN_AGAINST_JAVA_SHA records sha256 of the seven pieces
+  puz-v1 deliberately does NOT append STATIC_REFERENCE. The recorded
+  rationale ("live games today do not send it") was FALSE at freeze time —
+  live smart-tier games have appended it since 2026-07-21 (LlmSpikeGui
+  base + "\n\n" + STATIC_REFERENCE); the mistake was found by an external
+  prompt review 2026-08-02. puz-v1 is kept unchanged for era comparability.
+  puz-v2 fixes it: it appends SYS_STATIC_REFERENCE_V2, a frozen copy of the
+  live legend/answer-contract (incl. the @N object-id line and the
+  parse-retry consequence), so both lanes finally show the model the same
+  interface documentation. test_prompt_contract pins v2 against the Java
+  constant so lane drift becomes a test failure, not an archaeology find. FROZEN_AGAINST_JAVA_SHA records sha256 of the seven pieces
   concatenated in the order above, [:16], as observed at freeze time
   (2026-07-28, working tree at eval/make_sft_data.py's DEFAULT_JAVA).
 
@@ -152,7 +156,7 @@ from replay_match import (  # noqa: E402
 # ---------------------------------------------------------------- constants
 
 CONTRACT_VERSION = "prompt-contract.v1"
-PROFILES = ("puz-v1",)            # adding a profile mints a new sha
+PROFILES = ("puz-v1", "puz-v2")   # adding a profile mints a new sha
 STRICTNESSES = ("strict", "lenient")
 # parser.v1.1 corrected two acceptance rules of the never-released parser.v1
 # BEFORE any artifact was stamped: the decline slot is now read from the row's
@@ -179,6 +183,13 @@ SYS_PLAN_SUFFIX_V1 = '\n'
 SYS_BODY_V1 = 'PROTOCOL: I am the Forge rules engine. Each message gives you the CURRENT game state and ONE decision with a numbered list of the ONLY legal options — every option is already engine-validated, so pick purely on strategy. The state snapshot in each message is authoritative: trust it over your memory of earlier turns. You have NO tools and cannot inspect anything yourself — everything you need is in the message; answer directly.\nPRINCIPLES: (1) Sequence toward your game plan, not the shiniest single play. (2) At instant speed with nothing to gain, PASS. (3) In combat, count damage and their untapped mana before committing. (4) Life, cards, and tempo are resources — spend them to win, not to feel safe. (5) Card selection is fuel: with spare mana, a draw/loot/dig spell, and no better line, CAST IT — repeatedly passing while holding cantrips is how combo decks lose. (6) If your key piece is gone (stripped/bounced), your plan is to FIND another (dig), not to accumulate mana with nothing to spend it on.\n'
 SYS_FORMAT_V1 = 'FORMAT: at most two short sentences of reasoning, then a final line in EXACTLY the format I request (e.g. `CHOICE: 3` or `PICKS: 1,4`). I parse ONLY that final line — never write anything after it.'
 SYS_TAIL_V1 = ' Play to WIN the game, not just the current decision.'
+
+# ---- puz-v2 (2026-08-02): the frozen copy of the LIVE smart-tier legend ----
+# Byte-for-byte the Java STATIC_REFERENCE at freeze time (incl. @N object-id
+# legend, PICKS: NONE rule, parse-retry consequence). NEVER edit in place —
+# a legend change is a new profile. Parity with the Java constant is pinned
+# by test_prompt_contract.test_v2_static_reference_matches_java.
+SYS_STATIC_REFERENCE_V2 = "=== SNAPSHOT LEGEND (how to read the game state in each message) ===\nHeader `== Turn N PHASE (active: NAME) ==`: the turn number, current phase/step, and whose\nturn it is. PHASE is one of UPKEEP, DRAW, MAIN1, COMBAT_BEGIN, COMBAT_DECLARE_ATTACKERS,\nCOMBAT_DECLARE_BLOCKERS, COMBAT_DAMAGE, MAIN2, END_OF_TURN, CLEANUP. `active:` is the player\nwhose turn it is — if it is not you, you are acting at instant speed on their turn.\n`YOU [seat] life L | energy E, poison P/10`: your life total, then optional counters — `energy`\nonly shows when >0; `poison P/10` always shows (10 poison = you lose; infect/poison decks race it).\n`hand(n): Name {cost} P/T (tag), ...`: your hand. `{cost}` is the mana cost in brace notation\n(`{2}{B}` = two generic + one black; omitted for lands). `P/T` power/toughness shows for\ncreatures only. The affordability `(tag)` is a real payment check, not a guess: `(castable)` =\nyou can pay right now; `(need 1 more B)` = short exactly that color; `(not castable now)` = a\ncost too complex to break down (hybrid/Phyrexian/X) or short on total mana.\n`board: ...`: your NONLAND permanents (lands are summarized separately). Each: `Name(P/T)` for\ncreatures, `[loyalty N]` for planeswalkers, `[T]` = tapped, `[sick]` = summoning-sick (a creature\nthat cannot attack or use {T} abilities yet), and `[+1/+1 x2]`-style counters. `(no nonland\npermanents)` means an empty board.\n`lands: U untapped / T total (Name xU [untapped], Name xK [tapped])`: your land count and the\nper-copy tap breakdown — duplicate-named lands are listed separately by tap state so you can\ntarget the right copy.\n`mana available: {U:2 R:1 C:1} (K untapped sources)`: how many untapped sources CAN make each\ncolor right now (dual lands count in BOTH colors but can only make one at a time — a deliberate\nover-count), and the count of distinct untapped mana permanents. Use it to check you can pay a\nline before committing.\n`yard(n): ...`: your graveyard (reanimator/delve/flashback fuel; dredge/escape enablers).\n`exile(n): ...`: exiled cards (delve fuel gone; adventure/impulse cards may still be playable).\n`OPP [name] life L ...`: the opponent's public state — board, lands, `mana available`, yard, and\n`hand: N cards` (a COUNT only; their card identities are hidden unless INTEL revealed them).\n`OPP CAST THIS GAME: Name xN, ...`: cumulative record of every spell the opponent has actually\nCAST this game, even if the card has since been bounced, shuffled away, or exiled — use it to\ninfer their deck and count their key resources (e.g. how many counterspells are already spent).\n`OPP LANDS PLAYED: ...` is the same for their land drops (fetches they cracked are in their yard).\nThese count only what was CAST/PLAYED: a card you merely SAW (an INTEL reveal, or something\nput back by scry/Brainstorm-type effects) is NOT listed here until they actually cast it.\nTheir untapped `mana available` is your read on open removal/counters — play around it.\n`stack (top first): N pending: #k Name (player) -> targets | ...`: spells/abilities waiting to\nresolve, top of stack first (it resolves first). `(empty)` means an open priority window with\nnothing pending. `-> targets` shows what each is aimed at.\n`RECENT EVENTS (oldest->newest)`: the engine's own log of what happened between your decisions\n(opponent plays, combat results, discards). `INTEL: ...`: durable facts you learned (revealed\nhands, cards you named). `YOUR TURN PLAN (...)`: the one-line plan you stated earlier this turn —\nexecute it or consciously deviate.\nOption lists label each card the same way: `Name (P/T)[loyalty N][tapped]/[untapped][counters]`,\nso duplicate-named permanents are always distinguishable — read the tag before you pick.\n`@N` after an in-play card (board, lands, and option lists alike) is that specific permanent's\ndurable object id for this game: `Swamp x2 [untapped @53 @61]` is two distinct Swamps you can\ntell apart and track across turns — the SAME id always means the SAME physical card. Numbers in\nplain (parentheses) inside RECENT EVENTS lines are raw engine text, NOT these ids.\n\n=== ANSWER CONTRACT (the exact final line I parse for each decision kind) ===\n- Numbered single pick -> `CHOICE: <number>` (one number from the Options list; a 'decline/none'\n  option, when offered, is just another number).\n- Choose a subset (discard, reveal, cards-for-effect, scry/surveil keep-on-top, sacrifice) ->\n  `PICKS: <comma-separated numbers>`, honoring the stated 'choose between MIN and MAX' bound.\n  For scry/surveil, list the ones to KEEP ON TOP in order (first = new top card); anything you\n  omit goes to the bottom/graveyard.\n- Choosing ZERO when the stated MIN is 0 -> write exactly `PICKS: NONE` (an empty list must be\n  declared, never implied by a blank line).\n- Declare attackers -> `PICKS:` the numbers of the creatures that attack, or `PICKS: NONE` for\n  no attack.\n- Declare blockers -> `BLOCKS: blocker->attacker, blocker->attacker` (or `BLOCKS: NONE`).\n- Mulligan -> exactly one word, `KEEP` or `MULLIGAN`.\nI read ONLY that final line; write it verbatim with nothing after it. If I cannot parse it I\nwill re-ask ONCE; if I still cannot parse it I will choose the decline/PASS option for you — so\na malformed answer costs you the decision.\n\n=== WORKED EXAMPLES (format + the kind of reasoning that wins; illustrative, not this game) ===\nExample A - sequencing a cantrip before a threat: 'I have UU open, a Brainstorm, and a\nreanimation target still in hand. Digging first can find the missing piece and I lose nothing by\ncasting it now.' -> `CHOICE: 2`\nExample B - combat math before attacking: 'They have one 2/2 untapped blocker and no open mana.\nMy 3/3 and 2/1 both attack: they can only block one, so at least 2 damage connects and a trade is\nfine for me on tempo.' -> `PICKS: 1,3`\nExample C - passing correctly: 'It is their end step, my only instant is a sorcery-speed threat,\nand holding up nothing gains me a card next turn. Nothing to do here.' -> `CHOICE: 4` (the PASS /\ndecline option).\nExample D - not over-committing into removal: 'They hold 2 cards and UU untapped in a counter\ndeck. I bait with the cheaper threat first rather than jamming my key payoff into an open\ncounterspell.' -> `CHOICE: 1`\n\n=== LEGACY GLOSSARY (mechanics + the eval-deck archetypes you will face) ===\nTempo: trading mana-efficiency and board presence for initiative — cheap threats + disruption\n(Delver). Card advantage: ending up with more resources than the opponent. Cantrip: a cheap spell\nthat replaces itself (Brainstorm, Ponder, Preordain) — chains dig you to your key cards. Combo:\nassemble a specific interaction to win outside combat (Storm, Sneak & Show). Prison/lock:\ndenying the opponent resources (Lands' Tabernacle + Wasteland).\nKeywords: Storm (copies the spell once per spell cast this turn — cast the cheap enablers FIRST,\ncount storm before the payoff). Delve (exile graveyard cards to pay generic mana). Cascade /\nProwess / Flash / Flying / Trample / Deathtouch / Lifelink / Hexproof / Shroud (untargetable) /\nInfect (deals damage as -1/-1 counters to creatures and POISON to players; 10 poison kills).\nEnergy: a counter resource spent by Mardu Energy payoffs. Reanimate: cheat a big creature from\nthe graveyard into play (Animate Dead, Reanimator) — sometimes DISCARDING the fatty is the setup,\nnot a loss. Miracle: cast a card for its cheaper cost the turn you draw it (Miracles/Terminus).\nArchetypes in this pool: ANT/Storm (ritual mana -> Ad Nauseam -> lethal storm count; protect the\ncombo turn, count mana and storm exactly). Burn (Goblin Guide/Swiftspear + direct damage; every\npoint of reach to 0 matters, do not waste burn on blockers unless forced). Death & Taxes\n(Thalia/Mother of Runes hatebears + Wasteland/Rishadan Port mana denial; tax and grind). Elves\n(mana-dork snowball into Craterhoof-style overrun; develop then alpha strike). Goblins (Lackey/\nRingleader tribal aggro-value; recur bodies, go wide). Grixis Reanimator (discard + Animate Dead\non Atraxa/Archon early; find a target and an enabler, protect the turn). Infect (Glistener Elf/\nBlighted Agent + pump; ONE connection near 10 poison is lethal — protect the creature, count\npoison). Lands (Wasteland/Port + Tabernacle prison into Marit Lage; deny mana, grind inevitability).\nMardu Energy (aggressive energy payoffs; curve out, use energy at the right beat). Miracles\n(Brainstorm/Ponder set up Terminus/Entreat wraths; control the board, win late). Sneak & Show\n(Show and Tell / Sneak Attack a huge threat like Emrakul years early; force it through the counter\nwindow). UR Delver (Delver of Secrets + cantrips + burn + counters; tempo — protect the clock,\ncounter their key spell, race).\nGeneral rule for all of them: know YOUR deck's win condition, advance it every turn, and use each\ndecision to protect the line that actually wins — not to react locally."
 
 # sha256 of the seven pieces concatenated in the order above, [:16], observed
 # at freeze time. If PreambleBuilder produces a different value tomorrow, the
@@ -214,9 +225,11 @@ def contract_sha(profile="puz-v1"):
     parts = [CONTRACT_VERSION, profile, PARSER_SPEC,
              "plan_policy=deck-plan-file",
              "user_policy=row.prompt-verbatim",
-             "static_reference=0",
+             "static_reference=" + ("1" if profile == "puz-v2" else "0"),
              ",".join(STRICTNESSES)]
     parts.extend(_SYSTEM_PIECES)
+    if profile == "puz-v2":
+        parts.append(SYS_STATIC_REFERENCE_V2)
     return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()[:16]
 
 
@@ -330,12 +343,18 @@ def resolve_plan(seat_or_deck_name, plan_text=None):
 
 # ------------------------------------------------------------------- render
 
-def _system_message(seat, plan):
-    """Byte-identical to PreambleBuilder.base(seat, plan, terse=False)."""
+def _system_message(seat, plan, profile="puz-v1"):
+    """puz-v1: byte-identical to PreambleBuilder.base(seat, plan, terse=False).
+    puz-v2: base + "\n\n" + the frozen legend — byte-identical to the live
+    smart-tier PreambleBuilder.system(...) assembly (LlmSpikeGui base +
+    STATIC_REFERENCE)."""
     plan_block = "" if not plan else (SYS_PLAN_PREFIX_V1 + plan
                                       + SYS_PLAN_SUFFIX_V1)
-    return (SYS_SEAT_PREFIX_V1 + seat + SYS_SEAT_SUFFIX_V1 + plan_block
+    base = (SYS_SEAT_PREFIX_V1 + seat + SYS_SEAT_SUFFIX_V1 + plan_block
             + SYS_BODY_V1 + SYS_FORMAT_V1 + SYS_TAIL_V1)
+    if profile == "puz-v2":
+        return base + "\n\n" + SYS_STATIC_REFERENCE_V2
+    return base
 
 
 def render(row, profile="puz-v1", strictness="strict", plan_text=None,
@@ -408,7 +427,7 @@ def render(row, profile="puz-v1", strictness="strict", plan_text=None,
 
     seat_str = seat if isinstance(seat, str) else ""
     ptext, pslug, psha, psource = resolve_plan(seat_str, plan_text)
-    system = _system_message(seat_str, ptext)
+    system = _system_message(seat_str, ptext, profile=profile)
 
     return {
         "contract": CONTRACT_VERSION,

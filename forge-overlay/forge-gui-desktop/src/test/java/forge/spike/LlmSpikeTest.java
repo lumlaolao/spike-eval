@@ -1154,7 +1154,8 @@ public class LlmSpikeTest {
         String got = LlmSpikeGui.PlayerControllerLLM.buildDecideManyPrompt(snap, "Declare attackers", opts, 0, 2);
         String expect = snap + "\nPRIORITY: you\nDECISION: Declare attackers\nChoose between 0 and 2 of these (by number):\n"
                 + "  1) Goblin (1/1)\n  2) Elf (2/1)\n"
-                + "Reason briefly, then end with EXACTLY: PICKS: <comma-separated numbers>";
+                + "Reason briefly, then end with EXACTLY: PICKS: <comma-separated numbers>"
+                + " (or PICKS: NONE to choose zero)";
         Assert.assertEquals(got, expect, "decideMany prompt template drifted");
     }
 
@@ -1183,8 +1184,9 @@ public class LlmSpikeTest {
 
     @Test
     public void buildMulliganPrompt_matchesTheMulliganWireFormatExactly() {
-        String got = LlmSpikeGui.PlayerControllerLLM.buildMulliganPrompt(7, 1, "Island, Brainstorm, Ponder");
-        String expect = "MULLIGAN DECISION. This is a 7-card hand with 1 land(s): Island, Brainstorm, Ponder"
+        String got = LlmSpikeGui.PlayerControllerLLM.buildMulliganPrompt(7, 1, "Island, Brainstorm, Ponder", true);
+        String expect = "MULLIGAN DECISION. You are ON THE PLAY (you go first)."
+                + " This is a 7-card hand with 1 land(s): Island, Brainstorm, Ponder"
                 + ". If you MULLIGAN you will look at a NEW hand of only 6"
                 + " cards (each mulligan costs you a card), and you can never go below 5. If you KEEP you play this "
                 + "7-card hand as-is. Keeping a workable hand almost always beats shrinking it. "

@@ -37,7 +37,8 @@
   "Category skew: 35/52 lethal-now. Free-position fraction unknown until scored; expect the discriminating subset to be substantially smaller than 52.",
   "All overnight-1/2 keys carry unprobed_replay_address (see puz-v1 manifest); round-4-7 exhaustive keys likewise (--driver none).",
   "113 rollout keys minted on linux-x86_64 across 4 cloud passes; same replay-fork caveat as v2.",
-  "Screen-priority finding (measured this suite): three-way panel splits verify at 6.3% vs two-way ~21% \u2014 maximal panel disagreement selects ambiguous positions; wave-3+ should prioritize two-way splits."
+  "Screen-priority finding (measured this suite): three-way panel splits verify at 6.3% vs two-way ~21% \u2014 maximal panel disagreement selects ambiguous positions; wave-3+ should prioritize two-way splits.",
+  "SNAPSHOT DEFECT (found 2026-08-02, fixed for future corpora): the 'mana available' line double-counted basic lands (subtype + intrinsic mana ability), e.g. 2 untapped Mountains rendered {R:4}. Rows frozen in this suite embed the wrong tally (50/65 affected in puz-v2.1 by the strict test). Scores on this suite reflect models coping with self-contradictory mana state; cross-suite comparisons to post-fix suites are not mana-line-equivalent."
  ],
  "n_positions": 65,
  "name": "puz-v2.1",

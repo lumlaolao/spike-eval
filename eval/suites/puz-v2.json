@@ -36,7 +36,8 @@
   "39 rollout keys were minted on linux-x86_64 (EC2) replays of darwin-mined games. probe_matches enforced byte-identical decision menus per position; however the seed-42 full-game canary shows an identity-label flip between platforms, so cross-platform FULL-GAME outcomes are not interchangeable \u2014 only replay-validated forks were used.",
   "The cloud confirm pass stalled at ~84% (26 rollout_timeout rows, 2.9% infra rate, under the 0.05 gate); ~175 sampled positions were never measured and remain available for a v2.1 extension.",
   "Category skew: 35/52 lethal-now. Free-position fraction unknown until scored; expect the discriminating subset to be substantially smaller than 52.",
-  "All overnight-1/2 keys carry unprobed_replay_address (see puz-v1 manifest); round-4-7 exhaustive keys likewise (--driver none)."
+  "All overnight-1/2 keys carry unprobed_replay_address (see puz-v1 manifest); round-4-7 exhaustive keys likewise (--driver none).",
+  "SNAPSHOT DEFECT (found 2026-08-02, fixed for future corpora): the 'mana available' line double-counted basic lands (subtype + intrinsic mana ability), e.g. 2 untapped Mountains rendered {R:4}. Rows frozen in this suite embed the wrong tally (50/65 affected in puz-v2.1 by the strict test). Scores on this suite reflect models coping with self-contradictory mana state; cross-suite comparisons to post-fix suites are not mana-line-equivalent."
  ],
  "n_positions": 52,
  "name": "puz-v2",
