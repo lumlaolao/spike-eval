@@ -54,20 +54,46 @@ DEAD rather than discriminating — it is the right category for ranking a
 frontier roster and the wrong one to screen with small local models.
 `graded-midgame` is the more stable choice (27-45% across all arms).
 
-BEFORE YOU "FIX" MINING WITH THIS OUTPUT — READ select_sample.py FIRST.
-The obvious conclusion from a run of this script is "stop mining lethal-now".
-That is ALREADY DONE: eval/pipelines/select_sample.py DEFAULT_CAPS covers only
-save-vs-lethal / mulligan / graded-midgame, and it iterates over the CAPS, so
-any category absent from that dict (lethal-now included) is dropped before any
-rollout is spent. The lethal-now positions in puz-v2.1 are LEGACY, mined in
-overnight-{1,2} and mine-round-4..7 before that weighting existed. So the
-headline-inflation they cause is a REPORTING problem, not a mining one, and the
-cheap fix is to quote the `disc` column from `puz_index leaderboard` next to
-`overall` rather than to re-mine anything. Two things that ARE stale:
-mine_puzzles.DEFAULT_TARGETS still budgets lethal-now 300 (2x every other
-category, mirroring EVAL-DESIGN.md S3.2) though it never binds because
-mine_round.sh mines uncapped; and graded-midgame is capped 40 against
-save-vs-lethal's 220 despite comparable and more stable disc rates.
+WHY THE SUITE IS 54% lethal-now — IT IS THE VERIFICATION LANE, NOT MINING OR
+SELECTION. Measured 2026-08-12 and this is the load-bearing fact:
+
+    natural CANDIDATE mix (mine-round-9, 21322 rows):
+        graded-midgame 71.2% | save-vs-lethal 13.6% | lethal-now 7.9%
+    frozen puz-v2.1 SUITE:
+        lethal-now 54% | save-vs-lethal 29% | graded-midgame 17%
+
+    exhaustive-lane verify yield, three independent rounds:
+        round 9  lethal-now 34/1691   everything else 0/20000+
+        round 8  lethal-now 24/1449   everything else 0/19000+
+        round 7  lethal-now 20/1488   everything else 0/19000+
+
+lethal-now is ~7x ENRICHED from candidate pool to suite because the FREE lane
+can only adjudicate it. That is structural, not incidental: verify_keys.py's
+`adjudicate_exhaustive` is documented "PURE rule adjudication for lethal-now @
+play from prompt text + options only" (burn face damage >= opponent life needs
+no rollout). graded-midgame and save-vs-lethal need WIN PROBABILITIES, i.e. the
+expensive ROLLOUT lane — mine_round.sh PHASE D. Recent rounds ran
+STOP_AFTER=exhaustive and handed off to the cloud confirm path, so four rounds
+and ~60k candidates minted lethal-now keys and nothing else.
+
+CONSEQUENCE, and it is not a reporting problem: the suite cannot rank models
+because it was built along the free verification path, and the only category
+free to verify is the one that discriminates at 6%. Discriminating positions
+COST ROLLOUTS; there is no cheap route to them. Use --cost to price it.
+
+So do NOT read this script's output as "stop mining lethal-now" — mining is
+already only 7.9% lethal-now, and eval/pipelines/select_sample.py already
+excludes it (its DEFAULT_CAPS covers save-vs-lethal / mulligan / graded-midgame
+and it iterates over the CAPS, dropping anything absent). The catch is that
+select_sample runs in PHASE D, which the recent rounds SKIP — so that policy has
+never actually been applied. The fix is to RUN the rollout lane on
+graded-midgame + save-vs-lethal candidates, not to change what is mined.
+Two things worth revisiting when you do: graded-midgame is capped 40 against
+save-vs-lethal's 220 despite being 71% of candidates (15174 available, so the
+cap is a POLICY choice, not an availability limit) and the more stable
+discriminator; and mine_puzzles.DEFAULT_TARGETS still budgets lethal-now 300
+(2x every other category, mirroring EVAL-DESIGN.md S3.2) though it never binds
+because mine_round.sh mines uncapped.
 """
 import argparse
 import collections
