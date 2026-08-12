@@ -674,6 +674,98 @@ def test_selection_is_streamed_and_bounded():
     check("select_positions consumes a generator", len(got4) == 3)
 
 
+def test_profile_selects_the_contract_era():
+    """--profile must reach BOTH render() and the identity stamp.
+
+    Until this flag existed, puzzle_run called render() with no profile, so the
+    scoring lane could only ever emit puz-v1 and the whole puz-v2 era (frozen
+    legend, @N ids, `PICKS: NONE`, the retry consequence) was reachable only
+    from test_prompt_contract.py — implemented and unscoreable.
+
+    WHAT WOULD MAKE THIS FAIL:
+      * prep_position dropping the profile: render falls back to puz-v1 and
+        both eras report the puz-v1 sha, i.e. the bug this flag fixes.
+      * stamp() called WITHOUT the profile. stamp is the single writer of
+        contract/contract_sha and runs AFTER the summary dict is built, so it
+        silently overwrote a sha set there — the first version of this change
+        reported profile=puz-v2 next to the puz-v1 sha, and only a cross-era
+        diff caught it.
+      * the default drifting off puz-v1, which would silently re-measure every
+        existing invocation in a new era.
+    """
+    import prompt_contract
+    profiles = tuple(getattr(prompt_contract, "PROFILES", ("puz-v1",)))
+    rows = [make_position("prof%02d" % i, "game-%d-0.jsonl" % (i % 3),
+                          "lethal-now", scores=[0, 3, 10, 0], seed=20101 + i)
+            for i in range(4)]
+
+    # 1) Default must stay puz-v1: every pre-existing run keeps its era.
+    with tempfile.TemporaryDirectory() as tmp:
+        rc, s, out_dir = run_offline(tmp, rows,
+                                     ["--offline-policy", "oracle"], "prof-def")
+        check("default: run succeeds", rc == 0 and s is not None, "rc=%s" % rc)
+        check("default profile is puz-v1", s.get("profile") == "puz-v1",
+              str(s.get("profile")))
+        check("default sha is the puz-v1 sha",
+              s.get("contract_sha") == prompt_contract.contract_sha("puz-v1"),
+              "%s vs %s" % (s.get("contract_sha"),
+                            prompt_contract.contract_sha("puz-v1")))
+
+    if "puz-v2" not in profiles:
+        print("[note] stub contract exposes no puz-v2; era-separation half "
+              "skipped (the default-era assertions above still ran)")
+        return
+
+    # 2) puz-v2 must mint a DIFFERENT sha, in the summary AND in every row.
+    shas = {}
+    for profile in ("puz-v1", "puz-v2"):
+        with tempfile.TemporaryDirectory() as tmp:
+            rc, s, out_dir = run_offline(
+                tmp, rows,
+                ["--offline-policy", "oracle", "--profile", profile],
+                "prof-%s" % profile)
+            check("%s: run succeeds" % profile, rc == 0 and s is not None,
+                  "rc=%s" % rc)
+            check("%s: summary records the profile" % profile,
+                  s.get("profile") == profile, str(s.get("profile")))
+            expected = prompt_contract.contract_sha(profile)
+            check("%s: summary sha is that era's sha" % profile,
+                  s.get("contract_sha") == expected,
+                  "%s vs %s" % (s.get("contract_sha"), expected))
+            shas[profile] = s.get("contract_sha")
+            # Rows carry it too, or a per-position consumer cannot tell eras
+            # apart even when the summary can.
+            row_shas, row_profiles = set(), set()
+            with open(out_dir / "results.jsonl", "r", encoding="utf-8") as fh:
+                for line in fh:
+                    r = json.loads(line)
+                    if r.get("schema") != "puzzle-result.v1":
+                        continue
+                    row_shas.add(r.get("contract_sha"))
+                    row_profiles.add(r.get("profile"))
+            check("%s: every result row carries that era's sha" % profile,
+                  row_shas == {expected}, str(row_shas))
+            check("%s: every result row carries the profile" % profile,
+                  row_profiles == {profile}, str(row_profiles))
+
+    check("the two eras do NOT share a contract_sha",
+          shas["puz-v1"] != shas["puz-v2"], str(shas))
+
+    # 3) The era changes the SYSTEM message only — the user message is
+    #    row["prompt"] verbatim under both, which is what makes re-measuring
+    #    the same frozen positions in a new era legitimate.
+    r1 = prompt_contract.render(rows[0], profile="puz-v1")
+    r2 = prompt_contract.render(rows[0], profile="puz-v2")
+
+    def _msg(rendered, role):
+        return "".join(m["content"] for m in rendered["messages"]
+                       if m["role"] == role)
+
+    check("era changes the system message", _msg(r1, "system") != _msg(r2, "system"))
+    check("era leaves the user message byte-identical",
+          _msg(r1, "user") == _msg(r2, "user"))
+
+
 def test_position_drops_the_source_row():
     import gc
     import weakref

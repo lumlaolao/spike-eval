@@ -11,6 +11,7 @@ Usage:
       [--offline-fixture FILE.jsonl] [--offline-policy always-pass|random|first|oracle|garbage]
       [--endpoint http://localhost:8080/v1] [--model NAME]
       [--k 4] [--max-tokens 512] [--req-timeout 120] [--retries 1] [--workers 4]
+      [--profile puz-v1|puz-v2] (contract era; v2 appends the frozen legend)
       [--strictness strict|lenient] [--categories a,b] [--split open|holdout|all]
       [--max-positions N] [--sample-seed 20260728] [--generated-utc STAMP]
       [--json] [--dry-run]
@@ -366,9 +367,15 @@ def select_positions(rows, split, categories, max_positions, sample_seed,
     return selected, skips
 
 
-def prep_position(row, strictness, skips, warnings):
+def prep_position(row, strictness, skips, warnings, profile="puz-v1"):
     """Render a selected row once; returns the internal position dict or None
     (render failure -> skipped_render_error).
+
+    `profile` selects the contract era (prompt_contract.PROFILES). It changes
+    the SYSTEM message only — the user message is row["prompt"] verbatim under
+    both — so the same frozen positions can be re-measured under a new
+    preamble. render() stamps contract_sha/profile, so the era reaches
+    results.jsonl without any extra bookkeeping here.
 
     The source `row` is deliberately NOT retained: every field the run needs
     (scores, caveats, provenance, menu) is extracted here, and holding the raw
@@ -377,7 +384,8 @@ def prep_position(row, strictness, skips, warnings):
     compute_baselines() and group_summary() go through these keys only."""
     src = row.get("source") or {}
     try:
-        rendered = prompt_contract.render(row, strictness=strictness)
+        rendered = prompt_contract.render(row, strictness=strictness,
+                                          profile=profile)
     except ValueError as exc:
         skips["skipped_render_error"] += 1
         warnings.append("render failed for id=%s: %s" % (row.get("id"), exc))
@@ -955,6 +963,7 @@ def result_row(sample, args):
         "schema": SCHEMA_RESULT,
         "contract": prompt_contract.CONTRACT_VERSION,
         "contract_sha": rendered.get("contract_sha"),
+        "profile": rendered.get("profile"),
         "position_id": pos["id"],
         "category": pos["category"],
         "split": pos["split"],
@@ -1130,6 +1139,11 @@ def build_summary(args, positions, samples, skips, warnings,
         "api_key_present": bool(getattr(args, "api_key", None)),
         "k": args.k,
         "strictness": args.strictness,
+        # The contract era these numbers were produced under. A puz-v1 score
+        # and a puz-v2 score are different measurements of the same positions;
+        # contract_sha differs (set by stamp() below, which is the single
+        # writer of the identity fields), and this names it in one word.
+        "profile": args.profile,
         "split": args.split,
         "split_counts": dict(split_counts),
         "sample_seed": args.sample_seed,
@@ -1151,7 +1165,7 @@ def build_summary(args, positions, samples, skips, warnings,
         "overlay_sha": _uniform([p["overlay_sha"] for p in positions]),
         "seed_blocks": dict(seed_blocks),
     }
-    prompt_contract.stamp(summary)
+    prompt_contract.stamp(summary, args.profile)
     return summary
 
 
@@ -1205,6 +1219,15 @@ def build_parser():
     ap.add_argument("--req-timeout", type=int, default=120)
     ap.add_argument("--retries", type=int, default=1)
     ap.add_argument("--workers", type=int, default=4)
+    # Contract era. Default puz-v1 so every existing invocation keeps its
+    # measurement; puz-v2 appends the frozen legend (@N ids, PICKS: NONE, the
+    # retry consequence) and mints its OWN contract_sha, so the two eras can
+    # never be silently pooled. Until this flag existed the v2 era was
+    # reachable only from test_prompt_contract.py — implemented, untestable
+    # against a live model.
+    ap.add_argument("--profile", choices=prompt_contract.PROFILES,
+                    default="puz-v1",
+                    help="contract era to render (default puz-v1)")
     ap.add_argument("--strictness", choices=prompt_contract.STRICTNESSES,
                     default="strict")
     ap.add_argument("--categories", default=None,
@@ -1310,7 +1333,8 @@ def main(argv=None, env=None):
     for i in range(len(selected)):
         row = selected[i]
         selected[i] = None          # release the raw row as we go
-        pos = prep_position(row, args.strictness, skips, warnings)
+        pos = prep_position(row, args.strictness, skips, warnings,
+                            args.profile)
         if pos is not None:
             positions.append(pos)
     del selected
@@ -1321,8 +1345,9 @@ def main(argv=None, env=None):
                   "split": args.split,
                   "split_counts": dict(Counter(p["split"] for p in positions)),
                   "n_positions": len(positions), "skips": dict(skips),
+                  "profile": args.profile,
                   "warnings": warnings}
-        prompt_contract.stamp(report)
+        prompt_contract.stamp(report, args.profile)
         print(json.dumps(report, sort_keys=True))
         return 0 if positions else 2
 

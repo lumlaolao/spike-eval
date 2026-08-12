@@ -16,6 +16,7 @@
   "schema": {"const": "puzzle-result.v1"},
   "contract": {"const": "prompt-contract.v1"},
   "contract_sha": {"type": "string"},
+  "profile": {"enum": ["puz-v1", "puz-v2"], "description": "contract era this row was rendered under; puz-v2 appends the frozen legend and mints its OWN contract_sha, so rows from the two eras are different measurements and must never be pooled"},
   "position_id": {"type": "string", "description": "puzzle-position.v1 id"},
   "category": {"type": ["string", "null"]},
   "split": {"type": ["string", "null"]},
