@@ -10,8 +10,14 @@ History that earned each check (2026-07-31):
      no CI configuration exists anywhere in the repo.
   4. Reserved seed bands are quoted in CLAUDE.md prose and declared in
      eval/seed_policy.py; nothing kept them in sync.
+  5. (2026-08-12) puz-v2.1's manifest shipped always_first 0.25 and
+     floors_confirmed_by "pending offline floor runs" while the runs it cited
+     had finished 13s after frozen_utc and measured 0.2615 — and the HIGHEST
+     floor, majority_class 0.2769, was unrecorded. Floors are the basis of
+     "a score without its floor is not a score", so a stale one is not
+     cosmetic.
 
-Keep this file MECHANICAL — four narrow assertions. A doc gate that drifts
+Keep this file MECHANICAL — narrow assertions only. A doc gate that drifts
 into style-checking becomes noise and gets deleted.
 
 Run: python3 eval/test_docs_claims.py
@@ -151,12 +157,91 @@ def test_jtest_selector_matches_makefile():
               % m.group(1))
 
 
+def test_suite_manifest_floors_match_the_floor_runs():
+    """A suite manifest's `floors` block must agree with the floor runs it
+    cites in `floors_confirmed_by`.
+
+    History that earned this check (found 2026-08-12): puz-v2.1 shipped
+    `always_first: 0.25` and `floors_confirmed_by: "pending offline floor
+    runs"` while the runs it pointed at — runs/puz/v2.1-floors — had finished
+    13 SECONDS after frozen_utc and measured 0.2615. Nothing re-read them, so
+    a wrong floor sat in the manifest, and `majority_class` 0.2769 (the
+    HIGHEST floor, i.e. the bar a score actually has to clear) was absent
+    entirely. Floors are the whole basis of the "a score without its floor is
+    not a score" rule, so a stale one is not cosmetic.
+
+    Deliberately narrow: it only checks manifests whose floors_confirmed_by
+    names an existing run directory, and only the keys both sides declare. A
+    manifest still legitimately pending its floor runs is skipped, not failed.
+    """
+    import json
+
+    suites = sorted((REPO / "eval" / "suites").glob("*.json"))
+    checked = 0
+    for path in suites:
+        try:
+            with open(str(path), "r", encoding="utf-8") as fh:
+                man = json.load(fh)
+        except (ValueError, OSError):
+            continue
+        floors = man.get("floors")
+        confirmed = man.get("floors_confirmed_by")
+        # puz-v1.json stores floors_confirmed_by as a DICT, not a string, so
+        # this must type-check rather than truth-test before regexing.
+        if not isinstance(floors, dict) or not isinstance(confirmed, str):
+            continue
+        m = re.search(r"(runs/[\w./-]*floors)", confirmed)
+        if not m:
+            continue                      # still pending: not a drift claim
+        floor_dir = REPO / m.group(1)
+        if not floor_dir.is_dir():
+            continue
+        # Analytic baselines are identical in every run on the suite, so read
+        # them from whichever floor run is present.
+        baselines = None
+        for cand in sorted(floor_dir.glob("*/summary.json")):
+            with open(str(cand), "r", encoding="utf-8") as fh:
+                s = json.load(fh)
+            if s.get("baselines"):
+                baselines = s["baselines"]
+                break
+        if baselines is None:
+            continue
+        checked += 1
+        # manifest key -> baselines key (only pairs both sides declare)
+        pairs = {"always_first": "always_first", "always_pass": "always_pass",
+                 "majority_class": "majority_class",
+                 "max_constant_index": "max_constant_index",
+                 "random": "random_choice", "oracle_ceiling": "oracle_ceiling"}
+        for mkey, bkey in sorted(pairs.items()):
+            if mkey not in floors or bkey not in baselines:
+                continue
+            blk = baselines[bkey]
+            got = (blk.get("pass_1") or {}).get("est") if isinstance(blk, dict) else None
+            if got is None:
+                continue
+            claimed = floors[mkey]
+            if not isinstance(claimed, (int, float)):
+                continue          # prose/None entries are not numeric claims
+            # Tolerance 0.005 = agreement to 2 decimal places. Manifests
+            # legitimately store rounded floors, so an exact test would flag
+            # rounding STYLE; 0.005 still catches every real drift found so
+            # far (puz-v2.1 always_first 0.25 vs 0.2615 = 0.0115; puz-v2
+            # always_first 0.27 vs 0.3077 = 0.038).
+            check("%s floors.%s matches %s" % (path.name, mkey, bkey),
+                  abs(float(claimed) - float(got)) < 5e-3,
+                  "manifest %.4f vs measured %.4f" % (float(claimed), float(got)))
+    check("at least one suite manifest had confirmable floors", checked >= 1,
+          "checked=%d" % checked)
+
+
 def main():
     test_ladder_file_count()
     test_deck_name_case_variants()
     test_ci_claims_backed_by_config()
     test_reserved_bands_match()
     test_jtest_selector_matches_makefile()
+    test_suite_manifest_floors_match_the_floor_runs()
     print()
     if FAILURES:
         print("FAILED: %d check(s): %s" % (len(FAILURES), ", ".join(FAILURES)))

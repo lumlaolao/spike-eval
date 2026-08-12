@@ -23,12 +23,15 @@
   }
  },
  "floors": {
-  "always_first": 0.25,
-  "always_pass": 0.12,
-  "note": "from select/shuffle at freeze; offline confirms in runs/puz/v2.1-floors",
-  "random": 0.26
+  "always_first": 0.2615,
+  "always_pass": 0.1231,
+  "majority_class": 0.2769,
+  "max_constant_index": 0.2615,
+  "note": "CONFIRMED from the offline floor runs this manifest already cites (runs/puz/v2.1-floors, 65 positions, k=1, generated 20260802T1751Z — 13s AFTER frozen_utc, which is why the at-freeze estimates were never updated). Supersedes the select/shuffle estimates always_first 0.25 / always_pass 0.12 / random 0.26: always_first was WRONG (0.2615, not 0.25), and majority_class 0.2769 -- the HIGHEST floor and therefore the real bar a score must beat -- was unrecorded entirely. Values here are the ANALYTIC baselines over the same menus the model is offered; the executed random-POLICY run scored 0.2615 against its 0.2631 analytic expectation, which is one realization and not a disagreement. Per quote_floor_as, quote max_constant_index (0.2615) -- but note majority_class is higher.",
+  "oracle_ceiling": 1.0,
+  "random": 0.2631
  },
- "floors_confirmed_by": "pending offline floor runs",
+ "floors_confirmed_by": "runs/puz/v2.1-floors/{always-pass,first,random,oracle} (generated 20260802T1751Z); mechanically re-checked by eval/test_docs_claims.py",
  "frozen_utc": "2026-08-02T17:51:15Z",
  "headline_metric": "puz.pass_1",
  "known_limits": [

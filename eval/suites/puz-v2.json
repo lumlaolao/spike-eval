@@ -23,10 +23,13 @@
   }
  },
  "floors": {
-  "always_first": 0.27,
-  "always_pass": 0.1,
-  "note": "from select_suite/shuffle_suite output at freeze; re-derive max_constant_index via puzzle_run offline floors before quoting",
-  "random": 0.28
+  "always_first": 0.3077,
+  "always_pass": 0.0962,
+  "majority_class": 0.3462,
+  "max_constant_index": 0.3077,
+  "note": "CORRECTED 2026-08-12 from the offline floor runs in runs/puz/v2-floors (52 positions). always_first read 0.27 here while this manifest's OWN floors_confirmed_by text already said 'first 0.308' — the block contradicted its own prose. max_constant_index 0.3077 is now supplied as that note asked, and majority_class 0.3462 -- the HIGHEST floor, i.e. the real bar -- was unrecorded. Values are the ANALYTIC baselines; the random POLICY drew 0.404 in one k=1 realization (2sigma-high), so quote the analytic 0.2794.",
+  "oracle_ceiling": 1.0,
+  "random": 0.2794
  },
  "floors_confirmed_by": "offline runs 2026-08-02 (runs/puz/v2-floors): always-pass 0.096, first 0.308, oracle 1.000; random single-draw 0.404 vs analytic 0.28 (one k=1 realization, 2sigma-high \u2014 quote the analytic value)",
  "frozen_utc": "2026-08-02T07:20:40Z",
