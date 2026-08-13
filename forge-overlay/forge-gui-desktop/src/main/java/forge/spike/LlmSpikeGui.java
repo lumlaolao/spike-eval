@@ -293,6 +293,27 @@ public final class LlmSpikeGui {
     // in the response's own `model` field — so that is what we record, alongside the spec we asked for.
     static final Map<String, String> servedModels = new ConcurrentHashMap<>();
 
+    /** PZL axis: which seat is the puzzle SOLVER, or null outside puzzle mode.
+     *
+     *  Forge decides who receives the "Puzzle Goal" enforcement card by asking each controller
+     *  {@code isGuiPlayer()} (Puzzle.java:119) — the only call site of that method in the entire
+     *  engine, verified by grep at the pinned commit. Our controllers extend PlayerControllerAi,
+     *  whose base returns false, so a headless puzzle would find no solver, leave `human` null and
+     *  NPE inside addGoalEnforcement before the first turn. Rather than fork Puzzle.java (which
+     *  would make the adjudicator a COPY of the engine's and free to drift from it — the one thing
+     *  the PZL axis must not allow), we point that single predicate at the seat LlmSpikePuzzle
+     *  designates, and Forge's own goal enforcement runs verbatim.
+     *
+     *  Null outside puzzle mode, so every non-puzzle run is byte-identical to before. */
+    static volatile LobbyPlayer puzzleSolverSeat = null;
+
+    /** True only for the seat {@link #puzzleSolverSeat} names. Identity comparison, not name
+     *  equality: two seats may share a display name. */
+    static boolean isPuzzleSolver(LobbyPlayer lp) {
+        LobbyPlayer solver = puzzleSolverSeat;
+        return solver != null && lp == solver;
+    }
+
     /** Our agent's controller: extend the AI, route decisions to Claude, delegate to super on
      *  anything we don't handle or that fails. One instance per seat — all state is per-instance. */
     static class PlayerControllerLLM extends PlayerControllerAi {
@@ -448,6 +469,11 @@ public final class LlmSpikeGui {
             this.fast  = fastBridge;
             if (!"llm".equals(this.mode)) p("[MODE] baseline arm: " + this.mode);
         }
+
+        /** See {@link LlmSpikeGui#puzzleSolverSeat}: this is read by Forge at exactly one place,
+         *  Puzzle.addGoalEnforcement, to pick the seat that must meet the goal. */
+        @Override
+        public boolean isGuiPlayer() { return isPuzzleSolver(getLobbyPlayer()); }
 
         private void p(String s) { System.out.println("[" + seat + "] " + s); }
         private static int envInt(String k, int def) {
@@ -3348,6 +3374,12 @@ public final class LlmSpikeGui {
             super(game, p, lp);
             this.seat = seat;
         }
+
+        /** See {@link LlmSpikeGui#puzzleSolverSeat}. Needed here too: the Forge-AI FLOOR arm of the
+         *  PZL axis runs as "ai-log", not plain "ai" — a stock LobbyPlayerAi builds an unmodifiable
+         *  PlayerControllerAi that can never report itself as the solver. */
+        @Override
+        public boolean isGuiPlayer() { return isPuzzleSolver(getLobbyPlayer()); }
 
         /** The game-state prompt the LLM seat would have sent for this decision (empty intel / no turn
          *  plan, which the AI seat never accumulates). */

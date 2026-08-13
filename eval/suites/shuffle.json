@@ -1,0 +1,18 @@
+{
+  "keep_pass_last": true,
+  "max_constant_index_baseline": 0.26153846153846155,
+  "n_in": 65,
+  "n_shuffled": 65,
+  "refusals": {},
+  "salt": 20260810,
+  "salt_search": {
+    "chosen_salt": 20260810,
+    "floor_at_chosen": 0.26153846153846155,
+    "floor_at_first_salt": 0.4153846153846154,
+    "n_salts": 400,
+    "objective": "max_constant_index_baseline",
+    "salt_hi": 20261128,
+    "salt_lo": 20260729
+  },
+  "schema": "suite-shuffle.v1"
+}

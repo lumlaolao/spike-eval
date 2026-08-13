@@ -16,7 +16,7 @@ RUNS       ?=
 help:
 	@echo "mtg-forge-llm-agent targets:"
 	@echo "  make test         - ladder 0: every eval/test_*.py (~10s, no JVM)"
-	@echo "  make jtest        - ladder 0b: LlmSpikeForkTest + LlmSpikeTest (~1min, no game)"
+	@echo "  make jtest        - ladder 0b: Fork + Spike + Puzzle tests (~1min, no game)"
 	@echo "  make canary       - ladder 1: seed-42 floor mirror; ASSERTS 'A after 108 turns' (~12s)"
 	@echo "  make ladder       - test + jtest + canary, in order"
 	@echo "  make install      - copy forge-overlay into FORGE_HOME (bash install.sh)"
@@ -37,9 +37,9 @@ test:
 
 jtest:
 	@cd "$(FORGE_HOME)" && mvn -q -pl forge-gui-desktop -am -o test \
-	  -Dtest='LlmSpikeForkTest+LlmSpikeTest' \
+	  -Dtest='LlmSpikeForkTest+LlmSpikeTest+LlmSpikePuzzleTest' \
 	  -Dsurefire.failIfNoSpecifiedTests=false \
-	&& echo "ladder 0b: LlmSpikeForkTest + LlmSpikeTest pass"
+	&& echo "ladder 0b: LlmSpikeForkTest + LlmSpikeTest + LlmSpikePuzzleTest pass"
 
 # The seed-42 floor mirror is only a canary if something ASSERTS its pinned
 # outcome. Unasserted, a drifted outcome scrolls past unread (see CLAUDE.md:

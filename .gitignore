@@ -41,3 +41,16 @@ runs/runpod/*/bootstrap.log
 # written DURING a run. Never an artifact -- `git add -A` mid-run swept 10,208
 # of them (3.2M lines) into a docs commit.
 runs/**/verify-keys-work/
+
+# Large regenerable eval-run data (candidate mining, overnight rollouts, floor
+# sweeps, PZL per-puzzle JVM logs). These are gigabytes of transient output that
+# are re-produced on demand by the pipeline (mine -> verify -> suite). The small
+# frozen SUITES and the results.jsonl/summary.json summaries ARE kept when a run
+# is citable; the bulk per-puzzle logs and candidate dumps are not history.
+runs/mine-round-*/
+runs/overnight-*/
+runs/str-floors/
+runs/pzl/
+
+# transient infra state: which AMI the last bake produced (re-derivable from the bake log)
+cloud/bench/.last-ami

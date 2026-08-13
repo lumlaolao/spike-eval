@@ -18,3 +18,9 @@
 [00:19:15] PHASE C done: 7 verified
 [00:19:15] PHASE D: rollout lane (screened)
 rollout sample: 210
+[04:29:33] PHASE D done
+screen: 107/210 positions kept for confirmation at n=45 (screened at n=8, confirm uses disjoint j>=8)
+verified 22 / 210 (yield 0.105) -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/rollout-positions.jsonl
+rollout wp_spread over 164 measured positions: min 0.000 p25 0.000 median 0.000 p75 0.067 max 1.000 (0 with no wp)
+summary -> /Users/lumlumlam/code/mtg-forge-llm-agent/.claude/worktrees/mtg-eval-v1/runs/overnight-1/rollout-summary.json
+[04:29:33] OVERNIGHT COMPLETE

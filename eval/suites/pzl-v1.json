@@ -1,0 +1,734 @@
+{
+ "adjudication": {
+  "detail": "Puzzle.addGoalEnforcement installs a hidden goal card that makes the solver LOSE at their cleanup step on the turn limit unless the Goal is met. No mined answer key and no rollout: the rules decide.",
+  "method": "engine"
+ },
+ "categories": {
+  "(unrated)": 4,
+  "Common": 4,
+  "Mythic": 70,
+  "Rare": 158,
+  "Uncommon": 64
+ },
+ "floors": {
+  "arms": {
+   "ai-log": {
+    "n_attempted": 300,
+    "n_excluded_tainted": 14,
+    "n_excluded_unscoreable": 9,
+    "n_free_wins_excluded": 6,
+    "n_invalid": 1,
+    "n_scoreable": 279,
+    "n_solved": 8,
+    "solve_rate": 0.0287
+   },
+   "floor": {
+    "n_attempted": 300,
+    "n_excluded_tainted": 9,
+    "n_excluded_unscoreable": 9,
+    "n_free_wins_excluded": 6,
+    "n_invalid": 2,
+    "n_scoreable": 284,
+    "n_solved": 2,
+    "solve_rate": 0.007
+   },
+   "random": {
+    "n_attempted": 300,
+    "n_excluded_tainted": 23,
+    "n_excluded_unscoreable": 9,
+    "n_free_wins_excluded": 5,
+    "n_invalid": 1,
+    "n_scoreable": 272,
+    "n_solved": 3,
+    "solve_rate": 0.011
+   }
+  },
+  "method": "executed",
+  "note": "EXECUTED baselines, not analytic: there is no fixed option menu to enumerate on this axis, so every number here comes from actually playing all 300 positions with that arm. Quote the HIGHEST of them (0.0287, the Forge-AI arm) as the floor a model must beat -- it is the strongest agent here that does no LLM reasoning. Rates are over UNTAINTED, BOUNDED, loadable rows only; see `excluded` counts and the `scoreability` block for what was removed and why.",
+  "quote_floor_as": 0.0287,
+  "status": "MEASURED"
+ },
+ "goals": {
+  "Destroy Specified Creatures": 1,
+  "Play the Specified Permanent": 2,
+  "Survive": 2,
+  "Win": 295
+ },
+ "headline_metric": "pzl.solve_1",
+ "known_limits": [
+  "SCOREABLE AS OF 2026-08-12, with floors executed. Headless puzzle mode runs via LlmSpikePuzzle (PUZZLE=<id> bash run-llm-headless.sh) and Forge's own hidden 'Puzzle Goal' card adjudicates -- confirmed in-game by solver losses recorded as GameLossReason SpellEffect / loseConditionSpell 'Puzzle Goal'. No model has been scored on this suite yet; only the floor arms have run.",
+  "CONTAMINATION IS THE MAIN THREAT AND IT IS UNEVEN. Possibility Storm publishes solutions and they are republished on TCGplayer / StarCityGames / MTGGoldfish, so older puzzles may be recalled rather than solved. The .pzl file itself carries NO solution, so the Forge repo sitting in a training corpus leaks the position but not the answer. 27 of 300 rows are published 2025-06 or later; report that subset separately before pooling.",
+  "Difficulty is the AUTHOR's rating, not a measured discrimination rate. It has not been validated against model performance and must not be quoted as one until it has.",
+  "Publication date is parsed from the month in the puzzle's image URL, so it is the date the PUZZLE was published, not the date its solution spread. Puzzles carrying no URL date are binned 'undated' and ranked last rather than assumed old; 88 of the 361 usable corpus puzzles are undated, and 56 of the 300 rows SELECTED here are (the recency ordering filled the suite from dated puzzles first). In-suite recency: 27 published 2025-06 or later, 217 older but dated.",
+  "4 rows come from eval/puzzles/upstream, i.e. they exist in Forge master but NOT in the pinned checkout (FORGE_COMMIT). Every card they reference IS scripted at the pin, so they load, but Forge at the pin will not list them in its own puzzle mode. Their recency_basis is 'upstream-only': being absent from the pin dates them after it, which is a LOWER BOUND, not a read date -- one (PS_MSH1) has a Patreon permalink with no month in it.",
+  "MECHANIC COVERAGE IS BOUNDED BY THE CORPUS, NOT BY SUITE SIZE. 162 of the 442 mechanics in the Forge card database appear in NO puzzle at all, so no selection of any size can reach them; this suite covers 280 of the 280 that ARE reachable. 'Covers every mechanic' is therefore false as stated and true only against the reachable set -- quote it that way or not at all.",
+  "Goal/Turns filtering keeps only bounded puzzles (Turns<=3). Open-ended sandbox entries (Turns 20/100/9999) are dropped because 'did you win' stops being a bounded decision.",
+  "DECK-OUT TAINT IS THE MAIN SCORING CONFOUND AND IT CUTS BOTH WAYS. Puzzle libraries are authored near-empty, so a player can lose to Milled for reasons unrelated to the line: the floor arm was handed 6 free wins that way, and the random arm lost 18 rows to its own deck-out. Rows where either side was Milled are excluded from BOTH numerator and denominator of every rate; the per-arm `n_excluded_tainted` / `n_free_wins_excluded` counts say how many, and they differ per arm because how long a game runs depends on how the solver plays.",
+  "9 OF 300 ROWS CANNOT BE SCORED AT THIS PIN -- see the `scoreability` block for the ids. 3 crash Forge's own GameState attachment handling on load; 6 have a goal trigger whose TurnCount can never equal the turn counter because the .pzl state starts past the limit, so the solver gets unlimited turns and a 'solve' would mean 'won eventually' rather than 'won within the limit'. Both are upstream Forge behaviours at FORGE_COMMIT, not harness faults, and both were found by RUNNING the suite -- a review pass had cleared the turn arithmetic as sound after checking three puzzles that all happen to start at turn 1."
+ ],
+ "mechanic_coverage": {
+  "definition": "kw:* = named keyword abilities/costs (Forge K: lines). eff:* = effect primitives Forge resolves (DB$/SP$/AB$/ST$), which is where keyword ACTIONS like Scry/Surveil/Proliferate live. A keywords-only count would report zero coverage of those, so both are tracked.",
+  "n_at_quota": 133,
+  "n_below_quota": 147,
+  "n_capped_by_corpus": "147 of the 147 below quota simply do not have 5 puzzles anywhere in the corpus",
+  "n_covered_by_this_suite": 280,
+  "n_in_forge_card_database": 442,
+  "n_reachable_in_puzzle_corpus": 280,
+  "n_unreachable_at_any_suite_size": 162,
+  "pct_of_reachable_covered": 100.0,
+  "quota_per_mechanic": 5,
+  "quota_shortfall": {
+   "eff:AddOrRemoveCounter": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "eff:AddTurn": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "eff:Airbend": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:Blight": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:ChoosePlayer": {
+    "in_suite": 4,
+    "max_in_corpus": 4
+   },
+   "eff:ChooseSource": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:ControlPlayer": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:DayTime": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "eff:Debuff": {
+    "in_suite": 4,
+    "max_in_corpus": 4
+   },
+   "eff:DigMultiple": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:Earthbend": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "eff:Endure": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:ExchangeLife": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "eff:ExchangeLifeVariant": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:FlipCoin": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "eff:Fog": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "eff:GainControlVariant": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "eff:Incubate": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:Learn": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "eff:MakeCard": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:Manifest": {
+    "in_suite": 4,
+    "max_in_corpus": 4
+   },
+   "eff:ManifestDread": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:Meld": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:MustBlock": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "eff:NameCard": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "eff:PeekAndReveal": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "eff:PermanentCreature": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "eff:PermanentNoncreature": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:Phases": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "eff:Poison": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "eff:PreventDamage": {
+    "in_suite": 4,
+    "max_in_corpus": 4
+   },
+   "eff:Radiation": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:RearrangeTopOfLibrary": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:RemoveFromCombat": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:ReorderZone": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:ReplaceDamage": {
+    "in_suite": 4,
+    "max_in_corpus": 4
+   },
+   "eff:ReplaceMana": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:ReplaceSplitDamage": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:RestartGame": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:RingTemptsYou": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "eff:Seek": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:Shuffle": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:SkipPhase": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:TapAll": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:TapOrUntap": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "eff:TaporUntapAll": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:TwoPiles": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:Unattach": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:UnlockDoor": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "eff:Venture": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:A deck can have any number of cards named CARDNAME.": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Afflict": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Awaken": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Backup": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Blitz": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Bloodthirst": {
+    "in_suite": 4,
+    "max_in_corpus": 4
+   },
+   "kw:Buyback": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:CARDNAME can't attack alone.": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:CARDNAME can't attack or block alone.": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:CARDNAME must be blocked if able.": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Casualty": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Champion": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Class": {
+    "in_suite": 4,
+    "max_in_corpus": 4
+   },
+   "kw:Companion": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Compleated": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Conspire": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Craft": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Cumulative upkeep": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Dash": {
+    "in_suite": 4,
+    "max_in_corpus": 4
+   },
+   "kw:Daybound": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Disguise": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Disturb": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Echo": {
+    "in_suite": 4,
+    "max_in_corpus": 4
+   },
+   "kw:Emerge": {
+    "in_suite": 4,
+    "max_in_corpus": 4
+   },
+   "kw:Entwine": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Escalate": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Eternalize": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Exalted": {
+    "in_suite": 4,
+    "max_in_corpus": 4
+   },
+   "kw:Fading": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Fear": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Firebending": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:For Mirrodin": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Gift": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Graft": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Harmonize": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Haunt": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Horsemanship": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Impending": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Improvise": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Increment": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Infect": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Intimidate": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Job select": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Landwalk": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Level up": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:MayEffectFromOpeningHand": {
+    "in_suite": 4,
+    "max_in_corpus": 4
+   },
+   "kw:Mayhem": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Megamorph": {
+    "in_suite": 4,
+    "max_in_corpus": 4
+   },
+   "kw:Miracle": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Mobilize": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Modular": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Multikicker": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Nightbound": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Ninjutsu": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Offspring": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Outlast": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Overload": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Partner with": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Phasing": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Plot": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Prevent all combat damage that would be dealt to CARDNAME.": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Prevent all combat damage that would be dealt to and dealt by CARDNAME.": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Protection from black": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Protection from blue": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Protection from green": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Protection from white": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Prototype": {
+    "in_suite": 4,
+    "max_in_corpus": 4
+   },
+   "kw:Provoke": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Rampage": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Read ahead": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Rebound": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Reconfigure": {
+    "in_suite": 4,
+    "max_in_corpus": 4
+   },
+   "kw:Reinforce": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Renown": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Retrace": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Saddle": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Scavenge": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Shadow": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Shroud": {
+    "in_suite": 4,
+    "max_in_corpus": 4
+   },
+   "kw:Skulk": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Sneak": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Soulshift": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Splice": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Start your engines": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Station": {
+    "in_suite": 4,
+    "max_in_corpus": 4
+   },
+   "kw:Storm": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Sunburst": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Surge": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Suspend": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Teamwork": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Tiered": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Toxic": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:Umbra armor": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   },
+   "kw:Warp": {
+    "in_suite": 4,
+    "max_in_corpus": 4
+   },
+   "kw:Web-slinging": {
+    "in_suite": 3,
+    "max_in_corpus": 3
+   },
+   "kw:Wither": {
+    "in_suite": 2,
+    "max_in_corpus": 2
+   },
+   "kw:You may choose not to untap CARDNAME during your untap step.": {
+    "in_suite": 1,
+    "max_in_corpus": 1
+   }
+  },
+  "selection_mode": "greedy-quota-5",
+  "uncovered_but_reachable": []
+ },
+ "n_from_upstream": 4,
+ "n_positions": 300,
+ "n_recent": 27,
+ "name": "pzl-v1",
+ "positions_file": "eval/suites/pzl-v1.jsonl",
+ "schema": "pzl-suite.v1",
+ "scoreability": {
+  "n_unscoreable_at_pin": 9,
+  "note": "These rows cannot produce a verdict at FORGE_COMMIT and are excluded from every rate above. They are a property of the ENGINE at this pin, not of the corpus, which is why they live here and not in the frozen .jsonl (whose sha256 is its identity). Recorded per-id so a consumer excludes exactly these rather than re-deriving them.",
+  "rows": [
+   {
+    "id": "PS_DOM4",
+    "reason": "goal trigger can never fire: the .pzl [state] starts past the turn limit and Trigger compares TurnCount with strict equality, so the solver has unlimited turns"
+   },
+   {
+    "id": "PS_DOM6",
+    "reason": "goal trigger can never fire: the .pzl [state] starts past the turn limit and Trigger compares TurnCount with strict equality, so the solver has unlimited turns"
+   },
+   {
+    "id": "PS_KHM6",
+    "reason": "goal trigger can never fire: the .pzl [state] starts past the turn limit and Trigger compares TurnCount with strict equality, so the solver has unlimited turns"
+   },
+   {
+    "id": "PS_MID2",
+    "reason": "goal trigger can never fire: the .pzl [state] starts past the turn limit and Trigger compares TurnCount with strict equality, so the solver has unlimited turns"
+   },
+   {
+    "id": "PS_NEO4",
+    "reason": "engine crash on load: Forge's own GameState attachment handling NPEs (handleCardAttachments / AttachEffect.resolve) at this pin"
+   },
+   {
+    "id": "PS_ONE2",
+    "reason": "engine crash on load: Forge's own GameState attachment handling NPEs (handleCardAttachments / AttachEffect.resolve) at this pin"
+   },
+   {
+    "id": "PS_STX2",
+    "reason": "goal trigger can never fire: the .pzl [state] starts past the turn limit and Trigger compares TurnCount with strict equality, so the solver has unlimited turns"
+   },
+   {
+    "id": "PS_THB4",
+    "reason": "engine crash on load: Forge's own GameState attachment handling NPEs (handleCardAttachments / AttachEffect.resolve) at this pin"
+   },
+   {
+    "id": "PS_WAR9",
+    "reason": "goal trigger can never fire: the .pzl [state] starts past the turn limit and Trigger compares TurnCount with strict equality, so the solver has unlimited turns"
+   }
+  ]
+ },
+ "sha256": "cc16030e315c7a964251c9ee3e2638d419bd4720db478ec4a35c692aad8e645c",
+ "source": {
+  "author": "Possibility Storm (and Forge tutorial/community puzzles)",
+  "corpus": "Forge bundled puzzle mode ($FORGE_HOME/forge-gui/res/puzzle)",
+  "n_corpus_files": 371,
+  "n_usable": 361,
+  "selection": "stratified_pick: recency band, then difficulty, then stable content hash; seed=20260812"
+ },
+ "turns": {
+  "1": 279,
+  "2": 18,
+  "3": 3
+ }
+}

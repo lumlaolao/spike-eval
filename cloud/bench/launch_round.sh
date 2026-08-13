@@ -102,9 +102,14 @@ mvn -pl forge-gui-desktop -am org.apache.maven.plugins:maven-dependency-plugin:3
 [ "\$(wc -c < /tmp/forge_cp.txt)" -lt 5000 ] && { echo CLASSPATH_TOO_SMALL > /tmp/fail.txt; \
   aws s3 cp /tmp/fail.txt s3://$BUCKET/results/round-$ROUND/shard-$SHARD/FAILED.txt; shutdown -h now; }
 cd /opt/agent
-# incremental uploader: a dead shard loses <=5 min of rollouts
+# incremental uploader + flight recorder: a dead shard loses <=5 min of
+# rollouts, and a STALLED shard remains diagnosable from S3 (the 84% stall
+# of 2026-08-01 left no df/ps/vk.log evidence — never again).
 ( while true; do sleep 300; \
-    aws s3 cp out.jsonl s3://$BUCKET/results/round-$ROUND/shard-$SHARD/out.partial.jsonl 2>/dev/null; done ) &
+    aws s3 cp out.jsonl s3://$BUCKET/results/round-$ROUND/shard-$SHARD/out.partial.jsonl 2>/dev/null; \
+    { date -u; df -h / /tmp | tail -2; ps -eo pid,etime,pcpu,rss,comm --sort=-rss | head -12; \
+      tail -20 /tmp/vk.log 2>/dev/null; ls -laS /opt/agent/verify-keys-work 2>/dev/null | head -5; } > /tmp/flight.txt 2>&1; \
+    aws s3 cp /tmp/flight.txt s3://$BUCKET/results/round-$ROUND/shard-$SHARD/flight.txt 2>/dev/null; done ) &
 python3 eval/verify_keys.py sample.jsonl --out out.jsonl \
   --lane rollout --driver engine --forge-home /opt/forge \
   --screen-n 8 --n-per-option 45 --jobs $JOBS_PER_SHARD \
@@ -119,6 +124,7 @@ shutdown -h now
 EOF
   IID=$(aws ec2 run-instances --region "$REGION" --image-id "$AMI" \
     --instance-type c7i.8xlarge --iam-instance-profile Name="$ROLE" \
+    --block-device-mappings 'DeviceName=/dev/xvda,Ebs={VolumeSize=48,VolumeType=gp3,DeleteOnTermination=true}' \
     --security-group-ids "$SG" \
     --instance-initiated-shutdown-behavior terminate \
     --user-data "file://$UD" \

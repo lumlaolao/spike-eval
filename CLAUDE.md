@@ -26,6 +26,31 @@ score):
 3. **PUZ** — the golden puzzle suite: per-puzzle *solved / not solved*, *count
    solved*, and *time-to-solve*. Teacher-independent, so it survives the teacher
    being weak (see EVAL-DESIGN.md §3).
+4. **PZL** — Forge's own 300 hand-authored `.pzl` positions (`eval/suites/pzl-v1`).
+   Distinct from PUZ in what adjudicates: PUZ scores against a mined answer key over
+   an option menu, PZL has **no key at all**. `Puzzle.addGoalEnforcement` installs a
+   hidden "Puzzle Goal" card that makes the solver LOSE at their cleanup step on the
+   turn limit unless the goal is met, so the rules decide and nothing of ours is in
+   the loop. Run one with `PUZZLE=<id> bash run-llm-headless.sh`, a whole suite with
+   `python3 eval/run_pzl.py --arm <floor|random|ai-log|llm> --out runs/pzl/<arm>`,
+   then fold the results in with `python3 eval/pzl_floors.py`.
+   **Floors are MEASURED (2026-08-12, executed over all 300):** do-nothing 0.0070,
+   random 0.0110, Forge AI 0.0287. Quote **0.0287** as the bar — the strongest arm that
+   does no LLM reasoning. Near-zero trivial baseline with ~3 points of headroom is the
+   shape this axis was chosen for. No model has been scored yet.
+   **9 of 300 rows are unscoreable at the pin** (`scoreability` block in the manifest):
+   3 crash Forge's own attachment handling on load, and 6 have a goal trigger whose
+   `TurnCount$` can never equal the turn counter, because a `.pzl` [state] may set a
+   STARTING turn that `addGoalEnforcement` never offsets its limit by — the goal card
+   installs, looks right, and never fires, so the solver gets unlimited turns. Both are
+   upstream Forge behaviours, and both were found by RUNNING the suite after a review
+   pass had cleared the turn arithmetic on three puzzles that all start at turn 1.
+   **Deck-out taint is the axis's known confound:** puzzle libraries are authored
+   near-empty (275 of 300 rows give a player fewer cards than the turn limit needs;
+   8 multi-turn rows give the opponent zero), so a player can lose to `Milled` for
+   reasons unrelated to the line — handing a do-nothing solver a free win, or denying
+   a correct one. The runner records each side's `GameLossReason`; tainted rows are
+   excluded from the solve rate's numerator AND denominator, never silently pooled.
 
 `eval/EVAL-DESIGN.md` is the full design (five axes; these three are the headline).
 `eval/suites/*.json` is how a suite gets frozen; `eval/build_report.py` emits the
@@ -194,12 +219,13 @@ root and worktrees cannot see it — source it by absolute path:
 
 0. **Python eval suite** (free, seconds, no JVM): every `eval/test_*.py` must pass —
    `for f in eval/test_*.py; do python3 "$f" >/dev/null || echo "FAIL $f"; done`
-   (26 files, incl. `test_prompt_contract` / `test_puzzle_run` /
+   (30 files, incl. `test_prompt_contract` / `test_puzzle_run` /
+   `test_pzl_corpus` / `test_pzl_verdicts` / `test_run_pzl` / `test_pzl_floors` /
    `test_verify_keys` / `test_plan_adherence` / `test_blunder_flags` /
    `test_blunder_report` / `test_build_report` / `test_bedrock`). Never weaken a
    test to pass it.
 0b. **Java unit tests** (free, ~1 min, no game): `make jtest` (canonical; it
-   runs `-Dtest='LlmSpikeForkTest+LlmSpikeTest'`) — 98+ tests: the pure logic
+   runs `-Dtest='LlmSpikeForkTest+LlmSpikeTest+LlmSpikePuzzleTest'`) — 116+ tests: the pure logic
    every WP rests on (seed mix, forceable-type gate, forced-index mapping,
    tally, determinize parsing) plus the menu/label pins (numberedPlayMenu
    byte-for-byte, saLabel truncation, disambiguate). **Run it: LlmSpikeForkTest
@@ -245,6 +271,26 @@ SIGINT (not SIGKILL) so the recorder's shutdown hook finalizes the mp4.
 
 ## Engine gotchas (violating these cost us days)
 
+- **`ThreadUtil.isGameThread()` is a STRING PREFIX ON THE THREAD NAME** —
+  literally `Thread.currentThread().getName().startsWith("Game")`
+  (`forge-core/.../ThreadUtil.java:45`). `GameAction.invoke()` runs its runnable
+  inline on a "game thread" but posts it to a background pool otherwise, and
+  `GameState.applyToGame` (how a puzzle's board is installed) goes through it. A
+  worker named `forge-puzzle` therefore applied the entire puzzle position
+  ASYNCHRONOUSLY: the start-game hook returned before any of it existed, the goal
+  card check read an empty command zone, and turn 1 began on a blank table — the
+  do-nothing arm "won" PS_THB1b because the opponent decked out of an empty
+  library. Name any thread that drives a game `Game...`. Note `LlmSpikeHeadless`'s
+  `forge-game` thread does NOT match either; it gets away with it only because a
+  normal match never calls `invoke()` during setup.
+- **`Game.getPlayers()` SHRINKS when a player loses.** It returns `ingamePlayers`
+  ("the players who are still fighting to win", `Game.java:400`), and
+  `Game.onPlayerLost` calls `ingamePlayers.remove(p)` (`Game.java:998`) from
+  `checkGameOverCondition`, *before* `setGameOver`. So after a 2-player game ends,
+  `getPlayers()` holds ONE element: index 0 is the winner and index 1 is out of
+  bounds. Reading per-seat outcomes off it reported "no deck-outs anywhere" on runs
+  whose own log said otherwise. Post-game, index `getRegisteredPlayers()`
+  (`allPlayers`, append-only, registration order, `Game.java:347`).
 - **A mid-game reseed does not re-deal the library — rollouts need explicit
   determinization.** `LlmSpikeFork` reseeded `MyRandom` at the fork point on the
   documented assumption that "j-variance enters through direct MyRandom consumers

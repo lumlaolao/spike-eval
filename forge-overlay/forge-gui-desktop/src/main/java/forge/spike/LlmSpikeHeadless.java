@@ -42,6 +42,12 @@ public final class LlmSpikeHeadless {
         long capMs = 3 * 60 * 60 * 1000L;
         try { String v = System.getenv("GAME_CAP_MS"); if (v != null) capMs = Long.parseLong(v.trim()); } catch (Exception ignore) {}
 
+        // PZL axis: PUZZLE=<id|path> runs one Forge puzzle instead of a match. Read BEFORE model
+        // init so a typo'd id fails in a second rather than after a 30s card-script load, but
+        // dispatched after, since LlmSpikePuzzle needs the card database.
+        String puzzle = System.getenv("PUZZLE");
+        boolean puzzleMode = puzzle != null && !puzzle.trim().isEmpty();
+
         System.out.println("[HEADLESS] initializing Forge model (no GUI)...");
         GuiBase.setInterface(new GuiDesktop());
         FModel.initialize(null, preferences -> {
@@ -49,6 +55,11 @@ public final class LlmSpikeHeadless {
             preferences.setPref(FPref.UI_LANGUAGE, "en-US");
             return null;
         });
+
+        if (puzzleMode) {
+            LlmSpikePuzzle.run(puzzle.trim());
+            return; // unreachable: LlmSpikePuzzle.run always exits the JVM itself
+        }
 
         long seed = LlmSpikeGui.applySeed(); // AFTER model init so nothing reseeds behind us
         LlmSpikeGui.EvalLog.init(seed);
