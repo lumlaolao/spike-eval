@@ -156,9 +156,15 @@ EOF
     echo "$RES" > "$OUT/javatests.summary"
     T="$(echo "$RES" | sed -n 's/.*total=\([0-9]*\).*/\1/p')"; F="$(echo "$RES" | sed -n 's/.*failed=\([0-9]*\).*/\1/p')"; S="$(echo "$RES" | sed -n 's/.*skipped=\([0-9]*\).*/\1/p')"
     OWN="$(grep -o '\[OWNERSHIP\].*' "$OUT/javatests.log" | head -1)"
+    # Enforce the pinned ownership baseline. This key used to be decorative (never read); a pin the
+    # script ignores is not a pin. Both the test (<=) and this (==) must be updated deliberately.
+    OWN_N="$(echo "$OWN" | sed -n 's/.*: \([0-9]*\)$/\1/p')"
+    OWN_EXP="$(sed -n 's/^ownership\.silent_ai_strategic_max=\([0-9]*\).*/\1/p' "$EXPECTED" | head -1)"
     if [ -z "$T" ]; then fail javatests "$RES"
     elif [ "$F" != 0 ] || [ "$S" != 0 ]; then fail javatests "$RES"
     elif [ "$T" != "$DECLARED" ]; then fail javatests "ran $T tests but $DECLARED @Test methods are declared (discovery gap)"
+    elif [ -n "$OWN_EXP" ] && [ "$OWN_N" != "$OWN_EXP" ]; then
+      fail javatests "ownership count $OWN_N != pinned $OWN_EXP (update harness_acceptance.expected AND ControllerOwnershipTest deliberately)"
     else pass javatests "$T/$DECLARED declared tests passed, 0 skipped. $OWN"; fi
   fi
 fi
