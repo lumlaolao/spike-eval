@@ -21,6 +21,9 @@
 #              Authorization header on the wire, analyzer gates, provenance stamped as loopback
 #   faithful   the same loopback game under CONTEXT_PROFILE=v4-faithful: viewer-aware renderer in a real game,
 #              legend in every prompt, menu options and state sharing seat handles, no legacy engine-id leak
+#   lookahead  a loopback game with LOOKAHEAD=1 and the fake server in --policy simulate: the real
+#              PlayerLookahead.previewCast path runs (preview + re-ask), at least one targeting preview is
+#              produced, and no AI fallback occurs
 #
 # SCRIPTING RULES (a broken gate reports PASS, which is worse than no gate): absolute paths; no `declare -A`
 # (macOS bash 3.2); never `grep -c X f || echo 0`; assert the build under test is the build that ran.
@@ -32,7 +35,7 @@ JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Content
 JAVA="$JAVA_HOME/bin/java"; JAVAC="$JAVA_HOME/bin/javac"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="${OUT:-$REPO/runs/harness-acceptance/$STAMP}"
-STAGES="${STAGES:-preflight classpath compile javatests pytests canary faketool faithful}"
+STAGES="${STAGES:-preflight classpath compile javatests pytests canary faketool faithful lookahead}"
 EXPECTED="$REPO/eval/harness_acceptance.expected"
 OVERLAY="$REPO/forge-overlay/forge-gui-desktop/src"
 LEDGER="$REPO/docs/harness/controller-ownership.tsv"
@@ -292,6 +295,36 @@ print(("FAIL " if problems else "PASS ")+"; ".join(problems+facts))
 EOF
 )"
         case "$VERDICT" in PASS*) pass faketool "${VERDICT#PASS }";; *) fail faketool "${VERDICT#FAIL }";; esac
+      fi
+    fi
+  fi
+fi
+
+# ---------------------------------------------------------------- lookahead (G8)
+if has_stage lookahead; then
+  if [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail lookahead "no compiled classes"; else
+    dir="$OUT/lookahead"; sdir="$OUT/lookahead-server"; mkdir -p "$dir" "$sdir"
+    # --policy simulate makes the fake model ask for a preview on every play prompt that advertises
+    # SIMULATE, so the real preview path (previewCast -> re-ask) is exercised without any egress.
+    python3 "$REPO/eval/fake_model_server.py" --port 0 --policy simulate --log "$sdir/fake_requests.jsonl" \
+        >"$sdir/fake_server.out" 2>&1 &
+    FAKE_PID=$!
+    PORT=""; for i in 1 2 3 4 5 6 7 8 9 10; do PORT="$(awk '/^LISTENING/{print $2}' "$sdir/fake_server.out" 2>/dev/null)"; [ -n "$PORT" ] && break; sleep 0.5; done
+    if [ -z "$PORT" ]; then fail lookahead "fake model server did not start"; kill $FAKE_PID 2>/dev/null; else
+      say "lookahead: LLM seat A on loopback fake model (policy simulate), LOOKAHEAD=1 (burn mirror)"
+      play lookahead 42 CONTROLLER_A=llm CONTROLLER_B=floor SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
+          OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" LOOKAHEAD=1 GAME_CAP_MS=120000 \
+          DECK_A="$REPO/eval/decks/burn.txt" DECK_B="$REPO/eval/decks/burn.txt" DECK_A_NAME=Burn DECK_B_NAME=BurnB
+      kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
+      if ! check_build_loaded "$dir"; then fail lookahead "JVM did not load LlmSpikeGui from $CLASSES"; else
+        LOOK="$(grep -c '\[ROUTER\] lookahead' "$dir/game.log" 2>/dev/null)"; LOOK="${LOOK:-0}"
+        TGT="$(grep -c 'assuming target:' "$dir/game.log" 2>/dev/null)"; TGT="${TGT:-0}"
+        AILOG="$(grep -c '\[FALLBACK->AI\]' "$dir/game.log" 2>/dev/null)"; AILOG="${AILOG:-0}"
+        if [ "$LOOK" -ge 1 ] && [ "$TGT" -ge 1 ] && [ "$AILOG" -eq 0 ]; then
+          pass lookahead "preview rounds=$LOOK (targeting previews=$TGT), no AI fallbacks"
+        else
+          fail lookahead "preview rounds=$LOOK targeting=$TGT fallbacks=$AILOG (need >=1 preview, >=1 targeting preview, 0 fallbacks)"
+        fi
       fi
     fi
   fi
