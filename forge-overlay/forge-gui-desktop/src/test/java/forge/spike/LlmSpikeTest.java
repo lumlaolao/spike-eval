@@ -1534,6 +1534,26 @@ public class LlmSpikeTest {
     }
 
     @Test
+    public void g7TriggerOrderIsModelRouted() {
+        Game game = buildBareGame();
+        Player p = game.getPlayers().get(0);
+        Card src = addBattlefieldCard("Forest", p);
+        SpellAbility s1 = forge.game.ability.AbilityFactory.getAbility(
+                "AB$ GainLife | Cost$ 0 | LifeAmount$ 1 | SpellDescription$ Gain one life.", src);
+        SpellAbility s2 = forge.game.ability.AbilityFactory.getAbility(
+                "AB$ GainLife | Cost$ 0 | LifeAmount$ 2 | SpellDescription$ Gain two life.", src);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 2, 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, p,
+                new LobbyPlayerAi("order-test", null), "order-test", "", bridge, bridge, "llm");
+        // "2 then 1" means the 2nd trigger RESOLVES first, so the engine must PLAY it last:
+        // the returned stack-placement order is [1st, 2nd] (reversed from the model's list).
+        List<SpellAbility> play = ctrl.orderSimultaneousSa(Lists.newArrayList(s1, s2));
+        Assert.assertSame(play.get(0), s1);
+        Assert.assertSame(play.get(1), s2);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    @Test
     public void g7OptionalCostsDeclineDeterministicallyWithoutAi() {
         // With no spell context the affordability check cannot pass, so the seat declines every
         // optional cost and never delegates to Forge AI (the old behaviour was super = AI).
