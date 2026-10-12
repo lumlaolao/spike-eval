@@ -17,4 +17,4 @@ random.winner=B
 random.turns=16
 random.decisions=67
 # Silent Forge-AI strategic/payment hooks reachable in Legacy play (ControllerOwnershipTest baseline).
-ownership.silent_ai_strategic_max=7
+ownership.silent_ai_strategic_max=6

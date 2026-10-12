@@ -105,9 +105,10 @@ option (never Forge AI):
 | `chooseProtectionType` | protection colour (Mother of Giver of Runes) | first choice |
 | `chooseCardsToDiscardToMaximumHandSize` | cleanup-step discards | first N |
 | `chooseCardsToDelve` | which graveyard cards to exile for delve (Murktide Regent) | first N |
+| `payCostToPreventEffect` | whether to pay an "unless" cost (Daze / Force Spike / Spell Pierce / Mana Tithe); payment mechanics stay the engine's | decline |
 
-Inventory after these overrides: **43 LLM / 73 AI / 14 BASE**; **7 silent core strategic/payment
+Inventory after these overrides: **44 LLM / 72 AI / 14 BASE**; **6 silent core strategic/payment
 hooks remain** (down from 13). Still Forge AI and not claimed model-owned: `payManaCost`,
-`getCostDecisionMaker`, `payCostToPreventEffect`, `chooseOptionalCosts`, `playTrigger`,
-`orderSimultaneousSa`, `orderAndPlaySimultaneousSa`. `chooseStartingPlayer` is `boolean`-keyed and
+`getCostDecisionMaker`, `chooseOptionalCosts`, `playTrigger`, `orderSimultaneousSa`,
+`orderAndPlaySimultaneousSa`. `chooseStartingPlayer` is `boolean`-keyed and
 therefore moves the random canary (see `eval/harness_acceptance.expected`, 2026-10-12).

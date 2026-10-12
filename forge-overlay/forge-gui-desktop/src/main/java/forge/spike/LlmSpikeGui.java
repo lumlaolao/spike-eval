@@ -40,8 +40,10 @@ import forge.card.ICardFace;
 import forge.card.ColorSet;
 import forge.card.MagicColor;
 import forge.ai.AiCardMemory;
+import forge.ai.AiCostDecision;
 import forge.ai.ComputerUtilAbility;
 import forge.ai.ComputerUtilCombat;
+import forge.ai.ComputerUtilCost;
 import forge.ai.ComputerUtilMana;
 import forge.ai.LobbyPlayerAi;
 import forge.ai.PlayerControllerAi;
@@ -64,6 +66,8 @@ import forge.game.card.CounterEnumType;
 import forge.game.card.CounterType;
 import forge.game.combat.Combat;
 import forge.game.combat.CombatUtil;
+import forge.game.cost.Cost;
+import forge.game.cost.CostPayment;
 import forge.game.keyword.Keyword;
 import forge.game.phase.PhaseHandler;
 import forge.game.phase.PhaseType;
@@ -2288,6 +2292,34 @@ public final class LlmSpikeGui {
             } catch (Exception e) {
                 return firstN(opts, genericAmount, "delve(err)");
             }
+        }
+
+        /** "Unless" costs — whether to pay for Daze / Force Spike / Spell Pierce / Mana Tithe. The
+         *  YES/NO is the model's (it was Forge AI's); the payment mechanics stay the engine's, so an
+         *  unaffordable or declined payment returns false rather than risking a broken cast. */
+        @Override
+        public boolean payCostToPreventEffect(Cost cost, SpellAbility sa, boolean alreadyPaid, FCollectionView<Player> allPayers) {
+            clearLast();
+            if (cost == null) return false;
+            try {
+                if (smartOk()) {
+                    String desc = oneLine(cost.toSimpleString());
+                    List<String> labels = Lists.newArrayList("Pay " + desc, "Decline (let it resolve)");
+                    int c = decideOne(smart, "prevent-effect",
+                            "Pay " + desc + " to prevent " + (sa == null ? "the spell" : "the spell " + srcOf(sa))
+                            + " from affecting you? Say 1 to pay or 2 to decline.", labels, null);
+                    if (c == 0) {
+                        if (!ComputerUtilCost.canPayCost(cost, sa, getPlayer(), true)) { auto("prevent-effect(model)->cannot-pay"); return false; }
+                        CostPayment pay = new CostPayment(cost, sa);
+                        boolean paid = pay.payComputerCosts(new AiCostDecision(getPlayer(), sa, true));
+                        p("[ROUTER] prevent-effect: paid " + desc + " -> " + paid);
+                        return paid;
+                    }
+                    if (c == 1) { auto("prevent-effect(model)->decline"); return false; }
+                }
+            } catch (Exception e) { /* deterministic fallback below */ }
+            auto("prevent-effect(default)->decline");
+            return false;
         }
 
         @Override
