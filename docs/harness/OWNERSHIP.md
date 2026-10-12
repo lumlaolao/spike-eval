@@ -103,10 +103,11 @@ option (never Forge AI):
 | `chooseColorAllowColorless` | as above, colourless allowed | first colour in the engine's set |
 | `chooseSomeType` | creature/card type naming (Cavern of Souls, Engineered Plague, Meddling Mage) | first valid type |
 | `chooseProtectionType` | protection colour (Mother of Giver of Runes) | first choice |
+| `chooseCardsToDiscardToMaximumHandSize` | cleanup-step discards | first N |
+| `chooseCardsToDelve` | which graveyard cards to exile for delve (Murktide Regent) | first N |
 
-Inventory after these overrides: **41 LLM / 75 AI / 14 BASE**; **9 silent core strategic/payment
+Inventory after these overrides: **43 LLM / 73 AI / 14 BASE**; **7 silent core strategic/payment
 hooks remain** (down from 13). Still Forge AI and not claimed model-owned: `payManaCost`,
-`getCostDecisionMaker`, `payCostToPreventEffect`, `chooseOptionalCosts`,
-`chooseCardsToDiscardToMaximumHandSize`, `chooseCardsToDelve`, `playTrigger`,
+`getCostDecisionMaker`, `payCostToPreventEffect`, `chooseOptionalCosts`, `playTrigger`,
 `orderSimultaneousSa`, `orderAndPlaySimultaneousSa`. `chooseStartingPlayer` is `boolean`-keyed and
 therefore moves the random canary (see `eval/harness_acceptance.expected`, 2026-10-12).
