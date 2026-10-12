@@ -108,6 +108,7 @@ the classic instant-speed action window). `[TALLY]` prints running `avgSmart`/`a
 | `DECK_A_NAME` / `DECK_B_NAME` | Grixis Reanimator / Mardu Energy | seat labels |
 | `PLAN_A` / `PLAN_B` | built-in | strategy framing per seat |
 | `DECKLIST` | `1` (on) | append each seat's own decklist **and its cards' rules text** (read from Forge's card DB) to its plan; `0` restores the pre-decklist prompt bytes |
+| `LOOKAHEAD` | `0` (off) | let the seat ask `SIMULATE: <n>` at a play decision to preview a spell option's resolution on a determinized copy (G8); off keeps existing prompt bytes |
 | `RECORD` / `RECORD_OUT` / `RECORD_FPS` | off | window recording (see below) |
 | `GAME_SEED` | random | seeds Forge's RNG — same seed = same shuffles/coin flip (bit-reproducible with non-LLM arms) |
 | `SWAP_SEATS` | 0 | `1` seats identity B first — the paired-design flip |
