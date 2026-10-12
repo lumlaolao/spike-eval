@@ -3,6 +3,9 @@ package forge.spike;
 import java.util.Random;
 
 import forge.ai.simulation.GameCopier;
+import forge.ai.simulation.GameSimulator;
+import forge.ai.simulation.GameStateEvaluator;
+import forge.ai.simulation.SimulationController;
 import forge.game.Game;
 import forge.game.player.Player;
 import forge.game.zone.Zone;
@@ -71,5 +74,50 @@ final class PlayerLookahead {
         String out = b.toString().trim();
         if (out.endsWith(";")) out = out.substring(0, out.length() - 1).trim();
         return out.isEmpty() ? "no change" : out;
+    }
+
+    /** Immediate-resolution preview of playing {@code liveOption} (a spell): play it on a copy,
+     *  determinize the copy's libraries BEFORE resolution, resolve, and report the public-only delta
+     *  for the seat and each opponent. Runs entirely inside one isolated RNG: the live game and its
+     *  RNG stream are untouched (same guarantee as {@link #copyForPreview}).
+     *
+     *  <p>v1 refuses anything that is not a spell ability, and never reports hidden identities —
+     *  this is a *rules preview* of the immediate resolution, not a win-probability rollout (see
+     *  docs/harness/LOOKAHEAD-DESIGN.md). The opponent is played by the engine AI, and only
+     *  libraries are determinized (the opponent's hand is not), so it is partial determinization. */
+    static String previewCast(Game live, Player seat, forge.game.spellability.SpellAbility liveOption, long seed) {
+        if (live == null || seat == null || liveOption == null) return "(no preview)";
+        if (!liveOption.isSpell()) return "(lookahead v1 supports spell options only)";
+        Random liveRandom = MyRandom.getRandom();
+        try {
+            MyRandom.setRandom(new Random(seed));
+            String label;
+            try { label = liveOption.getHostCard() == null ? "the spell" : liveOption.getHostCard().getName(); }
+            catch (Exception e) { label = "the spell"; }
+            GameSimulator sim = new GameSimulator(
+                    new SimulationController(new GameStateEvaluator.Score(0)), live, seat, null);
+            sim.simulateSpellAbility(liveOption, false); // play on the copy, resolve separately below
+            Game simGame = sim.getSimulatedGameState();
+            if (simGame == null) return "(preview unavailable)";
+            // Determinize BEFORE resolution so the preview cannot depend on the real hidden order.
+            for (Player p : simGame.getPlayers()) {
+                Zone lib = p.getZone(ZoneType.Library);
+                if (lib != null && lib.size() >= 2) lib.shuffle();
+            }
+            GameSimulator.resolveStack(simGame, simGame.getPlayers().get(1));
+
+            Player seatAfter = (Player) sim.getGameCopier().find(seat);
+            StringBuilder b = new StringBuilder("if you cast ").append(label).append(": you ")
+                    .append(publicDelta(seat, seatAfter));
+            for (Player opp : seat.getOpponents()) {
+                Player oppAfter = (Player) sim.getGameCopier().find(opp);
+                b.append("; ").append(opp.getName()).append(' ').append(publicDelta(opp, oppAfter));
+            }
+            return b.toString();
+        } catch (Throwable t) {
+            return "(preview failed: " + t.getClass().getSimpleName() + ")";
+        } finally {
+            MyRandom.setRandom(liveRandom);
+        }
     }
 }
