@@ -2409,6 +2409,16 @@ public final class LlmSpikeGui {
             return new ArrayList<>();
         }
 
+        /** G7: the card-choosing NON-mana costs (which permanent to sacrifice) go to the model via
+         *  {@link LlmCostDecision}; every other cost type stays the engine's. */
+        @Override
+        public forge.game.cost.CostDecisionMakerBase getCostDecisionMaker(Player player, SpellAbility ability, boolean effect, String prompt) {
+            try {
+                if (player == getPlayer()) return new LlmCostDecision(player, ability, effect);
+            } catch (Exception ignore) { }
+            return super.getCostDecisionMaker(player, ability, effect, prompt);
+        }
+
         /** Simultaneous-trigger ORDER (trigger targeting stays the engine's — the inherited
          *  orderAndPlaySimultaneousSa calls this virtually, then prepares/plays each). The model
          *  lists the order it wants the triggers to RESOLVE; the engine plays them in
