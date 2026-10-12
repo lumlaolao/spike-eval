@@ -121,6 +121,10 @@ Recorded while scoping the code so the next session starts from facts, not guess
   decisions and is not reproducible, so the tool needs a **mid-game** mechanism. Its own docs mark
   `GameCopier` mid-stack forking "plan B, v1-restricted to empty-stack decisions" — which is exactly
   the tool's v1 scope.
+- **CONFIRMED (2026-10-12, `LookaheadProbeTest`).** `new GameCopier(bareGame).makeCopy()` succeeds
+  on a game built the way the observer tests build one, and the copy is a **distinct object graph**
+  (its players are not the live players) — a simulation on it cannot alias/mutate the live game. The
+  necessary condition for the tool is met and is now pinned by that test.
 - **A reusable primitive exists in `forge.ai.simulation`.** `GameCopier(origGame).makeCopy(...)`
   clones a live game; `new GameSimulator(controller, origGame, aiPlayer, advanceToPhase)` copies,
   optionally resolves the stack (`GameSimulator.resolveStack(game, opponent)`), and
