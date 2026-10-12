@@ -142,7 +142,7 @@ same way. `INSPECT @N` / `INSPECT <card name>` is a third memory tool sharing th
 budget: current public characteristics, an explicit HISTORICAL answer once the object is
 gone or hidden, or public card-database text labelled as such. Legacy profiles
 (`v1-compat`, `v2-memory`, `v3-compact`) are untouched byte-for-byte; `v4-faithful` has its
-own `context.v3|...|observation=observation-faithful-v1` identity and sha.
+own `context.v3|...|observation=observation-faithful-v2` identity and sha.
 
 `SeatObservationTest` drives the live implementation against real engine games: two
 worlds differing only in the opponent's hand and library produce identical observations,
@@ -176,6 +176,17 @@ the observer's zone-change subscription is read-only but its handle registry liv
 memory only.
 
 ## Additional defects fixed during validation
+
+**2026-10-12 — narration redaction (G1/G3).** The faithful observer no longer builds a
+game-wide dictionary of hidden face-down card names and string-replaces them out of
+narration. Redaction is anchored to the object an event names via the engine's
+`Name (id)` format: a hidden reference loses its name and its id, a visible reference
+maps to a handle, and a public card that shares a hidden card's name is never erased.
+`SeatObservation.VERSION` moved to `observation-faithful-v2` (faithful `context_sha`
+`7896dbb44d9f` -> `8b5409f50ab1`); two adversarial tests added. The remaining faithful
+gap — `render()` still sources `CAST THIS GAME`/`LANDS PLAYED` from the legacy
+`castHistory` rather than the seat stream — is documented and tracked in
+`OBSERVATION-REVIEW.md`.
 
 Hand-reveal bridge/parse failures now choose the first minimum-sized legal subset,
 log an automatic fallback, and never call Forge AI. Empty reveal pools return empty.

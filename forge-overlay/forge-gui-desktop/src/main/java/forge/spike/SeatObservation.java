@@ -63,12 +63,16 @@ import forge.spike.LlmSpikeGui.ContextProfile;
  * viewer last saw it ran through zones the viewer can see. A card that passes through an opponent's
  * hand or any library is a fresh, unlinked object when it reappears.
  *
- * NARRATION. The engine log is captured into a per-seat stream at observation time, with hidden names
- * redacted and engine ids mapped to handles or dropped. Private reveals delivered to this seat are
- * appended to the same stream, so every seat-visible fact has one E-id and one place to search.
+ * NARRATION. The engine log is captured into a per-seat stream at observation time. Hidden names are
+ * redacted by OBJECT, not by a name dictionary: the engine formats a card reference as {@code Name (id)},
+ * so every id that resolves to an object this viewer may not know loses its name and its id together
+ * ("a face-down card"), while an id that resolves to a visible object maps to that object's handle. A
+ * public card that merely shares a hidden card's name is never erased, and a hidden name is never
+ * substituted out of a message that does not name the hidden object. Private reveals delivered to this
+ * seat are appended to the same stream, so every seat-visible fact has one E-id and one place to search.
  */
 final class SeatObservation {
-    static final String VERSION = "observation-faithful-v1";
+    static final String VERSION = "observation-faithful-v2";
     /** Printed once per observation so every prompt is self-describing. Part of the prompt bytes and
      *  therefore of this VERSION: change it and bump the version. */
     static final String LEGEND = "LEGEND: @N = your seat's handle for one object, assigned when you first see it; a zone change "
@@ -378,7 +382,6 @@ final class SeatObservation {
         try { all = game.getGameLog().getAllEntries(); } catch (Exception e) { return; }
         if (consumedLogEntries > all.size()) consumedLogEntries = 0; // log was reset (new game on same object)
         Map<Integer, Card> byId = null;
-        List<String> hiddenFaces = null;
         for (int i = consumedLogEntries; i < all.size(); i++) {
             GameLogEntry e = all.get(i);
             if (e.type() == GameLogEntryType.TURN) {
@@ -386,33 +389,11 @@ final class SeatObservation {
                 currentTurn = parsed > 0 ? parsed : currentTurn + 1;
             }
             if (!EVENT_TYPES.contains(e.type())) continue;
-            if (byId == null) { byId = cardsById(); hiddenFaces = hiddenFaceNames(byId.values()); }
+            if (byId == null) byId = cardsById();
             String msg = redact(LlmSpikeGui.oneLine(e.message()), e.sourceCard(), byId);
-            msg = redactHiddenFaces(msg, hiddenFaces);
             stream.add(new GameHistory.Ev(stream.size() + 1, currentTurn, e.type(), msg));
         }
         consumedLogEntries = all.size();
-    }
-
-    /** Real names of every face-down object this viewer may NOT look at, wherever the engine's
-     *  formatter might print them (as a source, a target, a blocker...). Computed once per capture. */
-    List<String> hiddenFaceNames(Iterable<Card> cards) {
-        List<String> out = new ArrayList<>();
-        for (Card c : cards) {
-            try {
-                if (!c.isFaceDown() || faceKnown(c)) continue;
-                String n = c.getState(CardStateName.Original).getName();
-                if (n != null && !n.isEmpty() && !out.contains(n)) out.add(n);
-            } catch (Exception ignore) { }
-        }
-        return out;
-    }
-
-    static String redactHiddenFaces(String msg, List<String> hiddenFaces) {
-        if (msg == null || hiddenFaces == null || hiddenFaces.isEmpty()) return msg;
-        String out = msg;
-        for (String n : hiddenFaces) out = out.replace(n, "a face-down card");
-        return out;
     }
 
     private Map<Integer, Card> cardsById() {
@@ -439,18 +420,51 @@ final class SeatObservation {
             }
         } catch (Exception ignore) { }
         out = HIDDEN_ID.matcher(out).replaceAll("");
+        // Object-anchored redaction. The engine formats a card reference as "Name (id)", so an id is
+        // the reliable pointer to the object an event names. An id that resolves to a visible object
+        // maps to that object's handle; an id that resolves to an object this viewer may not know
+        // loses the name AND the id ("a hidden/face-down card"); an unresolved id is dropped. Because this
+        // is anchored to the referenced object, a public card that shares a hidden card's name is
+        // never erased -- the old game-wide name dictionary did erase it (and leaked: changing a
+        // hidden identity changed PUBLIC history text).
         Matcher m = ENGINE_ID.matcher(out);
         StringBuilder sb = new StringBuilder();
+        int last = 0;
         while (m.find()) {
-            String rep = "";
-            try {
-                Card c = byId == null ? null : byId.get(Integer.parseInt(m.group(1)));
-                if (c != null && identityKnown(c)) rep = " @" + sight(c, true).handle;
-            } catch (Exception ignore) { }
-            m.appendReplacement(sb, Matcher.quoteReplacement(rep));
+            sb.append(out, last, m.start());
+            last = m.end();
+            int id;
+            try { id = Integer.parseInt(m.group(1)); } catch (Exception e) { continue; }
+            Card c = byId == null ? null : byId.get(id);
+            if (c == null) continue; // unknown reference: drop it
+            if (identityKnown(c)) {
+                sb.append(" @").append(sight(c, true).handle);
+            } else {
+                String nm = originalName(c);
+                if (nm != null && !nm.isEmpty() && endsWith(sb, nm)) {
+                    sb.setLength(sb.length() - nm.length());
+                    sb.append(c.isFaceDown() ? "a face-down card" : "a hidden card");
+                }
+            }
         }
-        m.appendTail(sb);
+        sb.append(out, last, out.length());
         return sb.toString();
+    }
+
+    private static boolean endsWith(StringBuilder sb, String s) {
+        int n = s.length();
+        if (n == 0 || sb.length() < n) return false;
+        for (int i = 0; i < n; i++) if (sb.charAt(sb.length() - n + i) != s.charAt(i)) return false;
+        return true;
+    }
+
+    /** The real (original-face) name of a card, independent of its current face-down state. */
+    private static String originalName(Card c) {
+        try {
+            String n = c.getState(CardStateName.Original).getName();
+            if (n != null && !n.isEmpty()) return n;
+        } catch (Exception ignore) { }
+        try { return c.getName(); } catch (Exception e) { return null; }
     }
 
     /** Append a private reveal (or any seat-local evidence) to the stream with turn attribution. */
