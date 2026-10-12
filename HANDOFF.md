@@ -6,6 +6,13 @@ Status: **core replay path (check + enumerate) DONE and validated. Rollout clean
 not implemented.** Everything compiles (`install.sh` + offline `mvn ... compile`, checkstyle
 clean). Baseline canary (seed 42, floor/floor, identity A wins after 108 turns) is unchanged.
 
+> **CORRECTION (2026-10-12):** the rollout claim above is stale. `LlmSpikeFork.java` now
+> implements all three fork modes — `check`, `enumerate`, **and `rollout`** — and exit 3
+> (`FORK-ROLLOUT NOT-IMPLEMENTED`) is retired ("never returned now that rollout is real",
+> `LlmSpikeFork.java:87-88`). The body below is the historical handoff and its "stub"
+> statements describe the state when it was written; see `docs/harness/PLAYER-HARNESS.md`
+> for current status.
+
 ## What shipped
 
 - `forge-overlay/forge-gui-desktop/src/main/java/forge/spike/LlmSpikeFork.java` (new, ~480
