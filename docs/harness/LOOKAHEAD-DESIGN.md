@@ -168,4 +168,7 @@ Recorded while scoping the code so the next session starts from facts, not guess
   — 273 rounds, 0 refusals, 0 errors. The model can also **aim** the preview: `SIMULATE: <n> <target
   name>` matches a legal candidate by name (`if you cast Lightning Bolt [assuming target: Elite
   Vanguard]: ... Rival board 2 -> 1`); with no hint the disclosed default is the first opposing
-  player, then an opposing permanent. Still open: multi-target spells beyond the minimum.
+  player, then an opposing permanent. Still open: multi-target spells beyond the minimum; and the
+  preview is **best-effort** — casting some deck's spells (Grixis Reanimator) throws a caught
+  `RuntimeException` (reported as `(preview failed: RuntimeException)`), so a preview can fail
+  without affecting the game. The `lookahead` acceptance stage exercises the path continuously.
