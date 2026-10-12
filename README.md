@@ -145,7 +145,7 @@ OPENROUTER_API_KEY=... OPENROUTER_ALLOW_EGRESS=1 bash run-llm-headless.sh
 The review that motivated this (see git history) found the demo harness unsuitable as a model
 eval: no reproducibility, no baselines, no dataset, expert plans confounding the measurement.
 Those are now addressed: seeded games (floor-vs-floor at seed 42 reproduces **bit-identically**,
-106 turns / 12 seconds), identity-keyed A/B arms with seat-swapped pairing, per-decision JSONL,
+108 turns / 12 seconds), identity-keyed A/B arms with seat-swapped pairing, per-decision JSONL,
 three cheap baseline anchors (a full `floor` game runs in ~12s, `random` in ~1min — anchor
 distributions are essentially free), plan-free / heuristic-free confound switches, and a pinned
 engine version (`FORGE_COMMIT`, checked by `install.sh`).

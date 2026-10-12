@@ -155,8 +155,9 @@ are seat-local; menu labels and state share handles while the legacy profile sti
 the static labels; INSPECT is budgeted through ContextMemory.
 
 **Ownership ledger (G7 first stage):** `controller-ownership.tsv` + `ControllerOwnershipTest`
-+ `OWNERSHIP.md`. 130 hooks classified; 18 silent Forge-AI strategic/payment decisions
-reachable in Legacy play are enumerated and pinned as a maximum. The AI cheat-shuffle hook
++ `OWNERSHIP.md`. 130 hooks classified; after numeric/binary/confirmation routing **13**
+silent Forge-AI strategic/payment decisions reachable in Legacy play remain (down from the
+original 18) and are enumerated and pinned as a maximum. The AI cheat-shuffle hook
 the LLM seat inherits is pinned inert on both launch paths.
 
 **Acceptance suite (G10):** `bash eval/harness_acceptance.sh` (`ACCEPTANCE.md`): isolated
@@ -191,7 +192,7 @@ missing-call reports in the random canary. The defect analyzer was not modified.
 | --- | --- | --- | --- |
 | P0 | Seat-aware visibility audit and structured observation schema | Two worlds differing only in hidden state produce identical observations and tool results; reveal, face-down, exile, shuffle and controller-change fixtures | Text observation done under `v4-faithful` with paired-world, face-down, hidden-path, control-change and reveal tests (`SeatObservationTest`); no structured schema yet; exile fixtures thin |
 | P0 | Structured action/outcome event capture | Agent sees intervening actions exactly once or receives explicit loss metadata; proposed actions cannot be mistaken for resolved ones | Seat stream captures the engine log once per entry with redaction; proposals vs resolutions still not separated |
-| P0 | Controller ownership and legal-menu audit | Inventory every hook; tests for omitted legal alternatives and silent AI choices; attributable fallback records | Ledger + test done; 18 silent AI decisions enumerated, none yet routed; legal-menu completeness untested |
+| P0 | Controller ownership and legal-menu audit | Inventory every hook; tests for omitted legal alternatives and silent AI choices; attributable fallback records | Ledger + test done; 13 silent AI decisions remain (numeric/binary/confirmation routed); payment execution, trigger targeting and legal-menu completeness untested |
 | P1 | Object registry and object inspection | Same-name copies, blink/new incarnation, control change, tokens, attachments, target and combat references; no hidden-zone identity tracking | Done for copies, zone re-entry, control change, attachments, targets, combat, INSPECT; tokens untested |
 | P1 | Durable knowledge and bounded summarization | Full-game reset/restart recovery, source-preserving compression, explicit stale knowledge, bounded prompts and retrievable full reveals | Reveals retrievable in full; archive still in-JVM; prompts not yet bounded independent of game length |
 | P1 | Tool protocol and eval accounting | Native typed adapters or strict equivalent, per-decision budgets across retries, exact request/token accounting, disjoint experiment grouping | Eval grouping/accounting done (EVAL-IMPLEMENTATION.md); tools remain text commands; INSPECT added to the shared budget |
