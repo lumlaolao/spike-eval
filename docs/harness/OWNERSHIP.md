@@ -89,3 +89,24 @@ After numeric/binary routing the reflection inventory was 33 LLM / 83 AI / 14 BA
 `confirmTrigger`, `confirmPayment`, and `confirmReplacementEffect` now ask the model and record their decisions. Mandatory triggers are forced legal accepts. Failed optional confirmations decline with an explicit automatic fallback. Confirmation never resets or reselects targets; trigger targeting and cost execution remain separate unfinished ownership routes. `confirmAction` also no longer delegates its exception branch to Forge AI.
 
 Inventory after these overrides: 36 LLM / 80 AI / 14 BASE; 13 silent core strategic/payment hooks remain. This is not a claim that payment execution or trigger targeting is model-owned.
+
+## Choices from the engine's legal list (2026-10-12)
+
+Four more hooks moved from `ai-inherited` to `model`. Each picks from the engine's own legal
+option list, so an illegal choice is impossible, and each falls back to a deterministic legal
+option (never Forge AI):
+
+| Hook | What the model now decides | Deterministic fallback |
+| --- | --- | --- |
+| `chooseStartingPlayer` | play first or draw first after winning the toss (Forge AI always played first) | play first |
+| `chooseColor` | colour naming (Painter's Servant, protection, caves-style) | first colour in the engine's set |
+| `chooseColorAllowColorless` | as above, colourless allowed | first colour in the engine's set |
+| `chooseSomeType` | creature/card type naming (Cavern of Souls, Engineered Plague, Meddling Mage) | first valid type |
+| `chooseProtectionType` | protection colour (Mother of Giver of Runes) | first choice |
+
+Inventory after these overrides: **41 LLM / 75 AI / 14 BASE**; **9 silent core strategic/payment
+hooks remain** (down from 13). Still Forge AI and not claimed model-owned: `payManaCost`,
+`getCostDecisionMaker`, `payCostToPreventEffect`, `chooseOptionalCosts`,
+`chooseCardsToDiscardToMaximumHandSize`, `chooseCardsToDelve`, `playTrigger`,
+`orderSimultaneousSa`, `orderAndPlaySimultaneousSa`. `chooseStartingPlayer` is `boolean`-keyed and
+therefore moves the random canary (see `eval/harness_acceptance.expected`, 2026-10-12).

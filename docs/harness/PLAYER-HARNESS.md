@@ -155,9 +155,9 @@ are seat-local; menu labels and state share handles while the legacy profile sti
 the static labels; INSPECT is budgeted through ContextMemory.
 
 **Ownership ledger (G7 first stage):** `controller-ownership.tsv` + `ControllerOwnershipTest`
-+ `OWNERSHIP.md`. 130 hooks classified; after numeric/binary/confirmation routing **13**
-silent Forge-AI strategic/payment decisions reachable in Legacy play remain (down from the
-original 18) and are enumerated and pinned as a maximum. The AI cheat-shuffle hook
++ `OWNERSHIP.md`. 130 hooks classified; after numeric/binary/confirmation routing and the
+2026-10-12 legal-list routing **9** silent Forge-AI strategic/payment decisions reachable in
+Legacy play remain (down from the original 18) and are enumerated and pinned as a maximum. The AI cheat-shuffle hook
 the LLM seat inherits is pinned inert on both launch paths.
 
 **Acceptance suite (G10):** `bash eval/harness_acceptance.sh` (`ACCEPTANCE.md`): isolated
