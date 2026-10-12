@@ -141,8 +141,35 @@ def main():
         prov = agg.get("provenance") or {}
         prov_fields = prov.get("fields") or {}
         disciplines = prov_fields.get("discipline", [])
+        exps = agg.get("experiments") or {}
+        n_exp = exps.get("n")
+        # Student = identity A. Its tool/cost accounting, per aggregate.py.
+        acct = agg.get("tool_accounting") or {}
+        student_acct = None
+        for seat, x in (acct.get("seats") or {}).items():
+            if x.get("identity") == "a":
+                student_acct = {
+                    "seat": seat,
+                    "model_rounds": x["model_rounds"]["total"],
+                    "rounds_without_reply": x["model_rounds"]["without_reply"],
+                    "tool_requests": x["tools"]["requests"],
+                    "tool_ok": x["tools"]["ok"],
+                    "tool_errors": x["tools"]["errors"],
+                    "tool_denied": x["tools"]["denied"],
+                    "elapsed_ms_sum": x["elapsed_ms"]["sum"],
+                    "reported_prompt_tokens": x["tokens"]["reported_prompt"],
+                    "reported_completion_tokens": x["tokens"]["reported_completion"],
+                    "rounds_uncosted": x["tokens"]["rounds_uncosted"],
+                    "accounting_complete": x["billing"]["complete"],
+                    "incomplete_reasons": x["billing"]["incomplete_reasons"],
+                }
+                break
 
         entry["result"] = {
+            "n_experiments": n_exp,
+            "experiment_ids": exps.get("order"),
+            "memory_tools_games": acct.get("memory_tools_games"),
+            "student_tool_accounting": student_acct,
             "games_total": agg.get("games", {}).get("total"),
             "games_decisive": agg.get("games", {}).get("decisive"),
             "student_arm": focal,
@@ -183,23 +210,41 @@ def main():
             "detail": ("single provenance" if prov.get("mixed") is False
                        else f"MIXED: {prov.get('mixed_fields')}"),
         }
+        # One arm dir must hold exactly one experiment condition; otherwise the
+        # numbers above are refused by aggregate.py and nothing here is citable.
+        g["single_experiment"] = {
+            "pass": (None if n_exp is None else n_exp == 1),
+            "detail": ("aggregate.py predates experiment grouping" if n_exp is None
+                       else "one condition" if n_exp == 1
+                       else f"{n_exp} CONDITIONS in one dir: "
+                            + ", ".join(
+                                f"{eid}[{(exps.get('by_id') or {}).get(eid, {}).get('label')}]"
+                                for eid in exps.get("order", []))),
+        }
         # Resolved model identity: a cited arm whose serving endpoint never named
         # what answered cannot be attributed to a checkpoint (aggregate.py exit 3).
         # Legacy dirs predating the fields report pass=None and are not judged.
+        # `failed` is aggregate.py's per-game verdict rolled up over every
+        # experiment in the dir, so it is checked FIRST: a legacy or baseline
+        # experiment beside a cited-unresolved one never excuses it.
         ident = agg.get("model_identity") or {}
         if ident:
+            failed_exps = ident.get("failed_experiments") or []
             g["model_identity"] = {
-                "pass": (None if ident.get("legacy") or ident.get("vacuous")
-                         else not ident.get("failed")),
-                "detail": ("no llm arm — nothing to attribute" if ident.get("vacuous")
+                "pass": (False if ident.get("failed")
+                         else None if ident.get("legacy") or ident.get("vacuous")
+                         else True),
+                "detail": ("UNATTRIBUTABLE: endpoint never named %s%s"
+                           % (", ".join(ident.get("unresolved_fields", [])),
+                              (" (experiment(s) %s)" % ", ".join(failed_exps))
+                              if failed_exps else "")
+                           if ident.get("failed")
+                           else "no llm arm — nothing to attribute" if ident.get("vacuous")
                            else "pre-provenance dir — which model played is unrecoverable"
                            if ident.get("legacy")
                            else "attributable: " + ", ".join(
                                "%s=%s" % (k, v[0] if len(v) == 1 else v)
-                               for k, v in sorted(ident.get("served", {}).items()))
-                           if not ident.get("failed")
-                           else "UNATTRIBUTABLE: endpoint never named %s"
-                                % ", ".join(ident.get("unresolved_fields", []))),
+                               for k, v in sorted(ident.get("served", {}).items()))),
             }
 
         if gates.get("min_autonomy_pct") is not None:
@@ -272,7 +317,7 @@ def render_md(report, mfr):
     L.append(f"- generated (UTC): {report['generated_utc']}")
     L.append(f"- student (identity A): `{report['student']}`")
     L.append(f"- gates: fallback_rate <= {mfr}, defect invariants, "
-             f"cited discipline, unmixed provenance")
+             f"cited discipline, unmixed provenance, single experiment per arm dir")
     L.append("")
     L.append("| arm | role | deck | win rate | Wilson 95% CI | paired Δ CI | "
              "games | gates |")
@@ -314,6 +359,26 @@ def render_md(report, mfr):
                  f"engine={str(p.get('engine_sha', '?'))[:12]} "
                  f"overlay={p.get('overlay_sha')} deck={p.get('deck_sha')}"
                  + (" **MIXED-PROVENANCE**" if r["mixed_provenance"] else ""))
+        if r.get("n_experiments") is not None:
+            L.append(f"- experiments in dir: {r['n_experiments']} "
+                     f"({', '.join(r.get('experiment_ids') or [])})"
+                     + (" **MULTIPLE CONDITIONS — numbers refused**"
+                        if r["n_experiments"] != 1 else ""))
+        ta = r.get("student_tool_accounting")
+        if ta:
+            L.append(f"- student tool accounting (seat `{ta['seat']}`): "
+                     f"model rounds {ta['model_rounds']} "
+                     f"(no reply {ta['rounds_without_reply']}), tool requests "
+                     f"{ta['tool_requests']} (ok {ta['tool_ok']}, errors "
+                     f"{ta['tool_errors']}, denied {ta['tool_denied']}), reported "
+                     f"tokens prompt={ta['reported_prompt_tokens']} "
+                     f"completion={ta['reported_completion_tokens']}, "
+                     f"{ta['rounds_uncosted']} round/attempt(s) uncosted; "
+                     f"accounting {'complete' if ta['accounting_complete'] else 'INCOMPLETE'}"
+                     + (f" ({'; '.join(ta['incomplete_reasons'])})"
+                        if ta["incomplete_reasons"] else "")
+                     + f"; memory-tool games: {r.get('memory_tools_games')}")
+            L.append("  Token counts are the backend's last-attempt reports, not billing.")
         for gname, gv in a["gates"].items():
             mark = ("PASS" if gv["pass"] else
                     ("FAIL" if gv["pass"] is False else "N/A"))

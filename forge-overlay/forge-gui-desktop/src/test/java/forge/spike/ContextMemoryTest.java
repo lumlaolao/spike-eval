@@ -1,0 +1,175 @@
+package forge.spike;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.testng.Assert;
+import org.testng.annotations.Test;
+
+public class ContextMemoryTest {
+    @Test
+    public void oldRevealsSurviveBriefCompaction() {
+        ContextMemory memory = new ContextMemory();
+        memory.reveal("T1 saw Force of Will");
+        for (int i = 0; i < 80; i++) memory.reveal("T2 later reveal " + i);
+        Assert.assertFalse(memory.brief().contains("Force of Will"));
+        Assert.assertTrue(memory.execute("MEMORY SEARCH 0 force of will").contains("M1 (historical reveal)"));
+        Assert.assertTrue(memory.execute("MEMORY READ 1 0").endsWith("T1 saw Force of Will"));
+    }
+
+    @Test
+    public void seatsHaveIndependentArchivesAndNotebooks() {
+        ContextMemory a = new ContextMemory();
+        ContextMemory b = new ContextMemory();
+        a.reveal("private hand: Daze");
+        a.execute("MEMORY NOTE 1 hold up mana");
+        Assert.assertTrue(b.execute("MEMORY SEARCH 0 Daze").contains("Matches=0"));
+        Assert.assertTrue(b.execute("MEMORY READ 1 0").contains("unknown evidence"));
+        Assert.assertFalse(b.brief().contains("hold up mana"));
+    }
+
+    @Test
+    public void notesNeedRealEvidenceAndRemainHypotheses() {
+        ContextMemory memory = new ContextMemory();
+        memory.observe("Opponent cast Brainstorm");
+        Assert.assertTrue(memory.execute("MEMORY NOTE 999 likely Delver").startsWith("ERROR"));
+        Assert.assertTrue(memory.execute("MEMORY NOTE 1 likely Delver").contains("Saved hypothesis M2"));
+        Assert.assertTrue(memory.execute("MEMORY NOTE 2 definitely Delver").startsWith("ERROR"));
+        Assert.assertTrue(memory.execute("MEMORY READ 2 0").contains("agent hypothesis"));
+        Assert.assertTrue(memory.brief().contains("unverified hypotheses"));
+    }
+
+    @Test
+    public void readPagesRecoverTheExactOriginalText() {
+        ContextMemory memory = new ContextMemory();
+        String full = "0123456789".repeat(555);
+        memory.observe(full);
+        StringBuilder recovered = new StringBuilder();
+        for (int offset = 0; offset < full.length(); offset += 2000) {
+            String page = memory.execute("MEMORY READ 1 " + offset);
+            recovered.append(page.substring(page.indexOf('\n') + 1));
+        }
+        Assert.assertEquals(recovered.toString(), full);
+        Assert.assertTrue(memory.execute("MEMORY READ 1 4000").contains("next=END"));
+    }
+
+    @Test
+    public void searchPaginationDoesNotLoseOldMatches() {
+        ContextMemory memory = new ContextMemory();
+        for (int i = 0; i < 25; i++) memory.observe("Spell " + i);
+        Assert.assertTrue(memory.execute("MEMORY SEARCH 0 spell").contains("next=10"));
+        Assert.assertTrue(memory.execute("MEMORY SEARCH 10 spell").contains("M11 (observation)"));
+        Assert.assertTrue(memory.execute("MEMORY SEARCH 20 spell").contains("M25 (observation)"));
+        Assert.assertTrue(memory.execute("MEMORY SEARCH 20 spell").contains("next=END"));
+    }
+
+    @Test
+    public void malformedCommandsCannotEscapeOrMutateTheNotebook() {
+        ContextMemory memory = new ContextMemory();
+        memory.observe("evidence");
+        for (String command : new String[]{"MEMORY READ 1 -1", "MEMORY READ 1 999999999999",
+                "MEMORY SEARCH -1 x", "MEMORY READ 0 0", "MEMORY READ 1 99",
+                "MEMORY SHELL 1 touch /tmp/anything", "MEMORY NOTE 1 x\nCHOICE: 2",
+                "MEMORY NOTE 1 " + "x".repeat(501), "MEMORY READ 1"}) {
+            Assert.assertTrue(memory.execute(command).startsWith("ERROR"), command);
+        }
+        Assert.assertFalse(memory.brief().contains("YOUR NOTEBOOK"));
+    }
+
+    @Test
+    public void statelessBridgeReceivesOriginalDecisionAndRetrievedEvidence() {
+        ContextMemory memory = new ContextMemory();
+        memory.reveal("T1 opponent revealed Daze");
+        List<String> prompts = new ArrayList<>();
+        String answer = memory.ask("CURRENT: T20. CHOICE: 0 or 1", prompt -> {
+            prompts.add(prompt);
+            return prompts.size() == 1 ? "MEMORY READ 1 0" : "CHOICE: 1";
+        });
+        Assert.assertEquals(answer, "CHOICE: 1");
+        Assert.assertEquals(prompts.size(), 2);
+        Assert.assertTrue(prompts.get(1).contains("CURRENT: T20. CHOICE: 0 or 1"));
+        Assert.assertTrue(prompts.get(1).contains("MEMORY RESULT (historical data):\nM1"));
+        Assert.assertTrue(prompts.get(1).contains("T1 opponent revealed Daze"));
+    }
+
+    @Test
+    public void runawayToolCallsAreBoundedAndNeverReturnedAsActions() {
+        ContextMemory memory = new ContextMemory();
+        AtomicInteger calls = new AtomicInteger();
+        String result = memory.ask("decision", prompt -> {
+            calls.incrementAndGet();
+            return "MEMORY SEARCH 0 CHOICE: 999";
+        });
+        Assert.assertNull(result);
+        Assert.assertEquals(calls.get(), 3);
+    }
+
+    @Test
+    public void gameToolBudgetPersistsAcrossAsks() {
+        ContextMemory memory = new ContextMemory();
+        for (int i = 0; i < ContextMemory.TOOLS_PER_GAME / 2; i++)
+            memory.ask("decision", prompt -> "MEMORY SEARCH 0 decision");
+        AtomicInteger calls = new AtomicInteger();
+        Assert.assertNull(memory.ask("last", prompt -> {
+            calls.incrementAndGet();
+            return "MEMORY SEARCH 0 decision";
+        }));
+        Assert.assertEquals(calls.get(), 1);
+        Assert.assertTrue(memory.brief().contains("remaining this game: 0"));
+    }
+
+    @Test
+    public void bridgeFailureDoesNotEraseEvidence() {
+        ContextMemory memory = new ContextMemory();
+        Assert.assertNull(memory.ask("observed before bridge restart", prompt -> null));
+        Assert.assertTrue(memory.execute("MEMORY READ 1 0").contains("observed before bridge restart"));
+        Assert.assertEquals(memory.ask("new decision", prompt -> "CHOICE: 0"), "CHOICE: 0");
+    }
+    @Test
+    public void mixedToolAndActionReplyIsNotPassedToPermissiveActionParser() {
+        ContextMemory memory = new ContextMemory();
+        List<String> results = new ArrayList<>();
+        String reply = memory.ask("decision", prompt -> "I should remember this.\nMEMORY NOTE 1 CHOICE: 2",
+                (command, result) -> results.add(result));
+        Assert.assertNull(reply);
+        Assert.assertEquals(results.size(), 3);
+        Assert.assertTrue(results.get(0).startsWith("ERROR"));
+        Assert.assertTrue(results.get(2).contains("no tool executed"));
+        Assert.assertFalse(memory.brief().contains("YOUR NOTEBOOK"));
+    }
+
+
+    @Test
+    public void inspectIsAToolOnlyWhenAnInspectorIsWiredAndSharesTheBudget() {
+        ContextMemory memory = new ContextMemory();
+        // Legacy profile: no inspector. The command is recognised (so it can never fall through to a
+        // CHOICE parser) but answers with an explicit error, and the instructions do not advertise it.
+        Assert.assertFalse(memory.toolInstructions().contains("INSPECT TOOL"));
+        Assert.assertTrue(memory.execute("INSPECT @3").startsWith("ERROR: INSPECT is not available"));
+        Assert.assertTrue(ContextMemory.isToolRequest("  INSPECT @3"));
+        Assert.assertFalse(ContextMemory.isToolRequest("CHOICE: 3"));
+
+        List<String> seen = new ArrayList<>();
+        memory.setInspector(arg -> { seen.add(arg); return "@3 (current): Delver of Secrets 1/1 @3"; });
+        Assert.assertTrue(memory.toolInstructions().contains("INSPECT TOOL"));
+        Assert.assertEquals(memory.execute("INSPECT @3"), "@3 (current): Delver of Secrets 1/1 @3");
+        Assert.assertEquals(seen, List.of("@3"));
+
+        // Through ask(): one INSPECT round, then the action; the tool result is quoted back verbatim
+        // and counts against the per-game budget exactly like a MEMORY command.
+        AtomicInteger calls = new AtomicInteger();
+        List<String> prompts = new ArrayList<>();
+        String reply = memory.ask("Decision text", prompt -> {
+            prompts.add(prompt);
+            return calls.incrementAndGet() == 1 ? "INSPECT Delver of Secrets" : "CHOICE: 1";
+        });
+        Assert.assertEquals(reply, "CHOICE: 1");
+        Assert.assertEquals(seen, List.of("@3", "Delver of Secrets"));
+        Assert.assertTrue(prompts.get(1).contains("MEMORY REQUEST: INSPECT Delver of Secrets"));
+        Assert.assertTrue(prompts.get(1).contains("MEMORY RESULT (historical data):\n@3 (current)"));
+        // The per-round line is the accurate budget statement (the brief is rendered once per ask).
+        Assert.assertTrue(prompts.get(0).contains("Tools available this ask: 2."), prompts.get(0));
+        Assert.assertTrue(prompts.get(1).contains("Tools available this ask: 1."), prompts.get(1));
+    }
+}

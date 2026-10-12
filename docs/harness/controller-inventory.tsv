@@ -1,0 +1,131 @@
+signature	implementation_class
+addKeywordCost[class forge.game.spellability.SpellAbility, class forge.game.cost.Cost, interface forge.game.keyword.KeywordInterface, class java.lang.String]	forge.game.player.PlayerController
+announceRequirements[class forge.game.spellability.SpellAbility, int, int, class java.lang.String]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+applyManaToCost[class forge.game.mana.ManaCostBeingPaid, class forge.game.spellability.SpellAbility, class java.lang.String, class forge.game.mana.ManaConversionMatrix, boolean]	forge.ai.PlayerControllerAi
+arrangeForScry[class forge.game.card.CardCollection]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+arrangeForSurveil[class forge.game.card.CardCollection]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+assignCombatDamage[class forge.game.card.Card, interface forge.game.card.CardCollectionView, interface forge.game.card.CardCollectionView, int, class forge.game.GameEntity, boolean]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+autoPassCancel[]	forge.ai.PlayerControllerAi
+awaitNextInput[]	forge.ai.PlayerControllerAi
+canPlayUnlimitedLands[]	forge.game.player.PlayerController
+cancelAwaitNextInput[]	forge.ai.PlayerControllerAi
+cheatShuffle[interface forge.game.card.CardCollectionView]	forge.ai.PlayerControllerAi
+chooseBinary[class forge.game.spellability.SpellAbility, class java.lang.String, class forge.game.player.PlayerController$BinaryChoiceType, class java.lang.Boolean]	forge.ai.PlayerControllerAi
+chooseBinary[class forge.game.spellability.SpellAbility, class java.lang.String, class forge.game.player.PlayerController$BinaryChoiceType, interface java.util.Map]	forge.ai.PlayerControllerAi
+chooseCardName[class forge.game.spellability.SpellAbility, interface java.util.List, class java.lang.String]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+chooseCardName[class forge.game.spellability.SpellAbility, interface java.util.function.Predicate, class java.lang.String, class java.lang.String]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+chooseCardsForConvokeOrImprovise[class forge.game.spellability.SpellAbility, class forge.card.mana.ManaCost, interface forge.game.card.CardCollectionView, boolean, boolean, class java.lang.Integer]	forge.ai.PlayerControllerAi
+chooseCardsForCost[interface forge.game.card.CardCollectionView, class forge.game.spellability.SpellAbility, class forge.game.cost.CostPartWithList, int, boolean, class java.lang.String]	forge.ai.PlayerControllerAi
+chooseCardsForEffectMultiple[interface java.util.Map, class forge.game.spellability.SpellAbility, class java.lang.String, boolean]	forge.ai.PlayerControllerAi
+chooseCardsForEffect[interface forge.game.card.CardCollectionView, class forge.game.spellability.SpellAbility, class java.lang.String, int, int, boolean, interface java.util.Map]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+chooseCardsForSplice[class forge.game.spellability.SpellAbility, interface java.util.List]	forge.ai.PlayerControllerAi
+chooseCardsForZoneChange[class forge.game.zone.ZoneType, interface java.util.List, class forge.game.spellability.SpellAbility, class forge.game.card.CardCollection, int, int, class forge.game.player.DelayedReveal, class java.lang.String, class forge.game.player.Player]	forge.ai.PlayerControllerAi
+chooseCardsPile[class forge.game.spellability.SpellAbility, interface forge.game.card.CardCollectionView, interface forge.game.card.CardCollectionView, class java.lang.String]	forge.ai.PlayerControllerAi
+chooseCardsToDelve[int, class forge.game.card.CardCollection]	forge.ai.PlayerControllerAi
+chooseCardsToDiscardFrom[class forge.game.player.Player, class forge.game.spellability.SpellAbility, class forge.game.card.CardCollection, int, int, interface forge.game.card.CardCollectionView]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+chooseCardsToDiscardFrom[class forge.game.player.Player, class forge.game.spellability.SpellAbility, class forge.game.card.CardCollection, int, int]	forge.game.player.PlayerController
+chooseCardsToDiscardToMaximumHandSize[int]	forge.ai.PlayerControllerAi
+chooseCardsToDiscardUnlessType[int, interface forge.game.card.CardCollectionView, class [Ljava.lang.String;, class forge.game.spellability.SpellAbility]	forge.ai.PlayerControllerAi
+chooseCardsToRevealFromHand[int, int, interface forge.game.card.CardCollectionView]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+chooseCardsYouWonToAddToDeck[interface java.util.List]	forge.ai.PlayerControllerAi
+chooseColorAllowColorless[class java.lang.String, class forge.game.card.Card, class forge.card.ColorSet]	forge.ai.PlayerControllerAi
+chooseColor[class java.lang.String, class forge.game.spellability.SpellAbility, class forge.card.ColorSet]	forge.ai.PlayerControllerAi
+chooseColors[class java.lang.String, class forge.game.spellability.SpellAbility, int, int, class forge.card.ColorSet]	forge.ai.PlayerControllerAi
+chooseContraptionsToCrank[interface java.util.List]	forge.ai.PlayerControllerAi
+chooseCounterType[interface java.util.List, class forge.game.spellability.SpellAbility, class java.lang.String, interface java.util.Map]	forge.ai.PlayerControllerAi
+chooseDiceToReroll[interface java.util.List]	forge.ai.PlayerControllerAi
+chooseEntitiesForEffect[interface forge.util.collect.FCollectionView, int, int, class forge.game.player.DelayedReveal, class forge.game.spellability.SpellAbility, class java.lang.String, class forge.game.player.Player, interface java.util.Map]	forge.ai.PlayerControllerAi
+chooseFlipResult[class forge.game.spellability.SpellAbility, class forge.game.player.Player, boolean]	forge.ai.PlayerControllerAi
+chooseKeywordForPump[interface java.util.List, class forge.game.spellability.SpellAbility, class java.lang.String, class forge.game.card.Card]	forge.ai.PlayerControllerAi
+chooseManaFromPool[interface java.util.List]	forge.ai.PlayerControllerAi
+chooseModeForAbility[class forge.game.spellability.SpellAbility, interface java.util.List, int, int, boolean]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+chooseNewTargetsFor[class forge.game.spellability.SpellAbility, interface java.util.function.Predicate, boolean]	forge.ai.PlayerControllerAi
+chooseNumberForCostReduction[class forge.game.spellability.SpellAbility, int, int]	forge.ai.PlayerControllerAi
+chooseNumberForKeywordCost[class forge.game.spellability.SpellAbility, class forge.game.cost.Cost, interface forge.game.keyword.KeywordInterface, class java.lang.String, int]	forge.ai.PlayerControllerAi
+chooseNumber[class forge.game.spellability.SpellAbility, class java.lang.String, int, int, interface java.util.Map]	forge.ai.PlayerControllerAi
+chooseNumber[class forge.game.spellability.SpellAbility, class java.lang.String, int, int]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+chooseNumber[class forge.game.spellability.SpellAbility, class java.lang.String, interface java.util.List, class forge.game.player.Player]	forge.ai.PlayerControllerAi
+chooseOptionalCosts[class forge.game.spellability.SpellAbility, interface java.util.List]	forge.ai.PlayerControllerAi
+choosePDRollToIgnore[interface java.util.List]	forge.ai.PlayerControllerAi
+choosePermanentsToDestroy[class forge.game.spellability.SpellAbility, int, int, interface forge.game.card.CardCollectionView, class java.lang.String]	forge.ai.PlayerControllerAi
+choosePermanentsToSacrifice[class forge.game.spellability.SpellAbility, int, int, interface forge.game.card.CardCollectionView, class java.lang.String]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+choosePlayerToAssistPayment[interface forge.util.collect.FCollectionView, class forge.game.spellability.SpellAbility, class java.lang.String, int]	forge.ai.PlayerControllerAi
+chooseProtectionType[class forge.game.spellability.SpellAbility, interface java.util.List]	forge.ai.PlayerControllerAi
+chooseRollSwapValue[interface java.util.List, class java.lang.Integer, int, int]	forge.ai.PlayerControllerAi
+chooseRollToIgnore[interface java.util.List]	forge.ai.PlayerControllerAi
+chooseRollToModify[interface java.util.List]	forge.ai.PlayerControllerAi
+chooseRollToSwap[interface java.util.List]	forge.ai.PlayerControllerAi
+chooseSaToActivateFromOpeningHand[interface java.util.List]	forge.ai.PlayerControllerAi
+chooseSector[class forge.game.card.Card, class java.lang.String, interface java.util.List]	forge.ai.PlayerControllerAi
+chooseSingleCardFace[class forge.game.spellability.SpellAbility, class java.lang.String, interface java.util.function.Predicate, class java.lang.String]	forge.ai.PlayerControllerAi
+chooseSingleCardFace[class forge.game.spellability.SpellAbility, interface java.util.List, class java.lang.String]	forge.ai.PlayerControllerAi
+chooseSingleCardForZoneChange[class forge.game.zone.ZoneType, interface java.util.List, class forge.game.spellability.SpellAbility, class forge.game.card.CardCollection, class forge.game.player.DelayedReveal, class java.lang.String, boolean, class forge.game.player.Player]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+chooseSingleCardState[class forge.game.spellability.SpellAbility, interface java.util.List, class java.lang.String, interface java.util.Map]	forge.ai.PlayerControllerAi
+chooseSingleEntityForEffect[interface forge.util.collect.FCollectionView, class forge.game.player.DelayedReveal, class forge.game.spellability.SpellAbility, class java.lang.String, boolean, class forge.game.player.Player, interface java.util.Map]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+chooseSingleReplacementEffect[interface java.util.List]	forge.ai.PlayerControllerAi
+chooseSingleSpellForEffect[interface java.util.List, class forge.game.spellability.SpellAbility, class java.lang.String, interface java.util.Map]	forge.ai.PlayerControllerAi
+chooseSingleStaticAbility[interface java.util.List]	forge.ai.PlayerControllerAi
+chooseSomeType[class java.lang.String, class forge.game.spellability.SpellAbility, interface java.util.Collection, boolean]	forge.ai.PlayerControllerAi
+chooseSpellAbilitiesForEffect[interface java.util.List, class forge.game.spellability.SpellAbility, class java.lang.String, int, interface java.util.Map]	forge.ai.PlayerControllerAi
+chooseSpellAbilityToPlay[]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+chooseSprocket[class forge.game.card.Card, interface java.util.List]	forge.ai.PlayerControllerAi
+chooseStartingHand[interface java.util.List]	forge.ai.PlayerControllerAi
+chooseStartingPlayer[boolean]	forge.ai.PlayerControllerAi
+chooseTarget[class forge.game.spellability.SpellAbility, interface java.util.List]	forge.ai.PlayerControllerAi
+chooseTargetsFor[class forge.game.spellability.SpellAbility]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+complainCardsCantPlayWell[class forge.deck.Deck]	forge.ai.PlayerControllerAi
+confirmAction[class forge.game.spellability.SpellAbility, class forge.game.player.PlayerActionConfirmMode, class java.lang.String, interface java.util.List, class forge.game.card.Card, interface java.util.Map]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+confirmBidAction[class forge.game.spellability.SpellAbility, class forge.game.player.PlayerActionConfirmMode, class java.lang.String, int, class forge.game.player.Player]	forge.ai.PlayerControllerAi
+confirmPayment[class forge.game.cost.CostPart, class java.lang.String, class forge.game.spellability.SpellAbility]	forge.ai.PlayerControllerAi
+confirmReplacementEffect[class forge.game.replacement.ReplacementEffect, class forge.game.spellability.SpellAbility, class forge.game.GameEntity, class java.lang.String]	forge.ai.PlayerControllerAi
+confirmStaticApplication[class forge.game.card.Card, class forge.game.player.PlayerActionConfirmMode, class java.lang.String, class java.lang.String]	forge.ai.PlayerControllerAi
+confirmTrigger[class forge.game.trigger.WrappedAbility]	forge.ai.PlayerControllerAi
+declareAttackers[class forge.game.player.Player, class forge.game.combat.Combat]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+declareBlockers[class forge.game.player.Player, class forge.game.combat.Combat]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+divideShield[class forge.game.card.Card, interface java.util.Map, int]	forge.ai.PlayerControllerAi
+endTempShowCards[]	forge.game.player.PlayerController
+enlistAttackers[interface java.util.List]	forge.ai.PlayerControllerAi
+exertAttackers[interface java.util.List]	forge.ai.PlayerControllerAi
+getAbilityToPlay[class forge.game.card.Card, interface java.util.List, interface forge.util.ITriggerEvent]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+getAnteResult[]	forge.game.player.PlayerController
+getCostDecisionMaker[class forge.game.player.Player, class forge.game.spellability.SpellAbility, boolean, class java.lang.String]	forge.ai.PlayerControllerAi
+getCostDecisionMaker[class forge.game.player.Player, class forge.game.spellability.SpellAbility, boolean]	forge.game.player.PlayerController
+getFullControl[]	forge.game.player.PlayerController
+getGame[]	forge.game.player.PlayerController
+getLobbyPlayer[]	forge.game.player.PlayerController
+getMatch[]	forge.game.player.PlayerController
+getPlayer[]	forge.game.player.PlayerController
+helpPayForAssistSpell[class forge.game.mana.ManaCostBeingPaid, class forge.game.spellability.SpellAbility, int, int]	forge.ai.PlayerControllerAi
+isAI[]	forge.ai.PlayerControllerAi
+isFullControl[class forge.game.player.PlayerController$FullControlFlag]	forge.game.player.PlayerController
+isGuiPlayer[]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+isOrderedZone[]	forge.game.player.PlayerController
+mulliganKeepHand[class forge.game.player.Player, int]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+notifyOfValue[class forge.game.spellability.SpellAbility, interface forge.game.GameObject, class java.lang.String]	forge.ai.PlayerControllerAi
+orderAndPlaySimultaneousSa[interface java.util.List]	forge.ai.PlayerControllerAi
+orderAttackers[class forge.game.card.Card, class forge.game.card.CardCollection]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+orderBlocker[class forge.game.card.Card, class forge.game.card.Card, class forge.game.card.CardCollection]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+orderBlockers[class forge.game.card.Card, class forge.game.card.CardCollection]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+orderCosts[interface java.util.List]	forge.ai.PlayerControllerAi
+orderMoveToZoneList[interface forge.game.card.CardCollectionView, class forge.game.zone.ZoneType, class forge.game.spellability.SpellAbility]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+orderSimultaneousSa[interface java.util.List]	forge.ai.PlayerControllerAi
+payCombatCost[class forge.game.card.Card, class forge.game.cost.Cost, class forge.game.spellability.SpellAbility, class java.lang.String]	forge.ai.PlayerControllerAi
+payCostDuringRoll[class forge.game.cost.Cost, class forge.game.spellability.SpellAbility]	forge.ai.PlayerControllerAi
+payCostToPreventEffect[class forge.game.cost.Cost, class forge.game.spellability.SpellAbility, boolean, interface forge.util.collect.FCollectionView]	forge.ai.PlayerControllerAi
+payManaCost[class forge.card.mana.ManaCost, class forge.game.cost.CostPartMana, class forge.game.spellability.SpellAbility, class java.lang.String, class forge.game.mana.ManaConversionMatrix, boolean]	forge.ai.PlayerControllerAi
+playChosenSpellAbility[class forge.game.spellability.SpellAbility]	forge.ai.PlayerControllerAi
+playSaFromPlayEffect[class forge.game.spellability.SpellAbility]	forge.ai.PlayerControllerAi
+playSpellAbilityNoStack[class forge.game.spellability.SpellAbility, boolean]	forge.ai.PlayerControllerAi
+playTrigger[class forge.game.card.Card, class forge.game.trigger.WrappedAbility, boolean]	forge.ai.PlayerControllerAi
+resetAtEndOfTurn[]	forge.ai.PlayerControllerAi
+revealAISkipCards[class java.lang.String, interface java.util.Map]	forge.ai.PlayerControllerAi
+revealAnte[class java.lang.String, interface com.google.common.collect.Multimap]	forge.ai.PlayerControllerAi
+revealUnsupported[interface java.util.Map]	forge.ai.PlayerControllerAi
+reveal[interface forge.game.card.CardCollectionView, class forge.game.zone.ZoneType, class forge.game.player.Player, class java.lang.String, boolean]	forge.ai.PlayerControllerAi
+reveal[interface java.util.List, class forge.game.zone.ZoneType, class forge.game.player.PlayerView, class java.lang.String, boolean]	forge.ai.PlayerControllerAi
+sideboard[class forge.deck.Deck, class forge.game.GameType, class java.lang.String]	forge.ai.PlayerControllerAi
+specifyManaCombo[class forge.game.spellability.SpellAbility, class forge.card.ColorSet, int, boolean]	forge.ai.PlayerControllerAi
+tempShowCards[interface java.lang.Iterable]	forge.game.player.PlayerController
+tuckCardsViaMulligan[interface forge.game.card.CardCollectionView, int]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+vote[class forge.game.spellability.SpellAbility, class java.lang.String, interface java.util.List, interface com.google.common.collect.ListMultimap, class forge.game.player.Player, boolean]	forge.ai.PlayerControllerAi
+willPutCardOnTop[class forge.game.card.Card]	forge.ai.PlayerControllerAi

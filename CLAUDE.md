@@ -1,5 +1,7 @@
 # mtg-forge-llm-agent — LLM agents playing Magic: The Gathering on the Forge engine
 
+> September 2026 continuation: see [Player harness direction and status](docs/harness/PLAYER-HARNESS.md). Newer Java sources were recovered from the adjacent Forge checkout; older status claims below may be superseded. `MEMORY_TOOLS=1` enables experimental evidence retrieval and a seat-local strategy notebook.
+
 Claude models pilot full Legacy games inside the real Forge rules engine. A custom
 `PlayerControllerLLM` routes ~15 decision types (plays, targets, combat, discards,
 card-naming, mulligans...) to persistent `claude -p` CLI bridges; the engine validates
@@ -87,6 +89,12 @@ are only comparable within one engine version.
   before touching the priority loop or targeting code.
 
 ## Validation ladder (cheapest first — always start at the bottom)
+
+0. **Whole-harness acceptance** (2026-09-07): `bash eval/harness_acceptance.sh` — isolated
+   compile, every Java/Python test with a declared-vs-run gate, pinned zero-model canaries
+   with a class-load proof, and two loopback fake-model games (memory tools, timeout
+   recovery, faithful observation profile). See `docs/harness/ACCEPTANCE.md`. Run it before
+   claiming any harness change works; it never touches the Forge checkout.
 
 1. **Harness mechanics** (seeding, JSONL, arms, engine plumbing):
    `GAME_SEED=42 CONTROLLER_A=floor CONTROLLER_B=floor bash run-llm-headless.sh`

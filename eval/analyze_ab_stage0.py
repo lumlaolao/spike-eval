@@ -94,6 +94,14 @@ def load_games_by_key(path):
     """
     games, _dec, warnings = aggregate.parse_dir(path)
     by_key, nondecisive, total = {}, 0, 0
+    # parse_dir dedupes per experiment condition, so one (seed, swap) may come
+    # back twice when a dir mixes conditions. That is not one arm: refuse to
+    # pick silently.
+    conditions = {g.get("_experiment") for g in games if not g.get("_no_game_line")}
+    if len(conditions) > 1:
+        warnings = list(warnings) + [
+            "%s holds %d experiment conditions; an A/B arm must be one condition "
+            "(run aggregate.py on it to see them)" % (path, len(conditions))]
     for g in games:
         seed = g.get("seed")
         if seed is None:
@@ -102,7 +110,12 @@ def load_games_by_key(path):
         if not _decisive(g):
             nondecisive += 1
             continue
-        by_key[(seed, bool(g.get("swap", False)))] = g
+        key = (seed, bool(g.get("swap", False)))
+        if key in by_key:
+            raise SystemExit("%s: seed=%s swap=%s appears under two experiment "
+                             "conditions; split the directory before comparing"
+                             % (path, seed, key[1]))
+        by_key[key] = g
     return by_key, {"total": total, "nondecisive": nondecisive,
                     "warnings": warnings}
 

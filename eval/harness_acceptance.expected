@@ -1,0 +1,16 @@
+# Pinned zero-model canary outcomes for eval/harness_acceptance.sh (engine pin: FORGE_COMMIT).
+# Re-pin DELIBERATELY, with the commit that moved a number, never to make a run pass.
+# floor/floor never builds a play menu; random/random reaches the full menu (see CLAUDE.md).
+floor.seed=42
+floor.winner=A
+floor.turns=108
+floor.decisions=1004
+random.seed=42
+# 2026-09-07: model-owned optional confirmations expose four previously silent AI
+# trigger choices to the random policy. Two runs reproduce all 144 decisions.
+# First divergence from the old baseline: confirm-trigger, turn 15, decision 61.
+random.winner=A
+random.turns=24
+random.decisions=144
+# Silent Forge-AI strategic/payment hooks reachable in Legacy play (ControllerOwnershipTest baseline).
+ownership.silent_ai_strategic_max=13

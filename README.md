@@ -1,5 +1,7 @@
 # mtg-forge-llm-agent
 
+> September 2026 continuation: see [Player harness direction and status](docs/harness/PLAYER-HARNESS.md). Newer Java sources were recovered from the adjacent Forge checkout; older status claims below may be superseded. `MEMORY_TOOLS=1` enables experimental evidence retrieval and a seat-local strategy notebook.
+
 A spike that lets a **frontier LLM (Claude) play full games of Magic: The Gathering** inside
 [Forge](https://github.com/Card-Forge/forge), the open-source MTG rules engine — rendered live
 in Forge's desktop GUI, with the model driving one seat via `claude -p` (Claude Code subscription

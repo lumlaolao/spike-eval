@@ -1,0 +1,14 @@
+# Claude work order D: faithful observation adversarial repair
+
+Implement focused observation correctness repairs and tests. User approved source/tests/harness docs to Claude subscription; no secrets, credentials, datasets, real game logs or personal files. Preserve all staged/unstaged work. Read PLAYER-HARNESS.md, COMPLETION-GATES.md, current SeatObservation.java and SeatObservationTest.java.
+
+Own ONLY SeatObservation.java, SeatObservationTest.java and new docs/harness/OBSERVATION-REVIEW.md. Another Claude edits LlmSpikeGui controller routing and its ownership tests. Do not edit their files; describe required integration separately.
+
+Independent review found suspicious defects requiring actual tests:
+1. hiddenFaceNames scans hidden identities and redactHiddenFaces replaces those names globally in narration. If a public spell shares a name with an opponent's hidden morph, changing the hidden morph's identity can change PUBLIC history text and thereby leak hidden information or erase true evidence. Prove with paired-world public-history fixture and repair by event/object permission rather than hidden-name dictionary substitution. Include historical events captured after the source changes zone/face; permissions must reflect evidence time, not only current state. Avoid hiding public evidence to obtain invariance.
+2. faithful render calls legacy castHistory directly for CAST THIS GAME/LANDS PLAYED; inspect those bypasses for engine ids, face-down casting identity, hidden names and memory inconsistencies. All live faithful history should come from a coherent safe observation stream. Event-log strings with raw engine ids cannot be trusted as structured data, nor should arbitrary parenthesized numbers such as damage amounts be treated as card ids.
+3. Add missing adversarial tokens, face-down exile/look permissions, hidden reentry/shuffle tests. Inspect presentation permission assumptions and provide explicit accurate limitations if fixing requires controller call-site changes.
+
+This is implementation, not a review-only task: reproduce real defects via production code fixtures and repair within owned files. Keep legal public information available. Bump observation version if prompt behavior changes and document dependent test/provenance integration. Do not claim all G1/G2/G3 complete unless proved.
+
+Use adjacent /Users/lumlumlam/code/forge READ ONLY for engine APIs/assets/deps. No install/rebuild/stage/commit/push/deploy/external game model calls/other agents. No weakening defect_analyzer or pinned canaries. Compile into a unique /tmp dir against /tmp/harness-validation-classpath.txt with JDK17 and run meaningful local TestNG tests, real-controller tests where available. Parent is running full baseline acceptance; do not run simultaneous full game canaries. Report actual commands/results and remaining gaps in OBSERVATION-REVIEW.md.
