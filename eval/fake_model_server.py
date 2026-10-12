@@ -13,6 +13,9 @@ Policies (--policy):
          decline is always rendered last), PICKS: none. The game runs to decking like the
          floor arm, so every priority window is a model round trip.
   first  take the first option everywhere (casts spells, attacks, picks first-N).
+  simulate
+         like pass, but on a play prompt that advertises `SIMULATE: <n>` (LOOKAHEAD=1) it first
+         asks for a lookahead preview, so the real preview round-trip is exercised end to end.
 
 Fault injection:
   --stall-call N --stall-ms M   request number N (1-based, across all calls) is answered only
@@ -52,6 +55,11 @@ class Policy:
 
     def reply_for(self, prompt, call):
         a = self.args
+        # LOOKAHEAD validation: on a play prompt that advertises SIMULATE and has not yet been given a
+        # preview, request one. The re-ask carries "LOOKAHEAD (option ...", so this fires once per
+        # decision and then falls through to a normal CHOICE.
+        if a.policy == "simulate" and "SIMULATE:" in prompt and "LOOKAHEAD (option" not in prompt:
+            return "SIMULATE: 1"
         tools_offered = "MEMORY TOOLS" in prompt and "Tools available this ask: 0" not in prompt
         if a.memory_call and tools_offered:
             if call == a.memory_call:
@@ -146,7 +154,7 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--port", type=int, default=0, help="0 = pick a free port (printed as LISTENING <port>)")
-    ap.add_argument("--policy", choices=["pass", "first"], default="pass")
+    ap.add_argument("--policy", choices=["pass", "first", "simulate"], default="pass")
     ap.add_argument("--log", help="JSONL request log")
     ap.add_argument("--stall-call", type=int, default=0)
     ap.add_argument("--stall-ms", type=int, default=0)

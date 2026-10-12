@@ -151,9 +151,13 @@ Recorded while scoping the code so the next session starts from facts, not guess
   spell on a determinized copy (`GameSimulator.simulateSpellAbility(sa, false)` -> determinize the
   copy's libraries -> `resolveStack`), and reports the public-only delta. Demonstration from the test:
   `[LOOKAHEAD] if you cast Lightning Bolt: you graveyard 0 -> 1; Rival life 20 -> 17` — while the LIVE
-  opponent stays at 20. Non-spell options are refused; the opponent's hand is not determinized (partial
-  determinization, disclosed). **Wired (2026-10-12):** behind `LOOKAHEAD=1`, the play decision accepts
+  opponent stays at 20. **Wired (2026-10-12):** behind `LOOKAHEAD=1`, the play decision accepts
   `SIMULATE: <n>` for a spell option, runs this preview, and re-asks (at most one preview per
   decision). Off by default, so existing prompt bytes are unchanged. Proven in-process by
-  `g8LookaheadPreviewsASpellThenReasks` (`lookahead rounds=3 previewSeen=true` — the extra round is the
-  spell's targeting ask).
+  `g8LookaheadPreviewsASpellThenReasks` and by a fake-server game (`--policy simulate`) that ran the
+  real path 253 times. **Targeting spells are refused honestly** (`"(lookahead v1 cannot resolve a
+  targeting spell...)"`): a real game showed the preview reported "no change" for Chain Lightning
+  because the live option has no target until the model commits, and the engine will not choose one
+  (`resolve=true` leaves it untargeted; the `SpellAbilityChoicesIterator` interceptor + a
+  `MultiTargetSelector` probe also did not take effect — an open problem). Covering removal/burn
+  needs target-selection on the copy, which is the single most valuable next step.

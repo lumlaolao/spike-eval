@@ -88,6 +88,7 @@ final class PlayerLookahead {
     static String previewCast(Game live, Player seat, forge.game.spellability.SpellAbility liveOption, long seed) {
         if (live == null || seat == null || liveOption == null) return "(no preview)";
         if (!liveOption.isSpell()) return "(lookahead v1 supports spell options only)";
+        if (liveOption.usesTargeting()) return "(lookahead v1 cannot resolve a targeting spell: its target is chosen only when you commit)";
         Random liveRandom = MyRandom.getRandom();
         try {
             MyRandom.setRandom(new Random(seed));
