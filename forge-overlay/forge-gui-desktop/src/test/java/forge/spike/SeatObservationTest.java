@@ -364,6 +364,23 @@ public class SeatObservationTest {
         Assert.assertTrue(theirsText.contains("Willbender"), theirsText);
     }
 
+    /** G2: a face-down card in EXILE (zone-visible, face hidden) must not reveal its identity, to
+     *  anyone — the engine's mayFaceDownBeShownTo permission covers only Battlefield/Stack/Sideboard
+     *  for the controller. */
+    @Test
+    public void faceDownCardInExileHidesItsIdentity() {
+        Game g = world(new String[0], new String[0]);
+        Player rival = g.getPlayers().get(1);
+        Card hidden = card("Willbender", rival, ZoneType.Exile);
+        Assert.assertTrue(hidden.turnFaceDown(true), "could not turn the exiled card face down");
+        SeatObservation o = observerFor(g, 0);
+        Assert.assertFalse(o.identityKnown(hidden), "fixture: a face-down exile card must be hidden");
+        String r = render(o, "");
+        Assert.assertTrue(r.contains("exile(1)"), r);
+        assertNoneOf(r, "exile", "Willbender");
+        Assert.assertTrue(r.contains("face-down"), r);
+    }
+
     // ---- reveals through the live controller --------------------------------------------------
 
     static final class SilentBridge implements LLMBridge {
