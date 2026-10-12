@@ -125,6 +125,14 @@ Recorded while scoping the code so the next session starts from facts, not guess
   on a game built the way the observer tests build one, and the copy is a **distinct object graph**
   (its players are not the live players) — a simulation on it cannot alias/mutate the live game. The
   necessary condition for the tool is met and is now pinned by that test.
+- **RNG isolation implemented and proven (2026-10-12, `PlayerLookahead.copyForPreview`).** Forge draws
+  from a process-wide `MyRandom`; shuffling the copy's hidden libraries would advance that shared
+  stream and change the LIVE game's future draws. `copyForPreview` installs a fresh `Random` for the
+  copy's shuffles and restores the live reference in a `finally`. `LookaheadProbeTest` proves: the
+  live RNG stream is **bit-identical** after a preview (the next `nextInt` equals a fresh stream's),
+  the live library order is unchanged, and the determinized order is deterministic for a fixed seed.
+  This is the safety-critical foundation; what remains is applying a specific option and wiring the
+  `SIMULATE` tool to the seat.
 - **A reusable primitive exists in `forge.ai.simulation`.** `GameCopier(origGame).makeCopy(...)`
   clones a live game; `new GameSimulator(controller, origGame, aiPlayer, advanceToPhase)` copies,
   optionally resolves the stack (`GameSimulator.resolveStack(game, opponent)`), and
