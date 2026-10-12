@@ -98,6 +98,58 @@ public class LookaheadProbeTest {
         return g;
     }
 
+    /** Probe: can we simulate a real spell cast (Lightning Bolt) on the copy and read the result? */
+    @Test
+    public void spellSimulationProbe() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+        StringBuilder out = new StringBuilder();
+        try {
+            for (int i = 0; i < 3; i++) SeatObservationTest.card("Mountain", me, forge.game.zone.ZoneType.Battlefield);
+            forge.game.card.Card bolt = SeatObservationTest.card("Lightning Bolt", me, forge.game.zone.ZoneType.Hand);
+            forge.game.spellability.SpellAbility sa = null;
+            for (forge.game.spellability.SpellAbility s : bolt.getSpellAbilities()) if (s.isSpell()) { sa = s; break; }
+            if (sa == null) {
+                out.append("no spell ability found");
+            } else {
+                sa.setActivatingPlayer(me);
+                sa.getTargets().add(opp);
+                forge.ai.simulation.GameSimulator sim = new forge.ai.simulation.GameSimulator(
+                        new forge.ai.simulation.SimulationController(new forge.ai.simulation.GameStateEvaluator.Score(0)),
+                        g, me, null);
+                sim.simulateSpellAbility(sa, false);
+                Game simGame = sim.getSimulatedGameState();
+                forge.ai.simulation.GameSimulator.resolveStack(simGame, simGame.getPlayers().get(1));
+                out.append("ok; opp life in sim = ").append(simGame.getPlayers().get(1).getLife())
+                   .append(" (live opp life = ").append(opp.getLife()).append(")");
+            }
+        } catch (Throwable t) {
+            out.append("threw ").append(t.getClass().getName()).append(": ").append(t.getMessage());
+        }
+        System.out.println("[LOOKAHEAD-PROBE3] spell simulation: " + out);
+        Assert.assertNotNull(out);
+    }
+
+    /** End-to-end: a cast preview reports the resolution and leaves the LIVE game untouched. */
+    @Test
+    public void previewCastReportsResolutionWithoutTouchingTheLiveGame() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+        for (int i = 0; i < 3; i++) SeatObservationTest.card("Mountain", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.card.Card bolt = SeatObservationTest.card("Lightning Bolt", me, forge.game.zone.ZoneType.Hand);
+        forge.game.spellability.SpellAbility sa = null;
+        for (forge.game.spellability.SpellAbility s : bolt.getSpellAbilities()) if (s.isSpell()) { sa = s; break; }
+        Assert.assertNotNull(sa, "fixture: no spell ability on Lightning Bolt");
+        sa.setActivatingPlayer(me);
+        sa.getTargets().add(opp);
+
+        String report = PlayerLookahead.previewCast(g, me, sa, 99L);
+        System.out.println("[LOOKAHEAD] " + report);
+        Assert.assertTrue(report.contains("Lightning Bolt"), report);
+        Assert.assertTrue(report.contains("life 20 -> 17"), "opponent's life drop not reported: " + report);
+        Assert.assertEquals(opp.getLife(), 20, "preview mutated the LIVE opponent's life");
+    }
+
     /** THE safety property: a preview must not consume the live RNG stream or mutate live state. */
     @Test
     public void copyForPreviewDoesNotTouchLiveRngOrState() {

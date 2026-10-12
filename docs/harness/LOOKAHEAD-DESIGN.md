@@ -147,8 +147,10 @@ Recorded while scoping the code so the next session starts from facts, not guess
   hidden library order from `MyRandom`; on a copy that also means the opponent's hand, and it must
   happen *before* any resolution the copy performs, or the preview reads the real hidden order and
   is no longer player-safe. This is the single most important correctness point.
-- **Recommended v1:** ship the **immediate-resolution preview** first (buildable from
-  `GameCopier` + `resolveStack`, public-delta report, determinized copy, strict empty-stack scope),
-  label it a *rules preview* (not a rollout), and only then extend to sampled multi-turn rollouts.
-  That matches the PLAYER-HARNESS §7 three-way distinction and is a much smaller, safer first step
-  than the full SIMULATE design above.
+- **Option-application implemented + proven (2026-10-12, `PlayerLookahead.previewCast`).** It plays a
+  spell on a determinized copy (`GameSimulator.simulateSpellAbility(sa, false)` -> determinize the
+  copy's libraries -> `resolveStack`), and reports the public-only delta. Demonstration from the test:
+  `[LOOKAHEAD] if you cast Lightning Bolt: you graveyard 0 -> 1; Rival life 20 -> 17` — while the LIVE
+  opponent stays at 20. Non-spell options are refused; the opponent's hand is not determinized (partial
+  determinization, disclosed). **What remains for the feature:** the `SIMULATE` tool grammar + budget
+  wiring to the seat (nothing calls it in a game yet).
