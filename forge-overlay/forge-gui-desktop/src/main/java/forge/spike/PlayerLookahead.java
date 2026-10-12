@@ -88,13 +88,20 @@ final class PlayerLookahead {
     static String previewCast(Game live, Player seat, forge.game.spellability.SpellAbility liveOption, long seed) {
         if (live == null || seat == null || liveOption == null) return "(no preview)";
         if (!liveOption.isSpell()) return "(lookahead v1 supports spell options only)";
-        if (liveOption.usesTargeting()) return "(lookahead v1 cannot resolve a targeting spell: its target is chosen only when you commit)";
         Random liveRandom = MyRandom.getRandom();
+        // The live option carries no target until the model commits, so the engine cannot resolve a
+        // targeting spell. Set first-legal targets for the preview and RESTORE them in the finally:
+        // this is transient decision scaffolding on an ability not yet on the stack (the real cast's
+        // ensureTargetsSet overwrites targets anyway), and the live board/hands/life/RNG are never
+        // touched. A test pins that the option's own targets are unchanged after a preview.
+        java.util.List<forge.game.GameObject> savedTargets = new java.util.ArrayList<>();
+        try { if (liveOption.getTargets() != null) savedTargets.addAll(liveOption.getTargets()); } catch (Exception ignore) { }
         try {
             MyRandom.setRandom(new Random(seed));
             String label;
             try { label = liveOption.getHostCard() == null ? "the spell" : liveOption.getHostCard().getName(); }
             catch (Exception e) { label = "the spell"; }
+            String assumed = selectFirstTargets(liveOption);
             GameSimulator sim = new GameSimulator(
                     new SimulationController(new GameStateEvaluator.Score(0)), live, seat, null);
             sim.simulateSpellAbility(liveOption, false); // play on the copy, resolve separately below
@@ -108,8 +115,9 @@ final class PlayerLookahead {
             GameSimulator.resolveStack(simGame, simGame.getPlayers().get(1));
 
             Player seatAfter = (Player) sim.getGameCopier().find(seat);
-            StringBuilder b = new StringBuilder("if you cast ").append(label).append(": you ")
-                    .append(publicDelta(seat, seatAfter));
+            StringBuilder b = new StringBuilder("if you cast ").append(label)
+                    .append(assumed.isEmpty() ? "" : " [assuming target: " + assumed + "]")
+                    .append(": you ").append(publicDelta(seat, seatAfter));
             for (Player opp : seat.getOpponents()) {
                 Player oppAfter = (Player) sim.getGameCopier().find(opp);
                 b.append("; ").append(opp.getName()).append(' ').append(publicDelta(opp, oppAfter));
@@ -118,7 +126,58 @@ final class PlayerLookahead {
         } catch (Throwable t) {
             return "(preview failed: " + t.getClass().getSimpleName() + ")";
         } finally {
+            // Restore the live option's own targets (usually none), THEN the live RNG reference.
+            try {
+                liveOption.resetTargets();
+                for (forge.game.GameObject o : savedTargets) liveOption.getTargets().add(o);
+            } catch (Exception ignore) { }
             MyRandom.setRandom(liveRandom);
         }
+    }
+
+    /** Set the FIRST legal target on each targeting ability of {@code root}'s chain that has none,
+     *  mirroring the live {@code ensureTargetsSet} fallback. Returns a comma-joined description of the
+     *  assumed targets (empty when the spell does not target), so the preview can disclose what it
+     *  assumed. The caller is responsible for restoring the ability's original targets. */
+    private static String selectFirstTargets(forge.game.spellability.SpellAbility root) {
+        StringBuilder assumed = new StringBuilder();
+        for (forge.game.spellability.SpellAbility s = root; s != null; s = s.getSubAbility()) {
+            try {
+                if (!s.usesTargeting()) continue;
+                if (s.getTargets() != null && !s.getTargets().isEmpty()) continue;
+                forge.game.spellability.TargetRestrictions tr = s.getTargetRestrictions();
+                if (tr == null) continue;
+                java.util.List<forge.game.GameEntity> cands = tr.getAllCandidates(s, false);
+                if (cands == null || cands.isEmpty()) continue;
+                int min = Math.max(1, s.getMinTargets());
+                s.resetTargets();
+                for (int i = 0; i < min && i < cands.size(); i++) {
+                    forge.game.GameEntity ge = (i == 0) ? defaultTarget(s, cands) : cands.get(i);
+                    if (s.getTargets().contains(ge)) continue;
+                    s.getTargets().add(ge);
+                    if (assumed.length() > 0) assumed.append(", ");
+                    assumed.append(ge instanceof forge.game.card.Card ? ((forge.game.card.Card) ge).getName() : String.valueOf(ge));
+                }
+            } catch (Exception ignore) { }
+        }
+        return assumed.toString();
+    }
+
+    /** Prefer an OPPOSING player, then an opposing permanent, then the first legal candidate: a
+     *  preview ("if I aim this at them...") is far more useful against them than against yourself,
+     *  and the choice is disclosed as the assumed target. */
+    private static forge.game.GameEntity defaultTarget(forge.game.spellability.SpellAbility s,
+            java.util.List<forge.game.GameEntity> cands) {
+        forge.game.player.Player me = s.getActivatingPlayer();
+        for (forge.game.GameEntity ge : cands) {
+            if (ge instanceof forge.game.player.Player && me != null && me.isOpponentOf((forge.game.player.Player) ge)) return ge;
+        }
+        for (forge.game.GameEntity ge : cands) {
+            if (ge instanceof forge.game.card.Card) {
+                forge.game.player.Player ctrl = ((forge.game.card.Card) ge).getController();
+                if (ctrl != null && me != null && me.isOpponentOf(ctrl)) return ge;
+            }
+        }
+        return cands.get(0);
     }
 }

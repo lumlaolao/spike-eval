@@ -125,18 +125,29 @@ public class LookaheadProbeTest {
         Assert.assertTrue(theirs.isInZone(forge.game.zone.ZoneType.Battlefield));
     }
 
-    /** v1 is honest about what it cannot do: a targeting spell is not previewed (no target yet). */
+    /** A targeting spell is previewed against a first-legal target, and the live option is restored. */
     @Test
-    public void previewCastRefusesATargetingSpellHonestly() {
+    public void previewCastResolvesATargetingSpellAndRestoresTheLiveOption() {
         Game g = SeatObservationTest.bareGame();
-        Player me = g.getPlayers().get(0);
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
         for (int i = 0; i < 3; i++) SeatObservationTest.card("Mountain", me, forge.game.zone.ZoneType.Battlefield);
         forge.game.card.Card bolt = SeatObservationTest.card("Lightning Bolt", me, forge.game.zone.ZoneType.Hand);
         forge.game.spellability.SpellAbility sa = spellOn(bolt);
         Assert.assertNotNull(sa);
         sa.setActivatingPlayer(me); // no target, as in a real decision before the model commits
+        boolean targetsEmptyBefore = sa.getTargets() == null || sa.getTargets().isEmpty();
+        Assert.assertTrue(targetsEmptyBefore, "fixture: the option should start untargeted");
 
         String report = PlayerLookahead.previewCast(g, me, sa, 5L);
-        Assert.assertTrue(report.contains("targeting spell"), "must refuse honestly: " + report);
+        System.out.println("[LOOKAHEAD] " + report);
+        Assert.assertTrue(report.contains("Lightning Bolt"), report);
+        Assert.assertTrue(report.contains("assuming target:"), "target assumption not disclosed: " + report);
+        Assert.assertTrue(report.contains("Rival life 20 -> 17"), "the 3 damage at the opponent was not previewed: " + report);
+        Assert.assertFalse(report.contains("you life 20 -> 17"), "the preview aimed the bolt at us: " + report);
+        // LIVE state untouched: opponent still at 20, and the option's own targets restored (empty) so
+        // the real cast's ensureTargetsSet is free to choose normally.
+        Assert.assertEquals(opp.getLife(), 20, "preview mutated the LIVE opponent's life");
+        Assert.assertTrue(sa.getTargets() == null || sa.getTargets().isEmpty(),
+                "preview left a target on the LIVE option");
     }
 }
