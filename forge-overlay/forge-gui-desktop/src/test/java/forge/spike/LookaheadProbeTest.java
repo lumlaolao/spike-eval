@@ -150,4 +150,23 @@ public class LookaheadProbeTest {
         Assert.assertTrue(sa.getTargets() == null || sa.getTargets().isEmpty(),
                 "preview left a target on the LIVE option");
     }
+
+    /** The model can aim the preview: a hint naming a legal target is honoured. */
+    @Test
+    public void previewCastHonoursATargetHint() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+        for (int i = 0; i < 3; i++) SeatObservationTest.card("Mountain", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.card.Card bolt = SeatObservationTest.card("Lightning Bolt", me, forge.game.zone.ZoneType.Hand);
+        SeatObservationTest.card("Goblin Guide", opp, forge.game.zone.ZoneType.Battlefield);
+        SeatObservationTest.card("Elite Vanguard", opp, forge.game.zone.ZoneType.Battlefield);
+        forge.game.spellability.SpellAbility sa = spellOn(bolt);
+        Assert.assertNotNull(sa);
+        sa.setActivatingPlayer(me);
+
+        String report = PlayerLookahead.previewCast(g, me, sa, 5L, "Elite Vanguard");
+        System.out.println("[LOOKAHEAD] " + report);
+        Assert.assertTrue(report.contains("assuming target: Elite Vanguard"), report);
+        Assert.assertTrue(report.contains("board 2 -> 1"), "the named creature should die: " + report);
+    }
 }

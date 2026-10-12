@@ -1128,6 +1128,17 @@ public final class LlmSpikeGui {
             return (n >= 1 && n <= nSpells) ? n : -1;
         }
 
+        /** The optional target hint after a `SIMULATE: <n> <target>` request, or null when absent. */
+        static String simulateTargetHint(String reply) {
+            if (reply == null) return null;
+            String seg = lastSegment(reply, "SIMULATE:");
+            if (seg == null) return null;
+            Matcher m = Pattern.compile("^\\s*\\d+\\s*(.*)$", Pattern.DOTALL).matcher(seg);
+            if (!m.matches()) return null;
+            String t = m.group(1).replaceAll("\\s+", " ").trim();
+            return t.isEmpty() ? null : t;
+        }
+
         // ---------------- full-context serializer ----------------
 
         private String snapshot() {
@@ -1959,7 +1970,7 @@ public final class LlmSpikeGui {
                             : "That reply had no parseable choice. Answer with ONE line only: CHOICE: <a number 1.." + passIdx + " from the list above>.")
                             + lookCtx
                             + (lookaheadOn && attempt == 0
-                               ? "\nYou may instead reply `SIMULATE: <number>` to see what a SPELL option (1.." + options.size()
+                               ? "\nYou may instead reply `SIMULATE: <number>` (optionally `SIMULATE: <number> <target name>`) to see what a SPELL option (1.." + options.size()
                                  + ") resolves to; you will then be asked again with the result." : "");
                     String reply = ask(b, prompt);
                     if (reply != null && askPlan && attempt == 0) {
@@ -1987,7 +1998,7 @@ public final class LlmSpikeGui {
                     if (lookaheadOn && lookCtx.length() == 0) {
                         int simN = parseSimulateOption(reply, options.size());
                         if (simN > 0) {
-                            String preview = PlayerLookahead.previewCast(me.getGame(), me, options.get(simN - 1), turn);
+                            String preview = PlayerLookahead.previewCast(me.getGame(), me, options.get(simN - 1), turn, simulateTargetHint(reply));
                             lookCtx.append("\nLOOKAHEAD (option ").append(simN).append("): ").append(preview)
                                    .append("\nNow end with EXACTLY: CHOICE: <number>.\n");
                             p("[ROUTER] lookahead " + simN + ": " + preview);
