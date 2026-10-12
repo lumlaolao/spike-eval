@@ -1033,8 +1033,11 @@ public final class LlmSpikeGui {
             int noneIdx = noneLabel != null ? options.size() + 1 : -1; // 1-based menu number of the decline option
             String base = buildDecideOnePrompt(snapshot(), question, options, noneLabel);
             for (int attempt = 0; attempt < 2; attempt++) {
+                // The retry re-sends the WHOLE prompt (state + menu): a stateless backend has no memory
+                // of "the list above", so a bare correction would ask the model to re-answer blind (and
+                // the faithful observer's header must be present on EVERY model ask).
                 String prompt = attempt == 0 ? base
-                        : "That reply had no parseable choice. Answer with ONE line only, nothing else: CHOICE: <a number from the list above>.";
+                        : base + "\n\n(Your previous reply had no parseable CHOICE line. Answer with ONE line only, nothing else: CHOICE: <a number from the list above>.)";
                 String reply = ask(b, prompt);
                 if (reply == null) return -2;              // bridge dead -> caller decides
                 int c = parseTagNumber(reply, "CHOICE:");
@@ -1074,9 +1077,12 @@ public final class LlmSpikeGui {
             }
             String base = buildDecideManyPrompt(snapshot(), question, options, min, max);
             for (int attempt = 0; attempt < 2; attempt++) {
+                // The retry re-sends the WHOLE prompt (state + menu), not just a correction: a stateless
+                // backend has no memory of "the list above", so a bare correction would ask the model to
+                // re-answer blind. Same reason as decideOne.
                 String prompt = attempt == 0 ? base
-                        : "That reply had no parseable PICKS line. Answer with ONE line only, nothing else: PICKS: <"
-                          + min + " to " + max + " numbers from the list above, comma-separated>.";
+                        : base + "\n\n(Your previous reply had no parseable PICKS line. Answer with ONE line only, nothing else: PICKS: <"
+                          + min + " to " + max + " numbers from the list above, comma-separated>.)";
                 String reply = ask(b, prompt);
                 if (reply == null) return null;
                 String seg = lastSegment(reply, "PICKS:");
@@ -2228,6 +2234,59 @@ public final class LlmSpikeGui {
                 return out;
             } catch (Exception e) {
                 return firstN(opts, min, "discard(err)");
+            }
+        }
+
+        /** Cleanup-step discard to maximum hand size — a real decision the Forge AI used to make
+         *  silently. Deterministic fallback: the first N cards. */
+        @Override
+        public CardCollectionView chooseCardsToDiscardToMaximumHandSize(int numDiscard) {
+            clearLast();
+            CardCollection hand = new CardCollection(getPlayer().getCardsIn(ZoneType.Hand));
+            if (numDiscard <= 0 || hand.isEmpty()) return super.chooseCardsToDiscardToMaximumHandSize(numDiscard);
+            List<Card> opts = new ArrayList<>(hand);
+            if (opts.size() <= numDiscard) return firstN(opts, numDiscard, "cleanup-discard(forced)");
+            try {
+                if (!smartOk()) return firstN(opts, numDiscard, "cleanup-discard(no-budget)");
+                List<String> labels = new ArrayList<>();
+                for (Card c : opts) labels.add(cardLabel(c));
+                String q = "Cleanup step: DISCARD down to your maximum hand size — choose " + numDiscard
+                        + " card(s) to discard. Keep your best cards and your game plan in mind.";
+                List<Integer> picks = decideMany(smart, "cleanup-discard", q, labels, numDiscard, numDiscard);
+                if (picks == null) return firstN(opts, numDiscard, "cleanup-discard(unparsed)");
+                CardCollection out = new CardCollection();
+                StringBuilder log = new StringBuilder();
+                for (int i : picks) { out.add(opts.get(i)); if (log.length() > 0) log.append(", "); log.append(opts.get(i).getName()); }
+                p("[ROUTER] cleanup-discard: " + log);
+                return out;
+            } catch (Exception e) {
+                return firstN(opts, numDiscard, "cleanup-discard(err)");
+            }
+        }
+
+        /** Delve: which graveyard cards to exile to pay {N} (Murktide Regent in UR Delver). Real
+         *  decision for graveyard/reanimator matchups. Deterministic fallback: the first N. */
+        @Override
+        public CardCollectionView chooseCardsToDelve(int genericAmount, CardCollection grave) {
+            clearLast();
+            if (grave == null || grave.isEmpty() || genericAmount <= 0) return super.chooseCardsToDelve(genericAmount, grave);
+            List<Card> opts = new ArrayList<>(grave);
+            if (opts.size() <= genericAmount) return firstN(opts, genericAmount, "delve(all)");
+            try {
+                if (!smartOk()) return firstN(opts, genericAmount, "delve(no-budget)");
+                List<String> labels = new ArrayList<>();
+                for (Card c : opts) labels.add(cardLabel(c));
+                String q = "Delve: exile " + genericAmount + " card(s) from your graveyard to pay. Exile what you can "
+                        + "least use — spare your recursion/reanimation targets and anything your plan needs.";
+                List<Integer> picks = decideMany(smart, "delve", q, labels, genericAmount, genericAmount);
+                if (picks == null) return firstN(opts, genericAmount, "delve(unparsed)");
+                CardCollection out = new CardCollection();
+                StringBuilder log = new StringBuilder();
+                for (int i : picks) { out.add(opts.get(i)); if (log.length() > 0) log.append(", "); log.append(opts.get(i).getName()); }
+                p("[ROUTER] delve: " + log);
+                return out;
+            } catch (Exception e) {
+                return firstN(opts, genericAmount, "delve(err)");
             }
         }
 

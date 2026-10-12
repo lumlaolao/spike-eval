@@ -1499,6 +1499,41 @@ public class LlmSpikeTest {
     }
 
     @Test
+    public void g7CleanupDiscardAndDelveAreModelRouted() {
+        // Cleanup discard to hand size: pick the second of three hand cards.
+        LlmSpikeGui.PlayerControllerLLM ctrl = choiceController(new FixedReplyBridge("PICKS: 2"));
+        Player me = ctrl.getPlayer();
+        addHandCard("Plains", me);
+        addHandCard("Island", me);
+        addHandCard("Mountain", me);
+        CardCollectionView discarded = ctrl.chooseCardsToDiscardToMaximumHandSize(1);
+        Assert.assertEquals(discarded.size(), 1, "must discard exactly one card");
+        Assert.assertEquals(discarded.iterator().next().getName(), "Island");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+
+        // Delve: exile the second of three graveyard cards.
+        ctrl = choiceController(new FixedReplyBridge("PICKS: 2"));
+        me = ctrl.getPlayer();
+        addGraveCard("Forest", me);
+        addGraveCard("Swamp", me);
+        addGraveCard("Island", me);
+        CardCollectionView exiled = ctrl.chooseCardsToDelve(1, new CardCollection(me.getCardsIn(ZoneType.Graveyard)));
+        Assert.assertEquals(exiled.size(), 1, "must exile exactly one card");
+        Assert.assertEquals(exiled.iterator().next().getName(), "Swamp");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** Card into `p`'s graveyard (mirrors addHandCard). */
+    private Card addGraveCard(String name, Player p) {
+        IPaperCard paperCard = FModel.getMagicDb().getCommonCards().getCard(name);
+        if (paperCard == null) { StaticData.instance().attemptToLoadCard(name); paperCard = FModel.getMagicDb().getCommonCards().getCard(name); }
+        Card c = Card.fromPaperCard(paperCard, p);
+        c.setGameTimestamp(p.getGame().getNextTimestamp());
+        p.getZone(ZoneType.Graveyard).add(c);
+        return c;
+    }
+
+    @Test
     public void optionalConfirmationMalformedRepliesDeclineWithoutAi() {
         FixedReplyBridge bridge = new FixedReplyBridge("not a choice");
         LlmSpikeGui.PlayerControllerLLM ctrl = choiceController(bridge);

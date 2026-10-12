@@ -4,18 +4,17 @@
 floor.seed=42
 floor.winner=A
 floor.turns=108
-# 2026-10-12: G7 routed chooseStartingPlayer/chooseColor/chooseSomeType/chooseProtectionType from
-# Forge AI to the model. The floor arm now takes the deterministic fronts (was AI); decisions moved
-# 1004 -> 1005 (same winner/turns).
-floor.decisions=1005
+# 2026-10-12: G7 routed chooseStartingPlayer/chooseColor/chooseSomeType/chooseProtectionType then
+# chooseCardsToDiscardToMaximumHandSize/chooseCardsToDelve from Forge AI to the model. The floor arm
+# now takes the deterministic fronts (was AI); decisions moved 1004 -> 1005 -> 1053 (same winner/turns).
+floor.decisions=1053
 random.seed=42
 # 2026-09-07: model-owned optional confirmations expose four previously silent AI
-# trigger choices to the random policy. Two runs reproduce all 144 decisions.
-# First divergence from the old baseline: confirm-trigger, turn 15, decision 61.
-# 2026-10-12: G7 routing (above) now exposes play/draw, colour, type and protection choices to the
-# random policy too; the game diverges far earlier (16 turns / 81 decisions, winner A). Reproduced.
-random.winner=A
+# trigger choices to the random policy (first divergence: confirm-trigger, turn 15, decision 61).
+# 2026-10-12: G7 routing (above) now exposes play/draw, colour, type, protection, cleanup-discard and
+# delve choices to the random policy too; the game diverges far earlier. Reproduced.
+random.winner=B
 random.turns=16
-random.decisions=81
+random.decisions=67
 # Silent Forge-AI strategic/payment hooks reachable in Legacy play (ControllerOwnershipTest baseline).
-ownership.silent_ai_strategic_max=9
+ownership.silent_ai_strategic_max=7
