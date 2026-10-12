@@ -338,7 +338,7 @@ for r in calls:
     p=r.get("prompt") or ""
     # The mulligan ask shows only the opening hand (no board exists yet); it carries no observation.
     if "KEEP" in p and "MULLIGAN" in p and "DECISION:" not in p: mull+=1; observed+=1; legend+=1; continue
-    if "observation-faithful-v1" in p: observed+=1
+    if "observation-faithful-v2" in p: observed+=1
     if "LEGEND: @N" in p: legend+=1
     handles+=len(re.findall(r" @\d+", p))
     legacy+=len(re.findall(r"[A-Za-z\]]@\d+", p))          # the legacy candidateLabel form: Name[...]@id
@@ -351,7 +351,7 @@ if menu_handles<3: problems.append("menu options carrying handles: %d (<3)"%menu
 ok_tools=[x for x in tools if not str(x.get("result","")).startswith("ERROR")]
 if len(ok_tools)<2: problems.append("successful tool rows %d (<2)"%len(ok_tools))
 log=open(d+"/game.log",errors="replace").read()
-if "[OBSERVATION] observation-faithful-v1" not in log: problems.append("observer never announced itself in the log")
+if "[OBSERVATION] observation-faithful-v2" not in log: problems.append("observer never announced itself in the log")
 if "state unavailable" in log or "state unavailable" in "".join((r.get("prompt") or "") for r in calls): problems.append("renderer threw (state unavailable)")
 if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] present")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)

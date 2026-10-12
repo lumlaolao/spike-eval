@@ -172,6 +172,48 @@ public class SeatObservationTest {
         return b.toString();
     }
 
+    // ---- narration redaction (object-anchored, not a name dictionary) -------------------------
+
+    /**
+     * REVIEW DEFECT 1, negative case. The old capture() built a game-wide dictionary of every
+     * face-down card's real name and string-replaced it out of EVERY message. A public card that
+     * merely shared a hidden card's name was erased from true history, and (worse) renaming the
+     * hidden card changed PUBLIC text. The fix redacts by the object an event actually names.
+     */
+    @Test
+    public void publicEvidenceSurvivesAHiddenCardWithTheSameName() {
+        Game g = world(new String[0], new String[0]);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card publicWillbender = card("Willbender", me, ZoneType.Battlefield); // face-up, public
+        Card morph = card("Willbender", rival, ZoneType.Battlefield);         // same name, hidden face
+        Assert.assertTrue(morph.turnFaceDown(true), "could not turn the test creature face down");
+        SeatObservation o = observerFor(g, 0);
+        Assert.assertFalse(o.faceKnown(morph), "fixture: the rival's face-down card must be hidden from us");
+
+        // A public event naming the PUBLIC card must survive intact; only the hidden one is redacted.
+        g.getGameLog().add(GameLogEntryType.STACK_ADD, "Viewer resolves Willbender (" + publicWillbender.getId() + ")");
+        g.getGameLog().add(GameLogEntryType.STACK_ADD, "Rival casts Willbender (" + morph.getId() + ") face down");
+        o.capture();
+        String h = eventsText(o);
+        Assert.assertTrue(h.contains("Viewer resolves Willbender @"), "public evidence was erased:\n" + h);
+        Assert.assertFalse(h.contains("Rival casts Willbender"), "hidden identity leaked:\n" + h);
+        Assert.assertTrue(h.contains("Rival casts a face-down card"), h);
+    }
+
+    /** A hidden card in a private zone, named by the event, must lose its name with its engine id. */
+    @Test
+    public void hiddenHandCardNameIsRedactedByItsEngineId() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[0]);
+        Player rival = g.getPlayers().get(1);
+        Card hidden = rival.getCardsIn(ZoneType.Hand).get(0);
+        SeatObservation o = observerFor(g, 0);
+        g.getGameLog().add(GameLogEntryType.STACK_ADD, "Rival casts Thoughtseize (" + hidden.getId() + ")");
+        o.capture();
+        String h = eventsText(o);
+        Assert.assertFalse(h.contains("Thoughtseize"), "hidden hand card leaked by name:\n" + h);
+        Assert.assertTrue(h.contains("Rival casts a hidden card"), h);
+    }
+
     // ---- own visibility -----------------------------------------------------------------------
 
     @Test
