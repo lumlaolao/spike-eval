@@ -2360,6 +2360,35 @@ public final class LlmSpikeGui {
             return new ArrayList<>();
         }
 
+        /** Simultaneous-trigger ORDER (trigger targeting stays the engine's — the inherited
+         *  orderAndPlaySimultaneousSa calls this virtually, then prepares/plays each). The model
+         *  lists the order it wants the triggers to RESOLVE; the engine plays them in
+         *  stack-placement order, so the list is reversed before returning. Deterministic
+         *  fallback: the as-triggered order. */
+        @Override
+        public List<SpellAbility> orderSimultaneousSa(List<SpellAbility> activePlayerSAs) {
+            clearLast();
+            if (activePlayerSAs == null || activePlayerSAs.size() < 2) return activePlayerSAs;
+            try {
+                if (smartOk()) {
+                    List<String> labels = new ArrayList<>();
+                    for (SpellAbility sa : activePlayerSAs) labels.add(saLabel(sa));
+                    int n = activePlayerSAs.size();
+                    List<Integer> picks = decideMany(smart, "trigger-order",
+                            "These " + n + " triggers go on the stack at the same time. List them in the order you want them to "
+                            + "RESOLVE — the FIRST number you name resolves FIRST (it goes on the stack last). Order them so your "
+                            + "plan works out.", labels, n, n);
+                    if (picks != null && picks.size() == n) {
+                        List<SpellAbility> play = new ArrayList<>(n);
+                        for (int i = n - 1; i >= 0; i--) play.add(activePlayerSAs.get(picks.get(i)));
+                        return play;
+                    }
+                }
+            } catch (Exception e) { /* deterministic fallback below */ }
+            auto("trigger-order(default)->as-triggered");
+            return new ArrayList<>(activePlayerSAs);
+        }
+
         @Override
         public CardCollectionView chooseCardsForEffect(CardCollectionView sourceList, SpellAbility sa, String title,
                 int min, int max, boolean isOptional, Map<String, Object> params) {

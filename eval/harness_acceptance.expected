@@ -13,8 +13,10 @@ random.seed=42
 # trigger choices to the random policy (first divergence: confirm-trigger, turn 15, decision 61).
 # 2026-10-12: G7 routing (above) now exposes play/draw, colour, type, protection, cleanup-discard and
 # delve choices to the random policy too; the game diverges far earlier. Reproduced.
+# 2026-10-12 (later): simultaneous-trigger ORDER is model-owned too; the random policy now permutes
+# trigger order, moving the game again (17 turns / 75 decisions, winner B). Reproduced.
 random.winner=B
-random.turns=16
-random.decisions=67
+random.turns=17
+random.decisions=75
 # Silent Forge-AI strategic/payment hooks reachable in Legacy play (ControllerOwnershipTest baseline).
-ownership.silent_ai_strategic_max=5
+ownership.silent_ai_strategic_max=4

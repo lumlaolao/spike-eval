@@ -107,9 +107,11 @@ option (never Forge AI):
 | `chooseCardsToDelve` | which graveyard cards to exile for delve (Murktide Regent) | first N |
 | `payCostToPreventEffect` | whether to pay an "unless" cost (Daze / Force Spike / Spell Pierce / Mana Tithe); payment mechanics stay the engine's | decline |
 | `chooseOptionalCosts` | which optional additional costs to pay (kicker / buyback / entwine), over the affordable ones | decline all |
+| `orderSimultaneousSa` | the order simultaneous triggers resolve in (targeting stays the engine's) | as-triggered order |
 
-Inventory after these overrides: **45 LLM / 71 AI / 14 BASE**; **5 silent core strategic/payment
+Inventory after these overrides: **46 LLM / 70 AI / 14 BASE**; **4 silent core strategic/payment
 hooks remain** (down from 13). Still Forge AI and not claimed model-owned: `payManaCost`,
-`getCostDecisionMaker`, `playTrigger`, `orderSimultaneousSa`, `orderAndPlaySimultaneousSa`.
+`getCostDecisionMaker`, `playTrigger`, `orderAndPlaySimultaneousSa` (its play/targeting loop; the
+ordering it delegates to is now model-owned).
 `chooseStartingPlayer` is `boolean`-keyed and
 therefore moves the random canary (see `eval/harness_acceptance.expected`, 2026-10-12).
