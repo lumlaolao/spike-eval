@@ -4642,6 +4642,18 @@ public final class LlmSpikeGui {
             deckA = DeckgenUtil.getRandomColorDeck(true); deckB = DeckgenUtil.getRandomColorDeck(true);
         }
 
+        // Give each seat its own decklist so it knows what its cards do (a real player does). Run
+        // condition tied to DECK_A/B (whose DECK_SHA is stamped); DECKLIST=0 restores the pre-decklist
+        // prompt bytes for strict comparability with older runs.
+        if (!"0".equals(System.getenv().getOrDefault("DECKLIST", "1"))) {
+            String listA = decklist(deckA), listB = decklist(deckB);
+            if (!listA.isEmpty()) planA = (planA == null || planA.isEmpty() ? "" : planA + "\n")
+                    + "YOUR DECKLIST (you know your own deck's contents; only the draw order is hidden): " + listA;
+            if (!listB.isEmpty()) planB = (planB == null || planB.isEmpty() ? "" : planB + "\n")
+                    + "YOUR DECKLIST (you know your own deck's contents; only the draw order is hidden): " + listB;
+            lastPlanA = planA; lastPlanB = planB;
+        }
+
         RegisteredPlayer a = new RegisteredPlayer(deckA).setPlayer(seatFor(ctlA, nameA, planA, smartA, fastA));
         RegisteredPlayer b = new RegisteredPlayer(deckB).setPlayer(seatFor(ctlB, nameB, planB, smartB, fastB));
         boolean swap = "1".equals(System.getenv("SWAP_SEATS"));
@@ -5637,6 +5649,26 @@ public final class LlmSpikeGui {
             } catch (Exception e) { System.out.println("[PLAN] sidecar read failed (" + cand + "): " + e); }
         }
         return fallback;
+    }
+
+    /** The seat's own decklist, "Nx Name, ..." (grouped, name-sorted). A real player knows the
+     *  contents of the deck they registered — only the draw order is hidden — so this is fair
+     *  information, not a leak. Gated by DECKLIST=0 so a run can be compared byte-for-byte with the
+     *  pre-decklist harness. Empty on any failure. */
+    static String decklist(Deck d) {
+        if (d == null) return "";
+        try {
+            java.util.TreeMap<String, Integer> counts = new java.util.TreeMap<>();
+            for (java.util.Map.Entry<forge.item.PaperCard, Integer> e : d.getMain()) {
+                counts.merge(e.getKey().getName(), e.getValue(), Integer::sum);
+            }
+            StringBuilder b = new StringBuilder();
+            for (java.util.Map.Entry<String, Integer> e : counts.entrySet()) {
+                if (b.length() > 0) b.append(", ");
+                b.append(e.getValue()).append("x ").append(e.getKey());
+            }
+            return b.toString();
+        } catch (Exception e) { return ""; }
     }
 
     /** The endpoint's OWN name for the model that produced a chat-completion response, or null when

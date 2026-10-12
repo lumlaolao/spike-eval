@@ -1524,6 +1524,16 @@ public class LlmSpikeTest {
     }
 
     @Test
+    public void decklistIsGroupedAndSorted() {
+        Deck d = new Deck("t");
+        d.getOrCreate(forge.deck.DeckSection.Main).add("Mountain", 20);
+        d.getOrCreate(forge.deck.DeckSection.Main).add("Lightning Bolt", 4);
+        d.getOrCreate(forge.deck.DeckSection.Main).add("Lightning Bolt", 0);
+        Assert.assertEquals(LlmSpikeGui.decklist(d), "4x Lightning Bolt, 20x Mountain");
+        Assert.assertEquals(LlmSpikeGui.decklist(null), "");
+    }
+
+    @Test
     public void g7PreventEffectCostIsModelRouted() {
         // Model declines an "unless" cost (Daze/Force Spike style): no payment, no AI delegation.
         LlmSpikeGui.PlayerControllerLLM ctrl = choiceController(new FixedReplyBridge("CHOICE: 2"));
