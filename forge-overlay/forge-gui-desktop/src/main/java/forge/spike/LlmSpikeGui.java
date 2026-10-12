@@ -37,6 +37,8 @@ import forge.LobbyPlayer;
 import forge.Singletons;
 import forge.StaticData;
 import forge.card.ICardFace;
+import forge.card.ColorSet;
+import forge.card.MagicColor;
 import forge.ai.AiCardMemory;
 import forge.ai.ComputerUtilAbility;
 import forge.ai.ComputerUtilCombat;
@@ -2550,6 +2552,114 @@ public final class LlmSpikeGui {
         @Override
         public boolean chooseBinary(SpellAbility sa, String question, BinaryChoiceType kind, Map<String, Object> params) {
             return chooseBinary(sa, question, kind, (Boolean) null);
+        }
+
+        // ---------------- G7: choices from the engine's own legal option list ----------------
+        // Each of these is a real decision the Forge AI used to make silently. The model picks from
+        // the engine-provided legal set (so an illegal choice is impossible); the fallback is a
+        // deterministic legal option, never Forge AI.
+
+        /** Play or draw after winning the toss. Forge AI always plays first; the model may choose to
+         *  draw. Deterministic fallback: play first (the pre-existing behaviour). */
+        @Override
+        public Player chooseStartingPlayer(boolean isFirstGame) {
+            clearLast();
+            try {
+                if (fastOk()) {
+                    List<String> labels = Lists.newArrayList("Play first", "Draw first");
+                    int c = decideOne(fast, "starting-player", "You won the roll. Play first, or draw first?", labels, null);
+                    if (c == 0) return getPlayer();
+                    if (c == 1) for (Player o : getPlayer().getOpponents()) return o;
+                }
+            } catch (Exception e) { /* deterministic fallback below */ }
+            auto("starting-player(default)->play");
+            return getPlayer();
+        }
+
+        /** Colour choice (Painter's Servant, protection, Caves of Koilos-style). Legal set from the
+         *  engine. Deterministic fallback: the first colour in the set. */
+        @Override
+        public byte chooseColor(String message, SpellAbility sa, ColorSet colors) {
+            clearLast();
+            try {
+                if (colors != null && colors.countColors() >= 2 && smartOk()) {
+                    List<MagicColor.Color> present = new ArrayList<>();
+                    for (MagicColor.Color c : colors) present.add(c);
+                    if (present.size() >= 2) {
+                        List<String> labels = new ArrayList<>();
+                        for (MagicColor.Color c : present) labels.add(c.getName());
+                        int pick = decideOne(smart, "color",
+                                "Choose a color" + (message == null || message.isEmpty() ? "" : ": " + oneLine(message)) + srcOf(sa),
+                                labels, null);
+                        if (pick >= 0 && pick < present.size()) return present.get(pick).getColorMask();
+                    }
+                }
+            } catch (Exception e) { /* deterministic fallback below */ }
+            auto("color(default)->first");
+            return firstColorMask(colors);
+        }
+
+        /** As chooseColor, with colourless allowed. */
+        @Override
+        public byte chooseColorAllowColorless(String message, Card card, ColorSet colors) {
+            clearLast();
+            try {
+                if (colors != null && colors.countColors() >= 2 && smartOk()) {
+                    List<MagicColor.Color> present = new ArrayList<>();
+                    for (MagicColor.Color c : colors) present.add(c);
+                    if (present.size() >= 2) {
+                        List<String> labels = new ArrayList<>();
+                        for (MagicColor.Color c : present) labels.add(c.getName());
+                        int pick = decideOne(smart, "color-colorless",
+                                "Choose a color (colorless allowed)" + (message == null || message.isEmpty() ? "" : ": " + oneLine(message)),
+                                labels, null);
+                        if (pick >= 0 && pick < present.size()) return present.get(pick).getColorMask();
+                    }
+                }
+            } catch (Exception e) { /* deterministic fallback below */ }
+            auto("color-colorless(default)->first");
+            return firstColorMask(colors);
+        }
+
+        /** Type/card naming (Cavern of Souls, Engineered Plague, Meddling Mage-style). Legal set from
+         *  the engine. Deterministic fallback: the first valid type. */
+        @Override
+        public String chooseSomeType(String kindOfType, SpellAbility sa, java.util.Collection<String> validTypes, boolean isOptional) {
+            clearLast();
+            try {
+                if (validTypes != null && validTypes.size() >= 2 && smartOk()) {
+                    List<String> opts = new ArrayList<>(validTypes);
+                    int pick = decideOne(smart, "some-type", "Choose a " + kindOfType + " to name" + srcOf(sa), opts, null);
+                    if (pick >= 0 && pick < opts.size()) return opts.get(pick);
+                }
+            } catch (Exception e) { /* deterministic fallback below */ }
+            if (validTypes == null || validTypes.isEmpty()) return super.chooseSomeType(kindOfType, sa, validTypes, isOptional);
+            auto("some-type(default)->first");
+            return validTypes.iterator().next();
+        }
+
+        /** Protection colour (Mother of Runes / Giver of Runes in Death and Taxes). Legal set from the
+         *  engine. Deterministic fallback: the first choice. */
+        @Override
+        public String chooseProtectionType(SpellAbility sa, List<String> choices) {
+            clearLast();
+            try {
+                if (choices != null && choices.size() >= 2 && smartOk()) {
+                    int pick = decideOne(smart, "protection", "Choose what to protect from" + srcOf(sa), new ArrayList<>(choices), null);
+                    if (pick >= 0 && pick < choices.size()) return choices.get(pick);
+                }
+            } catch (Exception e) { /* deterministic fallback below */ }
+            if (choices == null || choices.isEmpty()) return super.chooseProtectionType(sa, choices);
+            auto("protection(default)->first");
+            return choices.get(0);
+        }
+
+        /** First colour mask in an engine ColorSet (deterministic fallback; white if empty). */
+        private static byte firstColorMask(ColorSet colors) {
+            try {
+                if (colors != null) for (MagicColor.Color c : colors) return c.getColorMask();
+            } catch (Exception ignore) { }
+            return MagicColor.WHITE;
         }
 
         /** Route "name a card" from an explicit list (Alhammarret, ChooseFromList effects).

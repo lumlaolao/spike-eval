@@ -1458,6 +1458,47 @@ public class LlmSpikeTest {
     }
 
     @Test
+    public void g7StartingPlayerIsModelRoutedAndDeterministicWhenUnrouted() {
+        // "Draw first" is the second menu option -> the opponent starts.
+        LlmSpikeGui.PlayerControllerLLM ctrl = choiceController(new FixedReplyBridge("CHOICE: 2"));
+        Assert.assertSame(ctrl.chooseStartingPlayer(true), ctrl.getPlayer().getOpponents().iterator().next());
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+        // "Play first" -> self, and an unparseable reply falls back to play (never Forge AI).
+        ctrl = choiceController(new FixedReplyBridge("CHOICE: 1"));
+        Assert.assertSame(ctrl.chooseStartingPlayer(true), ctrl.getPlayer());
+        ctrl = choiceController(new FixedReplyBridge("not a choice"));
+        Assert.assertSame(ctrl.chooseStartingPlayer(true), ctrl.getPlayer());
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    @Test
+    public void g7ColorSomeTypeAndProtectionChoicesAreModelRouted() {
+        // Colour: pick the second colour in the engine's set (Blue).
+        LlmSpikeGui.PlayerControllerLLM ctrl = choiceController(new FixedReplyBridge("CHOICE: 2"));
+        Assert.assertEquals(ctrl.chooseColor("name a colour", null,
+                forge.card.ColorSet.fromEnums(forge.card.MagicColor.Color.WHITE, forge.card.MagicColor.Color.BLUE)),
+                forge.card.MagicColor.BLUE);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+
+        // A single-colour set is not a real choice: deterministic fallback, no model call.
+        ctrl = choiceController(new FixedReplyBridge("CHOICE: 1"));
+        Assert.assertEquals(ctrl.chooseColor("x", null,
+                forge.card.ColorSet.fromEnums(forge.card.MagicColor.Color.RED)), forge.card.MagicColor.RED);
+
+        // Type naming.
+        ctrl = choiceController(new FixedReplyBridge("CHOICE: 1"));
+        Assert.assertEquals(ctrl.chooseSomeType("creature type", null, java.util.Arrays.asList("Goblin", "Elf"), false), "Goblin");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+
+        // Protection colour: second of three, then an unparseable reply falls back to the first.
+        ctrl = choiceController(new FixedReplyBridge("CHOICE: 2"));
+        Assert.assertEquals(ctrl.chooseProtectionType(null, java.util.Arrays.asList("red", "green", "white")), "green");
+        ctrl = choiceController(new FixedReplyBridge("garbage"));
+        Assert.assertEquals(ctrl.chooseProtectionType(null, java.util.Arrays.asList("red", "green")), "red");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    @Test
     public void optionalConfirmationMalformedRepliesDeclineWithoutAi() {
         FixedReplyBridge bridge = new FixedReplyBridge("not a choice");
         LlmSpikeGui.PlayerControllerLLM ctrl = choiceController(bridge);
