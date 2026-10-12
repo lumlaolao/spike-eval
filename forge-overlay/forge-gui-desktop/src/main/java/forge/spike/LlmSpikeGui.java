@@ -4718,6 +4718,11 @@ public final class LlmSpikeGui {
                     + "YOUR DECKLIST (you know your own deck's contents; only the draw order is hidden): " + listA;
             if (!listB.isEmpty()) planB = (planB == null || planB.isEmpty() ? "" : planB + "\n")
                     + "YOUR DECKLIST (you know your own deck's contents; only the draw order is hidden): " + listB;
+            // Card rules text, from Forge's own card DB, so the model reads what its cards do rather
+            // than recalling them. Same DECKLIST gate (this IS the decklist's expansion).
+            String textA = cardText(deckA), textB = cardText(deckB);
+            if (!textA.isEmpty()) planA += "\nYOUR CARDS (what each card in your deck does):\n" + textA;
+            if (!textB.isEmpty()) planB += "\nYOUR CARDS (what each card in your deck does):\n" + textB;
             lastPlanA = planA; lastPlanB = planB;
         }
 
@@ -5718,10 +5723,39 @@ public final class LlmSpikeGui {
         return fallback;
     }
 
-    /** The seat's own decklist, "Nx Name, ..." (grouped, name-sorted). A real player knows the
-     *  contents of the deck they registered — only the draw order is hidden — so this is fair
-     *  information, not a leak. Gated by DECKLIST=0 so a run can be compared byte-for-byte with the
-     *  pre-decklist harness. Empty on any failure. */
+    /** Per-card rules text for a seat's deck, "  Name {cost} — oracle text", one per distinct card,
+     *  from Forge's OWN card database (no external file, no network). Lets the model read what its
+     *  cards do instead of recalling them. Empty on any failure. */
+    static String cardText(Deck d) {
+        if (d == null) return "";
+        try {
+            java.util.TreeMap<String, String> lines = new java.util.TreeMap<>();
+            for (java.util.Map.Entry<forge.item.PaperCard, Integer> e : d.getMain()) {
+                forge.item.PaperCard pc = e.getKey();
+                String n = pc.getName();
+                if (n == null || n.isEmpty() || lines.containsKey(n)) continue;
+                StringBuilder b = new StringBuilder("  ").append(n);
+                try {
+                    forge.card.CardRules r = pc.getRules();
+                    if (r != null) {
+                        String mc = r.getManaCost() == null ? "" : r.getManaCost().toString();
+                        if (!mc.isEmpty()) b.append(' ').append(mc);
+                        String t = r.getOracleText();
+                        if (t != null && !t.isEmpty()) {
+                            t = t.replaceAll("\\s+", " ").trim();
+                            if (t.length() > 400) t = t.substring(0, 397) + "...";
+                            b.append(" — ").append(t);
+                        }
+                    }
+                } catch (Exception ignore) { }
+                lines.put(n, b.toString());
+            }
+            if (lines.isEmpty()) return "";
+            StringBuilder b = new StringBuilder();
+            for (String l : lines.values()) b.append(l).append('\n');
+            return b.toString();
+        } catch (Exception e) { return ""; }
+    }
     static String decklist(Deck d) {
         if (d == null) return "";
         try {
