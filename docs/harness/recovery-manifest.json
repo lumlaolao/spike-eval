@@ -1,0 +1,66 @@
+{
+  "source": "/Users/lumlumlam/code/forge",
+  "reason": "Recover newer harness sources before overlay installation can overwrite them. Hashes describe recovery, before subsequent edits.",
+  "files": [
+    {
+      "path": "forge-gui-desktop/src/main/java/forge/spike/GameHistory.java",
+      "recovered_sha256": "ee744e8ccdf74128320fbae5ec224c4633d56bff162c7bf365a3d4de5bd21cbd",
+      "previous_overlay_sha256": null
+    },
+    {
+      "path": "forge-gui-desktop/src/main/java/forge/spike/HttpDeadline.java",
+      "recovered_sha256": "0a66351c0c43cf96aabec7487dbbc3805be0f29ef6d678cd0732f8f19bef8f33",
+      "previous_overlay_sha256": null
+    },
+    {
+      "path": "forge-gui-desktop/src/main/java/forge/spike/LlmSpikeFork.java",
+      "recovered_sha256": "9c1bb2c20f8da354198d92350729dd3f9583173595bc2b71bedb79484926ac72",
+      "previous_overlay_sha256": "d403ec26ec656dcc19745514ec3620c53ad8596e81b0dcf94ec800abd6263a31"
+    },
+    {
+      "path": "forge-gui-desktop/src/main/java/forge/spike/LlmSpikeGui.java",
+      "recovered_sha256": "de1bc980839a3fbadc7973223090887695f274eea767ea85b2e6272266940bf1",
+      "previous_overlay_sha256": "334d46aea12fbf2e5c4c3c3d9e0d2a993943088aaf0baa074fe5f46e2b1e3c3f"
+    },
+    {
+      "path": "forge-gui-desktop/src/main/java/forge/spike/LlmSpikeHeadless.java",
+      "recovered_sha256": "877763cb909c3b7f1d9f690ae1aeb5d803d168b15d6dc44886ffe6c72dd80475",
+      "previous_overlay_sha256": "6080168afdffb0866dd85f853c21f878b47a03a703e4aeacdb5b2fb368eae7c2"
+    },
+    {
+      "path": "forge-gui-desktop/src/main/java/forge/spike/LlmSpikePuzzle.java",
+      "recovered_sha256": "5bfee8ab02ae46dae289839efba9ac48ce74ef230b4ada708e76109c76ba8a3f",
+      "previous_overlay_sha256": null
+    },
+    {
+      "path": "forge-gui-desktop/src/test/java/forge/spike/ContextProfileTest.java",
+      "recovered_sha256": "ef6fcecd6c99781e31ba19444fa0f64604b499887f376a007c114eaac0617667",
+      "previous_overlay_sha256": null
+    },
+    {
+      "path": "forge-gui-desktop/src/test/java/forge/spike/GameHistoryTest.java",
+      "recovered_sha256": "5fc872eb1b9897788a4504dcd3dd17a300beccda1ddc77b11bacd0e72ee10e5b",
+      "previous_overlay_sha256": null
+    },
+    {
+      "path": "forge-gui-desktop/src/test/java/forge/spike/LlmSpikeForkTest.java",
+      "recovered_sha256": "bee991372506282ae8b14131275c4edff6dfd7064fe54a7ebb635c9df3cf1272",
+      "previous_overlay_sha256": "ec1c099fbf2cf68eb49b38bff3b7031641c2d26fc56da862e30f2c4540e39157"
+    },
+    {
+      "path": "forge-gui-desktop/src/test/java/forge/spike/LlmSpikePuzzleTest.java",
+      "recovered_sha256": "a1516831ca1653f471c063ca0be20d0af0e7cec68f8f934bcd6ba1fa5a41c831",
+      "previous_overlay_sha256": null
+    },
+    {
+      "path": "forge-gui-desktop/src/test/java/forge/spike/LlmSpikeTest.java",
+      "recovered_sha256": "c3b6eb2b345b2a48593e22e47c02fd1b1ecb2821aca8b8f9b5bc362c99b92cde",
+      "previous_overlay_sha256": "5ef11a713eb1a00006bc7f0922c559725a567c44712b9fb37dfce1d77e87bd1e"
+    },
+    {
+      "path": "forge-gui-desktop/src/test/java/forge/spike/OpenRouterTimeoutTest.java",
+      "recovered_sha256": "faed11adeb7b4312d25038a2bfaaf598148a7b49dacdd607afcb5f57da60021e",
+      "previous_overlay_sha256": null
+    }
+  ]
+}

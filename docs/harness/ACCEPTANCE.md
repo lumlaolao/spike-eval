@@ -1,0 +1,46 @@
+# Harness acceptance suite (gate G10)
+
+`bash eval/harness_acceptance.sh` is the one command that answers "does this checkout of
+the harness still work, and is it the build that ran?". It writes every piece of evidence
+under `runs/harness-acceptance/<utc-stamp>/` and prints a PASS/FAIL line per stage plus
+`HARNESS ACCEPTANCE: PASS|FAIL` (exit code 0/1). It never rebuilds or edits the Forge
+checkout: sources are compiled into an isolated directory and the pinned engine classes
+are only read.
+
+| Stage | What it proves | What would make it fail |
+| --- | --- | --- |
+| preflight | JDK 17, engine checkout at `FORGE_COMMIT`, decks/ledger/expectations present, no live game JVM | pin drift, a game running, a missing deck file |
+| classpath | offline Maven dependency classpath resolved with module `target/classes` first; Forge tree unchanged afterwards | Maven writing into the checkout, TestNG missing |
+| compile | overlay main+test sources compile with `javac --release 17` into `$OUT/classes` | any compile error |
+| javatests | every `*Test.java` runs under TestNG with `MEMORY_TOOLS=1`; zero failures, zero skips, and the number RUN equals the number of method-level `@Test` annotations DECLARED | a failing/skipped test, or a discovery gap (a runner that matches no tests reports a green nothing) |
+| pytests | `python3 -m unittest discover -s eval` and `eval/test_aggregate.py` | any Python test failure |
+| canary | seed-42 floor/floor and random/random games on the freshly compiled classes; the JVM's class-load log must show `LlmSpikeGui` loaded from `$OUT/classes`; winner/turns/decision count must equal `eval/harness_acceptance.expected`; unchanged `eval/defect_analyzer.py` hard gates (`ai=0`, silent drops `0`) | a build-swap (stale classes ran), a moved canary number, an AI-tier row, a silent drop |
+| faketool | one `MEMORY_TOOLS=1` game with seat A on `eval/fake_model_server.py` (loopback, OpenAI-compatible, deterministic PASS policy) and seat B on floor: real OpenRouter transport and parsing, `context_call`/`context_tool` rows with successful MEMORY SEARCH and NOTE round trips, one injected 9 s stall against a 4 s deadline that must surface as a bridge timeout plus a retried decision row, no `Authorization` header on the wire, `served_smart_a`/`openrouter_base_url`/`memory_tools` stamped in the game row, analyzer gates, no `[FALLBACK->AI]` | any of those absent |
+
+Knobs: `STAGES="compile javatests"` selects stages; `OUT=` chooses the evidence dir;
+`FORGE_HOME`, `JAVA_HOME`, `GAME_CAP_MS` as usual; `HARNESS_DEPS_FILE` reuses a saved
+dependency classpath when Maven is unavailable.
+
+## Re-pinning
+
+`eval/harness_acceptance.expected` holds the canary outcomes and the ownership baseline.
+Change a number only together with the commit that legitimately moved it, and say why in
+that commit. Re-pinning to make a run pass is the failure mode this file exists to prevent.
+
+## What acceptance does not prove
+
+- Strategic quality or fairness of play. The fake model passes on everything.
+- Hidden-state noninterference beyond the fixtures in `SeatObservationTest` (see
+  PLAYER-HARNESS.md gates G1/G2); the canary games run legacy profiles.
+- Paid-model behaviour: no external endpoint is contacted. The loopback exemption in the
+  egress gate is what makes the faketool stage possible without consent flags.
+- Model ownership of every strategic decision: `[OWNERSHIP]` in the javatests line reports
+  how many silent Forge-AI strategic hooks remain reachable (OWNERSHIP.md).
+
+## Recorded runs
+
+| Date | Result | Notes |
+| --- | --- | --- |
+| 2026-09-07 | run1: all stages PASS except faketool (runner deleted the fake server's request log; the game itself passed the analyzer with 69 model rows, 71 context calls, 2 tool rows) | fixed: server files moved out of the game dir; stall assertion accepts the header-timeout path |
+| 2026-09-07 | run2: all 8 stages PASS | first run with `SeatObservationTest` and the faithful-profile wiring |
+| 2026-09-07 | run4/run5: all 9 stages PASS (faithful stage added; run5 after the verifier fixes) | 189 Java tests, 95 Python tests, both canaries pinned, both loopback games clean |

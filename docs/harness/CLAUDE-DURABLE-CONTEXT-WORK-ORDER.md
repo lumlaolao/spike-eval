@@ -1,0 +1,17 @@
+# Queued implementation: durable evidence and strategic memory
+
+Not dispatched yet. Start after ownership worker C releases LlmSpikeGui.java, or coordinate a disjoint integration boundary. The user wants complete player evidence/context, not merely a searchable tail. Read current PLAYER-HARNESS.md and COMPLETION-GATES.md; preserve every existing change.
+
+Implement and wire a seat/game-scoped disk-backed append-only archive and bounded memory layers into the live faithful-profile ContextMemory path. Current implementation retains all entries, notes and per-turn history in JVM memory, loses them on process exit, and grows prompts with game length. ContextProfile.V4_FAITHFUL uses TIERED history with no hard historical size bound. askModel retries also need a separate later accounting milestone; do not claim those fixed by archive work.
+
+Requirements:
+- Exact original permitted evidence stays retrievable by stable IDs across archive reopen. Persist turn/decision/source kind and game/seat/schema identity. Separate raw evidence, lossy source-range summaries, and model-authored hypotheses. Backend resets and smart/fast swaps share the same seat memory.
+- Append and reopen semantics handle truncated final records, I/O failures, cross-game/seat mismatches, duplicate ingestion and close/reopen tests. No silent loss. Recovery refers to agent evidence recovery; do not pretend arbitrary live Forge game restoration exists.
+- Bound in-memory storage and historical prompt contribution independently of game length. Use on-disk offsets/indexing or streaming, not Files.readAllLines. A summary cannot become the only surviving copy of evidence. Bound result pages and include exact omitted ranges/retrieval cursors. Visible current board/legal options must stay available; large current state should be paged with counts rather than silently cropped.
+- Notebook supports creating, revising, retracting and contradicting agent hypotheses/plans, with stable note IDs, source references, status and revision history. Historical card knowledge remains evidence, never current hidden-state permission. No hidden decklist/archetype label access. Optional knowledge library is separate/versioned; do not add unrequested coaching.
+- Strict tool grammar or typed equivalent, action/tool replies never ambiguously accepted; shared game/decision quotas survive backend restarts. Budget-denial handling and recovery explicit.
+- Wire real controller construction, game lifecycle/config/provenance and tool instructions; test through fake bridge. A standalone archive class is insufficient. Record honest inability to resume the engine itself.
+
+Acceptance tests: long synthetic game evidence growth with bounded JVM working set/history text; exact paged lookup of old evidence after reopening; seat/game isolation; interrupted write recovery; unknown IDs; invalid cursors; note updates/contradictions preserving cited source; full reveal retained despite summary compaction; real controller retrieval after backend reset; legacy profile compatibility/versioned faithful condition. Compile/test fresh isolated classes only.
+
+Boundaries: source/tests/harness docs only to Claude subscription. No secrets/credentials/datasets/real game logs/personal files; no external game model calls, installs, stage/commit/push, adjacent Forge writes, or other agents. Do not weaken defect_analyzer or expected canaries. Report actual test results and incomplete gates.

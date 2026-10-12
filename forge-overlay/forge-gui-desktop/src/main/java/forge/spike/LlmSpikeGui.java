@@ -162,7 +162,9 @@ public final class LlmSpikeGui {
         /** The file currently being written (null if EVAL_OUT unset). LlmSpikeFork's check mode reads
          *  this back after the game ends to compare the replayed decision stream against FORK_SOURCE. */
         static java.io.File currentFile() { return file; }
-        /** Test-only: flush + detach the writer so a subsequent {@link #initToDir} can open a fresh file. */
+        /** Flush + detach the writer so a subsequent {@link #init}/{@link #initToDir} can open a fresh
+         *  file. Originally test-only; LlmSpikeFork's rollout mode also uses it deliberately (one fresh
+         *  per-game jsonl per rollout replay within a single JVM) — it is exactly flush+detach. */
         static synchronized void closeForTest() {
             if (out != null) { out.flush(); out.close(); out = null; file = null; }
         }
@@ -184,6 +186,65 @@ public final class LlmSpikeGui {
     static volatile ForkHook FORK_HOOK = null;
     static final java.util.concurrent.atomic.AtomicInteger FORK_DECISION_SEQ =
             new java.util.concurrent.atomic.AtomicInteger(-1);
+
+    // ==================== FORK ROLLOUT FORCER (Milestone D rollout — additive, inert) ====================
+    // Everything in this fenced block is a no-op in every normal run: FORK_FORCER is null unless
+    // LlmSpikeFork's rollout mode installs one, and forkForce() returns null immediately in that case.
+    // The seed-42 floor/floor canary is the regression gate proving inertness.
+
+    /** Fork-mode decision forcer (LlmSpikeFork rollout, EVAL-DESIGN.md §3.1(b)). Consulted by exactly
+     *  two decision sites per controller — chooseSpellAbilityToPlay ("play") and mulliganKeepHand
+     *  ("mulligan"), in both PlayerControllerLLM and PlayerControllerAiLogging — the only v1 types
+     *  whose logged {@code choice} is index-encoded AND whose forced index maps unambiguously to an
+     *  engine object. Return {@code >= 0} to force that 0-based index into {@code options} (for
+     *  "play" the trailing PASS slot is a valid index), {@code -1} to force PASS/decline/KEEP, or
+     *  {@code null} to decide normally. */
+    interface ForkForcer {
+        Integer forceChoice(int index, Player pl, String seat, String type, int nOptions, List<String> options);
+    }
+    static volatile ForkForcer FORK_FORCER = null;
+
+    /** Consult FORK_FORCER with the decision index {@code emitDecisionRow} is ABOUT to assign
+     *  ({@code FORK_DECISION_SEQ.get() + 1}). This is sound ONLY because fork-mode games run on a
+     *  single worker thread (LlmSpikeFork.playDeterministicGame): between this call and the same
+     *  decision's own emitDecisionRow no other row can be emitted on that thread. That is a stated
+     *  limitation of the fork harness, not a tested cross-thread guarantee — do not install a forcer
+     *  in a run where two seats can decide concurrently. Null forcer (every normal run) returns null
+     *  with zero side effects. */
+    static Integer forkForce(Player pl, String seat, String type, int nOptions, List<String> options) {
+        ForkForcer f = FORK_FORCER;
+        if (f == null) return null;
+        return f.forceChoice(FORK_DECISION_SEQ.get() + 1, pl, seat, type, nOptions, options);
+    }
+
+    /** Deterministic first-legal targeting for a fork-FORCED SpellAbility on an ai-log seat. The AI
+     *  cast path does no targeting for ordinary spells it did not itself evaluate, and an untargeted
+     *  cast fizzles ("Couldn't add to stack, failed to target") — this is the engine gotcha
+     *  PlayerControllerLLM.ensureTargetsSet exists for. That method is instance-private and logs
+     *  through the LLM seat's evalDec; this static mirror applies only its deterministic core (first
+     *  legal candidate, topped up to minTargets), no model call, no jsonl row. The first-legal pick
+     *  is a rollout-POLICY caveat (targets are not optimized), matching the floor arm's own
+     *  "target(no-model)->first" behavior; verify_keys.py surfaces it via rollout caveats. Called
+     *  only from the fork-forced play path in PlayerControllerAiLogging — inert otherwise. */
+    static void forceTargetsFirstLegal(Player activator, SpellAbility root) {
+        for (SpellAbility sa = root; sa != null; sa = sa.getSubAbility()) {
+            try {
+                if (!sa.usesTargeting()) continue;
+                if (sa.getTargets() != null && !sa.getTargets().isEmpty()) continue; // already targeted
+                if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(activator);
+                TargetRestrictions tr = sa.getTargetRestrictions();
+                if (tr == null) continue;
+                List<GameEntity> cands = tr.getAllCandidates(sa, false);
+                if (cands == null || cands.isEmpty()) continue; // no legal target -> let engine cancel/handle
+                int min = Math.max(1, sa.getMinTargets());
+                sa.resetTargets();
+                sa.getTargets().add(cands.get(0));
+                for (int i = 1; sa.getTargets().size() < min && i < cands.size(); i++)
+                    sa.getTargets().add(cands.get(i));
+            } catch (Exception ignore) { /* leave targeting to the engine for this ability */ }
+        }
+    }
+    // ==================== end FORK ROLLOUT FORCER block ====================
 
     /** The seed applySeed() actually used. Read by the D4 shadow labeler to derive its ephemeral RNG
      *  streams, so shadow draws differ across games in a batch instead of replaying one fixed stream.
@@ -232,8 +293,284 @@ public final class LlmSpikeGui {
     // in the response's own `model` field — so that is what we record, alongside the spec we asked for.
     static final Map<String, String> servedModels = new ConcurrentHashMap<>();
 
+    /** PZL axis: which seat is the puzzle SOLVER, or null outside puzzle mode.
+     *
+     *  Forge decides who receives the "Puzzle Goal" enforcement card by asking each controller
+     *  {@code isGuiPlayer()} (Puzzle.java:119) — the only call site of that method in the entire
+     *  engine, verified by grep at the pinned commit. Our controllers extend PlayerControllerAi,
+     *  whose base returns false, so a headless puzzle would find no solver, leave `human` null and
+     *  NPE inside addGoalEnforcement before the first turn. Rather than fork Puzzle.java (which
+     *  would make the adjudicator a COPY of the engine's and free to drift from it — the one thing
+     *  the PZL axis must not allow), we point that single predicate at the seat LlmSpikePuzzle
+     *  designates, and Forge's own goal enforcement runs verbatim.
+     *
+     *  Null outside puzzle mode, so every non-puzzle run is byte-identical to before. */
+    static volatile LobbyPlayer puzzleSolverSeat = null;
+
+    /** True only for the seat {@link #puzzleSolverSeat} names. Identity comparison, not name
+     *  equality: two seats may share a display name. */
+    static boolean isPuzzleSolver(LobbyPlayer lp) {
+        LobbyPlayer solver = puzzleSolverSeat;
+        return solver != null && lp == solver;
+    }
+
     /** Our agent's controller: extend the AI, route decisions to Claude, delegate to super on
      *  anything we don't handle or that fails. One instance per seat — all state is per-instance. */
+    /**
+     * The model's WINDOW ONTO THE GAME, as a named, versioned, hashable object.
+     *
+     * WHY THIS EXISTS. Everything the model knows arrives through
+     * {@link PlayerControllerLLM#buildSnapshot}, and until now its shape was a
+     * scatter of hardcoded literals: 10 recent events, 16 intel facts, 30 yard
+     * names, 25 cast-history names. Those numbers ARE the measurement — change
+     * one and every score before and after is measuring a different agent — yet
+     * the game-summary line stamped 30+ provenance fields and NOT ONE of them
+     * recorded any of it. {@code overlay_sha} moves when the Java moves, but it
+     * is far too coarse to say WHICH knob changed, and it reads "unknown" on any
+     * bare {@code run-llm-headless.sh} launch.
+     *
+     * That is the 88%-lesson failure mode with the detector removed: two runs
+     * that cannot be pooled, and no field that says so. So context shape is now
+     * a first-class, named profile, stamped as {@code context_profile} +
+     * {@code context_sha} on every game summary. Two runs on different profiles
+     * are DIFFERENT MEASUREMENTS and the provenance now says which.
+     *
+     * THE DEFAULT IS {@code v1-compat} AND IT IS BYTE-IDENTICAL TO THE PRE-PROFILE
+     * HARNESS. Every literal below is the value that was hardcoded at the call
+     * site it replaces, so the seed-42 canary, the ai-teacher prompt pairing
+     * (which needs student/teacher prompts byte-equal), and every artifact on
+     * disk are untouched. A profile is opt-in via CONTEXT_PROFILE.
+     *
+     * Selected by {@code CONTEXT_PROFILE=<name>}; individual knobs can be
+     * overridden by env for experiments, and any override is folded into the sha
+     * so a tweaked profile can never masquerade as the named one.
+     */
+    static final class ContextProfile {
+        /** Sentinel for {@link #recentEvents}: narrate EVERY logged event since this seat's previous
+         *  decision, however many that is, instead of a fixed-size tail. See the field doc. */
+        static final int EVENTS_SINCE_LAST_DECISION = -1;
+
+        final String name;
+        /** How many engine log entries to narrate as RECENT EVENTS.
+         *
+         *  v1-compat pins 10, which is the single worst information defect in the harness: a Legacy
+         *  game here runs to 108 turns (the seed-42 canary), and more than ten loggable events
+         *  routinely occur between two of ONE seat's priority windows — a single combat step can
+         *  spend that budget. The model is then asked to act on a board whose recent past it
+         *  literally cannot see, while the system message tells it "the state snapshot is
+         *  authoritative: trust it over your memory of earlier turns." Both halves of that sentence
+         *  are load-bearing and the second one is only safe if the first is complete.
+         *
+         *  {@link #EVENTS_SINCE_LAST_DECISION} closes it by narrating exactly the events this seat
+         *  has not yet been shown, which is the quantity the prose always claimed to deliver. */
+        final int recentEvents;
+        /** Hard ceiling on the since-last-decision window, so a pathological gap (a long opponent
+         *  combo turn) cannot blow the context budget. Only consulted when recentEvents is the
+         *  sentinel. */
+        final int recentEventsMax;
+        /** INTEL deque capacity — durable learned facts (revealed hands, named cards). */
+        final int intelCap;
+        /** Max graveyard names rendered per player. */
+        final int yardCap;
+        /** Max exile names rendered per player. */
+        final int exileCap;
+        /** Max distinct names in OPP CAST THIS GAME / OPP LANDS PLAYED. */
+        final int castHistoryCap;
+        /** At what resolution the past is rendered. See {@link GameHistory.Mode}. */
+        final GameHistory.Mode historyMode;
+        /** TIERED only: how many of the most recent turns get a FULL per-turn digest before the
+         *  harder high-signal-only tier takes over. */
+        final int digestTurns;
+        /** TIERED only: max distinct entries per digest line, before "...(N more)". */
+        final int digestPerTurn;
+        /** TIERED only: how many consecutive old turns may share one hard-tier line. Forty turns of
+         *  one line each is not a summary, it is the log again. */
+        final int compactTurnsPerLine;
+        /** Which observation renderer feeds the prompt. {@code false} = the legacy buildSnapshot
+         *  path (engine {@code @id}s, capped zones, global log tail). {@code true} = the viewer-aware
+         *  {@link SeatObservation} path: seat-local handles, visibility-gated identities, seat-captured
+         *  narration with private reveals, full permitted zones. This is a different measurement,
+         *  so it is part of the profile identity below. */
+        final boolean faithfulObservation;
+
+        private ContextProfile(String name, int recentEvents, int recentEventsMax, int intelCap,
+                               int yardCap, int exileCap, int castHistoryCap,
+                               GameHistory.Mode historyMode, int digestTurns, int digestPerTurn,
+                               int compactTurnsPerLine) {
+            this(name, recentEvents, recentEventsMax, intelCap, yardCap, exileCap, castHistoryCap,
+                 historyMode, digestTurns, digestPerTurn, compactTurnsPerLine, false);
+        }
+
+        private ContextProfile(String name, int recentEvents, int recentEventsMax, int intelCap,
+                               int yardCap, int exileCap, int castHistoryCap,
+                               GameHistory.Mode historyMode, int digestTurns, int digestPerTurn,
+                               int compactTurnsPerLine, boolean faithfulObservation) {
+            this.name = name;
+            this.recentEvents = recentEvents;
+            this.recentEventsMax = recentEventsMax;
+            this.intelCap = intelCap;
+            this.yardCap = yardCap;
+            this.exileCap = exileCap;
+            this.castHistoryCap = castHistoryCap;
+            this.historyMode = historyMode;
+            this.digestTurns = digestTurns;
+            this.digestPerTurn = digestPerTurn;
+            this.compactTurnsPerLine = compactTurnsPerLine;
+            this.faithfulObservation = faithfulObservation;
+        }
+
+        /** The pre-profile harness, literal for literal. Do not change these numbers: they are the
+         *  definition of every measurement taken before profiles existed. To try something else,
+         *  ADD a profile. */
+        static final ContextProfile V1_COMPAT =
+                new ContextProfile("v1-compat", 10, 10, 16, 30, 30, 25,
+                                   GameHistory.Mode.FIXED_TAIL, 0, 0, 0);
+
+        /** Closes the amnesia: the model sees every event since its own previous decision (capped at
+         *  60 so one enormous opponent turn cannot dominate the prompt), and remembers twice as many
+         *  durable facts. Deliberately changes NOTHING else — a profile that moves five knobs at once
+         *  cannot tell you which one moved the number. */
+        static final ContextProfile V2_MEMORY =
+                new ContextProfile("v2-memory", EVENTS_SINCE_LAST_DECISION, 60, 32, 30, 30, 25,
+                                   GameHistory.Mode.SINCE_LAST_DECISION, 0, 0, 0);
+
+        /** The resolution ladder: recent events verbatim, the last 3 turns digested to a line each,
+         *  everything older collapsed into high-signal-only lines covering up to 5 turns apiece.
+         *  Unlike v2-memory this has no horizon at all — turn 1 of a 100-turn game is still
+         *  represented, just cheaply — while reducing growth relative to the full log (not a hard size bound). Every digest carries the
+         *  canonical E-id range it covers, so the compaction is visible to the model rather than
+         *  looking like events that never happened. */
+        static final ContextProfile V3_COMPACT =
+                new ContextProfile("v3-compact", EVENTS_SINCE_LAST_DECISION, 40, 32, 30, 30, 25,
+                                   GameHistory.Mode.TIERED, 3, 12, 5);
+
+        /** The viewer-aware path (2026-09-06): every prompt is rendered by {@link SeatObservation}
+         *  from what this seat may legally see. Zones are rendered in full (the caps are effectively
+         *  off, and any cap that does fire is printed as an explicit omission), history is the
+         *  seat-captured stream on the v3 ladder, and object handles are seat-local. The legacy
+         *  profiles above are untouched; this is a separate measurement with its own sha. */
+        static final ContextProfile V4_FAITHFUL =
+                new ContextProfile("v4-faithful", EVENTS_SINCE_LAST_DECISION, 40, 64, 10000, 10000, 10000,
+                                   GameHistory.Mode.TIERED, 3, 12, 5, true);
+
+        private static final Map<String, ContextProfile> REGISTRY;
+        static {
+            Map<String, ContextProfile> m = new java.util.LinkedHashMap<>();
+            m.put(V1_COMPAT.name, V1_COMPAT);
+            m.put(V2_MEMORY.name, V2_MEMORY);
+            m.put(V3_COMPACT.name, V3_COMPACT);
+            m.put(V4_FAITHFUL.name, V4_FAITHFUL);
+            REGISTRY = java.util.Collections.unmodifiableMap(m);
+        }
+
+        /** Registered profile names, in declaration order (for the unknown-name error message). */
+        static java.util.Set<String> names() { return REGISTRY.keySet(); }
+
+        /** Package-private test seam (same idiom as PlayerControllerLLM's injected-bridge ctor):
+         *  build an arbitrary profile so the renderer's cap/gap arithmetic can be driven at its
+         *  boundaries without adding throwaway entries to the REGISTRY, which is the operator-facing
+         *  list of real, quotable profiles. */
+        static ContextProfile forTest(String name, GameHistory.Mode mode, int recentEvents,
+                                      int recentEventsMax, int digestTurns, int digestPerTurn,
+                                      int compactTurnsPerLine) {
+            return new ContextProfile(name, recentEvents, recentEventsMax, 16, 30, 30, 25,
+                                      mode, digestTurns, digestPerTurn, compactTurnsPerLine);
+        }
+
+        /** Resolve CONTEXT_PROFILE, then apply any per-knob env overrides.
+         *
+         *  An UNKNOWN name is a hard failure, not a silent fallback to the default: a typo'd
+         *  CONTEXT_PROFILE that quietly ran v1-compat would produce a run whose provenance says
+         *  v1-compat and whose operator believes it is something else — the precise class of
+         *  undetectable mismatch this whole type exists to prevent. */
+        static ContextProfile fromEnv() {
+            return resolve(System.getenv("CONTEXT_PROFILE")).withEnvOverrides();
+        }
+
+        /** Name -> profile, with the rejection rule. Separate from {@link #fromEnv()} purely so the
+         *  fatal-on-unknown behavior — this type's core safety claim — is reachable from a test,
+         *  which cannot mutate the process environment. */
+        static ContextProfile resolve(String want) {
+            if (want == null || want.trim().isEmpty()) return V1_COMPAT;
+            ContextProfile base = REGISTRY.get(want.trim());
+            if (base == null) {
+                throw new IllegalArgumentException("unknown CONTEXT_PROFILE '" + want.trim()
+                        + "' — known profiles: " + String.join(", ", names()));
+            }
+            return base;
+        }
+
+        /** Per-knob env overrides for experiments. A profile carrying any override reports its name
+         *  with a "+ovr" suffix AND a different sha, so an overridden run can never be pooled with
+         *  the clean profile by either identifier. */
+        private ContextProfile withEnvOverrides() {
+            int re  = envInt("CTX_RECENT_EVENTS", recentEvents);
+            int rem = envInt("CTX_RECENT_EVENTS_MAX", recentEventsMax);
+            int ic  = envInt("CTX_INTEL_CAP", intelCap);
+            int yc  = envInt("CTX_YARD_CAP", yardCap);
+            int ec  = envInt("CTX_EXILE_CAP", exileCap);
+            int cc  = envInt("CTX_CAST_HISTORY_CAP", castHistoryCap);
+            int dt  = envInt("CTX_DIGEST_TURNS", digestTurns);
+            int dp  = envInt("CTX_DIGEST_PER_TURN", digestPerTurn);
+            int ct  = envInt("CTX_COMPACT_TURNS_PER_LINE", compactTurnsPerLine);
+            if (re == recentEvents && rem == recentEventsMax && ic == intelCap
+                    && yc == yardCap && ec == exileCap && cc == castHistoryCap
+                    && dt == digestTurns && dp == digestPerTurn && ct == compactTurnsPerLine) {
+                return this;
+            }
+            return new ContextProfile(name + "+ovr", re, rem, ic, yc, ec, cc,
+                                      historyMode, dt, dp, ct, faithfulObservation);
+        }
+
+        private static int envInt(String k, int def) {
+            try { String v = System.getenv(k); return v == null || v.trim().isEmpty() ? def : Integer.parseInt(v.trim()); }
+            catch (Exception e) { return def; }
+        }
+
+        /** Canonical serialization — the sha's preimage. Every knob appears, in a fixed order, so
+         *  adding a knob later necessarily changes the sha of every profile (which is correct: a
+         *  harness with a new context dimension is not the old harness). */
+        String canonical() {
+            // context.v2 adds the history-mode dimension. The schema version is part of the
+            // preimage on purpose: a harness with a new context dimension is not the old harness,
+            // so every profile's sha moves. v1-compat's RENDERING is unchanged across that bump —
+            // only its identity string is — and CLAUDE.md records the old sha so artifacts written
+            // under context.v1 stay matchable.
+            //
+            // context.v3 adds the observation dimension. Unlike the v2 bump it is applied ONLY to
+            // profiles that use the faithful renderer: every legacy profile keeps its context.v2
+            // preimage byte-for-byte, so the context_sha stamped on every artifact on disk still
+            // matches, while no faithful profile can ever collide with a legacy one.
+            String body = "name=" + name
+                    + "|history_mode=" + historyMode
+                    + "|recent_events=" + recentEvents
+                    + "|recent_events_max=" + recentEventsMax
+                    + "|intel_cap=" + intelCap
+                    + "|yard_cap=" + yardCap
+                    + "|exile_cap=" + exileCap
+                    + "|cast_history_cap=" + castHistoryCap
+                    + "|digest_turns=" + digestTurns
+                    + "|digest_per_turn=" + digestPerTurn
+                    + "|compact_turns_per_line=" + compactTurnsPerLine;
+            return faithfulObservation
+                    ? "context.v3|" + body + "|observation=" + SeatObservation.VERSION
+                    : "context.v2|" + body;
+        }
+
+        /** 12-hex sha256 over {@link #canonical()} — same width/idiom as modelCfgSha(). */
+        String sha() {
+            try {
+                byte[] d = java.security.MessageDigest.getInstance("SHA-256")
+                        .digest(canonical().getBytes(StandardCharsets.UTF_8));
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < 6; i++) sb.append(String.format("%02x", d[i]));
+                return sb.toString();
+            } catch (Exception e) { return "unknown"; }
+        }
+
+        @Override public String toString() { return name + "/" + sha(); }
+    }
+
     static class PlayerControllerLLM extends PlayerControllerAi {
         private static final int MAX_PLAY_DECISIONS_PER_TURN = 25;
         private static final int SMART_BUDGET = envInt("SMART_BUDGET", 320); // per-game load-bearing LLM calls
@@ -335,23 +672,53 @@ public final class LlmSpikeGui {
         private final java.util.Set<String> lastDeclaredAttackerNames = new java.util.HashSet<>();
         private int planTurn = -1;
 
-        // Game-log types worth narrating to the model (skip PHASE/MANA/INFORMATION noise).
-        private static final java.util.Set<GameLogEntryType> EVENT_TYPES = EnumSet.of(
-                GameLogEntryType.TURN, GameLogEntryType.MULLIGAN, GameLogEntryType.ZONE_CHANGE,
-                GameLogEntryType.DAMAGE, GameLogEntryType.LIFE, GameLogEntryType.LAND,
-                GameLogEntryType.DISCARD, GameLogEntryType.COMBAT, GameLogEntryType.STACK_ADD,
-                GameLogEntryType.STACK_RESOLVE, GameLogEntryType.GAME_OUTCOME);
+        /** The resolved context profile for this process — what the model is allowed to see.
+         *  Resolved ONCE from the environment: a profile that could change mid-game would make the
+         *  run's own provenance a lie. An unknown CONTEXT_PROFILE throws here (surfacing as
+         *  ExceptionInInitializerError naming the known profiles) rather than silently running the
+         *  default, because a typo that quietly measures something else is exactly the failure this
+         *  type exists to prevent. */
+        static final ContextProfile CTX = ContextProfile.fromEnv();
+        /** Test seam: a profile that replaces {@link #CTX} for controllers constructed while it is
+         *  set (tests cannot mutate the process environment). Never set in production; the game
+         *  summary stamps CTX, so a run with this set would mis-stamp its own provenance. */
+        static volatile ContextProfile TEST_PROFILE_OVERRIDE = null;
+        static ContextProfile profile() {
+            ContextProfile o = TEST_PROFILE_OVERRIDE;
+            return o != null ? o : CTX;
+        }
+        /** The profile this controller was built under; resolved once per controller. */
+        private final ContextProfile ctx;
+        /** The viewer-aware observation layer, present only under a faithful profile. Everything the
+         *  model sees under that profile — state, candidate labels, narration, reveals, INSPECT —
+         *  passes through it; null means the legacy buildSnapshot/candidateLabel path is in use. */
+        private final SeatObservation observer;
 
         // Rolling strategic intel (revealed hands, cards we named). Included in every snapshot so it
         // survives the periodic bridge-session refresh — the model keeps what it LEARNED even when the
         // conversation restarts for speed.
         private final java.util.ArrayDeque<String> intel = new java.util.ArrayDeque<>();
+        static final boolean MEMORY_TOOLS = "1".equals(System.getenv("MEMORY_TOOLS"));
+        private final ContextMemory contextMemory = new ContextMemory();
+        private int contextCallSeq;
+        private int archivedEventCount;
+
+        /** Count of logged events this seat had already been shown at its previous snapshot, so
+         *  EVENTS_SINCE_LAST_DECISION can narrate exactly the gap. -1 = no snapshot taken yet, which
+         *  means "everything since the game began". Per-seat by construction: two seats have
+         *  different decision cadences and therefore different gaps. */
+        private int eventWatermark = -1;
         private void remember(String fact) {
+            // Faithful path: the seat stream is the durable, uncapped record (E-id, turn attribution,
+            // searchable); INTEL below is the legacy capped deque and is not rendered under it.
+            if (observer != null) observer.recordReveal(fact);
+            if (MEMORY_TOOLS) contextMemory.reveal("T" + safeTurn() + ": " + fact);
             intel.addLast("T" + safeTurn() + ": " + fact);
-            // 16 (was 8): reveals are the "seen but not necessarily cast" half of opponent memory —
-            // the cast/land history lines carry the ground-truth half, so INTEL only needs to hold
-            // reveals/names, and 8 was evicting early-game hand reveals by mid-game.
-            while (intel.size() > 16) intel.removeFirst();
+            // Cap is the profile's now (v1-compat pins the historical 16). Reveals are the "seen but
+            // not necessarily cast" half of opponent memory — the cast/land history lines carry the
+            // ground-truth half, so INTEL only needs to hold reveals/names, and 8 was evicting
+            // early-game hand reveals by mid-game.
+            while (intel.size() > ctx.intelCap) intel.removeFirst();
         }
         private int safeTurn() {
             try { return getPlayer().getGame().getPhaseHandler().getTurn(); } catch (Exception e) { return 0; }
@@ -385,10 +752,110 @@ public final class LlmSpikeGui {
             this.rnd = "random".equals(this.mode) ? new java.util.Random(MyRandom.getRandom().nextLong()) : null;
             this.smart = smartBridge;
             this.fast  = fastBridge;
+            this.ctx = profile();
+            // The observer subscribes to the game's event bus (zone changes only, read-only) so
+            // handle continuity is tracked as it happens. Legacy profiles never construct one, so
+            // their game behaviour and prompt bytes are untouched.
+            this.observer = ctx.faithfulObservation ? new SeatObservation(game, p) : null;
+            if (observer != null && MEMORY_TOOLS) contextMemory.setInspector(observer::inspect);
             if (!"llm".equals(this.mode)) p("[MODE] baseline arm: " + this.mode);
+            if (observer != null) p("[OBSERVATION] " + SeatObservation.VERSION + " (profile " + ctx + ")");
         }
 
+        /** Non-null under a faithful profile; tests use it to drive the live observer directly. */
+        SeatObservation observer() { return observer; }
+
+        // ---------------- candidate labels: one seam, two renderers ----------------
+        // Faithful profile: every menu option is rendered by the observer, so what the model can pick
+        // carries the same seat-local @handle and the same visibility gating as the state it just read
+        // (`presented` = the engine handed us this candidate, which waives the zone rule but never the
+        // face-down rule). Legacy profiles: the static helpers, byte-for-byte as before.
+        String cardLabel(Card c) { return observer != null ? observer.describe(c, true) : candidateLabel(c); }
+        String labelOf(GameEntity e) {
+            if (observer != null && e instanceof Card) {
+                Card c = (Card) e;
+                String zone = c.getZone() == null ? "?" : String.valueOf(c.getZone().getZoneType());
+                return observer.describe(c, true) + " [" + zone + "]";
+            }
+            return entityLabel(e);
+        }
+        String labelOf(SpellAbility sa) {
+            if (observer == null || sa.getHostCard() == null) return saLabel(sa);
+            String s = saLabel(sa);
+            String host = sa.getHostCard().getName();
+            // Same text as the legacy label, with the host's name replaced by its handle-bearing short
+            // reference, so a play/target menu and the state above it name the same object.
+            return host != null && !host.isEmpty() && s.startsWith(host) ? observer.shortRef(sa.getHostCard()) + s.substring(host.length()) : s;
+        }
+        List<String> playLabels(List<SpellAbility> options, List<Card> landCards) {
+            if (observer == null) return buildPlayLabels(options, landCards);
+            List<String> out = new ArrayList<>();
+            for (SpellAbility sa : options) out.add("CAST " + labelOf(sa));
+            for (Card lc : landCards) out.add("PLAY LAND " + observer.describe(lc, true));
+            out.add("PASS (do nothing)");
+            return out;
+        }
+        /** BLOCKS parsing: a handle reference ("@7") beats a name match when the observer is live, so
+         *  duplicate-named creatures are unambiguous; the legacy name match is the fallback. */
+        private Card matchCard(Iterable<Card> cards, String seg) {
+            if (observer != null) {
+                Matcher m = Pattern.compile("@(\\d+)").matcher(seg);
+                if (m.find()) {
+                    int h = Integer.parseInt(m.group(1));
+                    for (Card c : cards) if (observer.handleOf(c) == h) return c;
+                }
+            }
+            return matchByName(cards, seg.toUpperCase());
+        }
+
+        // ---------------- reveal capture (information hooks; ledger kind=information) ----------------
+        // The engine tells a controller what was revealed TO its player through these two hooks. The
+        // inherited AI implementation only feeds AiCardMemory. Under the faithful profile the reveal is
+        // appended to the seat stream (so it gets an E-id, turn attribution, search and archive) as a
+        // historical, seat-local fact. Legacy profiles keep the inherited behaviour so their prompt bytes
+        // are unchanged; super is always called so any inherited fallback still sees what the AI saw.
+        @Override
+        public void reveal(CardCollectionView cards, ZoneType zone, Player owner, String messagePrefix, boolean addSuffix) {
+            super.reveal(cards, zone, owner, messagePrefix, addSuffix);
+            if (observer == null || cards == null || cards.isEmpty()) return;
+            try {
+                StringBuilder b = new StringBuilder();
+                for (Card c : cards) { if (b.length() > 0) b.append(", "); b.append(observer.describe(c, true)); }
+                observer.recordReveal(revealPrefix(messagePrefix, zone, owner) + b);
+            } catch (Exception ignore) { }
+        }
+        @Override
+        public void reveal(List<forge.game.card.CardView> cards, ZoneType zone, forge.game.player.PlayerView owner,
+                           String messagePrefix, boolean addSuffix) {
+            super.reveal(cards, zone, owner, messagePrefix, addSuffix);
+            if (observer == null || cards == null || cards.isEmpty()) return;
+            try {
+                StringBuilder b = new StringBuilder();
+                for (forge.game.card.CardView cv : cards) {
+                    if (b.length() > 0) b.append(", ");
+                    Card c = cv == null ? null : getGame().findByView(cv);
+                    b.append(c != null ? observer.describe(c, true) : String.valueOf(cv == null ? "?" : cv.getName()));
+                }
+                Player o = null;
+                if (owner != null) for (Player pl : getGame().getPlayers()) if (pl.getView() == owner) { o = pl; break; }
+                observer.recordReveal(revealPrefix(messagePrefix, zone, o) + b);
+            } catch (Exception ignore) { }
+        }
+        private String revealPrefix(String messagePrefix, ZoneType zone, Player owner) {
+            String who = owner == null ? "?" : (owner == getPlayer() ? "your" : owner.getName() + "'s");
+            String what = messagePrefix == null || messagePrefix.trim().isEmpty() ? "revealed" : oneLine(messagePrefix);
+            return what + " from " + who + " " + (zone == null ? "zone" : zone) + ": ";
+        }
+
+        /** See {@link LlmSpikeGui#puzzleSolverSeat}: this is read by Forge at exactly one place,
+         *  Puzzle.addGoalEnforcement, to pick the seat that must meet the goal. */
+        @Override
+        public boolean isGuiPlayer() { return isPuzzleSolver(getLobbyPlayer()); }
+
         private void p(String s) { System.out.println("[" + seat + "] " + s); }
+        static String routeLabel(String model, boolean random) {
+            return random ? "random baseline (no model call)" : "asking " + model + "...";
+        }
         private static int envInt(String k, int def) {
             try { String v = System.getenv(k); return v == null ? def : Integer.parseInt(v.trim()); }
             catch (Exception e) { return def; }
@@ -407,8 +874,9 @@ public final class LlmSpikeGui {
                     + "PROTOCOL: I am the Forge rules engine. Each message gives you the CURRENT game state and ONE "
                     + "decision with a numbered list of the ONLY legal options — every option is already "
                     + "engine-validated, so pick purely on strategy. The state snapshot in each message is "
-                    + "authoritative: trust it over your memory of earlier turns. You have NO tools and cannot "
-                    + "inspect anything yourself — everything you need is in the message; answer directly.\n"
+                    + "authoritative: trust it over your memory of earlier turns. "
+                    + (MEMORY_TOOLS ? ContextMemory.instructions()
+                        : "You have NO tools and cannot inspect anything yourself — everything you need is in the message; answer directly.\n")
                     + "PRINCIPLES: (1) Sequence toward your game plan, not the shiniest single play. "
                     + "(2) At instant speed with nothing to gain, PASS. "
                     + "(3) In combat, count damage and their untapped mana before committing. "
@@ -474,6 +942,10 @@ public final class LlmSpikeGui {
               + "execute it or consciously deviate.\n"
               + "Option lists label each card the same way: `Name (P/T)[loyalty N][tapped]/[untapped][counters]`,\n"
               + "so duplicate-named permanents are always distinguishable — read the tag before you pick.\n"
+              + "`@N` after an in-play card (board, lands, and option lists alike) is that specific permanent's\n"
+              + "durable object id for this game: `Swamp x2 [untapped @53 @61]` is two distinct Swamps you can\n"
+              + "tell apart and track across turns — the SAME id always means the SAME physical card. Numbers in\n"
+              + "plain (parentheses) inside RECENT EVENTS lines are raw engine text, NOT these ids.\n"
               + "\n"
               + "=== ANSWER CONTRACT (the exact final line I parse for each decision kind) ===\n"
               + "- Numbered single pick -> `CHOICE: <number>` (one number from the Options list; a 'decline/none'\n"
@@ -482,10 +954,15 @@ public final class LlmSpikeGui {
               + "  `PICKS: <comma-separated numbers>`, honoring the stated 'choose between MIN and MAX' bound.\n"
               + "  For scry/surveil, list the ones to KEEP ON TOP in order (first = new top card); anything you\n"
               + "  omit goes to the bottom/graveyard.\n"
-              + "- Declare attackers -> `PICKS:` the numbers of the creatures that attack (empty/none = no attack).\n"
+              + "- Choosing ZERO when the stated MIN is 0 -> write exactly `PICKS: NONE` (an empty list must be\n"
+              + "  declared, never implied by a blank line).\n"
+              + "- Declare attackers -> `PICKS:` the numbers of the creatures that attack, or `PICKS: NONE` for\n"
+              + "  no attack.\n"
               + "- Declare blockers -> `BLOCKS: blocker->attacker, blocker->attacker` (or `BLOCKS: NONE`).\n"
               + "- Mulligan -> exactly one word, `KEEP` or `MULLIGAN`.\n"
-              + "I read ONLY that final line; write it verbatim with nothing after it.\n"
+              + "I read ONLY that final line; write it verbatim with nothing after it. If I cannot parse it I\n"
+              + "will re-ask ONCE; if I still cannot parse it I will choose the decline/PASS option for you — so\n"
+              + "a malformed answer costs you the decision.\n"
               + "\n"
               + "=== WORKED EXAMPLES (format + the kind of reasoning that wins; illustrative, not this game) ===\n"
               + "Example A - sequencing a cantrip before a threat: 'I have UU open, a Brainstorm, and a\n"
@@ -537,6 +1014,10 @@ public final class LlmSpikeGui {
          *  none/parse-failure. `noneLabel` (nullable) adds an extra "decline" option. */
         private int decideOne(LLMBridge b, String type, String question, List<String> options, String noneLabel) {
             clearLast();
+            // Repeated labels (two blockers sharing a name, two copies of one card as targets) become
+            // "label #1"/"label #2" in the prompt AND the evalDec-logged options array, in one place.
+            // Indices are untouched, so callers keep indexing their original lists.
+            options = disambiguate(options);
             long t0 = System.currentTimeMillis();
             // RANDOM arm: uniform over the same legal menu (incl. the decline option when present).
             if (rnd != null) {
@@ -575,6 +1056,8 @@ public final class LlmSpikeGui {
         /** Ask a bridge to pick BETWEEN min..max options; returns 0-based indices, or null on failure. */
         private List<Integer> decideMany(LLMBridge b, String type, String question, List<String> options, int min, int max) {
             clearLast();
+            // Same repeat-label disambiguation as decideOne (two blockers sharing a name).
+            options = disambiguate(options);
             long t0 = System.currentTimeMillis();
             // RANDOM arm: uniformly sized random subset of the same legal menu.
             if (rnd != null) {
@@ -615,12 +1098,44 @@ public final class LlmSpikeGui {
 
         // ---------------- full-context serializer ----------------
 
-        private String snapshot() { return buildSnapshot(getPlayer(), seat, intel, turnPlan, planTurn); }
+        private String snapshot() {
+            if (observer != null) {
+                // Faithful path: capture the engine log into the seat stream (redacted, with private
+                // reveals interleaved), render history from THAT stream, then the viewer-aware state.
+                // Same watermark discipline as below: only the renderer may move it.
+                observer.capture();
+                GameHistory.Rendered hist = GameHistory.renderEvents(observer.events(), ctx, eventWatermark);
+                String s = observer.render(seat, ctx, hist.text, turnPlan, planTurn);
+                if (hist.watermark != GameHistory.Rendered.KEEP_WATERMARK) eventWatermark = hist.watermark;
+                return s;
+            }
+            // The watermark comes back FROM the renderer and from nowhere else. An earlier version
+            // recounted the log here independently; when rendering threw, the events section was
+            // dropped while the watermark still advanced past those events, blinding the seat to
+            // them permanently with no notice anywhere. See GameHistory.Rendered.
+            GameHistory.Rendered hist = GameHistory.render(getPlayer().getGame(), ctx, eventWatermark);
+            String s = buildSnapshot(getPlayer(), seat, intel, turnPlan, planTurn, ctx, hist.text);
+            if (hist.watermark != GameHistory.Rendered.KEEP_WATERMARK) eventWatermark = hist.watermark;
+            return s;
+        }
         /** Shared, state-free snapshot builder (extracted from {@link #snapshot()} so the AI-logging
          *  seat can produce a byte-format-identical game-state prompt). The instance {@code snapshot()}
          *  above just forwards its per-seat fields, so the LLM seat's output is unchanged; the
          *  ai-teacher seat passes an empty intel deque + no turn plan (it accumulates neither). */
         static String buildSnapshot(Player me, String seat, java.util.Collection<String> intel, String turnPlan, int planTurn) {
+            // Stateless callers (the ai-teacher logging seat, LlmSpikeFork's enumerate snapshot) have
+            // no per-seat decision history, so they render with watermark -1: under FIXED_TAIL that is
+            // the historical tail, and under the memory profiles it is "everything so far, capped at
+            // recentEventsMax" — NOT the literal 10-event tail. Either way it is a tail, not a gap, so
+            // teacher rows do not hash-pair with student rows under a memory profile — one more entry
+            // on the documented list alongside the pre-existing empty-intel and no-turn-plan
+            // differences.
+            return buildSnapshot(me, seat, intel, turnPlan, planTurn, CTX,
+                                 GameHistory.render(me.getGame(), CTX, -1).text);
+        }
+
+        static String buildSnapshot(Player me, String seat, java.util.Collection<String> intel, String turnPlan,
+                                    int planTurn, ContextProfile ctx, String history) {
             try {
                 Game g = me.getGame();
                 PhaseHandler ph = g.getPhaseHandler();
@@ -634,9 +1149,9 @@ public final class LlmSpikeGui {
                 s.append("  board: ").append(perms(me)).append('\n');
                 s.append("  lands: ").append(landSummary(me)).append('\n');
                 s.append("  mana available: ").append(manaAvailable(me)).append('\n');
-                s.append("  yard(").append(me.getCardsIn(ZoneType.Graveyard).size()).append("): ").append(names(me.getCardsIn(ZoneType.Graveyard), true, 30)).append('\n');
+                s.append("  yard(").append(me.getCardsIn(ZoneType.Graveyard).size()).append("): ").append(names(me.getCardsIn(ZoneType.Graveyard), true, ctx.yardCap)).append('\n');
                 if (!me.getCardsIn(ZoneType.Exile).isEmpty())
-                    s.append("  exile(").append(me.getCardsIn(ZoneType.Exile).size()).append("): ").append(exileNames(me.getCardsIn(ZoneType.Exile), 30)).append('\n');
+                    s.append("  exile(").append(me.getCardsIn(ZoneType.Exile).size()).append("): ").append(exileNames(me.getCardsIn(ZoneType.Exile), ctx.exileCap)).append('\n');
                 if (opp != null) {
                     s.append("OPP [").append(opp.getName()).append("] life ").append(opp.getLife()).append(playerCounters(opp)).append('\n');
                     s.append("  board: ").append(perms(opp)).append('\n');
@@ -644,32 +1159,26 @@ public final class LlmSpikeGui {
                     // and utility lands (Wasteland, Karakas) are threats worth playing around.
                     s.append("  lands: ").append(landSummary(opp)).append('\n');
                     s.append("  mana available: ").append(manaAvailable(opp)).append('\n');
-                    s.append("  yard(").append(opp.getCardsIn(ZoneType.Graveyard).size()).append("): ").append(names(opp.getCardsIn(ZoneType.Graveyard), true, 30)).append('\n');
+                    s.append("  yard(").append(opp.getCardsIn(ZoneType.Graveyard).size()).append("): ").append(names(opp.getCardsIn(ZoneType.Graveyard), true, ctx.yardCap)).append('\n');
                     if (!opp.getCardsIn(ZoneType.Exile).isEmpty())
-                        s.append("  exile(").append(opp.getCardsIn(ZoneType.Exile).size()).append("): ").append(exileNames(opp.getCardsIn(ZoneType.Exile), 30)).append('\n');
+                        s.append("  exile(").append(opp.getCardsIn(ZoneType.Exile).size()).append("): ").append(exileNames(opp.getCardsIn(ZoneType.Exile), ctx.exileCap)).append('\n');
                     s.append("  hand: ").append(opp.getCardsIn(ZoneType.Hand).size()).append(" cards\n");
                     // Opponent memory (task #8): cumulative CAST/LAND history derived from the engine's
                     // own game log at snapshot time — stateless (no listener, replay-safe, works for the
                     // ai-teacher hashing path too) and immune to the INTEL deque cap. Deliberately
                     // separate from INTEL reveals: "cast" is ground truth about their deck; "seen" is not
                     // (a Brainstorm put-back was seen but may never be cast).
-                    String oppCasts = castHistory(g, opp, GameLogEntryType.STACK_ADD, " cast ");
+                    String oppCasts = castHistory(g, opp, GameLogEntryType.STACK_ADD, " cast ", ctx.castHistoryCap);
                     if (!oppCasts.isEmpty()) s.append("  OPP CAST THIS GAME: ").append(oppCasts).append('\n');
-                    String oppLands = castHistory(g, opp, GameLogEntryType.LAND, " played ");
+                    String oppLands = castHistory(g, opp, GameLogEntryType.LAND, " played ", ctx.castHistoryCap);
                     if (!oppLands.isEmpty()) s.append("  OPP LANDS PLAYED: ").append(oppLands).append('\n');
                 }
                 int stackSize = g.getStack().size();
                 s.append("stack (top first): ").append(stackSize == 0 ? "(empty)" : (stackSize + " pending: " + safeStackTop(g))).append('\n');
-                // HISTORY: the engine's own game log — narrates what happened BETWEEN this seat's
-                // decisions (opponent's plays, combat results, discards) and survives session refreshes.
-                try {
-                    List<GameLogEntry> ev = g.getGameLog().getLogEntriesForTypes(EVENT_TYPES); // newest-first
-                    int n = Math.min(10, ev.size());
-                    if (n > 0) {
-                        s.append("RECENT EVENTS (oldest->newest):\n");
-                        for (int i = n - 1; i >= 0; i--) s.append("  - ").append(oneLine(ev.get(i).message())).append('\n');
-                    }
-                } catch (Exception ignore) { }
+                // HISTORY: rendered by GameHistory from the engine's own game log, at whatever
+                // resolution this run's context profile asks for. Built by the CALLER so the
+                // watermark it returns cannot be separated from the text it produced.
+                s.append(history);
                 if (!intel.isEmpty()) s.append("INTEL: ").append(String.join(" | ", intel)).append('\n');
                 // Same-turn plan continuity: the line the model declared at its first main-phase decision.
                 if (planTurn == ph.getTurn() && ph.isPlayerTurn(me) && !turnPlan.isEmpty())
@@ -683,8 +1192,9 @@ public final class LlmSpikeGui {
          *  drops (LAND + " played "), derived from the full engine game log at snapshot time.
          *  Names come from the LOG MESSAGE, not the entry's sourceCard — the message records what was
          *  publicly announced (a face-down cast logs as "Morph"), so this can never leak hidden info.
-         *  Ordered by count desc then first-seen; capped at 25 distinct names for prompt economy. */
-        static String castHistory(Game g, Player p, GameLogEntryType type, String verb) {
+         *  Ordered by count desc then first-seen; capped at {@code cap} distinct names for prompt
+         *  economy (v1-compat pins the historical 25). */
+        static String castHistory(Game g, Player p, GameLogEntryType type, String verb, int cap) {
             try {
                 // Prefix cannot cross-match similarly-named players ("Bob" vs "Bob 2"): the key
                 // includes the full verb (" cast "/" played "), so "Bob 2 cast X" never starts
@@ -712,7 +1222,7 @@ public final class LlmSpikeGui {
                 StringBuilder b = new StringBuilder();
                 int shown = 0;
                 for (java.util.Map.Entry<String, Integer> e : es) {
-                    if (shown++ == 25) { b.append(", ...(").append(es.size() - 25).append(" more)"); break; }
+                    if (shown++ == cap) { b.append(", ...(").append(es.size() - cap).append(" more)"); break; }
                     if (b.length() > 0) b.append(", ");
                     b.append(e.getKey());
                     if (e.getValue() > 1) b.append(" x").append(e.getValue());
@@ -764,7 +1274,11 @@ public final class LlmSpikeGui {
          *  tapped copy. Grouped (not one line per card) so the count still reads at a glance. */
         static String landSummary(Player pl) {
             int untapped = 0, total = 0;
-            java.util.LinkedHashMap<String, int[]> byName = new java.util.LinkedHashMap<>(); // name -> [untappedCount, tappedCount]
+            // name -> [untappedCount, tappedCount] + the @ids per state, so the
+            // aggregate stays compact but each physical land remains nameable
+            // (Wasteland targets, "tap @12 not @31" — 2026-08-02 directive).
+            java.util.LinkedHashMap<String, int[]> byName = new java.util.LinkedHashMap<>();
+            java.util.LinkedHashMap<String, StringBuilder[]> idsByName = new java.util.LinkedHashMap<>();
             for (Card c : pl.getCardsIn(ZoneType.Battlefield)) {
                 if (!c.isLand()) continue;
                 total++;
@@ -772,12 +1286,20 @@ public final class LlmSpikeGui {
                 if (!tapped) untapped++;
                 int[] counts = byName.computeIfAbsent(c.getName(), k -> new int[2]);
                 counts[tapped ? 1 : 0]++;
+                StringBuilder[] ids = idsByName.computeIfAbsent(c.getName(),
+                        k -> new StringBuilder[]{new StringBuilder(), new StringBuilder()});
+                try {
+                    StringBuilder tgt = ids[tapped ? 1 : 0];
+                    if (tgt.length() > 0) tgt.append(' ');
+                    tgt.append('@').append(c.getId());
+                } catch (Exception ignore) { }
             }
             StringBuilder kinds = new StringBuilder();
             for (Map.Entry<String, int[]> e : byName.entrySet()) {
                 int u = e.getValue()[0], t = e.getValue()[1];
-                if (u > 0) { if (kinds.length() > 0) kinds.append(", "); kinds.append(e.getKey()).append(" x").append(u).append(" [untapped]"); }
-                if (t > 0) { if (kinds.length() > 0) kinds.append(", "); kinds.append(e.getKey()).append(" x").append(t).append(" [tapped]"); }
+                StringBuilder[] ids = idsByName.get(e.getKey());
+                if (u > 0) { if (kinds.length() > 0) kinds.append(", "); kinds.append(e.getKey()).append(" x").append(u).append(" [untapped").append(ids[0].length() > 0 ? " " + ids[0] : "").append(']'); }
+                if (t > 0) { if (kinds.length() > 0) kinds.append(", "); kinds.append(e.getKey()).append(" x").append(t).append(" [tapped").append(ids[1].length() > 0 ? " " + ids[1] : "").append(']'); }
             }
             return untapped + " untapped / " + total + " total"
                     + (kinds.length() == 0 ? "" : " (" + kinds + ")");
@@ -790,18 +1312,27 @@ public final class LlmSpikeGui {
          *  solver, so it can never trigger a chosen-color/filter-land side effect from a read-only
          *  render path. A dual land counts in both its colors' buckets (it can only actually make one
          *  at a time) — an intentional, documented over-count, not a payment guarantee. */
-        private static int[] untappedManaTally(Player pl) {
+        static int[] untappedManaTally(Player pl) {
             int[] t = new int[7];
             for (Card card : pl.getCardsIn(ZoneType.Battlefield)) {
                 if (card.isTapped()) continue;
-                boolean any = false;
+                // Per-CARD color SET, then each color bucket +1 once per card.
+                // The old code incremented per-signal instead: a basic Mountain
+                // counted once for its Mountain SUBTYPE and again for its
+                // intrinsic {T}: add {R} mana ABILITY, so 2 untapped Mountains
+                // rendered "{R:4}" — arithmetically wrong state in 50/65 rows
+                // of frozen puz-v2.1 (found by an external prompt review
+                // 2026-08-02; suites annotated in known_limits). Duals still
+                // rightly add BOTH their colors (one card, two colors — the
+                // documented over-count vs "sources" stays).
+                boolean[] can = new boolean[6];
                 try {
                     var ty = card.getType();
-                    if (ty.hasSubtype("Plains"))   { t[0]++; any = true; }
-                    if (ty.hasSubtype("Island"))   { t[1]++; any = true; }
-                    if (ty.hasSubtype("Swamp"))    { t[2]++; any = true; }
-                    if (ty.hasSubtype("Mountain")) { t[3]++; any = true; }
-                    if (ty.hasSubtype("Forest"))   { t[4]++; any = true; }
+                    if (ty.hasSubtype("Plains"))   can[0] = true;
+                    if (ty.hasSubtype("Island"))   can[1] = true;
+                    if (ty.hasSubtype("Swamp"))    can[2] = true;
+                    if (ty.hasSubtype("Mountain")) can[3] = true;
+                    if (ty.hasSubtype("Forest"))   can[4] = true;
                 } catch (Exception ignore) { }
                 try {
                     for (SpellAbility ab : card.getManaAbilities()) {
@@ -811,24 +1342,28 @@ public final class LlmSpikeGui {
                         if (produced == null) continue;
                         for (String tok : produced.toUpperCase(Locale.ROOT).split("\\s+")) {
                             switch (tok) {
-                                case "W": t[0]++; any = true; break;
-                                case "U": t[1]++; any = true; break;
-                                case "B": t[2]++; any = true; break;
-                                case "R": t[3]++; any = true; break;
-                                case "G": t[4]++; any = true; break;
-                                case "C": t[5]++; any = true; break;
-                                case "ANY": t[0]++; t[1]++; t[2]++; t[3]++; t[4]++; any = true; break;
+                                case "W": can[0] = true; break;
+                                case "U": can[1] = true; break;
+                                case "B": can[2] = true; break;
+                                case "R": can[3] = true; break;
+                                case "G": can[4] = true; break;
+                                case "C": can[5] = true; break;
+                                case "ANY": can[0] = can[1] = can[2] = can[3] = can[4] = true; break;
                                 default: break; // COMBO/CHOSEN/SPECIAL/COLORIDENTITY etc. — no single color to name, safe undercount
                             }
                         }
                     }
                 } catch (Exception ignore) { }
+                boolean any = false;
+                for (int i = 0; i < 6; i++) {
+                    if (can[i]) { t[i]++; any = true; }
+                }
                 if (any) t[6]++;
             }
             return t;
         }
         /** "{U:2 R:1 C:1} (3 untapped sources)" — colors with zero sources are omitted. */
-        private static String manaAvailable(Player pl) {
+        static String manaAvailable(Player pl) {
             int[] t = untappedManaTally(pl);
             String[] label = {"W", "U", "B", "R", "G", "C"};
             StringBuilder b = new StringBuilder("{");
@@ -872,7 +1407,7 @@ public final class LlmSpikeGui {
          *  colored/generic/colorless one, or no color deficit explains the failure (e.g. total mana is
          *  short, not any one color). Never blocks a cast the engine would actually allow — this is a
          *  hint appended to the label, nothing more. */
-        private static String affordability(Player pl, Card c, int[] tally) {
+        static String affordability(Player pl, Card c, int[] tally) {
             try {
                 SpellAbility sa = c.getFirstSpellAbility();
                 if (sa == null) return null;
@@ -968,6 +1503,9 @@ public final class LlmSpikeGui {
                         if (cb.length() > 0) b.append('[').append(cb).append(']');
                     }
                 } catch (Exception ignore) { }
+                // Same @id the menus carry (candidateLabel) — the snapshot and the
+                // targeting menus must name objects identically or the id is noise.
+                try { b.append('@').append(c.getId()); } catch (Exception ignore) { }
             }
             return b.length() == 0 ? "(no nonland permanents)" : b.toString();
         }
@@ -978,6 +1516,19 @@ public final class LlmSpikeGui {
         public boolean mulliganKeepHand(Player firstPlayer, int cardsToReturn) {
             clearLast();
             lastShadowChoice = shadowMulligan(firstPlayer, cardsToReturn); // all mulligan evalDec paths carry it
+            // FORK (rollout, additive — inert unless LlmSpikeFork installed a forcer): forced mulligan.
+            // 0 or -1 (decline) == KEEP, 1 == MULLIGAN. Deliberately consulted BEFORE the floor/heuristic
+            // guards — the forcer exists to explore the branch the policy would not take — and logged
+            // through the same evalDec funnel so the row records what actually happened.
+            Integer forkForcedMull = forkForce(player, seat, "mulligan", 2,
+                    java.util.Arrays.asList("KEEP", "MULLIGAN"));
+            if (forkForcedMull != null) {
+                boolean forcedKeep = forkForcedMull.intValue() != 1;
+                evalDec("mulligan", 2, forcedKeep ? 0 : 1, "auto", 0, null,
+                        java.util.Arrays.asList("KEEP", "MULLIGAN"));
+                p("[ROUTER] mulligan: FORK-FORCED " + (forcedKeep ? "KEEP" : "MULLIGAN"));
+                return forcedKeep;
+            }
             CardCollectionView hand = player.getCardsIn(ZoneType.Hand);
             int lands = CardLists.filter(hand, CardPredicates.LANDS).size();
             int size = hand.size();
@@ -1004,8 +1555,9 @@ public final class LlmSpikeGui {
             for (Card c : hand) { if (n.length() > 0) n.append(", "); n.append(c.getName()); }
             // Shared template (single source; the ai-teacher seat rebuilds byte-identically via the same
             // builder). afterKeep == size: this Forge deals a shrinking hand each mulligan; you keep what you see.
-            String basePrompt = buildMulliganPrompt(size, lands, n.toString());
-            p("[ROUTER] mulligan: " + lands + "/" + size + " lands -> asking " + smart.getModel() + "...");
+            String basePrompt = buildMulliganPrompt(size, lands, n.toString(),
+                    getPlayer() == firstPlayer);
+            p("[ROUTER] mulligan: " + lands + "/" + size + " lands -> " + routeLabel(smart.getModel(), rnd != null));
             List<String> mullOpts = java.util.Arrays.asList("KEEP", "MULLIGAN");
             // Retry once on an unparseable reply (matching every decideOne/decideMany site). Read the
             // LAST keyword, not the first: the prompt demands the decision be the final word, and the
@@ -1065,7 +1617,7 @@ public final class LlmSpikeGui {
             try {
                 if (!smartOk()) { auto("ability-to-play(no-budget)->first[" + host + "]"); return abilities.get(0); }
                 List<String> labels = new ArrayList<>();
-                for (SpellAbility sa : abilities) labels.add(saLabel(sa));
+                for (SpellAbility sa : abilities) labels.add(labelOf(sa));
                 String q = "Choose HOW to play " + host + " -- pick the specific cast mode / cost variant.";
                 int c = decideOne(smart, "ability-to-play", q, labels, null);
                 if (c == -2) { auto("ability-to-play(bridge-down)->first[" + host + "]"); return abilities.get(0); }
@@ -1121,7 +1673,7 @@ public final class LlmSpikeGui {
                 // opp life/board/untapped mana when deciding attacks, not just its own creature list.
                 List<String> labels = new ArrayList<>();
                 for (Card c : legal) labels.add(c.getName() + " (" + c.getNetPower() + "/" + c.getNetToughness() + ")");
-                p("[ROUTER] attackers: " + legal.size() + " can attack -> asking " + smart.getModel() + "...");
+                p("[ROUTER] attackers: " + legal.size() + " can attack -> " + routeLabel(smart.getModel(), rnd != null));
                 // Poison-aware lethal: a life-total-only hint actively misleads an infect/poison deck
                 // (SF-1: deepseek's Infect matchup vs an opponent that never dropped below 20 life the
                 // whole game — the real win condition was poison, invisible to the old hint). Compute
@@ -1206,17 +1758,17 @@ public final class LlmSpikeGui {
                 // No model available -> deterministic NO BLOCKS (the fallback policy), never the engine AI.
                 if (!smartOk()) { auto("blockers(no-model)->none"); return; }
                 StringBuilder atk = new StringBuilder();
-                for (Card a : attackers) { if (atk.length() > 0) atk.append(", "); atk.append(a.getName()).append(" (").append(a.getNetPower()).append('/').append(a.getNetToughness()).append(')'); }
+                for (Card a : attackers) { if (atk.length() > 0) atk.append(", "); atk.append(observer != null ? observer.shortRef(a) : a.getName() + " (" + a.getNetPower() + "/" + a.getNetToughness() + ")"); }
                 StringBuilder blk = new StringBuilder();
                 List<String> blkLabels = new ArrayList<>(); // candidate pool captured BEFORE the assignment loop mutates `blockers`
                 for (Card b : blockers) {
                     if (blk.length() > 0) blk.append(", ");
-                    String bl = b.getName() + " (" + b.getNetPower() + "/" + b.getNetToughness() + ")";
+                    String bl = observer != null ? observer.shortRef(b) : b.getName() + " (" + b.getNetPower() + "/" + b.getNetToughness() + ")";
                     blk.append(bl); blkLabels.add(bl);
                 }
                 // Shared template (single source; the ai-teacher seat rebuilds byte-identically via the same builder).
                 String prompt = buildBlockersPrompt(snapshot(), atk.toString(), blk.toString());
-                p("[ROUTER] blockers: " + attackers.size() + " atk / " + blockers.size() + " blk -> asking " + smart.getModel() + "...");
+                p("[ROUTER] blockers: " + attackers.size() + " atk / " + blockers.size() + " blk -> " + routeLabel(smart.getModel(), rnd != null));
                 String reply = ask(smart, prompt);
                 if (reply == null) { auto("blockers(bridge-down)->none"); return; }
                 String line = lastSegment(reply, "BLOCKS:");
@@ -1234,8 +1786,8 @@ public final class LlmSpikeGui {
                 int assigned = 0;
                 for (String pair : line.split(",")) {
                     int arrow = pair.indexOf("->"); if (arrow < 0) continue;
-                    Card b = matchByName(blockers, pair.substring(0, arrow).toUpperCase());
-                    Card a = matchByName(attackers, pair.substring(arrow + 2).toUpperCase());
+                    Card b = matchCard(blockers, pair.substring(0, arrow));
+                    Card a = matchCard(attackers, pair.substring(arrow + 2));
                     if (a != null && b != null && CombatUtil.canBlock(a, b, combat)) {
                         combat.addBlocker(a, b); assigned++; blockers.remove(b);
                     }
@@ -1330,7 +1882,7 @@ public final class LlmSpikeGui {
                 // (shared with the ai-teacher seat — see buildPlayLabels/numberedPlayMenu). The numbered
                 // menu string and the land/pass boundary indices are derived from them so BOTH seats
                 // build the byte-identical menu.
-                List<String> playLabels = buildPlayLabels(options, landCards);
+                List<String> playLabels = playLabels(options, landCards);
                 String menuStr = numberedPlayMenu(playLabels);
                 int landStart = 1 + options.size();                       // 1-based menu number of the first land
                 int passIdx = 1 + options.size() + landPlays.size();      // 1-based menu number of PASS
@@ -1356,7 +1908,7 @@ public final class LlmSpikeGui {
                         + (smart.getCalls() > 0 ? " avgSmart=" + (smart.getTotalMs() / smart.getCalls()) + "ms" : "")
                         + (fast.getCalls() > 0 ? " avgFast=" + (fast.getTotalMs() / fast.getCalls()) + "ms" : ""));
                 p("[ROUTER] play(" + (ownMain ? "main" : "react") + "): " + options.size() + " castable"
-                        + (haveLand ? " + " + landPlays.size() + " land" : "") + " -> asking " + b.getModel() + "...");
+                        + (haveLand ? " + " + landPlays.size() + " land" : "") + " -> " + routeLabel(b.getModel(), rnd != null));
                 playDecisionsThisTurn++;
 
                 int choice = -1;
@@ -1394,6 +1946,13 @@ public final class LlmSpikeGui {
                     }
                     choice = parseTagNumber(reply, "CHOICE:");
                 }
+                // FORK (rollout, additive — inert unless LlmSpikeFork installed a forcer): replace the
+                // computed choice at exactly one decision index so evalDec below still logs what
+                // ACTUALLY happened, and the forced pick takes the SAME branches the normal path would
+                // (incl. ensureTargetsSet — the AI cast path does no targeting and an untargeted cast
+                // fizzles). forced < 0 or forced == the PASS slot both map to the PASS menu number.
+                Integer forkForced = forkForce(me, seat, "play", passIdx, playLabels);
+                if (forkForced != null) choice = forkForced.intValue() < 0 ? passIdx : forkForced.intValue() + 1;
                 // D4 shadow: the AI's play over the SAME menu (choice resolved, before the row is written
                 // and before the chosen SA is targeted). shadowPlay's getAi() eval may set targets/X on the
                 // shared candidate SA objects; the SHADOW-guarded chosen.resetTargets() in the cast branch
@@ -1425,7 +1984,7 @@ public final class LlmSpikeGui {
                 // No-op when SHADOW is off.
                 if (SHADOW) for (SpellAbility s = chosen; s != null; s = s.getSubAbility()) { s.resetTargets(); s.setXManaCostPaid(null); }
                 ensureTargetsSet(chosen); // AI cast path won't target for us — set legal LLM-chosen targets now
-                p("[ROUTER] play: casts " + saLabel(chosen));
+                p("[ROUTER] play: casts " + labelOf(chosen));
                 return Lists.newArrayList(chosen);
             } catch (Exception e) {
                 p("[ROUTER] play: error " + e + " -> PASS");
@@ -1467,7 +2026,7 @@ public final class LlmSpikeGui {
                 if (!smartOk() && !fastOk()) { auto("choose-entity(no-budget)->first" + srcOf(sa)); return isOptional ? null : opts.get(0); }
                 LLMBridge b = smartOk() ? smart : fast;
                 List<String> labels = new ArrayList<>();
-                for (T t : opts) labels.add(entityLabel(t));
+                for (T t : opts) labels.add(labelOf(t));
                 String q = (title == null || title.isEmpty() ? "Choose one" : title) + srcOf(sa);
                 int c = decideOne(b, "entity", q, labels, isOptional ? "Decline / none" : null);
                 if (c == -2) { auto("choose-entity(bridge-down)->first" + srcOf(sa)); return isOptional ? null : opts.get(0); }
@@ -1496,7 +2055,7 @@ public final class LlmSpikeGui {
             try {
                 if (!smartOk()) { auto("zone-change(no-budget)->first" + srcOf(sa)); return isOptional ? null : opts.get(0); }
                 List<String> labels = new ArrayList<>();
-                for (Card c : opts) labels.add(entityLabel(c));
+                for (Card c : opts) labels.add(labelOf(c));
                 String q = (selectPrompt == null || selectPrompt.isEmpty() ? "Choose a card" : selectPrompt)
                         + " -> " + destination + srcOf(sa)
                         + " (pick the card that best advances your game plan — e.g. reanimate your biggest threat).";
@@ -1534,9 +2093,9 @@ public final class LlmSpikeGui {
                 if (cands == null || cands.isEmpty()) return super.chooseTargetsFor(sa); // truly no target -> engine cancels
                 int pick = 0; // default: the (only, or first) legal candidate — beats an AI decline
                 List<String> labels = new ArrayList<>();
-                for (GameEntity ge : cands) labels.add(entityLabel(ge));
+                for (GameEntity ge : cands) labels.add(labelOf(ge));
                 if (cands.size() > 1 && smartOk()) {
-                    String q = "Choose the TARGET for " + saLabel(sa) + " (the spell/ability resolves against whatever you pick).";
+                    String q = "Choose the TARGET for " + labelOf(sa) + " (the spell/ability resolves against whatever you pick).";
                     int c = decideOne(smart, "targets", q, labels, min == 0 ? "No target (decline)" : null);
                     // bridge dead -> AI targeting is an intentional, DOCUMENTED exception to "never Forge AI"
                     // for this one site (see class comment above); still log it so it's never silent.
@@ -1570,7 +2129,7 @@ public final class LlmSpikeGui {
                 sa.resetTargets();
                 boolean added = sa.getTargets().add(cands.get(pick));
                 if (!added || sa.getTargets().size() < Math.max(1, min)) return super.chooseTargetsFor(sa); // safety net
-                p("[ROUTER] target: " + entityLabel(cands.get(pick)) + " <- " + saLabel(sa)
+                p("[ROUTER] target: " + labelOf(cands.get(pick)) + " <- " + labelOf(sa)
                         + (cands.size() == 1 ? " (only legal)" : ""));
                 return true;
             } catch (Exception e) {
@@ -1599,11 +2158,11 @@ public final class LlmSpikeGui {
                     String fb = null; // non-null when the pick is a deterministic fallback, not a model choice
                     if (cands.size() > 1 && smartOk()) {
                         List<String> labels = new ArrayList<>();
-                        for (GameEntity ge : cands) labels.add(entityLabel(ge));
+                        for (GameEntity ge : cands) labels.add(labelOf(ge));
                         // type=null here -> decideOne never logs internally (incl. its decline branch), so
                         // EVERY exit from this call, including the "optional -> no target" one below, must be
                         // logged by us or it vanishes with zero jsonl/log trace (the exact C5 double-failure shape).
-                        int c = decideOne(smart, null, "Choose the TARGET for " + saLabel(sa)
+                        int c = decideOne(smart, null, "Choose the TARGET for " + labelOf(sa)
                                 + " (the spell resolves against whatever you pick).", labels,
                                 sa.getMinTargets() == 0 ? "No target" : null);
                         if (c == -1 && sa.getMinTargets() == 0) {
@@ -1628,9 +2187,9 @@ public final class LlmSpikeGui {
                     for (int i = 0; sa.getTargets().size() < min && i < cands.size(); i++) // top up if it needs >1
                         if (i != pick) sa.getTargets().add(cands.get(i));
                     List<String> tgtOpts = new ArrayList<>();
-                    for (GameEntity ge : cands) tgtOpts.add(entityLabel(ge));
+                    for (GameEntity ge : cands) tgtOpts.add(labelOf(ge));
                     evalDec("target", cands.size(), pick, fb == null ? tierOf(true) : "auto", 0, fb, tgtOpts);
-                    p("[ROUTER] target: " + entityLabel(cands.get(pick)) + " <- " + saLabel(sa)
+                    p("[ROUTER] target: " + labelOf(cands.get(pick)) + " <- " + labelOf(sa)
                             + (cands.size() == 1 ? " (only legal)" : ""));
                 } catch (Exception e) { /* leave targeting to the engine for this ability */ }
             }
@@ -1650,7 +2209,7 @@ public final class LlmSpikeGui {
             try {
                 if (!smartOk()) return firstN(opts, min, "discard(no-budget)");
                 List<String> labels = new ArrayList<>();
-                for (Card c : opts) labels.add(candidateLabel(c));
+                for (Card c : opts) labels.add(cardLabel(c));
                 String q = stripping
                         ? "You are choosing which card(s) " + p.getName() + " must DISCARD from their revealed hand"
                           + srcOf(sa) + ". Strip whatever most threatens your game plan (their removal/disruption/payoff)."
@@ -1684,7 +2243,7 @@ public final class LlmSpikeGui {
                     return firstN(opts, min, "cards-for-effect(no-budget)");
                 }
                 List<String> labels = new ArrayList<>();
-                for (Card c : opts) labels.add(candidateLabel(c));
+                for (Card c : opts) labels.add(cardLabel(c));
                 String q = (title == null || title.isEmpty() ? "Choose cards" : title) + srcOf(sa);
                 List<Integer> picks = decideMany(smart, "cards-for-effect", q, labels, isOptional ? 0 : min, max);
                 // decideMany's null covers BOTH bridge-down AND still-unparseable-after-retry, and never logs
@@ -1702,22 +2261,12 @@ public final class LlmSpikeGui {
             }
         }
 
-        /** ROUTED (audit follow-up): the last unrouted PlayerController choose-cards hook. The player
-         *  must REVEAL between min and max cards from their hand — a public-information cost/effect
-         *  (e.g. "reveal a green card", "reveal your hand"). Forge's own default
-         *  (PlayerControllerAi.chooseCardsToRevealFromHand) is a bare {@code valid.subList(0,
-         *  min(max,size))}: no strategy, zero jsonl/log trace — the same "opaque, untraced default"
-         *  shape scry/surveil had. Now routed like every other choose-subset decision (discard/
-         *  cards-for-effect), with min/max clamped to what's legally available. Bridge-DOWN is the one
-         *  documented Forge-AI exception (identical convention to chooseTargetsFor): delegate to super
-         *  WITH the [FALLBACK->AI] marker so the reconciliation gate counts it instead of the decision
-         *  silently vanishing. The no-model (floor/budget) and forced paths stay deterministic (auto),
-         *  so the ai_tier hard invariant holds for every non-bridge-down run. */
+        /** Route optional hand reveals through the model. Failure takes the first minimum-sized
+         *  legal subset, logged as an automatic fallback; it never delegates strategy to Forge AI. */
         @Override
         public CardCollectionView chooseCardsToRevealFromHand(int min, int max, CardCollectionView valid) {
             clearLast();
-            if (valid == null || valid.isEmpty())
-                return super.chooseCardsToRevealFromHand(min, max, valid);
+            if (valid == null || valid.isEmpty()) return CardCollection.EMPTY;
             List<Card> opts = new ArrayList<>(valid);
             // Legality clamps: never reveal more than are valid, nor fewer than min (nor a negative min).
             int effMax = Math.min(max, opts.size());
@@ -1727,22 +2276,18 @@ public final class LlmSpikeGui {
             try {
                 if (!smartOk()) return firstN(opts, effMin, "reveal(no-budget)");
                 List<String> labels = new ArrayList<>();
-                for (Card c : opts) labels.add(candidateLabel(c));
+                for (Card c : opts) labels.add(cardLabel(c));
                 String q = "You must REVEAL between " + effMin + " and " + effMax + " card(s) from your hand "
                         + "(they become known to your opponent). Reveal only what the effect requires, and among "
                         + "legal choices prefer what least exposes your game plan.";
                 List<Integer> picks = decideMany(smart, "reveal", q, labels, effMin, effMax);
-                // decideMany returns null on bridge-down OR still-unparseable-after-retry — either way the
-                // model gave us nothing usable. Documented Forge-AI exception (cf. chooseTargetsFor): hand to
-                // super WITH the [FALLBACK->AI] marker (a tier=ai jsonl row) so the analyzer counts it.
-                if (picks == null)
-                    return aiDelegate("reveal(bridge-down)->ai", super.chooseCardsToRevealFromHand(min, max, valid));
+                if (picks == null) return firstN(opts, effMin, "reveal(unparsed-or-dead)");
                 CardCollection out = new CardCollection();
                 for (int i : picks) out.add(opts.get(i));
                 p("[ROUTER] reveal: " + (out.isEmpty() ? "(none)" : names(out, false, 10)));
                 return out;
             } catch (Exception e) {
-                return aiDelegate("reveal(err)->ai", super.chooseCardsToRevealFromHand(min, max, valid));
+                return firstN(opts, effMin, "reveal(err)");
             }
         }
 
@@ -1786,7 +2331,7 @@ public final class LlmSpikeGui {
                 }
                 if (!smartOk()) { auto(verb + "(no-model)->keep-all-top"); return ImmutablePair.of(new CardCollection(opts), new CardCollection()); }
                 List<String> labels = new ArrayList<>();
-                for (Card c : opts) labels.add(candidateLabel(c));
+                for (Card c : opts) labels.add(cardLabel(c));
                 String q = "You looked at the top " + opts.size() + " card(s) of your library (" + verb + "). For each, "
                         + "decide KEEP ON TOP or send it to the " + destName + ". List the ones to KEEP ON TOP, in order "
                         + "(first = new top card) — everything you don't list goes to the " + destName + ".";
@@ -1827,7 +2372,7 @@ public final class LlmSpikeGui {
                 if (!smartOk()) { auto("order(no-model)->as-is"); return cards; }
                 List<Card> opts = new ArrayList<>(cards);
                 List<String> labels = new ArrayList<>();
-                for (Card c : opts) labels.add(candidateLabel(c));
+                for (Card c : opts) labels.add(cardLabel(c));
                 String q = "Put these " + opts.size() + " card(s)" + srcOf(source) + " into " + destinationZone
                         + " in your preferred order. List ALL " + opts.size() + " of them (first = goes in/on top first).";
                 List<Integer> picks = decideMany(smart, "order", q, labels, opts.size(), opts.size());
@@ -1841,6 +2386,47 @@ public final class LlmSpikeGui {
                 auto("order(err)->as-is");
                 return cards;
             }
+        }
+
+        /** Optional decisions are model choices; engine execution and target selection happen later. */
+        private boolean optionalDecision(String type, SpellAbility sa, String question) {
+            clearLast();
+            if (!fastOk()) { auto(type + "(no-model)->NO"); return false; }
+            try {
+                String source = sa == null ? "" : "\nAbility: " + labelOf(sa);
+                int c = decideOne(fast, type, question + source,
+                        Lists.newArrayList("YES (accept)", "NO (decline)"), null);
+                if (c >= 0) return c == 0;
+                auto(type + "(unparsed)->NO");
+            } catch (Exception e) {
+                auto(type + "(err)->NO");
+            }
+            return false;
+        }
+
+        @Override
+        public boolean confirmTrigger(forge.game.trigger.WrappedAbility wrapper) {
+            clearLast();
+            if (wrapper.isMandatory()) { auto("confirm-trigger(mandatory)->YES"); return true; }
+            return optionalDecision("confirm-trigger", wrapper.getWrappedAbility(),
+                    "Accept this optional triggered ability? Declining does not resolve it. "
+                    + "Any costs and targets are separate choices.");
+        }
+
+        @Override
+        public boolean confirmPayment(forge.game.cost.CostPart costPart, String prompt, SpellAbility sa) {
+            return optionalDecision("confirm-payment", sa,
+                    (prompt == null ? "Pay this optional cost?" : prompt)
+                    + (costPart == null ? "" : "\nCost: " + costPart.toString()));
+        }
+
+        @Override
+        public boolean confirmReplacementEffect(forge.game.replacement.ReplacementEffect replacementEffect,
+                SpellAbility effectSA, GameEntity affected, String question) {
+            // The engine supplies the same question to the human controller. Do not inspect
+            // replacement internals or mutate the affected object while answering it.
+            return optionalDecision("confirm-replacement", effectSA,
+                    question == null ? "Apply this optional replacement effect?" : question);
         }
 
         @Override
@@ -1864,32 +2450,106 @@ public final class LlmSpikeGui {
                 p("[ROUTER] confirm(" + oneLine(message == null ? String.valueOf(mode) : message) + "): " + (yes ? "YES" : "NO"));
                 return yes;
             } catch (Exception e) {
-                return aiDelegate("confirm(err)", super.confirmAction(sa, mode, message, options, cardToShow, params));
+                auto("confirm(err)->NO"); return false;
             }
         }
 
         @Override
         public int chooseNumber(SpellAbility sa, String title, int min, int max) {
-            clearLast(); // BEFORE any early return: auto() below attaches whatever prompt/reply is currently
-                         // captured, and a stale one from a prior decision must never leak into this row.
-            if (max <= min) { auto("number(forced-only-legal)->" + min); return min; } // forced, deterministic
-            if (!fastOk()) { auto("number(no-model)->" + min); return min; } // deterministic legal minimum
+            clearLast();
+            if (max < min) throw new IllegalArgumentException("empty numeric range");
+            if (max == min) { auto("number(forced)->" + min); return min; }
+            if (!fastOk()) { auto("number(no-model)->" + min); return min; }
             try {
-                List<String> opts = new ArrayList<>();
-                if (max - min <= 12) { for (int v = min; v <= max; v++) opts.add(String.valueOf(v)); }
-                else { opts.add(String.valueOf(min)); opts.add(String.valueOf((min + max) / 2)); opts.add(String.valueOf(max)); }
-                String q = (title == null ? "Choose a number" : title) + " (" + min + ".." + max + ")" + srcOf(sa);
-                int c = decideOne(fast, "number", q, opts, null);
-                // Bridge-down AND still-unparseable-after-retry both take the deterministic legal
-                // minimum — same default as the no-budget branch above, never Forge AI.
-                if (c == -2) { auto("number(bridge-down)->" + min); return min; }
-                if (c < 0) { auto("number(unparsed)->" + min); return min; }
-                int val = Integer.parseInt(opts.get(c));
-                p("[ROUTER] number(" + oneLine(title) + "): " + val);
-                return val;
+                if ((long) max - min <= 12) {
+                    List<Integer> values = new ArrayList<>();
+                    for (long v = min; v <= max; v++) values.add((int) v);
+                    return chooseNumber(sa, title, values, null);
+                }
+                if (rnd != null) {
+                    int value = (int) rnd.nextLong((long) min, (long) max + 1);
+                    auto("number(random)->" + value); return value;
+                }
+                // A range is a legal domain, not a three-option approximation. Avoid constructing
+                // billions of options or overflowing at Integer.MAX_VALUE.
+                String base = snapshot() + "\n" + (title == null ? "Choose a number" : title)
+                        + srcOf(sa) + "\nEvery integer from " + min + " through " + max
+                        + " inclusive is legal. Reply with exactly NUMBER: <integer>.";
+                for (int attempt = 0; attempt < 2 && fastOk(); attempt++) {
+                    String reply = ask(fast, base + (attempt == 0 ? "" : "\nInvalid answer. Use exactly NUMBER: <integer> within the range."));
+                    if (reply == null) break;
+                    Integer value = parseNumberReply(reply, min, max);
+                    if (value != null) {
+                        // Numeric values are not option indexes; the explicit domain is in options.
+                        evalDec("number-value", -1, value, tierOf(false), 0, null,
+                                Lists.newArrayList("integer range [" + min + ", " + max + "]"));
+                        return value;
+                    }
+                }
+                auto("number(unparsed)->" + min); return min;
             } catch (Exception e) {
-                return aiDelegate("number(err)", super.chooseNumber(sa, title, min, max));
+                auto("number(err)->" + min); return min;
             }
+        }
+
+        static Integer parseNumberReply(String reply, int min, int max) {
+            if (reply == null || !reply.trim().matches("NUMBER: *-?[0-9]+")) return null;
+            try {
+                int value = Integer.parseInt(reply.trim().substring(7).trim());
+                return value >= min && value <= max ? value : null;
+            } catch (NumberFormatException e) { return null; }
+        }
+
+        @Override
+        public int chooseNumber(SpellAbility sa, String title, int min, int max, Map<String, Object> params) {
+            // Engine params contain internal objects/AI hints, not additional legal alternatives.
+            return chooseNumber(sa, title, min, max);
+        }
+
+        @Override
+        public int chooseNumber(SpellAbility sa, String title, List<Integer> options, Player relatedPlayer) {
+            clearLast();
+            if (options == null || options.isEmpty()) throw new IllegalArgumentException("empty numeric options");
+            int fallback = options.get(0);
+            if (options.size() == 1) { auto("number(forced)->" + fallback); return fallback; }
+            if (!fastOk()) { auto("number(no-model)->" + fallback); return fallback; }
+            List<String> labels = new ArrayList<>();
+            for (Integer value : options) labels.add(String.valueOf(value));
+            try {
+                int c = decideOne(fast, "number", (title == null ? "Choose a number" : title) + srcOf(sa), labels, null);
+                if (c >= 0) return options.get(c);
+            } catch (Exception e) { /* deterministic fallback below, never Forge AI */ }
+            auto("number(unparsed)->" + fallback); return fallback;
+        }
+
+        @Override
+        public boolean chooseBinary(SpellAbility sa, String question, BinaryChoiceType kind, Boolean defaultValue) {
+            clearLast();
+            boolean fallback = Boolean.TRUE.equals(defaultValue);
+            if (!fastOk()) { auto("binary(no-model)->" + fallback); return fallback; }
+            // Same true/false ordering as PlayerControllerHuman's confirmation dialog.
+            List<String> labels;
+            switch (kind) {
+                case HeadsOrTails: labels = Lists.newArrayList("Heads", "Tails"); break;
+                case TapOrUntap: labels = Lists.newArrayList("Tap", "Untap"); break;
+                case PlayOrDraw: labels = Lists.newArrayList("Play", "Draw"); break;
+                case OddsOrEvens: labels = Lists.newArrayList("Odds", "Evens"); break;
+                case UntapOrLeaveTapped: labels = Lists.newArrayList("Untap", "Leave tapped"); break;
+                case LeftOrRight: labels = Lists.newArrayList("Left", "Right"); break;
+                case AddOrRemove: labels = Lists.newArrayList("Add counter", "Remove counter"); break;
+                case IncreaseOrDecrease: labels = Lists.newArrayList("Increase", "Decrease"); break;
+                default: throw new IllegalArgumentException("unsupported binary choice " + kind);
+            }
+            try {
+                int c = decideOne(fast, "binary", String.valueOf(question) + srcOf(sa), labels, null);
+                if (c >= 0) return c == 0;
+            } catch (Exception e) { /* deterministic fallback below */ }
+            auto("binary(unparsed)->" + fallback); return fallback;
+        }
+
+        @Override
+        public boolean chooseBinary(SpellAbility sa, String question, BinaryChoiceType kind, Map<String, Object> params) {
+            return chooseBinary(sa, question, kind, (Boolean) null);
         }
 
         /** Route "name a card" from an explicit list (Alhammarret, ChooseFromList effects).
@@ -2032,7 +2692,7 @@ public final class LlmSpikeGui {
                 }
                 List<String> labels = new ArrayList<>();
                 for (AbilitySub ab : possible) labels.add(oneLine(ab.getDescription()));
-                List<Integer> picks = decideMany(smart, "modes", "MODAL SPELL — choose mode(s) for " + saLabel(sa) + ".",
+                List<Integer> picks = decideMany(smart, "modes", "MODAL SPELL — choose mode(s) for " + labelOf(sa) + ".",
                         labels, Math.max(0, min), Math.min(num, possible.size()));
                 // decideMany's null covers BOTH bridge-down and still-unparseable-after-retry — same
                 // deterministic first-`min` default as the no-budget branch above, never Forge AI.
@@ -2071,9 +2731,9 @@ public final class LlmSpikeGui {
             } catch (Exception ignore) { }
         }
         /** Null-safe label snapshot (take it BEFORE calling super when super may mutate/reorder). */
-        private static List<String> cardLabels(Iterable<Card> cards) {
+        private List<String> cardLabels(Iterable<Card> cards) {
             List<String> out = new ArrayList<>();
-            try { if (cards != null) for (Card c : cards) out.add(c == null ? "(null)" : entityLabel(c)); }
+            try { if (cards != null) for (Card c : cards) out.add(c == null ? "(null)" : labelOf(c)); }
             catch (Exception ignore) { }
             return out;
         }
@@ -2203,7 +2863,7 @@ public final class LlmSpikeGui {
                         r.put(single, damageDealt);
                         evalDec("damage-assign", 1, 0, "auto", 0,
                                 "forced(only-legal) all " + damageDealt + " -> " + safeName(single),
-                                java.util.Arrays.asList(candidateLabel(single) + ": all " + damageDealt + " dmg"));
+                                java.util.Arrays.asList(cardLabel(single) + ": all " + damageDealt + " dmg"));
                         p("[ROUTER] damage-assign: all " + damageDealt + " -> " + safeName(single) + " (forced)");
                         return r;
                     }
@@ -2346,7 +3006,7 @@ public final class LlmSpikeGui {
             try {
                 if (!smartOk()) return firstN(opts, min, "sacrifice(no-budget)");
                 List<String> labels = new ArrayList<>();
-                for (Card c : opts) labels.add(candidateLabel(c));
+                for (Card c : opts) labels.add(cardLabel(c));
                 String q = "You must SACRIFICE " + (min == max ? String.valueOf(min) : min + "-" + max)
                         + " permanent(s)" + srcOf(sa)
                         + (message == null || message.isEmpty() ? "" : ": " + oneLine(message))
@@ -2372,11 +3032,49 @@ public final class LlmSpikeGui {
         private boolean fastOk()  { return !"floor".equals(mode) && fastCalls  < FAST_BUDGET;  }
         // Short exponential backoff between retries (0.5s, 2s) — long enough to let a flaky route or a
         // CLI process recover, short enough not to stack into a real hang across up to 3 attempts.
-        private static final long[] BRIDGE_RETRY_BACKOFF_MS = { 500L, 2000L };
+        static final long[] BRIDGE_RETRY_BACKOFF_MS = { 500L, 2000L };
         /** Every model call funnels through here — also the single capture point for the decision record:
          *  store the full prompt/reply/tier/finish_reason so evalDec can attach them (a retry overwrites,
          *  so the LAST attempt's prompt/raw_reply are what get logged). */
         private String ask(LLMBridge b, String prompt) {
+            if (!MEMORY_TOOLS || !"llm".equals(mode)) return askModel(b, prompt);
+            // Archive the existing player-narration stream before its lossy prompt compaction.
+            // Never attach raw engine objects or omniscient evaluation records to this archive.
+            try {
+                // Faithful path: archive the SEAT stream (redacted, reveals included), never the raw
+                // global log, so the archive can hold nothing the observation could not.
+                List<GameHistory.Ev> events;
+                if (observer != null) { observer.capture(); events = observer.events(); }
+                else events = GameHistory.collect(getPlayer().getGame());
+                for (int i = archivedEventCount; i < events.size(); i++) {
+                    GameHistory.Ev event = events.get(i);
+                    contextMemory.observe("[E" + event.id + "] T" + event.turn + " " + event.type + ": " + event.msg);
+                    archivedEventCount = i + 1;
+                }
+            } catch (Exception e) {
+                contextMemory.observe("HISTORY UNAVAILABLE at T" + safeTurn() + "; archive may be incomplete.");
+            }
+            return contextMemory.ask(prompt, request -> {
+                if (!(b == smart ? smartOk() : fastOk())) return null;
+                long start = System.currentTimeMillis();
+                String response = askModel(b, request);
+                // Every memory-mode call, including the final action, has a complete transcript.
+                // These rows are supplementary: do not sum them with decision-row token counts.
+                EvalLog.write("{\"t\":\"context_call\",\"version\":\"" + ContextMemory.VERSION
+                        + "\",\"seat\":\"" + jsonEscape(seat) + "\",\"turn\":" + safeTurn()
+                        + ",\"call\":" + (++contextCallSeq) + ",\"tier\":\"" + (b == smart ? "smart" : "fast")
+                        + "\",\"elapsed_ms\":" + (System.currentTimeMillis() - start)
+                        + ",\"prompt_tokens\":" + lastPromptTokens + ",\"completion_tokens\":" + lastCompletionTokens
+                        + ",\"prompt\":\"" + jsonEscape(request) + "\",\"raw_reply\":"
+                        + (response == null ? "null" : "\"" + jsonEscape(response) + "\"") + "}");
+                return response;
+            }, (command, result) -> EvalLog.write("{\"t\":\"context_tool\",\"version\":\""
+                    + ContextMemory.VERSION + "\",\"seat\":\"" + jsonEscape(seat)
+                    + "\",\"turn\":" + safeTurn() + ",\"call\":" + contextCallSeq
+                    + ",\"request\":\"" + jsonEscape(command) + "\",\"result\":\"" + jsonEscape(result) + "\"}"));
+        }
+
+        private String askModel(LLMBridge b, String prompt) {
             long tAsk = System.currentTimeMillis();
             if (b == smart) smartCalls++; else fastCalls++;
             lastPrompt = prompt;
@@ -2484,6 +3182,10 @@ public final class LlmSpikeGui {
          *  or null when no model was consulted. */
         private void evalDec(String type, int nOptions, int choice, String tier, long ms, String fallback, List<String> options) {
             if (!EvalLog.on()) return;
+            // Log choke point: several callers log their own labels list after decideOne/decideMany
+            // disambiguated only its local copy — dedupe HERE so the logged options always match the
+            // prompt the model saw. disambiguate is idempotent, so double application is a no-op.
+            if (options != null) options = disambiguate(options);
             // Many call sites pass ms=0 because their timing happens inside ask(); when a model
             // round-trip WAS captured for this decision (lastPrompt != null — clearLast() guards
             // every path), substitute lastSuccessMs — the SUCCESSFUL final attempt's own wall time only,
@@ -2764,7 +3466,7 @@ public final class LlmSpikeGui {
         }
 
         /** "{2}{B}{B}"-style cost, or null if none. getShortString() already includes braces. */
-        private static String costStr(Card c) {
+        static String costStr(Card c) {
             try {
                 if (c.getManaCost() == null) return null;
                 String mc = c.getManaCost().getShortString();
@@ -2810,6 +3512,13 @@ public final class LlmSpikeGui {
                     if (cb.length() > 0) s.append('[').append(cb).append(']');
                 }
             } catch (Exception ignore) { }
+            // Persistent object identity (2026-08-02 user directive): the engine's
+            // per-game card id, for IN-PLAY cards only, "@42". Two same-name
+            // same-state permanents become distinct objects the model can track
+            // across turns and name as targets — the within-menu " #N" ordinals
+            // from disambiguate() cannot do either (they are per-menu, not
+            // per-object). Battlefield-only keeps hand/yard text stable.
+            try { if (c.isInPlay()) s.append('@').append(c.getId()); } catch (Exception ignore) { }
             return s.toString();
         }
         private static String entityLabel(GameEntity e) {
@@ -2987,7 +3696,32 @@ public final class LlmSpikeGui {
             for (SpellAbility sa : options) playLabels.add("CAST " + saLabel(sa));
             for (Card lc : landCards) playLabels.add("PLAY LAND " + lc.getName());
             playLabels.add("PASS (do nothing)");
-            return playLabels;
+            return disambiguate(playLabels);
+        }
+
+        /** Returns the list UNCHANGED unless a label repeats; only then are the repeated entries
+         *  suffixed " #1", " #2"... in occurrence order, so two copies of one card stop being the
+         *  same menu string (2 of puz-v1's 25 positions show the model two identical CAST lines —
+         *  the model literally cannot say which one it means, and the suite survived only by a
+         *  select_suite guard plus luck). ORDINALS, not Forge ids, deliberately: decideOne/decideMany
+         *  see only pre-built strings and can never do better than an ordinal, while buildPlayLabels
+         *  has the real Card — a hybrid would make the two call sites inconsistent, and the teacher/
+         *  student prompt pairing (process_metrics state_key) needs them byte-identical. This is a
+         *  DATA change, not a contract change: the menu is baked into row prompts by the game, so
+         *  contract_sha and all existing artifacts are untouched. */
+        static List<String> disambiguate(List<String> labels) {
+            java.util.Map<String, Integer> counts = new java.util.HashMap<>();
+            for (String s : labels) counts.merge(s, 1, Integer::sum);
+            boolean anyDup = false;
+            for (int v : counts.values()) if (v > 1) { anyDup = true; break; }
+            if (!anyDup) return labels;
+            java.util.Map<String, Integer> seen = new java.util.HashMap<>();
+            List<String> out = new ArrayList<>(labels.size());
+            for (String s : labels) {
+                if (counts.get(s) > 1) out.add(s + " #" + seen.merge(s, 1, Integer::sum));
+                else out.add(s);
+            }
+            return out;
         }
 
         // ---- shared prompt-template builders --------------------------------------------------------
@@ -3020,6 +3754,7 @@ public final class LlmSpikeGui {
         /** The exact attempt-0 prompt {@link #decideOne} sends: snapshot + question + numbered options
          *  (options via {@code oneLine}, the trailing decline option raw) + the CHOICE tail. */
         static String buildDecideOnePrompt(String snapshot, String question, List<String> options, String noneLabel) {
+            options = disambiguate(options); // idempotent; keeps prompt == logged options at every caller
             StringBuilder menu = new StringBuilder();
             int n = 1;
             for (String o : options) menu.append("  ").append(n++).append(") ").append(oneLine(o)).append('\n');
@@ -3030,20 +3765,23 @@ public final class LlmSpikeGui {
 
         /** The exact attempt-0 prompt {@link #decideMany} sends (PICKS-style, min..max). */
         static String buildDecideManyPrompt(String snapshot, String question, List<String> options, int min, int max) {
+            options = disambiguate(options); // idempotent; keeps prompt == logged options at every caller
             StringBuilder menu = new StringBuilder();
             int n = 1;
             for (String o : options) menu.append("  ").append(n++).append(") ").append(oneLine(o)).append('\n');
             return snapshot + "\nPRIORITY: you\nDECISION: " + question + "\nChoose between " + min + " and " + max
                     + " of these (by number):\n" + menu
-                    + "Reason briefly, then end with EXACTLY: PICKS: <comma-separated numbers>";
+                    + "Reason briefly, then end with EXACTLY: PICKS: <comma-separated numbers>"
+                    + (min == 0 ? " (or PICKS: NONE to choose zero)" : "");
         }
 
         /** The LLM seat's bespoke mulligan prompt body (not a decideOne/Many template — a KEEP/MULLIGAN
          *  free-text ask). {@code handNames} is the comma-joined card-name list both seats build the same
          *  way. Shared so the ai-teacher seat's reconstruction can never drift from the LLM seat's wire
          *  format. See {@link #mulliganKeepHand} (LLM seat) and PlayerControllerAiLogging.mulliganKeepHand. */
-        static String buildMulliganPrompt(int size, int lands, String handNames) {
-            return "MULLIGAN DECISION. This is a " + size + "-card hand with " + lands + " land(s): " + handNames
+        static String buildMulliganPrompt(int size, int lands, String handNames, boolean onThePlay) {
+            return "MULLIGAN DECISION. You are " + (onThePlay ? "ON THE PLAY (you go first)" : "ON THE DRAW (opponent goes first; you draw an extra card turn 1)")
+                    + ". This is a " + size + "-card hand with " + lands + " land(s): " + handNames
                     + ". If you MULLIGAN you will look at a NEW hand of only " + Math.max(0, size - 1)
                     + " cards (each mulligan costs you a card), and you can never go below 5. If you KEEP you play this "
                     + size + "-card hand as-is. Keeping a workable hand almost always beats shrinking it. "
@@ -3184,6 +3922,12 @@ public final class LlmSpikeGui {
             this.seat = seat;
         }
 
+        /** See {@link LlmSpikeGui#puzzleSolverSeat}. Needed here too: the Forge-AI FLOOR arm of the
+         *  PZL axis runs as "ai-log", not plain "ai" — a stock LobbyPlayerAi builds an unmodifiable
+         *  PlayerControllerAi that can never report itself as the solver. */
+        @Override
+        public boolean isGuiPlayer() { return isPuzzleSolver(getLobbyPlayer()); }
+
         /** The game-state prompt the LLM seat would have sent for this decision (empty intel / no turn
          *  plan, which the AI seat never accumulates). */
         private String snap() {
@@ -3195,6 +3939,9 @@ public final class LlmSpikeGui {
         }
         private void emit(String type, int nOptions, int choice, String fallback, List<String> options, String prompt) {
             try {
+                // Same log-choke dedupe as evalDec: shadow rows' options must match their prompt
+                // (built via buildDecideOne/ManyPrompt, which disambiguates). Idempotent.
+                if (options != null) options = PlayerControllerLLM.disambiguate(options);
                 emitDecisionRow(getPlayer(), seat, type, nOptions, choice, "ai-teacher", 0, fallback, options,
                         prompt, null, 0, 0, null, null, -1, -1);
             } catch (Exception ignore) { }
@@ -3212,8 +3959,19 @@ public final class LlmSpikeGui {
                 int size = hand.size();
                 StringBuilder n = new StringBuilder();
                 for (Card c : hand) { if (n.length() > 0) n.append(", "); n.append(c.getName()); }
-                prompt = PlayerControllerLLM.buildMulliganPrompt(size, lands, n.toString());
+                prompt = PlayerControllerLLM.buildMulliganPrompt(size, lands, n.toString(),
+                        getPlayer() == firstPlayer);
             } catch (Exception ignore) { }
+            // FORK (rollout, additive — inert unless LlmSpikeFork installed a forcer): forced mulligan
+            // on the ai-log seat. 0 or -1 (decline) == KEEP, 1 == MULLIGAN. Skips super entirely — the
+            // forced decision REPLACES the AI's, and the row logs what actually happened.
+            Integer forced = LlmSpikeGui.forkForce(getPlayer(), seat, "mulligan", 2,
+                    java.util.Arrays.asList("KEEP", "MULLIGAN"));
+            if (forced != null) {
+                boolean forcedKeep = forced.intValue() != 1;
+                emit("mulligan", 2, forcedKeep ? 0 : 1, java.util.Arrays.asList("KEEP", "MULLIGAN"), prompt);
+                return forcedKeep;
+            }
             boolean keep = super.mulliganKeepHand(firstPlayer, cardsToReturn);
             emit("mulligan", 2, keep ? 0 : 1, java.util.Arrays.asList("KEEP", "MULLIGAN"), prompt);
             return keep;
@@ -3263,6 +4021,28 @@ public final class LlmSpikeGui {
                             + PlayerControllerLLM.PLAY_PROMPT_TAIL;
                 }
             } catch (Exception ignore) { }
+            // FORK (rollout, additive — inert unless LlmSpikeFork installed a forcer): forced play on
+            // the ai-log seat. Skips super entirely (the forced decision replaces the AI's). A forced
+            // SPELL gets deterministic first-legal targets via forceTargetsFirstLegal — the AI cast
+            // path does no targeting for a spell it did not evaluate, and an untargeted cast fizzles.
+            // forced == -1 or the PASS slot -> pass priority with null (never an empty list — empty
+            // spins the 999-iteration priority loop, see chooseSpellAbilityToPlay's own PASS note).
+            if (genuine && labels != null && po != null) {
+                Integer forced = LlmSpikeGui.forkForce(getPlayer(), seat, "play", labels.size(), labels);
+                if (forced != null) {
+                    int f = forced.intValue();
+                    int nSpells = po.spells.size();
+                    int passSlot = labels.size() - 1;
+                    if (f < 0 || f >= passSlot) {
+                        emit("play", labels.size(), -1, labels, prompt);
+                        return null;
+                    }
+                    SpellAbility chosen = f < nSpells ? po.spells.get(f) : po.landPlays.get(f - nSpells);
+                    if (f < nSpells) LlmSpikeGui.forceTargetsFirstLegal(getPlayer(), chosen);
+                    emit("play", labels.size(), f, labels, prompt);
+                    return Lists.newArrayList(chosen);
+                }
+            }
             List<SpellAbility> r = super.chooseSpellAbilityToPlay(); // the AI's real decision, returned unchanged
             try {
                 if (genuine && labels != null) {
@@ -3737,6 +4517,36 @@ public final class LlmSpikeGui {
 
         private static final Map<String, ModelCfg> TABLE = buildTable();
 
+        /**
+         * The effective table, rendered canonically: every row, every field, key-sorted.
+         *
+         * This is what {@code model_cfg_sha} hashes. It used to hash the OPENROUTER_MODEL_CFG env
+         * string alone and return the constant "builtin" when that was unset -- which is to say the
+         * built-in values, the ones almost every run actually uses, were never in provenance at all.
+         * Changing a timeout or a token cap moved no sha and invalidated no artifact, so two runs
+         * with materially different infra were indistinguishable on disk. That is the same failure
+         * ContextProfileTest exists to prevent: something shaped like identity that identifies
+         * nothing. It matters concretely here -- an OpenRouter timeout is outcome-determining (an
+         * unbounded one emptied the whole PZL LLM arm), and until now no artifact recorded it.
+         *
+         * <p>The {@code : , |} delimiters are unescaped. Every built-in value is a number or a short
+         * keyword, but {@code reasoningEffort} can be set to arbitrary text through
+         * {@code OPENROUTER_MODEL_CFG}, so an operator CAN feed a delimiter in and make two distinct
+         * tables render alike. Provenance only, self-inflicted, and not a trust boundary -- but
+         * escape the fields here before this string is ever used for anything but a hash.
+         */
+        static String canonical() {
+            StringBuilder sb = new StringBuilder("modelcfg.v1|");
+            for (String key : new java.util.TreeSet<>(TABLE.keySet())) {
+                ModelCfg c = TABLE.get(key);
+                sb.append(key).append(':')
+                  .append(c.maxTokens).append(',').append(c.timeoutMs).append(',')
+                  .append(c.reasoningEffort).append(',').append(c.temperature).append(',')
+                  .append(c.fastMaxTokens).append(',').append(c.fastTimeoutMs).append('|');
+            }
+            return sb.toString();
+        }
+
         private static Map<String, ModelCfg> buildTable() {
             Map<String, ModelCfg> t = new java.util.LinkedHashMap<>();
             // Evidence-grounded starting values (HARNESS-ANALYSIS.md §5 Infra-1): deepseek/gpt hit the
@@ -3753,6 +4563,24 @@ public final class LlmSpikeGui {
             ModelCfg kimi        = new ModelCfg(16000, 150000, null, null, ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
             ModelCfg grok        = new ModelCfg(8000, 90000, null, null, ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
             ModelCfg dflt        = new ModelCfg(4000, 90000, null, null, ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
+            // Claude CLI models (ClaudeBridge). Added 2026-09-01 after opus-4.8/medium became the
+            // standing harness-test instrument and immediately tripped the 90s `default`: the smart
+            // bridge timed out mid-game and burned two retries plus a session restart, on a run whose
+            // max SUCCESSFUL latency was 22.9s and mean 7.2s. So 90s is right for the common case and
+            // far too tight for the tail, which is what a per-model entry is for.
+            //
+            // 180s, NOT MORE, AND THAT CEILING IS LOAD-BEARING: LlmSpikeHeadless sizes its post-cap
+            // shutdown grace as maxConfiguredTimeoutMs() + 10s, and run_batch.py's backstop budgets
+            // for that with a hardcoded GRACE_S = 200 (it cannot call the Java side). 180s keeps the
+            // grace at 190s, inside that budget. Raising any timeout above 190s REQUIRES raising
+            // GRACE_S too, or capped games get killed before an in-flight ask lands — the orphaned-row
+            // silent drop that defect_analyzer.py exists to catch. graceFitsRunBatchBudget() in
+            // LlmSpikeTest asserts this mechanically so it cannot be forgotten.
+            ModelCfg claudeCli   = new ModelCfg(8000, 180000, null, null,
+                                                ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
+            t.put("opus", claudeCli);
+            t.put("sonnet", claudeCli);
+            t.put("haiku", claudeCli);
             t.put("deepseek", deepseekGpt);
             t.put("gpt", deepseekGpt);
             t.put("kimi", kimi);
@@ -3826,6 +4654,29 @@ public final class LlmSpikeGui {
             for (ModelCfg c : TABLE.values()) max = Math.max(max, Math.max(c.timeoutMs, c.fastTimeoutMs));
             return max;
         }
+
+        /**
+         * The longest ONE DECISION can legitimately take -- which is not one timeout.
+         *
+         * A null reply sends PlayerControllerLLM.ask() into its retry loop: up to
+         * BRIDGE_RETRY_BACKOFF_MS.length additional attempts, each getting a FULL fresh timeout,
+         * plus the backoffs between them. So the real worst case is 3 x the slowest configured
+         * timeout, not 1 -- 542.5s today, against a post-cap grace built from
+         * maxConfiguredTimeoutMs() + 10s = 190s. A game capped while a decision was on its second
+         * or third attempt therefore got System.exit()'d with the ask in flight and no jsonl row
+         * written: precisely the silent drop that grace exists to prevent, arriving through the one
+         * path its arithmetic did not consider.
+         *
+         * Pre-existing, but reached more often after 9899f58f made OpenRouter timeouts real -- a
+         * timeout is now the common way to get the null that starts the retry loop, where before
+         * the call simply ran long and returned.
+         */
+        static long maxDecisionMs() {
+            long backoff = 0;
+            for (long b : PlayerControllerLLM.BRIDGE_RETRY_BACKOFF_MS) backoff += b;
+            long attempts = PlayerControllerLLM.BRIDGE_RETRY_BACKOFF_MS.length + 1;
+            return maxConfiguredTimeoutMs() * attempts + backoff;
+        }
     }
 
     /**
@@ -3841,6 +4692,54 @@ public final class LlmSpikeGui {
         // game goes on. Restart the CLI session every N asks (re-priming the preamble); the per-message
         // snapshot + the controller's INTEL line carry the state that matters across the reset.
         private static final int RESET_EVERY = (int) parseLong(System.getenv("CLAUDE_RESET_EVERY"), 40);
+
+        /**
+         * Reasoning effort passed to the CLI as {@code --effort}.
+         *
+         * EFFORT IS PART OF THE MEASUREMENT, not a performance knob. The same model at `low` and at
+         * `max` is two different players, exactly as two temperatures are, and the game summary
+         * already stamps temperature for that reason. So it is resolved once, validated, and
+         * stamped — an unstamped effort would let two incomparable runs pool silently, which is the
+         * failure the context_profile work exists to prevent, in a different dimension.
+         *
+         * Unset means "do not pass the flag", i.e. the CLI's own default and byte-identical argv to
+         * every run recorded before this existed. Per-tier overrides because the tiers are genuinely
+         * different jobs: the fast tier's contract is terse/no-reasoning, so spending effort there is
+         * latency for nothing.
+         *
+         * Read from CLAUDE_BRIDGE_EFFORT[_SMART|_FAST], NOT CLAUDE_EFFORT — see effortFor().
+         */
+        private static final java.util.Set<String> EFFORT_LEVELS =
+                java.util.Collections.unmodifiableSet(new java.util.LinkedHashSet<>(
+                        java.util.Arrays.asList("low", "medium", "high", "xhigh", "max")));
+
+        /** Resolve and VALIDATE an effort level. An unknown value is fatal here rather than passed
+         *  through to the CLI: the CLI would reject it per-call, mid-game, surfacing as a bridge
+         *  failure that looks like a model problem instead of a typo in the launch environment. */
+        static String effortFor(boolean fastTier) {
+            // NAMESPACED DELIBERATELY. The obvious name, CLAUDE_EFFORT, is ALREADY AN ENV VAR OF
+            // CLAUDE CODE ITSELF and is commonly set in a developer's shell (it was set to "high"
+            // in the session that added this, and the unit test caught it on the first run). Reading
+            // it would mean any harness run launched from inside a Claude Code session silently
+            // inherits that session's effort — a measurement changed by the terminal it was started
+            // from, invisible in the launch command and, before the provenance field below existed,
+            // invisible afterwards too. Never read a variable another tool owns.
+            String v = System.getenv(fastTier ? "CLAUDE_BRIDGE_EFFORT_FAST" : "CLAUDE_BRIDGE_EFFORT_SMART");
+            if (v == null || v.trim().isEmpty()) v = System.getenv("CLAUDE_BRIDGE_EFFORT");
+            if (v == null || v.trim().isEmpty()) return null;         // omit the flag entirely
+            String e = v.trim().toLowerCase(Locale.ROOT);
+            if (!EFFORT_LEVELS.contains(e)) {
+                throw new IllegalArgumentException("invalid CLAUDE_BRIDGE_EFFORT '" + v.trim()
+                        + "' — valid levels: " + String.join(", ", EFFORT_LEVELS));
+            }
+            return e;
+        }
+
+        /** What provenance records: the resolved level, or "cli-default" when the flag is omitted. */
+        static String effortLabel(boolean fastTier) {
+            String e = effortFor(fastTier);
+            return e == null ? "cli-default" : e;
+        }
         private static long parseLong(String v, long def) { try { return v == null ? def : Long.parseLong(v.trim()); } catch (Exception e) { return def; } }
         static long deadlineMs() { return DEADLINE_MS; } // in-JVM baseline value for the game-summary provenance line
         private final String label;
@@ -3869,8 +4768,14 @@ public final class LlmSpikeGui {
             System.out.println("[CLAUDE " + label + "] starting persistent " + model + " session...");
             // --strict-mcp-config: don't load the user's MCP servers into the bridge session — they add
             // startup time and system-prompt tokens that get re-processed on EVERY call, for zero benefit.
-            ProcessBuilder pb = new ProcessBuilder(BIN, "-p", "--model", model, "--strict-mcp-config",
-                    "--input-format", "stream-json", "--output-format", "stream-json", "--verbose");
+            java.util.List<String> argv = new ArrayList<>(java.util.Arrays.asList(
+                    BIN, "-p", "--model", model, "--strict-mcp-config",
+                    "--input-format", "stream-json", "--output-format", "stream-json", "--verbose"));
+            // Appended only when set, so an unconfigured run's argv is byte-identical to every run
+            // recorded before effort was configurable.
+            String effort = effortFor(label != null && label.endsWith("/fast"));
+            if (effort != null) { argv.add("--effort"); argv.add(effort); }
+            ProcessBuilder pb = new ProcessBuilder(argv);
             pb.redirectErrorStream(false);
             proc = pb.start();
             out = new BufferedReader(new InputStreamReader(proc.getInputStream(), StandardCharsets.UTF_8));
@@ -3955,7 +4860,7 @@ public final class LlmSpikeGui {
     }
 
     /** Collapse whitespace and truncate (word-boundary + ellipsis) for compact logging. */
-    private static String oneLine(String s) {
+    static String oneLine(String s) {
         if (s == null) return "";
         s = s.replaceAll("\\s+", " ").trim();
         return truncateWords(s, 90);
@@ -4208,6 +5113,7 @@ public final class LlmSpikeGui {
         private final String preamble;
         private final HttpClient client;
         private final ModelCfg cfg;
+        private final String baseUrl;
         private final boolean fastTier; // label is always "<seat>/smart" or "<seat>/fast" — see PlayerControllerLLM ctor
         private final long timeoutMs;
         private long totalMs = 0;
@@ -4215,24 +5121,79 @@ public final class LlmSpikeGui {
         private volatile String lastFinishReason;
         private volatile int lastPromptTokens = -1;
         private volatile int lastCompletionTokens = -1;
+        // Test-only instrumentation (see lastSendCount()). A bridge belongs to one seat/tier and
+        // ask() is never called concurrently on it, so the non-atomic ++ is safe; volatile is only
+        // so a test thread reads what the calling thread wrote.
+        private volatile int lastSendCount = 0;
+
+        /** "Bearer <key>" for a real endpoint with a key; null for loopback (never send a key on-box)
+         *  or when there is no key. Verifier BLOCKER 2026-09-07: this used to send the key everywhere. */
+        static String authorizationHeader(String apiKey, String endpoint) {
+            if (apiKey == null || apiKey.isEmpty()) return null;
+            if (LLMBridgeFactory.isLoopbackEndpoint(endpoint)) return null;
+            return "Bearer " + apiKey;
+        }
 
         OpenRouterBridge(String label, String model, String preamble) {
-            if (API_KEY == null || API_KEY.isEmpty())
+            this(label, model, preamble, BASE_URL, ModelCfg.forModel(model));
+        }
+
+        private OpenRouterBridge(String label, String model, String preamble, String baseUrl, ModelCfg cfg) {
+            this(label, model, preamble, baseUrl, timeoutFor(label, cfg));
+        }
+
+        /**
+         * Test seam. BASE_URL is a {@code static final} read of OPENROUTER_BASE_URL at class-init,
+         * so a test can never retarget the production constructor at a local server -- which left
+         * the part of this class most worth testing (ONE deadline shared by the original send and
+         * the truncation retry) covered by eye only. Package-private on purpose: production code
+         * takes the 3-arg constructor above and its env-derived endpoint.
+         */
+        OpenRouterBridge(String label, String model, String preamble, String baseUrl, long timeoutMs) {
+            // A LOCAL endpoint needs no key and must never be sent one — the same rule
+            // eval/pipelines/local_contract_check.sh already states for the Python lane ("localhost
+            // ... never receives a key"). Demanding a key here made the free local lane unusable for
+            // GAMES while it worked for puzzles, which is backwards: games are the only instrument
+            // that can measure a memory/context change, and they are the ones that most need to be
+            // free to repeat. Any non-loopback endpoint still requires the key.
+            // Enforced here, not only at the factory, so no construction path can egress without
+            // consent -- including the package-private test constructor above.
+            LLMBridgeFactory.requireEgressConsent(baseUrl, System.getenv("OPENROUTER_ALLOW_EGRESS"), label);
+            if ((API_KEY == null || API_KEY.isEmpty())
+                    && !LLMBridgeFactory.isLoopbackEndpoint(baseUrl))
                 throw new IllegalStateException("OPENROUTER_API_KEY env var is required for OpenRouter backend");
             this.label = label;
             this.model = model;
             this.preamble = preamble;
+            this.baseUrl = baseUrl;
             this.fastTier = label != null && label.endsWith("/fast");
             this.cfg = ModelCfg.forModel(model);
-            long base = fastTier ? cfg.fastTimeoutMs : cfg.timeoutMs;
-            this.timeoutMs = TIMEOUT_MS_ENV != null ? TIMEOUT_MS_ENV : base;
+            this.timeoutMs = timeoutMs;
             this.client = HttpClient.newBuilder()
                     .connectTimeout(Duration.ofMillis(timeoutMs))
                     .build();
         }
 
+        /** Per-tier deadline, or the flat OPENROUTER_TIMEOUT_MS override when an operator pins one. */
+        private static long timeoutFor(String label, ModelCfg cfg) {
+            boolean fast = label != null && label.endsWith("/fast");
+            long base = fast ? cfg.fastTimeoutMs : cfg.timeoutMs;
+            return TIMEOUT_MS_ENV != null ? TIMEOUT_MS_ENV : base;
+        }
+
+        /** HTTP round-trips the last ask() spent. A truncation retry makes it 2. Tests read this. */
+        int lastSendCount() { return lastSendCount; }
+
         @Override public String ask(String prompt) {
             long t0 = System.currentTimeMillis();
+            // ONE deadline for the whole call, retry included. run_batch.py's post-cap grace
+            // budgets for ModelCfg.maxConfiguredTimeoutMs() as "the longest a single decision can
+            // take", and model_cfg_sha now records the value each run used; letting the truncation
+            // retry below start a fresh budget would quietly make the real figure 2x both. The
+            // Claude lane already works this way (one deadline, destroyForcibly on expiry) -- the
+            // two lanes now mean the same thing by the same word.
+            final long deadline = t0 + timeoutMs;
+            lastSendCount = 0;
             try {
                 int maxTokens = fastTier ? cfg.fastMaxTokens : cfg.maxTokens;
                 // reasoning_effort/temperature are smart-tier-only hints — the fast tier's contract is
@@ -4240,7 +5201,7 @@ public final class LlmSpikeGui {
                 String reasoningEffort = fastTier ? null : cfg.reasoningEffort;
                 Double temperature = cfg.temperature;
 
-                OrResult r = send(prompt, maxTokens, reasoningEffort, temperature);
+                OrResult r = send(prompt, maxTokens, reasoningEffort, temperature, deadline);
                 if (r == null) return null; // transport/HTTP-status failure, already logged by send()
                 r = new OrResult(collapseDegenerateRepetition(r.content), r.finishReason,
                         r.promptTokens, r.completionTokens); // F2 residual (usage carried through)
@@ -4259,7 +5220,7 @@ public final class LlmSpikeGui {
                     int retryTokens = Math.min(maxTokens * 2, 64000);
                     System.out.println("[OPENROUTER " + label + "] [TRUNCATED->RETRY] finish_reason=length @ max_tokens="
                             + maxTokens + " -> retrying at " + retryTokens);
-                    OrResult retry = send(prompt, retryTokens, reasoningEffort, temperature);
+                    OrResult retry = send(prompt, retryTokens, reasoningEffort, temperature, deadline);
                     // Only adopt the retry if it's not itself a non-answer: a truncated-but-substantive
                     // original reply is a better final result than a garbled/empty retry, and either way
                     // the isNonAnswer() check right below still gets the final say.
@@ -4287,7 +5248,15 @@ public final class LlmSpikeGui {
 
         /** One HTTP round-trip. Returns null (transport/HTTP failure already logged) or a result
          *  carrying both the completion text and its finish_reason. */
-        private OrResult send(String prompt, int maxTokens, String reasoningEffort, Double temperature) throws Exception {
+        private OrResult send(String prompt, int maxTokens, String reasoningEffort, Double temperature,
+                              long deadline) throws Exception {
+            long remaining = deadline - System.currentTimeMillis();
+            if (remaining <= 0) {
+                System.out.println("[OPENROUTER " + label + "] budget exhausted before send ("
+                        + timeoutMs + " ms deadline already spent)");
+                return null;
+            }
+            lastSendCount++;
             StringBuilder body = new StringBuilder();
             body.append("{\"model\":\"").append(jsonEscape(model)).append("\",");
             body.append("\"messages\":[");
@@ -4303,16 +5272,31 @@ public final class LlmSpikeGui {
             body.append("}");
 
             HttpRequest.Builder rb = HttpRequest.newBuilder()
-                    .uri(URI.create(BASE_URL + "/chat/completions"))
-                    .header("Authorization", "Bearer " + API_KEY)
+                    .uri(URI.create(baseUrl + "/chat/completions"))
                     .header("Content-Type", "application/json");
+            // Send the key only to a real endpoint. A loopback run legitimately has none (see the
+            // constructor) and MUST NOT receive one even when the operator's shell happens to carry
+            // OPENROUTER_API_KEY (secrets.env is auto-loaded by the eval drivers): a local stub is
+            // cleartext HTTP, and the acceptance suite's fake server refuses any Authorization header.
+            // The decision is a pure function so LoopbackKeyTest can exercise it with a fake key.
+            String auth = authorizationHeader(API_KEY, baseUrl);
+            if (auth != null) rb.header("Authorization", auth);
             if (HTTP_REFERER != null && !HTTP_REFERER.isEmpty()) rb.header("HTTP-Referer", HTTP_REFERER);
             if (HTTP_TITLE != null && !HTTP_TITLE.isEmpty()) rb.header("X-Title", HTTP_TITLE);
 
             HttpRequest req = rb.POST(HttpRequest.BodyPublishers.ofString(body.toString(), StandardCharsets.UTF_8))
-                    .timeout(Duration.ofMillis(timeoutMs))
+                    .timeout(Duration.ofMillis(remaining))
                     .build();
-            HttpResponse<String> resp = client.send(req, HttpResponse.BodyHandlers.ofString());
+            // HttpRequest.timeout() above bounds only the wait for the response HEADERS; the body
+            // read is unbounded, and OpenRouter dribbles keepalives for the whole generation. See
+            // HttpDeadline for the measurement and the consequence.
+            HttpResponse<String> resp = HttpDeadline.send(
+                    client, req, HttpResponse.BodyHandlers.ofString(), remaining);
+            if (resp == null) {
+                System.out.println("[OPENROUTER " + label + "] wall-clock timeout after " + remaining
+                        + " ms (deadline " + timeoutMs + " ms)");
+                return null;
+            }
             if (resp.statusCode() != 200) {
                 System.out.println("[OPENROUTER " + label + "] HTTP " + resp.statusCode() + ": " + oneLine(resp.body()));
                 return null;
@@ -4362,15 +5346,57 @@ public final class LlmSpikeGui {
                 // Explicit egress consent: every OpenRouter call ships the full game snapshot
                 // (board, hand, deck plan) to a third-party API. Holding an API key is a
                 // configuration fact, not consent — require the dedicated opt-in flag too.
-                if (!"1".equals(System.getenv("OPENROUTER_ALLOW_EGRESS")))
-                    throw new IllegalStateException(
-                            "openrouter: backend sends full game state to openrouter.ai; "
-                            + "set OPENROUTER_ALLOW_EGRESS=1 to consent (" + label + ")");
+                //
+                // LOOPBACK IS EXEMPT, matching eval/replay_match.egress_allowed, which has always
+                // exempted it. A request to localhost leaves nothing and receives no key, so gating
+                // it protects nobody — and the cost of gating it is worse than nothing: it forces an
+                // operator running a FREE local model to set the egress flag out of habit, which is
+                // exactly how a consent flag stops meaning consent. The gate must fire on real
+                // egress and only on real egress.
+                requireEgressConsent(System.getenv("OPENROUTER_BASE_URL"),
+                                     System.getenv("OPENROUTER_ALLOW_EGRESS"), label);
                 String model = spec.substring("openrouter:".length());
                 return new OpenRouterBridge(label, model, preamble);
             }
             // Legacy/default: bare model name -> Claude CLI bridge.
             return new ClaudeBridge(label, spec, preamble);
+        }
+
+        /**
+         * Refuses unless {@code baseUrl} is loopback or {@code consent} is the literal "1".
+         *
+         * Both values are passed in rather than read from the environment so BOTH branches are
+         * reachable from a test. A consent gate whose refusal path can only be exercised by
+         * mutating the process environment is a gate nobody has ever seen fire.
+         *
+         * OpenRouterBridge's constructor calls this too, so the boundary is enforced by
+         * CONSTRUCTION rather than by each caller remembering to ask first -- the factory used to
+         * be the only check, which meant the package-private test constructor added alongside
+         * HttpDeadline could reach a non-loopback endpoint without consent.
+         */
+        static void requireEgressConsent(String baseUrl, String consent, String label) {
+            if (isLoopbackEndpoint(baseUrl) || "1".equals(consent)) return;
+            throw new IllegalStateException(
+                    "openrouter: backend sends full game state to openrouter.ai; "
+                    + "set OPENROUTER_ALLOW_EGRESS=1 to consent (" + label + ")");
+        }
+
+        /** True when {@code url} names a loopback host. Mirrors eval/replay_match.py's
+         *  LOCAL_HOSTS/endpoint_host pair, including its treatment of an unparseable or absent host
+         *  as NON-local: an empty host in Python means "no netloc", which only happens for a
+         *  relative URL, whereas here an unset OPENROUTER_BASE_URL means the real openrouter.ai
+         *  default — so absent must fail closed, not open. */
+        static boolean isLoopbackEndpoint(String url) {
+            if (url == null || url.trim().isEmpty()) return false;   // unset => the real API
+            try {
+                String host = new java.net.URI(url.trim()).getHost();
+                if (host == null) return false;
+                host = host.toLowerCase(Locale.ROOT);
+                if (host.startsWith("[") && host.endsWith("]")) host = host.substring(1, host.length() - 1);
+                return "localhost".equals(host) || "127.0.0.1".equals(host) || "::1".equals(host);
+            } catch (Exception e) {
+                return false;                                        // unparseable => fail closed
+            }
         }
     }
 
@@ -4444,11 +5470,9 @@ public final class LlmSpikeGui {
      *  what the model was able to produce, and it lives entirely in an env var — without this hash two
      *  runs on materially different sampling configs are indistinguishable in the artifact. */
     static String modelCfgSha() {
-        String raw = System.getenv("OPENROUTER_MODEL_CFG");
-        if (raw == null || raw.trim().isEmpty()) return "builtin";
         try {
             byte[] d = java.security.MessageDigest.getInstance("SHA-256")
-                    .digest(raw.getBytes(StandardCharsets.UTF_8));
+                    .digest(ModelCfg.canonical().getBytes(StandardCharsets.UTF_8));
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < 6; i++) sb.append(String.format("%02x", d[i]));
             return sb.toString();
@@ -4534,11 +5558,26 @@ public final class LlmSpikeGui {
                 + ",\"model_cfg_sha\":\"" + jsonEscape(modelCfgSha()) + "\""
                 + ",\"temperature_a\":\"" + jsonEscape(resolvedTemperature(smartASpec)) + "\""
                 + ",\"temperature_b\":\"" + jsonEscape(resolvedTemperature(smartBSpec)) + "\""
+                + ",\"memory_tools\":" + PlayerControllerLLM.MEMORY_TOOLS
+                + ",\"memory_tools_version\":\"" + ContextMemory.VERSION + "\""
                 + ",\"seed_bank\":\"" + jsonEscape(System.getenv().getOrDefault("SEED_BANK", "unregistered")) + "\""
+                // Context shape: WHAT THE MODEL COULD SEE. Two runs on different profiles are different
+                // measurements and must never be pooled; before this field there was no way to tell.
+                + ",\"context_profile\":\"" + jsonEscape(PlayerControllerLLM.CTX.name) + "\""
+                + ",\"context_sha\":\"" + jsonEscape(PlayerControllerLLM.CTX.sha()) + "\""
+                // Reasoning effort is part of the player's identity, like temperature: the same
+                // model at low and at max is two different players and must never pool.
+                + ",\"claude_effort_smart\":\"" + jsonEscape(ClaudeBridge.effortLabel(false)) + "\""
+                + ",\"claude_effort_fast\":\"" + jsonEscape(ClaudeBridge.effortLabel(true)) + "\""
                 + "}");
     }
 
     public static void main(String[] args) {
+        // Fail at LAUNCH on a bad CONTEXT_PROFILE. PlayerControllerLLM.CTX is a static initializer,
+        // so in a floor/random-only game the class may not load until the summary is written at
+        // exit — where the surrounding catch(Exception) cannot catch an ExceptionInInitializerError
+        // and an automated driver waiting on the exit line would hang instead of seeing the error.
+        ContextProfile.fromEnv();
         GuiBase.setInterface(new GuiDesktop());
         Singletons.initializeOnce(true);
         Singletons.getControl().initialize();

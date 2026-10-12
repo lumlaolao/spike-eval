@@ -171,6 +171,13 @@ Ground truth is `LlmSpikeHeadless.java`; the game line is keyed by
   a **model identity** block and exits **3** when a run stamped
   `discipline=cited` cannot name what played. Dirs written before these fields
   existed report `(pre-provenance)` and are excused, not failed.
+- **Served identity partitions experiments as recorded** (2026-09-07). A game
+  whose endpoint named nothing is its own experiment, never merged with,
+  paired against or deduplicated against a same-seed game that did name a
+  model, and two games that each resolved only `smart` or only `fast` never
+  combine into a joint condition. Baseline seats (floor/random/ai) have no
+  model to name and are reported `not-applicable`, never unresolved. See
+  `docs/harness/EVAL-IDENTITY-IMPLEMENTATION.md`.
 
 ## Frozen suites + the holdout registry
 

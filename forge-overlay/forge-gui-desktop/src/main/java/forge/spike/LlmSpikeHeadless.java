@@ -42,6 +42,12 @@ public final class LlmSpikeHeadless {
         long capMs = 3 * 60 * 60 * 1000L;
         try { String v = System.getenv("GAME_CAP_MS"); if (v != null) capMs = Long.parseLong(v.trim()); } catch (Exception ignore) {}
 
+        // PZL axis: PUZZLE=<id|path> runs one Forge puzzle instead of a match. Read BEFORE model
+        // init so a typo'd id fails in a second rather than after a 30s card-script load, but
+        // dispatched after, since LlmSpikePuzzle needs the card database.
+        String puzzle = System.getenv("PUZZLE");
+        boolean puzzleMode = puzzle != null && !puzzle.trim().isEmpty();
+
         System.out.println("[HEADLESS] initializing Forge model (no GUI)...");
         GuiBase.setInterface(new GuiDesktop());
         FModel.initialize(null, preferences -> {
@@ -49,6 +55,11 @@ public final class LlmSpikeHeadless {
             preferences.setPref(FPref.UI_LANGUAGE, "en-US");
             return null;
         });
+
+        if (puzzleMode) {
+            LlmSpikePuzzle.run(puzzle.trim());
+            return; // unreachable: LlmSpikePuzzle.run always exits the JVM itself
+        }
 
         long seed = LlmSpikeGui.applySeed(); // AFTER model init so nothing reseeds behind us
         LlmSpikeGui.EvalLog.init(seed);
@@ -82,7 +93,11 @@ public final class LlmSpikeHeadless {
             // decision's row in runs/improve/model-sweep-r2/gpt-5/game-216-0.log (line 265: the
             // final "play" ask, immediately followed by this cap message with no intervening
             // "replied in ...ms" line).
-            worker.join(LlmSpikeGui.ModelCfg.maxConfiguredTimeoutMs() + 10_000L);
+            // maxDecisionMs(), not maxConfiguredTimeoutMs(): a null reply sends the router into
+            // its retry loop, where each further attempt gets a FULL fresh timeout. Budgeting
+            // for one timeout meant a game capped on attempt 2 or 3 was killed with the ask
+            // still in flight -- the silent drop this grace exists to prevent.
+            worker.join(LlmSpikeGui.ModelCfg.maxDecisionMs() + 10_000L);
         }
         long durMs = System.currentTimeMillis() - t0;
 

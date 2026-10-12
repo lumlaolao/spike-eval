@@ -55,6 +55,14 @@ def main():
                          "--checkpoint (adapter path or opaque tag). Without it "
                          "every arm is stamped checkpoint_sha=unknown and the "
                          "report cannot say which checkpoint earned the number.")
+    ap.add_argument("--context-profile", default=None, metavar="NAME",
+                    help="passed through to run_batch.py --context-profile for "
+                         "every arm (one condition per suite run). Unset = the "
+                         "JVM baseline profile.")
+    ap.add_argument("--memory-tools", action="store_true",
+                    help="passed through to run_batch.py --memory-tools for every "
+                         "arm. Agent-plus-tools is a separate condition; its arms "
+                         "are written to runs/<suite>-<arm>-memtools.")
     ap.add_argument("--json", action="store_true", help="machine-readable plan")
     args = ap.parse_args()
 
@@ -193,6 +201,10 @@ def main():
         }
         if deck_file and ctrl_b:
             out_dir = f"runs/{name}-{aname}"
+            if args.context_profile:
+                out_dir += "-ctx-" + args.context_profile
+            if args.memory_tools:
+                out_dir += "-memtools"
             cmd = ["python3", "eval/run_batch.py",
                    "--seeds", arm["seeds"], "--pairs",
                    "--deck", deck_file,
@@ -203,6 +215,10 @@ def main():
                    "--out", out_dir]
             if args.checkpoint:
                 cmd += ["--checkpoint", args.checkpoint]
+            if args.context_profile:
+                cmd += ["--context-profile", args.context_profile]
+            if args.memory_tools:
+                cmd += ["--memory-tools"]
             if ctrl_b == "llm":
                 cmd += ["--smart-b", sub(arm["smart_b"]),
                         "--fast-b", sub(arm["fast_b"])]

@@ -192,6 +192,44 @@ public class LlmSpikeTest {
         Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.parseTagNumber("My pick: `CHOICE: 5`", "CHOICE:"), 5);
     }
 
+    // ---- disambiguate(): repeated menu labels get " #N" ordinals; unique menus pass through ----
+
+    @Test
+    public void disambiguate_noDuplicates_returnsSameListUnchanged() {
+        List<String> in = Lists.newArrayList("CAST Bolt", "PLAY LAND Mountain", "PASS (do nothing)");
+        // The contract is "UNCHANGED unless a label repeats" — same list identity, no copy, so
+        // the no-dup fast path can never perturb byte-identical teacher/student menus.
+        Assert.assertSame(LlmSpikeGui.PlayerControllerLLM.disambiguate(in), in);
+    }
+
+    @Test
+    public void disambiguate_repeatsGetOrdinals_uniqueEntriesUntouched() {
+        List<String> out = LlmSpikeGui.PlayerControllerLLM.disambiguate(Lists.newArrayList(
+                "CAST Wasteland [{T}, Sacrifice CARDNAME: ...]",
+                "CAST Wasteland [{T}, Sacrifice CARDNAME: ...]",
+                "PASS (do nothing)"));
+        Assert.assertEquals(out, Lists.newArrayList(
+                "CAST Wasteland [{T}, Sacrifice CARDNAME: ...] #1",
+                "CAST Wasteland [{T}, Sacrifice CARDNAME: ...] #2",
+                "PASS (do nothing)"));
+    }
+
+    @Test
+    public void disambiguate_multipleGroupsAndTriples_occurrenceOrder() {
+        List<String> out = LlmSpikeGui.PlayerControllerLLM.disambiguate(
+                Lists.newArrayList("A", "B", "A", "C", "A", "B"));
+        Assert.assertEquals(out, Lists.newArrayList("A #1", "B #1", "A #2", "C", "A #3", "B #2"));
+    }
+
+    @Test
+    public void disambiguate_idempotent() {
+        // Applied at both prompt builders AND log choke points (evalDec/emit), so double
+        // application on an already-suffixed list must be a no-op.
+        List<String> once = LlmSpikeGui.PlayerControllerLLM.disambiguate(Lists.newArrayList(
+                "Griselbrand (7/7)", "Griselbrand (7/7)", "Unmask", "Unmask"));
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.disambiguate(once), once);
+    }
+
     @Test
     public void parseTagNumber_dashSeparator() {
         Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.parseTagNumber("CHOICE - 5", "CHOICE:"), 5);
@@ -381,13 +419,21 @@ public class LlmSpikeTest {
                 "expected 'default' or a number, got: " + t);
     }
 
+    /**
+     * REPLACES modelCfgSha_isBuiltinWhenNoOverrideIsSet (2026-09-01), which pinned the literal
+     * "builtin" for every run without an OPENROUTER_MODEL_CFG override -- i.e. for essentially every
+     * artifact on disk. That made the field useless as provenance: the built-in per-model timeouts
+     * and token caps were never hashed, so changing one moved no sha and left every prior run
+     * indistinguishable from every later one. The old test was not wrong about the code; it faithfully
+     * pinned a contract that shouldn't have existed. modelCfgSha() now hashes the EFFECTIVE table.
+     * See ContextProfileTest for the full-coverage assertions.
+     */
     @Test
-    public void modelCfgSha_isBuiltinWhenNoOverrideIsSet() {
-        // Guards the common case only: OPENROUTER_MODEL_CFG is process env, so the override branch
-        // isn't reachable from a unit test without mutating the environment.
-        if (System.getenv("OPENROUTER_MODEL_CFG") == null) {
-            Assert.assertEquals(LlmSpikeGui.modelCfgSha(), "builtin");
-        }
+    public void modelCfgSha_hashesTheEffectiveTableNotJustTheOverride() {
+        String sha = LlmSpikeGui.modelCfgSha();
+        Assert.assertNotEquals(sha, "builtin",
+                "the built-in table must be hashed, not skipped with a constant");
+        Assert.assertTrue(sha.matches("[0-9a-f]{12}"), "expected 12 hex chars, got: " + sha);
     }
 
     @Test
@@ -603,9 +649,15 @@ public class LlmSpikeTest {
 
         String summary = LlmSpikeGui.PlayerControllerLLM.landSummary(p);
         Assert.assertTrue(summary.startsWith("2 untapped / 3 total"), summary);
-        Assert.assertTrue(summary.contains("Volcanic Island x1 [untapped]"), summary);
-        Assert.assertTrue(summary.contains("Volcanic Island x1 [tapped]"), summary);
-        Assert.assertTrue(summary.contains("Wasteland x1 [untapped]"), summary);
+        // The "@N" suffix is the persistent object id added 2026-08-02 (commit 17267cb9) so the
+        // model can tell two same-named permanents apart and track them across turns. This
+        // assertion still read "[untapped]" for a month afterwards: `make jtest` joined its class
+        // names with '+', which surefire matches against nothing, so the whole Java suite silently
+        // never ran. Match on the id PREFIX rather than a literal id — the ids are engine-assigned
+        // and pinning them here would couple this test to allocation order for no benefit.
+        Assert.assertTrue(summary.contains("Volcanic Island x1 [untapped @"), summary);
+        Assert.assertTrue(summary.contains("Volcanic Island x1 [tapped @"), summary);
+        Assert.assertTrue(summary.contains("Wasteland x1 [untapped @"), summary);
     }
 
     // ================================================================================
@@ -927,9 +979,8 @@ public class LlmSpikeTest {
     // hook. Previously fell straight through to PlayerControllerAi's bare valid.subList(0,min(max,size))
     // with zero jsonl/log trace. Now routed like discard/cards-for-effect. These prove the three
     // fallback ladder rungs: (1) the no-model floor arm is a deterministic auto-pick (never Forge AI),
-    // (2) a whole-set-forced reveal is a deterministic auto-pick, and (3) a dead bridge is the one
-    // documented Forge-AI exception (same convention as chooseTargetsFor) — it delegates to super WITH
-    // the [FALLBACK->AI] marker so the reconciliation gate counts it, never a silent drop.
+    // (2) a whole-set-forced reveal is a deterministic auto-pick, and (3) a dead bridge takes the
+    // minimum legal subset without consulting Forge AI.
     // ================================================================================
 
     @Test
@@ -980,7 +1031,7 @@ public class LlmSpikeTest {
     }
 
     @Test
-    public void chooseCardsToRevealFromHand_bridgeDown_delegatesToForgeAiWithMarker() throws Exception {
+    public void chooseCardsToRevealFromHand_bridgeDown_usesMinimumLegalSubsetNeverAi() throws Exception {
         Game game = buildBareGame();
         Player p = game.getPlayers().get(0);
         CardCollection valid = new CardCollection();
@@ -993,16 +1044,12 @@ public class LlmSpikeTest {
                 game, p, lp, "seat-x", "",
                 new DeadBridge("seat-x/smart"), new DeadBridge("seat-x/fast"), "llm");
 
-        // A real choice (reveal exactly 1 of 3) with a dead bridge: the documented Forge-AI exception.
-        CardCollectionView revealed = ctrl.chooseCardsToRevealFromHand(1, 1, valid);
-
-        Assert.assertEquals(revealed.size(), 1,
-                "min/max clamp: exactly one card revealed when max==1 (Forge AI default reveals min(max,size))");
-        Assert.assertEquals(ctrl.aiDelegationsCount(), 1,
-                "a dead bridge on this decision is the documented Forge-AI exception (cf. chooseTargetsFor): it "
-                + "must delegate to super WITH the [FALLBACK->AI] marker so the reconciliation gate counts it");
-        Assert.assertEquals(ctrl.autoPicksCount(), 0,
-                "bridge-down here is an ai-delegation (counted), not a deterministic auto-pick");
+        // A range makes over-revealing distinguishable from the minimum legal fallback.
+        CardCollectionView revealed = ctrl.chooseCardsToRevealFromHand(1, 3, valid);
+        Assert.assertEquals(revealed.size(), 1);
+        Assert.assertSame(revealed.get(0), valid.get(0));
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+        Assert.assertEquals(ctrl.autoPicksCount(), 1);
     }
 
     // ================================================================================
@@ -1116,7 +1163,8 @@ public class LlmSpikeTest {
         String got = LlmSpikeGui.PlayerControllerLLM.buildDecideManyPrompt(snap, "Declare attackers", opts, 0, 2);
         String expect = snap + "\nPRIORITY: you\nDECISION: Declare attackers\nChoose between 0 and 2 of these (by number):\n"
                 + "  1) Goblin (1/1)\n  2) Elf (2/1)\n"
-                + "Reason briefly, then end with EXACTLY: PICKS: <comma-separated numbers>";
+                + "Reason briefly, then end with EXACTLY: PICKS: <comma-separated numbers>"
+                + " (or PICKS: NONE to choose zero)";
         Assert.assertEquals(got, expect, "decideMany prompt template drifted");
     }
 
@@ -1145,8 +1193,9 @@ public class LlmSpikeTest {
 
     @Test
     public void buildMulliganPrompt_matchesTheMulliganWireFormatExactly() {
-        String got = LlmSpikeGui.PlayerControllerLLM.buildMulliganPrompt(7, 1, "Island, Brainstorm, Ponder");
-        String expect = "MULLIGAN DECISION. This is a 7-card hand with 1 land(s): Island, Brainstorm, Ponder"
+        String got = LlmSpikeGui.PlayerControllerLLM.buildMulliganPrompt(7, 1, "Island, Brainstorm, Ponder", true);
+        String expect = "MULLIGAN DECISION. You are ON THE PLAY (you go first)."
+                + " This is a 7-card hand with 1 land(s): Island, Brainstorm, Ponder"
                 + ". If you MULLIGAN you will look at a NEW hand of only 6"
                 + " cards (each mulligan costs you a card), and you can never go below 5. If you KEEP you play this "
                 + "7-card hand as-is. Keeping a workable hand almost always beats shrinking it. "
@@ -1278,5 +1327,170 @@ public class LlmSpikeTest {
         Matcher m = Pattern.compile("\"" + key + "\":\"([^\"]*)\"").matcher(line);
         Assert.assertTrue(m.find(), key + " not found in: " + line);
         return m.group(1);
+    }
+    @Test
+    public void memoryToolsRouteThroughRealControllerAndAuditEveryRound() throws Exception {
+        Game game = buildBareGame();
+        Player player = game.getPlayers().get(0);
+        game.getGameLog().add(forge.game.GameLogEntryType.STACK_ADD, "p2 cast MemoryCanarySpell");
+        java.util.List<String> prompts = new java.util.ArrayList<>();
+        LLMBridge bridge = new LLMBridge() {
+            public String ask(String prompt) {
+                prompts.add(prompt);
+                return LlmSpikeGui.PlayerControllerLLM.MEMORY_TOOLS && prompts.size() == 1
+                        ? "MEMORY SEARCH 0 MemoryCanarySpell" : "CHOICE: 1";
+            }
+            public String getLabel() { return "test/fast"; }
+            public String getModel() { return "fake"; }
+            public long getTotalMs() { return 0; }
+            public int getCalls() { return prompts.size(); }
+            public int getLastPromptTokens() { return 10; }
+            public int getLastCompletionTokens() { return 5; }
+        };
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(
+                game, player, new LobbyPlayerAi("memory-test", null), "memory-test", "",
+                new DeadBridge("test/smart"), bridge, "llm");
+        java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("context-controller-test");
+        LlmSpikeGui.EvalLog.closeForTest();
+        LlmSpikeGui.EvalLog.initToDir(dir.toString(), 42);
+        java.io.File file = LlmSpikeGui.EvalLog.currentFile();
+        try {
+            Assert.assertTrue(ctrl.confirmAction(null, PlayerActionConfirmMode.OptionalChoose,
+                    "Resolve the canary choice?", null, null, null));
+            Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+        } finally {
+            LlmSpikeGui.EvalLog.closeForTest();
+        }
+        String trace = java.nio.file.Files.readString(file.toPath());
+        if (LlmSpikeGui.PlayerControllerLLM.MEMORY_TOOLS) {
+            Assert.assertEquals(prompts.size(), 2);
+            Assert.assertTrue(prompts.get(1).contains("MEMORY RESULT (historical data):"));
+            Assert.assertTrue(prompts.get(1).contains("M1 (observation): [E"));
+            Assert.assertTrue(prompts.get(1).contains("Resolve the canary choice?"));
+            Assert.assertEquals(trace.split(java.util.regex.Pattern.quote("\"t\":\"context_call\""), -1).length - 1, 2);
+            Assert.assertTrue(trace.contains("\"t\":\"context_tool\""));
+            Assert.assertTrue(trace.contains("\"prompt_tokens\":10"));
+        } else {
+            Assert.assertEquals(prompts.size(), 1);
+            Assert.assertFalse(trace.contains("context_call"));
+        }
+    }
+
+
+    static final class FixedReplyBridge implements LLMBridge {
+        final String reply;
+        final List<String> prompts = new java.util.ArrayList<>();
+        FixedReplyBridge(String reply) { this.reply = reply; }
+        public String ask(String prompt) { prompts.add(prompt); return reply; }
+        public String getLabel() { return "test/numeric"; }
+        public String getModel() { return "fake"; }
+        public long getTotalMs() { return 0; }
+        public int getCalls() { return prompts.size(); }
+    }
+
+    private LlmSpikeGui.PlayerControllerLLM choiceController(FixedReplyBridge bridge) {
+        Game game = buildBareGame();
+        return new LlmSpikeGui.PlayerControllerLLM(game, game.getPlayers().get(0),
+                new LobbyPlayerAi("choice-test", null), "choice-test", "", bridge, bridge, "llm");
+    }
+
+    @Test
+    public void numericParamsOverloadAllowsInteriorValuesAndFullIntegerRange() {
+        FixedReplyBridge bridge = new FixedReplyBridge("NUMBER: 7");
+        LlmSpikeGui.PlayerControllerLLM ctrl = choiceController(bridge);
+        Assert.assertEquals(ctrl.chooseNumber(null, "Choose", 0, 100, java.util.Map.of()), 7);
+        Assert.assertTrue(bridge.prompts.get(0).contains("Every integer from 0 through 100"));
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+        bridge = new FixedReplyBridge("NUMBER: 2147483647");
+        ctrl = choiceController(bridge);
+        Assert.assertEquals(ctrl.chooseNumber(null, "Choose", Integer.MIN_VALUE, Integer.MAX_VALUE), Integer.MAX_VALUE);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    @Test
+    public void numericListOverloadPreservesSparseOptionsAndMaxBoundaryMenu() {
+        FixedReplyBridge bridge = new FixedReplyBridge("CHOICE: 2");
+        LlmSpikeGui.PlayerControllerLLM ctrl = choiceController(bridge);
+        Assert.assertEquals(ctrl.chooseNumber(null, "Sparse", Lists.newArrayList(-9, 17, 10000), null), 17);
+        Assert.assertEquals(ctrl.chooseNumber(null, "Boundary", Integer.MAX_VALUE - 1, Integer.MAX_VALUE), Integer.MAX_VALUE);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    @Test
+    public void numericRepliesRejectOutOfRangeOverflowAndMixedActions() {
+        for (String reply : Lists.newArrayList("NUMBER: 101", "NUMBER: 999999999999", "NUMBER: 7\nCHOICE: 1",
+                "NUMBER: 7\nMEMORY READ 1 0", "I choose NUMBER: 7")) {
+            Assert.assertNull(LlmSpikeGui.PlayerControllerLLM.parseNumberReply(reply, 0, 100));
+        }
+        FixedReplyBridge bridge = new FixedReplyBridge("NUMBER: 999999999999");
+        LlmSpikeGui.PlayerControllerLLM ctrl = choiceController(bridge);
+        Assert.assertEquals(ctrl.chooseNumber(null, "Invalid", 3, 100), 3);
+        Assert.assertEquals(bridge.prompts.size(), 2);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    @Test
+    public void binaryOverloadsUseModelAndHumanOptionOrdering() {
+        FixedReplyBridge bridge = new FixedReplyBridge("CHOICE: 2");
+        LlmSpikeGui.PlayerControllerLLM ctrl = choiceController(bridge);
+        for (forge.game.player.PlayerController.BinaryChoiceType kind : forge.game.player.PlayerController.BinaryChoiceType.values()) {
+            Assert.assertFalse(ctrl.chooseBinary(null, "Choose", kind, java.util.Map.of()));
+            Assert.assertFalse(ctrl.chooseBinary(null, "Choose", kind, Boolean.TRUE));
+        }
+        Assert.assertTrue(bridge.prompts.stream().anyMatch(p -> p.contains("Leave tapped")));
+        Assert.assertEquals(bridge.prompts.size(), 16);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    @Test
+    public void optionalPaymentsAndReplacementsHonorModelAcceptanceAndDecline() {
+        for (String reply : Lists.newArrayList("CHOICE: 1", "CHOICE: 2")) {
+            FixedReplyBridge bridge = new FixedReplyBridge(reply);
+            LlmSpikeGui.PlayerControllerLLM ctrl = choiceController(bridge);
+            boolean expected = reply.endsWith("1");
+            Assert.assertEquals(ctrl.confirmPayment(null, "Pay two life?", null), expected);
+            Assert.assertEquals(ctrl.confirmReplacementEffect(null, null, null, "Dredge instead of drawing?"), expected);
+            Assert.assertEquals(bridge.prompts.size(), 2);
+            Assert.assertTrue(bridge.prompts.get(0).contains("Pay two life?"));
+            Assert.assertTrue(bridge.prompts.get(1).contains("Dredge instead of drawing?"));
+            Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+        }
+    }
+
+    @Test
+    public void optionalConfirmationMalformedRepliesDeclineWithoutAi() {
+        FixedReplyBridge bridge = new FixedReplyBridge("not a choice");
+        LlmSpikeGui.PlayerControllerLLM ctrl = choiceController(bridge);
+        Assert.assertFalse(ctrl.confirmPayment(null, "Pay?", null));
+        Assert.assertFalse(ctrl.confirmReplacementEffect(null, null, null, "Replace?"));
+        Assert.assertEquals(bridge.prompts.size(), 4);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    @Test
+    public void triggerConfirmationDoesNotChangeTargetsAndMandatoryDoesNotAskModel() {
+        Game game = buildBareGame();
+        Player player = game.getPlayers().get(0);
+        Card source = addBattlefieldCard("Forest", player);
+        SpellAbility sa = forge.game.ability.AbilityFactory.getAbility(
+                "AB$ GainLife | Cost$ 0 | LifeAmount$ 1 | SpellDescription$ Gain one life.", source);
+        sa.getTargets().add(player);
+        Object targets = sa.getTargets();
+        FixedReplyBridge bridge = new FixedReplyBridge("CHOICE: 2");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, player,
+                new LobbyPlayerAi("trigger-test", null), "trigger-test", "", bridge, bridge, "llm");
+        forge.game.trigger.WrappedAbility optional = new forge.game.trigger.WrappedAbility(null, sa, player) {
+            @Override public boolean isMandatory() { return false; }
+        };
+        Assert.assertFalse(ctrl.confirmTrigger(optional));
+        Assert.assertEquals(bridge.prompts.size(), 1);
+        Assert.assertSame(sa.getTargets(), targets);
+        Assert.assertTrue(com.google.common.collect.Iterables.contains(sa.getTargets().getTargetPlayers(), player));
+        forge.game.trigger.WrappedAbility mandatory = new forge.game.trigger.WrappedAbility(null, sa, player) {
+            @Override public boolean isMandatory() { return true; }
+        };
+        Assert.assertTrue(ctrl.confirmTrigger(mandatory));
+        Assert.assertEquals(bridge.prompts.size(), 1);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 }

@@ -4,7 +4,14 @@
 Orchestrates N headless games by invoking `bash run-llm-headless.sh` from
 FORGE_HOME with per-game env vars (GAME_SEED, SWAP_SEATS, EVAL_OUT, ...).
 Each game is a separate JVM process. Resumable: seed/swap combos whose JSONL
-in --out already contains a final game line are skipped.
+in --out already contains a final game line RECORDED UNDER THIS BATCH'S
+CONDITION are skipped. The condition (decks, identities, controllers, models,
+context profile, memory tools, checkpoint, shas, cap, plans, env overrides) is
+written to <out>/batch-manifest.json on first launch; a later invocation with a
+different condition against the same --out is refused, so one directory is
+always one experiment. --context-profile and --memory-tools are the only way to
+set CONTEXT_PROFILE / MEMORY_TOOLS (ambient values are scrubbed, --env is
+refused for them); unset means the JVM's historical baseline.
 
 Two modes:
   CITED (default) — the only mode whose numbers may be quoted. Enforces a
@@ -64,7 +71,32 @@ RUN_DEFINING_KEYS = (
     "GAME_SEED", "SWAP_SEATS", "EVAL_OUT", "GAME_CAP_MS",
     "ENGINE_SHA", "OVERLAY_SHA", "DECK_SHA", "RUN_DISCIPLINE",
     "CHECKPOINT_SHA", "SEED_BANK",
+    # Context shape and memory tools are experimental CONDITIONS (they change
+    # what the model can see and do); only --context-profile/--memory-tools set
+    # them, never the ambient environment or --env.
+    "CONTEXT_PROFILE", "MEMORY_TOOLS",
 )
+# Per-knob context overrides (CTX_RECENT_EVENTS, ...) stamp a "+ovr" profile
+# name and a different context_sha on the game line. Cited mode refuses them;
+# exploratory mode allows them via --env and records them in the manifest.
+CTX_OVERRIDE_PREFIX = "CTX_"
+# Batch-level record of the condition every game in --out was launched under.
+MANIFEST_NAME = "batch-manifest.json"
+MANIFEST_SCHEMA = "batch-manifest.v1"
+# Manifest fields that DEFINE the condition: a resume whose values differ on
+# any of these is refused, because the games would land in one directory as
+# two experiments (aggregate.py would keep them apart, but the operator asked
+# for one batch, and a silent second condition is exactly the mixing this
+# guard exists to prevent).
+CONDITION_KEYS = (
+    "discipline", "deck_a", "deck_b", "name_a", "name_b",
+    "controller_a", "controller_b", "smart_a", "smart_b", "fast_a", "fast_b",
+    "plan_a", "plan_b", "context_profile", "memory_tools", "ctx_overrides",
+    "checkpoint_sha", "engine_sha", "overlay_sha", "deck_sha",
+    "cap_minutes", "shadow_ai", "env_overrides",
+)
+# --env values that must never be written to a manifest on disk.
+SECRET_KEY_HINTS = ("KEY", "TOKEN", "SECRET", "PASSWORD", "CREDENTIAL")
 
 
 def log(msg):
@@ -190,7 +222,16 @@ def build_env(args, seed, swap, out_dir):
     # only flags, --env (re-applied below), and forced_env may set them.
     for k in RUN_DEFINING_KEYS + CITED_FORCED_KEYS:
         env.pop(k, None)
+    for k in [k for k in env if k.startswith(CTX_OVERRIDE_PREFIX)]:
+        env.pop(k, None)
     env["GAME_SEED"] = str(seed)
+    # Context condition. Unset means the JVM defaults: profile v1-compat and
+    # memory tools off — the historical baseline, stamped as such on the game
+    # line. The flags are the ONLY way to change either.
+    if getattr(args, "context_profile", None):
+        env["CONTEXT_PROFILE"] = args.context_profile
+    if getattr(args, "memory_tools", False):
+        env["MEMORY_TOOLS"] = "1"
     # Explicitly clear SWAP_SEATS when not swapping so an inherited value
     # can't silently flip seats.
     if swap:
@@ -298,14 +339,22 @@ def run_one(args, seed, swap, out_dir):
     if not has_game_line(out_dir, seed, swap):
         log("[warn] seed=%d swap=%d exited 0 but wrote no game line" % (seed, swap))
         return (seed, swap, "no-game-line", code)
+    # A game line whose recorded condition is not the one we launched means
+    # the JVM did not honor the requested profile/tools: never count it done.
+    if not has_game_line(out_dir, seed, swap, resume_expectation(args)):
+        log("[fail] seed=%d swap=%d wrote a game line under a DIFFERENT condition "
+            "than requested (check context_profile/memory_tools on the line)"
+            % (seed, swap))
+        return (seed, swap, "condition-mismatch", code)
     log("[done] seed=%d swap=%d" % (seed, swap))
     return (seed, swap, "ok", code)
 
 
-def has_game_line(out_dir, seed, swap):
-    """True if some game-<seed>-*.jsonl in out_dir has a final game line
-    matching this seed/swap combo. Defensive: skip unparseable lines."""
-    for path in Path(out_dir).glob("game-%d-*.jsonl" % seed):
+def iter_game_lines(out_dir, seed=None):
+    """Yield every parseable game line in out_dir (optionally one seed's
+    files). Defensive: skip unparseable lines and unreadable files."""
+    pattern = "game-%d-*.jsonl" % seed if seed is not None else "game-*.jsonl"
+    for path in sorted(Path(out_dir).glob(pattern)):
         try:
             with open(path, "r", encoding="utf-8", errors="replace") as f:
                 for line in f:
@@ -316,13 +365,238 @@ def has_game_line(out_dir, seed, swap):
                         rec = json.loads(line)
                     except (json.JSONDecodeError, ValueError):
                         continue
-                    if not isinstance(rec, dict) or rec.get("t") != "game":
-                        continue
-                    if rec.get("seed") == seed and bool(rec.get("swap", False)) == swap:
-                        return True
+                    if isinstance(rec, dict) and rec.get("t") == "game":
+                        yield rec
         except OSError:
             continue
+
+
+# Sentinel: the game line may lack this field entirely (legacy harness).
+ABSENT = object()
+
+
+def game_line_matches(rec, expect):
+    """expect: {field: [acceptable values]} where ABSENT accepts a missing
+    field. A field the line carries with a value outside the list is a
+    mismatch: such a line was recorded under a different condition."""
+    for field, allowed in (expect or {}).items():
+        if field not in rec:
+            if ABSENT in allowed:
+                continue
+            return False
+        v = rec[field]
+        if not any(a is not ABSENT and a == v for a in allowed):
+            return False
+    return True
+
+
+def resume_expectation(args):
+    """Which recorded fields a completed game line must show to count as
+    THIS batch's game. Only fields the runner controls explicitly are
+    demanded; the batch manifest guards the rest."""
+    expect = {}
+    if getattr(args, "context_profile", None):
+        expect["context_profile"] = [args.context_profile]
+    else:
+        # Runner unset -> JVM default profile. A pre-profile line is accepted
+        # only because it can only have run the (then unnamed) v1 shape.
+        expect["context_profile"] = ["v1-compat", ABSENT]
+    if getattr(args, "memory_tools", False):
+        expect["memory_tools"] = [True]
+    else:
+        expect["memory_tools"] = [False, ABSENT]
+    for field, val in (("controller_a", args.controller_a), ("controller_b", args.controller_b),
+                       ("smart_a", args.smart_a), ("smart_b", args.smart_b),
+                       ("fast_a", args.fast_a), ("fast_b", args.fast_b)):
+        if val is not None:
+            expect[field] = [val]
+    return expect
+
+
+def has_game_line(out_dir, seed, swap, expect=None):
+    """True if some game-<seed>-*.jsonl in out_dir has a final game line
+    matching this seed/swap combo AND (when expect is given) the recorded
+    condition. A game played under another profile/tool setting is not
+    "already complete" for this batch."""
+    for rec in iter_game_lines(out_dir, seed):
+        if rec.get("seed") == seed and bool(rec.get("swap", False)) == swap:
+            if game_line_matches(rec, expect):
+                return True
     return False
+
+
+def plan_combos(out_dir, combos, expect=None):
+    """Split (seed, swap) combos into (todo, skipped, foreign): skipped are
+    complete under this condition; foreign are combos for which a game line
+    exists only under a DIFFERENT condition (they are replayed, and the
+    operator is told)."""
+    todo, skipped, foreign = [], [], []
+    for seed, swap in combos:
+        if has_game_line(out_dir, seed, swap, expect):
+            skipped.append((seed, swap))
+            continue
+        if expect and has_game_line(out_dir, seed, swap, None):
+            foreign.append((seed, swap))
+        todo.append((seed, swap))
+    return todo, skipped, foreign
+
+
+# ------------------------------------------------------------ manifest
+
+def _scrub_env_overrides(kvs):
+    """--env KEY=VALUE list -> {KEY: VALUE}, with secret-looking values
+    replaced by a marker so the manifest never stores a credential."""
+    out = {}
+    for kv in kvs or []:
+        if "=" not in kv:
+            continue
+        k, _, v = kv.partition("=")
+        out[k] = "<redacted>" if any(h in k.upper() for h in SECRET_KEY_HINTS) else v
+    return out
+
+
+def batch_condition(args, cited):
+    """The condition every game of this batch is launched under, as recorded
+    in the manifest and compared on resume."""
+    forced = getattr(args, "forced_env", None) or {}
+    overrides = _scrub_env_overrides(args.env)
+    ctx = {k: v for k, v in overrides.items() if k.startswith(CTX_OVERRIDE_PREFIX)}
+    return {
+        "discipline": "cited" if cited else "exploratory",
+        "deck_a": args.deck_a, "deck_b": args.deck_b,
+        "name_a": args.name_a, "name_b": args.name_b,
+        "controller_a": args.controller_a, "controller_b": args.controller_b,
+        "smart_a": args.smart_a, "smart_b": args.smart_b,
+        "fast_a": args.fast_a, "fast_b": args.fast_b,
+        "plan_a": args.plan_a, "plan_b": args.plan_b,
+        "context_profile": getattr(args, "context_profile", None),
+        "memory_tools": bool(getattr(args, "memory_tools", False)),
+        "ctx_overrides": ctx,
+        "checkpoint_sha": forced.get("CHECKPOINT_SHA"),
+        "engine_sha": forced.get("ENGINE_SHA"),
+        "overlay_sha": forced.get("OVERLAY_SHA"),
+        "deck_sha": forced.get("DECK_SHA"),
+        "cap_minutes": args.cap_minutes,
+        "shadow_ai": bool(getattr(args, "shadow_ai", False)),
+        "env_overrides": {k: v for k, v in overrides.items()
+                          if not k.startswith(CTX_OVERRIDE_PREFIX)},
+    }
+
+
+def condition_diff(old, new):
+    """[(key, old_value, new_value)] over CONDITION_KEYS that differ."""
+    return [(k, old.get(k), new.get(k)) for k in CONDITION_KEYS
+            if old.get(k) != new.get(k)]
+
+
+def load_manifest(out_dir):
+    p = Path(out_dir) / MANIFEST_NAME
+    if not p.is_file():
+        return None
+    try:
+        m = json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        raise ManifestError("unreadable %s: %s" % (p, e))
+    if not isinstance(m, dict) or m.get("schema") != MANIFEST_SCHEMA:
+        raise ManifestError("%s is not a %s manifest" % (p, MANIFEST_SCHEMA))
+    return m
+
+
+class ManifestError(Exception):
+    pass
+
+
+def legacy_dir_condition(out_dir):
+    """Condition fields recoverable from the game lines of a directory that
+    predates the manifest, or None when there are no game lines. Fields the
+    lines do not carry are omitted (unknowable, not 'matches')."""
+    field_map = {
+        "context_profile": "context_profile", "memory_tools": "memory_tools",
+        "controller_a": "controller_a", "controller_b": "controller_b",
+        "smart_a": "smart_a", "smart_b": "smart_b", "fast_a": "fast_a", "fast_b": "fast_b",
+        "name_a": "deck_a", "name_b": "deck_b", "discipline": "discipline",
+        "checkpoint_sha": "checkpoint_sha", "engine_sha": "engine_sha",
+        "overlay_sha": "overlay_sha", "deck_sha": "deck_sha",
+    }
+    seen = {}
+    n = 0
+    for rec in iter_game_lines(out_dir):
+        n += 1
+        for key, field in field_map.items():
+            if field in rec:
+                seen.setdefault(key, set()).add(json.dumps(rec[field], sort_keys=True))
+    if not n:
+        return None
+    return {"n_game_lines": n,
+            "fields": {k: [json.loads(v) for v in sorted(vals)] for k, vals in seen.items()}}
+
+
+def check_resume_condition(out_dir, condition, cited):
+    """Refuse (return a message) when out_dir already holds games launched
+    under a different condition; None when resuming is safe. Legacy dirs
+    without a manifest are compared on whatever their game lines recorded;
+    in cited mode an unverifiable legacy dir is refused outright."""
+    manifest = load_manifest(out_dir)
+    if manifest is not None:
+        diff = condition_diff(manifest.get("condition", {}), condition)
+        if diff:
+            return ("%s already holds games under a different condition; a batch "
+                    "directory is one experiment. Differences:\n           - "
+                    % out_dir
+                    + "\n           - ".join("%s: recorded %r, requested %r" % d for d in diff)
+                    + "\n           Use a new --out for the new condition.")
+        return None
+    legacy = legacy_dir_condition(out_dir)
+    if legacy is None:
+        return None
+    problems = []
+    for key, vals in legacy["fields"].items():
+        want = condition.get(key)
+        if key == "context_profile" and want is None:
+            want = "v1-compat"
+        if key == "memory_tools":
+            want = bool(want)
+        if key in ("controller_a", "controller_b", "smart_a", "smart_b",
+                   "fast_a", "fast_b") and want is None:
+            continue  # runner left it to the JVM default; cannot compare
+        if len(vals) > 1 or vals[0] != want:
+            problems.append("%s: recorded %s, requested %r" % (key, vals, want))
+    unverifiable = [k for k in ("context_profile", "memory_tools", "checkpoint_sha")
+                    if k not in legacy["fields"]]
+    if problems:
+        return ("%s has no %s but its %d game line(s) record a different condition:"
+                "\n           - " % (out_dir, MANIFEST_NAME, legacy["n_game_lines"])
+                + "\n           - ".join(problems)
+                + "\n           Use a new --out for the new condition.")
+    if unverifiable and cited:
+        return ("%s has no %s and its game lines do not record %s, so the "
+                "condition of the games already there cannot be verified. Cited "
+                "batches may not resume into it; use a new --out."
+                % (out_dir, MANIFEST_NAME, ", ".join(unverifiable)))
+    if unverifiable:
+        log("[warn] %s predates the batch manifest and its game lines do not "
+            "record %s; the condition of the existing games is unverified."
+            % (out_dir, ", ".join(unverifiable)))
+    return None
+
+
+def write_manifest(out_dir, condition, seeds, pairs, jobs, argv=None):
+    """Create or extend the batch manifest. The condition is written once;
+    every invocation (initial or resume) is appended to `invocations`."""
+    p = Path(out_dir) / MANIFEST_NAME
+    existing = load_manifest(out_dir)
+    entry = {"utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+             "seeds": seeds, "pairs": bool(pairs), "jobs": jobs,
+             "argv": list(argv) if argv is not None else None}
+    if existing is None:
+        m = {"schema": MANIFEST_SCHEMA, "condition": condition, "invocations": [entry]}
+    else:
+        m = existing
+        m.setdefault("invocations", []).append(entry)
+    tmp = p.with_suffix(".tmp")
+    tmp.write_text(json.dumps(m, indent=2, sort_keys=True), encoding="utf-8")
+    os.replace(tmp, p)
+    return m
 
 
 # ----------------------------------------------------------- cited guards
@@ -362,6 +636,9 @@ def cited_pre_guards(args):
         if k in RUN_DEFINING_KEYS:
             _refuse("cited mode forbids --env %s — it defines the run; use the "
                     "dedicated flag instead so guards and provenance see it." % k)
+        if k.startswith(CTX_OVERRIDE_PREFIX):
+            _refuse("cited mode forbids per-knob context overrides (--env %s); a "
+                    "cited condition is a named --context-profile, nothing else." % k)
     if args.plan_a or args.plan_b:
         _refuse("plans (PLAN_A/PLAN_B) are an expert-knowledge confound and are "
                 "forbidden in cited mode.")
@@ -461,6 +738,9 @@ def finalize_provenance_and_cap(args, cited):
            forced["RUN_DISCIPLINE"]))
     log("[provenance] checkpoint=%s seed_bank=%s"
         % (forced["CHECKPOINT_SHA"], forced["SEED_BANK"]))
+    log("[condition] context_profile=%s memory_tools=%s"
+        % (args.context_profile or "(unset: JVM default v1-compat)",
+           "1" if args.memory_tools else "off"))
     if forced["CHECKPOINT_SHA"] == "unknown":
         log("[warn] no --checkpoint given: the game line will not say which weights "
             "played. The endpoint's served_* fields are then the only identity, and "
@@ -553,14 +833,20 @@ def derive_cap_minutes(args):
 
 
 def default_out_label(args):
-    """e.g. 'floor-vs-random' / 'llm-haiku-vs-random' from controllers/models."""
+    """e.g. 'floor-vs-random' / 'llm-haiku-vs-random' from controllers/models,
+    suffixed with the context condition when it departs from the baseline."""
     def side(ctrl, smart):
         ctrl = ctrl or "llm"
         if ctrl == "llm" and smart:
             return "llm-%s" % smart
         return ctrl
-    return "%s-vs-%s" % (side(args.controller_a, args.smart_a),
-                         side(args.controller_b, args.smart_b))
+    label = "%s-vs-%s" % (side(args.controller_a, args.smart_a),
+                          side(args.controller_b, args.smart_b))
+    if getattr(args, "context_profile", None):
+        label += "-ctx-%s" % re.sub(r"[^A-Za-z0-9._-]+", "_", args.context_profile)
+    if getattr(args, "memory_tools", False):
+        label += "-memtools"
+    return label
 
 
 # ------------------------------------------------------------------ main
@@ -651,9 +937,26 @@ def main():
                          "or file, hashed) or an opaque tag. Stamped as "
                          "CHECKPOINT_SHA on every game line. Strongly recommended "
                          "whenever the model spec is an alias the endpoint resolves.")
+    ap.add_argument("--context-profile", metavar="NAME",
+                    help="CONTEXT_PROFILE for every game (a registered name such "
+                         "as v1-compat, v2-memory, v3-compact; the JVM refuses an "
+                         "unknown one at launch). Unset = JVM default v1-compat, "
+                         "the historical baseline. Stamped as context_profile/"
+                         "context_sha on each game line and in the batch manifest.")
+    ap.add_argument("--memory-tools", action="store_true",
+                    help="MEMORY_TOOLS=1: give LLM seats the evidence-archive tools "
+                         "(MEMORY SEARCH/READ/NOTE). Default off. Agent-plus-tools "
+                         "results are a separate condition from unassisted play and "
+                         "must live in their own --out.")
     ap.add_argument("--env", action="append", metavar="KEY=VALUE",
                     help="extra env var for the runner (repeatable)")
     args = ap.parse_args()
+    for kv in args.env or []:
+        k = kv.split("=", 1)[0]
+        if k in ("CONTEXT_PROFILE", "MEMORY_TOOLS"):
+            raise SystemExit("run_batch: --env %s is not allowed in any mode; use "
+                             "--context-profile / --memory-tools so the condition is "
+                             "recorded and guarded." % k)
 
     warn_reserved_seeds(args.seeds)
     load_secrets()
@@ -703,21 +1006,34 @@ def main():
     log("[out] %s" % out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    # Guard 7: one directory, one condition. Refuse to resume into a dir whose
+    # manifest (or, for a pre-manifest dir, whose game lines) records a
+    # different condition; then record this invocation.
+    condition = batch_condition(args, cited)
+    try:
+        problem = check_resume_condition(out_dir, condition, cited)
+    except ManifestError as e:
+        problem = str(e)
+    if problem:
+        print("run_batch: REFUSING: " + problem, file=sys.stderr)
+        sys.exit(2)
+    write_manifest(out_dir, condition, seeds=list(args.seeds), pairs=args.pairs,
+                   jobs=args.jobs, argv=sys.argv[1:])
+
     warn_parallel_jobs(args)
 
     swaps = [False, True] if args.pairs else [False]
     combos = [(seed, swap) for seed in args.seeds for swap in swaps]
 
-    todo, skipped = [], []
-    for seed, swap in combos:
-        if has_game_line(out_dir, seed, swap):
-            skipped.append((seed, swap))
-        else:
-            todo.append((seed, swap))
+    todo, skipped, foreign = plan_combos(out_dir, combos, resume_expectation(args))
     if skipped:
         log("Resuming: skipping %d/%d combos already complete: %s"
             % (len(skipped), len(combos),
                ", ".join("%d/swap%d" % (s, w) for s, w in skipped)))
+    if foreign:
+        log("[warn] %d combo(s) have a game line recorded under a DIFFERENT condition "
+            "and will be replayed (aggregate.py keeps the two apart): %s"
+            % (len(foreign), ", ".join("%d/swap%d" % (s, w) for s, w in foreign)))
     if not todo:
         log("Nothing to do.")
         return 0
