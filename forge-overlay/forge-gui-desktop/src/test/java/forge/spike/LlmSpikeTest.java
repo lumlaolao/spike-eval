@@ -1523,6 +1523,18 @@ public class LlmSpikeTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    @Test
+    public void g7PreventEffectCostIsModelRouted() {
+        // Model declines an "unless" cost (Daze/Force Spike style): no payment, no AI delegation.
+        LlmSpikeGui.PlayerControllerLLM ctrl = choiceController(new FixedReplyBridge("CHOICE: 2"));
+        Assert.assertFalse(ctrl.payCostToPreventEffect(new forge.game.cost.Cost("1", true), null, false, null));
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+        // Null cost is never paid.
+        ctrl = choiceController(new FixedReplyBridge("CHOICE: 1"));
+        Assert.assertFalse(ctrl.payCostToPreventEffect(null, null, false, null));
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
     /** Card into `p`'s graveyard (mirrors addHandCard). */
     private Card addGraveCard(String name, Player p) {
         IPaperCard paperCard = FModel.getMagicDb().getCommonCards().getCard(name);
