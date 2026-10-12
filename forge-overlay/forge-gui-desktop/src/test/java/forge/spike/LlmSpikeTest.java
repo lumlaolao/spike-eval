@@ -1534,6 +1534,16 @@ public class LlmSpikeTest {
     }
 
     @Test
+    public void cardTextReadsForgeCardRules() {
+        Deck d = new Deck("t");
+        d.getOrCreate(forge.deck.DeckSection.Main).add("Lightning Bolt", 4);
+        String t = LlmSpikeGui.cardText(d);
+        Assert.assertTrue(t.contains("Lightning Bolt"), t);
+        Assert.assertTrue(t.contains("3 damage"), "card rules text missing: " + t);
+        Assert.assertEquals(LlmSpikeGui.cardText(null), "");
+    }
+
+    @Test
     public void g7TriggerOrderIsModelRouted() {
         Game game = buildBareGame();
         Player p = game.getPlayers().get(0);

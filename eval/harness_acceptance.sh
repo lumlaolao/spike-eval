@@ -69,7 +69,10 @@ ADDOPENS="--add-opens java.desktop/java.beans=ALL-UNNAMED --add-opens java.deskt
 # ---------------------------------------------------------------- preflight
 if has_stage preflight; then
   ok=1
-  if pgrep -x java >/dev/null 2>&1; then fail preflight "game JVMs are live; never build or measure while games run"; ok=0; fi
+  # Match only the HARNESS's own game JVMs (forge.spike.LlmSpike*), not every Java process on the
+  # machine: the old `pgrep -x java` also flagged the user's IDE, Gradle daemon or Minecraft and
+  # failed a perfectly idle machine.
+  if pgrep -f 'forge\.spike\.LlmSpike' >/dev/null 2>&1; then fail preflight "harness game JVMs are live; never build or measure while games run"; ok=0; fi
   [ -x "$JAVA" ] && [ -x "$JAVAC" ] || { fail preflight "JDK 17 not found at $JAVA_HOME"; ok=0; }
   [ -d "$FORGE/forge-gui-desktop/target/classes" ] || { fail preflight "engine classes missing: $FORGE/forge-gui-desktop/target/classes (build the pinned checkout once)"; ok=0; }
   PIN="$(cat "$REPO/FORGE_COMMIT" 2>/dev/null)"; CUR="$(git -C "$FORGE" rev-parse HEAD 2>/dev/null || echo unknown)"
