@@ -485,6 +485,43 @@ final class SeatObservation {
 
     List<String> reveals() { return reveals; }
 
+    /** Opponent's casts / land drops this game, aggregated from the SEAT STREAM (already redacted),
+     *  byte-compatible in output with {@code PlayerControllerLLM.castHistory} on public data. That
+     *  legacy helper reads the raw engine log and strips only a trailing engine id, so it bypasses
+     *  redaction and can leak a hidden caster's real name (a "cast" line carries a name, not an id);
+     *  this path can only ever see what the viewer may see. */
+    private String streamCastHistory(Player p, GameLogEntryType type, String verb, int cap) {
+        String prefix = p.getName() + verb;
+        LinkedHashMap<String, Integer> counts = new LinkedHashMap<>();
+        for (GameHistory.Ev e : stream) {
+            if (e.type != type) continue;
+            String msg = e.msg == null ? "" : e.msg;
+            if (!msg.startsWith(prefix)) continue;
+            String name = msg.substring(prefix.length());
+            int cut = name.indexOf(" targeting");
+            if (cut >= 0) name = name.substring(0, cut);
+            name = name.trim();
+            if (name.endsWith(".")) name = name.substring(0, name.length() - 1);
+            // Redaction replaced a visible object's engine id with its seat handle (" @N") and left
+            // "(was @k)" on a cross-zone link; strip both so same-named plays aggregate by name.
+            name = name.replaceAll("\\s*\\(was @\\d+\\)", "").replaceAll("\\s*@\\d+", "").trim();
+            if (name.isEmpty()) continue;
+            counts.merge(name, 1, Integer::sum);
+        }
+        if (counts.isEmpty()) return "";
+        List<Map.Entry<String, Integer>> es = new ArrayList<>(counts.entrySet());
+        es.sort((a, b) -> b.getValue() - a.getValue());
+        StringBuilder b = new StringBuilder();
+        int shown = 0;
+        for (Map.Entry<String, Integer> en : es) {
+            if (shown++ == cap) { b.append(", ...(").append(es.size() - cap).append(" more)"); break; }
+            if (b.length() > 0) b.append(", ");
+            b.append(en.getKey());
+            if (en.getValue() > 1) b.append(" x").append(en.getValue());
+        }
+        return b.toString();
+    }
+
     // ---- state rendering ----------------------------------------------------------------------
 
     String render(String seatLabel, ContextProfile ctx, String history, String turnPlan, int planTurn) {
@@ -525,9 +562,9 @@ final class SeatObservation {
                  .append(zoneList(opp.getCardsIn(ZoneType.Exile), ctx.exileCap)).append('\n');
                 String cmd = zoneList(opp.getCardsIn(ZoneType.Command), ctx.exileCap);
                 if (!"(none)".equals(cmd)) s.append("  command: ").append(cmd).append('\n');
-                String casts = LlmSpikeGui.PlayerControllerLLM.castHistory(game, opp, GameLogEntryType.STACK_ADD, " cast ", ctx.castHistoryCap);
+                String casts = streamCastHistory(opp, GameLogEntryType.STACK_ADD, " cast ", ctx.castHistoryCap);
                 if (!casts.isEmpty()) s.append("  CAST THIS GAME: ").append(casts).append('\n');
-                String landsPlayed = LlmSpikeGui.PlayerControllerLLM.castHistory(game, opp, GameLogEntryType.LAND, " played ", ctx.castHistoryCap);
+                String landsPlayed = streamCastHistory(opp, GameLogEntryType.LAND, " played ", ctx.castHistoryCap);
                 if (!landsPlayed.isEmpty()) s.append("  LANDS PLAYED: ").append(landsPlayed).append('\n');
             }
 

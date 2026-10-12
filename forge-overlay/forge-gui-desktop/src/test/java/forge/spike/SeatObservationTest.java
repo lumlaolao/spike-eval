@@ -214,6 +214,28 @@ public class SeatObservationTest {
         Assert.assertTrue(h.contains("Rival casts a hidden card"), h);
     }
 
+    /**
+     * REVIEW DEFECT 2. render()'s CAST THIS GAME / LANDS PLAYED used the legacy raw-log castHistory,
+     * which bypasses redaction. It must come from the seat stream instead. The legacy path strips only
+     * a trailing engine id and would print the hidden card's name; the stream redacts it.
+     */
+    @Test
+    public void castHistoryIsSourcedFromTheRedactedStreamNotTheRawLog() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[0]);
+        Player rival = g.getPlayers().get(1);
+        Card hidden = rival.getCardsIn(ZoneType.Hand).get(0);          // Thoughtseize, hidden
+        Card hiddenLand = card("Marsh Flats", rival, ZoneType.Hand);   // hidden, name matches its id
+        SeatObservation o = observerFor(g, 0);
+        g.getGameLog().add(GameLogEntryType.STACK_ADD, "Rival cast Thoughtseize (" + hidden.getId() + ")");
+        g.getGameLog().add(GameLogEntryType.LAND, "Rival played Marsh Flats (" + hiddenLand.getId() + ")");
+        o.capture();
+        String r = render(o, eventsText(o));
+        Assert.assertFalse(r.contains("Thoughtseize"), "cast history leaked a hidden card's name:\n" + r);
+        Assert.assertFalse(r.contains("Marsh Flats"), "land history leaked a hidden card's name:\n" + r);
+        Assert.assertTrue(r.contains("CAST THIS GAME: a hidden card"), r);
+        Assert.assertTrue(r.contains("LANDS PLAYED: a hidden card"), r);
+    }
+
     // ---- own visibility -----------------------------------------------------------------------
 
     @Test
