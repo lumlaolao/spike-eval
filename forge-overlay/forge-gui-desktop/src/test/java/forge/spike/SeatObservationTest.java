@@ -381,6 +381,29 @@ public class SeatObservationTest {
         Assert.assertTrue(r.contains("face-down"), r);
     }
 
+    /** G2: a TOKEN is a distinct permanent with its own handle, rendered with its real P/T. */
+    @Test
+    public void tokensGetTheirOwnIdentityAndRender() {
+        Game g = world(new String[0], new String[0]);
+        Player me = g.getPlayers().get(0);
+        Card host = me.getCardsIn(ZoneType.Battlefield).get(0);
+        forge.game.spellability.SpellAbility tokenSa = forge.game.ability.AbilityFactory.getAbility(
+                "AB$ Token | Cost$ 0 | TokenScript$ r_1_1_goblin | SpellDescription$ make a token.", host);
+        Card proto = forge.game.card.token.TokenInfo.getProtoType("r_1_1_goblin", tokenSa, me);
+        Assert.assertNotNull(proto, "fixture: no token prototype for r_1_1_goblin");
+        proto.setGamePieceType(forge.card.GamePieceType.TOKEN);
+        me.getZone(ZoneType.Battlefield).add(proto);
+
+        SeatObservation o = observerFor(g, 0);
+        String d = o.shortRef(proto);
+        Assert.assertTrue(d.contains("Goblin"), d);
+        Assert.assertTrue(d.contains("1/1"), d);
+        Assert.assertTrue(d.contains("@"), d);
+        Assert.assertNotEquals(o.handleOf(proto), o.handleOf(host), "a token must not share the host's handle");
+        String r = render(o, "");
+        Assert.assertTrue(r.contains("Goblin"), r);
+    }
+
     // ---- reveals through the live controller --------------------------------------------------
 
     static final class SilentBridge implements LLMBridge {
