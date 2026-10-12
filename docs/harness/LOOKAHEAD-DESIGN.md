@@ -152,5 +152,8 @@ Recorded while scoping the code so the next session starts from facts, not guess
   copy's libraries -> `resolveStack`), and reports the public-only delta. Demonstration from the test:
   `[LOOKAHEAD] if you cast Lightning Bolt: you graveyard 0 -> 1; Rival life 20 -> 17` — while the LIVE
   opponent stays at 20. Non-spell options are refused; the opponent's hand is not determinized (partial
-  determinization, disclosed). **What remains for the feature:** the `SIMULATE` tool grammar + budget
-  wiring to the seat (nothing calls it in a game yet).
+  determinization, disclosed). **Wired (2026-10-12):** behind `LOOKAHEAD=1`, the play decision accepts
+  `SIMULATE: <n>` for a spell option, runs this preview, and re-asks (at most one preview per
+  decision). Off by default, so existing prompt bytes are unchanged. Proven in-process by
+  `g8LookaheadPreviewsASpellThenReasks` (`lookahead rounds=3 previewSeen=true` — the extra round is the
+  spell's targeting ask).

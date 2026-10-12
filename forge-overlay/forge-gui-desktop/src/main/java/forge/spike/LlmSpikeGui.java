@@ -690,6 +690,13 @@ public final class LlmSpikeGui {
          *  set (tests cannot mutate the process environment). Never set in production; the game
          *  summary stamps CTX, so a run with this set would mis-stamp its own provenance. */
         static volatile ContextProfile TEST_PROFILE_OVERRIDE = null;
+        /** Test-only override for the LOOKAHEAD env flag (env vars cannot be set in-process). Null =
+         *  read the environment. Package-private, mirroring TEST_PROFILE_OVERRIDE. */
+        static volatile Boolean TEST_LOOKAHEAD_OVERRIDE = null;
+        private static boolean lookaheadEnabled() {
+            if (TEST_LOOKAHEAD_OVERRIDE != null) return TEST_LOOKAHEAD_OVERRIDE.booleanValue();
+            return "1".equals(System.getenv("LOOKAHEAD"));
+        }
         static ContextProfile profile() {
             ContextProfile o = TEST_PROFILE_OVERRIDE;
             return o != null ? o : CTX;
@@ -1107,6 +1114,18 @@ public final class LlmSpikeGui {
                 }
             }
             return null; // still short after retry -> caller's legal default
+        }
+
+        /** If the reply asks for a lookahead preview (`SIMULATE: n`), return the 1-based option
+         *  number; else -1. v1 previews only SPELL options, so n must be within the castable list. */
+        static int parseSimulateOption(String reply, int nSpells) {
+            if (reply == null || nSpells <= 0) return -1;
+            String seg = lastSegment(reply, "SIMULATE:");
+            if (seg == null) return -1;
+            Matcher m = Pattern.compile("\\d+").matcher(seg);
+            if (!m.find()) return -1;
+            int n = Integer.parseInt(m.group());
+            return (n >= 1 && n <= nSpells) ? n : -1;
         }
 
         // ---------------- full-context serializer ----------------
@@ -1928,14 +1947,20 @@ public final class LlmSpikeGui {
                 // First main-phase decision of OUR turn: also ask for a one-line turn plan (piggybacked —
                 // costs zero extra calls). It rides in the snapshot for every later decision this turn.
                 boolean askPlan = ownMain && !landOnly && planTurn != turn && b == smart; // fast tier is terse-only
+                boolean lookaheadOn = lookaheadEnabled();
+                StringBuilder lookCtx = new StringBuilder(); // at most one lookahead preview per decision
                 if (rnd != null) choice = 1 + rnd.nextInt(passIdx); // random arm: uniform incl. PASS
                 for (int attempt = 0; rnd == null && attempt < 2 && choice < 1; attempt++) {
-                    String prompt = attempt == 0
+                    String prompt = (attempt == 0
                             ? playPromptPrefix(snapshot(), phh.getPhase(), ownMain, menuStr)
                               + (askPlan
                                  ? "First state your plan for THIS TURN as `PLAN: <one short line>` (the sequence you intend, e.g. 'ritual into Reanimate on Griselbrand, hold Petal'), then end with EXACTLY: CHOICE: <number>"
                                  : PLAY_PROMPT_TAIL)
-                            : "That reply had no parseable choice. Answer with ONE line only: CHOICE: <a number 1.." + passIdx + " from the list above>.";
+                            : "That reply had no parseable choice. Answer with ONE line only: CHOICE: <a number 1.." + passIdx + " from the list above>.")
+                            + lookCtx
+                            + (lookaheadOn && attempt == 0
+                               ? "\nYou may instead reply `SIMULATE: <number>` to see what a SPELL option (1.." + options.size()
+                                 + ") resolves to; you will then be asked again with the result." : "");
                     String reply = ask(b, prompt);
                     if (reply != null && askPlan && attempt == 0) {
                         String pl = lastSegment(reply, "PLAN:");
@@ -1956,6 +1981,19 @@ public final class LlmSpikeGui {
                         if (haveLand) { auto("play(bridge-down): land " + landCards.get(0).getName()); return Lists.newArrayList(landPlays.get(0)); }
                         auto("play(bridge-down)->PASS");
                         return PASS;
+                    }
+                    // G8 lookahead (LOOKAHEAD=1): preview a spell option on a determinized COPY, then
+                    // re-ask. At most one preview per decision; a preview is not a failed parse.
+                    if (lookaheadOn && lookCtx.length() == 0) {
+                        int simN = parseSimulateOption(reply, options.size());
+                        if (simN > 0) {
+                            String preview = PlayerLookahead.previewCast(me.getGame(), me, options.get(simN - 1), turn);
+                            lookCtx.append("\nLOOKAHEAD (option ").append(simN).append("): ").append(preview)
+                                   .append("\nNow end with EXACTLY: CHOICE: <number>.\n");
+                            p("[ROUTER] lookahead " + simN + ": " + preview);
+                            attempt--; // not a parse failure
+                            continue;
+                        }
                     }
                     choice = parseTagNumber(reply, "CHOICE:");
                 }

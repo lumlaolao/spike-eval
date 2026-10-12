@@ -1388,6 +1388,19 @@ public class LlmSpikeTest {
         public int getCalls() { return prompts.size(); }
     }
 
+    /** Returns replies in sequence, then repeats the last one (so a lookahead round is observable). */
+    static final class SeqBridge implements LLMBridge {
+        final java.util.List<String> replies;
+        final List<String> prompts = new java.util.ArrayList<>();
+        int i = 0;
+        SeqBridge(String... replies) { this.replies = java.util.Arrays.asList(replies); }
+        public String ask(String prompt) { prompts.add(prompt); return replies.get(Math.min(i++, replies.size() - 1)); }
+        public String getLabel() { return "test/seq"; }
+        public String getModel() { return "fake"; }
+        public long getTotalMs() { return 0; }
+        public int getCalls() { return prompts.size(); }
+    }
+
     private LlmSpikeGui.PlayerControllerLLM choiceController(FixedReplyBridge bridge) {
         Game game = buildBareGame();
         return new LlmSpikeGui.PlayerControllerLLM(game, game.getPlayers().get(0),
@@ -1573,6 +1586,42 @@ public class LlmSpikeTest {
                 forge.game.spellability.OptionalCost.Buyback, new forge.game.cost.Cost("1", true)));
         Assert.assertTrue(ctrl.chooseOptionalCosts(null, vals).isEmpty());
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    @Test
+    public void g8SimulateDirectiveIsParsedAndBoundsChecked() {
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.parseSimulateOption("SIMULATE: 2", 3), 2);
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.parseSimulateOption("reasoning\nSIMULATE: 1", 1), 1);
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.parseSimulateOption("SIMULATE: 4", 3), -1); // out of range
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.parseSimulateOption("CHOICE: 1", 3), -1);
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.parseSimulateOption(null, 3), -1);
+    }
+
+    @Test
+    public void g8LookaheadPreviewsASpellThenReasks() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) addBattlefieldCard("Mountain", me);
+        addHandCard("Lightning Bolt", me);
+        LlmSpikeGui.PlayerControllerLLM.TEST_LOOKAHEAD_OVERRIDE = Boolean.TRUE;
+        try {
+            SeqBridge bridge = new SeqBridge("SIMULATE: 1", "CHOICE: 1");
+            LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                    new LobbyPlayerAi("la-test", null), "la-test", "", bridge, bridge, "llm");
+            ctrl.chooseSpellAbilityToPlay();
+            System.out.println("[G8] lookahead rounds=" + bridge.prompts.size()
+                    + " previewSeen=" + bridge.prompts.stream().anyMatch(p -> p.contains("LOOKAHEAD (option 1)")));
+            // A SIMULATE request must produce a preview and a re-ask (>=2 rounds), the re-ask must
+            // carry the preview, and no Forge-AI delegation may occur.
+            Assert.assertTrue(bridge.prompts.size() >= 2, "expected a preview round then an answer");
+            Assert.assertTrue(bridge.prompts.get(0).contains("SIMULATE:"), bridge.prompts.get(0));
+            Assert.assertTrue(bridge.prompts.stream().anyMatch(p -> p.contains("LOOKAHEAD (option 1)")),
+                    "no preview reached the model after a SIMULATE request");
+            Assert.assertTrue(bridge.prompts.stream().anyMatch(p -> p.contains("Lightning Bolt")));
+            Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.TEST_LOOKAHEAD_OVERRIDE = null;
+        }
     }
 
     @Test
