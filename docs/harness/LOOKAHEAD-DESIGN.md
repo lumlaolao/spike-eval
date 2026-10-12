@@ -155,9 +155,15 @@ Recorded while scoping the code so the next session starts from facts, not guess
   `SIMULATE: <n>` for a spell option, runs this preview, and re-asks (at most one preview per
   decision). Off by default, so existing prompt bytes are unchanged. Proven in-process by
   `g8LookaheadPreviewsASpellThenReasks` and by a fake-server game (`--policy simulate`) that ran the
-  real path 253 times. **Targeting spells are refused honestly** (`"(lookahead v1 cannot resolve a
-  targeting spell...)"`): a real game showed the preview reported "no change" for Chain Lightning
-  because the live option has no target until the model commits, and the engine will not choose one
-  (`resolve=true` leaves it untargeted; the `SpellAbilityChoicesIterator` interceptor + a
-  `MultiTargetSelector` probe also did not take effect — an open problem). Covering removal/burn
-  needs target-selection on the copy, which is the single most valuable next step.
+  real path 253 times. **Targeting spells are now covered too (fixed 2026-10-12):** a real game
+  showed the preview reported "no change" for Chain Lightning because the live option has no target
+  until the model commits, and the engine will not choose one (`resolve=true` leaves it untargeted;
+  a `SpellAbilityChoicesIterator` interceptor probe did not take effect). `previewCast` now sets
+  **first-legal targets on the option itself — preferring an opposing player, then an opposing
+  permanent — resolves, and RESTORES the option's own targets in a `finally`** (transient decision
+  scaffolding on an ability not yet on the stack; the real cast's `ensureTargetsSet` overwrites
+  targets anyway, and a test pins that the option is left untargeted). The assumed target is
+  disclosed. Real game loop:
+  `if you cast Lightning Bolt [assuming target: BurnB]: you graveyard 1 -> 2; BurnB life 20 -> 17`
+  — 273 rounds, 0 refusals, 0 errors. Still open: choosing the *best* target rather than a
+  disclosed default, and multi-target spells beyond the minimum.
