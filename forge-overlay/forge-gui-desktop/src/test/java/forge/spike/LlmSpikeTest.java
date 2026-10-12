@@ -1589,6 +1589,22 @@ public class LlmSpikeTest {
     }
 
     @Test
+    public void g7CostDecisionMakerIsModelOwned() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        Card host = addBattlefieldCard("Forest", me);
+        forge.game.spellability.SpellAbility sa = forge.game.ability.AbilityFactory.getAbility(
+                "AB$ GainLife | Cost$ Sacrifice<1/Creature> | LifeAmount$ 1 | SpellDescription$ test.", host);
+        Assert.assertNotNull(sa.getPayCosts(), "fixture: ability should carry a cost");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", new FixedReplyBridge("CHOICE: 1"),
+                new FixedReplyBridge("CHOICE: 1"), "llm");
+        Assert.assertTrue(ctrl.getCostDecisionMaker(me, sa, false, null) instanceof LlmCostDecision,
+                "the LLM seat must get a model-owned cost decision maker");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    @Test
     public void g8SimulateDirectiveIsParsedAndBoundsChecked() {
         Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.parseSimulateOption("SIMULATE: 2", 3), 2);
         Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.parseSimulateOption("reasoning\nSIMULATE: 1", 1), 1);

@@ -108,10 +108,15 @@ option (never Forge AI):
 | `payCostToPreventEffect` | whether to pay an "unless" cost (Daze / Force Spike / Spell Pierce / Mana Tithe); payment mechanics stay the engine's | decline |
 | `chooseOptionalCosts` | which optional additional costs to pay (kicker / buyback / entwine), over the affordable ones | decline all |
 | `orderSimultaneousSa` | the order simultaneous triggers resolve in (targeting stays the engine's) | as-triggered order |
+| `getCostDecisionMaker` | which permanent to sacrifice for a NON-mana cost (e.g. Cabal Therapy flashback), via `LlmCostDecision`; the candidate filter is copied from `ComputerUtil.chooseSacrificeType` so legality matches the engine | the engine's `AiCostDecision` |
 
-Inventory after these overrides: **46 LLM / 70 AI / 14 BASE**; **4 silent core strategic/payment
-hooks remain** (down from 13). Still Forge AI and not claimed model-owned: `payManaCost`,
-`getCostDecisionMaker`, `playTrigger`, `orderAndPlaySimultaneousSa` (its play/targeting loop; the
-ordering it delegates to is now model-owned).
+Inventory after these overrides: **47 LLM / 69 AI / 14 BASE**; **3 silent core strategic/payment
+hooks remain** (down from 13). Still Forge AI and **not routeable without re-deriving engine
+mechanics** (established by reading the engine source, not assumed):
+`payManaCost` — its implementation is `ComputerUtilMana.payManaCost(...)`, the whole mana-payment
+mechanism with no seam; `playTrigger` — its targeting goes through `brains.doTrigger` inside
+`prepareSingleSa`, and its yes/no is already covered by `confirmTrigger`;
+`orderAndPlaySimultaneousSa` — the strategic ORDER is model-owned (via `orderSimultaneousSa`), only
+the inherited play/targeting loop remains.
 `chooseStartingPlayer` is `boolean`-keyed and
 therefore moves the random canary (see `eval/harness_acceptance.expected`, 2026-10-12).
