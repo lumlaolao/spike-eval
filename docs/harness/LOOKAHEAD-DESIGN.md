@@ -1,0 +1,113 @@
+# Player lookahead: an engine-simulation tool for the playing seat
+
+Design + work order for the capability the user asked for: *the model should be able to call
+the Forge engine on a position, look a few moves into the future, and reason on the result* —
+without cheating. Status: **design, not built.** This is the G8 gate ("safe simulation",
+`COMPLETION-GATES.md`).
+
+## Why this is the highest-leverage play-quality item
+
+The harness today decides each position from a single static snapshot. A real strong player
+**looks ahead**: "if I attack here, does the block kill me on the crackback?" The engine can
+answer that exactly — it already does, offline, in `LlmSpikeFork.runRollout()` — but the
+playing seat has no way to ask. Exposing it (fairly) is worth more than any single routed
+hook.
+
+## The safety contract this must satisfy (PLAYER-HARNESS.md §7)
+
+An agent-facing rollout may use **only the seat's information set** and must disclose what it
+assumed. It **must not**: read the actual hidden hand/library order; consume live RNG; mutate
+live state; use Forge's strategic policy without saying so. It must report the rollout policy,
+sample count, uncertainty, and refuse unsupported decisions. A **rules preview**, a **sampled
+imperfect-information rollout**, and **omniscient offline analysis** are three different things
+and must be labelled as such — never blur them.
+
+## What already exists (reuse, don't rebuild)
+
+| Piece | Where | Use |
+| --- | --- | --- |
+| Hidden-zone determinization | `LlmSpikeFork.determinizeHiddenZones(Player, boolean)` | re-deals the hidden library order from the seat's info set (`FORK_ROLLOUT_DETERMINIZE=library`) |
+| Rollout engine | `LlmSpikeFork.runRollout()` | fork at a decision index, apply an option, run to completion, emit WP per option |
+| Fork addressing | `LlmSpikeFork` + `LlmSpikeGui.ForkHook` (`emitDecisionRow`) | replay-to-index prefix, the interception seam already validated |
+| Tool grammar + budget | `ContextMemory` (`MEMORY …`, `INSPECT …`, `TOOLS_PER_ASK=2`, `TOOLS_PER_GAME=64`) | where a `SIMULATE` command slots in |
+| Per-decision menu | `PlayerControllerLLM.decideOne/decideMany` | the enumerated legal options the model already sees |
+
+## Design
+
+### Command surface
+
+```
+SIMULATE <option-number>        # option number from THIS decision's menu
+```
+
+One lookahead per ask; shares the `ContextMemory` tool budget (and a stricter per-game cap,
+proposed 8) plus a hard wall-clock cap (proposed 20 s). Returns a compact report, e.g.:
+
+```
+SIMULATE 3 (attack with Ragavan + Dragon's Rage Channeler):
+  8 samples, opponent policy = Forge AI, library re-dealt from YOUR information set
+  won 6/8 (75%); opponent's hand assumed unknown (re-dealt)
+  typical loss line: they block Ragavan, untap, Bolt your face, swing 4
+  CAVEAT: sampled single-seat rollout, not ground truth; combo lines undervalued
+```
+
+### Mechanics (v1 scope)
+
+1. **Only where the fork is sound.** v1 restricts to the decision types the fork already
+   supports and that fire with an **empty stack**: `play`, `mulligan`, `attackers`, `blockers`.
+   Targets/discard/sacrifice/modes are mid-stack and are **refused** with an explicit
+   "lookahead unsupported for this decision type" (never silently approximate).
+2. **Fork from the seat's information set.** Determinize every hidden zone (opponent hand +
+   both libraries) by re-dealing from the seat's known information; never read the live order.
+   Reuse `determinizeHiddenZones`; extend it to the opponent's hand (a v1 gap it already flags).
+3. **Apply the option, run N samples.** N configurable (default 8) with `rollout_seed =
+   mix64(base_seed, option_i, sample_j)`; continuation policy disclosed (Forge AI / `floor`).
+4. **No live side effects.** The fork runs on a copied/forked game; the live game's RNG and
+   state are untouched (assert this — see acceptance below).
+5. **Report honestly.** Sample count, policy, determinization, win fraction with its interval,
+   and the standing caveats (`rollout_policy_caveat`, `single_deal_hidden_info` /
+   `determinized_library_hidden_info`) — the same vocabulary the PUZ answer keys use.
+
+### Where the code goes
+
+- **Extract a reusable entry point** from `LlmSpikeFork`: `static RolloutReport rolloutFromLive(Game, Player seat, int optionIdx, int samples, RolloutPolicy)`. Today the rollout is only reachable through the `FORK_MODE=rollout` CLI; the tool needs an in-process call. Keep the CLI path working (it is the offline answer-key generator).
+- **New `PlayerLookahead`** (or a method on `PlayerControllerLLM`): parses `SIMULATE`, maps the option number to the current menu, refuses unsupported types, calls `rolloutFromLive`, formats the report, and accounts the budget.
+- **`ContextMemory`**: recognise `SIMULATE ` in `isToolRequest`/`execute` alongside `MEMORY`/`INSPECT`, passing the live menu labels so the report can name the option.
+- **`framing()`**: add one line to the tool instructions when the tool is enabled
+  (`LOOKAHEAD=1`), so the model knows it may ask.
+
+### Flags and provenance
+
+- `LOOKAHEAD=1` enables the tool (default **off** until validated); a `context` knob records it
+  so a lookahead-enabled run can never be silently compared with one without it.
+- The tool's own cost is counted separately from decision tokens (the existing "do not sum
+  context-call tokens" rule) and reported as CPU time.
+
+## Acceptance criteria (each must be shown, not asserted)
+
+1. **Hidden-world invariance** — two games differing only in the opponent's hidden hand/library
+   produce **byte-identical** lookahead reports (the paired-world test `SeatObservationTest`
+   already uses this shape).
+2. **No live side effects** — the live game's `winner`/turn/RNG stream are unchanged with the
+   tool on vs off (a floor canary with the tool forcibly invoked).
+3. **No hidden-order read** — a fixture where the real top card differs between worlds leaves
+   the report unchanged (the report must depend only on the info set).
+4. **Budget** — a runaway model cannot exceed the per-game cap; requests past the cap return a
+   refusal, never an action.
+5. **Refusal** — mid-stack decision types return the explicit unsupported message.
+6. **Honest labelling** — the report carries policy + sample count + caveat; a 0-sample or
+   determinize-noop run is refused, not relabelled (the fork already has this guard).
+
+## Non-goals (v2+ / never)
+
+- Full ISMCTS (opponent hand re-dealt, not just library) — v1 partial determinization, disclosed.
+- Omniscient analysis using the real hidden order — **never** exposed as a player tool.
+- Using Forge's actual strategic policy silently — the continuation policy is disclosed.
+- Public-information *hidden* reasoning — out of scope.
+
+## Effort
+
+The fork/replay plumbing is validated; what remains is (a) an in-process entry point,
+(b) the tool grammar + budget + report, (c) determinization extended to the opponent's hand,
+(d) the acceptance fixtures above. Roughly **1 week**, matching EVAL-DESIGN Phase 1.6's estimate
+for "state_export + fork-from-snapshot".
