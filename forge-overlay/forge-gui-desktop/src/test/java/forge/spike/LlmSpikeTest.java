@@ -1534,6 +1534,18 @@ public class LlmSpikeTest {
     }
 
     @Test
+    public void g7OptionalCostsDeclineDeterministicallyWithoutAi() {
+        // With no spell context the affordability check cannot pass, so the seat declines every
+        // optional cost and never delegates to Forge AI (the old behaviour was super = AI).
+        LlmSpikeGui.PlayerControllerLLM ctrl = choiceController(new FixedReplyBridge("PICKS: 1"));
+        List<forge.game.spellability.OptionalCostValue> vals = new java.util.ArrayList<>();
+        vals.add(new forge.game.spellability.OptionalCostValue(
+                forge.game.spellability.OptionalCost.Buyback, new forge.game.cost.Cost("1", true)));
+        Assert.assertTrue(ctrl.chooseOptionalCosts(null, vals).isEmpty());
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    @Test
     public void g7PreventEffectCostIsModelRouted() {
         // Model declines an "unless" cost (Daze/Force Spike style): no payment, no AI delegation.
         LlmSpikeGui.PlayerControllerLLM ctrl = choiceController(new FixedReplyBridge("CHOICE: 2"));

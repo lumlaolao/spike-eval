@@ -157,8 +157,8 @@ public class ControllerOwnershipTest {
         // Reported, not hidden: this number is the open G7 backlog. It may only go DOWN; raising it
         // means a strategic decision moved from the model to Forge AI and needs an explicit review.
         System.out.println("[OWNERSHIP] silent Forge-AI strategic/payment hooks reachable in Legacy play: " + aiStrategicCore);
-        Assert.assertTrue(aiStrategicCore <= 6,
-                "silent AI strategic hooks grew to " + aiStrategicCore + " (baseline 6) -- a decision left the model");
+        Assert.assertTrue(aiStrategicCore <= 5,
+                "silent AI strategic hooks grew to " + aiStrategicCore + " (baseline 5) -- a decision left the model");
     }
 
     @Test
