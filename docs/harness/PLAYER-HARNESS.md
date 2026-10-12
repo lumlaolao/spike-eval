@@ -183,10 +183,10 @@ narration. Redaction is anchored to the object an event names via the engine's
 `Name (id)` format: a hidden reference loses its name and its id, a visible reference
 maps to a handle, and a public card that shares a hidden card's name is never erased.
 `SeatObservation.VERSION` moved to `observation-faithful-v2` (faithful `context_sha`
-`7896dbb44d9f` -> `8b5409f50ab1`); two adversarial tests added. The remaining faithful
-gap — `render()` still sources `CAST THIS GAME`/`LANDS PLAYED` from the legacy
-`castHistory` rather than the seat stream — is documented and tracked in
-`OBSERVATION-REVIEW.md`.
+`7896dbb44d9f` -> `8b5409f50ab1`); two adversarial tests added. `render()`'s
+`CAST THIS GAME`/`LANDS PLAYED` now also come from the redacted seat stream instead of
+the legacy raw-log `castHistory` (byte-identical on public data). See
+`OBSERVATION-REVIEW.md` for the repair, evidence and remaining limits.
 
 Hand-reveal bridge/parse failures now choose the first minimum-sized legal subset,
 log an automatic fallback, and never call Forge AI. Empty reveal pools return empty.

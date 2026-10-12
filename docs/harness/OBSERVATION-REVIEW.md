@@ -39,18 +39,22 @@ is therefore never erased, and hidden identity no longer influences public text.
 
 ## Defect 2 — faithful history bypassed the seat stream via legacy `castHistory`
 
-`render()` builds the opponent's `CAST THIS GAME` / `LANDS PLAYED` from
-`PlayerControllerLLM.castHistory(game, …)` (the legacy, pre-faithful renderer) rather
-than the seat observation stream. Those strings are engine-formatted and can carry
-engine ids, face-down casting identity and hidden names that the seat stream would
-have redacted — an incoherent second path for live history.
+`render()` built the opponent's `CAST THIS GAME` / `LANDS PLAYED` from
+`PlayerControllerLLM.castHistory(game, …)` (the legacy, pre-log-redaction renderer)
+rather than the seat observation stream. `castHistory` reads the raw engine log and
+strips only a trailing engine id (`" \\(\\d+\\)$"`), so it bypassed redaction — a cast
+line, which the engine formats as `"<player> cast <name>"` with **no id**, could carry
+a hidden caster's real name that the seat stream would have redacted.
 
-### Status
+### Fix
 
-**Not yet repaired.** It is a distinct change (routing the cast/land history through
-the seat stream, or rendering it from `GameHistory`) and is tracked separately. It is
-the remaining G3 "one coherent history" gap. Documented here rather than silently
-dropped.
+`render()` now aggregates the opponent's casts and land drops from the **seat stream**
+(`streamCastHistory`), which can only contain what the viewer may see. The aggregation
+mirrors `castHistory`'s exact output (count-desc, first-seen tie-break, same cap
+wording) and additionally strips the seat-handle annotations redaction introduces
+(`" @N"`, `"(was @k)"`). Verified byte-identical on public data: the acceptance
+faithful game's `context_sha` is **unchanged** (`8b5409f50ab1`) across this change, so
+no version bump is needed — only hidden references differ.
 
 ## Evidence
 
@@ -62,6 +66,9 @@ dropped.
   - `hiddenHandCardNameIsRedactedByItsEngineId` — a card in the rival's hand named by
     an event loses its name with its id (`Rival casts a hidden card`). Fails against
     the old id-drop-only path.
+  - `castHistoryIsSourcedFromTheRedactedStreamNotTheRawLog` — `render()`'s
+    `CAST THIS GAME` / `LANDS PLAYED` come from the redacted stream, not the raw log.
+    Fails against the old `castHistory` path (defect 2).
   - `opponentsFaceDownPermanentHidesItsIdentityButNotFromItsController` (pre-existing)
     still passes — the new object-anchored path preserves the intended redaction.
   - `hiddenStateDoesNotChangeTheObservationHistoryOrToolResults` (pre-existing
@@ -81,15 +88,15 @@ greps and `docs/harness/PLAYER-HARNESS.md` were updated to the new string.
 
 ## Residual limits (explicit)
 
-- **Name-only references are no longer redacted.** If an engine call site logs a
-  hidden card by name without its `(id)` suffix, the name now survives. This is the
-  deliberate cost of not erasing public evidence; every engine formatting site
-  inspected (`CardView.toString`, `GameAction`, `ChangeCombatantsEffect`) appends the
-  id, so the common leak path is covered. A hidden user of `getName()` alone would
-  not be.
+- **Name-only references to a hidden object are not redacted.** If an engine call site
+  logs a hidden card by name with no `(id)` and no source card, the name survives. This
+  is the deliberate cost of not erasing public evidence. The engine's cast/land log
+  templates and `CardView.toString` all either append the id or set a source card, so
+  the common paths are covered; the faithful `CAST`/`LANDS` history is now sourced from
+  the redacted stream (defect 2 fixed) rather than the raw log.
 - **Historical permission is still current permission.** The id→object mapping is
   resolved against the game's current state at capture time. A card that was face-up
   when an old event was logged but is now face-down can still have that old public
   text redacted. Resolving this needs event-time permission snapshots the engine does
   not retain; not attempted here.
-- Defect 2 above; tokens/face-down-exile fixtures remain thin (G2).
+- Tokens and face-down-exile fixtures remain thin (G2).
