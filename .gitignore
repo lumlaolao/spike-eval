@@ -36,3 +36,10 @@ runs/runpod/*/pod.env
 runs/runpod/*/POD_ID
 runs/runpod/*/job.tar.gz.tmp
 runs/runpod/*/bootstrap.log
+
+# Puzzle harvest: raw fetched API dumps are regenerable (harvest.py); keep only the curated
+# corpus, the normalized inputs and the tool.
+puzzles/modern/raw/api/
+puzzles/modern/raw/items/rulesguru.jsonl
+# Card-knowledge export: regenerable from Forge's own card DB at runtime (see data/cards/build.py).
+data/cards/raw/
