@@ -76,6 +76,7 @@ import forge.game.player.Player;
 import forge.game.player.PlayerActionConfirmMode;
 import forge.game.player.RegisteredPlayer;
 import forge.game.spellability.AbilitySub;
+import forge.game.spellability.OptionalCostValue;
 import forge.game.spellability.SpellAbility;
 import forge.game.spellability.TargetRestrictions;
 import forge.game.zone.ZoneType;
@@ -2320,6 +2321,43 @@ public final class LlmSpikeGui {
             } catch (Exception e) { /* deterministic fallback below */ }
             auto("prevent-effect(default)->decline");
             return false;
+        }
+
+        /** Optional additional costs — kicker / buyback / entwine. The model chooses which to pay;
+         *  only costs the seat can actually afford are offered, so a chosen cost cannot fizzle the
+         *  cast. Deterministic fallback: decline all (always legal). */
+        @Override
+        public List<OptionalCostValue> chooseOptionalCosts(SpellAbility chosen, List<OptionalCostValue> optionalCostValues) {
+            clearLast();
+            if (optionalCostValues == null || optionalCostValues.isEmpty())
+                return super.chooseOptionalCosts(chosen, optionalCostValues);
+            try {
+                if (smartOk()) {
+                    List<OptionalCostValue> offer = new ArrayList<>();
+                    for (OptionalCostValue v : optionalCostValues) {
+                        try {
+                            if (v == null || v.getCost() == null || ComputerUtilCost.canPayCost(v.getCost(), chosen, getPlayer(), true)) offer.add(v);
+                        } catch (Exception ignore) { }
+                    }
+                    if (!offer.isEmpty()) {
+                        List<String> labels = new ArrayList<>();
+                        for (OptionalCostValue v : offer) labels.add(oneLine(v.toString()));
+                        String q = "This spell offers optional additional costs (kicker/buyback/entwine)" + srcOf(chosen)
+                                + ". Pick the ones worth paying for your plan; PICKS: NONE declines them all.";
+                        List<Integer> picks = decideMany(smart, "optional-costs", q, labels, 0, offer.size());
+                        if (picks != null) {
+                            List<OptionalCostValue> out = new ArrayList<>();
+                            for (int i : picks) out.add(offer.get(i));
+                            StringBuilder log = new StringBuilder();
+                            for (OptionalCostValue v : out) { if (log.length() > 0) log.append(", "); log.append(oneLine(v.toString())); }
+                            p("[ROUTER] optional-costs: " + (log.length() == 0 ? "(none)" : log));
+                            return out;
+                        }
+                    }
+                }
+            } catch (Exception e) { /* deterministic fallback below */ }
+            auto("optional-costs(default)->decline-all");
+            return new ArrayList<>();
         }
 
         @Override

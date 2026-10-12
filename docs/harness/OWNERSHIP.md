@@ -106,9 +106,10 @@ option (never Forge AI):
 | `chooseCardsToDiscardToMaximumHandSize` | cleanup-step discards | first N |
 | `chooseCardsToDelve` | which graveyard cards to exile for delve (Murktide Regent) | first N |
 | `payCostToPreventEffect` | whether to pay an "unless" cost (Daze / Force Spike / Spell Pierce / Mana Tithe); payment mechanics stay the engine's | decline |
+| `chooseOptionalCosts` | which optional additional costs to pay (kicker / buyback / entwine), over the affordable ones | decline all |
 
-Inventory after these overrides: **44 LLM / 72 AI / 14 BASE**; **6 silent core strategic/payment
+Inventory after these overrides: **45 LLM / 71 AI / 14 BASE**; **5 silent core strategic/payment
 hooks remain** (down from 13). Still Forge AI and not claimed model-owned: `payManaCost`,
-`getCostDecisionMaker`, `chooseOptionalCosts`, `playTrigger`, `orderSimultaneousSa`,
-`orderAndPlaySimultaneousSa`. `chooseStartingPlayer` is `boolean`-keyed and
+`getCostDecisionMaker`, `playTrigger`, `orderSimultaneousSa`, `orderAndPlaySimultaneousSa`.
+`chooseStartingPlayer` is `boolean`-keyed and
 therefore moves the random canary (see `eval/harness_acceptance.expected`, 2026-10-12).
