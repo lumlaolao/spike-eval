@@ -111,3 +111,32 @@ The fork/replay plumbing is validated; what remains is (a) an in-process entry p
 (b) the tool grammar + budget + report, (c) determinization extended to the opponent's hand,
 (d) the acceptance fixtures above. Roughly **1 week**, matching EVAL-DESIGN Phase 1.6's estimate
 for "state_export + fork-from-snapshot".
+
+## Implementation findings (2026-10-12)
+
+Recorded while scoping the code so the next session starts from facts, not guesses.
+
+- **`LlmSpikeFork.runRollout()` cannot serve the live seat.** It is *replay-from-index*: it builds
+  a fresh `Match` and replays a deterministic prefix from turn 1. A live game's prefix contains LLM
+  decisions and is not reproducible, so the tool needs a **mid-game** mechanism. Its own docs mark
+  `GameCopier` mid-stack forking "plan B, v1-restricted to empty-stack decisions" — which is exactly
+  the tool's v1 scope.
+- **A reusable primitive exists in `forge.ai.simulation`.** `GameCopier(origGame).makeCopy(...)`
+  clones a live game; `new GameSimulator(controller, origGame, aiPlayer, advanceToPhase)` copies,
+  optionally resolves the stack (`GameSimulator.resolveStack(game, opponent)`), and
+  `simulateSpellAbility(sa)` returns a `GameStateEvaluator.Score`. So an **immediate-resolution
+  preview** ("if I do X, resolve the stack from here, the board/life delta is Y") is buildable today
+  on a copy, cheaply.
+- **But that is a heuristic board score, not a win probability, and not a multi-turn rollout.**
+  `GameStateEvaluator` is Forge's static evaluator; it does not play out future turns. A real
+  "look N turns ahead" needs running turns on the copy — more machinery, more risk, and the
+  determinization caveat below applies to every future turn it plays, not just the first.
+- **Determinization must wrap the COPY, not the live game.** `determinizeHiddenZones` re-deals the
+  hidden library order from `MyRandom`; on a copy that also means the opponent's hand, and it must
+  happen *before* any resolution the copy performs, or the preview reads the real hidden order and
+  is no longer player-safe. This is the single most important correctness point.
+- **Recommended v1:** ship the **immediate-resolution preview** first (buildable from
+  `GameCopier` + `resolveStack`, public-delta report, determinized copy, strict empty-stack scope),
+  label it a *rules preview* (not a rollout), and only then extend to sampled multi-turn rollouts.
+  That matches the PLAYER-HARNESS §7 three-way distinction and is a much smaller, safer first step
+  than the full SIMULATE design above.
