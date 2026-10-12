@@ -1,5 +1,6 @@
 package forge.spike;
 
+import java.util.Locale;
 import java.util.Random;
 
 import forge.ai.simulation.GameCopier;
@@ -86,6 +87,13 @@ final class PlayerLookahead {
      *  docs/harness/LOOKAHEAD-DESIGN.md). The opponent is played by the engine AI, and only
      *  libraries are determinized (the opponent's hand is not), so it is partial determinization. */
     static String previewCast(Game live, Player seat, forge.game.spellability.SpellAbility liveOption, long seed) {
+        return previewCast(live, seat, liveOption, seed, null);
+    }
+
+    /** As {@link #previewCast(Game, Player, SpellAbility, long)} but aimed at {@code targetHint} when
+     *  it names a legal candidate (case-insensitive substring), so the model can ask "what if I aim
+     *  this at their creature" and not only the default target. */
+    static String previewCast(Game live, Player seat, forge.game.spellability.SpellAbility liveOption, long seed, String targetHint) {
         if (live == null || seat == null || liveOption == null) return "(no preview)";
         if (!liveOption.isSpell()) return "(lookahead v1 supports spell options only)";
         Random liveRandom = MyRandom.getRandom();
@@ -101,7 +109,7 @@ final class PlayerLookahead {
             String label;
             try { label = liveOption.getHostCard() == null ? "the spell" : liveOption.getHostCard().getName(); }
             catch (Exception e) { label = "the spell"; }
-            String assumed = selectFirstTargets(liveOption);
+            String assumed = selectFirstTargets(liveOption, targetHint);
             GameSimulator sim = new GameSimulator(
                     new SimulationController(new GameStateEvaluator.Score(0)), live, seat, null);
             sim.simulateSpellAbility(liveOption, false); // play on the copy, resolve separately below
@@ -139,7 +147,7 @@ final class PlayerLookahead {
      *  mirroring the live {@code ensureTargetsSet} fallback. Returns a comma-joined description of the
      *  assumed targets (empty when the spell does not target), so the preview can disclose what it
      *  assumed. The caller is responsible for restoring the ability's original targets. */
-    private static String selectFirstTargets(forge.game.spellability.SpellAbility root) {
+    private static String selectFirstTargets(forge.game.spellability.SpellAbility root, String hint) {
         StringBuilder assumed = new StringBuilder();
         for (forge.game.spellability.SpellAbility s = root; s != null; s = s.getSubAbility()) {
             try {
@@ -152,7 +160,7 @@ final class PlayerLookahead {
                 int min = Math.max(1, s.getMinTargets());
                 s.resetTargets();
                 for (int i = 0; i < min && i < cands.size(); i++) {
-                    forge.game.GameEntity ge = (i == 0) ? defaultTarget(s, cands) : cands.get(i);
+                    forge.game.GameEntity ge = (i == 0) ? pickTarget(s, cands, hint) : cands.get(i);
                     if (s.getTargets().contains(ge)) continue;
                     s.getTargets().add(ge);
                     if (assumed.length() > 0) assumed.append(", ");
@@ -161,6 +169,19 @@ final class PlayerLookahead {
             } catch (Exception ignore) { }
         }
         return assumed.toString();
+    }
+
+    /** A candidate whose name matches {@code hint} (case-insensitive substring), else the default. */
+    private static forge.game.GameEntity pickTarget(forge.game.spellability.SpellAbility s,
+            java.util.List<forge.game.GameEntity> cands, String hint) {
+        if (hint != null && !hint.trim().isEmpty()) {
+            String h = hint.trim().toLowerCase(Locale.ROOT);
+            for (forge.game.GameEntity ge : cands) {
+                String nm = ge instanceof forge.game.card.Card ? ((forge.game.card.Card) ge).getName() : String.valueOf(ge);
+                if (nm != null && nm.toLowerCase(Locale.ROOT).contains(h)) return ge;
+            }
+        }
+        return defaultTarget(s, cands);
     }
 
     /** Prefer an OPPOSING player, then an opposing permanent, then the first legal candidate: a

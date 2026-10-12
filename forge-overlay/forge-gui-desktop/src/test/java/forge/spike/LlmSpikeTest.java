@@ -1598,6 +1598,15 @@ public class LlmSpikeTest {
     }
 
     @Test
+    public void g8SimulateTargetHintIsParsed() {
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.simulateTargetHint("SIMULATE: 2 Goblin Guide"), "Goblin Guide");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.simulateTargetHint("SIMULATE: 2   their Elf  "), "their Elf");
+        Assert.assertNull(LlmSpikeGui.PlayerControllerLLM.simulateTargetHint("SIMULATE: 2"));
+        Assert.assertNull(LlmSpikeGui.PlayerControllerLLM.simulateTargetHint("CHOICE: 1"));
+        Assert.assertNull(LlmSpikeGui.PlayerControllerLLM.simulateTargetHint(null));
+    }
+
+    @Test
     public void g8LookaheadPreviewsASpellThenReasks() {
         Game game = buildBareGame();
         Player me = game.getPlayers().get(0);

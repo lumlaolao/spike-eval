@@ -165,5 +165,7 @@ Recorded while scoping the code so the next session starts from facts, not guess
   targets anyway, and a test pins that the option is left untargeted). The assumed target is
   disclosed. Real game loop:
   `if you cast Lightning Bolt [assuming target: BurnB]: you graveyard 1 -> 2; BurnB life 20 -> 17`
-  — 273 rounds, 0 refusals, 0 errors. Still open: choosing the *best* target rather than a
-  disclosed default, and multi-target spells beyond the minimum.
+  — 273 rounds, 0 refusals, 0 errors. The model can also **aim** the preview: `SIMULATE: <n> <target
+  name>` matches a legal candidate by name (`if you cast Lightning Bolt [assuming target: Elite
+  Vanguard]: ... Rival board 2 -> 1`); with no hint the disclosed default is the first opposing
+  player, then an opposing permanent. Still open: multi-target spells beyond the minimum.
