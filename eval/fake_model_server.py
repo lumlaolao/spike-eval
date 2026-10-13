@@ -14,8 +14,10 @@ Policies (--policy):
          floor arm, so every priority window is a model round trip.
   first  take the first option everywhere (casts spells, attacks, picks first-N).
   simulate
-         like pass, but on a play prompt that advertises `SIMULATE: <n>` (LOOKAHEAD=1) it first
-         asks for a lookahead preview, so the real preview round-trip is exercised end to end.
+         takes the first CHOICE (so it plays lands and casts spells) and otherwise declines like
+         pass; on a play prompt that advertises `SIMULATE: <n>` (LOOKAHEAD=1), or offers the
+         `simulate` tool, it first asks for a lookahead preview, so the real preview round-trip is
+         exercised end to end.
 
 Fault injection:
   --stall-call N --stall-ms M   request number N (1-based, across all calls) is answered only
@@ -136,7 +138,10 @@ class Policy:
             nums = [int(m.group(1)) for m in OPTION_LINE.finditer(prompt)]
             if not nums:
                 return "CHOICE: 1"
-            return "CHOICE: %d" % (min(nums) if a.policy == "first" else max(nums))
+            # simulate develops its board (first option: a land, then a spell) so that there are
+            # options to preview. It used to pass everything and only ever played a land because the
+            # harness's retry prompt had no menu in it, which made the stub answer "CHOICE: 1".
+            return "CHOICE: %d" % (min(nums) if a.policy in ("first", "simulate") else max(nums))
         if "PLAN:" in prompt:
             return "PLAN: pass and see what happens\nCHOICE: 1"
         return "CHOICE: 1"

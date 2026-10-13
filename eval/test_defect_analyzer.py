@@ -7,6 +7,7 @@ Run: python3 eval/test_defect_analyzer.py   (or via pytest)
 import json
 import sys
 import tempfile
+import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -288,7 +289,28 @@ def test_shadow_choice_field_invisible_to_merge_gate():
               report["hard_invariants"]["pass"] is True)
 
 
+def test_one_candidate_in_a_subset_decision_is_not_a_forced_pick():
+    """A subset decision over one candidate has two outcomes (attack or not, keep or not). Flagging
+    those as forced picks is what led the harness to take them from the model."""
+    with tempfile.TemporaryDirectory() as d:
+        dpath = Path(d)
+        write_lines(dpath / "game-9-9000.jsonl", [
+            game_line(seed=9, swap=False),
+            dec(seat="model-a", dtype="mulligan", tier="smart", n_options=2, choice=0, raw_reply="KEEP"),
+            dec(seat="model-a", dtype="attackers", tier="smart", n_options=1, choice=0, raw_reply="PICKS: none"),
+            dec(seat="model-a", dtype="blockers", tier="smart", n_options=1, choice=1, raw_reply="BLOCKS: none"),
+            dec(seat="model-a", dtype="surveil", tier="smart", n_options=1, choice=1, raw_reply="PICKS: 1"),
+            dec(seat="model-a", dtype="scry", tier="smart", n_options=1, choice=0, raw_reply="PICKS: none"),
+            # A pick-exactly-one menu with one option asked of the model IS still a mislabel.
+            dec(seat="model-a", dtype="target", tier="smart", n_options=1, choice=0, raw_reply="CHOICE: 1"),
+        ])
+        c = da.build_report([dpath])["combined"]
+        check("subset decisions with one candidate are not forced-pick mislabels",
+              [e["type"] for e in c["forced_pick_mislabels"]["examples"]] == ["target"])
+
+
 def main():
+    test_one_candidate_in_a_subset_decision_is_not_a_forced_pick()
     test_parse_log_text()
     test_normalize_fallback_matches_analyze_corpus_convention()
     test_clean_game_no_defects()
@@ -304,6 +326,18 @@ def main():
         sys.exit(1)
     print("all tests passed")
     sys.exit(0)
+
+
+class DefectAnalyzerSuite(unittest.TestCase):
+    """The checks above predate unittest in this directory and were only run by hand; this makes the
+    acceptance suite (`unittest discover -s eval`) run them."""
+
+    def test_every_check(self):
+        del FAILURES[:]
+        for name, fn in sorted(globals().items()):
+            if name.startswith("test_") and callable(fn):
+                fn()
+        self.assertEqual(FAILURES, [])
 
 
 if __name__ == "__main__":

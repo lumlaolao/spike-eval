@@ -46,6 +46,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import cost_report  # noqa: E402  what a batch directory has cost so far (--budget-usd, the [cost] line)
 import seed_policy  # noqa: E402  seed governance (EVAL-DESIGN.md §6.5), the authority
 import seed_registry  # noqa: E402  enforcement layer over seed_policy's blocks
 
@@ -507,6 +508,11 @@ def native_tools_requested(args):
     # Each tier decides alone (NativeTools.seats): one openrouter tier on a model-driven seat is enough.
     return any((c or "llm") == "llm" and (spec or "").startswith("openrouter:")
                for c, smart, fast in seats for spec in (smart, fast))
+
+
+def spent_usd(out_dir):
+    """Estimated spend recorded in a batch directory so far (cost_report: finished and unfinished games)."""
+    return cost_report.report_dir(str(out_dir), cost_report.load_prices())["usd"]
 
 
 def condition_diff(old, new):
@@ -984,6 +990,10 @@ def main():
                          "(MEMORY SEARCH/READ/NOTE). Default off. Agent-plus-tools "
                          "results are a separate condition from unassisted play and "
                          "must live in their own --out.")
+    ap.add_argument("--budget-usd", type=float, default=None, metavar="USD",
+                    help="stop starting games once this directory's estimated spend (eval/cost_report.py) "
+                         "reaches USD. Games in flight finish, so the overshoot is at most --jobs games. "
+                         "Rerun with a larger value to resume. Refuses a model with no price on file.")
     ap.add_argument("--text-tools", action="store_true",
                     help="NATIVE_TOOLS=0: with --memory-tools, use the text tool grammar instead "
                          "of native function calling. Native calling is the standard and is what "
@@ -1104,25 +1114,45 @@ def main():
     log("Running %d games (jobs=%d, out=%s, forge_home=%s)"
         % (len(todo), args.jobs, out_dir, args.forge_home))
 
+    budget = getattr(args, "budget_usd", None)
+    if budget is not None:
+        unpriced = [s for s in (args.smart_a, args.fast_a, args.smart_b, args.fast_b)
+                    if cost_report.model_id(s) and cost_report.price_of(cost_report.load_prices(), s) is None]
+        if unpriced:
+            _refuse("--budget-usd needs a price for %s in eval/pricing/prices.json" % ", ".join(sorted(set(unpriced))))
+        log("[budget] this directory may spend up to $%.2f (already $%.2f); a game is not started past that, "
+            "so the overshoot is at most the %d games in flight" % (budget, spent_usd(out_dir), args.jobs))
+
+    def guarded(seed, swap):
+        # Checked when a worker picks the game up, not when it is queued.
+        if budget is not None and spent_usd(out_dir) >= budget:
+            log("[budget] not started: seed=%d swap=%d ($%.2f spent of $%.2f)" % (seed, swap, spent_usd(out_dir), budget))
+            return (seed, swap, "budget", 0)
+        return run_one(args, seed, swap, out_dir)
+
     results = []
     if args.jobs <= 1:
         for seed, swap in todo:
-            results.append(run_one(args, seed, swap, out_dir))
+            results.append(guarded(seed, swap))
     else:
         with ThreadPoolExecutor(max_workers=args.jobs) as pool:
-            futs = [pool.submit(run_one, args, seed, swap, out_dir)
+            futs = [pool.submit(guarded, seed, swap)
                     for seed, swap in todo]
             for fut in as_completed(futs):
                 results.append(fut.result())
 
     ok = [r for r in results if r[2] == "ok"]
-    bad = [r for r in results if r[2] != "ok"]
+    unstarted = [r for r in results if r[2] == "budget"]
+    bad = [r for r in results if r[2] not in ("ok", "budget")]
     log("")
     log("=== batch summary ===")
     log("completed: %d  skipped(resume): %d  problems: %d"
         % (len(ok), len(skipped), len(bad)))
     for seed, swap, status, code in sorted(bad):
         log("  seed=%d swap=%d status=%s exit=%d" % (seed, swap, status, code))
+    if unstarted:
+        log("not started (budget reached): %d; rerun with a larger --budget-usd to resume them" % len(unstarted))
+    log("[cost] " + cost_report.fmt(cost_report.report_dir(str(out_dir), cost_report.load_prices())))
     log("Aggregate with: python3 %s %s"
         % (Path(__file__).with_name("aggregate.py"), out_dir))
     return 1 if bad else 0

@@ -51,7 +51,7 @@ public class LineFindingProbeTest {
 
     /** Records every prompt. A sacrifice-as-cost question is answered by NAME (the option whose
      *  label contains {@code sacrifice}); everything else gets {@code reply}. */
-    static final class Recorder implements LLMBridge {
+    static class Recorder implements LLMBridge {
         final String reply;
         final String sacrifice;
         final List<String> prompts = new ArrayList<>();
@@ -547,5 +547,87 @@ public class LineFindingProbeTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, smart, fast);
         Assert.assertNull(ctrl.chooseSpellAbilityToPlay());
         Assert.assertEquals(smart.prompts.size() + fast.prompts.size(), 0, "asked whether to answer a spell with a ritual");
+    }
+
+    // ---- one candidate is not a forced choice --------------------------------------------------
+
+    /**
+     * Found by reading one match (runs/lines/blocks/native-lookahead, seed 50): the seat's only
+     * creature attacked on six turns with `attackers(forced-only-legal)` and the model was never
+     * asked. Not attacking is always legal.
+     */
+    @Test
+    public void aSingleCreatureThatCanAttackIsTheModelsDecisionNotAForcedAttack() {
+        for (String reply : new String[] {"PICKS: none", "PICKS: 1"}) {
+            Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+            Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+            Card guide = card("Elite Vanguard", me, ZoneType.Battlefield);
+            guide.setSickness(false);
+            Recorder smart = new Recorder(reply);
+            LlmSpikeGui.PlayerControllerLLM seat = seat(g, smart, new Recorder(reply));
+            forge.game.combat.Combat combat = new forge.game.combat.Combat(me);
+            String log = logOf(() -> seat.declareAttackers(me, combat));
+            Assert.assertEquals(smart.prompts.size(), 1, "the model must be asked about its single attacker: " + log);
+            Assert.assertTrue(smart.prompts.get(0).contains("Elite Vanguard"), smart.prompts.get(0));
+            Assert.assertFalse(log.contains("forced-only-legal"), log);
+            Assert.assertEquals(combat.getAttackers().size(), reply.endsWith("none") ? 0 : 1, "reply " + reply + ": " + log);
+            Assert.assertEquals(opp.getLife(), 20);
+        }
+    }
+
+    /** Scry 1 / surveil 1: keeping the card or sending it away is the model's call. It was kept on
+     *  top without asking (`surveil(forced-only-legal)->keep-all-top`). */
+    @Test
+    public void aSingleSurveiledCardIsTheModelsDecision() {
+        for (String reply : new String[] {"PICKS: none", "PICKS: 1"}) {
+            Game g = bareGame(PhaseType.MAIN1);
+            Player me = g.getPlayers().get(0);
+            Card top = card("Mountain", me, ZoneType.Library);
+            Recorder smart = new Recorder(reply);
+            LlmSpikeGui.PlayerControllerLLM seat = seat(g, smart, new Recorder(reply));
+            forge.game.card.CardCollection one = new forge.game.card.CardCollection();
+            one.add(top);
+            org.apache.commons.lang3.tuple.ImmutablePair<forge.game.card.CardCollection, forge.game.card.CardCollection>[] out =
+                    new org.apache.commons.lang3.tuple.ImmutablePair[1];
+            String log = logOf(() -> out[0] = seat.arrangeForSurveil(one));
+            Assert.assertEquals(smart.prompts.size(), 1, "the model must be asked about the one card: " + log);
+            Assert.assertFalse(log.contains("forced-only-legal"), log);
+            Assert.assertEquals(out[0].getLeft().size(), reply.endsWith("none") ? 0 : 1, "kept on top, reply " + reply);
+            Assert.assertEquals(out[0].getRight().size(), reply.endsWith("none") ? 1 : 0, "to the graveyard, reply " + reply);
+        }
+    }
+
+    /**
+     * Recorded (runs/lines/blocks/native-lookahead, seed 50, turn 6): the second ask of a play
+     * decision was one sentence, "...CHOICE: <a number 1..7 from the list above>", with no list
+     * above. The model searched its archive for the question and the decision was lost.
+     */
+    @Test
+    public void theRetryOfAPlayDecisionCarriesTheStateAndTheMenuAgain() {
+        String state = "== Turn 6 MAIN1 ==\nYOU [Seat] life 20\nDECISION: You have priority. Choose ONE action:\n  1) CAST Lightning Bolt\n  2) PASS (do nothing)";
+        String retry = LlmSpikeGui.PlayerControllerLLM.playRetryPrompt(state, 2);
+        Assert.assertTrue(retry.startsWith(state), retry);
+        Assert.assertTrue(retry.contains("1) CAST Lightning Bolt") && retry.contains("2) PASS"));
+        Assert.assertTrue(retry.endsWith("CHOICE: <a number 1..2 from the list above>.)"), retry);
+
+        // End to end: a first reply with no choice, then an answer. The second prompt is the full one.
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        List<String> seen = new ArrayList<>();   // not `prompts`: that is a field of Recorder
+        Recorder smart = new Recorder("CHOICE: 2") {
+            @Override public String ask(String prompt) {
+                seen.add(prompt);
+                return seen.size() == 1 ? "PLAN: bolt them later, and I ran out of room before" : "CHOICE: 2";
+            }
+        };
+        LlmSpikeGui.PlayerControllerLLM seat = seat(g, smart, smart);
+        logOf(() -> seat.chooseSpellAbilityToPlay());
+        Assert.assertTrue(seen.size() >= 2, "expected a retry, got " + seen.size() + " asks");
+        String second = seen.get(1);
+        Assert.assertTrue(second.contains("Lightning Bolt") && second.contains("PASS"), "the retry lost the menu: " + second);
+        Assert.assertTrue(second.contains("Your previous reply had no parseable choice"), second);
+        Assert.assertTrue(second.length() > 300, "the retry is the bare correction again: " + second);
     }
 }

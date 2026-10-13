@@ -50,6 +50,10 @@ _AUTO_LEGAL_RE = re.compile(r'^\[([^\]]+)\]\s*\[AUTO-LEGAL\]')
 _REPLIED_RE = re.compile(r'^\[OPENROUTER ([^/\]]+)/(\w+)\]\s*replied in (\d+)\s*ms')
 
 
+# Decision types whose answer is a SUBSET of the options (zero to all of them), so one option still
+# leaves a choice. Every other type picks exactly one, and one option there is a forced pick.
+SUBSET_TYPES = frozenset(("attackers", "blockers", "scry", "surveil"))
+
 def parse_log_text(text):
     """Return per-seat log-side event counts from one game's stdout log.
 
@@ -348,10 +352,14 @@ def summarize(pairs, label):
     finish_reason_length = sum(1 for d in decisions if d.get("finish_reason") == "length")
 
     # --- forced-pick mislabels: n_options==1 but tier != auto (C6)
+    # Only for pick-EXACTLY-one menus. A SUBSET decision over one candidate is not forced: attack
+    # with the one creature or not, block or not, keep the one scried card or not. Counting those
+    # as mislabels is what led the harness to take them from the model (fixed 2026-10-13).
     forced_mislabels = [
         {"file": d.get("_srcfile"), "seat": d.get("seat"), "turn": d.get("turn"),
          "type": d.get("type"), "tier": d.get("tier")}
-        for d in decisions if d.get("n_options") == 1 and d.get("tier") != "auto"
+        for d in decisions
+        if d.get("n_options") == 1 and d.get("tier") != "auto" and d.get("type") not in SUBSET_TYPES
     ]
 
     # --- mulligan rows present per seat

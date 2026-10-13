@@ -299,7 +299,9 @@ public class NativeToolsTest {
         String reply = new ContextMemory().askNative("Name a card.", (user, messages, tools, allow, round) ->
                 turn("I should look first.\nINSPECT Delver of Secrets"), null, (request, result) -> results.add(result));
         Assert.assertNull(reply);
-        Assert.assertEquals(results, List.of("ERROR: a tool request must be a function call; no tool executed."));
+        // Told once that the tools are spent, it wrote the same thing again: two refusals, then no answer.
+        Assert.assertEquals(results, List.of("ERROR: a tool request must be a function call; no tool executed.",
+                "ERROR: a tool request must be a function call; no tool executed."));
     }
 
     /** The last round may not call: a tool run then could never be read and would only be spent.
@@ -330,8 +332,31 @@ public class NativeToolsTest {
                 turn("<｜DSML｜function_calls>\n<｜DSML｜invoke name=\"memory_read\">\n</｜DSML｜invoke>"),
                 null, (request, result) -> results.add(result));
         Assert.assertNull(reply);
-        Assert.assertEquals(results.size(), 1);
+        Assert.assertEquals(results.size(), 2);
         Assert.assertFalse(NativeTools.looksLikeCallMarkup("I invoke Lightning Bolt. CHOICE: 2"));
+    }
+
+    /**
+     * Recorded (runs/lines/blocks/native, seed 51, turn 7): after two served calls the model wrote
+     * call markup as text, the ask returned nothing, and the seat PASSED its own main phase. Now it
+     * is told once, in words, that the tools are spent, and its answer is taken.
+     */
+    @Test
+    public void aSeatThatWritesCallMarkupAfterItsToolsAreSpentIsAskedOnceMoreAndAnswers() {
+        ContextMemory memory = new ContextMemory();
+        memory.setInspector(arg -> "text");
+        List<Boolean> allowed = new ArrayList<>();
+        List<String> last = new ArrayList<>();
+        String reply = memory.askNative("DECISION", (user, messages, tools, allow, round) -> {
+            allowed.add(allow);
+            last.add(messages);
+            if (round == 0) return turn(null, call("a", "inspect", "{\"target\":\"@1\"}"), call("b", "inspect", "{\"target\":\"@2\"}"));
+            if (round == 1) return turn("\n\n<｜DSML｜ calls>\n<｜DSML｜ invoke name=\"memory_read\">");
+            return turn("CHOICE: 3");
+        }, null, (a, b) -> { });
+        Assert.assertEquals(reply, "CHOICE: 3");
+        Assert.assertEquals(allowed, List.of(true, false, false));
+        Assert.assertTrue(last.get(2).contains("No tool calls are available for this decision any more"), last.get(2));
     }
 
     /** A search must not return the decision that is asking: the query usually quotes it. */

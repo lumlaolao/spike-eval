@@ -1280,6 +1280,13 @@ public final class LlmSpikeGui {
             return null; // still short after retry -> caller's legal default
         }
 
+        /** The second ask of a play decision whose first reply had no parseable choice: the same state
+         *  and menu, and the correction. Never the correction alone. */
+        static String playRetryPrompt(String stateAndMenu, int passIdx) {
+            return stateAndMenu + "\n\n(Your previous reply had no parseable choice. Answer with ONE line only, nothing else: "
+                    + "CHOICE: <a number 1.." + passIdx + " from the list above>.)";
+        }
+
         /** If the reply asks for a lookahead preview (`SIMULATE: n`), return the 1-based option
          *  number; else -1. n must be within the castable list. */
         static int parseSimulateOption(String reply, int nSpells) {
@@ -1865,21 +1872,13 @@ public final class LlmSpikeGui {
                 CardCollection legal = new CardCollection();
                 for (Card c : attacker.getCreaturesInPlay()) if (CombatUtil.canAttack(c, defender)) legal.add(c);
                 if (legal.isEmpty()) return;
-                // Exactly one legal attacker: forced-only-legal, same convention as every other
-                // single-candidate site in this file (choose-entity/zone-change/targets all short-circuit
-                // to tier=auto without ever calling the model when only one candidate exists). This site
-                // used to fall through to decideMany even at n_options==1, logging tier=smart — the
-                // forced-pick mislabel the defect_analyzer's forced_pick_mislabels check flagged in every
-                // one of the 8 model-sweep games (always at this exact site, e.g. gpt-5 turn 4).
-                if (legal.size() == 1) {
-                    Card only = legal.getFirst();
-                    combat.addAttacker(only, defender);
-                    lastDeclaredAttackerNames.clear();
-                    lastDeclaredAttackerNames.add(only.getName());
-                    auto("attackers(forced-only-legal)->attack " + only.getName());
-                    return;
-                }
-                // D4 shadow: genuine choice (n_options>1). Compute on pre-decision state, before the real
+                // ONE creature that can attack is still a decision: attack with it, or do not. This site
+                // used to add it to combat without asking ("forced-only-legal"), so a seat with a single
+                // creature attacked with it every turn into any board; 59 such attacks and scry/surveil
+                // keeps were taken from the model across 24 recorded games (runs/lines/ctl2, blocks). The
+                // shortcut came from reading n_options==1 as "forced", which is true of a pick-exactly-
+                // one menu and false of a subset: a subset of one candidate has two outcomes.
+                // D4 shadow: computed on pre-decision state, before the real
                 // combat is mutated, into a scratch combat (real combat untouched). Stash in a LOCAL: the
                 // decideMany() call below begins with clearLast() (nulling lastShadowChoice) BEFORE this
                 // decision's row is emitted, so we re-attach the shadow label to lastShadowChoice immediately
@@ -2249,7 +2248,12 @@ public final class LlmSpikeGui {
                     String prompt = (attempt == 0
                             ? playPromptPrefix(snapshot(), phh.getPhase(), ownMain, menuStr)
                               + (asks.isEmpty() ? PLAY_PROMPT_TAIL : asks + "Then end with EXACTLY: CHOICE: <number>")
-                            : "That reply had no parseable choice. Answer with ONE line only: CHOICE: <a number 1.." + passIdx + " from the list above>.")
+                            // The retry carries the WHOLE decision again. It used to be this one sentence
+                            // alone ("...from the list above") sent to a stateless backend with no list
+                            // above: in runs/lines/blocks the model spent both tools searching its archive
+                            // for the question and the decision was lost (3 of 9 games, one a PASS on its
+                            // own main phase). decideOne and decideMany already re-send the state.
+                            : playRetryPrompt(playPromptPrefix(snapshot(), phh.getPhase(), ownMain, menuStr), passIdx))
                             + lookCtx
                             + (lookaheadOn && attempt == 0 && !nativeSim
                                ? "\nYou may instead reply `SIMULATE: <number>` (optionally `SIMULATE: <number> <target name>`) to see what a CAST or ACTIVATE option (1.." + options.size()
@@ -2914,15 +2918,8 @@ public final class LlmSpikeGui {
             if (topN == null || topN.isEmpty()) return ImmutablePair.of(new CardCollection(), new CardCollection());
             List<Card> opts = new ArrayList<>(topN);
             try {
-                // Exactly one card peeked: forced-only-legal, same convention as every other
-                // single-candidate site (choose-entity/zone-change/targets/attackers) — never call the
-                // model at n_options==1. This was the surveil forced-pick mislabel the defect_analyzer
-                // flagged (tier=smart at n_options==1) in every model-sweep game that surveiled a
-                // single card; scry shares this method so it's covered too.
-                if (opts.size() == 1) {
-                    auto(verb + "(forced-only-legal)->keep-all-top");
-                    return ImmutablePair.of(new CardCollection(opts), new CardCollection());
-                }
+                // One card peeked is still a decision (keep it, or send it away): scry 1 and surveil 1
+                // are most scrys and surveils. It used to be kept on top without asking; see declareAttackers.
                 if (!smartOk()) { auto(verb + "(no-model)->keep-all-top"); return ImmutablePair.of(new CardCollection(opts), new CardCollection()); }
                 List<String> labels = new ArrayList<>();
                 for (Card c : opts) labels.add(cardLabel(c));
@@ -3824,6 +3821,9 @@ public final class LlmSpikeGui {
                             // Later rounds carry the tool exchanges; the first is just the prompt above.
                             + (round == 0 ? "" : ",\"messages\":" + messages)
                             + ",\"raw_reply\":" + (text == null ? "null" : "\"" + jsonEscape(text) + "\"") + "}");
+                    // A turn of tool calls is not a discarded answer: the next round must not record it
+                    // as first_failed_reply or bill its time to retry_ms.
+                    if (got[0] != null && !got[0].calls.isEmpty()) lastReply = null;
                     return text == null ? null : got[0];
                 }, simulate, audit);
             }
@@ -3840,6 +3840,7 @@ public final class LlmSpikeGui {
                         + ",\"prompt_tokens\":" + lastPromptTokens + ",\"completion_tokens\":" + lastCompletionTokens
                         + ",\"prompt\":\"" + jsonEscape(request) + "\",\"raw_reply\":"
                         + (response == null ? "null" : "\"" + jsonEscape(response) + "\"") + "}");
+                if (ContextMemory.toolLine(response) != null) lastReply = null; // a tool round, not a failed answer
                 return response;
             }, audit);
         }

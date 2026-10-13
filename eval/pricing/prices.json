@@ -1,0 +1,12 @@
+{
+  "comment": "USD per token, as the provider lists it. Checked by hand against the source on the date given; cost_report.py prints the date so a stale price is visible. Add a model here before running it.",
+  "models": {
+    "deepseek/deepseek-v4.1-flash": {
+      "prompt": 0.0000000441,
+      "completion": 0.000000765,
+      "input_cache_read": 0.0000000054,
+      "checked": "2026-10-13",
+      "source": "https://openrouter.ai/api/v1/models"
+    }
+  }
+}

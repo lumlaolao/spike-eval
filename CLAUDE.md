@@ -200,6 +200,19 @@ python3 eval/model_sweep.py                               # per-model certificat
 - `secrets.env` (git-ignored, repo root; template `secrets.env.example`) holds
   `OPENROUTER_API_KEY` + the egress opt-in; eval drivers auto-load it.
 
+## Cost of paid runs (owner rule, 2026-10-13)
+
+A game on `deepseek-v4.1-flash` costs about **$0.04** (roughly 60 model calls, 370K prompt and 40K
+completion tokens; output is about 60% of the bill). Small, but it adds up unseen: 204 games in one
+day came to about $8. So:
+
+- `python3 eval/cost_report.py <run dirs>` prints tokens and dollars for any run, priced from
+  `eval/pricing/prices.json` (`--plan N` says what N more games would cost).
+- `run_batch.py --budget-usd X` stops starting games when the directory's spend reaches X, and every
+  batch log ends with a `[cost]` line. Always pass it.
+- **Start with a small block** (about six games per arm), read the result and the cost, then decide
+  on the next block. Never launch hundreds of games in one go, and say the expected cost first.
+
 ## Seed governance (locked 2026-07-25 — user-approved)
 
 Reserved eval seed blocks, never usable as SFT/training-data sources:
@@ -235,6 +248,7 @@ The skills in `.claude/skills/` are not optional helpers. They are how work is d
 | on every PR, before merging | `pr-review` | finds what the author has not seen; BLOCKER or HIGH blocks the merge |
 | on every PR, after `pr-review` | `simplify` | the change loses what it does not need |
 | on every PR, and whenever you ask "what is the rule for this?" | `standards` | checks the change against `docs/STANDARDS.md` and keeps that file true |
+| **whenever a game is played** | `game-loop` | one match at a time: play it, read it, fix what the harness got wrong, then the next. A batch of many games is not how this repository tests the harness |
 | whenever game logs are reviewed | `harness-audit` | separates harness defects from model mistakes; produces puzzle candidates |
 
 Run the three review skills as fresh subagents where the runtime has them, so the reviewer is

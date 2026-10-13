@@ -31,8 +31,12 @@ random.seed=42
 # choices itself -- 13 sacrifice decisions appear in the game log that were previously silent -- so
 # the random walk re-rolls: winner A, 26 turns / 171 decisions. Floor is unchanged (it never plays).
 # Re-pinned deliberately: ai=0 rows, silent drops=0, game not capped.
-random.winner=A
-random.turns=26
-random.decisions=171
+# 2026-10-13 (later): one creature that can attack, and one scried or surveiled card, are decisions
+# again instead of "forced-only-legal" shortcuts (attack with it / keep it, unasked). The random arm
+# now rolls those too, so its walk re-rolls: winner B, 19 turns / 65 decisions. Reproduced twice
+# (/tmp/acc-fbef9cfab, /tmp/acc-part). Floor is unchanged: it attacks with everything and never scries.
+random.winner=B
+random.turns=19
+random.decisions=65
 # Silent Forge-AI strategic/payment hooks reachable in Legacy play (ControllerOwnershipTest baseline).
 ownership.silent_ai_strategic_max=3
