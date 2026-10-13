@@ -2004,6 +2004,11 @@ public final class LlmSpikeGui {
                 int landStart = 1 + options.size();                       // 1-based menu number of the first land
                 int passIdx = 1 + options.size() + landPlays.size();      // 1-based menu number of PASS
 
+                // FORCED MENU: nothing castable and no land to play, so PASS is the only legal action.
+                // Asking the model would be a pure-latency no-op decision, and a turn can hold many
+                // such windows. Scoped to the model arm so the floor/random canary arms are untouched.
+                if (passIdx == 1 && rnd == null && smartOk()) { auto("play(no-options)->PASS"); return PASS; }
+
                 String sig = turn + "|" + phh.getPhase() + "|" + menuStr;
                 if (sig.equals(lastAskSig) && lastWasPass) return PASS; // identical spot we already passed on
                 lastAskSig = sig;
