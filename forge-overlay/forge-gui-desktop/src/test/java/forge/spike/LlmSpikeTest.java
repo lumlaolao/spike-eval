@@ -1589,6 +1589,26 @@ public class LlmSpikeTest {
     }
 
     @Test
+    public void g8BlockersCeilingIsGatedAndComputed() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0), opp = game.getPlayers().get(1);
+        forge.game.combat.Combat combat = new forge.game.combat.Combat(opp);
+        combat.addAttacker(addBattlefieldCard("Grizzly Bears", opp), me); // 2
+        combat.addAttacker(addBattlefieldCard("Craw Wurm", opp), me);     // 6
+
+        LlmSpikeGui.PlayerControllerLLM.TEST_LOOKAHEAD_OVERRIDE = Boolean.FALSE;
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.blockersCeiling(combat, me), "");
+        LlmSpikeGui.PlayerControllerLLM.TEST_LOOKAHEAD_OVERRIDE = Boolean.TRUE;
+        try {
+            String s = LlmSpikeGui.PlayerControllerLLM.blockersCeiling(combat, me);
+            Assert.assertTrue(s.contains("INCOMING"), s);
+            Assert.assertTrue(s.contains("8 damage"), s);
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.TEST_LOOKAHEAD_OVERRIDE = null;
+        }
+    }
+
+    @Test
     public void g8AttackersCeilingIsGatedAndComputed() {
         Game game = buildBareGame();
         Player me = game.getPlayers().get(0), opp = game.getPlayers().get(1);

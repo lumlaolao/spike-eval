@@ -1811,7 +1811,7 @@ public final class LlmSpikeGui {
                     blk.append(bl); blkLabels.add(bl);
                 }
                 // Shared template (single source; the ai-teacher seat rebuilds byte-identically via the same builder).
-                String prompt = buildBlockersPrompt(snapshot(), atk.toString(), blk.toString());
+                String prompt = buildBlockersPrompt(snapshot(), atk.toString(), blk.toString(), blockersCeiling(combat, defender));
                 p("[ROUTER] blockers: " + attackers.size() + " atk / " + blockers.size() + " blk -> " + routeLabel(smart.getModel(), rnd != null));
                 String reply = ask(smart, prompt);
                 if (reply == null) { auto("blockers(bridge-down)->none"); return; }
@@ -4165,8 +4165,26 @@ public final class LlmSpikeGui {
          *  build identically. Shared so the ai-teacher's reconstruction can never drift. See
          *  {@link #declareBlockers} (LLM seat) and PlayerControllerAiLogging.declareBlockers. */
         static String buildBlockersPrompt(String snapshot, String atk, String blk) {
+            return buildBlockersPrompt(snapshot, atk, blk, "");
+        }
+
+        /** G8 lookahead (LOOKAHEAD=1): the damage the defender faces if nothing blocks, from the
+         *  engine's own combat maths. Empty (byte-identical default) when lookahead is off. Both seats
+         *  compute it from the same state, so their prompts stay identical. */
+        static String blockersCeiling(Combat combat, Player defender) {
+            if (!lookaheadEnabled() || combat == null || defender == null) return "";
+            try {
+                CardCollection atks = combat.getAttackers();
+                if (atks == null || atks.isEmpty()) return "";
+                return " INCOMING (engine, if nothing blocks): " + ComputerUtilCombat.sumDamageIfUnblocked(atks, defender) + " damage.";
+            } catch (Exception e) { return ""; }
+        }
+
+        /** Adds the optional incoming-damage outlook to the shared blockers prompt. */
+        static String buildBlockersPrompt(String snapshot, String atk, String blk, String outlook) {
             return snapshot + "\nCOMBAT — declare blockers. Incoming: " + atk + ". Your blockers: " + blk + ". "
                     + "Assign blocks (each blocker blocks one attacker). Weigh your life total vs losing blockers. "
+                    + (outlook == null ? "" : outlook)
                     + "End with EXACTLY: BLOCKS: blocker->attacker, blocker->attacker   (or BLOCKS: NONE)";
         }
 
@@ -4622,7 +4640,8 @@ public final class LlmSpikeGui {
                             atk.append(a.getName()).append(" (").append(a.getNetPower()).append('/').append(a.getNetToughness()).append(')');
                         }
                         // Shared template (single source; byte-identical to the LLM seat's).
-                        prompt = PlayerControllerLLM.buildBlockersPrompt(snap(), atk.toString(), blk.toString());
+                        prompt = PlayerControllerLLM.buildBlockersPrompt(snap(), atk.toString(), blk.toString(),
+                                PlayerControllerLLM.blockersCeiling(combat, defender));
                     }
                 }
             } catch (Exception ignore) { }
