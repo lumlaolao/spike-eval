@@ -5103,7 +5103,11 @@ public final class LlmSpikeGui {
             // CHOICE/PICKS answer. See the class javadoc above for the full investigation.
             // fastReasoningEffort="minimal" + a small cap: the fast tier answers high-frequency
             // mechanical questions and must not spend hidden reasoning on them (see the field javadoc).
-            ModelCfg deepseekGpt = new ModelCfg(16000, 90000, "medium", null, 1024, 45000, "none");
+            // Smart budget 16000 -> 4000: a REAL play decision produced 15,539 completion tokens
+            // (~50s of generation) for an answer that is normally ~400. 4000 keeps 10x headroom over
+            // the median while bounding the ramble; if one still overruns, the truncation retry now
+            // drops reasoning instead of doubling the budget, so the tail costs seconds, not minutes.
+            ModelCfg deepseekGpt = new ModelCfg(4000, 90000, "medium", null, 1024, 45000, "none");
             ModelCfg kimi        = new ModelCfg(16000, 150000, null, null, ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
             ModelCfg grok        = new ModelCfg(8000, 90000, null, null, ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
             ModelCfg dflt        = new ModelCfg(4000, 90000, null, null, ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);

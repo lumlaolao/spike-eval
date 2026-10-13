@@ -283,7 +283,7 @@ public class ContextProfileTest {
         // hash. 2026-10-13: the fast tier gained fastReasoningEffort ("minimal") and its budget moved
         // 4000/60000 -> 1024/45000 -- a reasoning model was burning the whole budget on hidden
         // reasoning before any answer token (a measured 182s decision). Deliberate change.
-        Assert.assertTrue(c.contains("deepseek:16000,90000,medium,null,1024,45000,none|"),
+        Assert.assertTrue(c.contains("deepseek:4000,90000,medium,null,1024,45000,none|"),
                 "deepseek row not rendered field-for-field: " + c);
         // The Claude row is the one the run_batch.py grace budget is pinned against.
         Assert.assertTrue(c.contains("opus:8000,180000,null,null,512,30000,null|"),
