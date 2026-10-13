@@ -337,8 +337,8 @@ if has_stage lookahead; then
         TGT="$(grep -c 'assuming target:' "$dir/game.log" 2>/dev/null)"; TGT="${TGT:-0}"
         AILOG="$(grep -c '\[FALLBACK->AI\]' "$dir/game.log" 2>/dev/null)"; AILOG="${AILOG:-0}"
         PFAIL="$(grep -c '\[ROUTER\] lookahead.*preview failed' "$dir/game.log" 2>/dev/null)"; PFAIL="${PFAIL:-0}"
-        # One seat, one model controller. A second [OBSERVATION] banner means a preview copy was given
-        # the seat's model (it then answers attack and trigger questions for a game that does not exist).
+        # At most one model controller. (This stage's profile prints no banner, so the count is 0 here;
+        # the nativetool stage, which plays the faithful profile, requires exactly 1.)
         CTRL="$(grep -c '\[OBSERVATION\]' "$dir/game.log" 2>/dev/null)"; CTRL="${CTRL:-0}"
         if [ "$LOOK" -ge 1 ] && [ "$TGT" -ge 1 ] && [ "$AILOG" -eq 0 ] && [ "$PFAIL" -eq 0 ] && [ "$CTRL" -le 1 ]; then
           pass lookahead "preview rounds=$LOOK (targeting previews=$TGT), 0 failed previews, no AI fallbacks, model controllers=$CTRL"
@@ -418,6 +418,8 @@ if not reqs or len(with_tools)!=len(reqs): problems.append("%d of %d requests ca
 if not any(r.get("tool_results") for r in reqs): problems.append("no request carried a tool result back")
 if any(r.get("has_authorization") for r in reqs): problems.append("authorization header sent to loopback")
 if not any("simulate" in r.get("tools_offered",[]) for r in reqs): problems.append("simulate was never offered")
+banners=open(d+"/game.log",errors="replace").read().count("[OBSERVATION]")
+if banners!=1: problems.append("%d model controllers were built for one seat (a preview copy was given the model)"%banners)
 previews=[r for r in tools if r.get("request","").startswith("TOOL CALL simulate ")]
 broken=[r for r in previews if "preview failed" in r.get("result","")]
 if broken: problems.append("%d of %d previews failed (the engine copy threw; see [LOOKAHEAD] in game.log)"%(len(broken),len(previews)))
