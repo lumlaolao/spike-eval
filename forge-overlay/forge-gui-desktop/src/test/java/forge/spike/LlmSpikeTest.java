@@ -972,6 +972,13 @@ public class LlmSpikeTest {
         Assert.assertEquals(other.fastMaxTokens, LlmSpikeGui.ModelCfg.DEFAULT_FAST_MAX_TOKENS,
                 "models without evidence of this failure mode (kimi/grok/default) must keep the flat default");
         Assert.assertEquals(other.fastTimeoutMs, LlmSpikeGui.ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
+        // ...and the fast tier now says so EXPLICITLY: a reasoner that is not told "minimal" spends
+        // hidden reasoning on a mechanical question, which was the actual latency driver (measured
+        // 2026-10-13: 4000-token reasoning burn -> truncation retry -> 182s for one number).
+        Assert.assertEquals(gpt.fastReasoningEffort, "minimal",
+                "the reasoning-model row must suppress fast-tier reasoning, not just widen the budget");
+        Assert.assertNull(other.fastReasoningEffort,
+                "models without this failure mode must not be sent a reasoning hint");
     }
 
     // ================================================================================

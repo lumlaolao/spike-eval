@@ -279,11 +279,14 @@ public class ContextProfileTest {
         Assert.assertTrue(c.startsWith("modelcfg.v1|"), "canonical form must carry its version: " + c);
         for (String key : new String[] {"opus", "sonnet", "haiku", "deepseek", "gpt", "kimi", "grok", "default"})
             Assert.assertTrue(c.contains(key + ":"), "row missing from canonical form: " + key);
-        // deepseek is the row with a non-null value in every slot, so it proves all six reach the hash.
-        Assert.assertTrue(c.contains("deepseek:16000,90000,medium,null,4000,60000|"),
+        // deepseek is the row with a non-null value in every slot, so it proves all SEVEN reach the
+        // hash. 2026-10-13: the fast tier gained fastReasoningEffort ("minimal") and its budget moved
+        // 4000/60000 -> 1024/45000 -- a reasoning model was burning the whole budget on hidden
+        // reasoning before any answer token (a measured 182s decision). Deliberate change.
+        Assert.assertTrue(c.contains("deepseek:16000,90000,medium,null,1024,45000,minimal|"),
                 "deepseek row not rendered field-for-field: " + c);
         // The Claude row is the one the run_batch.py grace budget is pinned against.
-        Assert.assertTrue(c.contains("opus:8000,180000,null,null,512,30000|"),
+        Assert.assertTrue(c.contains("opus:8000,180000,null,null,512,30000,null|"),
                 "claude row not rendered field-for-field: " + c);
     }
 
