@@ -5730,10 +5730,25 @@ public final class LlmSpikeGui {
                 // BEFORE ever asking "is this a non-answer". Only once finish_reason isn't "length" (or
                 // the tag already made it out) do we fall through to the non-answer/bridge-down check.
                 if ("length".equals(r.finishReason) && !looksLikeDecisionTag(r.content)) {
+                    // A REASONER that burns the whole budget on hidden reasoning and emits no answer
+                    // token (measured 2026-10-13: a 16000-token smart completion, retried at 32000,
+                    // ~3 minutes of the 8-minute game cap) does not need MORE room to think -- that is
+                    // exactly what it just spent. Asking it to stop reasoning gets an answer in ~1s
+                    // (measured: enabled=false -> 65 completion tokens, 1.3s). So for a row we know is
+                    // a reasoner, the retry DISABLES reasoning; every other model keeps the historic
+                    // double-the-budget retry, which is right for a genuinely long answer.
+                    boolean reasoner = reasoningEffort != null || cfg.fastReasoningEffort != null;
                     int retryTokens = Math.min(maxTokens * 2, 64000);
-                    System.out.println("[OPENROUTER " + label + "] [TRUNCATED->RETRY] finish_reason=length @ max_tokens="
-                            + maxTokens + " -> retrying at " + retryTokens);
-                    OrResult retry = send(prompt, retryTokens, reasoningEffort, temperature, deadline);
+                    String retryEffort = reasoningEffort;
+                    if (reasoner) {
+                        retryTokens = Math.min(Math.max(maxTokens, 1024), 4096);
+                        retryEffort = "none";
+                    }
+                    System.out.println("[OPENROUTER " + label + "] [TRUNCATED->RETRY"
+                            + (reasoner ? "-NO-REASONING" : "") + "] finish_reason=length @ max_tokens="
+                            + maxTokens + " -> retrying at " + retryTokens
+                            + (reasoner ? " with reasoning disabled" : ""));
+                    OrResult retry = send(prompt, retryTokens, retryEffort, temperature, deadline);
                     // Only adopt the retry if it's not itself a non-answer: a truncated-but-substantive
                     // original reply is a better final result than a garbled/empty retry, and either way
                     // the isNonAnswer() check right below still gets the final say.
