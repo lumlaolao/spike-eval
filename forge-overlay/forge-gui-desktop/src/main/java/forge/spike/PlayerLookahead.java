@@ -44,9 +44,28 @@ final class PlayerLookahead {
     /** A copy of {@code live} with both libraries re-dealt from a fixed seed, built WITHOUT touching
      *  the live game or its RNG stream. The libraries are determinized so the preview does not
      *  depend on the real (unseen) hidden order — the player-safety point of the whole exercise. */
+    /**
+     * How deep this thread is inside a preview. While it is non-zero, every player the engine
+     * creates is a player of a COPY, and must be driven by the engine's own AI, never by the seat's
+     * model. Read by {@code LobbyPlayerLLM.createIngamePlayer}.
+     *
+     * Found by watching one game (runs/loop/g01, 2026-10-13): each preview made the engine score
+     * the copy, the scoring simulates the coming combat on a second copy, and that copy's seat was
+     * built with a full model controller. The seat's model was asked to declare attackers and
+     * confirm triggers in a game that did not exist; the answers cost money and seconds, and were
+     * written to the real game's decision log as if they had happened (7 attacker rows in a game
+     * with 5 attack steps).
+     */
+    private static final ThreadLocal<Integer> DEPTH = ThreadLocal.withInitial(() -> 0);
+
+    static boolean inPreview() { return DEPTH.get() > 0; }
+    private static void enter() { DEPTH.set(DEPTH.get() + 1); }
+    private static void exit() { DEPTH.set(Math.max(0, DEPTH.get() - 1)); }
+
     static Game copyForPreview(Game live, long seed) {
         if (live == null) return null;
         Random liveRandom = MyRandom.getRandom();
+        enter();
         try {
             // Everything the copy does from here draws from THIS Random, not the live one. The live
             // Random object is never used, so restoring the reference restores its exact state.
@@ -61,6 +80,7 @@ final class PlayerLookahead {
             return copy;
         } finally {
             MyRandom.setRandom(liveRandom);
+            exit();
         }
     }
 
@@ -161,6 +181,7 @@ final class PlayerLookahead {
             try { if (o.getTargets() != null) s.addAll(o.getTargets()); } catch (Exception ignore) { }
             savedTargets.add(s);
         }
+        enter();
         try {
             MyRandom.setRandom(new Random(seed));
             GameSimulator sim;
@@ -232,6 +253,7 @@ final class PlayerLookahead {
                 } catch (Exception ignore) { }
             }
             MyRandom.setRandom(liveRandom);
+            exit();
         }
     }
 

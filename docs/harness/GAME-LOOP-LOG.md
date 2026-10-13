@@ -30,3 +30,24 @@ Played as two arms of a small block before the loop was one game at a time; read
   goes on reasoning and the retry costs 20-55 s. Not yet read closely.
 - OPEN   `inspect "Cat Warrior Token"` finds nothing: a token has no card-database entry, and the
   model asked by name instead of by handle.
+
+### g01  2026-10-13  seed 53  Mardu Energy (seat) vs Burn (Forge AI)  won T10  $0.03  build 4b4ecc16
+
+Sheet: TAKEN 0, LOST 0, TOOL 0 (3 requests, all served). The fixes of the block held: the mulligan,
+both surveils and every attack were asked of the model.
+
+- FIXED  **A preview asked the model to play a game that did not exist.** Read in the log: before
+  each `lookahead` line the seat was asked `attackers: 2 can attack` and `confirm-trigger [Guide of
+  Souls]`, in its main phase, and an `[OBSERVATION]` banner appeared each time (8 in a one-seat
+  game). The engine scores a previewed copy by simulating the coming combat on a second copy, and
+  that copy's seat was built with the full model controller. The calls were real (money, 10-25 s a
+  preview) and their answers were written to the decision log as attackers, confirm-trigger and
+  damage-assign rows (7 attacker rows in a game with 5 attack steps). Every player the engine
+  creates during a preview is now an engine-AI player. Test
+  `everyPlayerCreatedDuringAPreviewIsCreatedInsideThePreview`; the `lookahead` acceptance stage
+  fails on a second model controller; `match_review.py` reports it under LOG.
+  Consequence for earlier numbers: decision counts, model calls per turn and cost in every
+  `LOOKAHEAD=1` arm so far include these phantom decisions.
+- clean  Turn-2 discard looked wrong (8 cards after a land drop) and was not: Goblin Guide's trigger
+  had put a land in the seat's hand.
+- OPEN   One smart-tier reply was cut off at 4000 tokens on a five-option turn (26 s).

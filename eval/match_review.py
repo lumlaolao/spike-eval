@@ -79,7 +79,8 @@ def review(path):
             tier = r.get("tier")
             if tier in ("smart", "fast"):
                 out["counts"]["model decisions"] += 1
-                if (r.get("attempts") or 0) > 1 or r.get("finish_reason") == "length":
+                # `attempts` counts tool rounds too; a decision is slow when time was actually wasted.
+                if (r.get("retry_ms") or 0) > 0 or r.get("finish_reason") == "length":
                     add("SLOW", r, "%s: %s attempts, %sms wasted, finish=%s" % (
                         r.get("type"), r.get("attempts"), r.get("retry_ms"), r.get("finish_reason")))
             elif tier == "ai":
@@ -102,6 +103,13 @@ def review(path):
     if log and os.path.isfile(log):
         with open(log, errors="replace") as f:
             text = f.read()
+        # One controller per seat. A second banner for the same seat is a preview copy that was given
+        # the seat's model (runs/loop/g01: it answered attack and trigger questions for the copy).
+        for seat, n in sorted(Counter(re.findall(r"(?m)^\[([^\]]+)\] \[OBSERVATION\]", text)).items()):
+            if n > 1:
+                out["findings"].append(("LOG", 0, None, "seat %s: the model controller was built %d times (preview copies) (%s)"
+                                        % (seat, n, os.path.basename(log))))
+                out["counts"]["LOG"] += 1
         for name, pat in LOG_PATTERNS:
             n = len(re.findall(pat, text))
             if n:
