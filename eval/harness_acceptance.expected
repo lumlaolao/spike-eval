@@ -7,7 +7,10 @@ floor.turns=108
 # 2026-10-12: G7 routed chooseStartingPlayer/chooseColor/chooseSomeType/chooseProtectionType then
 # chooseCardsToDiscardToMaximumHandSize/chooseCardsToDelve from Forge AI to the model. The floor arm
 # now takes the deterministic fronts (was AI); decisions moved 1004 -> 1005 -> 1053 (same winner/turns).
-floor.decisions=1053
+# 2026-10-13: engine pin bumped c1c64a53 -> 6c1810dd0b42 (3 months upstream). The floor arm is
+# deterministic, but the ENGINE changed (card scripts, AI, rules handling). Same winner AND turns;
+# decisions 1053 -> 1064. Re-pinned deliberately: ai=0 rows, silent drops=0, game not capped.
+floor.decisions=1064
 random.seed=42
 # 2026-09-07: model-owned optional confirmations expose four previously silent AI
 # trigger choices to the random policy (first divergence: confirm-trigger, turn 15, decision 61).
@@ -15,8 +18,12 @@ random.seed=42
 # delve choices to the random policy too; the game diverges far earlier. Reproduced.
 # 2026-10-12 (later): simultaneous-trigger ORDER is model-owned too; the random policy now permutes
 # trigger order, moving the game again (17 turns / 75 decisions, winner B). Reproduced.
-random.winner=B
-random.turns=17
-random.decisions=75
+# 2026-10-13: engine pin bumped c1c64a53 -> 6c1810dd0b42. The random arm is a random walk over the
+# legal menu, so ANY engine change re-rolls the whole game: now winner A, 29 turns / 167 decisions.
+# Re-pinned deliberately: ai=0 rows, silent drops=0, game not capped. Random is a floor ANCHOR, not a
+# behavioural contract -- its job is to move deterministically under a fixed engine, which it does.
+random.winner=A
+random.turns=29
+random.decisions=167
 # Silent Forge-AI strategic/payment hooks reachable in Legacy play (ControllerOwnershipTest baseline).
 ownership.silent_ai_strategic_max=3

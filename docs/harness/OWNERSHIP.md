@@ -1,6 +1,6 @@
 # Controller ownership ledger (gate G7, first stage)
 
-`controller-ownership.tsv` classifies all 130 public overridable `PlayerController` hooks
+`controller-ownership.tsv` classifies all 133 public overridable `PlayerController` hooks
 by who decides them on the LLM seat. `ControllerOwnershipTest` regenerates the inventory
 by reflection on every run and fails when the ledger and the compiled controller disagree
 in either direction, so an override cannot appear or vanish without a reviewed ledger edit.
@@ -110,8 +110,10 @@ option (never Forge AI):
 | `orderSimultaneousSa` | the order simultaneous triggers resolve in (targeting stays the engine's) | as-triggered order |
 | `getCostDecisionMaker` | which permanent to sacrifice for a NON-mana cost (e.g. Cabal Therapy flashback), via `LlmCostDecision`; the candidate filter is copied from `ComputerUtil.chooseSacrificeType` so legality matches the engine | the engine's `AiCostDecision` |
 
-Inventory after these overrides: **47 LLM / 69 AI / 14 BASE**; **3 silent core strategic/payment
-hooks remain** (down from 13). Still Forge AI and **not routeable without re-deriving engine
+Inventory after these overrides: **47 LLM / 72 AI / 14 BASE**; **3 silent core strategic/payment
+hooks remain** (down from 13). (The 2026-10-13 engine pin added three sticker-mechanic hooks, all
+resolved to Forge AI — `chooseSticker`, `chooseStickerNamePosition`, `chooseCardToKeepStickers` —
+taking the hook count 130 → 133; see `ENGINE-PIN.md`.) Still Forge AI and **not routeable without re-deriving engine
 mechanics** (established by reading the engine source, not assumed):
 `payManaCost` — its implementation is `ComputerUtilMana.payManaCost(...)`, the whole mana-payment
 mechanism with no seam; `playTrigger` — its targeting goes through `brains.doTrigger` inside

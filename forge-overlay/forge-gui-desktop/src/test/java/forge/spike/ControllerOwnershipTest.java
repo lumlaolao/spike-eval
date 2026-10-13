@@ -129,7 +129,8 @@ public class ControllerOwnershipTest {
         Assert.assertTrue(problems.isEmpty(),
                 "ownership ledger out of date -- edit docs/harness/controller-ownership.tsv deliberately:\n  "
                 + String.join("\n  ", problems));
-        Assert.assertEquals(live.size(), 130, "hook count drifted from the inventory baseline; re-audit");
+        Assert.assertEquals(live.size(), 133, "hook count drifted from the inventory baseline; re-audit "
+                + "(130 at the c1c64a53 engine pin; +3 sticker hooks when the engine moved to 6c1810dd0b4)");
     }
 
     @Test
