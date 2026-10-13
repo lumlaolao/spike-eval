@@ -681,6 +681,14 @@ public final class LlmSpikeGui {
         /** The model's own one-line read of the opponent (deck/plan, cards to respect). Refreshed when
          *  empty or >= PROFILE_REFRESH_TURNS old, piggybacked on the plan ask so it costs no extra call. */
         private String oppProfile = "";
+        /** PLAN-THEN-EXECUTE (opt-in PLAN_EXECUTE=1). If the model's own turn plan NAMES a card that is
+         *  in the current menu, and nothing on the OPPONENT's side has changed since it stated the plan,
+         *  the harness executes that step itself instead of asking again -- one smart call per turn
+         *  rather than one per priority window. Any interruption (their spell, a life change, a new
+         *  permanent) invalidates the plan and forces a re-ask. Off by default. */
+        static final boolean PLAN_EXECUTE = "1".equals(System.getenv("PLAN_EXECUTE"));
+        private String planSig;      // opponent-side signature when the plan was stated
+        private int planStepIdx;     // how many plan steps have been executed this turn
         private int profileTurn = -99;
         private static final int PROFILE_REFRESH_TURNS = 5;
 
@@ -1983,7 +1991,12 @@ public final class LlmSpikeGui {
                 // Exception: a main with ZERO castable spells (just land-or-pass) is a fast-tier question —
                 // measured 15-30s smart calls deciding "play the land". Which land still gets picked by a model.
                 boolean landOnly = ownMain && options.isEmpty();
-                LLMBridge b = (ownMain && !landOnly) ? smart : fast;
+                // ROUTING (opt-in via TIER_FAST_TYPES=play-single): in own main with exactly ONE
+                // castable spell and no land, the menu is [cast it, PASS] -- a binary hold-or-fire
+                // question, not a sequencing one, so it does not need the reasoning tier.
+                boolean playSingle = ownMain && options.size() == 1 && landPlays.isEmpty();
+                boolean playSingleFast = playSingle && !smartTierFor("play-single");
+                LLMBridge b = (ownMain && !landOnly && !playSingleFast) ? smart : fast;
                 boolean haveBudget = (b == smart) ? smartOk() : fastOk();
 
                 int turn = phh.getTurn();
@@ -2046,6 +2059,31 @@ public final class LlmSpikeGui {
                 if (askProfile) asks += "Also state your read of the OPPONENT as `PROFILE: <one short line>` "
                         + "(their deck/plan and the cards to respect, e.g. 'Grixis Reanimator: Entomb+Reanimate, respect Force of Will'). ";
                 boolean lookaheadOn = lookaheadEnabled();
+                // PLAN-THEN-EXECUTE: run a step of the model's own plan without asking again.
+                if (PLAN_EXECUTE && rnd == null && ownMain && !landOnly && planTurn == turn
+                        && turnPlan != null && !turnPlan.isEmpty() && getGame().getStack().size() == 0
+                        && passIdx > 1) {
+                    if (planSig != null && !oppPlanSig().equals(planSig)) {
+                        p("[ROUTER] play(plan-invalidated): opponent-side state changed -> re-plan");
+                        planSig = null; turnPlan = ""; planTurn = -1; planStepIdx = 0;
+                    } else {
+                        List<int[]> named = planOrderedOptions(options);
+                        if (planStepIdx < named.size()) {
+                            int idx = named.get(planStepIdx)[1];
+                            if (idx >= 0 && idx < options.size()) {
+                                SpellAbility planned = options.get(idx);
+                                planStepIdx++;
+                                playDecisionsThisTurn++;
+                                evalDec("play", passIdx, idx, "plan", 0,
+                                        "play(plan-executed)->step" + planStepIdx, playLabels);
+                                p("[ROUTER] play: plan step " + planStepIdx + " -> " + labelOf(planned));
+                                ensureTargetsSet(planned);
+                                return Lists.newArrayList(planned);
+                            }
+                        }
+                    }
+                }
+
                 StringBuilder lookCtx = new StringBuilder(); // at most one lookahead preview per decision
                 if (rnd != null) choice = 1 + rnd.nextInt(passIdx); // random arm: uniform incl. PASS
                 for (int attempt = 0; rnd == null && attempt < 2 && choice < 1; attempt++) {
@@ -2069,6 +2107,8 @@ public final class LlmSpikeGui {
                                 // exactly the C4 defect that chopped a model's own stated finisher clause.
                                 turnPlan = pl.replaceAll("\\s+", " ").trim();
                                 planTurn = turn;
+                                planSig = oppPlanSig();   // plan-then-execute: what "not interrupted" means
+                                planStepIdx = 0;
                                 p("[ROUTER] plan: " + turnPlan);
                             }
                         }
@@ -2121,7 +2161,7 @@ public final class LlmSpikeGui {
                 lastShadowChoice = shadowPlay(po);
                 // ms=0 -> evalDec substitutes lastSuccessMs (successful-attempt-only time); see decideOne.
                 evalDec("play", passIdx, (choice >= 1 && choice < passIdx) ? choice - 1 : -1,
-                        tierOf(ownMain), 0, null, playLabels);
+                        tierOf(b == smart), 0, null, playLabels);
                 if (choice == passIdx || choice < 1 || choice > passIdx) {
                     lastWasPass = true;
                     if (reactSig != null) passedReactSigs.add(reactSig); // don't re-ask this situation this turn
@@ -4057,6 +4097,40 @@ public final class LlmSpikeGui {
          *  "blindly override whatever the model just said" into "do what it already told us it wanted".
          *  Empty when there's no plan yet this turn, or the plan doesn't name anything on offer here.
          *  Thin wrapper over the pure, unit-testable {@link #namedIndices}. */
+        /** Opponent-side signature: the facts whose change means our plan was interrupted. Our OWN
+         *  plays change our own side, so they are deliberately excluded -- otherwise the first executed
+         *  step would invalidate the plan that ordered it. */
+        private String oppPlanSig() {
+            try {
+                Player opp = null;
+                for (Player o : getPlayer().getOpponents()) { opp = o; break; }
+                if (opp == null) return "";
+                return opp.getName() + "|" + opp.getLife() + "|" + opp.getCardsIn(ZoneType.Hand).size()
+                        + "|" + opp.getCardsIn(ZoneType.Battlefield).size()
+                        + "|" + getGame().getStack().size();
+            } catch (Exception e) { return ""; }
+        }
+
+        /** Play-option indices whose card NAME appears in the model's own plan, ordered by WHERE THE
+         *  NAME APPEARS IN THE PLAN TEXT -- the order the model said it would play them, which is the
+         *  entire point of a plan. (namedIndices returns menu order, which can invert that sequence.)
+         *  Matching is the option name inside the plan text, never the reverse, so a plan saying "Bolt"
+         *  does not fire "Lightning Bolt". */
+        private List<int[]> planOrderedOptions(List<SpellAbility> options) {
+            List<int[]> out = new ArrayList<>();
+            if (turnPlan == null || turnPlan.isEmpty()) return out;
+            String upper = turnPlan.toUpperCase(Locale.ROOT);
+            for (int i = 0; i < options.size(); i++) {
+                String n = null;
+                try { n = options.get(i).getHostCard() == null ? null : options.get(i).getHostCard().getName(); } catch (Exception ignore) { }
+                if (n == null || n.isEmpty()) continue;
+                int at = upper.indexOf(n.toUpperCase(Locale.ROOT));
+                if (at >= 0) out.add(new int[] { at, i });
+            }
+            out.sort((a, c) -> Integer.compare(a[0], c[0]));
+            return out;
+        }
+
         private List<Integer> planNamedIndices(List<? extends GameEntity> cands) {
             List<String> names = new ArrayList<>();
             for (GameEntity ge : cands) {
