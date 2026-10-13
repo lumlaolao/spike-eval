@@ -259,6 +259,36 @@ public class SeatObservationTest {
         Assert.assertTrue(hist.contains("battlefield -> graveyard"), hist);
     }
 
+    /** The model's own deck-interaction note: absent until it writes one, then shown and labelled as
+     *  its own unverified note. */
+    @Test
+    public void deckInteractionsAreShownOnlyAfterTheModelWritesThem() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        SeatObservation o = observerFor(g, 0);
+        Assert.assertFalse(render(o, "").contains("YOUR CARD INTERACTIONS"));
+        o.setDeckLines("Cabal Therapy flashback sacrifices a creature | sacrificing a Cat token flips Ajani");
+        String r = render(o, "");
+        Assert.assertTrue(r.contains("YOUR CARD INTERACTIONS (you wrote this from your own decklist; unverified)"), r);
+        Assert.assertTrue(r.contains("flips Ajani"), r);
+    }
+
+    /** A reveal from an earlier turn says how old it is, as a fact; one from this turn is unmarked.
+     *  The harness does not call it stale: it cannot know whether the opponent's hand changed. */
+    @Test
+    public void oldRevealsAreStampedWithTheirAge() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        SeatObservation o = observerFor(g, 0);
+        int now = g.getPhaseHandler().getTurn();
+        o.recordReveal("saw their hand [Force of Will]");
+        String fresh = render(o, "");
+        Assert.assertTrue(fresh.contains("saw their hand [Force of Will]"), fresh);
+        Assert.assertFalse(fresh.contains("ago)"), "a reveal from this turn must not carry an age:\n" + fresh);
+        g.getPhaseHandler().devModeSet(forge.game.phase.PhaseType.MAIN1, g.getPlayers().get(0), now + 3);
+        String later = render(o, "");
+        Assert.assertTrue(later.contains("T" + now + ": (3 turns ago)"), later);
+        Assert.assertFalse(later.contains("stale"), "the harness must not judge staleness:\n" + later);
+    }
+
     /** The model's own opponent read is re-injected every decision and always labelled unverified:
      *  it is a hypothesis it can revise, never an engine fact. */
     @Test

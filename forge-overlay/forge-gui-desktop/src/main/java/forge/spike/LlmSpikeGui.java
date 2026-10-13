@@ -695,6 +695,18 @@ public final class LlmSpikeGui {
          *  misplay the MODEL had explicitly ruled out in the same sentence. Prose cannot distinguish
          *  "cast X" from "hold X", so only an explicit list is honoured. */
         private final java.util.List<String> planSteps = new java.util.ArrayList<>();
+        /** The model's own deck-interaction notes, asked ONCE per game and re-injected always. */
+        private String deckLines = "";
+        private boolean deckLinesAsked;
+        /** How many times the LINES ask has been sent. Bounded: a model that never answers it must not
+         *  carry the request on every smart prompt for the whole game. */
+        private int deckLinesAsks;
+        static final int DECK_LINES_MAX_ASKS = 2;
+        /** The LINES ask. FORMAT ONLY, deliberately: an example that named a real interaction would be
+         *  per-deck coaching, and would make "did the seat find its own lines" unmeasurable. */
+        static final String DECK_LINES_ASK = "Also state how the cards in YOUR OWN deck combine, on its own line, as "
+                + "`LINES: <card> + <card> -> <what you do and what you get> | <card> + <card> -> ... | ...` "
+                + "(up to 3, each naming two or more of your own cards from the decklist above). ";
         private int profileTurn = -99;
         private static final int PROFILE_REFRESH_TURNS = 5;
 
@@ -864,16 +876,72 @@ public final class LlmSpikeGui {
         }
         String labelOf(SpellAbility sa) {
             if (observer == null || sa.getHostCard() == null) return saLabel(sa);
-            String s = saLabel(sa);
-            String host = sa.getHostCard().getName();
-            // Same text as the legacy label, with the host's name replaced by its handle-bearing short
-            // reference, so a play/target menu and the state above it name the same object.
-            return host != null && !host.isEmpty() && s.startsWith(host) ? observer.shortRef(sa.getHostCard()) + s.substring(host.length()) : s;
+            return faithfulSaLabel(sa, observer.shortRef(sa.getHostCard()));
+        }
+
+        /** {@code seg} up to the first of {@code tags} (case-insensitive), for replies that put several
+         *  tagged answers on one line. */
+        static String cutAtTags(String seg, String... tags) {
+            if (seg == null) return null;
+            String up = seg.toUpperCase();
+            int cut = seg.length();
+            for (String t : tags) { int i = up.indexOf(t); if (i >= 0 && i < cut) cut = i; }
+            return seg.substring(0, cut);
+        }
+
+        /** What the seat is about to do with {@code sa}: CAST a spell, ACTIVATE an ability. */
+        static String verbOf(SpellAbility sa) {
+            try { return sa.isSpell() ? "CAST" : "ACTIVATE"; } catch (Exception e) { return "CAST"; }
+        }
+
+        /** The faithful-profile option label. The legacy {@link #saLabel} prints the HOST CARD's mana
+         *  cost for every option and never says where the card is, which misdescribes exactly the
+         *  options a line is built from: an activated ability ("Goblin Bombardment 1{R}" for an ability
+         *  whose cost is a creature) and a graveyard cast ("Cabal Therapy {B}" for a flashback whose
+         *  cost is a creature). Here:
+         *  <ul><li>a spell from hand with no alternative cost: unchanged, {@code <ref> <card mana cost>
+         *      [text]} (still the CARD's cost, so a split/adventure face is not yet exact);
+         *  <li>a spell from anywhere else, or at an alternative cost: the zone, the alternative cost's
+         *      name, and the cost it actually pays;
+         *  <li>an ability: no mana cost of the card; its own cost is the "cost:" part of its text.</ul>
+         *  {@code CARDNAME}/{@code NICKNAME} placeholders are replaced with the card's name. */
+        static String faithfulSaLabel(SpellAbility sa, String hostRef) {
+            Card host = sa.getHostCard();
+            String name = host == null ? "?" : host.getName();
+            String desc = sa.getDescription();
+            if (desc == null || desc.isEmpty()) desc = String.valueOf(sa);
+            desc = desc.replace("CARDNAME", name).replace("NICKNAME", name).replaceAll("\\s+", " ").trim();
+            desc = truncateWords(desc, 160);
+            String body = desc.isEmpty() ? "" : " [" + desc + "]";
+            boolean spell;
+            try { spell = sa.isSpell(); } catch (Exception e) { spell = true; }
+            String zone = "";
+            try {
+                forge.game.zone.Zone z = host.getLastKnownZone();
+                boolean usual = z == null || z.is(ZoneType.Stack) || z.is(spell ? ZoneType.Hand : ZoneType.Battlefield);
+                if (!usual) {
+                    Player zp = z.getPlayer(), actor = sa.getActivatingPlayer();
+                    String whose = zp == null || actor == null || zp == actor ? "your " : zp.getName() + "'s ";
+                    zone = whose + z.getZoneType().name().toUpperCase();
+                }
+            } catch (Exception ignore) { }
+            if (!spell) return hostRef + (zone.isEmpty() ? "" : " in " + zone) + body;
+            String alt = "";
+            try { if (sa.getAlternativeCost() != null) alt = String.valueOf(sa.getAlternativeCost()); } catch (Exception ignore) { }
+            if (zone.isEmpty() && alt.isEmpty()) {
+                String mc = null;
+                try { mc = costStr(host); } catch (Exception ignore) { }
+                return hostRef + (mc == null ? "" : " " + mc) + body;
+            }
+            String cost = "";
+            try { if (sa.getPayCosts() != null) cost = sa.getPayCosts().toSimpleString().replace("CARDNAME", name).replaceFirst("^\\{0\\},?\\s*", "").trim(); } catch (Exception ignore) { }
+            return hostRef + (zone.isEmpty() ? "" : " from " + zone) + (alt.isEmpty() ? "" : " (" + alt + ")")
+                    + " — cost: " + (cost.isEmpty() ? "none" : cost) + body;
         }
         List<String> playLabels(List<SpellAbility> options, List<Card> landCards) {
             if (observer == null) return buildPlayLabels(options, landCards);
             List<String> out = new ArrayList<>();
-            for (SpellAbility sa : options) out.add("CAST " + labelOf(sa));
+            for (SpellAbility sa : options) out.add(verbOf(sa) + " " + labelOf(sa));
             for (Card lc : landCards) out.add("PLAY LAND " + observer.describe(lc, true));
             out.add("PASS (do nothing)");
             return out;
@@ -1220,6 +1288,7 @@ public final class LlmSpikeGui {
                 observer.capture();
                 GameHistory.Rendered hist = GameHistory.renderEvents(observer.events(), ctx, eventWatermark);
                 observer.setProfile(oppProfile);
+                observer.setDeckLines(deckLines);
                 String s = observer.render(seat, ctx, hist.text, turnPlan, planTurn);
                 if (hist.watermark != GameHistory.Rendered.KEEP_WATERMARK) eventWatermark = hist.watermark;
                 return s;
@@ -2063,6 +2132,11 @@ public final class LlmSpikeGui {
                         ? "First state your plan for THIS TURN as `PLAN: <one short line>` (the sequence you intend, e.g. 'ritual into Reanimate on Griselbrand, hold Petal'). "
                           + "If (and only if) you want the harness to execute steps of that plan for you without asking again this turn, add `STEPS: <card name>, <card name>` listing ONLY cards you intend to CAST, in the order you will cast them; omit anything you are holding. "
                         : "";
+                // Ask at most DECK_LINES_MAX_ASKS times, on the model's first real decisions: name the
+                // interactions among its OWN cards. It is the model's own note (labelled as such when it
+                // is shown back), and an audit field: what it said its lines were vs what it then did.
+                boolean askLines = !deckLinesAsked && deckLinesAsks < DECK_LINES_MAX_ASKS && b == smart && rnd == null && observer != null;
+                if (askLines) asks += DECK_LINES_ASK;
                 if (askProfile) asks += "Also state your read of the OPPONENT as `PROFILE: <one short line>` "
                         + "(their deck/plan and the cards to respect, e.g. 'Grixis Reanimator: Entomb+Reanimate, respect Force of Will'). ";
                 boolean lookaheadOn = lookaheadEnabled();
@@ -2109,6 +2183,7 @@ public final class LlmSpikeGui {
                         if (pl != null) { // models sometimes co-mingle "PLAN: ... CHOICE: 3" — cut at the tag
                             int cut = pl.toUpperCase().indexOf("CHOICE:");
                             if (cut >= 0) pl = pl.substring(0, cut);
+                            if (askLines) pl = cutAtTags(pl, "LINES:");
                             if (!pl.trim().isEmpty()) {
                                 // Whitespace-collapsed only — NEVER truncated: this line is re-injected into
                                 // every later prompt this turn (YOUR TURN PLAN), and a mid-word cut here is
@@ -2125,6 +2200,18 @@ public final class LlmSpikeGui {
                                     for (String one : st.split(",")) if (!one.trim().isEmpty()) planSteps.add(one.trim());
                                 }
                                 p("[ROUTER] plan: " + turnPlan);
+                            }
+                        }
+                    }
+                    if (reply != null && attempt == 0 && askLines) {
+                        deckLinesAsks++; // counted only once the model has actually been shown the ask
+                        String dl = lastSegment(reply, "LINES:");
+                        if (dl != null) {
+                            dl = cutAtTags(dl, "CHOICE:", "PLAN:", "PROFILE:", "STEPS:");
+                            if (!dl.trim().isEmpty()) {
+                                deckLines = dl.replaceAll("\\s+", " ").trim();
+                                deckLinesAsked = true;
+                                p("[ROUTER] lines: " + deckLines);
                             }
                         }
                     }
@@ -2200,7 +2287,7 @@ public final class LlmSpikeGui {
                 // No-op when SHADOW is off.
                 if (SHADOW) for (SpellAbility s = chosen; s != null; s = s.getSubAbility()) { s.resetTargets(); s.setXManaCostPaid(null); }
                 ensureTargetsSet(chosen); // AI cast path won't target for us — set legal LLM-chosen targets now
-                p("[ROUTER] play: casts " + labelOf(chosen));
+                p("[ROUTER] play: " + (observer == null || chosen.isSpell() ? "casts " : "activates ") + labelOf(chosen));
                 return Lists.newArrayList(chosen);
             } catch (Exception e) {
                 p("[ROUTER] play: error " + e + " -> PASS");
@@ -2820,13 +2907,27 @@ public final class LlmSpikeGui {
 
         /** Optional decisions are model choices; engine execution and target selection happen later. */
         private boolean optionalDecision(String type, SpellAbility sa, String question) {
+            return optionalDecision(type, sa, question, false);
+        }
+
+        /** {@code routed}: take the tier from the routing table (smart unless {@code type} is listed in
+         *  TIER_FAST_TYPES) instead of always the fast tier. */
+        private boolean optionalDecision(String type, SpellAbility sa, String question, boolean routed) {
             clearLast();
-            if (!fastOk()) { auto(type + "(no-model)->NO"); return false; }
+            // A routed type whose tier is out of budget drops to the fast tier rather than to an
+            // automatic NO: running out of smart calls must not silently decline every "may".
+            boolean useRouted = routed && okFor(type);
+            if (!useRouted && !fastOk()) { auto(type + "(no-model)->NO"); return false; }
             try {
                 String source = sa == null ? "" : "\nAbility: " + labelOf(sa);
-                int c = decideOne(fast, type, question + source,
+                int c = decideOne(useRouted ? bridgeFor(type) : fast, type, question + source,
                         Lists.newArrayList("YES (accept)", "NO (decline)"), null);
-                if (c >= 0) return c == 0;
+                if (c >= 0) {
+                    // Said, every time: an accepted or declined "may" is a decision like any other, and a
+                    // silent one made the audited game's missed Ajani flip impossible to trace.
+                    p("[ROUTER] " + type + srcOf(sa) + ": " + (c == 0 ? "YES" : "NO"));
+                    return c == 0;
+                }
                 auto(type + "(unparsed)->NO");
             } catch (Exception e) {
                 auto(type + "(err)->NO");
@@ -2834,13 +2935,26 @@ public final class LlmSpikeGui {
             return false;
         }
 
+        /** The rules text of the trigger behind {@code wrapper}, from the engine, or "" when it has none.
+         *  The seat used to be asked "Accept this optional triggered ability? Ability: Ajani, Nacatl
+         *  Pariah 1{W}" — a yes/no about an effect it was never shown. */
+        static String triggerText(forge.game.trigger.WrappedAbility wrapper) {
+            try {
+                String t = wrapper.getTrigger() == null ? "" : wrapper.getTrigger().toString();
+                if (t == null || t.trim().isEmpty()) t = wrapper.getStackDescription();
+                return t == null ? "" : truncateWords(t.replaceAll("\\s+", " ").trim(), 320);
+            } catch (Exception e) { return ""; }
+        }
+
         @Override
         public boolean confirmTrigger(forge.game.trigger.WrappedAbility wrapper) {
             clearLast();
             if (wrapper.isMandatory()) { auto("confirm-trigger(mandatory)->YES"); return true; }
+            String text = observer == null ? "" : triggerText(wrapper);
             return optionalDecision("confirm-trigger", wrapper.getWrappedAbility(),
-                    "Accept this optional triggered ability? Declining does not resolve it. "
-                    + "Any costs and targets are separate choices.");
+                    (text.isEmpty() ? "" : "OPTIONAL TRIGGER: \"" + text + "\"\n")
+                    + "Accept this optional triggered ability? Declining does not resolve it. "
+                    + "Any costs and targets are separate choices.", observer != null);
         }
 
         @Override

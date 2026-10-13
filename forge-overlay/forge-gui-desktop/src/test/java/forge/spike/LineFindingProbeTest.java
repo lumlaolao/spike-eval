@@ -263,4 +263,190 @@ public class LineFindingProbeTest {
         Assert.assertEquals(g.getStack().size(), 0, "a failed play reached the stack");
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
+
+    static List<String> faithfulMenu(Player me) {
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true);
+        List<String> out = new ArrayList<>();
+        for (SpellAbility sa : po.spells)
+            out.add(LlmSpikeGui.PlayerControllerLLM.verbOf(sa) + " "
+                    + LlmSpikeGui.PlayerControllerLLM.faithfulSaLabel(sa, sa.getHostCard().getName() + " @N"));
+        return out;
+    }
+
+    static String only(List<String> menu, String name) {
+        String hit = null;
+        for (String m : menu) if (m.contains(name)) { Assert.assertNull(hit, "two options for " + name + ": " + menu); hit = m; }
+        Assert.assertNotNull(hit, "no option for " + name + ": " + menu);
+        return hit;
+    }
+
+    /** An option says what it costs and where it comes from. The legacy label printed the CARD's mana
+     *  cost on everything: "CAST Goblin Bombardment 1{R}" for an ability paid with a creature, and
+     *  "CAST Cabal Therapy {B}" for a graveyard flashback paid with a creature. */
+    @Test
+    public void optionLabelsShowTheCostAndZoneOfTheOptionItself() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 4; i++) card("Badlands", me, ZoneType.Battlefield);
+        card("Goblin Bombardment", me, ZoneType.Battlefield);
+        card("Savannah Lions", me, ZoneType.Battlefield);
+        card("Cabal Therapy", me, ZoneType.Graveyard);
+        card("Faithless Looting", me, ZoneType.Graveyard);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        List<String> menu = faithfulMenu(me);
+
+        String bombardment = only(menu, "Goblin Bombardment");
+        Assert.assertTrue(bombardment.startsWith("ACTIVATE Goblin Bombardment @N [Sacrifice a creature:"), bombardment);
+        Assert.assertFalse(bombardment.contains("{R}"), "an activation must not show the card's mana cost: " + bombardment);
+        Assert.assertFalse(bombardment.contains("CARDNAME"), bombardment);
+
+        String therapy = only(menu, "Cabal Therapy");
+        Assert.assertTrue(therapy.startsWith("CAST Cabal Therapy @N from your GRAVEYARD (Flashback) — cost: Sacrifice a creature ["), therapy);
+        Assert.assertFalse(therapy.contains("{B}"), "a flashback must not show the hand cost: " + therapy);
+
+        String looting = only(menu, "Faithless Looting");
+        Assert.assertTrue(looting.contains("from your GRAVEYARD (Flashback) — cost: {2}{R}"), looting);
+
+        // A spell from hand at its printed cost reads exactly as before.
+        Assert.assertEquals(only(menu, "Lightning Bolt"), "CAST Lightning Bolt @N {R} [Lightning Bolt deals 3 damage to any target.]");
+    }
+
+    /** Sacrifices `victim` through the engine's zone-change table, so "dies" triggers fire. */
+    static void sacrificeForReal(Game g, Card victim) {
+        forge.game.card.CardZoneTable table = new forge.game.card.CardZoneTable(
+                g.copyLastStateBattlefield(), g.copyLastStateGraveyard());
+        java.util.Map<forge.game.ability.AbilityKey, Object> params = forge.game.ability.AbilityKey.newMap();
+        forge.game.ability.AbilityKey.addCardZoneTableParams(params, table);
+        g.getAction().sacrifice(Lists.newArrayList(victim), null, false, params);
+        table.triggerChangesZoneAll(g, null);
+        g.getTriggerHandler().runWaitingTriggers();
+        g.getStack().addAllTriggeredAbilitiesToStack();
+        while (!g.getStack().isEmpty()) {
+            g.getStack().resolveStack();
+            g.getAction().checkStateEffects(false);
+            g.getStack().addAllTriggeredAbilitiesToStack();
+        }
+    }
+
+    static boolean controlsPlaneswalker(Player p) {
+        for (Card c : p.getCardsIn(ZoneType.Battlefield)) if (c.isPlaneswalker()) return true;
+        return false;
+    }
+
+    /** Ajani's flip is an optional trigger. Under the faithful profile the question carries the
+     *  trigger's own text, goes to the reasoning tier, and the answer is logged. */
+    @Test
+    public void anOptionalTriggerIsAskedWithItsTextAndTheAnswerIsLogged() {
+        for (boolean accept : new boolean[] {true, false}) {
+            Game g = bareGame(PhaseType.MAIN1);
+            Player me = g.getPlayers().get(0);
+            card("Ajani, Nacatl Pariah", me, ZoneType.Battlefield);
+            Card lions = card("Savannah Lions", me, ZoneType.Battlefield);
+            Recorder smart = new Recorder(accept ? "CHOICE: 1" : "CHOICE: 2"), fast = new Recorder("CHOICE: 2");
+            String log;
+            LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = LlmSpikeGui.ContextProfile.V4_FAITHFUL;
+            try {
+                seat(g, smart, fast);
+                log = logOf(() -> sacrificeForReal(g, lions));
+            } finally {
+                LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null;
+            }
+
+            Assert.assertEquals(fast.prompts.size(), 0, "the flip was asked on the no-reasoning tier");
+            Assert.assertEquals(smart.prompts.size(), 1);
+            String q = smart.prompts.get(0);
+            Assert.assertTrue(q.contains("OPTIONAL TRIGGER: \""), q);
+            Assert.assertTrue(q.contains("return him to the battlefield transformed"), "the trigger text is missing:\n" + q);
+            Assert.assertEquals(controlsPlaneswalker(me), accept);
+            Assert.assertTrue(log.contains("[ROUTER] confirm-trigger [Ajani, Nacatl Pariah]: " + (accept ? "YES" : "NO")), log);
+        }
+    }
+
+    /** The LINES ask shows a FORMAT, never a real interaction: an example naming cards from an eval
+     *  deck would coach that deck and make "did the seat find the line" unmeasurable. */
+    @Test
+    public void theLinesAskNamesNoRealCard() throws Exception {
+        String ask = LlmSpikeGui.PlayerControllerLLM.DECK_LINES_ASK.toLowerCase();
+        String dir = System.getProperty("harness.decks.dir");
+        if (dir == null) throw new org.testng.SkipException("pass -Dharness.decks.dir=<repo>/eval/decks (the acceptance suite does)");
+        java.io.File decks = new java.io.File(dir);
+        Assert.assertTrue(decks.isDirectory(), dir);
+        int checked = 0;
+        for (java.io.File f : decks.listFiles((d, n) -> n.endsWith(".txt") || n.endsWith(".dck"))) {
+            for (String line : java.nio.file.Files.readAllLines(f.toPath())) {
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("^\\s*\\d+\\s+([^|(]+)").matcher(line);
+                if (!m.find()) continue;
+                String name = m.group(1).trim().toLowerCase();
+                if (name.length() < 4) continue;
+                checked++;
+                Assert.assertFalse(ask.contains(name), "the LINES ask names a real card: " + name);
+            }
+        }
+        Assert.assertTrue(checked > 100, "deck files were not read (" + checked + " card lines)");
+    }
+
+    /** The legacy label is part of the teacher/student prompt pairing and must not move. */
+    @Test
+    public void legacyLabelsAreUnchanged() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Goblin Bombardment", me, ZoneType.Battlefield);
+        card("Savannah Lions", me, ZoneType.Battlefield);
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true);
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.buildPlayLabels(po.spells, po.landCards).get(0),
+                "CAST Goblin Bombardment 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]");
+    }
+
+    private static int count(List<String> prompts, String needle) {
+        int n = 0;
+        for (String q : prompts) if (q.contains(needle)) n++;
+        return n;
+    }
+
+    /** The LINES ask is sent on a smart play decision, its answer is stored without the other tags,
+     *  shown back at later decisions, and never asked again. */
+    @Test
+    public void theLinesAnswerIsParsedStoredAndShownBack() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        Recorder smart = new Recorder("LINES: Aaa + Bbb -> x | Ccc + Ddd -> y PROFILE: p\nPLAN: bolt LINES: stray\nCHOICE: 1");
+        Recorder fast = new Recorder("CHOICE: 1");
+        LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = LlmSpikeGui.ContextProfile.V4_FAITHFUL;
+        try {
+            LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, smart, fast);
+            String log = logOf(() -> { ctrl.chooseSpellAbilityToPlay(); ctrl.chooseSpellAbilityToPlay(); });
+            Assert.assertEquals(count(smart.prompts, LlmSpikeGui.PlayerControllerLLM.DECK_LINES_ASK), 1, "asked again after it was answered");
+            Assert.assertTrue(log.contains("[ROUTER] lines: stray"), log);       // the LAST LINES tag wins, like every other tag
+            Assert.assertTrue(log.contains("[ROUTER] plan: bolt\n") || log.contains("[ROUTER] plan: bolt\r"), log);
+            Assert.assertTrue(smart.prompts.get(1).contains("YOUR CARD INTERACTIONS (you wrote this from your own decklist; unverified): stray"),
+                    smart.prompts.get(1));
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null;
+        }
+    }
+
+    /** A model that never answers stops being asked after DECK_LINES_MAX_ASKS, and a legacy-profile
+     *  seat is never asked at all. */
+    @Test
+    public void theLinesAskIsBoundedAndFaithfulOnly() {
+        for (boolean faithful : new boolean[] {true, false}) {
+            Game g = bareGame(PhaseType.MAIN1);
+            Player me = g.getPlayers().get(0);
+            card("Mountain", me, ZoneType.Battlefield);
+            card("Lightning Bolt", me, ZoneType.Hand);
+            Recorder smart = new Recorder("PLAN: bolt\nCHOICE: 1"), fast = new Recorder("CHOICE: 1");
+            LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = faithful ? LlmSpikeGui.ContextProfile.V4_FAITHFUL : null;
+            try {
+                LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, smart, fast);
+                for (int i = 0; i < 5; i++) ctrl.chooseSpellAbilityToPlay();
+            } finally {
+                LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null;
+            }
+            Assert.assertTrue(smart.prompts.size() >= 5, "fixture did not reach the smart tier 5 times: " + smart.prompts.size());
+            Assert.assertEquals(count(smart.prompts, LlmSpikeGui.PlayerControllerLLM.DECK_LINES_ASK),
+                    faithful ? LlmSpikeGui.PlayerControllerLLM.DECK_LINES_MAX_ASKS : 0);
+        }
+    }
 }
