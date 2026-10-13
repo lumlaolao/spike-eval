@@ -26,22 +26,24 @@ from collections import Counter, defaultdict
 
 
 def load(run_dir):
-    """(game_row, [decision_rows]) for the single game in run_dir, or (None, rows)."""
+    """([game_rows], [decision_rows]) across EVERY game in run_dir.
+
+    An arm is a directory of games, not one game: a per-arm report that read only the
+    first file would report one game's noise as the arm's behaviour."""
     files = sorted(glob.glob(os.path.join(run_dir, "game-*.jsonl")))
-    if not files:
-        return None, []
-    game, dec = None, []
-    for line in open(files[0], encoding="utf-8", errors="replace"):
-        try:
-            r = json.loads(line)
-        except Exception:
-            continue
-        t = r.get("t")
-        if t == "game":
-            game = r
-        elif t == "decision":
-            dec.append(r)
-    return game, dec
+    games, dec = [], []
+    for f in files:
+        for line in open(f, encoding="utf-8", errors="replace"):
+            try:
+                r = json.loads(line)
+            except Exception:
+                continue
+            t = r.get("t")
+            if t == "game":
+                games.append(r)
+            elif t == "decision":
+                dec.append(r)
+    return games, dec
 
 
 def pct(vals, p):
@@ -53,7 +55,7 @@ def pct(vals, p):
 
 
 def report(tag, run_dir, compact=False):
-    game, dec = load(run_dir)
+    games, dec = load(run_dir)
     if not dec:
         print("%-28s (no decision rows)" % tag)
         return
@@ -61,12 +63,14 @@ def report(tag, run_dir, compact=False):
     ct = [d.get("completion_tokens") for d in dec if isinstance(d.get("completion_tokens"), int)]
     retried = [d for d in dec if (d.get("attempts") or 1) > 1]
     retry_ms = sum((d.get("retry_ms") or 0) for d in dec)
-    turns = (game or {}).get("turns")
-    winner = (game or {}).get("winner")
+    n_games = len(games)
+    turns = sum((g.get("turns") or 0) for g in games) or None
+    capped = sum(1 for g in games if g.get("capped"))
+    winner = "%d games" % n_games if n_games > 1 else (games[0].get("winner") if games else None)
     calls = tiers.get("smart", 0) + tiers.get("fast", 0) + tiers.get("plan", 0)
 
-    line = ("%-28s turns=%-4s winner=%-8s decisions=%-4d smart=%-3d fast=%-3d plan=%-3d auto=%-3d" % (
-        tag, turns, winner, len(dec), tiers.get("smart", 0), tiers.get("fast", 0),
+    line = ("%-10s games=%-2d capped=%-2d turns=%-5s decisions=%-4d smart=%-3d fast=%-3d plan=%-3d auto=%-3d" % (
+        tag, n_games, capped, turns, len(dec), tiers.get("smart", 0), tiers.get("fast", 0),
         tiers.get("plan", 0), tiers.get("auto", 0)))
     if ct:
         line += "  comp med=%s max=%s" % (pct(ct, 0.5), max(ct))
@@ -74,7 +78,7 @@ def report(tag, run_dir, compact=False):
         line += "  retried=%d (+%.0fs)" % (len(retried), retry_ms / 1000.0)
     print(line)
     if calls and turns:
-        print("%-28s   %d model calls, %.1f per turn" % ("", calls, calls / float(turns)))
+        print("%-10s   %d model calls over %d turns, %.1f per turn" % ("", calls, turns, calls / float(turns)))
     if not compact:
         by_type = defaultdict(list)
         for d in dec:

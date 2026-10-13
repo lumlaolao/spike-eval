@@ -55,6 +55,28 @@ Giving a reasoner more room to think is exactly the wrong response. For a row kn
 the retry now **disables reasoning** and keeps a modest budget (~1 s); every other model keeps the
 historic double-the-budget retry, which is right for a genuinely long answer.
 
+## The playtest (4 games per arm, vs the FORGE AI, mirror Burn, 20-min cap)
+
+Both arms are **the LLM against the Forge AI** — a fixed, competent, model-free opponent, so a win
+means something. (`--pairs` swaps seats, so each arm plays both sides of the play/draw.) **All 8 games
+finished; 0 capped.**
+
+| arm | LLM won | smart | fast | **plan** | comp median | comp max | retry time | calls/turn |
+|---|---|---|---|---|---|---|---|---|
+| base (no levers) | 2/4 | 59 | 19 | 0 | 250 | 3,118 | **410 s** | 2.0 |
+| **opt (levers on)** | **3/4** | **28** | 40 | **8** | **47** | 3,725 | **32 s** | 1.9 |
+
+Both arms produced **the same 39 turns** across their 4 games — the same amount of Magic, with:
+
+- **smart calls halved (59 → 28)**, and plan-then-execute firing **8 times**;
+- **completion median down 81 % (250 → 47)**;
+- **retry time down 92 % (410 s → 32 s)**;
+- by type: `target` median **168 → 6**, `prevent-effect` **515 → 25**.
+
+**On quality: 3/4 vs 2/4 is ONE game apart and is NOT evidence.** Four games per arm can show an arm is
+broken; it cannot show an arm is 5 % weaker. A quality verdict needs dozens of games per arm (hours of
+paid runs). What this pilot does rule out is a *catastrophic* regression from the levers.
+
 ## The arms, end to end (measured, 1 seed each — mechanisms solid, turns=noise)
 
 | arm | turns | decisions | smart | fast | **plan** | auto | comp median | comp max |
