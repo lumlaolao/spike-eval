@@ -122,56 +122,97 @@ final class PlayerLookahead {
      *  it names a legal candidate (case-insensitive substring), so the model can ask "what if I aim
      *  this at their creature" and not only the default target. */
     static String previewCast(Game live, Player seat, forge.game.spellability.SpellAbility liveOption, long seed, String targetHint) {
-        if (live == null || seat == null || liveOption == null) return "(no preview)";
+        return previewLine(live, seat, java.util.Collections.singletonList(liveOption), seed, targetHint);
+    }
+
+    /** At most this many plays in one previewed line. */
+    static final int MAX_LINE = 3;
+
+    /**
+     * Preview a LINE: play {@code liveOptions} in order on ONE copy, resolving each before the next,
+     * and report the public delta of the whole line. This is what a sequencing question needs: "can
+     * I cast both, and what is left standing afterwards". Each step must be an option that exists
+     * now; a step the copy cannot pay for or play after the earlier ones ends the line and is
+     * reported as such, which is itself the answer to "can I do both this turn".
+     * {@code targetHint} aims the FIRST step; later steps take their first legal target.
+     */
+    static String previewLine(Game live, Player seat, java.util.List<forge.game.spellability.SpellAbility> liveOptions,
+                              long seed, String targetHint) {
+        if (live == null || seat == null || liveOptions == null || liveOptions.isEmpty() || liveOptions.contains(null))
+            return "(no preview)";
+        if (liveOptions.size() > MAX_LINE) return "(a preview covers at most " + MAX_LINE + " plays in a row)";
+        if (new java.util.HashSet<>(liveOptions).size() != liveOptions.size())
+            return "(a line names each option once: the same option cannot be played twice)";
         // v2 previews any CAST or ACTIVATE option. In the first arm that could ask, 19 of 38 requests
         // were for an activated ability (Goblin Bombardment, a planeswalker) and all were turned away.
-        if (liveOption.isLandAbility() || liveOption.isManaAbility())
-            return "(a preview covers CAST and ACTIVATE options, not land drops or mana abilities)";
-        final boolean spell = liveOption.isSpell();
+        for (forge.game.spellability.SpellAbility o : liveOptions) {
+            if (o.isLandAbility() || o.isManaAbility())
+                return "(a preview covers CAST and ACTIVATE options, not land drops or mana abilities)";
+        }
         Random liveRandom = MyRandom.getRandom();
-        // The live option carries no target until the model commits, so the engine cannot resolve a
+        // A live option carries no target until the model commits, so the engine cannot resolve a
         // targeting spell. Set first-legal targets for the preview and RESTORE them in the finally:
         // this is transient decision scaffolding on an ability not yet on the stack (the real cast's
         // ensureTargetsSet overwrites targets anyway), and the live board/hands/life/RNG are never
         // touched. A test pins that the option's own targets are unchanged after a preview.
-        java.util.List<forge.game.GameObject> savedTargets = new java.util.ArrayList<>();
-        try { if (liveOption.getTargets() != null) savedTargets.addAll(liveOption.getTargets()); } catch (Exception ignore) { }
+        java.util.List<java.util.List<forge.game.GameObject>> savedTargets = new java.util.ArrayList<>();
+        for (forge.game.spellability.SpellAbility o : liveOptions) {
+            java.util.List<forge.game.GameObject> s = new java.util.ArrayList<>();
+            try { if (o.getTargets() != null) s.addAll(o.getTargets()); } catch (Exception ignore) { }
+            savedTargets.add(s);
+        }
         try {
             MyRandom.setRandom(new Random(seed));
-            String label;
-            try { label = liveOption.getHostCard() == null ? "the spell" : liveOption.getHostCard().getName(); }
-            catch (Exception e) { label = "the spell"; }
-            String assumed = selectFirstTargets(liveOption, targetHint);
             GameSimulator sim;
             UncopiedEffects parked = UncopiedEffects.park(live);   // the constructor is where the copy is made
             try {
                 sim = new GameSimulator(new SimulationController(new GameStateEvaluator.Score(0)), live, seat, null);
             } finally { parked.restore(); }
-            // Play on the copy, resolve separately below. The engine pays the costs there; the
-            // sentinel score is its way of saying it could not (no legal payment on the copy).
-            GameStateEvaluator.Score played = sim.simulateSpellAbility(liveOption, false);
             Game simGame = sim.getSimulatedGameState();
             if (simGame == null) return "(preview unavailable)";
-            if (played != null && played.value == Integer.MIN_VALUE)
-                return "(preview unavailable: the engine could not pay for or play this option on the copy)";
-            // Determinize BEFORE resolution so the preview cannot depend on the real hidden order.
+            // Determinize BEFORE anything resolves so the preview cannot depend on the real hidden order.
             for (Player p : simGame.getPlayers()) {
                 Zone lib = p.getZone(ZoneType.Library);
                 if (lib != null && lib.size() >= 2) lib.shuffle();
             }
-            GameSimulator.resolveStack(simGame, simGame.getPlayers().get(1));
-
-            Player seatAfter = (Player) sim.getGameCopier().find(seat);
-            StringBuilder b = new StringBuilder(spell ? "if you cast " : "if you activate ").append(label)
-                    .append(assumed.isEmpty() ? "" : " [assuming target: " + assumed + "]")
-                    .append(": you ").append(publicDelta(seat, seatAfter));
-            for (Player opp : seat.getOpponents()) {
-                Player oppAfter = (Player) sim.getGameCopier().find(opp);
-                b.append("; ").append(opp.getName()).append(' ').append(publicDelta(opp, oppAfter));
+            StringBuilder b = new StringBuilder("if you ");
+            String stopped = null, delta = "";
+            boolean sacrifice = false;
+            for (int i = 0; i < liveOptions.size(); i++) {
+                forge.game.spellability.SpellAbility o = liveOptions.get(i);
+                String label;
+                try { label = o.getHostCard() == null ? "the spell" : o.getHostCard().getName(); }
+                catch (Exception e) { label = "the spell"; }
+                String assumed = selectFirstTargets(o, i == 0 ? targetHint : null);
+                // Play on the copy; the engine pays the costs there. The sentinel score is its way of
+                // saying it could not (no legal payment on the copy as it stands after earlier steps).
+                GameStateEvaluator.Score played = sim.simulateSpellAbility(o, false);
+                // Played means it is on the copy's stack. The engine can report success for an option
+                // whose card an earlier step already moved (the same spell named twice), with nothing
+                // put on the stack; that is not a play and must not be reported as one.
+                boolean onStack = simGame.getStack().size() > 0;
+                if (!onStack || (played != null && played.value == Integer.MIN_VALUE)) {
+                    if (i == 0) return "(preview unavailable: the engine could not pay for or play this option on the copy)";
+                    stopped = label;
+                    break;
+                }
+                GameSimulator.resolveStack(simGame, simGame.getPlayers().get(1));
+                b.append(i == 0 ? "" : ", then ").append(o.isSpell() ? "cast " : "activate ").append(label)
+                 .append(assumed.isEmpty() ? "" : " [assuming target: " + assumed + "]");
+                sacrifice |= o.getPayCosts() != null && o.getPayCosts().hasSpecificCostType(forge.game.cost.CostSacrifice.class);
+                // Taken after EACH completed step: a later step that fails to be paid for can leave
+                // the copy half-changed (its card already off the hand), and that must not be reported.
+                StringBuilder d = new StringBuilder(": you ").append(publicDelta(seat, (Player) sim.getGameCopier().find(seat)));
+                for (Player opp : seat.getOpponents())
+                    d.append("; ").append(opp.getName()).append(' ').append(publicDelta(opp, (Player) sim.getGameCopier().find(opp)));
+                delta = d.toString();
             }
+            b.append(delta);
+            if (stopped != null)
+                b.append(". After that the engine could NOT pay for or play ").append(stopped)
+                 .append(" on the copy, so the line stops there");
             // A cost with a choice in it (sacrifice a creature) was paid by the engine on the copy.
-            if (liveOption.getPayCosts() != null && liveOption.getPayCosts().hasSpecificCostType(forge.game.cost.CostSacrifice.class))
-                b.append(". The engine chose what to sacrifice for this preview; in the real play YOU choose");
+            if (sacrifice) b.append(". The engine chose what to sacrifice for this preview; in the real play YOU choose");
             return b.toString();
         } catch (Throwable t) {
             // The model is told only that the preview failed; the log says why. Failing without a
@@ -182,11 +223,14 @@ final class PlayerLookahead {
             System.out.println("[LOOKAHEAD] preview failed: " + t + where);
             return "(preview failed: " + t.getClass().getSimpleName() + ")";
         } finally {
-            // Restore the live option's own targets (usually none), THEN the live RNG reference.
-            try {
-                liveOption.resetTargets();
-                for (forge.game.GameObject o : savedTargets) liveOption.getTargets().add(o);
-            } catch (Exception ignore) { }
+            // Restore each live option's own targets (usually none), THEN the live RNG reference.
+            for (int i = 0; i < liveOptions.size(); i++) {
+                try {
+                    forge.game.spellability.SpellAbility o = liveOptions.get(i);
+                    o.resetTargets();
+                    for (forge.game.GameObject go : savedTargets.get(i)) o.getTargets().add(go);
+                } catch (Exception ignore) { }
+            }
             MyRandom.setRandom(liveRandom);
         }
     }

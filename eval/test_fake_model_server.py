@@ -44,6 +44,8 @@ class FakeModelServerTest(unittest.TestCase):
         p = policy(policy="simulate")
         c = p.tool_calls_for(body(), "x")[0]["function"]
         self.assertEqual((c["name"], json.loads(c["arguments"])), ("simulate", {"option": 1}))
+        second = p.tool_calls_for(body(), "x")[0]["function"]
+        self.assertEqual(json.loads(second["arguments"]), {"option": 1, "then": [2]})      # every other one is a line
         self.assertIsNone(p.tool_calls_for(body(tools=TOOLS[:3]), "x"))       # not offered, no allowance
 
     def test_text_replies_are_always_a_legal_format(self):

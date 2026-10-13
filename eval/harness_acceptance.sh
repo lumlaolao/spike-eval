@@ -419,6 +419,8 @@ previews=[r for r in tools if r.get("request","").startswith("TOOL CALL simulate
 broken=[r for r in previews if "preview failed" in r.get("result","")]
 if broken: problems.append("%d of %d previews failed (the engine copy threw; see [LOOKAHEAD] in game.log)"%(len(broken),len(previews)))
 if not any("if you cast" in r.get("result","") for r in previews): problems.append("no preview returned a result")
+lines=[r for r in previews if "then" in r.get("request","")]
+if not any(", then " in r.get("result","") for r in lines): problems.append("no line preview played two options (%d asked)"%len(lines))
 if all("simulate" in r.get("tools_offered",[]) for r in reqs): problems.append("simulate was offered outside play decisions")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
 facts="context_calls=%d (later rounds %d) tool_rows=%d served: search=%d inspect=%d simulate=%d refused_malformed=%d fake_requests=%d"%(

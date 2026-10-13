@@ -383,9 +383,16 @@ stamped). Three changes, each from what the first arms that could ask for a prev
   their contents are never named). If the copy cannot pay for the option the preview says so
   instead of reporting "no change".
 
-Still one option at a time and still one preview per decision. It is an estimate: libraries are
+- **A line can be previewed.** `simulate` takes `then`: up to two more option numbers played after
+  the first, in order, on the same copy. `if you cast Lightning Bolt [assuming target: Rival], then
+  cast Lightning Bolt [...]: ... Rival life 20 -> 14`; with mana for only one, `... Rival life 20 ->
+  17. After that the engine could NOT pay for or play Lightning Bolt on the copy, so the line stops
+  there`. Each step must be an option on the menu now (a card the first play would draw or create
+  cannot be named).
+
+Still one preview per decision. It is an estimate: libraries are
 shuffled on the copy, the opponent's hand is not determinized, and the opponent is not given a turn.
-Tests: `LookaheadProbeTest` (9). Loopback Mardu mirror: 104 of 104 previews return a result.
+Tests: `LookaheadProbeTest` (10). Loopback Mardu mirror: 104 of 104 previews return a result.
 
 Hand-reveal bridge/parse failures now choose the first minimum-sized legal subset,
 log an automatic fallback, and never call Forge AI. Empty reveal pools return empty.

@@ -2225,10 +2225,24 @@ public final class LlmSpikeGui {
                     if (n < 1 || n > simOptions.size())
                         return "ERROR: `option` must be the number of a CAST or ACTIVATE option (1.." + simOptions.size() + ").";
                     String hint = a.has("target") && a.get("target").isJsonPrimitive() ? a.get("target").getAsString().trim() : null;
-                    String preview = PlayerLookahead.previewCast(me.getGame(), me, simOptions.get(n - 1), simTurn,
+                    // `then`: further options to play after it, in order, on the same copy (a line).
+                    List<SpellAbility> line = new ArrayList<>();
+                    line.add(simOptions.get(n - 1));
+                    StringBuilder which = new StringBuilder(String.valueOf(n));
+                    if (a.has("then") && a.get("then").isJsonArray()) {
+                        for (com.google.gson.JsonElement e : a.getAsJsonArray("then")) {
+                            int m;
+                            try { m = e.getAsInt(); } catch (RuntimeException ex) { m = -1; }
+                            if (m < 1 || m > simOptions.size())
+                                return "ERROR: every number in `then` must be a CAST or ACTIVATE option (1.." + simOptions.size() + ").";
+                            line.add(simOptions.get(m - 1));
+                            which.append(", then ").append(m);
+                        }
+                    }
+                    String preview = PlayerLookahead.previewLine(me.getGame(), me, line, simTurn,
                             hint == null || hint.isEmpty() ? null : hint);
-                    p("[ROUTER] lookahead " + n + ": " + preview);
-                    return "LOOKAHEAD (option " + n + "): " + preview;
+                    p("[ROUTER] lookahead " + which + ": " + preview);
+                    return "LOOKAHEAD (option " + which + "): " + preview;
                 };
                 if (rnd != null) choice = 1 + rnd.nextInt(passIdx); // random arm: uniform incl. PASS
                 for (int attempt = 0; rnd == null && attempt < 2 && choice < 1; attempt++) {

@@ -230,6 +230,43 @@ public class LookaheadProbeTest {
             Assert.assertTrue(PlayerLookahead.previewCast(g, me, drop, 5L).startsWith("(a preview covers CAST and ACTIVATE"));
     }
 
+    /** A line: two plays on one copy. With mana for both, both happen; with mana for one, the preview
+     *  says the second could not be paid for, which is the sequencing answer the seat is asking for. */
+    @Test
+    public void aLineOfTwoPlaysIsPreviewedOnOneCopyAndStopsWhereTheManaRunsOut() {
+        for (int lands = 1; lands <= 2; lands++) {
+            Game g = SeatObservationTest.bareGame();
+            Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+            for (int i = 0; i < lands; i++) SeatObservationTest.card("Mountain", me, forge.game.zone.ZoneType.Battlefield);
+            forge.game.card.Card b1 = SeatObservationTest.card("Lightning Bolt", me, forge.game.zone.ZoneType.Hand);
+            forge.game.card.Card b2 = SeatObservationTest.card("Lightning Bolt", me, forge.game.zone.ZoneType.Hand);
+            int life = opp.getLife();
+            forge.game.spellability.SpellAbility s1 = spellOn(b1), s2 = spellOn(b2);
+            s1.setActivatingPlayer(me);   // as a real menu option carries it
+            s2.setActivatingPlayer(me);
+            String report = PlayerLookahead.previewLine(g, me, java.util.Arrays.asList(s1, s2), 5L, opp.getName());
+            System.out.println("[LOOKAHEAD] lands=" + lands + ": " + report);
+            if (lands == 2) {
+                Assert.assertTrue(report.startsWith("if you cast Lightning Bolt [assuming target: " + opp.getName() + "], then cast Lightning Bolt"), report);
+                Assert.assertTrue(report.contains("life " + life + " -> " + (life - 6)), report);
+                Assert.assertFalse(report.contains("could NOT"), report);
+            } else {
+                Assert.assertTrue(report.contains("life " + life + " -> " + (life - 3)), report);
+                Assert.assertTrue(report.contains("could NOT pay for or play Lightning Bolt"), report);
+                Assert.assertTrue(report.contains("hand 2 -> 1"), "the unpaid second spell must not be reported as gone from hand: " + report);
+            }
+            Assert.assertEquals(opp.getLife(), life, "the live game is untouched");
+            Assert.assertEquals(me.getCardsIn(forge.game.zone.ZoneType.Hand).size(), 2);
+            for (forge.game.card.Card c : me.getCardsIn(forge.game.zone.ZoneType.Battlefield)) Assert.assertFalse(c.isTapped());
+        }
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0);
+        forge.game.spellability.SpellAbility s = spellOn(SeatObservationTest.card("Lightning Bolt", me, forge.game.zone.ZoneType.Hand));
+        Assert.assertTrue(PlayerLookahead.previewLine(g, me, java.util.Arrays.asList(s, s, s, s), 5L, null).startsWith("(a preview covers at most 3"));
+        // Seen on loopback: the same option twice was reported as two casts with one card's worth of change.
+        Assert.assertTrue(PlayerLookahead.previewLine(g, me, java.util.Arrays.asList(s, s), 5L, null).startsWith("(a line names each option once"));
+    }
+
     /** A targeting spell is previewed against a first-legal target, and the live option is restored. */
     @Test
     public void previewCastResolvesATargetingSpellAndRestoresTheLiveOption() {

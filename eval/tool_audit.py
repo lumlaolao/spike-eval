@@ -43,7 +43,7 @@ def classify(request, result):
     first = result.split("\n", 1)[0]
     if result.startswith("ERROR: tool budget exhausted"):
         return "exhausted"
-    if "must be the number of" in first:                 # a well-formed call naming an option that is not there
+    if "must be the number of" in first or "must be a CAST or ACTIVATE option" in first:                 # a well-formed call naming an option that is not there
         return "bad-args"
     if result.startswith(FORM_ERRORS) or (result.startswith("ERROR:") and " needs " in result.split("\n", 1)[0]):
         return "REFUSED"

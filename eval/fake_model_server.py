@@ -81,7 +81,13 @@ class Policy:
             return {"id": "call_%s_%d" % (name, self.calls), "type": "function",
                     "function": {"name": name, "arguments": arguments if isinstance(arguments, str) else json.dumps(arguments)}}
         if self.args.policy == "simulate" and "simulate" in offered:
-            return [call("simulate", {"option": 1})]
+            with self.lock:
+                self.previews = getattr(self, "previews", 0) + 1
+                n = self.previews
+            # Every other preview asks for a LINE (option 1, then option 2), so the line path runs in
+            # the acceptance game: both plays when there is mana for both, "could not be paid for"
+            # when there is not, and an error when the decision has only one such option.
+            return [call("simulate", {"option": 1, "then": [2]} if n % 2 == 0 else {"option": 1})]
         with self.lock:
             if self.native_sent >= self.args.native_calls:
                 return None
