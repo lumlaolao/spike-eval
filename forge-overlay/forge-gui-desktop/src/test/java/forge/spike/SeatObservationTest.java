@@ -20,7 +20,6 @@ import forge.game.Game;
 import forge.game.GameLogEntryType;
 import forge.game.GameRules;
 import forge.game.GameStage;
-import forge.game.GameLogEntryType;
 import forge.game.GameType;
 import forge.game.Match;
 import forge.game.card.Card;
