@@ -53,6 +53,7 @@ class FakeModelServerTest(unittest.TestCase):
         self.assertEqual(p.reply_for("Keep? KEEP or MULLIGAN", 1), "KEEP")
         self.assertEqual(p.reply_for("Choose:\n  1) A\n  2) B\n  3) PASS\nCHOICE: <number>", 1), "CHOICE: 3")
         self.assertEqual(policy(policy="first").reply_for("  1) A\n  2) B\nCHOICE: <n>", 1), "CHOICE: 1")
+        self.assertEqual(policy(policy="simulate").reply_for("  1) PLAY LAND\n  2) PASS\nCHOICE: <n>", 1), "CHOICE: 1")
         self.assertEqual(p.reply_for("PICKS: <numbers>", 1), "PICKS: none")
 
 
