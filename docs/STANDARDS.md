@@ -131,6 +131,12 @@ most log questions).
 - Report every rate next to its trivial baseline and its interval. No baseline, no number.
 - A single game is noise: use `--pairs`, and say what size of difference the sample can resolve.
 - Check `uptime` first; above 4 load average per core, timing and capped games are not evidence.
+- **Paid runs are budgeted and start small.** Every paid batch passes `--budget-usd`; its log ends
+  with a `[cost]` line and `python3 eval/cost_report.py <dirs>` gives the spend of any run. Start
+  with a block of about six games per arm, read it, and only then buy the next block; say what a
+  block will cost before starting it (`cost_report.py --plan N`). Prefer the measurement that costs
+  nothing (a loopback game, the unit tests) or cents (the tool-use suite) when it answers the
+  question. A model with no entry in `eval/pricing/prices.json` is not run.
 - Real paid runs use only a model the owner has authorised (currently
   `openrouter:deepseek/deepseek-v4.1-flash`), always with `EVAL_OUT` set. Never set
   `OPENROUTER_ALLOW_EGRESS` on the owner's behalf.
