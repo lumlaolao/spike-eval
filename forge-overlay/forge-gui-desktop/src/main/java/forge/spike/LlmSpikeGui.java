@@ -2027,7 +2027,13 @@ public final class LlmSpikeGui {
                 if (SKIP_HEUR && rnd == null && !me.getGame().getStack().isEmpty()) {
                     try {
                         SpellAbility top = me.getGame().getStack().peekAbility();
-                        if (top != null && top.getActivatingPlayer() == me) return PASS;
+                        // ...but a TRIGGER of ours is not something we "just cast": it is the engine handing
+                        // us a window. "Sacrifice the tokens at the beginning of the end step" on the stack
+                        // is exactly when a sacrifice outlet should be used on them, and the seat was never
+                        // asked (ARCHITECTURE-REVIEW.md problem 3). The windows below still apply: no
+                        // instant-speed option -> pass; nothing that interacts -> pass; and an identical
+                        // situation already declined this turn is not asked twice (passedReactSigs).
+                        if (top != null && top.getActivatingPlayer() == me && !top.isTrigger()) return PASS;
                     } catch (Exception ignore) { }
                 }
 

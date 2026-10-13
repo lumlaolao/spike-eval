@@ -449,4 +449,56 @@ public class LineFindingProbeTest {
                     faithful ? LlmSpikeGui.PlayerControllerLLM.DECK_LINES_MAX_ASKS : 0);
         }
     }
+
+    /** Puts Ajani's real "another Cat died" trigger on the stack and leaves it there. */
+    static void ownTriggerOnStack(Game g, Card cat) {
+        forge.game.card.CardZoneTable table = new forge.game.card.CardZoneTable(
+                g.copyLastStateBattlefield(), g.copyLastStateGraveyard());
+        java.util.Map<forge.game.ability.AbilityKey, Object> params = forge.game.ability.AbilityKey.newMap();
+        forge.game.ability.AbilityKey.addCardZoneTableParams(params, table);
+        g.getAction().sacrifice(Lists.newArrayList(cat), null, false, params);
+        table.triggerChangesZoneAll(g, null);
+        g.getTriggerHandler().runWaitingTriggers();
+        g.getStack().addAllTriggeredAbilitiesToStack();
+    }
+
+    /** With the seat's OWN trigger on the stack at its end step, the seat is asked whether to respond
+     *  (the Voice of Victory + Goblin Bombardment window); declining once is remembered. With its own
+     *  ACTIVATED ability on the stack it is still not asked. */
+    @Test
+    public void theSeatMayRespondToItsOwnTriggerButNotToItsOwnActivation() {
+        Game g = bareGame(PhaseType.END_OF_TURN);
+        Player me = g.getPlayers().get(0);
+        card("Goblin Bombardment", me, ZoneType.Battlefield);
+        card("Ajani, Nacatl Pariah", me, ZoneType.Battlefield);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", me, ZoneType.Battlefield);
+        Recorder smart = new Recorder("CHOICE: 2"), fast = new Recorder("CHOICE: 2");   // 2 = PASS
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, smart, fast);
+        ownTriggerOnStack(g, lions);
+        Assert.assertEquals(g.getStack().size(), 1, "fixture: the trigger is not on the stack");
+        Assert.assertTrue(g.getStack().peekAbility().isTrigger());
+
+        Assert.assertNull(ctrl.chooseSpellAbilityToPlay());
+        int asked = smart.prompts.size() + fast.prompts.size();
+        Assert.assertEquals(asked, 1, "the seat was not asked about its own trigger window");
+        Assert.assertTrue((smart.prompts.isEmpty() ? fast : smart).prompts.get(0).contains("Goblin Bombardment"));
+        Assert.assertNull(ctrl.chooseSpellAbilityToPlay());
+        Assert.assertEquals(smart.prompts.size() + fast.prompts.size(), asked, "the same declined window was asked twice");
+
+        // Own ACTIVATION on the stack: unchanged, no ask.
+        Game g2 = bareGame(PhaseType.MAIN1);
+        Player me2 = g2.getPlayers().get(0);
+        card("Goblin Bombardment", me2, ZoneType.Battlefield);
+        card("Grizzly Bears", me2, ZoneType.Battlefield);
+        card("Memnite", me2, ZoneType.Battlefield);
+        Recorder s2 = new Recorder(PLAY, "Memnite"), f2 = new Recorder("CHOICE: 1", "Memnite");
+        LlmSpikeGui.PlayerControllerLLM c2 = seat(g2, s2, f2);
+        List<SpellAbility> first = c2.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(first);
+        c2.playChosenSpellAbility(first.get(0));
+        int before = s2.prompts.size() + f2.prompts.size();
+        Assert.assertNull(c2.chooseSpellAbilityToPlay());
+        Assert.assertEquals(s2.prompts.size() + f2.prompts.size(), before, "asked to respond to its own activation");
+    }
 }
