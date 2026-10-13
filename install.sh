@@ -18,6 +18,14 @@ cp -v  "$HERE/run-llm-spike.sh" "$FORGE_HOME/run-llm-spike.sh"
 cp -v  "$HERE/run-llm-headless.sh" "$FORGE_HOME/run-llm-headless.sh"
 chmod +x "$FORGE_HOME/run-llm-spike.sh" "$FORGE_HOME/run-llm-headless.sh"
 
+# The Comprehensive Rules text the RULES tool reads. The play scripts resolve it relative to their
+# OWN directory (the checkout they were copied into), so it has to live there too -- otherwise
+# RULES_TOOL=1 logs "rules text did not load" and silently leaves the seat without the tool.
+if [ -f "$HERE/data/rules/MagicCompRules.txt" ]; then
+  mkdir -p "$FORGE_HOME/data/rules"
+  cp -v "$HERE/data/rules/MagicCompRules.txt" "$FORGE_HOME/data/rules/MagicCompRules.txt"
+fi
+
 # Reproducibility pin: eval results are only comparable against the same engine version.
 PIN_FILE="$HERE/FORGE_COMMIT"
 CUR="$(git -C "$FORGE_HOME" rev-parse HEAD 2>/dev/null || echo unknown)"
