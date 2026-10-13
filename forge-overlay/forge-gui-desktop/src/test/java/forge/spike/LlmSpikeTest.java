@@ -983,6 +983,18 @@ public class LlmSpikeTest {
                 "models without this failure mode must not be sent a reasoning hint");
     }
 
+    /** The tier routing table is OPT-IN. With TIER_FAST_TYPES unset -- the test environment, and every
+     *  default run -- EVERY decision type must still go to the smart tier; otherwise a latency tweak
+     *  would silently change the eval condition of every existing comparison. */
+    @Test
+    public void tierRoutingDefaultsToSmartForEveryType() {
+        for (String t : new String[] {"play", "attackers", "mulligan", "targets", "target",
+                                      "zone-change", "prevent-effect", "ability-to-play"}) {
+            Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.smartTierFor(t),
+                    "TIER_FAST_TYPES unset must leave " + t + " on the smart tier");
+        }
+    }
+
     // ================================================================================
     // chooseCardsToRevealFromHand (audit follow-up): the last unrouted PlayerController choose-cards
     // hook. Previously fell straight through to PlayerControllerAi's bare valid.subList(0,min(max,size))
