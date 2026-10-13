@@ -1,5 +1,7 @@
 """tool_audit: the fixtures are request/result pairs recorded in runs/lines/ctl (text grammar) and
 the shapes the native path writes."""
+import contextlib
+import io
 import json
 import os
 import tempfile
@@ -58,7 +60,9 @@ class ToolAuditTest(unittest.TestCase):
             with open(os.path.join(d, "game-1.jsonl"), "w") as f:
                 for r in ROWS:
                     f.write(json.dumps(r) + "\n")
-            self.assertEqual(ta.main([d, "--fail-on-refused", "--json"]), 1)
+            with contextlib.redirect_stdout(io.StringIO()) as out:
+                self.assertEqual(ta.main([d, "--fail-on-refused", "--json"]), 1)
+            self.assertEqual(json.loads(out.getvalue())["total"]["by_outcome"]["REFUSED"], 3)
 
 
 if __name__ == "__main__":

@@ -224,8 +224,31 @@ regardless of seat swap) — don't "fix" that in either language.
 needed) → H.264 mp4. `RECORD_OUT`, `RECORD_FPS` tune it. Bigger window = crisper video.
 30-second social cut: `ffmpeg -i in.mp4 -vf "setpts=PTS*(30/DUR),fps=30" -an out.mp4`.
 
+## Required skills (every agent, every time — user decision 2026-10-13)
+
+The skills in `.claude/skills/` are not optional helpers. They are how work is done here, and
+`docs/STANDARDS.md` is what they enforce. Read `docs/STANDARDS.md` before changing anything.
+
+| When | Skill | It is required because |
+|---|---|---|
+| before every commit, PR title/body, and merge | `pr-format` | names and structure come from `scripts/pr_format.py`, not from memory |
+| on every PR, before merging | `pr-review` | finds what the author has not seen; BLOCKER or HIGH blocks the merge |
+| on every PR, after `pr-review` | `simplify` | the change loses what it does not need |
+| on every PR, and whenever you ask "what is the rule for this?" | `standards` | checks the change against `docs/STANDARDS.md` and keeps that file true |
+| whenever game logs are reviewed | `harness-audit` | separates harness defects from model mistakes; produces puzzle candidates |
+
+Run the three review skills as fresh subagents where the runtime has them, so the reviewer is not
+the author. Record each verdict (`python3 scripts/pr_format.py record-review <n> <skill> <verdict>`)
+and merge only with `bash scripts/pr_merge.sh <n>`, which refuses a PR whose format is wrong, whose
+review is missing, stale or blocking, or whose code changed without an acceptance run. Merge
+commits, never squash. Once per clone: `bash scripts/install_hooks.sh`.
+
 ## Before committing
+
+`pr-review` replaces the older instruction below wherever the `claude-obsidian` plugin is not
+installed; either reviewer satisfies the rule, skipping both does not.
 
 Non-trivial changes: stage, then dispatch the `verifier` agent from the claude-obsidian
 plugin against `git diff --cached` — it has caught a BLOCKER (baseline contamination)
-and multiple HIGHs that validation runs missed. Then commit and push to `main`.
+and multiple HIGHs that validation runs missed. Then commit, and land it through a PR and
+`scripts/pr_merge.sh`.
