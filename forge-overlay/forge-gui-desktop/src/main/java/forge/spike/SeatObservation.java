@@ -72,7 +72,7 @@ import forge.spike.LlmSpikeGui.ContextProfile;
  * seat are appended to the same stream, so every seat-visible fact has one E-id and one place to search.
  */
 final class SeatObservation {
-    static final String VERSION = "observation-faithful-v2";
+    static final String VERSION = "observation-faithful-v3";
     /** Printed once per observation so every prompt is self-describing. Part of the prompt bytes and
      *  therefore of this VERSION: change it and bump the version. */
     static final String LEGEND = "LEGEND: @N = your seat's handle for one object, assigned when you first see it; a zone change "
@@ -128,6 +128,28 @@ final class SeatObservation {
     private int currentTurn = 0;
     private final Set<String> presentedNoted = new HashSet<>();
     private final List<String> omissions = new ArrayList<>();
+
+    /** A card the seat KNOWS is sitting in an opponent's hidden zone. Recorded ONLY from what the
+     *  viewer could see: (a) a card visible on the battlefield/graveyard/exile that then MOVED into a
+     *  hidden zone ("return target creature to its owner's hand", "put it on top of their library"),
+     *  and (b) a card the engine presented from a hidden zone (a revealed hand / searched library).
+     *  Invalidated the instant the card is seen leaving that zone (a cast, a discard). This is what
+     *  lets the seat reason "I unsummoned their Atraxa, so a Thoughtseize now takes it" instead of
+     *  re-deriving the chain from raw history — the concrete failure the review called out. It is a
+     *  KNOWLEDGE claim, never engine truth: stale knowledge is still knowledge, and the wording says so. */
+    private static final class KnownLoc {
+        final String name;
+        final Player owner;
+        final ZoneType zone;
+        int count;
+        int turn;
+        KnownLoc(String name, Player owner, ZoneType zone) { this.name = name; this.owner = owner; this.zone = zone; }
+    }
+    /** Keyed "ownerName|zone|name" (an object gets a new engine id across a zone change, so identity
+     *  across zones is by name — the same thing the seat itself can track). Bounded and LRU-ish:
+     *  beyond the cap the oldest fact is dropped, so a long game cannot grow this without limit. */
+    private static final int KNOWN_HIDDEN_CAP = 12;
+    private final Map<String, KnownLoc> knownHidden = new LinkedHashMap<>();
 
     SeatObservation(Game game, Player viewer) {
         this(game, viewer, true);
@@ -197,17 +219,91 @@ final class SeatObservation {
             if (t == null) return; // never sighted: nothing to sever, a future sighting is fresh
             t.pendingNew = true;
             if (!zoneViewVisible(ev.from()) || !zoneViewVisible(ev.to())) t.linkAllowed = false;
+            updateKnownHidden(t, ev.from(), ev.to());
         } catch (Exception ignore) { }
+    }
+
+    /** Maintain {@link #knownHidden} from PUBLIC moves only. A move we can see OUT of a hidden zone
+     *  invalidates the fact; a move we can see INTO a hidden zone (from a zone we could see, with an
+     *  identity we knew) records one. Both directions are needed: casting a known card must stop us
+     *  claiming we know it is in hand. */
+    private void updateKnownHidden(Tracked t, ZoneView from, ZoneView to) {
+        if (t.lastKnownName == null || t.lastKnownName.isEmpty()) return; // never knew this card
+        boolean fromVisible = zoneViewVisible(from), toVisible = zoneViewVisible(to);
+        if (from != null && !fromVisible) {
+            Player owner = playerFromView(from.player());
+            if (owner != viewer) removeKnown(t.lastKnownName, owner, from.zoneType());
+        }
+        if (to != null && !toVisible && fromVisible) {
+            Player owner = playerFromView(to.player());
+            if (owner != null && owner != viewer) addKnown(t.lastKnownName, owner, to.zoneType());
+        }
+    }
+
+    private static String knownKey(String name, Player owner, ZoneType zone) {
+        return owner.getName() + "|" + zone + "|" + name;
+    }
+
+    private void addKnown(String name, Player owner, ZoneType zone) {
+        if (name == null || name.isEmpty() || owner == null || zone == null) return;
+        KnownLoc k = knownHidden.get(knownKey(name, owner, zone));
+        if (k == null) { k = new KnownLoc(name, owner, zone); knownHidden.put(knownKey(name, owner, zone), k); }
+        k.count++;
+        k.turn = safeTurn();
+        while (knownHidden.size() > KNOWN_HIDDEN_CAP) {
+            String oldest = knownHidden.keySet().iterator().next();
+            knownHidden.remove(oldest);
+        }
+    }
+
+    private void removeKnown(String name, Player owner, ZoneType zone) {
+        if (name == null || owner == null || zone == null) return;
+        String key = knownKey(name, owner, zone);
+        KnownLoc k = knownHidden.get(key);
+        if (k == null) return;
+        if (--k.count <= 0) knownHidden.remove(key);
+    }
+
+    private static String zoneWord(ZoneType zt) {
+        return zt == ZoneType.Hand ? "hand" : zt == ZoneType.Library ? "library" : zt.name().toLowerCase(Locale.ROOT);
+    }
+
+    /** The KNOWN IN HIDDEN ZONES block. Empty when nothing is known, so a seat that has learned
+     *  nothing sees no extra line (and the section cannot be mistaken for engine truth). */
+    private String knownHiddenText() {
+        if (knownHidden.isEmpty()) return "";
+        LinkedHashMap<String, List<KnownLoc>> groups = new LinkedHashMap<>();
+        for (KnownLoc k : knownHidden.values()) {
+            groups.computeIfAbsent(k.owner.getName() + "'s " + zoneWord(k.zone), x -> new ArrayList<>()).add(k);
+        }
+        StringBuilder b = new StringBuilder("KNOWN IN HIDDEN ZONES (you SAW these move there, or they were "
+                + "revealed to you — this is your knowledge, not engine truth; you may be able to act on it, "
+                + "and it is dropped once you see the card leave):\n");
+        for (Map.Entry<String, List<KnownLoc>> e : groups.entrySet()) {
+            b.append("  ").append(e.getKey()).append(": ");
+            boolean first = true;
+            for (KnownLoc k : e.getValue()) {
+                if (!first) b.append(", ");
+                first = false;
+                b.append(k.name);
+                if (k.count > 1) b.append(" x").append(k.count);
+                b.append(" (T").append(k.turn).append(')');
+            }
+            b.append('\n');
+        }
+        return b.toString();
+    }
+
+    private Player playerFromView(PlayerView v) {
+        if (v == null) return null;
+        if (v == viewer.getView()) return viewer;
+        for (Player p : game.getPlayers()) if (p.getView() == v) return p;
+        return null;
     }
 
     private boolean zoneViewVisible(ZoneView zv) {
         if (zv == null) return true;
-        PlayerView owner = zv.player();
-        Player ownerPlayer = owner == null ? null : (owner == viewer.getView() ? viewer : null);
-        if (owner != null && ownerPlayer == null) {
-            for (Player p : game.getPlayers()) if (p.getView() == owner) { ownerPlayer = p; break; }
-        }
-        return zoneVisible(zv.zoneType(), ownerPlayer);
+        return zoneVisible(zv.zoneType(), playerFromView(zv.player()));
     }
 
     /** Handle of a card the viewer has already observed, or -1. Never assigns. */
@@ -317,8 +413,12 @@ final class SeatObservation {
         String key = c.getId() + "|" + c.getGameTimestamp() + "|" + zoneTypeOf(c);
         if (!presentedNoted.add(key)) return;
         Player owner = zoneOwnerOf(c);
+        ZoneType zone = zoneTypeOf(c);
         recordReveal("engine presented " + safeName(c) + " from " + (owner == null ? "?" : owner.getName())
-                + "'s " + zoneTypeOf(c) + " for a choice");
+                + "'s " + zone + " for a choice");
+        // A card presented out of an opponent's HIDDEN zone is a revealed hand/library: the seat now
+        // knows that card is there (this is the Thoughtseize/duress half of the knowledge).
+        if (owner != null && owner != viewer && !zoneVisible(zone, owner)) addKnown(safeName(c), owner, zone);
     }
 
     /** The identity a permitted viewer knows: for a face-down card that is its real (original) face,
@@ -578,6 +678,7 @@ final class SeatObservation {
                  .append(shown).append(" shown; all remain searchable):\n");
                 for (int i = reveals.size() - shown; i < reveals.size(); i++) s.append("  - ").append(reveals.get(i)).append('\n');
             }
+            s.append(knownHiddenText());
             if (planTurn == ph.getTurn() && ph.isPlayerTurn(viewer) && turnPlan != null && !turnPlan.isEmpty())
                 s.append("YOUR TURN PLAN (stated earlier this turn — execute it or consciously deviate): ").append(turnPlan);
             return s.toString();

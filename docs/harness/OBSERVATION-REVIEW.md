@@ -86,6 +86,12 @@ Narration behavior changed, so the observation identity must change: the faithfu
 v1 are **not** comparable to v2 and must not share a table. `eval/harness_acceptance.sh`
 greps and `docs/harness/PLAYER-HARNESS.md` were updated to the new string.
 
+**Later (2026-10-13): v2 → `observation-faithful-v3`.** A new `KNOWN IN HIDDEN ZONES` section was
+added (seat knowledge of cards that publicly moved into an opponent's hidden zone, or that the
+engine revealed from one; invalidated on a seen exit). Prompt bytes changed, so this is again a
+provenance event: v3 artifacts are not comparable to v2 and must not share a table. The acceptance
+greps and `PLAYER-HARNESS.md` were updated to `v3`.
+
 ## Residual limits (explicit)
 
 - **Name-only references to a hidden object are not redacted.** If an engine call site
