@@ -25,9 +25,43 @@ whole class: 4 retries → 0.
 This is the shape to look for in general: **a reasoning model asked for one token will still reason
 first.** Any tier whose contract is "terse" must say so explicitly.
 
+## The decisive measurement (what "we want reasoning, right?" comes down to)
+
+Replaying a **real** smart-tier play prompt under each setting (2026-10-13):
+
+| setting | latency | completion tokens | of which hidden reasoning |
+|---|---|---|---|
+| `effort=medium` (smart default) | 6.8–7.3 s | 815–848 | 770–804 |
+| `effort=low` | 5.9–9.6 s | 759–1025 | 714–999 |
+| `effort=minimal` | 7.6–10.4 s | 910–1247 | 875–1194 |
+| **no `reasoning` key** | **17.3–23.7 s** | 2704–4019 | 2657–3965 |
+| **`reasoning.enabled=false`** | **1.3–12.7 s** | **65–263** | **0** |
+
+**~95 % of every completion was hidden reasoning for a ~50-token answer**, and `effort` does *not*
+reliably reduce it — only disabling does. `reasoning.max_tokens` is not honoured either (it went up).
+So the design question has a clean answer: **reasoning belongs on the smart tier, where planning,
+sequencing and counterspell timing live, and nowhere else.** The fast tier's job is classification
+over a menu the harness already legalised.
+
+`reasoning.enabled=false` is wired as the sentinel `"none"` (distinct from effort values, which some
+routes reject).
+
+## The unbounded tail
+
+The smart tier can also **overrun** its own budget: a real game hit
+`[TRUNCATED->RETRY] finish_reason=length @ max_tokens=16000 -> retrying at 32000`, i.e. a completion
+that spent *16 000 tokens thinking and never answered*, then 32 000 more — minutes of the 8-minute cap.
+Giving a reasoner more room to think is exactly the wrong response. For a row known to be a reasoner
+the retry now **disables reasoning** and keeps a modest budget (~1 s); every other model keeps the
+historic double-the-budget retry, which is right for a genuinely long answer.
+
 ## Levers, in order of expected value
 
-1. **Tier routing** (not done; the next real win). `targets` and `prevent-effect` are *mechanical*
+1. **Tier routing** (not done; the next real win — and now the ONLY remaining big one). The
+   measurement shows 26–30 of 40 decisions went to the **smart** tier (~7 s each, so ~4 smart calls
+   per turn ≈ 28 s/turn) while the fast tier got 1–5. `play` (19–22) and `target`/`targets` (7–8) are
+   the bulk. The question to settle with data is which of those are *planning* (smart) and which are
+   *classification over a legal menu* (fast). `targets` and `prevent-effect` are *mechanical*
    decisions and are sent to the **smart** tier — 13 of 40 decisions in the measurement, i.e. ~33 % of
    the expensive calls. A target menu with exactly one legal candidate is **forced** and should never
    reach a model at all. Safe version: auto when the menu is forced/single-option; route to `fast`
