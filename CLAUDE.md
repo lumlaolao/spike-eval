@@ -248,6 +248,7 @@ The skills in `.claude/skills/` are not optional helpers. They are how work is d
 | on every PR, before merging | `pr-review` | finds what the author has not seen; BLOCKER or HIGH blocks the merge |
 | on every PR, after `pr-review` | `simplify` | the change loses what it does not need |
 | on every PR, and whenever you ask "what is the rule for this?" | `standards` | checks the change against `docs/STANDARDS.md` and keeps that file true |
+| **whenever a game is played** | `game-loop` | one match at a time: play it, read it, fix what the harness got wrong, then the next. A batch of many games is not how this repository tests the harness |
 | whenever game logs are reviewed | `harness-audit` | separates harness defects from model mistakes; produces puzzle candidates |
 
 Run the three review skills as fresh subagents where the runtime has them, so the reviewer is

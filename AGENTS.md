@@ -8,11 +8,12 @@ only points at them and repeats what is never optional.
 
 - **Use the required skills** in `.claude/skills/`. Claude Code and OpenCode both load them from
   there by name, so there is one copy and nothing to install (checked on OpenCode 2.0.27:
-  `opencode api skill.list --param "location[directory]=$PWD"` lists all five). Run the three
+  `opencode api skill.list --param "location[directory]=$PWD"` lists all six). Run the three
   review skills as fresh subagents when your runtime has them and the owner has not asked for none:
   - `pr-format` before every commit, PR title/body and merge;
   - `pr-review`, then `simplify`, then `standards` on **every** PR before it is merged;
-  - `harness-audit` whenever game logs are reviewed.
+  - `game-loop` whenever a game is played: one match, read it, fix the harness, then the next;
+  - `harness-audit` whenever game logs from many games are reviewed.
 - **Merge only with** `bash scripts/pr_merge.sh <number>` (format, three recorded verdicts for the
   current head, an acceptance run when code changed; merge commit, never squash).
 - **The seat's tools are native tool calls.** Anything the model can look up or do beyond answering
