@@ -24,9 +24,11 @@ import forge.game.GameType;
 import forge.game.Match;
 import forge.game.card.Card;
 import forge.game.card.CardCollection;
+import forge.game.event.GameEventCardChangeZone;
 import forge.game.phase.PhaseType;
 import forge.game.player.Player;
 import forge.game.player.RegisteredPlayer;
+import forge.game.zone.Zone;
 import forge.game.zone.ZoneType;
 import forge.gui.GuiBase;
 import forge.item.IPaperCard;
@@ -121,6 +123,49 @@ public class SeatObservationTest {
 
     static void assertNoneOf(String text, String where, String... forbidden) {
         for (String f : forbidden) Assert.assertFalse(text.contains(f), where + " leaks '" + f + "':\n" + text);
+    }
+
+    // ---- known hidden locations: the Unsummon -> Thoughtseize chain ---------------------------
+
+    /** The seat can SEE a public card move into an opponent's hand and act on that knowledge — and the
+     *  knowledge is dropped the moment the card is seen leaving. This is exactly the chain the review
+     *  said the model could not follow ("unsummon a creature, then Thoughtseize it away"). */
+    @Test
+    public void seenMovesIntoHiddenZonesAreKnownThenInvalidated() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        Player rival = g.getPlayers().get(1);
+        SeatObservation o = observerFor(g, 0);
+        Card creature = card("Griselbrand", rival, ZoneType.Battlefield);
+        Zone battlefield = creature.getZone();
+        Zone hand = card("Entomb", rival, ZoneType.Hand).getZone();
+        Zone yard = card("Dark Ritual", rival, ZoneType.Graveyard).getZone();
+
+        o.describe(creature, false); // the viewer has seen it, so its identity is knowable
+        Assert.assertFalse(render(o, "").contains("KNOWN IN HIDDEN ZONES"), "claimed knowledge too early");
+
+        // "Return target creature to its owner's hand": a PUBLIC move INTO a hidden zone.
+        o.onZoneChange(new GameEventCardChangeZone(creature, battlefield, hand));
+        String r = render(o, "");
+        Assert.assertTrue(r.contains("KNOWN IN HIDDEN ZONES"), r);
+        Assert.assertTrue(r.contains("Rival's hand: Griselbrand"), r);
+
+        // "...then Thoughtseize": the discard is hand -> graveyard, which we CAN see. The claim must
+        // vanish, or the seat would keep "knowing" a card that is no longer in the hand.
+        o.onZoneChange(new GameEventCardChangeZone(creature, hand, yard));
+        Assert.assertFalse(render(o, "").contains("KNOWN IN HIDDEN ZONES"),
+                "stale knowledge survived a public move out of the hidden zone");
+    }
+
+    /** A card the engine presents out of a hidden zone (a revealed hand / searched library) is
+     *  knowledge even though the viewer never saw it on the battlefield. */
+    @Test
+    public void presentedCardsFromHiddenZonesAreRecordedAsKnown() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        Player rival = g.getPlayers().get(1);
+        SeatObservation o = observerFor(g, 0);
+        Card hidden = card("Entomb", rival, ZoneType.Hand);
+        o.describe(hidden, true); // presented = the engine handed the viewer this card for a choice
+        Assert.assertTrue(render(o, "").contains("Rival's hand: Entomb"), render(o, ""));
     }
 
     // ---- paired worlds ------------------------------------------------------------------------

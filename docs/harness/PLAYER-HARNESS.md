@@ -142,7 +142,7 @@ same way. `INSPECT @N` / `INSPECT <card name>` is a third memory tool sharing th
 budget: current public characteristics, an explicit HISTORICAL answer once the object is
 gone or hidden, or public card-database text labelled as such. Legacy profiles
 (`v1-compat`, `v2-memory`, `v3-compact`) are untouched byte-for-byte; `v4-faithful` has its
-own `context.v3|...|observation=observation-faithful-v2` identity and sha.
+own `context.v3|...|observation=observation-faithful-v3` identity and sha.
 
 `SeatObservationTest` drives the live implementation against real engine games: two
 worlds differing only in the opponent's hand and library produce identical observations,
@@ -189,6 +189,18 @@ maps to a handle, and a public card that shares a hidden card's name is never er
 `CAST THIS GAME`/`LANDS PLAYED` now also come from the redacted seat stream instead of
 the legacy raw-log `castHistory` (byte-identical on public data). See
 `OBSERVATION-REVIEW.md` for the repair, evidence and remaining limits.
+
+**2026-10-13 — known hidden locations (`observation-faithful-v3`).** The faithful observer now
+keeps a **`KNOWN IN HIDDEN ZONES`** ledger: a card the seat *saw* move into an opponent's hidden
+zone (a public `battlefield/graveyard/exile → hand/library` move, e.g. "return target creature to
+its owner's hand") or that the engine *presented* from a hidden zone (a revealed hand / searched
+library) is recorded as seat **knowledge**, and the fact is dropped the instant the card is seen
+leaving that zone (a cast, a discard). This is the chain the earlier review flagged as missing —
+*unsummon their creature, then Thoughtseize it away* — and it is deliberately a knowledge claim,
+never engine truth: it is derived only from what the viewer could see, is capped (12 facts), and
+says so in its own header. `SeatObservation.VERSION` moved to `observation-faithful-v3`; two tests
+cover it (`seenMovesIntoHiddenZonesAreKnownThenInvalidated`,
+`presentedCardsFromHiddenZonesAreRecordedAsKnown`).
 
 Hand-reveal bridge/parse failures now choose the first minimum-sized legal subset,
 log an automatic fallback, and never call Forge AI. Empty reveal pools return empty.
