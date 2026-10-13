@@ -109,15 +109,15 @@ python3 harvest.py catalog
 | Source | Items | Authority | How collected |
 |---|---|---|---|
 | [RulesGuru](https://rulesguru.org) | 327 | judge-curated Q&A with explicit CR citations | public JSON API (`/api/questions/`), one random matching question per request with criteria rotation |
-| [Cranial Insertion](https://www.cranial-insertion.com) | 56 | long-running judge rules column (L2+ judges) | article HTML, Q&A pairs transcribed |
+| [Cranial Insertion](https://www.cranial-insertion.com) | 130 | long-running judge rules column (L2+ judges) | article HTML, Q&A pairs transcribed |
 | [Ask a Magic Judge](https://magicjudge.tumblr.com) | 108 | judge-run rules blog | Tumblr read API (`/api/read/json?type=answer`) |
 | Wizards official card rulings (Gatherer, via [Scryfall](https://scryfall.com/docs/api/rulings)) | 49 | `official-ruling` | Scryfall rulings endpoint (`.../cards/<id>/rulings`), interactions picked from the ruling text |
 | [Judge Foundry](https://judgefoundry.org) | 3 | `judge-article` (quiz wrap-ups with explicit CR cites) | judge-authored Q&A wrap-up articles |
 | Wizards of the Coast — **Release Notes** (`magic.wizards.com/en/news/feature/*-release-notes`) | 60 | `official-ruling` (the set's own Card-Specific Notes) | article HTML, the "Card-Specific Notes" Q&A transcribed |
 | [EDHREC](https://edhrec.com) | 3 | `judge-article` ("Judge Alex, Rules Attorney at Law") | column HTML |
 
-**Total: 606** (2026-10-13). The 2026-10-13 extension added 411 items (RulesGuru 162→327,
-Cranial Insertion 23→56, Ask a Magic Judge 7→108, official rulings 3→49, Judge Foundry / Wizards
+**Total: 680** (2026-10-13). The 2026-10-13 extension added 485 items (RulesGuru 162→327,
+Cranial Insertion 23→130, Ask a Magic Judge 7→108, official rulings 3→49, Judge Foundry / Wizards
 Release Notes / EDHREC new) — all
 `verified: true` against a source actually fetched, all current-rules/2019+.
 
