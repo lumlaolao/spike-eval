@@ -9,8 +9,8 @@ The seat gets its tools through **native function calling** on the model API the
 talks to (`NativeTools.java`, `eval/tooluse/tools.json`); it is the repository standard (`CLAUDE.md`). That is the protocol the model
 was trained to use: in the recorded games the model wrote its own native call syntax into a text
 reply (`<｜｜DSML｜｜ invoke name="memory_search">`, `runs/lines/ctl/lookahead`), and the text
-grammar refused 30 of the 43 tool requests it made across 48 games because the reply held a
-sentence as well as the command.
+grammar refused 30 of the 43 tool requests it made across 48 games because the reply was not the
+bare command alone (25 held a sentence as well; 5 only had blank lines around the command).
 
 ## MCP server: no
 

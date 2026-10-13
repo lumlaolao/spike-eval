@@ -235,6 +235,9 @@ public class NativeToolsTest {
         Assert.assertEquals(reply, "CHOICE: 1");
         Assert.assertEquals(inspected, List.of("@1", "@2"));
         Assert.assertEquals(allowed, List.of(true, false), "after two executed calls the next turn may not call");
+        // A null or non-positive id is refused before the executor, not turned into `MEMORY READ -1 0`.
+        Assert.assertTrue(NativeTools.command("memory_read", "{\"evidence_id\":null}").startsWith("ERROR:"));
+        Assert.assertTrue(NativeTools.command("memory_read", "{\"evidence_id\":0}").startsWith("ERROR:"));
         Assert.assertTrue(results.get(0).startsWith("ERROR: tool arguments"));
         Assert.assertTrue(results.get(3).startsWith("ERROR: tool budget exhausted"));
     }
@@ -299,6 +302,52 @@ public class NativeToolsTest {
         Assert.assertEquals(results, List.of("ERROR: a tool request must be a function call; no tool executed."));
     }
 
+    /** The last round may not call: a tool run then could never be read and would only be spent.
+     *  Round 0 here is a refused call, so `used` alone would still allow one on round 2. */
+    @Test
+    public void theLastRoundMayNotCall() {
+        ContextMemory memory = new ContextMemory();
+        List<String> inspected = new ArrayList<>();
+        memory.setInspector(arg -> { inspected.add(arg); return "text"; });
+        List<Boolean> allowed = new ArrayList<>();
+        String reply = memory.askNative("DECISION", (user, messages, tools, allow, round) -> {
+            allowed.add(allow);
+            if (round == 0) return turn(null, call("a", "inspect", "{oops"));
+            if (round == 1) return turn(null, call("b", "inspect", "{\"target\":\"@1\"}"));
+            return turn("CHOICE: 1");
+        }, null, (a, b) -> { });
+        Assert.assertEquals(reply, "CHOICE: 1");
+        Assert.assertEquals(allowed, List.of(true, true, false));
+        Assert.assertEquals(inspected, List.of("@1"));
+    }
+
+    /** Recorded (runs/tooluse/deepseek-v3, native/smart/search-old-hand): with calls forbidden the
+     *  model wrote its call markup into the text. That is a tool request, not an answer. */
+    @Test
+    public void callMarkupInTheTextOfANativeReplyIsNotAnAnswer() {
+        List<String> results = new ArrayList<>();
+        String reply = new ContextMemory().askNative("Name a card.", (user, messages, tools, allow, round) ->
+                turn("<｜DSML｜function_calls>\n<｜DSML｜invoke name=\"memory_read\">\n</｜DSML｜invoke>"),
+                null, (request, result) -> results.add(result));
+        Assert.assertNull(reply);
+        Assert.assertEquals(results.size(), 1);
+        Assert.assertFalse(NativeTools.looksLikeCallMarkup("I invoke Lightning Bolt. CHOICE: 2"));
+    }
+
+    /** A search must not return the decision that is asking: the query usually quotes it. */
+    @Test
+    public void aSearchSkipsTheDecisionBeingAsked() {
+        ContextMemory memory = new ContextMemory();
+        memory.reveal("T2: saw Rival hand [Pale Lantern, Marsh], stripped nothing");
+        List<String> results = new ArrayList<>();
+        memory.askNative("You saw Rival's hand at T2. Name a card.", (user, messages, tools, allow, round) ->
+                round == 0 ? turn(null, call("s", "memory_search", "{\"query\":\"Rival's hand\"}")) : turn("CHOICE: 1"),
+                null, (request, result) -> results.add(result));
+        Assert.assertTrue(results.get(0).startsWith("Matches=1 next=END (no literal match; entries holding every word)\nM1 (historical reveal)"),
+                results.get(0));
+        Assert.assertTrue(results.get(0).contains("Pale Lantern"));
+    }
+
     /** rules_lookup through the REAL RulesTool: the first version of this mapping produced
      *  `RULES 702.34`, which the tool rejects, and its test asserted that string against itself. */
     @Test
@@ -340,6 +389,11 @@ public class NativeToolsTest {
     public void aRefusalOfToolsIsRecognisedAndOtherErrorsAreNot() {
         Assert.assertTrue(LlmSpikeGui.OpenRouterBridge.refusesTools(404, "{\"error\":{\"message\":\"No endpoints found that support tool use.\"}}"));
         Assert.assertTrue(LlmSpikeGui.OpenRouterBridge.refusesTools(400, "tool_choice is not supported by this model"));
+        Assert.assertTrue(LlmSpikeGui.OpenRouterBridge.refusesTools(400, "This model does not support function calling."));
+        // A 400 that only mentions tools is not a refusal of them.
+        Assert.assertFalse(LlmSpikeGui.OpenRouterBridge.refusesTools(400,
+                "maximum context length is 64000 tokens (61000 of text input, 4000 of tool input)"));
+        Assert.assertFalse(LlmSpikeGui.OpenRouterBridge.refusesTools(400, "messages[3]: tool message has no tool_call_id"));
         Assert.assertFalse(LlmSpikeGui.OpenRouterBridge.refusesTools(429, "rate limited; tools"));
         Assert.assertFalse(LlmSpikeGui.OpenRouterBridge.refusesTools(500, "tool backend down"));
         Assert.assertFalse(LlmSpikeGui.OpenRouterBridge.refusesTools(400, "max_tokens too large"));
@@ -429,7 +483,8 @@ public class NativeToolsTest {
             Assert.assertNull(bridge.chat("[{\"role\":\"user\",\"content\":\"DECISION\"}]", NativeTools.definitions(true, false, false).toString(), true));
             Assert.assertFalse(bridge.supportsNativeTools(), "one refusal is enough: the same request cannot succeed");
             Assert.assertTrue(NativeTools.DOWNGRADED.contains("Refused/smart"));
-            Assert.assertEquals(hits[0], 1);
+            Assert.assertNull(bridge.chat("[{\"role\":\"user\",\"content\":\"DECISION\"}]", NativeTools.definitions(true, false, false).toString(), true));
+            Assert.assertEquals(hits[0], 1, "a refused bridge does not send the same request again");
             Assert.assertEquals(bridge.ask("DECISION"), "CHOICE: 1", "the plain-text path still works on this bridge");
         } finally {
             refusing.stop(0);

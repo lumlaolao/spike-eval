@@ -63,6 +63,9 @@ class ToolUseSuiteTest(unittest.TestCase):
         # Wrongly typed arguments are refused before the executor, as NativeTools.command does.
         self.assertEqual(tu.text_command(self.tools, "memory_read", {"evidence_id": "three"}),
                          (None, "ERROR: `evidence_id` must be an integer."))
+        self.assertEqual(tu.text_command(self.tools, "memory_read", {"evidence_id": "80"})[0], "MEMORY READ 80 0")
+        self.assertIsNone(tu.text_command(self.tools, "memory_read", {"evidence_id": None})[0])
+        self.assertIsNone(tu.text_command(self.tools, "memory_read", {"evidence_id": 0})[0])
         self.assertIsNone(tu.text_command(self.tools, "memory_read", {"evidence_id": 1.5})[0])
         self.assertEqual(tu.text_command(self.tools, "memory_read", {"evidence_id": 3.0})[0], "MEMORY READ 3 0")
         self.assertIsNone(tu.text_command(self.tools, "open_library", {"x": 1})[0])
@@ -105,6 +108,32 @@ class ToolUseSuiteTest(unittest.TestCase):
         lenient = tu.run_text(s, "need", "smart", scripted(replies), True, meta)
         self.assertIn("First strike, deathtouch", lenient["calls"][0]["result"])
         self.assertTrue(tu.score(s, "need", lenient)["reached"])
+        self.assertEqual(tu.tool_line("`INSPECT @3` to see what it does"), "INSPECT @3")       # as ContextMemory.toolLine
+        self.assertIsNone(tu.tool_line("I will INSPECT @3 next.\nCHOICE: 2"))
+
+    def test_reach_means_the_fact_came_back_not_that_a_tool_was_called(self):
+        s = self.by_id["search-old-hand"]
+        seat = tu.Seat(s, tu.decision_text(s, "need"))
+        miss = [{"ok": True, "command": "MEMORY READ 6 0", "result": seat.execute("MEMORY READ 6 0")}]
+        hit = [{"ok": True, "command": "MEMORY SEARCH 0 Rival's hand", "result": seat.execute("MEMORY SEARCH 0 Rival's hand")}]
+        self.assertTrue(tu.needs_met(s, miss))                 # it looked in the archive ...
+        self.assertFalse(tu.fact_returned(s, miss))            # ... and did not get the hand back
+        self.assertTrue(tu.fact_returned(s, hit))              # a query quoting the decision finds the reveal
+        self.assertNotIn("M%d (observation): TURN 8" % seat.observation_id, hit[0]["result"])
+
+    def test_native_last_round_forbids_calls_and_call_markup_is_not_an_answer(self):
+        s = self.by_id["inspect-attack"]
+        seen = []
+
+        def model(messages, tools, meta):
+            seen.append(meta["tool_choice"])
+            return {"content": None, "tool_calls": [{"id": "x", "type": "function",
+                                                     "function": {"name": "inspect", "arguments": "{oops"}}]}
+        tu.run_native(s, "need", "smart", model, self.tools, {"tier": "smart"})
+        self.assertEqual(seen, ["auto", "auto", "none"])
+        res = tu.run_native(s, "need", "smart", scripted([{"content": '<x invoke name="inspect">'}]), self.tools, {"tier": "smart"})
+        self.assertIsNone(res["choice"])
+        self.assertEqual(res["calls"][0]["rejected"], "protocol")
 
     def test_text_tool_request_at_zero_budget_yields_no_answer(self):
         s = self.by_id["inspect-attack"]
@@ -127,7 +156,7 @@ class ToolUseSuiteTest(unittest.TestCase):
         seat = tu.Seat(s, tu.decision_text(s, "need"))
         self.assertIn("... [READ for full text]", seat.brief())
         self.assertIn("Halcyon Verdict", seat.execute("MEMORY READ 3 0"))
-        self.assertTrue(seat.execute("MEMORY SEARCH 0 halcyon").startswith("Matches=2 next=END\nM3 (historical reveal)"))
+        self.assertTrue(seat.execute("MEMORY SEARCH 0 halcyon").startswith("Matches=1 next=END\nM3 (historical reveal)"))   # the decision itself is skipped
         self.assertEqual(seat.execute("MEMORY READ 99 0"), "ERROR: unknown evidence id.")
         self.assertEqual(seat.execute("MEMORY READ x 0"), "ERROR: ids and offsets must be integers.")
         self.assertEqual(seat.execute("MEMORY SEARCH 0"), "ERROR: malformed MEMORY command.")

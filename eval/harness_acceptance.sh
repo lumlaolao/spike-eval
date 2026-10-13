@@ -346,7 +346,8 @@ fi
 # model answers with real tool calls (a search, an inspect, one malformed call, and a lookahead
 # preview on every play decision), the harness serves them through the same executor and budget, and
 # the text grammar is never sent. It would fail if the bridge dropped the `tools` field, treated a
-# tool-call turn as a dead reply, charged the malformed call, or left the grammar in the prompt.
+# tool-call turn as a dead reply, did not refuse the malformed call, or left the grammar in the prompt.
+# (That a refused call costs no budget is asserted by NativeToolsTest, not here.)
 if has_stage nativetool; then
   if [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail nativetool "no compiled classes"; else
     dir="$OUT/nativetool"; sdir="$OUT/nativetool-server"; mkdir -p "$dir" "$sdir"
@@ -376,7 +377,9 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 else:
     if game.get("native_tools") is not True: problems.append("native_tools=%r not stamped"%game.get("native_tools"))
-    if not game.get("native_tools_version"): problems.append("native_tools_version missing")
+    if game.get("native_tools_version")!="seat-tools-v1": problems.append("native_tools_version=%r (expected seat-tools-v1; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
+    if game.get("memory_tools_version")!="evidence-tools-v2": problems.append("memory_tools_version=%r (expected evidence-tools-v2; move this pin WITH ContextMemory.VERSION)"%game.get("memory_tools_version"))
+    if game.get("native_tools_seats")!="A/smart,A/fast": problems.append("native_tools_seats=%r"%game.get("native_tools_seats"))
 calls=[r for r in rows if r.get("t")=="context_call"]
 tools=[r for r in rows if r.get("t")=="context_tool"]
 if not calls: problems.append("no context_call rows")

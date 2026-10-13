@@ -12,7 +12,7 @@ import com.google.gson.JsonParser;
 /** Seat-local archive. Accepts only already-observed text; has no engine, file or network access. */
 final class ContextMemory {
     /** v2 (2026-10-13): a command line is executed wherever it sits in the reply (v1 refused any reply
-     *  that also held a sentence: 30 of 43 requests across 48 recorded games), and a search with no
+     *  that was not the bare command: 30 of 43 requests across 48 recorded games), and a search with no
      *  literal match falls back to entries holding every word of the query. */
     static final String VERSION = "evidence-tools-v2";
     static final int TOOLS_PER_ASK = 2;
@@ -21,6 +21,10 @@ final class ContextMemory {
     private final List<Entry> entries = new ArrayList<>();
     private final List<String> notes = new ArrayList<>();
     private int toolsUsed;
+    /** 1-based id of the decision being asked now. A search skips it: the model has that text on
+     *  screen, and a query quoting the decision would otherwise match the decision itself and hide
+     *  the older entry it was looking for (tool-use suite, scenario search-old-hand). */
+    private int currentObservation;
     /** Optional INSPECT tool (viewer-aware object/card lookup supplied by SeatObservation under a
      *  faithful profile). Null under legacy profiles: the command then returns an error, never a
      *  silent no-op, so a transcript shows exactly what the model asked for and what it got. */
@@ -123,6 +127,7 @@ final class ContextMemory {
 
     String ask(String decision, Function<String, String> model, BiConsumer<String, String> audit) {
         int id = observe(decision);
+        currentObservation = id;
         String base = decision + "\n" + toolInstructions() + "CURRENT OBSERVATION: M" + id + "\n" + brief();
         StringBuilder exchanges = new StringBuilder();
         for (int round = 0; round <= TOOLS_PER_ASK; round++) {
@@ -171,6 +176,7 @@ final class ContextMemory {
     String askNative(String decision, NativeModel model, Function<String, String> simulate,
                      BiConsumer<String, String> audit) {
         int id = observe(decision);
+        currentObservation = id;
         String toolsJson = NativeTools.definitions(inspector != null, rulesLookup != null, simulate != null).toString();
         String user = decision + "\nCURRENT OBSERVATION: M" + id + "\n" + brief()
                 + "\nTool calls available this ask: " + Math.min(TOOLS_PER_ASK, TOOLS_PER_GAME - toolsUsed) + ".\n";
@@ -180,11 +186,12 @@ final class ContextMemory {
         boolean simulated = false;
         // The same bound as the text loop: at most TOOLS_PER_ASK + 1 model rounds per decision.
         for (int round = 0; round <= TOOLS_PER_ASK; round++) {
-            boolean allow = used < TOOLS_PER_ASK && toolsUsed < TOOLS_PER_GAME;
+            // No call on the last round: its result could never be read, and the tool would be spent.
+            boolean allow = used < TOOLS_PER_ASK && toolsUsed < TOOLS_PER_GAME && round < TOOLS_PER_ASK;
             NativeTools.Turn turn = model.turn(user, messages.toString(), toolsJson, allow, round);
             if (turn == null) return null;
             if (turn.calls.isEmpty()) {
-                if (toolLine(turn.content) != null) {
+                if (toolLine(turn.content) != null || NativeTools.looksLikeCallMarkup(turn.content)) {
                     audit.accept(turn.content, "ERROR: a tool request must be a function call; no tool executed.");
                     return null;
                 }
@@ -264,7 +271,7 @@ final class ContextMemory {
         String needle = query.toLowerCase(Locale.ROOT);
         List<Integer> matches = new ArrayList<>();
         for (int i = 0; i < entries.size(); i++) {
-            if (entries.get(i).text.toLowerCase(Locale.ROOT).contains(needle)) matches.add(i);
+            if (i + 1 != currentObservation && entries.get(i).text.toLowerCase(Locale.ROOT).contains(needle)) matches.add(i);
         }
         // "Rival's hand" does not occur literally in "saw Rival hand [...]". With no literal match, fall
         // back to entries holding every word of the query, and say so.
@@ -272,6 +279,7 @@ final class ContextMemory {
         if (matches.isEmpty()) {
             List<String> words = words(needle);
             for (int i = 0; !words.isEmpty() && i < entries.size(); i++) {
+                if (i + 1 == currentObservation) continue;
                 if (new java.util.HashSet<>(words(entries.get(i).text.toLowerCase(Locale.ROOT))).containsAll(words))
                     matches.add(i);
             }

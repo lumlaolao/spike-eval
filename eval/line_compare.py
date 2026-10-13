@@ -15,6 +15,10 @@ Per arm it prints:
 and, for every two arms that played the same (seed, seat swap) games, the paired result: games only
 one of them won, with an exact two-sided sign test.
 
+What it cannot see: it reads names off prompt text, so a card that is in play but not on the
+`hand(...)` / `board:` lines (an opponent's permanent, a card in exile) is invisible to it, and it
+counts what happened, never whether it was right.
+
 Usage: python3 eval/line_compare.py NAME=run_dir [NAME=run_dir ...]
 """
 import glob
@@ -58,11 +62,12 @@ def arm(run_dir):
            "nonhand": Counter(), "flash": [], "walker_games": 0, "walker_acts": 0, "versions": set(), "result": {}}
     for path in sorted(glob.glob(os.path.join(run_dir, "*.jsonl"))):
         rows = []
-        for line in open(path, errors="replace"):
-            try:
-                rows.append(json.loads(line))
-            except ValueError:
-                pass
+        with open(path, errors="replace") as f:
+            for line in f:
+                try:
+                    rows.append(json.loads(line))
+                except ValueError:
+                    pass
         game = next((r for r in rows if r.get("t") == "game"), None)
         if not game:
             continue

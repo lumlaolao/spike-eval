@@ -49,6 +49,12 @@ class ToolAuditTest(unittest.TestCase):
         self.assertEqual(ta.classify("x", "ERROR: INSPECT found no visible object or public card matching `@9`."), "empty")
         self.assertEqual(ta.classify("x", "ERROR: ids and offsets must be integers."), "bad-args")
         self.assertEqual(ta.classify("x", "Matches=2 next=END\nM1"), "served")
+        # The native path's form refusals count as REFUSED, so --fail-on-refused sees them.
+        self.assertEqual(ta.classify("INSPECT @3", "ERROR: a tool request must be a function call; no tool executed."), "REFUSED")
+        self.assertEqual(ta.classify("x", "ERROR: `offset` must be an integer."), "REFUSED")
+        self.assertEqual(ta.classify("x", "ERROR: rules_lookup needs `action`: one of [search, read]."), "REFUSED")
+        # A served read that QUOTES an error phrase is still served.
+        self.assertEqual(ta.classify("x", "M3 (observation) chars 0..90/90 next=END\nERROR: tool budget exhausted; found no visible object"), "served")
 
     def test_tool_names_are_read_from_both_protocols(self):
         self.assertEqual(ta.tool_name("Thinking first.\n\nINSPECT @87"), "inspect")

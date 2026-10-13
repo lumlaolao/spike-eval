@@ -15,7 +15,7 @@ Three protocol arms reach the same executor with the same budget (2 tools per as
   native        NATIVE_TOOLS=1: function calling (`tools` + `tool_calls`), eval/tooluse/tools.json
 
 Per arm and tier it reports, each next to its trivial baseline:
-  reach      need-scenarios where every needed lookup was executed          (never-call policy: 0%)
+  reach      need-scenarios where the deciding fact came back from a tool   (never-call policy: 0%)
   rejected   tool attempts the protocol refused                             (baseline 0)
   correct    need-scenarios answered correctly                              (chance: printed)
   restraint  scenarios where no tool can add anything, answered without one  (always-call policy: 0%)
@@ -196,11 +196,13 @@ class Seat:
 
     def search(self, query, offset):
         needle = query.lower()
-        matches = [i for i, e in enumerate(self.entries) if needle in e["text"].lower()]
+        # ContextMemory.search: the decision being asked is on screen and is never a result.
+        older = [(i, e) for i, e in enumerate(self.entries) if i + 1 != self.observation_id]
+        matches = [i for i, e in older if needle in e["text"].lower()]
         by_words = False
         if not matches:                                  # evidence-tools-v2: every word, any order
             want = words(needle)
-            matches = [i for i, e in enumerate(self.entries) if want and set(want) <= set(words(e["text"].lower()))]
+            matches = [i for i, e in older if want and set(want) <= set(words(e["text"].lower()))]
             by_words = bool(matches)
         if offset > len(matches):
             return "ERROR: offset outside search results."
@@ -229,6 +231,24 @@ def is_tool_line(line):
     return t.startswith("MEMORY ") or t.startswith("INSPECT ") or t.startswith("RULES ")
 
 
+def tool_line(reply):
+    """ContextMemory.toolLine: the first command line of a reply, code-fence backticks removed."""
+    for line in (reply or "").splitlines():
+        l = line.strip()
+        if l.startswith("`"):
+            l = l.lstrip("`")
+            l = l.split("`", 1)[0]
+        if is_tool_line(l):
+            return l.strip()
+    return None
+
+
+def looks_like_call_markup(content):
+    """NativeTools.looksLikeCallMarkup."""
+    c = content or ""
+    return any(m in c for m in ("invoke name=", "<tool_call", '"tool_calls"', "<function_call", "<function="))
+
+
 def text_command(tools, name, args):
     """A native call rendered as the canonical command line, or (None, error)."""
     spec = next((t for t in tools["tools"] if t["function"]["name"] == name), None)
@@ -246,9 +266,14 @@ def text_command(tools, name, args):
     for k, p in params["properties"].items():
         v = values.get(k)
         if p.get("type") == "integer" and (isinstance(v, bool) or not isinstance(v, int)):
-            if not (isinstance(v, float) and v == int(v)):
+            try:                                         # NativeTools.integer: 3, 3.0 and "3" are integers
+                if isinstance(v, bool) or float(v) != int(float(v)):
+                    raise ValueError
+                values[k] = int(float(v))
+            except (TypeError, ValueError):
                 return None, "ERROR: `%s` must be an integer." % k
-            values[k] = int(v)
+        if p.get("type") == "integer" and values[k] < p.get("minimum", values[k]):
+            return None, "ERROR: `%s` must be %d or more." % (k, p["minimum"])
         if p.get("type") == "string" and k in params.get("required", []) and not " ".join(str(v).split()):
             return None, "ERROR: %s needs `%s`." % (name, k)
     cmd = spec["text_command"]
@@ -304,13 +329,15 @@ def run_text(scenario, kind, tier, model, lenient, meta):
         r = model([{"role": "system", "content": system_text(tier)}, {"role": "user", "content": prompt}], None, meta)
         usage.append(r)
         reply = r.get("content") or ""
-        lines = [l for l in reply.splitlines() if is_tool_line(l)]
-        if not lines:
+        # v1 (strict) looked for any line that starts a command and then ran the WHOLE reply; v2 runs
+        # the first command line with its backticks removed.
+        line = tool_line(reply) if lenient else next((l for l in reply.splitlines() if is_tool_line(l)), None)
+        if line is None:
             return {"reply": reply, "choice": parse_choice(reply), "calls": calls, "usage": usage}
         if rnd == TOOLS_PER_ASK:
             calls.append({"request": reply, "command": None, "result": BUDGET_ERROR, "ok": False, "rejected": "budget"})
             return {"reply": reply, "choice": None, "calls": calls, "usage": usage}
-        request = lines[0].strip().strip("`").strip() if lenient else reply
+        request = line if lenient else reply
         result = seat.execute(request)
         ok = not result.startswith("ERROR")
         calls.append({"request": reply, "command": request if result != ONE_LINE_ERROR else None, "result": result,
@@ -329,13 +356,14 @@ def run_native(scenario, kind, tier, model, tools, meta):
     user = decision + "\n" + seat.brief() + "\nTool calls available this ask: %d.\n" % TOOLS_PER_ASK
     messages = [{"role": "system", "content": system_text(tier, native=True)}, {"role": "user", "content": user}]
     calls, usage, used = [], [], 0
-    for _ in range(TOOLS_PER_ASK + 1):                      # ContextMemory.askNative: the same bound
-        r = model(messages, offered, dict(meta, tool_choice="none" if used >= TOOLS_PER_ASK else "auto"))
+    for rnd in range(TOOLS_PER_ASK + 1):                    # ContextMemory.askNative: the same bound
+        allow = used < TOOLS_PER_ASK and rnd < TOOLS_PER_ASK    # no call on the last round
+        r = model(messages, offered, dict(meta, tool_choice="auto" if allow else "none"))
         usage.append(r)
         tcs = r.get("tool_calls") or []
         if not tcs:
             reply = r.get("content") or ""
-            if any(is_tool_line(l) for l in reply.splitlines()):
+            if tool_line(reply) is not None or looks_like_call_markup(reply):
                 # askNative: a text-grammar command instead of an answer never reaches a parser.
                 calls.append({"request": reply, "command": None, "ok": False, "rejected": "protocol",
                               "result": "ERROR: a tool request must be a function call; no tool executed."})
@@ -366,8 +394,16 @@ def run_native(scenario, kind, tier, model, tools, meta):
     return {"reply": None, "choice": None, "calls": calls, "usage": usage}
 
 
+def fact_returned(scenario, calls):
+    """REACH: every deciding string of the scenario (`hidden`) is in the results the executed calls
+    returned. Calling a tool is not enough; a search that finds nothing has reached nothing."""
+    got = " ".join(c["result"] for c in calls if c["ok"]).lower()
+    return bool(scenario.get("hidden")) and all(h.lower() in got for h in scenario["hidden"])
+
+
 def needs_met(scenario, calls):
-    """True when some alternative in `needs` has every (tool, argument) lookup among the executed calls."""
+    """True when some alternative in `needs` has every (tool, argument) lookup among the executed
+    calls: the model looked in the right place, whether or not the lookup found the fact."""
     done = [call_of(c["command"]) for c in calls if c["ok"] and c["command"]]
     for alternative in scenario.get("needs", []):
         if all(any(re.search(tool, n) and re.search(arg, a, re.I) for n, a in done) for tool, arg in alternative):
@@ -380,7 +416,8 @@ def score(scenario, kind, res):
     return {"attempts": len(calls), "executed": sum(1 for c in calls if c["ok"]),
             "rejected_protocol": sum(1 for c in calls if c["rejected"] == "protocol"),
             "rejected_other": sum(1 for c in calls if c["rejected"] in ("argument", "budget")),
-            "reached": needs_met(scenario, calls) if kind == "need" else None,
+            "reached": fact_returned(scenario, calls) if kind == "need" else None,
+            "looked": needs_met(scenario, calls) if kind == "need" else None,
             "answered": res["choice"] is not None, "correct": res["choice"] in scenario["answer"],
             "model_calls": len(res["usage"]),
             "completion_tokens": sum(int(u.get("completion_tokens") or 0) for u in res["usage"]),
@@ -568,6 +605,8 @@ def main(argv=None):
     ap.add_argument("--tiers", default="smart,fast")
     ap.add_argument("--trials", type=int, default=3)
     ap.add_argument("--workers", type=int, default=8)
+    ap.add_argument("--rescore", action="store_true",
+                    help="no model: recompute summary.json for --out from its rows.jsonl with the current scorer")
     ap.add_argument("--base-url", default=os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"))
     a = ap.parse_args(argv)
     tools, scen = load_suite()
@@ -575,6 +614,16 @@ def main(argv=None):
     tiers = [x for x in a.tiers.split(",") if x]
     if any(x not in ARMS for x in arms) or any(x not in TIER_CFG for x in tiers):
         ap.error("unknown arm or tier")
+    if a.rescore:
+        by_id = {iid: (kind, s) for iid, kind, s in instances(scen)}
+        with open(os.path.join(a.out, "rows.jsonl")) as f:
+            rows = [json.loads(l) for l in f]
+        for r in rows:
+            kind, s = by_id[r["instance"]]
+            r["reached"] = fact_returned(s, r["calls"]) if kind == "need" else None
+            r["looked"] = needs_met(s, r["calls"]) if kind == "need" else None
+        print_summary(summarise(rows, scen))
+        return 0
     if a.policy:
         model, label = policy_model(a.policy), "policy:" + a.policy
     else:

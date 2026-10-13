@@ -83,8 +83,8 @@ definition and comes back as a `tool_calls` turn.** Do not add a new text comman
   measuring the protocol. The text grammar (`MEMORY ...` / `INSPECT ...` lines) survives only as the
   fallback for a backend without function calling (the Claude CLI lane) and gets no new features.
 - Why: across 48 recorded games the text grammar refused 30 of the model's 43 tool requests for
-  their form, and in the tool-use suite native calling reached the needed lookup in 87% of
-  scenarios against 40% (`docs/harness/PLAYER-HARNESS.md`, "Tool protocol").
+  their form, and in the tool-use suite the deciding fact came back from a tool in 87% of asks with
+  native calling against 13% with that grammar (`docs/harness/PLAYER-HARNESS.md`, "Tool protocol").
 - A tool change is measured with `python3 eval/tool_use_suite.py` (reach, correct, restraint, each
   next to its trivial baseline) before any game is played, and audited in games with
   `python3 eval/tool_audit.py <run>` — a `REFUSED` request there is a harness defect.
@@ -177,7 +177,7 @@ python3 eval/improve_loop.py --controller llm --games 2   # play (floor mode = f
 python3 eval/model_sweep.py                               # per-model certification
 ```
 
-- **`eval/defect_analyzer.py` is the merge gate.** Hard invariants: `ai_tier_count=0`
+- **`eval/defect_analyzer.py` is the run oracle** (the PR merge gate is `scripts/pr_merge.sh`). Hard invariants: `ai_tier_count=0`
   and `silent_drop_total=0` (log-vs-jsonl reconciliation). It exits non-zero on
   violation. Never weaken the analyzer to make a run pass — it is the oracle.
 - **Per-model config lives in `ModelCfg`** (LlmSpikeGui.java, `OPENROUTER_MODEL_CFG`

@@ -62,7 +62,7 @@ def report(paths):
                 picks = r.get("picks")
                 if who.startswith("model") and isinstance(picks, list):
                     for i in picks:
-                        if isinstance(i, int) and i < len(r.get("options") or []):
+                        if isinstance(i, int) and 0 <= i < len(r.get("options") or []):
                             sac[name_of(r["options"][i])] += 1
                 elif fb:
                     m = re.search(r"->\s*(.+)$", fb)

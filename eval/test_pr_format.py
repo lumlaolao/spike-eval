@@ -17,7 +17,7 @@ BODY = """## What
 
 ## Evidence
 
-- acceptance: `OUT=/tmp/acc-native-1` 12/12 stages PASS, 278 Java, 141 Python
+- acceptance @ abc123456: OUT=/tmp/acc-native-1 12/12 stages PASS, 278 Java, 141 Python
 
 ## Provenance
 
@@ -26,7 +26,7 @@ memory_tools_version evidence-tools-v2; native_tools stamped.
 ## Review
 
 - pr-review @ abc123456: LOW two nits, fixed
-- simplify @ abc123456: CLEAN
+- simplify @ abc123456: SUGGESTIONS applied 8 of 10
 - standards @ abc123456: CLEAN
 
 ## Not done
@@ -65,7 +65,7 @@ class PrFormatTest(unittest.TestCase):
         t = "feat(tools): native calls"
         stale = pf.pr_problems(t, BODY, "fff000111222", ["eval/x.py"], gate=True)
         self.assertEqual(len([p for p in stale if "review the current head" in p]), 3)
-        missing = pf.pr_problems(t, BODY.replace("- simplify @ abc123456: CLEAN\n", ""), "abc123456789", [], gate=True)
+        missing = pf.pr_problems(t, BODY.replace("- simplify @ abc123456: SUGGESTIONS applied 8 of 10\n", ""), "abc123456789", [], gate=True)
         self.assertTrue(any("no `simplify` verdict" in p for p in missing))
         blocking = pf.pr_problems(t, BODY.replace("LOW two nits, fixed", "HIGH budget is spent twice"), "abc123456789", [], gate=True)
         self.assertTrue(any("verdict is HIGH" in p for p in blocking))
@@ -73,15 +73,46 @@ class PrFormatTest(unittest.TestCase):
         self.assertEqual(pf.pr_problems(t, BODY, "fff000111222", [], gate=False), [])
 
     def test_code_changes_need_an_acceptance_run_in_evidence(self):
-        body = BODY.replace("- acceptance: `OUT=/tmp/acc-native-1` 12/12 stages PASS, 278 Java, 141 Python", "- read it twice")
-        self.assertTrue(any("acceptance" in p for p in pf.pr_problems("docs: x", body, "abc123456789", ["forge-overlay/a.java"], gate=True)))
-        self.assertEqual(pf.pr_problems("docs: x", body, "abc123456789", ["docs/a.md"], gate=True), [])
+        line = "- acceptance @ abc123456: OUT=/tmp/acc-native-1 12/12 stages PASS, 278 Java, 141 Python"
+
+        def gate(evidence, files, head="abc123456789"):
+            return pf.pr_problems("docs: x", BODY.replace(line, evidence), head, files, gate=True)
+        # Saying the word is not evidence; neither is a partial pass, nor a pass on another commit.
+        self.assertTrue(any("has no line" in p for p in gate("- no acceptance run was made", ["forge-overlay/a.java"])))
+        self.assertTrue(any("full pass" in p for p in gate(line.replace("12/12", "11/12"), ["eval/x.py"])))
+        self.assertTrue(any("full pass" in p for p in gate(line.replace("abc123456", "fff000111"), ["scripts/pr_merge.sh"])))
+        self.assertEqual(gate(line, ["install.sh"]), [])
+        self.assertEqual(gate("- read it twice", ["docs/a.md"]), [])
+
+    def test_the_gate_checks_the_commits_on_the_pr_and_each_skill_vocabulary(self):
+        good = [("1a976281aa", "feat(tools): native calls\n\nwhy")]
+        bad = good + [("deadbeef00", "update stuff")]
+        t = "feat(tools): native calls"
+        self.assertEqual(pf.pr_problems(t, BODY, "abc123456789", [], gate=True, commits=good), [])
+        self.assertTrue(any(p.startswith("commit deadbeef0") for p in
+                            pf.pr_problems(t, BODY, "abc123456789", [], gate=True, commits=bad)))
+        # A standards VIOLATIONS verdict blocks; a pr-review verdict in simplify's words is refused.
+        v = pf.pr_problems(t, BODY.replace("standards @ abc123456: CLEAN", "standards @ abc123456: VIOLATIONS two rules"), "abc123456789", [], gate=True)
+        self.assertTrue(any("verdict is VIOLATIONS" in p for p in v))
+        w = pf.pr_problems(t, BODY.replace("pr-review @ abc123456: LOW", "pr-review @ abc123456: SUGGESTIONS"), "abc123456789", [], gate=True)
+        self.assertTrue(any("is not one of" in p for p in w))
 
     def test_missing_empty_and_misordered_sections(self):
         self.assertTrue(any("no `## Why`" in p for p in pf.pr_problems("docs: x", BODY.replace("## Why", "## Reason"))))
         self.assertTrue(any("`## Not done` is empty" in p for p in pf.pr_problems("docs: x", BODY.replace("MCP server; see the note.", "TODO"))))
         swapped = BODY.replace("## What", "## TMP").replace("## Why", "## What").replace("## TMP", "## Why")
         self.assertTrue(any("out of order" in p for p in pf.pr_problems("docs: x", swapped)))
+
+    def test_recording_replaces_the_line_by_heading_and_survives_odd_notes(self):
+        body = BODY.replace("## Why\n", "## Why\n\nThe `## Review` section was empty before.\n")
+        new = pf.updated_body(body, "Review", "- pr-review @", "- pr-review @ abc123456: MEDIUM reach 87% vs 40%")
+        self.assertIn("The `## Review` section was empty before.", new)        # prose mentioning the heading survives
+        self.assertEqual(pf.reviews(new)["pr-review"], ("abc123456", "MEDIUM", "reach 87% vs 40%"))
+        self.assertEqual(pf.reviews(new)["standards"][1], "CLEAN")              # the other lines are kept
+        self.assertEqual(list(pf.sections(new)), list(pf.sections(body)))
+        pending = BODY.replace("- pr-review @ abc123456: LOW two nits, fixed\n", "(pending: being reviewed)\n")
+        self.assertNotIn("(pending", pf.updated_body(pending, "Review", "- pr-review @", "- pr-review @ abc123456: CLEAN"))
+        self.assertIsNone(pf.updated_body("## What\n\nx\n", "Review", "- x", "- y"))
 
     def test_latest_verdict_per_agent_is_read(self):
         self.assertEqual(pf.reviews(BODY)["pr-review"], ("abc123456", "LOW", "two nits, fixed"))

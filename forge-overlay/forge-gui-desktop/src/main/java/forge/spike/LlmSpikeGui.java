@@ -3788,8 +3788,9 @@ public final class LlmSpikeGui {
             if (NativeTools.enabled() && b.supportsNativeTools()) {
                 // Native function calling: same archive, same executor, same budget; the request is a
                 // structured call instead of a line of text the reply must consist of.
-                String nativeReply = contextMemory.askNative(prompt, (user, messages, tools, allowCalls, round) -> {
-                    // A refusal of tools is not worth the bridge-retry ladder: stop at once.
+                // If the provider refuses tools mid-ask, this one decision gets no model answer (its
+                // caller takes the deterministic fallback); the seat's later decisions use the text loop.
+                return contextMemory.askNative(prompt, (user, messages, tools, allowCalls, round) -> {
                     if (!b.supportsNativeTools()) return null;
                     if (!(b == smart ? smartOk() : fastOk())) return null;
                     long start = System.currentTimeMillis();
@@ -3811,9 +3812,6 @@ public final class LlmSpikeGui {
                             + ",\"raw_reply\":" + (text == null ? "null" : "\"" + jsonEscape(text) + "\"") + "}");
                     return text == null ? null : got[0];
                 }, simulate, audit);
-                // Still native-capable: that reply (or its absence) is this decision's answer. Refused
-                // mid-ask: ask this same decision again through the text grammar below.
-                if (b.supportsNativeTools()) return nativeReply;
             }
             return contextMemory.ask(prompt, request -> {
                 if (!(b == smart ? smartOk() : fastOk())) return null;
@@ -6131,11 +6129,16 @@ public final class LlmSpikeGui {
          *  has no function calling -- not a transient failure. Package-private for NativeToolsTest. */
         static boolean refusesTools(int status, String body) {
             if (status < 400 || status >= 500 || status == 401 || status == 403 || status == 408 || status == 429) return false;
+            // Only the wordings that mean "no function calling here". A 400 that merely mentions tools
+            // (a context-length breakdown, a malformed tool message) must not end native calling.
             String b = body == null ? "" : body.toLowerCase(java.util.Locale.ROOT);
-            return b.contains("tool") || b.contains("function call");
+            return (b.contains("support") && (b.contains("tool") || b.contains("function calling")))
+                    && (b.contains("no endpoints") || b.contains("not support") || b.contains("unsupported")
+                        || b.contains("n't support"));
         }
 
         @Override public NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls) {
+            if (nativeRefused) return null; // refused once: do not send the same request again
             String m = messagesJson.trim();
             // The caller hands a JSON array; send() splices its elements after the system preamble.
             OrResult r = complete(m.substring(1, m.length() - 1), toolsJson, allowCalls);

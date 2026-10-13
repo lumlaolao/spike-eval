@@ -15,7 +15,7 @@ import com.google.gson.JsonParser;
  * Every tool maps 1:1 onto a command {@link ContextMemory#execute} already implements, so the native
  * and text protocols reach the same executor and the same per-ask / per-game budget; only the way a
  * request is expressed differs. Why it exists: across 48 recorded games the text grammar refused 30
- * of the model's 43 tool requests because the reply held a sentence as well as the command, and the
+ * of the model's 43 tool requests because the reply was not the bare command alone, and the
  * model twice wrote its own function-call syntax into the text reply (runs/lines/ctl).
  *
  * The definitions are duplicated in eval/tooluse/tools.json for the tool-use suite; NativeToolsTest
@@ -235,19 +235,28 @@ final class NativeTools {
             }
             case "memory_read": {
                 Integer id = integer(args, "evidence_id", -1), off = integer(args, "offset", 0);
-                if (id == null || off == null || !args.has("evidence_id")) return "ERROR: memory_read needs an integer `evidence_id`.";
+                if (id == null || id < 1 || off == null) return "ERROR: memory_read needs an integer `evidence_id` of 1 or more.";
                 return "MEMORY READ " + id + " " + off;
             }
             case "memory_note": {
                 Integer id = integer(args, "evidence_id", -1);
                 String note = oneLine(args.get("note"));
-                if (id == null || !args.has("evidence_id") || note.isEmpty())
+                if (id == null || id < 1 || note.isEmpty())
                     return "ERROR: memory_note needs an integer `evidence_id` and a `note`.";
                 return "MEMORY NOTE " + id + " " + note;
             }
             default:
                 return "ERROR: unknown tool `" + name + "`.";
         }
+    }
+
+    /** The model's own function-call markup written into the text of a reply (seen from deepseek once
+     *  calls were forbidden: `<｜DSML｜ invoke name="memory_read">`). It is a tool request, so it must
+     *  never be handed to an answer parser. */
+    static boolean looksLikeCallMarkup(String content) {
+        if (content == null) return false;
+        return content.contains("invoke name=") || content.contains("<tool_call") || content.contains("\"tool_calls\"")
+                || content.contains("<function_call") || content.contains("<function=");
     }
 
     /** Parse one chat-completions response body into a turn; null when it carries no usable message. */

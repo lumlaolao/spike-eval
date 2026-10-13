@@ -24,17 +24,21 @@ import os
 import sys
 from collections import Counter
 
+# Refusals of a request's FORM, by the message the harness answers with (ContextMemory.execute,
+# ContextMemory.askNative, NativeTools.command).
 FORM_ERRORS = ("ERROR: use exactly one", "ERROR: tool arguments", "ERROR: unknown tool", "ERROR: tool call has no name",
-               "ERROR: malformed MEMORY command")
+               "ERROR: malformed MEMORY command", "ERROR: a tool request must be a function call", "ERROR: `")
 
 
 def classify(request, result):
     result = result or ""
-    if "budget exhausted" in result:
+    # Outcomes are read from how the result STARTS: a served READ may quote any of these phrases.
+    if result.startswith("ERROR: tool budget exhausted"):
         return "exhausted"
-    if result.startswith(FORM_ERRORS) or (result.startswith("ERROR:") and " needs " in result):
+    if result.startswith(FORM_ERRORS) or (result.startswith("ERROR:") and " needs " in result.split("\n", 1)[0]):
         return "REFUSED"
-    if result.startswith("Matches=0") or "found no visible object" in result or "is not available" in result:
+    if result.startswith("Matches=0") or (result.startswith("ERROR:") and (
+            "found no visible object" in result or "is not available" in result or "no card named" in result)):
         return "empty"
     if result.startswith("ERROR"):
         return "bad-args"

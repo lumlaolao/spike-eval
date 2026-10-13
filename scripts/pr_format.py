@@ -6,7 +6,9 @@
   python3 scripts/pr_format.py check-branch [BASE]                # every commit on this branch
   python3 scripts/pr_format.py check-pr <number>                  # title, body sections, review record
   python3 scripts/pr_format.py new-pr [BASE]                      # print a title and body skeleton
-  python3 scripts/pr_format.py record-review <number> <skill> <verdict> [note]
+  python3 scripts/pr_format.py record-review <number> <sha reviewed> <skill> <verdict> [note]
+  python3 scripts/pr_format.py record-acceptance <number> <sha tested> <OUT dir> <passed> <total> [note]
+  python3 scripts/pr_format.py head <number>                      # the head sha the gate would check
 
 `check-pr --gate` also requires what a merge needs: all three review verdicts for the PR's current
 head commit, none BLOCKER or HIGH, and an acceptance run named in Evidence when code changed.
@@ -22,11 +24,16 @@ SUBJECT = re.compile(r"^(%s)(\([^()\n]{1,40}\))?: \S.*$" % "|".join(TYPES))
 SUBJECT_MAX = 100
 SECTIONS = ("What", "Why", "Evidence", "Provenance", "Review", "Not done")
 SKILLS = ("pr-review", "simplify", "standards")
-VERDICTS = ("CLEAN", "LOW", "MEDIUM", "HIGH", "BLOCKER")
-BLOCKING = ("HIGH", "BLOCKER")
+# Each skill reports in its own words; the gate refuses the blocking ones.
+SKILL_VERDICTS = {"pr-review": ("CLEAN", "LOW", "MEDIUM", "HIGH", "BLOCKER"),
+                  "simplify": ("CLEAN", "SUGGESTIONS"),
+                  "standards": ("CLEAN", "VIOLATIONS")}
+VERDICTS = tuple(sorted(set(v for vs in SKILL_VERDICTS.values() for v in vs)))
+BLOCKING = ("HIGH", "BLOCKER", "VIOLATIONS")
 REVIEW_LINE = re.compile(r"^- (%s) @ ([0-9a-f]{7,40}): (%s)\b(.*)$" % ("|".join(SKILLS), "|".join(VERDICTS)), re.M)
-CODE_PATHS = ("forge-overlay/", "eval/")
-ACCEPTANCE = re.compile(r"harness_acceptance|acceptance", re.I)
+CODE_PATHS = ("forge-overlay/", "eval/", "scripts/", "install.sh", "run-llm-")
+# `- acceptance @ <head sha>: OUT=<dir> <N>/<N> stages PASS ...`
+ACCEPTANCE = re.compile(r"^- acceptance @ ([0-9a-f]{7,40}): OUT=(\S+) (\d+)/(\d+) stages PASS\b", re.M)
 TRAILER = re.compile(r"^(Co-Authored-By|Claude-Session|Signed-off-by): ", re.I)
 
 
@@ -82,7 +89,11 @@ def reviews(body):
     return out
 
 
-def pr_problems(title, body, head=None, files=(), gate=False):
+def same_commit(a, b):
+    return bool(a and b) and (a.startswith(b) or b.startswith(a))
+
+
+def pr_problems(title, body, head=None, files=(), gate=False, commits=()):
     out = ["title: " + p for p in subject_problems(title)]
     secs = sections(body)
     present = [s for s in secs if s in SECTIONS]
@@ -95,18 +106,28 @@ def pr_problems(title, body, head=None, files=(), gate=False):
         out.append("sections are out of order; expected %s" % ", ".join(SECTIONS))
     if not gate:
         return out
+    for sha, message in commits:
+        out += ["commit %s: %s" % (sha[:9], p) for p in commit_problems(message)]
     got = reviews(body)
     for agent in SKILLS:
         if agent not in got:
             out.append("no `%s` verdict recorded in `## Review`" % agent)
             continue
         sha, verdict, _ = got[agent]
-        if head and not head.startswith(sha) and not sha.startswith(head):
+        if head and not same_commit(head, sha):
             out.append("%s reviewed %s but the PR head is %s; review the current head" % (agent, sha[:9], head[:9]))
+        if verdict not in SKILL_VERDICTS[agent]:
+            out.append("%s verdict %s is not one of %s" % (agent, verdict, "/".join(SKILL_VERDICTS[agent])))
         if verdict in BLOCKING:
             out.append("%s verdict is %s; fix it and review again" % (agent, verdict))
-    if any(f.startswith(CODE_PATHS) for f in files) and not ACCEPTANCE.search(secs.get("Evidence", "")):
-        out.append("code changed but `## Evidence` names no acceptance run")
+    if any(f.startswith(CODE_PATHS) for f in files):
+        runs = ACCEPTANCE.findall(secs.get("Evidence", ""))
+        if not runs:
+            out.append("code changed but `## Evidence` has no line "
+                       "`- acceptance @ <head sha>: OUT=<dir> <N>/<N> stages PASS`")
+        elif not any(passed == total and int(total) > 0 and (not head or same_commit(head, sha))
+                     for sha, _, passed, total in runs):
+            out.append("no acceptance run in `## Evidence` is a full pass for the PR head %s" % (head or "")[:9])
     return out
 
 
@@ -124,7 +145,13 @@ def branch_commits(base):
 
 
 def gh_pr(number):
-    return json.loads(run("gh", "pr", "view", str(number), "--json", "title,body,headRefOid,files,number"))
+    return json.loads(run("gh", "pr", "view", str(number), "--json", "title,body,headRefOid,files,commits"))
+
+
+def pr_commits(pr):
+    """(sha, full message) of the PR's commits as GitHub holds them, merges excluded by their subject."""
+    return [(c["oid"], c["messageHeadline"] + ("\n\n" + c["messageBody"] if c.get("messageBody") else ""))
+            for c in pr.get("commits") or []]
 
 
 def skeleton(base):
@@ -134,7 +161,7 @@ def skeleton(base):
     head = run("git", "rev-parse", "--short=9", "HEAD").strip()
     body = ["## What", ""] + ["- " + s for s in reversed(subjects)] + [
         "", "## Why", "", "<the evidence it was needed: file:line, a run directory, a count>", "",
-        "## Evidence", "", "- acceptance: `OUT=/tmp/<name>` <N>/<N> stages PASS, <J> Java, <P> Python",
+        "## Evidence", "", "- acceptance @ %s: OUT=/tmp/<name> <N>/<N> stages PASS, <J> Java, <P> Python" % head,
         "- <measurement, next to its trivial baseline>", "",
         "## Provenance", "", "<which stamps moved, or: none>", "",
         "## Review", ""] + ["- %s @ %s: <CLEAN|LOW|MEDIUM|HIGH|BLOCKER> <one line>" % (a, head) for a in SKILLS] + [
@@ -142,20 +169,46 @@ def skeleton(base):
     return title, "\n".join(body)
 
 
-def record_review(number, agent, verdict, note):
-    if agent not in SKILLS or verdict not in VERDICTS:
-        sys.exit("agent must be one of %s and verdict one of %s" % (", ".join(SKILLS), ", ".join(VERDICTS)))
-    pr = gh_pr(number)
-    line = "- %s @ %s: %s%s" % (agent, pr["headRefOid"][:9], verdict, (" " + note) if note else "")
-    body = pr["body"] or ""
+def record_review(number, reviewed, agent, verdict, note):
+    if agent not in SKILLS or verdict not in SKILL_VERDICTS[agent]:
+        sys.exit("skill must be one of %s; verdicts: %s" % (", ".join(SKILLS), "; ".join(
+            "%s %s" % (s, "/".join(v)) for s, v in SKILL_VERDICTS.items())))
+    record_line(number, reviewed, "Review", "- %s @" % agent,
+                "- %s @ {sha}: %s%s" % (agent, verdict, (" " + note) if note else ""))
+
+
+def replace_section(body, section, text):
+    """`body` with the `## section` block replaced by `text`; the heading is matched as a line."""
+    m = re.search(r"(?m)^## +%s[ \t]*$" % re.escape(section), body)
+    if not m:
+        return None
+    nxt = re.search(r"(?m)^## ", body[m.end():])
+    end = m.end() + nxt.start() if nxt else len(body)
+    return body[:m.start()] + "## %s\n\n%s\n\n" % (section, text.strip("\n")) + body[end:]
+
+
+def updated_body(body, section, prefix, line):
+    """The PR body with `line` put in `## section` in place of the line starting with `prefix` (or
+    appended), and any `(pending ...)` placeholder there dropped. None when the section is missing."""
     secs = sections(body)
-    if "Review" not in secs:
-        sys.exit("PR #%s has no `## Review` section" % number)
-    kept = [l for l in secs["Review"].splitlines() if not l.startswith("- %s @" % agent) and l.strip()]
-    new_review = "\n".join(kept + [line]) + "\n\n"
-    start = body.index("## Review")
-    end = body.find("\n## ", start + 1)
-    body = body[:start] + "## Review\n\n" + new_review + (body[end + 1:] if end >= 0 else "")
+    if section not in secs:
+        return None
+    kept = [l for l in secs[section].splitlines()
+            if l.strip() and not l.startswith(prefix) and not l.lower().startswith("(pending")]
+    return replace_section(body, section, "\n".join(kept + [line]))
+
+
+def record_line(number, reviewed, section, prefix, template):
+    """Record a line for the commit that was actually examined. Refused unless that commit is still
+    the PR head: a verdict typed after a push would otherwise bless a commit nobody looked at."""
+    pr = gh_pr(number)
+    if not same_commit(pr["headRefOid"], reviewed) or len(reviewed) < 7:
+        sys.exit("PR #%s head is %s but the commit examined was %s; examine the head and record again"
+                 % (number, pr["headRefOid"][:9], reviewed[:9]))
+    line = template.replace("{sha}", pr["headRefOid"][:9])
+    body = updated_body(pr["body"] or "", section, prefix, line)
+    if body is None:
+        sys.exit("PR #%s has no `## %s` section" % (number, section))
     subprocess.run(["gh", "pr", "edit", str(number), "--body", body], check=True, stdout=subprocess.DEVNULL)
     print(line)
 
@@ -174,13 +227,22 @@ def main(argv):
     elif cmd == "check-pr" and args:
         gate = "--gate" in args
         pr = gh_pr([a for a in args if a != "--gate"][0])
-        problems = pr_problems(pr["title"], pr["body"], pr["headRefOid"], [f["path"] for f in pr.get("files") or []], gate)
+        problems = pr_problems(pr["title"], pr["body"], pr["headRefOid"], [f["path"] for f in pr.get("files") or []],
+                               gate, pr_commits(pr) if gate else ())
     elif cmd == "new-pr":
         title, body = skeleton(base_ref(args[0] if args else None))
         print(title + "\n\n" + body)
         return 0
-    elif cmd == "record-review" and len(args) >= 3:
-        record_review(args[0], args[1], args[2], " ".join(args[3:]))
+    elif cmd == "head" and args:
+        print(gh_pr(args[0])["headRefOid"])
+        return 0
+    elif cmd == "record-acceptance" and len(args) >= 5:
+        record_line(args[0], args[1], "Evidence", "- acceptance @",
+                    "- acceptance @ {sha}: OUT=%s %s/%s stages PASS%s" % (
+                        args[2], args[3], args[4], (", " + " ".join(args[5:])) if args[5:] else ""))
+        return 0
+    elif cmd == "record-review" and len(args) >= 4:
+        record_review(args[0], args[1], args[2], args[3], " ".join(args[4:]))
         return 0
     else:
         print(__doc__)

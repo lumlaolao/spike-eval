@@ -37,12 +37,15 @@ Run all three skills on the PR's current head, in this order, and record each ve
 
 ```bash
 # skills: pr-review, simplify, standards  (.claude/skills/)
-python3 scripts/pr_format.py record-review <n> pr-review LOW "two nits, fixed in <sha>"
-python3 scripts/pr_format.py record-review <n> simplify CLEAN
-python3 scripts/pr_format.py record-review <n> standards CLEAN
+# <sha> is the commit that was tested / the HEAD: line of the skill's report; refused if it is not the PR head
+python3 scripts/pr_format.py record-acceptance <n> <sha> /tmp/<OUT dir> 12 12 "284 Java, 150 Python"
+python3 scripts/pr_format.py record-review <n> <sha> pr-review LOW "two nits"      # CLEAN/LOW/MEDIUM/HIGH/BLOCKER
+python3 scripts/pr_format.py record-review <n> <sha> simplify SUGGESTIONS "8 of 10 applied"   # or CLEAN
+python3 scripts/pr_format.py record-review <n> <sha> standards CLEAN                # or VIOLATIONS
 bash scripts/pr_merge.sh <n>                  # refuses unless the gate passes; merge commit, never squash
 ```
 
-A new commit after a review makes the recorded verdicts stale: the gate compares them to the PR
-head. Fix BLOCKER and HIGH findings, then review again. Simplifier suggestions are applied or
+A new commit makes the recorded verdicts and the acceptance line stale: the gate compares them to
+the PR head. So finish the fixes first, then run acceptance and the three skills on the final
+commit. Record only a verdict a skill actually returned. Simplifier suggestions are applied or
 declined with one line of reason in the PR body.

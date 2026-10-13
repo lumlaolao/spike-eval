@@ -21,6 +21,9 @@ python3 scripts/pr_format.py check-branch          # commit subjects and bodies 
 python3 scripts/pr_format.py check-pr <n>          # title and body sections (when there is a PR)
 python3 -m unittest discover -s eval -p 'test_*.py' 2>&1 | tail -3
 git diff --cached --name-only | grep -E '^(runs|datasets)/' && echo "generated data is staged"
+# every eval/*.py the change adds or edits has a test, or is still on the shrinking list:
+for f in $(git diff --name-only origin/main...HEAD -- 'eval/*.py' | xargs -n1 basename | grep -v '^test_'); do
+  [ -f "eval/test_$f" ] || grep -qx "$f" eval/UNTESTED.txt || echo "no test: eval/$f"; done
 ```
 
 Then go through the standards section by section and, for each rule the change touches, say
@@ -53,7 +56,7 @@ Propose the exact text. Do not edit `docs/STANDARDS.md` yourself; a standards ch
 ## Output
 
 ```
-VERDICT: CLEAN | VIOLATIONS
+VERDICT: CLEAN | VIOLATIONS      (record it with `scripts/pr_format.py record-review <n> <sha> standards <verdict>`)
 HEAD: <sha reviewed>
 
 MECHANICAL: the output of the checks above, trimmed to failures.

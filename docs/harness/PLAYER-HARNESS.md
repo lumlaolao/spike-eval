@@ -299,9 +299,10 @@ worlds differing only in the opponent's hidden cards render identically).
 
 `eval/tool_audit.py` over the three controlled arms (`runs/lines/ctl`, 48 games, 2,994 model calls)
 counts 43 tool requests. **30 were refused** with `ERROR: use exactly one MEMORY/INSPECT/RULES
-command line`: the reply held a sentence and then a valid command. The smart tier is instructed to
-write "at most two short sentences of reasoning, then a final line", so the harness asked for the
-sentence and then rejected the request because of it; a refusal also spent one of the seat's two
+command line`: the reply was not the bare command and nothing else. In 25 of the 30 it held other
+text (a sentence of reasoning first, usually); in 5 it was a valid command with only blank lines
+around it. The smart tier is instructed to write "at most two short sentences of reasoning, then a
+final line", so the harness asked for the sentence and then rejected the request because of it; a refusal also spent one of the seat's two
 tools. Twice the model wrote its own function-call markup into the text reply.
 
 Two changes, both in the tool layer (the observation is unchanged, `observation-faithful-v12`):
@@ -330,26 +331,36 @@ Two changes, both in the tool layer (the observation is unchanged, `observation-
   `run_batch.py --memory-tools` means native on `openrouter:` seats; `--text-tools` is the opt-out.
 
 Measured with the tool-use suite (`eval/tool_use_suite.py`, invented cards so the deciding fact
-exists only behind a tool; deepseek-v4.1-flash, 3 trials, `runs/tooluse/deepseek-v3`):
+exists only behind a tool; deepseek-v4.1-flash, 3 trials, `runs/tooluse/deepseek-v4`). **Reach**
+means the deciding fact actually came back from a tool, not merely that a tool was called:
 
-| protocol | tier | reached the needed lookup | answered correctly | refused / attempts | restraint |
+| protocol | tier | reach | answered correctly | refused for form / attempts | restraint |
 |---|---|---|---|---|---|
-| text v1 (strict) | smart | 12/30 (40%) | 16/30 (53%) | 31 / 46 | 27/27 |
-| text v2 (lenient) | smart | 18/30 (60%) | 19/30 (63%) | 0 / 38 | 27/27 |
-| native | smart | 26/30 (87%) | 26/30 (87%) | 0 / 72 | 26/27 |
-| text v1 (strict) | fast | 14/30 (47%) | 14/30 (47%) | 5 / 37 | 25/27 |
-| text v2 (lenient) | fast | 12/30 (40%) | 13/30 (43%) | 0 / 41 | 26/27 |
-| native | fast | 22/30 (73%) | 22/30 (73%) | 0 / 78 | 23/27 |
+| text v1 (strict) | smart | 4/30 (13%) | 11/30 (37%) | 33 / 48 | 27/27 |
+| text v2 (lenient) | smart | 12/30 (40%) | 17/30 (57%) | 0 / 32 | 27/27 |
+| native | smart | 26/30 (87%) | 27/30 (90%) | 1 / 75 | 27/27 |
+| text v1 (strict) | fast | 7/30 (23%) | 10/30 (33%) | 6 / 31 | 26/27 |
+| text v2 (lenient) | fast | 9/30 (30%) | 10/30 (33%) | 0 / 37 | 26/27 |
+| native | fast | 18/30 (60%) | 18/30 (60%) | 1 / 72 | 23/27 |
 
 Baselines: answering by chance 38%; a never-call policy reaches 0%; an always-call policy has 0%
-restraint; with the fact printed on screen the model answers 97-100% (smart) and 77-90% (fast).
-Scenario by scenario, native reached the lookup more often than text v1 in 8 of 10 scenarios on the
-smart tier and never less often (sign test p=0.008); 6 of 10 and never less on the fast tier
-(p=0.03). Thirty asks per cell are three trials of ten scenarios, not thirty independent samples.
-What it does not show: one two-step scenario (search, then inspect what the search found) was
-reached 0/3 by every protocol, and native calling costs restraint on the fast tier (23/27).
+restraint; with the fact printed on screen the model answers 100% (smart) and 83% (fast). On the
+smart tier every ask whose fact came back was answered correctly (4 of 4, 12 of 12, 26 of 26), and
+asks whose fact did not come back were answered correctly 13 times in 48 (below the 38% of
+chance), so reach is what decides the answer here. Scenario by scenario, native reached the fact more often than text v1 in 9 of 10
+scenarios on the smart tier and never less often (sign test p=0.004); 6 of 10 and never less on the
+fast tier (p=0.03). Thirty asks per cell are three trials of ten scenarios, not thirty independent
+samples, and runs differ: the previous run of the same suite (`deepseek-v3`, before the search
+stopped returning the decision being asked, rescored with `--rescore`) gave 9, 14 and 23 of 30
+on the smart tier. The order of the three protocols is the same in both; the size is not.
 
-Tests: `NativeToolsTest` (18, including a real HTTP round trip on loopback and equality of the Java
+What it does not show: the two-step scenario (search, then inspect what the search found) was
+reached 0/3 by every protocol; the fast tier asked for nothing in 6 of its 12 native asks about an
+unknown permanent and got 7 of those 12 wrong; and native calling costs restraint on the fast tier
+(23/27). The single native "refused for form" per tier is the model writing its call markup into
+the text once calls were forbidden, which is refused rather than parsed.
+
+Tests: `NativeToolsTest` (21, including a real HTTP round trip on loopback and equality of the Java
 definitions with `eval/tooluse/tools.json`), `eval/test_tool_use_suite.py`, `eval/test_tool_audit.py`;
 acceptance stage `nativetool`.
 

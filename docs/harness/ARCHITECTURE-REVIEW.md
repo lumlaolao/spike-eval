@@ -410,7 +410,7 @@ and the turn ahead, and that giving it a way to plan or look ahead would fix tha
   executed 15 plan steps in 16 games, because the model mostly declined to hand them over
   ("STEPS: (none -- I want to choose Thoughtseize's target myself)").
 - **Lookahead did nothing measurable, because it was barely used.** The model asked for a preview 7
-  times in 16 games (875 model calls). Same wins; contradictions 14 of 155 (9.0%).
+  times in 16 games (900 model calls by `tool_audit.py`'s count, the one used below). Same wins; contradictions 14 of 155 (9.0%).
 - **The seat does state sequences.** It wrote a plan in 109-137 turns per arm and its plays
   contradicted the plan's own hold clauses in 7-9% of plays in every arm, pre-fix included. Stating
   the line is not the missing piece.
@@ -422,26 +422,30 @@ optional text reply help", and the answer to that is no. Offered and used are di
 
 `python3 eval/tool_audit.py runs/lines/ctl/control runs/lines/ctl/planexec runs/lines/ctl/lookahead`:
 in 48 games and 2,994 model calls the model made 43 tool requests, and the harness **refused 30 of
-them (70%)** for their form: a sentence, then a valid command, answered with `ERROR: use exactly one
-MEMORY/INSPECT/RULES command line`. The smart tier's own instructions ask for the sentence. Ten
+them (70%)** for their form, answered with `ERROR: use exactly one MEMORY/INSPECT/RULES command
+line`: 25 held other text beside a valid command (the sentence the smart tier's own instructions
+ask for), 5 were a valid command with only blank lines around it. Ten
 requests were served. In the pre-fix arm all 6 requests were refused. Twice the model wrote its
 native function-call markup into the text reply. This is a harness defect (problem 12, layer:
 tools), found by reading `context_tool` rows rather than by hypothesis.
 
 It was then measured in isolation with the tool-use suite (`eval/tool_use_suite.py`; invented
-cards, so the deciding fact exists only behind a tool; `runs/tooluse/deepseek-v3`). The table,
-baselines and sign tests are in `PLAYER-HARNESS.md`, "Tool protocol": on the smart tier native
-calling reached the needed lookup in 26 of 30 asks against 12 of 30 for the shipped grammar
-(never-call policy: 0). The suite's refusal rate under the shipped grammar (31 of 46) matches
-the games' (30 of 43), which is the reason to believe the suite measures the same thing the
-games showed. The first run of the suite was discarded: three of its fixtures were wrong (a
-lookup any reasonable agent would make had no answer), found by reading the transcripts.
+cards, so the deciding fact exists only behind a tool; `runs/tooluse/deepseek-v4`). The table,
+baselines and sign tests are in `PLAYER-HARNESS.md`, "Tool protocol": on the smart tier the
+deciding fact came back from a tool in 26 of 30 asks with native calling, 12 of 30 with the
+repaired grammar and 4 of 30 with the shipped one (never-call policy: 0), and every ask whose fact
+came back was answered correctly. The suite's refusal rate under the shipped grammar (33 of 48)
+matches the games' (30 of 43), which is the reason to believe the suite measures the same thing
+the games showed. Two earlier runs are not the published one: the first had three wrong fixtures (a
+lookup any reasonable agent would make had no answer), and the review of this change found that
+"reach" was being credited for calling a tool whether or not the fact came back, and that a search
+returned the decision that was asking. Both were fixed before the run quoted here.
 
-The suite also shows what native calling does not fix. With no rules text on screen the model
-attacked into an unknown creature without inspecting it in 4 of 12 smart-tier native asks, once
-writing "Thornback Grazer is a vanilla 4/4 with no trample" about a card it had never seen. Reach
-is a model property the harness can raise, not guarantee, which is why opponent card text is pushed
-into the observation (v12) rather than left to a lookup.
+The suite also shows what native calling does not fix. On the fast tier (reasoning off) the model
+asked for nothing in 6 of 12 native asks about a permanent whose text it had never seen, and got 7
+of the 12 wrong; on the smart tier it inspected all 12. Reach is a model property the harness can
+raise, not guarantee, which is why opponent card text is pushed into the observation (v12) rather
+than left to a lookup.
 
 ### The same sixteen games on the new tool protocols
 
@@ -451,7 +455,9 @@ allowance; observation v12 unchanged; no game capped; load 0.2 per core):
 
 | arm | tool requests | served | refused for form | previews | model wins | plan contradictions |
 |---|---|---|---|---|---|---|
-| text grammar v1 (`control`, `planexec`, `lookahead` pooled for this row only, 48 games) | 43 | 10 | **30** | 7 (in `lookahead`) | 6, 6, 6 of 16 | 7-9% |
+| `control` (text grammar v1) | 15 | 4 | **11** | n/a | 6 of 16 | 14 of 174 (8.0%) |
+| `planexec` (v1) | 15 | 3 | **9** | n/a | 6 of 16 | 12 of 167 (7.2%) |
+| `lookahead` (v1, `LOOKAHEAD=1`) | 13 | 3 | **10** | 7 | 6 of 16 | 14 of 155 (9.0%) |
 | `textv2` (repaired grammar) | 7 | 7 | 0 | n/a | 6 of 16 | 7 of 151 (4.6%) |
 | `native` | **213** | 202 | 0 | n/a | 6 of 16 | 11 of 170 (6.5%) |
 | `native-lookahead` (`LOOKAHEAD=1`) | 150 | 146 | 0 | **35** | 5 of 16 | 16 of 154 (10.4%) |
@@ -459,12 +465,12 @@ allowance; observation v12 unchanged; no game capped; load 0.2 per core):
 `python3 eval/tool_audit.py runs/lines/ctl/<arm>`, `eval/line_compare.py`, `eval/plan_audit.py`.
 
 - **The protocol was the reason the tools went unused.** With native calls the seat made about 13
-  requests a game where it had made under one, 170 of them `inspect`, and none was refused for its
+  requests a game where it had made under one, 174 of them `inspect`, and none was refused for its
   form. Repairing the text grammar removed the refusals but not the reluctance (7 requests in 16
   games): the model reaches for a function, not for a reply format.
 - **Lookahead was finally exercised** (35 previews against 7), which makes `native-lookahead` the
   first arm that tests the hypothesis rather than the offer.
-- **Nothing moved in the results.** 6, 6 and 5 wins of 16; every paired comparison is 1-3 games
+- **Nothing moved in the results.** 6, 6 and 5 wins of 16; every paired comparison is at most 4 games
   either way (sign tests p=1.0). Plan contradictions did not fall with lookahead (10.4%, the highest
   of any arm, on 154 plays; not distinguishable from 6.5% at this size).
 
