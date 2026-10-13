@@ -53,6 +53,11 @@ class ToolAuditTest(unittest.TestCase):
         self.assertEqual(ta.classify("INSPECT @3", "ERROR: a tool request must be a function call; no tool executed."), "REFUSED")
         self.assertEqual(ta.classify("x", "ERROR: `offset` must be an integer."), "REFUSED")
         self.assertEqual(ta.classify("x", "ERROR: rules_lookup needs `action`: one of [search, read]."), "REFUSED")
+        # Recorded (runs/lines/ctl/native-lookahead): a preview that threw is a failed tool, not a served one.
+        self.assertEqual(ta.classify("TOOL CALL simulate {\"option\":1}", "LOOKAHEAD (option 1): (preview failed: RuntimeException)"), "FAILED")
+        self.assertEqual(ta.classify("x", "LOOKAHEAD (option 2): (lookahead v1 supports spell options only)"), "empty")
+        self.assertEqual(ta.classify("x", "ERROR: `option` must be the number of a SPELL option (1..2)."), "bad-args")
+        self.assertEqual(ta.classify("x", "LOOKAHEAD (option 1): if you cast Guide of Souls: you board 1 -> 2; Rival no change"), "served")
         # A served read that QUOTES an error phrase is still served.
         self.assertEqual(ta.classify("x", "M3 (observation) chars 0..90/90 next=END\nERROR: tool budget exhausted; found no visible object"), "served")
 

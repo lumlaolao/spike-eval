@@ -7,7 +7,11 @@ Reads `context_tool` / `context_call` rows (MEMORY_TOOLS=1 games) and sorts each
   REFUSED     the harness rejected the request's FORM (text grammar: the reply was not exactly one
               command line; native: the arguments were not valid). The model asked; the harness
               did not listen. This is a harness defect by construction.
-  empty       the tool ran and found nothing (`Matches=0`), or the target did not exist
+  FAILED      the tool itself broke (a lookahead preview that threw). A harness defect: the model
+              asked correctly and got nothing. Sixteen of sixteen spell previews in one arm went this
+              way unnoticed while they were counted as served.
+  empty       the tool ran and found nothing (`Matches=0`), the target did not exist, or the option
+              was one the tool does not cover (a preview of a non-spell option)
   bad-args    the tool ran and the arguments were wrong (an id out of range, a non-integer)
   exhausted   the request came after the per-ask budget was spent, so the decision got no answer
 
@@ -30,13 +34,23 @@ FORM_ERRORS = ("ERROR: use exactly one", "ERROR: tool arguments", "ERROR: unknow
                "ERROR: malformed MEMORY command", "ERROR: a tool request must be a function call", "ERROR: `")
 
 
+OUTCOMES = ("served", "REFUSED", "FAILED", "empty", "bad-args", "exhausted")
+
+
 def classify(request, result):
     result = result or ""
     # Outcomes are read from how the result STARTS: a served READ may quote any of these phrases.
+    first = result.split("\n", 1)[0]
     if result.startswith("ERROR: tool budget exhausted"):
         return "exhausted"
+    if "must be the number of" in first:                 # a well-formed call naming an option that is not there
+        return "bad-args"
     if result.startswith(FORM_ERRORS) or (result.startswith("ERROR:") and " needs " in result.split("\n", 1)[0]):
         return "REFUSED"
+    if "(preview failed" in first or result.startswith("ERROR: preview"):
+        return "FAILED"
+    if "supports spell options only" in first or "(no preview)" in first or "(preview unavailable)" in first:
+        return "empty"
     if result.startswith("Matches=0") or (result.startswith("ERROR:") and (
             "found no visible object" in result or "is not available" in result or "no card named" in result)):
         return "empty"
@@ -94,7 +108,7 @@ def report(name, a):
     print("%s: %d games, %d model calls (%s), %d tool requests (%.1f per 100 model calls)" % (
         name, a["games"], a["model_calls"], ", ".join("%s %d" % kv for kv in sorted(a["protocols"].items())) or "none",
         a["requests"], 100.0 * a["requests"] / max(1, a["model_calls"])))
-    for kind in ("served", "REFUSED", "empty", "bad-args", "exhausted"):
+    for kind in OUTCOMES:
         n = a["by_outcome"].get(kind, 0)
         print("  %-10s %3d  (%s of requests)%s" % (kind, n, pct(n, a["requests"]),
                                                    "   e.g. " + a["examples"][kind] if kind in a["examples"] and kind != "served" else ""))
@@ -103,7 +117,7 @@ def report(name, a):
     tools = sorted(set(t for t, _ in a["by_tool"]))
     if tools:
         print("  by tool: " + "; ".join("%s %s" % (t, ", ".join(
-            "%s %d" % (k, a["by_tool"][(t, k)]) for k in ("served", "REFUSED", "empty", "bad-args", "exhausted") if a["by_tool"].get((t, k))))
+            "%s %d" % (k, a["by_tool"][(t, k)]) for k in OUTCOMES if a["by_tool"].get((t, k))))
             for t in tools))
 
 
@@ -111,7 +125,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("paths", nargs="+", help="run directories or JSONL files")
     ap.add_argument("--json", action="store_true")
-    ap.add_argument("--fail-on-refused", action="store_true", help="exit 1 if any request was refused for its form")
+    ap.add_argument("--fail-on-refused", action="store_true",
+                    help="exit 1 if any request was refused for its form or any tool failed (both are harness defects)")
     a = ap.parse_args(argv)
     per, allfiles = {}, []
     for p in a.paths:
@@ -131,7 +146,7 @@ def main(argv=None):
             report(p.rstrip("/"), res)
         if len(per) > 1:
             report("TOTAL", total)
-    return 1 if a.fail_on_refused and total["by_outcome"].get("REFUSED") else 0
+    return 1 if a.fail_on_refused and (total["by_outcome"].get("REFUSED") or total["by_outcome"].get("FAILED")) else 0
 
 
 if __name__ == "__main__":

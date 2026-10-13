@@ -336,10 +336,11 @@ if has_stage lookahead; then
         LOOK="$(grep -c '\[ROUTER\] lookahead' "$dir/game.log" 2>/dev/null)"; LOOK="${LOOK:-0}"
         TGT="$(grep -c 'assuming target:' "$dir/game.log" 2>/dev/null)"; TGT="${TGT:-0}"
         AILOG="$(grep -c '\[FALLBACK->AI\]' "$dir/game.log" 2>/dev/null)"; AILOG="${AILOG:-0}"
-        if [ "$LOOK" -ge 1 ] && [ "$TGT" -ge 1 ] && [ "$AILOG" -eq 0 ]; then
-          pass lookahead "preview rounds=$LOOK (targeting previews=$TGT), no AI fallbacks"
+        PFAIL="$(grep -c '\[ROUTER\] lookahead.*preview failed' "$dir/game.log" 2>/dev/null)"; PFAIL="${PFAIL:-0}"
+        if [ "$LOOK" -ge 1 ] && [ "$TGT" -ge 1 ] && [ "$AILOG" -eq 0 ] && [ "$PFAIL" -eq 0 ]; then
+          pass lookahead "preview rounds=$LOOK (targeting previews=$TGT), 0 failed previews, no AI fallbacks"
         else
-          fail lookahead "preview rounds=$LOOK targeting=$TGT fallbacks=$AILOG (need >=1 preview, >=1 targeting preview, 0 fallbacks)"
+          fail lookahead "preview rounds=$LOOK targeting=$TGT failed_previews=$PFAIL fallbacks=$AILOG (need >=1 preview, >=1 targeting preview, 0 failed, 0 fallbacks)"
         fi
       fi
     fi
@@ -363,10 +364,13 @@ if has_stage nativetool; then
     FAKE_PID=$!
     PORT=""; for i in 1 2 3 4 5 6 7 8 9 10; do PORT="$(awk '/^LISTENING/{print $2}' "$sdir/fake_server.out" 2>/dev/null)"; [ -n "$PORT" ] && break; sleep 0.5; done
     if [ -z "$PORT" ]; then fail nativetool "fake model server did not start"; kill $FAKE_PID 2>/dev/null; else
-      say "nativetool: LLM seat A on loopback fake model, native tools by default (NATIVE_TOOLS unset), MEMORY_TOOLS=1 LOOKAHEAD=1 under v4-faithful (burn mirror)"
+      # Mardu mirror on purpose: both sideboards hold Barrowgoyf, the characteristic-defining card that
+      # made the engine copier throw on every preview (PlayerLookahead.UncopiedEffects). The burn
+      # mirror the lookahead stage plays has no such card and never saw the defect.
+      say "nativetool: LLM seat A on loopback fake model, native tools by default (NATIVE_TOOLS unset), MEMORY_TOOLS=1 LOOKAHEAD=1 under v4-faithful (Mardu mirror)"
       play nativetool 42 CONTROLLER_A=llm CONTROLLER_B=floor SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
           OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" MEMORY_TOOLS=1 LOOKAHEAD=1 CONTEXT_PROFILE=v4-faithful GAME_CAP_MS=120000 \
-          DECK_A="$REPO/eval/decks/burn.txt" DECK_B="$REPO/eval/decks/burn.txt" DECK_A_NAME=Burn DECK_B_NAME=BurnB
+          DECK_A="$REPO/eval/decks/mardu-energy.txt" DECK_B="$REPO/eval/decks/mardu-energy.txt" DECK_A_NAME=MarduA DECK_B_NAME=MarduB
       kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
       if ! check_build_loaded "$dir"; then fail nativetool "JVM did not load LlmSpikeGui from $CLASSES"; else
         ( cd "$REPO" && python3 eval/defect_analyzer.py "$dir" --json "$dir/defects.json" ) >"$dir/defects.txt" 2>&1; ARC=$?
@@ -410,6 +414,10 @@ if not reqs or len(with_tools)!=len(reqs): problems.append("%d of %d requests ca
 if not any(r.get("tool_results") for r in reqs): problems.append("no request carried a tool result back")
 if any(r.get("has_authorization") for r in reqs): problems.append("authorization header sent to loopback")
 if not any("simulate" in r.get("tools_offered",[]) for r in reqs): problems.append("simulate was never offered")
+previews=[r for r in tools if r.get("request","").startswith("TOOL CALL simulate ")]
+broken=[r for r in previews if "preview failed" in r.get("result","")]
+if broken: problems.append("%d of %d previews failed (the engine copy threw; see [LOOKAHEAD] in game.log)"%(len(broken),len(previews)))
+if not any("if you cast" in r.get("result","") for r in previews): problems.append("no preview returned a result")
 if all("simulate" in r.get("tools_offered",[]) for r in reqs): problems.append("simulate was offered outside play decisions")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
 facts="context_calls=%d (later rounds %d) tool_rows=%d served: search=%d inspect=%d simulate=%d refused_malformed=%d fake_requests=%d"%(

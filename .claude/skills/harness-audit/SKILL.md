@@ -18,7 +18,7 @@ anything.
 ```bash
 RUN="runs/<arm> [more arms]"
 python3 eval/defect_analyzer.py $RUN          # hard invariants: ai tier = 0, silent drops = 0, fallbacks, truncation
-python3 eval/tool_audit.py $RUN               # every tool request: served / REFUSED / empty / bad-args / exhausted
+python3 eval/tool_audit.py $RUN               # every tool request: served / REFUSED / FAILED / empty / bad-args / exhausted
 python3 eval/plan_audit.py $RUN               # plays that contradict the seat's own stated plan
 python3 eval/line_report.py $RUN              # sacrifices, optional triggers, activations, casts from outside the hand
 python3 eval/mine_puzzles.py $RUN --out /tmp/puzzle-candidates.jsonl
@@ -34,6 +34,7 @@ have capped games; say so in the report.
 | `tier=ai` row, `[FALLBACK->AI]` in a log | HARNESS, blocker | the engine's AI made a strategy decision |
 | silent drop (log ask with no jsonl row) | HARNESS, blocker | a decision is missing from the record |
 | tool request `REFUSED` | HARNESS | the model asked in a form the harness rejected |
+| tool request `FAILED` | HARNESS, blocker for that arm | the tool broke; an arm whose tool failed every time measured nothing |
 | `fallback` set on a smart/fast row (unparseable reply -> first legal option) | HARNESS first | read the reply: a clear answer the parser missed is HARNESS; gibberish is MODEL |
 | `finish_reason=length`, empty reply, `attempts > 1` | HARNESS (budget/config) | the model was cut off |
 | `[ROUTER] play: FAILED to pay` | HARNESS | an offered option could not be carried out |

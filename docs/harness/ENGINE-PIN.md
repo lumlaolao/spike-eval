@@ -50,6 +50,13 @@ The only API-visible changes that touched the overlay's surface:
 4b. **Re-diff the copied play routine.** `PlayerControllerLLM.playChosenSpellAbility` repeats the
    steps of `ComputerUtil.handlePlayingSpellAbility` so it can pay with `LlmCostDecision` (the engine
    hard-codes `AiCostDecision` there). If upstream changed that method, port the change.
+4c. **Re-check the copier workaround.** `PlayerLookahead.UncopiedEffects` reaches the private
+   `forge.game.StaticEffects.staticEffects` map by reflection, because `GameCopier` does not copy the
+   Sideboard and throws on a sideboard card with a characteristic-defining ability.
+   `LookaheadProbeTest.aSideboardCardWithACharacteristicDefiningAbilityDoesNotBreakThePreview` first
+   asserts the engine still throws: if it fails with "remove the workaround", upstream fixed it and
+   the class goes; if it fails on the field, the map was renamed and `tableOf` follows it.
+
 5. Update `FORGE_COMMIT`, then run the **full** acceptance. If the canaries moved, that is a real
    behaviour change: re-pin `eval/harness_acceptance.expected` **deliberately and with a note**, never
    by relaxing the assertion.

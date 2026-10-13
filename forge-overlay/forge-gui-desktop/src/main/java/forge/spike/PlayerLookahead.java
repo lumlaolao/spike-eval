@@ -47,7 +47,9 @@ final class PlayerLookahead {
             // Everything the copy does from here draws from THIS Random, not the live one. The live
             // Random object is never used, so restoring the reference restores its exact state.
             MyRandom.setRandom(new Random(seed));
-            Game copy = new GameCopier(live).makeCopy();
+            Game copy;
+            UncopiedEffects parked = UncopiedEffects.park(live);
+            try { copy = new GameCopier(live).makeCopy(); } finally { parked.restore(); }
             for (Player p : copy.getPlayers()) {
                 Zone lib = p.getZone(ZoneType.Library);
                 if (lib != null && lib.size() >= 2) lib.shuffle();
@@ -110,8 +112,11 @@ final class PlayerLookahead {
             try { label = liveOption.getHostCard() == null ? "the spell" : liveOption.getHostCard().getName(); }
             catch (Exception e) { label = "the spell"; }
             String assumed = selectFirstTargets(liveOption, targetHint);
-            GameSimulator sim = new GameSimulator(
-                    new SimulationController(new GameStateEvaluator.Score(0)), live, seat, null);
+            GameSimulator sim;
+            UncopiedEffects parked = UncopiedEffects.park(live);   // the constructor is where the copy is made
+            try {
+                sim = new GameSimulator(new SimulationController(new GameStateEvaluator.Score(0)), live, seat, null);
+            } finally { parked.restore(); }
             sim.simulateSpellAbility(liveOption, false); // play on the copy, resolve separately below
             Game simGame = sim.getSimulatedGameState();
             if (simGame == null) return "(preview unavailable)";
@@ -132,6 +137,12 @@ final class PlayerLookahead {
             }
             return b.toString();
         } catch (Throwable t) {
+            // The model is told only that the preview failed; the log says why. Failing without a
+            // reason in the log is how every spell preview of a 16-game arm came back empty unnoticed.
+            StackTraceElement[] st = t.getStackTrace();
+            StringBuilder where = new StringBuilder();
+            for (int i = 0; i < Math.min(6, st.length); i++) where.append(" <- ").append(st[i]);
+            System.out.println("[LOOKAHEAD] preview failed: " + t + where);
             return "(preview failed: " + t.getClass().getSimpleName() + ")";
         } finally {
             // Restore the live option's own targets (usually none), THEN the live RNG reference.
@@ -200,5 +211,65 @@ final class PlayerLookahead {
             }
         }
         return cands.get(0);
+    }
+
+    /**
+     * Works around an engine defect without touching the engine or the game.
+     *
+     * {@link GameCopier} copies seven zones and not the Sideboard. A characteristic-defining ability
+     * ("Barrowgoyf's power is equal to...") applies in every zone, so the engine keeps a static effect
+     * whose source is a SIDEBOARD card, and the copier then throws "Couldn't map Barrowgoyf" for it
+     * ({@code GameCopier.makeCopy -> StaticEffect.removeMapped}). Every preview in a game where either
+     * player had such a card in the sideboard failed: 16 of 16 spell previews in
+     * runs/lines/ctl/native-lookahead, 104 of 104 on loopback with the Mardu deck.
+     *
+     * While the copy is made, the effects whose source is in a zone the copier does not copy are taken
+     * out of the engine's effect table, and put back afterwards in the original order. Nothing on any
+     * card is changed and the table is identical before and after; a sideboard card cannot matter to
+     * a preview of the next spell. The table is private in {@code forge.game.StaticEffects}, hence the
+     * reflection: an engine bump that renames it makes {@link #park} report, not fail silently
+     * (LookaheadProbeTest pins the field; docs/harness/ENGINE-PIN.md lists it).
+     */
+    static final class UncopiedEffects {
+        static final java.util.Set<ZoneType> COPIED = java.util.EnumSet.of(ZoneType.Battlefield, ZoneType.Hand,
+                ZoneType.Graveyard, ZoneType.Library, ZoneType.Exile, ZoneType.Stack, ZoneType.Command);
+        private final java.util.Map<Object, Object> table;      // the live table, or null when nothing was parked
+        private final java.util.LinkedHashMap<Object, Object> original;
+        final int parked;
+
+        private UncopiedEffects(java.util.Map<Object, Object> table, java.util.LinkedHashMap<Object, Object> original, int parked) {
+            this.table = table; this.original = original; this.parked = parked;
+        }
+
+        @SuppressWarnings("unchecked")
+        static java.util.Map<Object, Object> tableOf(Game game) throws ReflectiveOperationException {
+            java.lang.reflect.Field f = forge.game.StaticEffects.class.getDeclaredField("staticEffects");
+            f.setAccessible(true);
+            return (java.util.Map<Object, Object>) f.get(game.getStaticEffects());
+        }
+
+        static UncopiedEffects park(Game live) {
+            try {
+                java.util.Map<Object, Object> table = tableOf(live);
+                java.util.LinkedHashMap<Object, Object> original = new java.util.LinkedHashMap<>(table);
+                int n = 0;
+                for (java.util.Map.Entry<Object, Object> e : original.entrySet()) {
+                    forge.game.card.Card src = ((forge.game.StaticEffect) e.getValue()).getSource();
+                    Zone z = src == null ? null : src.getZone();
+                    if (z != null && !COPIED.contains(z.getZoneType())) { table.remove(e.getKey()); n++; }
+                }
+                return n == 0 ? new UncopiedEffects(null, null, 0) : new UncopiedEffects(table, original, n);
+            } catch (ReflectiveOperationException | RuntimeException e) {
+                System.out.println("[LOOKAHEAD] cannot park uncopied-zone effects (engine changed?): " + e);
+                return new UncopiedEffects(null, null, 0);
+            }
+        }
+
+        /** Put the table back exactly: same entries, same iteration order. */
+        void restore() {
+            if (table == null) return;
+            table.clear();
+            table.putAll(original);
+        }
     }
 }

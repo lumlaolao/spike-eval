@@ -125,6 +125,55 @@ public class LookaheadProbeTest {
         Assert.assertTrue(theirs.isInZone(forge.game.zone.ZoneType.Battlefield));
     }
 
+    /**
+     * The defect behind every failed preview of the Mardu games (runs/lines/ctl/native-lookahead: 16
+     * of 16 spell previews; 104 of 104 on loopback): a characteristic-defining card in a SIDEBOARD
+     * has a static effect the engine's copier cannot map, because it does not copy that zone.
+     */
+    @Test
+    public void aSideboardCardWithACharacteristicDefiningAbilityDoesNotBreakThePreview() throws Exception {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+        for (int i = 0; i < 2; i++) SeatObservationTest.card("Mountain", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.card.Card pyro = SeatObservationTest.card("Pyroclasm", me, forge.game.zone.ZoneType.Hand);
+        SeatObservationTest.card("Elite Vanguard", opp, forge.game.zone.ZoneType.Battlefield);
+        SeatObservationTest.card("Barrowgoyf", opp, forge.game.zone.ZoneType.Sideboard);
+        SeatObservationTest.card("Barrowgoyf", me, forge.game.zone.ZoneType.Sideboard);
+        g.getAction().checkStaticAbilities();
+
+        // The fixture reproduces the engine defect. If this stops throwing, the engine was fixed and
+        // PlayerLookahead.UncopiedEffects can be deleted.
+        try {
+            new forge.ai.simulation.GameCopier(g).makeCopy();
+            Assert.fail("the engine copier now handles a sideboard CDA card: remove the workaround");
+        } catch (RuntimeException e) {
+            Assert.assertTrue(String.valueOf(e.getMessage()).contains("Couldn't map Barrowgoyf"), String.valueOf(e));
+        }
+
+        java.util.Map<Object, Object> table = PlayerLookahead.UncopiedEffects.tableOf(g);
+        java.util.List<Object> keysBefore = new java.util.ArrayList<>(table.keySet());
+        java.util.List<Object> valuesBefore = new java.util.ArrayList<>(table.values());
+        Assert.assertTrue(keysBefore.size() >= 2, "fixture: no static effects for the sideboard cards");
+
+        String report = PlayerLookahead.previewCast(g, me, spellOn(pyro), 5L);
+        Assert.assertFalse(report.contains("preview failed"), report);
+        Assert.assertTrue(report.contains("board 1 -> 0"), report);
+        Assert.assertNotNull(PlayerLookahead.copyForPreview(g, 5L));
+
+        // The live table is exactly what it was: same objects, same order.
+        java.util.List<Object> keysAfter = new java.util.ArrayList<>(table.keySet()), valuesAfter = new java.util.ArrayList<>(table.values());
+        Assert.assertEquals(keysAfter.size(), keysBefore.size());
+        for (int i = 0; i < keysBefore.size(); i++) {
+            Assert.assertSame(keysAfter.get(i), keysBefore.get(i), "effect order changed at " + i);
+            Assert.assertSame(valuesAfter.get(i), valuesBefore.get(i));
+        }
+        PlayerLookahead.UncopiedEffects parked = PlayerLookahead.UncopiedEffects.park(g);
+        Assert.assertEquals(parked.parked, 2, "both sideboard effects are parked");
+        Assert.assertEquals(table.size(), keysBefore.size() - 2);
+        parked.restore();
+        Assert.assertEquals(new java.util.ArrayList<>(table.keySet()), keysBefore);
+    }
+
     /** A targeting spell is previewed against a first-legal target, and the live option is restored. */
     @Test
     public void previewCastResolvesATargetingSpellAndRestoresTheLiveOption() {
