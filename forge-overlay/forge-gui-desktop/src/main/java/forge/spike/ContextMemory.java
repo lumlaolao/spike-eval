@@ -183,9 +183,11 @@ final class ContextMemory {
         JsonArray messages = new JsonArray();
         messages.add(NativeTools.message("user", user));
         int used = 0;
-        boolean simulated = false;
-        // The same bound as the text loop: at most TOOLS_PER_ASK + 1 model rounds per decision.
-        for (int round = 0; round <= TOOLS_PER_ASK; round++) {
+        boolean simulated = false, pressed = false;
+        // The same bound as the text loop, TOOLS_PER_ASK + 1 model rounds, plus at most one more when
+        // the model has to be told its tools are spent.
+        for (int round = 0; round <= TOOLS_PER_ASK + 1; round++) {
+            if (round == TOOLS_PER_ASK + 1 && !pressed) break;
             // No call on the last round: its result could never be read, and the tool would be spent.
             boolean allow = used < TOOLS_PER_ASK && toolsUsed < TOOLS_PER_GAME && round < TOOLS_PER_ASK;
             NativeTools.Turn turn = model.turn(user, messages.toString(), toolsJson, allow, round);
@@ -193,7 +195,15 @@ final class ContextMemory {
             if (turn.calls.isEmpty()) {
                 if (toolLine(turn.content) != null || NativeTools.looksLikeCallMarkup(turn.content)) {
                     audit.accept(turn.content, "ERROR: a tool request must be a function call; no tool executed.");
-                    return null;
+                    // Seen in games: with calls forbidden the model writes its call markup as text.
+                    // Returning null there lost the decision. Say once, in words, that the tools are
+                    // spent and the answer is due; a second such reply ends the ask.
+                    if (pressed || round >= TOOLS_PER_ASK + 1) return null;
+                    pressed = true;
+                    used = TOOLS_PER_ASK;
+                    messages.add(NativeTools.message("user", "No tool calls are available for this decision any more. "
+                            + "Do not ask for one. Answer the decision above now, ending with the exact answer line it asks for."));
+                    continue;
                 }
                 return turn.content;
             }

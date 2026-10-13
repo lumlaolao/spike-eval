@@ -76,6 +76,9 @@ NATIVE_INSTRUCTIONS = (
     "state; notes are YOUR unverified hypotheses. After your tool calls, answer in the requested format.\n")
 # Served only by the engine side (RulesTool, PlayerLookahead): the suite has no fixture for them.
 ENGINE_ONLY = ("rules_lookup", "simulate")
+# ContextMemory.askNative: said once when the model writes a tool request as text with its calls spent.
+PRESS = ("No tool calls are available for this decision any more. Do not ask for one. Answer the decision "
+         "above now, ending with the exact answer line it asks for.")
 ONE_LINE_ERROR = "ERROR: use exactly one MEMORY/INSPECT/RULES command line, at most 1000 characters."
 BUDGET_ERROR = "ERROR: tool budget exhausted; no tool executed."
 
@@ -356,7 +359,10 @@ def run_native(scenario, kind, tier, model, tools, meta):
     user = decision + "\n" + seat.brief() + "\nTool calls available this ask: %d.\n" % TOOLS_PER_ASK
     messages = [{"role": "system", "content": system_text(tier, native=True)}, {"role": "user", "content": user}]
     calls, usage, used = [], [], 0
-    for rnd in range(TOOLS_PER_ASK + 1):                    # ContextMemory.askNative: the same bound
+    pressed = False
+    for rnd in range(TOOLS_PER_ASK + 2):                    # ContextMemory.askNative: the same bound, plus one press
+        if rnd == TOOLS_PER_ASK + 1 and not pressed:
+            break
         allow = used < TOOLS_PER_ASK and rnd < TOOLS_PER_ASK    # no call on the last round
         r = model(messages, offered, dict(meta, tool_choice="auto" if allow else "none"))
         usage.append(r)
@@ -364,10 +370,15 @@ def run_native(scenario, kind, tier, model, tools, meta):
         if not tcs:
             reply = r.get("content") or ""
             if tool_line(reply) is not None or looks_like_call_markup(reply):
-                # askNative: a text-grammar command instead of an answer never reaches a parser.
+                # askNative: a text-grammar command instead of an answer never reaches a parser. The
+                # model is told once that its tools are spent; a second such reply ends the ask.
                 calls.append({"request": reply, "command": None, "ok": False, "rejected": "protocol",
                               "result": "ERROR: a tool request must be a function call; no tool executed."})
-                return {"reply": reply, "choice": None, "calls": calls, "usage": usage}
+                if pressed:
+                    return {"reply": reply, "choice": None, "calls": calls, "usage": usage}
+                pressed, used = True, TOOLS_PER_ASK
+                messages.append({"role": "user", "content": PRESS})
+                continue
             return {"reply": reply, "choice": parse_choice(reply), "calls": calls, "usage": usage}
         messages.append(r.get("message") or {"role": "assistant", "content": r.get("content"), "tool_calls": tcs})
         for tc in tcs:
