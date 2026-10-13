@@ -4765,6 +4765,8 @@ public final class LlmSpikeGui {
         }
         @Override
         public Player createIngamePlayer(Game game, int id) {
+            // A player of a preview COPY is the engine AI's, never the model's (PlayerLookahead.inPreview).
+            if (PlayerLookahead.inPreview()) return super.createIngamePlayer(game, id);
             Player p = new Player(getName(), game, id);
             p.setFirstController(new PlayerControllerLLM(game, p, this, getName(), plan, smartModel, fastModel, mode));
             return p;

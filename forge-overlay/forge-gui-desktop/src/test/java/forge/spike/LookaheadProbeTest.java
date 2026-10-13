@@ -267,6 +267,48 @@ public class LookaheadProbeTest {
         Assert.assertTrue(PlayerLookahead.previewLine(g, me, java.util.Arrays.asList(s, s), 5L, null).startsWith("(a line names each option once"));
     }
 
+    /**
+     * Every player the engine creates during a preview is a player of a copy. Watching one game
+     * (runs/loop/g01) showed the seat's model being asked to declare attackers and confirm triggers
+     * inside the combat the engine simulates to score a copy: real model calls, real decision rows,
+     * for a game that never happened. A lobby that records what it is asked stands in for the seat.
+     */
+    @Test
+    public void everyPlayerCreatedDuringAPreviewIsCreatedInsideThePreview() {
+        java.util.List<Boolean> seen = new java.util.ArrayList<>();
+        forge.ai.LobbyPlayerAi watching = new forge.ai.LobbyPlayerAi("Seat", null) {
+            @Override public Player createIngamePlayer(Game game, int id) {
+                seen.add(PlayerLookahead.inPreview());
+                return super.createIngamePlayer(game, id);
+            }
+        };
+        java.util.List<forge.game.player.RegisteredPlayer> players = new java.util.ArrayList<>();
+        forge.deck.Deck d = new forge.deck.Deck();
+        players.add(new forge.game.player.RegisteredPlayer(d).setPlayer(watching));
+        players.add(new forge.game.player.RegisteredPlayer(d).setPlayer(new forge.ai.LobbyPlayerAi("Rival", null)));
+        forge.game.GameRules rules = new forge.game.GameRules(forge.game.GameType.Constructed);
+        Game g = new Game(players, rules, new forge.game.Match(rules, players, "preview-players"));
+        g.setAge(forge.game.GameStage.Play);
+        g.getPhaseHandler().devModeSet(forge.game.phase.PhaseType.MAIN1, g.getPlayers().get(0));
+        Player me = g.getPlayers().get(0);
+        seen.clear();                                   // the live game's own player was created outside
+        Assert.assertFalse(PlayerLookahead.inPreview());
+        for (int i = 0; i < 2; i++) SeatObservationTest.card("Mountain", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.card.Card attacker = SeatObservationTest.card("Elite Vanguard", me, forge.game.zone.ZoneType.Battlefield);
+        attacker.setSickness(false);                    // a creature that can attack: the scoring simulates combat
+        forge.game.spellability.SpellAbility bolt = spellOn(SeatObservationTest.card("Lightning Bolt", me, forge.game.zone.ZoneType.Hand));
+        bolt.setActivatingPlayer(me);
+
+        String report = PlayerLookahead.previewCast(g, me, bolt, 5L);
+        Assert.assertTrue(report.startsWith("if you cast Lightning Bolt"), report);
+        Assert.assertTrue(seen.size() >= 2, "expected the copy and the combat copy to create the seat, saw " + seen.size());
+        Assert.assertFalse(seen.contains(Boolean.FALSE), "a copy's player was created outside the preview guard: " + seen);
+        Assert.assertFalse(PlayerLookahead.inPreview(), "the guard must be released after the preview");
+        PlayerLookahead.copyForPreview(g, 5L);
+        Assert.assertFalse(seen.contains(Boolean.FALSE));
+        Assert.assertFalse(PlayerLookahead.inPreview());
+    }
+
     /** A targeting spell is previewed against a first-legal target, and the live option is restored. */
     @Test
     public void previewCastResolvesATargetingSpellAndRestoresTheLiveOption() {

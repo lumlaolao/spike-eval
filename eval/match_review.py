@@ -38,7 +38,8 @@ FORCED = re.compile(r"forced|only-legal|\(forced\)", re.I)
 LOST = re.compile(r"bridge-down|unparsed|no-reply|budget-exhausted|\(err\)|parse", re.I)
 # A decision made by a rule of thumb in the harness instead of by the seat.
 HEURISTIC = re.compile(r"heuristic", re.I)
-LOG_PATTERNS = (("AI fallback", r"\[FALLBACK->AI\]"), ("exception", r"Exception"), ("preview failed", r"preview failed"),
+LOG_PATTERNS = (("model controller built for a preview copy", r"(?s)\[OBSERVATION\].*?(?=\[OBSERVATION\])"),
+                ("AI fallback", r"\[FALLBACK->AI\]"), ("exception", r"Exception"), ("preview failed", r"preview failed"),
                 ("payment failed", r"FAILED to pay"), ("circuit breaker", r"CIRCUIT-BREAKER"),
                 ("provider error", r"\] HTTP [45]\d\d"), ("truncated reply", r"TRUNCATED->RETRY"),
                 ("native tools dropped", r"NATIVE-TOOLS->TEXT"))
@@ -79,7 +80,8 @@ def review(path):
             tier = r.get("tier")
             if tier in ("smart", "fast"):
                 out["counts"]["model decisions"] += 1
-                if (r.get("attempts") or 0) > 1 or r.get("finish_reason") == "length":
+                # `attempts` counts tool rounds too; a decision is slow when time was actually wasted.
+                if (r.get("retry_ms") or 0) > 0 or r.get("finish_reason") == "length":
                     add("SLOW", r, "%s: %s attempts, %sms wasted, finish=%s" % (
                         r.get("type"), r.get("attempts"), r.get("retry_ms"), r.get("finish_reason")))
             elif tier == "ai":

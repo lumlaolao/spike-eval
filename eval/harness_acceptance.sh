@@ -337,10 +337,13 @@ if has_stage lookahead; then
         TGT="$(grep -c 'assuming target:' "$dir/game.log" 2>/dev/null)"; TGT="${TGT:-0}"
         AILOG="$(grep -c '\[FALLBACK->AI\]' "$dir/game.log" 2>/dev/null)"; AILOG="${AILOG:-0}"
         PFAIL="$(grep -c '\[ROUTER\] lookahead.*preview failed' "$dir/game.log" 2>/dev/null)"; PFAIL="${PFAIL:-0}"
-        if [ "$LOOK" -ge 1 ] && [ "$TGT" -ge 1 ] && [ "$AILOG" -eq 0 ] && [ "$PFAIL" -eq 0 ]; then
-          pass lookahead "preview rounds=$LOOK (targeting previews=$TGT), 0 failed previews, no AI fallbacks"
+        # One seat, one model controller. A second [OBSERVATION] banner means a preview copy was given
+        # the seat's model (it then answers attack and trigger questions for a game that does not exist).
+        CTRL="$(grep -c '\[OBSERVATION\]' "$dir/game.log" 2>/dev/null)"; CTRL="${CTRL:-0}"
+        if [ "$LOOK" -ge 1 ] && [ "$TGT" -ge 1 ] && [ "$AILOG" -eq 0 ] && [ "$PFAIL" -eq 0 ] && [ "$CTRL" -le 1 ]; then
+          pass lookahead "preview rounds=$LOOK (targeting previews=$TGT), 0 failed previews, no AI fallbacks, model controllers=$CTRL"
         else
-          fail lookahead "preview rounds=$LOOK targeting=$TGT failed_previews=$PFAIL fallbacks=$AILOG (need >=1 preview, >=1 targeting preview, 0 failed, 0 fallbacks)"
+          fail lookahead "preview rounds=$LOOK targeting=$TGT failed_previews=$PFAIL fallbacks=$AILOG model_controllers=$CTRL (need >=1 preview, >=1 targeting preview, 0 failed, 0 fallbacks, at most 1 model controller)"
         fi
       fi
     fi
