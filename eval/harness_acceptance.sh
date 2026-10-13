@@ -418,8 +418,9 @@ if not reqs or len(with_tools)!=len(reqs): problems.append("%d of %d requests ca
 if not any(r.get("tool_results") for r in reqs): problems.append("no request carried a tool result back")
 if any(r.get("has_authorization") for r in reqs): problems.append("authorization header sent to loopback")
 if not any("simulate" in r.get("tools_offered",[]) for r in reqs): problems.append("simulate was never offered")
-banners=open(d+"/game.log",errors="replace").read().count("[OBSERVATION]")
-if banners!=1: problems.append("%d model controllers were built for one seat (a preview copy was given the model)"%banners)
+import re,collections
+banners=collections.Counter(re.findall(r"(?m)^\[([^\]]+)\] \[OBSERVATION\]",open(d+"/game.log",errors="replace").read()))
+if not banners or max(banners.values())!=1: problems.append("controllers built per seat: %s (more than one means a preview copy was given the seat controller)"%dict(banners))
 previews=[r for r in tools if r.get("request","").startswith("TOOL CALL simulate ")]
 broken=[r for r in previews if "preview failed" in r.get("result","")]
 if broken: problems.append("%d of %d previews failed (the engine copy threw; see [LOOKAHEAD] in game.log)"%(len(broken),len(previews)))

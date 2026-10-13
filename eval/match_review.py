@@ -38,8 +38,7 @@ FORCED = re.compile(r"forced|only-legal|\(forced\)", re.I)
 LOST = re.compile(r"bridge-down|unparsed|no-reply|budget-exhausted|\(err\)|parse", re.I)
 # A decision made by a rule of thumb in the harness instead of by the seat.
 HEURISTIC = re.compile(r"heuristic", re.I)
-LOG_PATTERNS = (("model controller built for a preview copy", r"(?s)\[OBSERVATION\].*?(?=\[OBSERVATION\])"),
-                ("AI fallback", r"\[FALLBACK->AI\]"), ("exception", r"Exception"), ("preview failed", r"preview failed"),
+LOG_PATTERNS = (("AI fallback", r"\[FALLBACK->AI\]"), ("exception", r"Exception"), ("preview failed", r"preview failed"),
                 ("payment failed", r"FAILED to pay"), ("circuit breaker", r"CIRCUIT-BREAKER"),
                 ("provider error", r"\] HTTP [45]\d\d"), ("truncated reply", r"TRUNCATED->RETRY"),
                 ("native tools dropped", r"NATIVE-TOOLS->TEXT"))
@@ -104,6 +103,13 @@ def review(path):
     if log and os.path.isfile(log):
         with open(log, errors="replace") as f:
             text = f.read()
+        # One controller per seat. A second banner for the same seat is a preview copy that was given
+        # the seat's model (runs/loop/g01: it answered attack and trigger questions for the copy).
+        for seat, n in sorted(Counter(re.findall(r"(?m)^\[([^\]]+)\] \[OBSERVATION\]", text)).items()):
+            if n > 1:
+                out["findings"].append(("LOG", 0, None, "seat %s: the model controller was built %d times (preview copies) (%s)"
+                                        % (seat, n, os.path.basename(log))))
+                out["counts"]["LOG"] += 1
         for name, pat in LOG_PATTERNS:
             n = len(re.findall(pat, text))
             if n:
