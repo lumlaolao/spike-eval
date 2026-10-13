@@ -1589,6 +1589,29 @@ public class LlmSpikeTest {
     }
 
     @Test
+    public void g8AttackersCeilingIsGatedAndComputed() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0), opp = game.getPlayers().get(1);
+        forge.game.card.CardCollection legal = new forge.game.card.CardCollection();
+        legal.add(addBattlefieldCard("Grizzly Bears", me)); // 2/2
+        legal.add(addBattlefieldCard("Craw Wurm", me));     // 6/4
+        forge.game.combat.Combat combat = new forge.game.combat.Combat(me);
+
+        // OFF (the default) -> empty, so the prompt bytes are unchanged.
+        LlmSpikeGui.PlayerControllerLLM.TEST_LOOKAHEAD_OVERRIDE = Boolean.FALSE;
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.attackersCeiling(legal, opp, combat), "");
+        // ON -> the engine's own unblocked-damage ceiling (2 + 6).
+        LlmSpikeGui.PlayerControllerLLM.TEST_LOOKAHEAD_OVERRIDE = Boolean.TRUE;
+        try {
+            String s = LlmSpikeGui.PlayerControllerLLM.attackersCeiling(legal, opp, combat);
+            Assert.assertTrue(s.contains("OUTLOOK"), s);
+            Assert.assertTrue(s.contains("8 damage"), s);
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.TEST_LOOKAHEAD_OVERRIDE = null;
+        }
+    }
+
+    @Test
     public void g7CostDecisionMakerIsModelOwned() {
         Game game = buildBareGame();
         Player me = game.getPlayers().get(0);
