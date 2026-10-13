@@ -142,7 +142,7 @@ same way. `INSPECT @N` / `INSPECT <card name>` is a third memory tool sharing th
 budget: current public characteristics, an explicit HISTORICAL answer once the object is
 gone or hidden, or public card-database text labelled as such. Legacy profiles
 (`v1-compat`, `v2-memory`, `v3-compact`) are untouched byte-for-byte; `v4-faithful` has its
-own `context.v3|...|observation=observation-faithful-v4` identity and sha.
+own `context.v3|...|observation=observation-faithful-v5` identity and sha.
 
 `SeatObservationTest` drives the live implementation against real engine games: two
 worlds differing only in the opponent's hand and library produce identical observations,
@@ -209,6 +209,17 @@ be stated rather than inferred from a missing menu entry; this targets the "play
 class directly. It is rendered last, beside the decision, because that is where attention sits.
 `SeatObservation.VERSION` moved to `observation-faithful-v4`; one test covers it
 (`spentThisTurnIsExplicitAndFlipsWhenALandIsPlayed`).
+
+**2026-10-13 — the plan survives the turn boundary (`observation-faithful-v5`).** The seat's own
+one-line plan used to be dropped the moment the turn passed (`planTurn == turn && isPlayerTurn`), so
+*"hold up UU and counter their payoff"* — a plan that only means anything on the **opponent's** turn —
+was erased exactly when it mattered. Now the plan is rendered for as long as it exists, labelled with
+the turn it was stated, and flagged as possibly stale once the turn has moved on
+(`YOUR PLAN (you stated this at T5 — a previous turn; the board may have changed — re-state it or
+consciously continue): …`). The plan is also **asked for once per turn on either player's turn**
+(previously only at the model's first main-phase decision), piggybacked on an existing decision so it
+costs no extra model call. One shared `planText` helper is used by both renderers so they cannot drift;
+one test covers the boundary (`thePlanSurvivesTheTurnBoundaryAndIsMarkedStale`).
 
 Hand-reveal bridge/parse failures now choose the first minimum-sized legal subset,
 log an automatic fallback, and never call Forge AI. Empty reveal pools return empty.

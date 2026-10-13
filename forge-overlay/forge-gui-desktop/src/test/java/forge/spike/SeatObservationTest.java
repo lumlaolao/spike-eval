@@ -141,18 +141,18 @@ public class SeatObservationTest {
         Zone yard = card("Dark Ritual", rival, ZoneType.Graveyard).getZone();
 
         o.describe(creature, false); // the viewer has seen it, so its identity is knowable
-        Assert.assertFalse(render(o, "").contains("KNOWN IN HIDDEN ZONES"), "claimed knowledge too early");
+        Assert.assertFalse(render(o, "").contains("\nKNOWN IN HIDDEN ZONES"), "claimed knowledge too early");
 
         // "Return target creature to its owner's hand": a PUBLIC move INTO a hidden zone.
         o.onZoneChange(new GameEventCardChangeZone(creature, battlefield, hand));
         String r = render(o, "");
-        Assert.assertTrue(r.contains("KNOWN IN HIDDEN ZONES"), r);
+        Assert.assertTrue(r.contains("\nKNOWN IN HIDDEN ZONES"), r);
         Assert.assertTrue(r.contains("Rival's hand: Griselbrand"), r);
 
         // "...then Thoughtseize": the discard is hand -> graveyard, which we CAN see. The claim must
         // vanish, or the seat would keep "knowing" a card that is no longer in the hand.
         o.onZoneChange(new GameEventCardChangeZone(creature, hand, yard));
-        Assert.assertFalse(render(o, "").contains("KNOWN IN HIDDEN ZONES"),
+        Assert.assertFalse(render(o, "").contains("\nKNOWN IN HIDDEN ZONES"),
                 "stale knowledge survived a public move out of the hidden zone");
     }
 
@@ -185,6 +185,25 @@ public class SeatObservationTest {
         String after = render(o, "");
         Assert.assertTrue(after.contains("land drop USED"), after);
         Assert.assertFalse(after.contains("land drop AVAILABLE"), after);
+    }
+
+    // ---- the plan survives the turn boundary ------------------------------------------------
+
+    /** The plan is deliberately NOT dropped when the turn passes: "hold up UU and counter their
+     *  payoff" only means anything on THEIR turn, which the old same-turn gate erased. It carries the
+     *  turn it was stated and flags itself as possibly stale once the turn has moved on. */
+    @Test
+    public void thePlanSurvivesTheTurnBoundaryAndIsMarkedStale() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        SeatObservation o = observerFor(g, 0);
+        int now = g.getPhaseHandler().getTurn();
+        Assert.assertFalse(o.render("seat", ContextProfile.V4_FAITHFUL, "", null, -1).contains("\nYOUR PLAN"));
+        String sameTurn = o.render("seat", ContextProfile.V4_FAITHFUL, "", "hold up UU, counter their payoff", now);
+        Assert.assertTrue(sameTurn.contains("\nYOUR PLAN (you stated this at T" + now), sameTurn);
+        Assert.assertTrue(sameTurn.contains("this turn"), sameTurn);
+        String previous = o.render("seat", ContextProfile.V4_FAITHFUL, "", "hold up UU, counter their payoff", now - 1);
+        Assert.assertTrue(previous.contains("a previous turn"), previous);
+        Assert.assertTrue(previous.contains("hold up UU"), previous);
     }
 
     // ---- paired worlds ------------------------------------------------------------------------
