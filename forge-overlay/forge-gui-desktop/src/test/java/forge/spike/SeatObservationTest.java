@@ -20,6 +20,7 @@ import forge.game.Game;
 import forge.game.GameLogEntryType;
 import forge.game.GameRules;
 import forge.game.GameStage;
+import forge.game.GameLogEntryType;
 import forge.game.GameType;
 import forge.game.Match;
 import forge.game.card.Card;
@@ -221,6 +222,21 @@ public class SeatObservationTest {
         Assert.assertTrue(r.contains("your next combat:"), r);
         Assert.assertTrue(r.contains("unblocked; their life"), r);
         Assert.assertTrue(r.contains("instant speed"), r);
+    }
+
+    /** A card the opponent has played 2+ times is named as RECURRING — a threat the model would
+     *  otherwise have to re-derive from a long log. Played once: not recurring. */
+    @Test
+    public void repeatedOpponentPlayIsSurfacedAsRecurring() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        SeatObservation o = observerFor(g, 0);
+        g.getGameLog().add(GameLogEntryType.STACK_ADD, "Rival cast Chain Lightning.");
+        g.getGameLog().add(GameLogEntryType.STACK_ADD, "Rival cast Chain Lightning.");
+        g.getGameLog().add(GameLogEntryType.STACK_ADD, "Rival cast Lava Spike.");
+        o.capture();
+        String r = render(o, "");
+        Assert.assertTrue(r.contains("RECURRING (cast 2+ times): Chain Lightning x2"), r);
+        Assert.assertFalse(r.contains("Lava Spike x"), r);
     }
 
     // ---- paired worlds ------------------------------------------------------------------------

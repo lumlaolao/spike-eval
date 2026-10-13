@@ -46,6 +46,8 @@ final class ContextMemory {
                 + "MEMORY READ <evidence id> <character offset> (2000 characters per page), or "
                 + "MEMORY NOTE <evidence id> <hypothesis or plan, max 500 characters>. "
                 + "Offsets start at 0; evidence ids start at 1. At most 2 tools per ask and 64 per game. "
+                + "GAME HISTORY / RECENT EVENTS cite canonical event ids as [E<n>] — `MEMORY SEARCH 0 [E<n>]` "
+                + "finds that event's archived text, and MEMORY READ reads the whole entry. "
                 + "Tools search only this seat's archived observations and reveals; they cannot query hidden state. "
                 + "Historical observations are NOT current state. Notes are YOUR unverified hypotheses, "
                 + "never engine facts. Evidence citations identify sources, not proof that a hypothesis is true. "

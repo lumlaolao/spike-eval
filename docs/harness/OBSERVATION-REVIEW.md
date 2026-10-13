@@ -97,13 +97,18 @@ line (land drop AVAILABLE/USED, spells cast, attackers declared) so legality is 
 inferred from absence. Same discipline: prompt bytes changed, so v4 is a new provenance identity
 (v4 artifacts are not comparable to v3).
 
-**Later still (2026-10-13): v5 → `observation-faithful-v6`.** Added a `FACTS` line from Forge's own
-arithmetic (both next-combat clocks, their instant-speed mana), labelled as estimates.
-
 **Later still (2026-10-13): v4 → `observation-faithful-v5`.** The seat's plan is no longer dropped at
 the turn boundary: it is rendered with the turn it was stated and flagged stale when the turn moves
 on, and it is asked for once per turn on either player's turn (so an instant-speed "hold up mana"
 plan exists). Prompt bytes changed → new provenance identity.
+
+**Later still (2026-10-13): v5 → `observation-faithful-v6`.** Added a `FACTS` line from Forge's own
+arithmetic (both next-combat clocks, their instant-speed mana), labelled as estimates.
+
+**Later still (2026-10-13): v6 → `observation-faithful-v7`.** Added a `RECURRING (cast 2+ times)`
+line to the opponent block (deterministic recurring-threat facts), and told the model in the MEMORY
+tool instructions how to drill into a compacted-history event by its canonical `[E<n>]` id. Prompt
+bytes changed → new provenance identity.
 
 ## Residual limits (explicit)
 

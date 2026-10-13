@@ -172,4 +172,13 @@ public class ContextMemoryTest {
         Assert.assertTrue(prompts.get(0).contains("Tools available this ask: 2."), prompts.get(0));
         Assert.assertTrue(prompts.get(1).contains("Tools available this ask: 1."), prompts.get(1));
     }
+
+    /** The compacted GAME HISTORY cites canonical event ids ([E<n>]); a digest the model can see but
+     *  cannot drill into is only half a memory, so the tool instructions must say how to fetch one. */
+    @Test
+    public void toolInstructionsExplainHowToDrillIntoACitedEvent() {
+        String t = ContextMemory.instructions();
+        Assert.assertTrue(t.contains("[E<n>]"), t);
+        Assert.assertTrue(t.contains("MEMORY SEARCH 0 [E<n>]"), t);
+    }
 }

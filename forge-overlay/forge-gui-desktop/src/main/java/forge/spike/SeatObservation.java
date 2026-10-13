@@ -72,7 +72,7 @@ import forge.spike.LlmSpikeGui.ContextProfile;
  * seat are appended to the same stream, so every seat-visible fact has one E-id and one place to search.
  */
 final class SeatObservation {
-    static final String VERSION = "observation-faithful-v6";
+    static final String VERSION = "observation-faithful-v7";
     /** Printed once per observation so every prompt is self-describing. Part of the prompt bytes and
      *  therefore of this VERSION: change it and bump the version. */
     static final String LEGEND = "LEGEND: @N = your seat's handle for one object, assigned when you first see it; a zone change "
@@ -661,7 +661,8 @@ final class SeatObservation {
      *  legacy helper reads the raw engine log and strips only a trailing engine id, so it bypasses
      *  redaction and can leak a hidden caster's real name (a "cast" line carries a name, not an id);
      *  this path can only ever see what the viewer may see. */
-    private String streamCastHistory(Player p, GameLogEntryType type, String verb, int cap) {
+    /** "<Name> -> count" for one player's plays of one log type, over the seat stream. */
+    private LinkedHashMap<String, Integer> castCounts(Player p, GameLogEntryType type, String verb) {
         String prefix = p.getName() + verb;
         LinkedHashMap<String, Integer> counts = new LinkedHashMap<>();
         for (GameHistory.Ev e : stream) {
@@ -679,6 +680,30 @@ final class SeatObservation {
             if (name.isEmpty()) continue;
             counts.merge(name, 1, Integer::sum);
         }
+        return counts;
+    }
+
+    /** Names this opponent has played TWO OR MORE times — their RECURRING plays, which a human notices
+     *  ("they keep casting Entomb") and which the model otherwise has to re-derive from a long log.
+     *  This is the deterministic half of opponent modelling: facts, not an inference. */
+    private String streamCastRepeats(Player p, GameLogEntryType type, String verb, int cap) {
+        List<Map.Entry<String, Integer>> es = new ArrayList<>();
+        for (Map.Entry<String, Integer> e : castCounts(p, type, verb).entrySet())
+            if (e.getValue() >= 2) es.add(e);
+        if (es.isEmpty()) return "";
+        es.sort((a, b) -> b.getValue() - a.getValue());
+        StringBuilder b = new StringBuilder();
+        int shown = 0;
+        for (Map.Entry<String, Integer> en : es) {
+            if (shown++ == cap) { b.append(", ...(").append(es.size() - cap).append(" more)"); break; }
+            if (b.length() > 0) b.append(", ");
+            b.append(en.getKey()).append(" x").append(en.getValue());
+        }
+        return b.toString();
+    }
+
+    private String streamCastHistory(Player p, GameLogEntryType type, String verb, int cap) {
+        LinkedHashMap<String, Integer> counts = castCounts(p, type, verb);
         if (counts.isEmpty()) return "";
         List<Map.Entry<String, Integer>> es = new ArrayList<>(counts.entrySet());
         es.sort((a, b) -> b.getValue() - a.getValue());
@@ -735,6 +760,8 @@ final class SeatObservation {
                 if (!"(none)".equals(cmd)) s.append("  command: ").append(cmd).append('\n');
                 String casts = streamCastHistory(opp, GameLogEntryType.STACK_ADD, " cast ", ctx.castHistoryCap);
                 if (!casts.isEmpty()) s.append("  CAST THIS GAME: ").append(casts).append('\n');
+                String repeats = streamCastRepeats(opp, GameLogEntryType.STACK_ADD, " cast ", ctx.castHistoryCap);
+                if (!repeats.isEmpty()) s.append("  RECURRING (cast 2+ times): ").append(repeats).append('\n');
                 String landsPlayed = streamCastHistory(opp, GameLogEntryType.LAND, " played ", ctx.castHistoryCap);
                 if (!landsPlayed.isEmpty()) s.append("  LANDS PLAYED: ").append(landsPlayed).append('\n');
             }
