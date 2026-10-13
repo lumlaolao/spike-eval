@@ -4990,15 +4990,28 @@ public final class LlmSpikeGui {
         final Double temperature;     // nullable — omitted from the request body when null
         final int fastMaxTokens;
         final long fastTimeoutMs;
+        /** Reasoning effort for the FAST tier, nullable. A reasoning model applies its own default when
+         *  this is absent, which for a mechanical answer ("which target?", "keep or mulligan?") is pure
+         *  latency: the hidden reasoning can consume the whole max_tokens budget before any answer token,
+         *  provoking a truncation-retry at double the budget. Measured 2026-10-13 on
+         *  deepseek-v4.1-flash: a fast-tier decision burned 4000 tokens of reasoning, retried at 8000,
+         *  and took 182s for one number. Setting this to "minimal" is the fix. */
+        final String fastReasoningEffort;
 
         ModelCfg(int maxTokens, long timeoutMs, String reasoningEffort, Double temperature,
                  int fastMaxTokens, long fastTimeoutMs) {
+            this(maxTokens, timeoutMs, reasoningEffort, temperature, fastMaxTokens, fastTimeoutMs, null);
+        }
+
+        ModelCfg(int maxTokens, long timeoutMs, String reasoningEffort, Double temperature,
+                 int fastMaxTokens, long fastTimeoutMs, String fastReasoningEffort) {
             this.maxTokens = maxTokens;
             this.timeoutMs = timeoutMs;
             this.reasoningEffort = reasoningEffort;
             this.temperature = temperature;
             this.fastMaxTokens = fastMaxTokens;
             this.fastTimeoutMs = fastTimeoutMs;
+            this.fastReasoningEffort = fastReasoningEffort;
         }
 
         private static final Map<String, ModelCfg> TABLE = buildTable();
@@ -5028,7 +5041,8 @@ public final class LlmSpikeGui {
                 sb.append(key).append(':')
                   .append(c.maxTokens).append(',').append(c.timeoutMs).append(',')
                   .append(c.reasoningEffort).append(',').append(c.temperature).append(',')
-                  .append(c.fastMaxTokens).append(',').append(c.fastTimeoutMs).append('|');
+                  .append(c.fastMaxTokens).append(',').append(c.fastTimeoutMs).append(',')
+                  .append(c.fastReasoningEffort).append('|');
             }
             return sb.toString();
         }
@@ -5045,7 +5059,9 @@ public final class LlmSpikeGui {
             // alone ate the whole budget every time (8/8 gpt-5 and 10/10 deepseek finish_reason=length
             // fast-tier events came back with EMPTY content), so no room was ever left for the one-line
             // CHOICE/PICKS answer. See the class javadoc above for the full investigation.
-            ModelCfg deepseekGpt = new ModelCfg(16000, 90000, "medium", null, 4000, 60000);
+            // fastReasoningEffort="minimal" + a small cap: the fast tier answers high-frequency
+            // mechanical questions and must not spend hidden reasoning on them (see the field javadoc).
+            ModelCfg deepseekGpt = new ModelCfg(16000, 90000, "medium", null, 1024, 45000, "minimal");
             ModelCfg kimi        = new ModelCfg(16000, 150000, null, null, ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
             ModelCfg grok        = new ModelCfg(8000, 90000, null, null, ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
             ModelCfg dflt        = new ModelCfg(4000, 90000, null, null, ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
@@ -5093,7 +5109,8 @@ public final class LlmSpikeGui {
                         strField(fields, "reasoningEffort", base.reasoningEffort),
                         doubleField(fields, "temperature", base.temperature),
                         intField(fields, "fastMaxTokens", base.fastMaxTokens),
-                        longField(fields, "fastTimeoutMs", base.fastTimeoutMs));
+                        longField(fields, "fastTimeoutMs", base.fastTimeoutMs),
+                        strField(fields, "fastReasoningEffort", base.fastReasoningEffort));
                 t.put(key, merged);
                 System.out.println("[MODEL-CFG] override applied for \"" + key + "\" from OPENROUTER_MODEL_CFG");
             }
@@ -5684,7 +5701,7 @@ public final class LlmSpikeGui {
                 int maxTokens = fastTier ? cfg.fastMaxTokens : cfg.maxTokens;
                 // reasoning_effort/temperature are smart-tier-only hints — the fast tier's contract is
                 // "terse, no extended reasoning" (see framing()), so never ask a model to reason harder there.
-                String reasoningEffort = fastTier ? null : cfg.reasoningEffort;
+                String reasoningEffort = fastTier ? cfg.fastReasoningEffort : cfg.reasoningEffort;
                 Double temperature = cfg.temperature;
 
                 OrResult r = send(prompt, maxTokens, reasoningEffort, temperature, deadline);
