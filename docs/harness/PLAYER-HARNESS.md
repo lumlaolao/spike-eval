@@ -142,7 +142,7 @@ same way. `INSPECT @N` / `INSPECT <card name>` is a third memory tool sharing th
 budget: current public characteristics, an explicit HISTORICAL answer once the object is
 gone or hidden, or public card-database text labelled as such. Legacy profiles
 (`v1-compat`, `v2-memory`, `v3-compact`) are untouched byte-for-byte; `v4-faithful` has its
-own `context.v3|...|observation=observation-faithful-v5` identity and sha.
+own `context.v3|...|observation=observation-faithful-v6` identity and sha.
 
 `SeatObservationTest` drives the live implementation against real engine games: two
 worlds differing only in the opponent's hand and library produce identical observations,
@@ -220,6 +220,15 @@ consciously continue): …`). The plan is also **asked for once per turn on eith
 (previously only at the model's first main-phase decision), piggybacked on an existing decision so it
 costs no extra model call. One shared `planText` helper is used by both renderers so they cannot drift;
 one test covers the boundary (`thePlanSurvivesTheTurnBoundaryAndIsMarkedStale`).
+
+**2026-10-13 — engine facts (`observation-faithful-v6`).** The faithful renderer now prints a
+`FACTS (engine estimates, not truth):` line built from Forge's OWN arithmetic: each side's
+next-combat clock (`CombatUtil.canAttackNextTurn` + `ComputerUtilCombat.sumDamageIfUnblocked`, so it
+is meaningful at every priority window, not only inside declare-attackers) and the opponent's
+instant-speed mana (`ComputerUtilMana.getAvailableManaEstimate`). It uses only public primitives and
+deliberately never consults `GameStateEvaluator`, which is perfect-information and non-adversarial.
+One test covers it (`engineFactsStateBothClocksAndTheirInstantSpeedMana`). `SeatObservation.VERSION`
+moved to `observation-faithful-v6`.
 
 Hand-reveal bridge/parse failures now choose the first minimum-sized legal subset,
 log an automatic fallback, and never call Forge AI. Empty reveal pools return empty.

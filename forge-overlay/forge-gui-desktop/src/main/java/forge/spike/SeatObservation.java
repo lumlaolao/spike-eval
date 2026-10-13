@@ -72,7 +72,7 @@ import forge.spike.LlmSpikeGui.ContextProfile;
  * seat are appended to the same stream, so every seat-visible fact has one E-id and one place to search.
  */
 final class SeatObservation {
-    static final String VERSION = "observation-faithful-v5";
+    static final String VERSION = "observation-faithful-v6";
     /** Printed once per observation so every prompt is self-describing. Part of the prompt bytes and
      *  therefore of this VERSION: change it and bump the version. */
     static final String LEGEND = "LEGEND: @N = your seat's handle for one object, assigned when you first see it; a zone change "
@@ -81,7 +81,8 @@ final class SeatObservation {
             + "Zones list every card unless an explicit '(+N more not shown)' omission is printed. "
             + "'SPENT THIS TURN' states what you have already used (land drop, spells, attackers) so legality is never "
             + "inferred from absence; 'KNOWN IN HIDDEN ZONES' is what YOU saw go into an opponent's hidden zone (your "
-            + "knowledge, dropped once you see it leave); 'YOUR PLAN' is your own plan with the turn you stated it.\n";
+            + "knowledge, dropped once you see it leave); 'YOUR PLAN' is your own plan with the turn you stated it. "
+            + "'FACTS' is the engine's own arithmetic (next-combat clocks, their instant-speed mana) as estimates, not truth.\n";
 
     /** Log types narrated. The legacy set plus INFORMATION, which carries public reveal notices
      *  (CostReveal) the legacy filter silently dropped. PHASE and MANA remain noise. */
@@ -325,6 +326,43 @@ final class SeatObservation {
             any = true;
         } catch (Exception ignore) { }
         return any ? b.append('\n').toString() : "";
+    }
+
+    /** Deterministic ENGINE ARITHMETIC the model would otherwise get wrong, stated as FACTS and
+     *  labelled as the engine's estimates. It uses only honest primitives — each side's own creatures
+     *  and untapped mana, all public — and deliberately never consults {@code GameStateEvaluator},
+     *  which is perfect-information and non-adversarial (the opponent never casts a new spell in its
+     *  search), nor mutates the live game. canAttackNextTurn is used so the race is meaningful at
+     *  every priority window, not only inside the declare-attackers step. */
+    private String facts() {
+        Player opp = null;
+        for (Player o : viewer.getOpponents()) { opp = o; break; }
+        if (opp == null) return "";
+        StringBuilder b = new StringBuilder();
+        clock(viewer, opp, "your next combat", b);
+        clock(opp, viewer, "their next combat", b);
+        try {
+            int mana = forge.ai.ComputerUtilMana.getAvailableManaEstimate(opp);
+            if (b.length() > 0) b.append(" | ");
+            b.append("they can make up to ").append(mana).append(" mana at instant speed right now");
+        } catch (Exception ignore) { }
+        return b.length() == 0 ? "" : "FACTS (engine estimates, not truth): " + b + '\n';
+    }
+
+    /** Unblocked damage a side could deal in its NEXT combat, and the life left after it. */
+    private void clock(Player from, Player to, String label, StringBuilder b) {
+        try {
+            List<Card> legal = new ArrayList<>();
+            for (Card c : from.getCreaturesInPlay())
+                if (forge.game.combat.CombatUtil.canAttackNextTurn(c, to)) legal.add(c);
+            if (legal.isEmpty()) return;
+            int dmg = forge.ai.ComputerUtilCombat.sumDamageIfUnblocked(legal, to);
+            if (b.length() > 0) b.append(" | ");
+            b.append(label).append(": ").append(legal.size()).append(" attacker(s) dealing ").append(dmg)
+             .append(" unblocked; ").append(to == viewer ? "YOUR" : "their").append(" life ")
+             .append(to.getLife()).append(" -> ").append(Math.max(0, to.getLife() - dmg));
+            if (dmg > 0 && dmg >= to.getLife()) b.append(" = LETHAL");
+        } catch (Exception ignore) { }
     }
 
     private Player playerFromView(PlayerView v) {
@@ -713,6 +751,7 @@ final class SeatObservation {
             }
             s.append(knownHiddenText());
             s.append(spentThisTurn());
+            s.append(facts());
             s.append(LlmSpikeGui.PlayerControllerLLM.planText(turnPlan, planTurn, ph.getTurn()));
             return s.toString();
         } catch (Exception e) {

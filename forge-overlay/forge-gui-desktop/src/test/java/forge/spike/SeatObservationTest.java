@@ -206,6 +206,23 @@ public class SeatObservationTest {
         Assert.assertTrue(previous.contains("hold up UU"), previous);
     }
 
+    // ---- engine facts ------------------------------------------------------------------------
+
+    /** The engine's own deterministic arithmetic is stated as facts — both sides' next-combat clocks
+     *  and the opponent's instant-speed mana — labelled as estimates, never as truth. */
+    @Test
+    public void engineFactsStateBothClocksAndTheirInstantSpeedMana() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        Player me = g.getPlayers().get(0);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        SeatObservation o = observerFor(g, 0);
+        String r = render(o, "");
+        Assert.assertTrue(r.contains("FACTS (engine estimates, not truth):"), r);
+        Assert.assertTrue(r.contains("your next combat:"), r);
+        Assert.assertTrue(r.contains("unblocked; their life"), r);
+        Assert.assertTrue(r.contains("instant speed"), r);
+    }
+
     // ---- paired worlds ------------------------------------------------------------------------
 
     @Test
