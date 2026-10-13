@@ -72,7 +72,7 @@ import forge.spike.LlmSpikeGui.ContextProfile;
  * seat are appended to the same stream, so every seat-visible fact has one E-id and one place to search.
  */
 final class SeatObservation {
-    static final String VERSION = "observation-faithful-v8";
+    static final String VERSION = "observation-faithful-v9";
     /** Printed once per observation so every prompt is self-describing. Part of the prompt bytes and
      *  therefore of this VERSION: change it and bump the version. */
     static final String LEGEND = "LEGEND: @N = your seat's handle for one object, assigned when you first see it; a zone change "
@@ -82,7 +82,8 @@ final class SeatObservation {
             + "'SPENT THIS TURN' states what you have already used (land drop, spells, attackers) so legality is never "
             + "inferred from absence; 'KNOWN IN HIDDEN ZONES' is what YOU saw go into an opponent's hidden zone (your "
             + "knowledge, dropped once you see it leave); 'YOUR PLAN' is your own plan with the turn you stated it. "
-            + "'FACTS' is the engine's own arithmetic (next-combat clocks, their instant-speed mana) as estimates, not truth.\n";
+            + "'FACTS' is the engine's own arithmetic (next-combat clocks, their instant-speed mana) as estimates, not truth. "
+            + "'YOUR OPPONENT PROFILE' is your own read of them, which you may revise at any time.\n";
 
     /** Log types narrated. The legacy set plus INFORMATION, which carries public reveal notices
      *  (CostReveal) the legacy filter silently dropped. PHASE and MANA remain noise. */
@@ -136,6 +137,12 @@ final class SeatObservation {
     private int currentTurn = 0;
     private final Set<String> presentedNoted = new HashSet<>();
     private final List<String> omissions = new ArrayList<>();
+    /** The seat's OWN one-line read of the opponent (deck/plan, cards to respect). Authored by the
+     *  model, refreshed rarely, re-injected every decision, and always labelled unverified — it is a
+     *  hypothesis the model can revise, never an engine fact. Empty until the model writes one. */
+    private String profile = "";
+
+    void setProfile(String p) { this.profile = p == null ? "" : p; }
 
     /** A card the seat KNOWS is sitting in an opponent's hidden zone. Recorded ONLY from what the
      *  viewer could see: (a) a card visible on the battlefield/graveyard/exile that then MOVED into a
@@ -799,6 +806,8 @@ final class SeatObservation {
             s.append(spentThisTurn());
             s.append(facts());
             s.append(LlmSpikeGui.PlayerControllerLLM.planText(turnPlan, planTurn, ph.getTurn()));
+            if (!profile.isEmpty())
+                s.append("YOUR OPPONENT PROFILE (you wrote this; unverified — revise it as you learn): ").append(profile).append('\n');
             return s.toString();
         } catch (Exception e) {
             return "== (state unavailable: " + e + ") ==";

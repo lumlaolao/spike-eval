@@ -260,6 +260,19 @@ public class SeatObservationTest {
         Assert.assertTrue(hist.contains("battlefield -> graveyard"), hist);
     }
 
+    /** The model's own opponent read is re-injected every decision and always labelled unverified:
+     *  it is a hypothesis it can revise, never an engine fact. */
+    @Test
+    public void opponentProfileIsShownOnlyWhenTheModelWroteOneAndIsLabelledUnverified() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        SeatObservation o = observerFor(g, 0);
+        Assert.assertFalse(render(o, "").contains("\nYOUR OPPONENT PROFILE"));
+        o.setProfile("Grixis Reanimator: Entomb+Reanimate; respect Force of Will");
+        String r = render(o, "");
+        Assert.assertTrue(r.contains("\nYOUR OPPONENT PROFILE (you wrote this; unverified"), r);
+        Assert.assertTrue(r.contains("respect Force of Will"), r);
+    }
+
     // ---- paired worlds ------------------------------------------------------------------------
 
     @Test

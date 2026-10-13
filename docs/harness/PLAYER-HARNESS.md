@@ -142,7 +142,7 @@ same way. `INSPECT @N` / `INSPECT <card name>` is a third memory tool sharing th
 budget: current public characteristics, an explicit HISTORICAL answer once the object is
 gone or hidden, or public card-database text labelled as such. Legacy profiles
 (`v1-compat`, `v2-memory`, `v3-compact`) are untouched byte-for-byte; `v4-faithful` has its
-own `context.v3|...|observation=observation-faithful-v8` identity and sha.
+own `context.v3|...|observation=observation-faithful-v9` identity and sha.
 
 `SeatObservationTest` drives the live implementation against real engine games: two
 worlds differing only in the opponent's hand and library produce identical observations,
@@ -246,6 +246,14 @@ a move is publicly linked, so an object keeps ONE history even though Forge buil
 the seat a new handle) on every move. `INSPECT @N` returns it (`history: ...`), which is the
 object-level half of continuity: without it the model could only see that a *new* thing appeared. One
 test covers it (`inspectShowsAnObjectsZoneTransitionHistory`).
+
+**2026-10-13 — model-authored opponent profile (`observation-faithful-v9`).** P6b: the seat can write
+its own one-line read of the opponent (`PROFILE: ...`), which is re-injected every decision as
+`YOUR OPPONENT PROFILE (you wrote this; unverified — revise it as you learn): ...`. It is refreshed
+only when empty or >=5 turns old, and it RIDES the same piggybacked ask as the turn plan — so it costs
+no extra model call. It is a hypothesis, labelled as such, never an engine fact (the deterministic
+half is the `RECURRING` line). Test:
+`opponentProfileIsShownOnlyWhenTheModelWroteOneAndIsLabelledUnverified`.
 
 Hand-reveal bridge/parse failures now choose the first minimum-sized legal subset,
 log an automatic fallback, and never call Forge AI. Empty reveal pools return empty.
