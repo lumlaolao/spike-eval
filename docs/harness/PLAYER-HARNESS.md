@@ -142,7 +142,7 @@ same way. `INSPECT @N` / `INSPECT <card name>` is a third memory tool sharing th
 budget: current public characteristics, an explicit HISTORICAL answer once the object is
 gone or hidden, or public card-database text labelled as such. Legacy profiles
 (`v1-compat`, `v2-memory`, `v3-compact`) are untouched byte-for-byte; `v4-faithful` has its
-own `context.v3|...|observation=observation-faithful-v3` identity and sha.
+own `context.v3|...|observation=observation-faithful-v4` identity and sha.
 
 `SeatObservationTest` drives the live implementation against real engine games: two
 worlds differing only in the opponent's hand and library produce identical observations,
@@ -201,6 +201,14 @@ never engine truth: it is derived only from what the viewer could see, is capped
 says so in its own header. `SeatObservation.VERSION` moved to `observation-faithful-v3`; two tests
 cover it (`seenMovesIntoHiddenZonesAreKnownThenInvalidated`,
 `presentedCardsFromHiddenZonesAreRecordedAsKnown`).
+
+**2026-10-13 — explicit "spent this turn" state (`observation-faithful-v4`).** The faithful renderer
+now emits a `SPENT THIS TURN:` line — land drop AVAILABLE/USED (with the count and the cap), spells
+cast, and attackers declared — as **explicit facts**. A model cannot attend to gaps, so legality must
+be stated rather than inferred from a missing menu entry; this targets the "played a second land"
+class directly. It is rendered last, beside the decision, because that is where attention sits.
+`SeatObservation.VERSION` moved to `observation-faithful-v4`; one test covers it
+(`spentThisTurnIsExplicitAndFlipsWhenALandIsPlayed`).
 
 Hand-reveal bridge/parse failures now choose the first minimum-sized legal subset,
 log an automatic fallback, and never call Forge AI. Empty reveal pools return empty.

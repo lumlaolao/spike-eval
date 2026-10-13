@@ -92,6 +92,11 @@ engine revealed from one; invalidated on a seen exit). Prompt bytes changed, so 
 provenance event: v3 artifacts are not comparable to v2 and must not share a table. The acceptance
 greps and `PLAYER-HARNESS.md` were updated to `v3`.
 
+**Later still (2026-10-13): v3 → `observation-faithful-v4`.** Added an explicit `SPENT THIS TURN:`
+line (land drop AVAILABLE/USED, spells cast, attackers declared) so legality is stated rather than
+inferred from absence. Same discipline: prompt bytes changed, so v4 is a new provenance identity
+(v4 artifacts are not comparable to v3).
+
 ## Residual limits (explicit)
 
 - **Name-only references to a hidden object are not redacted.** If an engine call site
