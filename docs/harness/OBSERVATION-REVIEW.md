@@ -114,6 +114,10 @@ bytes changed → new provenance identity.
 per-object zone-transition trail, surfaced by `INSPECT @N` as `history: ...` (the object-level half of
 continuity).
 
+**Later still (2026-10-13): v8 → `observation-faithful-v9`.** Added the model-authored
+`YOUR OPPONENT PROFILE` line (a labelled, revisable hypothesis refreshed rarely, riding the plan ask).
+
+
 
 ## Residual limits (explicit)
 

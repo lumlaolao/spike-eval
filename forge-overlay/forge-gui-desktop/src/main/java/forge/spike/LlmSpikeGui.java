@@ -678,6 +678,11 @@ public final class LlmSpikeGui {
         // all-in that can undo an explicitly-stated single-attacker (Exalted etc.) line.
         private final java.util.Set<String> lastDeclaredAttackerNames = new java.util.HashSet<>();
         private int planTurn = -1;
+        /** The model's own one-line read of the opponent (deck/plan, cards to respect). Refreshed when
+         *  empty or >= PROFILE_REFRESH_TURNS old, piggybacked on the plan ask so it costs no extra call. */
+        private String oppProfile = "";
+        private int profileTurn = -99;
+        private static final int PROFILE_REFRESH_TURNS = 5;
 
         /** The resolved context profile for this process — what the model is allowed to see.
          *  Resolved ONCE from the environment: a profile that could change mid-game would make the
@@ -1200,6 +1205,7 @@ public final class LlmSpikeGui {
                 // Same watermark discipline as below: only the renderer may move it.
                 observer.capture();
                 GameHistory.Rendered hist = GameHistory.renderEvents(observer.events(), ctx, eventWatermark);
+                observer.setProfile(oppProfile);
                 String s = observer.render(seat, ctx, hist.text, turnPlan, planTurn);
                 if (hist.watermark != GameHistory.Rendered.KEEP_WATERMARK) eventWatermark = hist.watermark;
                 return s;
@@ -2026,15 +2032,21 @@ public final class LlmSpikeGui {
                 // First main-phase decision of OUR turn: also ask for a one-line turn plan (piggybacked —
                 // costs zero extra calls). It rides in the snapshot for every later decision this turn.
                 boolean askPlan = !landOnly && planTurn != turn && b == smart; // once per turn, EITHER player's turn
+                // The opponent read is refreshed rarely (empty, or >=5 turns old) and rides the same ask,
+                // so it never costs an extra model call.
+                boolean askProfile = askPlan && (oppProfile.isEmpty() || turn - profileTurn >= PROFILE_REFRESH_TURNS);
+                String asks = askPlan
+                        ? "First state your plan for THIS TURN as `PLAN: <one short line>` (the sequence you intend, e.g. 'ritual into Reanimate on Griselbrand, hold Petal'). "
+                        : "";
+                if (askProfile) asks += "Also state your read of the OPPONENT as `PROFILE: <one short line>` "
+                        + "(their deck/plan and the cards to respect, e.g. 'Grixis Reanimator: Entomb+Reanimate, respect Force of Will'). ";
                 boolean lookaheadOn = lookaheadEnabled();
                 StringBuilder lookCtx = new StringBuilder(); // at most one lookahead preview per decision
                 if (rnd != null) choice = 1 + rnd.nextInt(passIdx); // random arm: uniform incl. PASS
                 for (int attempt = 0; rnd == null && attempt < 2 && choice < 1; attempt++) {
                     String prompt = (attempt == 0
                             ? playPromptPrefix(snapshot(), phh.getPhase(), ownMain, menuStr)
-                              + (askPlan
-                                 ? "First state your plan for THIS TURN as `PLAN: <one short line>` (the sequence you intend, e.g. 'ritual into Reanimate on Griselbrand, hold Petal'), then end with EXACTLY: CHOICE: <number>"
-                                 : PLAY_PROMPT_TAIL)
+                              + (asks.isEmpty() ? PLAY_PROMPT_TAIL : asks + "Then end with EXACTLY: CHOICE: <number>")
                             : "That reply had no parseable choice. Answer with ONE line only: CHOICE: <a number 1.." + passIdx + " from the list above>.")
                             + lookCtx
                             + (lookaheadOn && attempt == 0
@@ -2053,6 +2065,20 @@ public final class LlmSpikeGui {
                                 turnPlan = pl.replaceAll("\\s+", " ").trim();
                                 planTurn = turn;
                                 p("[ROUTER] plan: " + turnPlan);
+                            }
+                        }
+                    }
+                    if (reply != null && attempt == 0 && askProfile) {
+                        String pf = lastSegment(reply, "PROFILE:");
+                        if (pf != null) {
+                            int cut = pf.toUpperCase().indexOf("CHOICE:");
+                            if (cut >= 0) pf = pf.substring(0, cut);
+                            int cut2 = pf.toUpperCase().indexOf("PLAN:");
+                            if (cut2 >= 0) pf = pf.substring(0, cut2);
+                            if (!pf.trim().isEmpty()) {
+                                oppProfile = pf.replaceAll("\\s+", " ").trim();
+                                profileTurn = turn;
+                                p("[ROUTER] profile: " + oppProfile);
                             }
                         }
                     }
