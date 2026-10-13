@@ -5,9 +5,11 @@ description: Reviews a pull request or staged diff in this repository before it 
 
 # pr-review
 
-Run this as a fresh subagent whenever your runtime has one (Claude Code: the Agent tool, with
-this file as the brief and the diff as the input), so the reviewer is not the author. Without
-subagents, follow it yourself, start to finish, before you write another line of the change.
+Run this as a fresh subagent whenever your runtime has one (Claude Code: the Agent tool; OpenCode:
+a subagent task), with this file as the brief and the diff as the input, so the reviewer is not
+the author. Without subagents, or when the owner has asked for none, follow it yourself, start to
+finish, before you write another line of the change, and say in the recorded verdict that the
+author's session did the review.
 
 You review one change to the LLM-plays-Magic harness. You are the reader who was not there when it
 was written. You do not edit, stage, commit, build or play games: live paid games may be running

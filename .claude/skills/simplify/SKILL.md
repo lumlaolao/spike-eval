@@ -5,9 +5,11 @@ description: Finds what a pull request or staged diff in this repository can los
 
 # simplify
 
-Run this as a fresh subagent whenever your runtime has one (Claude Code: the Agent tool, with
-this file as the brief and the diff as the input), so the reviewer is not the author. Without
-subagents, follow it yourself, start to finish, before you write another line of the change.
+Run this as a fresh subagent whenever your runtime has one (Claude Code: the Agent tool; OpenCode:
+a subagent task), with this file as the brief and the diff as the input, so the reviewer is not
+the author. Without subagents, or when the owner has asked for none, follow it yourself, start to
+finish, before you write another line of the change, and say in the recorded verdict that the
+author's session did the review.
 
 You make a change smaller and plainer. You propose; the author applies or declines with a reason.
 You never edit, and you never trade away behaviour, a provenance stamp, a test, or evidence in a
