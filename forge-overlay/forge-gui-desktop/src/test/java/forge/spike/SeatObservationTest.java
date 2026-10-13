@@ -168,6 +168,25 @@ public class SeatObservationTest {
         Assert.assertTrue(render(o, "").contains("Rival's hand: Entomb"), render(o, ""));
     }
 
+    // ---- explicit state: the "spent this turn" ledger -----------------------------------------
+
+    /** Legality is stated as an explicit fact rather than left to be inferred from a missing menu
+     *  entry (a model cannot attend to gaps). Playing a land must flip the line to USED. */
+    @Test
+    public void spentThisTurnIsExplicitAndFlipsWhenALandIsPlayed() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        Player me = g.getPlayers().get(0);
+        SeatObservation o = observerFor(g, 0);
+        String before = render(o, "");
+        Assert.assertTrue(before.contains("SPENT THIS TURN:"), before);
+        Assert.assertTrue(before.contains("land drop AVAILABLE"), before);
+        Assert.assertTrue(before.contains("attackers declared none"), before);
+        me.setLandsPlayedThisTurn(me.getMaxLandPlays());
+        String after = render(o, "");
+        Assert.assertTrue(after.contains("land drop USED"), after);
+        Assert.assertFalse(after.contains("land drop AVAILABLE"), after);
+    }
+
     // ---- paired worlds ------------------------------------------------------------------------
 
     @Test

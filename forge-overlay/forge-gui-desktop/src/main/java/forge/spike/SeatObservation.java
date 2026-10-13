@@ -72,7 +72,7 @@ import forge.spike.LlmSpikeGui.ContextProfile;
  * seat are appended to the same stream, so every seat-visible fact has one E-id and one place to search.
  */
 final class SeatObservation {
-    static final String VERSION = "observation-faithful-v3";
+    static final String VERSION = "observation-faithful-v4";
     /** Printed once per observation so every prompt is self-describing. Part of the prompt bytes and
      *  therefore of this VERSION: change it and bump the version. */
     static final String LEGEND = "LEGEND: @N = your seat's handle for one object, assigned when you first see it; a zone change "
@@ -292,6 +292,36 @@ final class SeatObservation {
             b.append('\n');
         }
         return b.toString();
+    }
+
+    /** What this seat has already spent or used THIS TURN, stated as explicit facts. A model cannot
+     *  infer legality from absence (AbsenceBench): it must be TOLD the land drop is gone, rather than
+     *  left to notice the missing menu entry — the "played a second land" class of error. Rendered
+     *  last, beside the decision, because that is where the attention is. */
+    private String spentThisTurn() {
+        StringBuilder b = new StringBuilder("SPENT THIS TURN: ");
+        boolean any = false;
+        try {
+            int played = viewer.getLandsPlayedThisTurn();
+            boolean infinite = viewer.getMaxLandPlaysInfinite();
+            int max = infinite ? Integer.MAX_VALUE : viewer.getMaxLandPlays();
+            b.append("land drop ").append(infinite || played < max
+                    ? "AVAILABLE (" + played + "/" + (infinite ? "inf" : max) + ")"
+                    : "USED (" + played + "/" + max + ")");
+            any = true;
+        } catch (Exception ignore) { }
+        try {
+            if (any) b.append(" | ");
+            b.append("spells cast ").append(viewer.getSpellsCastThisTurn());
+            any = true;
+        } catch (Exception ignore) { }
+        try {
+            if (any) b.append(" | ");
+            java.util.List<Card> atk = viewer.getCreaturesAttackedThisTurn();
+            b.append("attackers declared ").append(atk == null || atk.isEmpty() ? "none" : atk.size());
+            any = true;
+        } catch (Exception ignore) { }
+        return any ? b.append('\n').toString() : "";
     }
 
     private Player playerFromView(PlayerView v) {
@@ -679,6 +709,7 @@ final class SeatObservation {
                 for (int i = reveals.size() - shown; i < reveals.size(); i++) s.append("  - ").append(reveals.get(i)).append('\n');
             }
             s.append(knownHiddenText());
+            s.append(spentThisTurn());
             if (planTurn == ph.getTurn() && ph.isPlayerTurn(viewer) && turnPlan != null && !turnPlan.isEmpty())
                 s.append("YOUR TURN PLAN (stated earlier this turn — execute it or consciously deviate): ").append(turnPlan);
             return s.toString();
