@@ -55,13 +55,42 @@ Giving a reasoner more room to think is exactly the wrong response. For a row kn
 the retry now **disables reasoning** and keeps a modest budget (~1 s); every other model keeps the
 historic double-the-budget retry, which is right for a genuinely long answer.
 
+## The four arms (measured, 1 seed — the MECHANISMS are solid, the throughput column is noise)
+
+| arm | turns/8min | decisions | smart | fast | completion median | completion MAX | retries |
+|---|---|---|---|---|---|---|---|
+| 1 baseline | 7 | 40 | 26 | 5 | 720 | 6,564 | 1 |
+| 2 + fast tier disables reasoning | 8 | 40 | 30 | 1 | 488 | 8,519 | 0 |
+| 3 + tier routing | 9 | 58 | 24 | 23 | 103 | **15,539** | 2 |
+| 4 + smart budget 4000 | 8 | 44 | 20 | 11 | 175 | **3,784** | 1 |
+
+Read the *mechanism* columns, not the turn counts: with one seed per arm, 7–9 turns is noise.
+
+What is solid: **reasoning off on the fast tier made classification essentially free** —
+`target` and `prevent-effect` answer with a **median of 6 completion tokens** (vs ~800 of hidden
+reasoning on the smart tier) — and **the smart cap bounded the worst case 4×** (15,539 → 3,784 tokens).
+The overruns that remain now fire `TRUNCATED->RETRY-NO-REASONING` (5 times in one game) and cost
+seconds, not the three minutes the old double-the-budget retry cost.
+
+The same measurement located the real cost, and it is **not** classification:
+
+| type | n | median completion | max |
+|---|---|---|---|
+| `play` | 34 | 394 | **15,539** |
+| `target` | 7 | 6 | 467 |
+| `prevent-effect` | 8 | 6 | 40 |
+
+**`play` is ~60 % of decisions**, and a single one generated **15,539 tokens — about 50 seconds — for an
+answer that is normally 394.** Hence the 16000 → 4000 smart budget (≈10× headroom over the median) plus
+the no-reasoning overrun retry. After both, `play`'s worst case is 3,661 tokens.
+
 ## Levers, in order of expected value
 
-1. **Tier routing** (not done; the next real win — and now the ONLY remaining big one). The
-   measurement shows 26–30 of 40 decisions went to the **smart** tier (~7 s each, so ~4 smart calls
-   per turn ≈ 28 s/turn) while the fast tier got 1–5. `play` (19–22) and `target`/`targets` (7–8) are
-   the bulk. The question to settle with data is which of those are *planning* (smart) and which are
-   *classification over a legal menu* (fast). `targets` and `prevent-effect` are *mechanical*
+1. **`play` — the only lever left that matters.** It is ~60 % of decisions and the sole source of the
+   multi-second tail. Two ways down: (a) route a *play* window to the fast tier when the menu offers no
+   real sequencing choice, or (b) **plan-then-execute** — one smart call per turn that states the
+   sequence, which the harness then executes step by step, re-planning only on interruption. (b) is the
+   5–10× win and the architecture the original plan flagged. `targets` and `prevent-effect` are *mechanical*
    decisions and are sent to the **smart** tier — 13 of 40 decisions in the measurement, i.e. ~33 % of
    the expensive calls. A target menu with exactly one legal candidate is **forced** and should never
    reach a model at all. Safe version: auto when the menu is forced/single-option; route to `fast`
