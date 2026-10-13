@@ -142,7 +142,7 @@ same way. `INSPECT @N` / `INSPECT <card name>` is a third memory tool sharing th
 budget: current public characteristics, an explicit HISTORICAL answer once the object is
 gone or hidden, or public card-database text labelled as such. Legacy profiles
 (`v1-compat`, `v2-memory`, `v3-compact`) are untouched byte-for-byte; `v4-faithful` has its
-own `context.v3|...|observation=observation-faithful-v6` identity and sha.
+own `context.v3|...|observation=observation-faithful-v7` identity and sha.
 
 `SeatObservationTest` drives the live implementation against real engine games: two
 worlds differing only in the opponent's hand and library produce identical observations,
@@ -229,6 +229,16 @@ instant-speed mana (`ComputerUtilMana.getAvailableManaEstimate`). It uses only p
 deliberately never consults `GameStateEvaluator`, which is perfect-information and non-adversarial.
 One test covers it (`engineFactsStateBothClocksAndTheirInstantSpeedMana`). `SeatObservation.VERSION`
 moved to `observation-faithful-v6`.
+
+**2026-10-13 — recurring threats + event-id drill-down (`observation-faithful-v7`).** Two smaller
+close-outs. (a) The opponent block now prints `RECURRING (cast 2+ times): <Name> xN, ...` — a name
+they have played more than once, which a human notices ("they keep casting Entomb") and which the
+model otherwise re-derives from a long log; it is the deterministic half of opponent modelling.
+(b) The MEMORY tool instructions now explain that the compacted `GAME HISTORY` cites canonical event
+ids as `[E<n>]` and that `MEMORY SEARCH 0 [E<n>]` fetches that event's archived text — a digest the
+model can see but cannot drill into is only half a memory. Tests:
+`repeatedOpponentPlayIsSurfacedAsRecurring`, `toolInstructionsExplainHowToDrillIntoACitedEvent`.
+`SeatObservation.VERSION` moved to `observation-faithful-v7`.
 
 Hand-reveal bridge/parse failures now choose the first minimum-sized legal subset,
 log an automatic fallback, and never call Forge AI. Empty reveal pools return empty.
