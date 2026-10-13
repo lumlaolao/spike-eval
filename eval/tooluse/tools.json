@@ -1,5 +1,5 @@
 {
-  "version": "seat-tools-v2",
+  "version": "seat-tools-v3",
   "comment": "The seat's read-only tools as native function definitions. Each maps 1:1 onto a command ContextMemory.execute already implements (text_command), so the native and text protocols reach the SAME executor and differ only in how the request is expressed. Descriptions carry the same epistemic caveats the text grammar states. rules_lookup and simulate are served by the engine side only (RulesTool, PlayerLookahead); the tool-use suite has no fixture for them and does not offer them.",
   "tools": [
     {
@@ -145,14 +145,14 @@
       "text_command": "SIMULATE {option} {target} {then}",
       "function": {
         "name": "simulate",
-        "description": "Preview what a numbered CAST or ACTIVATE option of the current decision does when it resolves, on a copy of the game built only from what you can see: which permanents leave or arrive, and each player's life, hand, library and graveyard counts. Pass `then` to preview a LINE: further options played after it, in order, on the same copy (it tells you if a later one can no longer be paid for). It is an estimate, not the engine's verdict: hidden cards are guessed, and the engine pays the costs on the copy. At most one preview per decision.",
+        "description": "Preview what a numbered option of the current decision does when it resolves — a CAST, an ACTIVATE or a PLAY LAND — on a copy of the game built only from what you can see: which permanents leave or arrive, and each player's life, hand, library and graveyard counts. Pass `then` to preview a LINE: further options played after it, in order, on the same copy (it tells you if a later one can no longer be paid for). It is an estimate, not the engine's verdict: hidden cards are guessed, and the engine pays the costs on the copy. At most one preview per decision.",
         "parameters": {
           "type": "object",
           "properties": {
             "option": {
               "type": "integer",
               "minimum": 1,
-              "description": "The option number from the decision's list."
+              "description": "The number of a CAST, ACTIVATE or PLAY LAND option in the decision's menu. PASS cannot be previewed."
             },
             "target": {
               "type": "string",
@@ -165,7 +165,7 @@
                 "minimum": 1
               },
               "maxItems": 2,
-              "description": "Optional: up to two more option numbers to play after it, in order."
+              "description": "Optional: up to two more menu numbers to play after it, in order."
             }
           },
           "required": [

@@ -36,8 +36,11 @@ final class PlayerLookahead {
     /** Stamped on the game line: what a preview covers and reports is part of what the model sees.
      *  v2 (2026-10-13): activated abilities as well as spells; names of permanents that left or
      *  entered; hand and library sizes; a refusal instead of "no change" when the copy could not pay;
-     *  and previews that work at all when a sideboard holds a characteristic-defining card. */
-    static final String VERSION = "lookahead-preview-v2";
+     *  and previews that work at all when a sideboard holds a characteristic-defining card.
+     *  v3 (2026-10-13): a previewed line may start with (or include) a land drop, so "play the land,
+     *  then the spell it pays for" can be asked; the tool's option numbers are the decision's own
+     *  menu numbers (see LlmSpikeGui's simulate handler). */
+    static final String VERSION = "lookahead-preview-v3";
 
     private PlayerLookahead() { }
 
@@ -130,7 +133,7 @@ final class PlayerLookahead {
      *  for the seat and each opponent. Runs entirely inside one isolated RNG: the live game and its
      *  RNG stream are untouched (same guarantee as {@link #copyForPreview}).
      *
-     *  <p>It refuses land drops and mana abilities, and never reports hidden identities —
+     *  <p>It refuses mana abilities, and never reports hidden identities —
      *  this is a *rules preview* of the immediate resolution, not a win-probability rollout (see
      *  docs/harness/LOOKAHEAD-DESIGN.md). The opponent is played by the engine AI, and only
      *  libraries are determinized (the opponent's hand is not), so it is partial determinization. */
@@ -165,9 +168,13 @@ final class PlayerLookahead {
             return "(a line names each option once: the same option cannot be played twice)";
         // v2 previews any CAST or ACTIVATE option. In the first arm that could ask, 19 of 38 requests
         // were for an activated ability (Goblin Bombardment, a planeswalker) and all were turned away.
+        // v3 also plays a land drop: the seat asked for "land, then the spell it pays for" and was
+        // refused (runs/loop/g02 turn 6, `simulate {"option":4,"then":[3]}`; 13 of 92 requests named a
+        // PLAY LAND option in runs/lines/ctl2/native-lookahead). A mana ability is still refused:
+        // "add one mana" resolves to nothing the report can show.
         for (forge.game.spellability.SpellAbility o : liveOptions) {
-            if (o.isLandAbility() || o.isManaAbility())
-                return "(a preview covers CAST and ACTIVATE options, not land drops or mana abilities)";
+            if (o.isManaAbility())
+                return "(a preview covers CAST, ACTIVATE and PLAY LAND options, not mana abilities)";
         }
         Random liveRandom = MyRandom.getRandom();
         // A live option carries no target until the model commits, so the engine cannot resolve a
@@ -205,20 +212,44 @@ final class PlayerLookahead {
                 try { label = o.getHostCard() == null ? "the spell" : o.getHostCard().getName(); }
                 catch (Exception e) { label = "the spell"; }
                 String assumed = selectFirstTargets(o, i == 0 ? targetHint : null);
-                // Play on the copy; the engine pays the costs there. The sentinel score is its way of
-                // saying it could not (no legal payment on the copy as it stands after earlier steps).
-                GameStateEvaluator.Score played = sim.simulateSpellAbility(o, false);
-                // Played means it is on the copy's stack. The engine can report success for an option
-                // whose card an earlier step already moved (the same spell named twice), with nothing
-                // put on the stack; that is not a play and must not be reported as one.
-                boolean onStack = simGame.getStack().size() > 0;
-                if (!onStack || (played != null && played.value == Integer.MIN_VALUE)) {
+                boolean isLand = o.isLandAbility();
+                boolean ok;
+                if (isLand) {
+                    // Play the land on the copy directly. GameSimulator.simulateSpellAbility's land
+                    // branch recurses with the LIVE ability (sa = origSa, not the copy's) and the AI
+                    // picker then replays it: in the Mardu mirror that exhausted the heap (acceptance
+                    // nativetool stage, 2 of 19 previews, OutOfMemoryError in Spell.<init>). The copy's
+                    // own land ability is played instead; the land reaching the copy's battlefield is
+                    // the success test (a second land in the turn fails canPlay and stops the line).
+                    Player copyMe = (Player) sim.getGameCopier().find(seat);
+                    forge.game.card.Card copyLand = (forge.game.card.Card) sim.getGameCopier().find(o.getHostCard());
+                    forge.game.spellability.SpellAbility copyDrop = null;
+                    if (copyLand != null && copyMe != null) {
+                        for (forge.game.spellability.SpellAbility s : copyLand.getAllPossibleAbilities(copyMe, false)) {
+                            if (s.isLandAbility()) { copyDrop = s; break; }
+                        }
+                    }
+                    if (copyDrop != null) copyDrop.setActivatingPlayer(copyMe);
+                    ok = copyDrop != null && copyDrop.canPlay();
+                    if (ok) copyMe.playLand(copyLand, copyDrop);
+                    ok = ok && copyLand.isInZone(ZoneType.Battlefield);
+                } else {
+                    // Play on the copy; the engine pays the costs there. The sentinel score is its way
+                    // of saying it could not (no legal payment on the copy after earlier steps). Played
+                    // means it is on the copy's stack; the engine can report success for an option whose
+                    // card an earlier step already moved, with nothing put on the stack, and that is not
+                    // a play and must not be reported as one.
+                    GameStateEvaluator.Score played = sim.simulateSpellAbility(o, false);
+                    ok = simGame.getStack().size() > 0 && (played == null || played.value != Integer.MIN_VALUE);
+                }
+                if (!ok) {
                     if (i == 0) return "(preview unavailable: the engine could not pay for or play this option on the copy)";
                     stopped = label;
                     break;
                 }
                 GameSimulator.resolveStack(simGame, simGame.getPlayers().get(1));
-                b.append(i == 0 ? "" : ", then ").append(o.isSpell() ? "cast " : "activate ").append(label)
+                b.append(i == 0 ? "" : ", then ")
+                 .append(isLand ? "play " : (o.isSpell() ? "cast " : "activate ")).append(label)
                  .append(assumed.isEmpty() ? "" : " [assuming target: " + assumed + "]");
                 sacrifice |= o.getPayCosts() != null && o.getPayCosts().hasSpecificCostType(forge.game.cost.CostSacrifice.class);
                 // Taken after EACH completed step: a later step that fails to be paid for can leave

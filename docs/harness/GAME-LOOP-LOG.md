@@ -51,3 +51,33 @@ both surveils and every attack were asked of the model.
 - clean  Turn-2 discard looked wrong (8 cards after a land drop) and was not: Goblin Guide's trigger
   had put a land in the seat's hand.
 - OPEN   One smart-tier reply was cut off at 4000 tokens on a five-option turn (26 s).
+
+### g02  2026-10-13  seed 54  Death & Taxes (seat) vs Grixis Reanimator (Forge AI)  won T12  $0.02  build b8bf473c
+
+Sheet: TAKEN 0, LOST 0, SLOW 0. A decisive win: the seat kept a 5-land hand, played Stoneforge Mystic
+into Batterskull, Wastelanded their Underground Sea, then attacked for lethal. The two TOOL rows were
+the whole of the reading.
+
+- FIXED  `simulate` refused a PLAY LAND option, so the seat could not preview the line it kept asking
+  for (TOOL bad-args, line 14, T6): it called `simulate {"option":4,"then":[3]}` — PLAY LAND Wasteland,
+  then Stoneforge Mystic's ability — and got "`option` must be the number of a CAST or ACTIVATE option
+  (1..3)". The tool's numbers are now the decision's own menu numbers (CAST/ACTIVATE then PLAY LAND;
+  PASS is not previewable), and a land drop may start a line, played on the copy so it can pay for a
+  later step. 13 of 92 preview requests named a PLAY LAND option in runs/lines/ctl2/native-lookahead
+  and all were refused. Test `aLineThatStartsWithALandDropIsPreviewed`. Stamps: seat-tools-v3,
+  lookahead-preview-v3.
+- OPEN   the other half of item 1 is unchanged: a spell that was not already on the menu when the land
+  is played (the spell the land enables) still cannot be named in one call, so "land, then that spell"
+  is only previewable if the spell was a menu option at the time of the decision.
+- FIXED  the land preview first went through `GameSimulator.simulateSpellAbility` and the copy's land
+  branch recursed with the LIVE ability, so the AI picker replayed it and the heap ran out
+  (acceptance nativetool stage, 2 of 19 previews, OutOfMemoryError in `Spell.<init>`). The copy's own
+  land ability is played directly instead.
+- OPEN   the same turn's other tool call, `memory_search "ForgeAI deck"`, returned Matches=0 (line 15,
+  T6). The opponent's deck identity is hidden information and not in the seat's archive; a word-split
+  fallback would return the entries that mention "ForgeAI". Low; not fixed.
+- OPEN   one smart-tier reply was cut off at 4000 tokens on the T6 five-option turn, retried with
+  reasoning disabled: 66 s + 20 s on that one decision (log line 57). Open item 3, unchanged.
+- NOTE   plan_audit reports one HOLD-VIOLATION at T6 and it is a false positive: the clause "play
+  Wasteland and hold Swords to Plowshares" holds Swords, and the splitter does not split on "and".
+- clean  mulligan (asked, 5 lands kept), all three attack steps, targets, the served Wasteland preview.
