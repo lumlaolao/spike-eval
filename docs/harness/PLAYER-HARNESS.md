@@ -142,7 +142,7 @@ same way. `INSPECT @N` / `INSPECT <card name>` is a third memory tool sharing th
 budget: current public characteristics, an explicit HISTORICAL answer once the object is
 gone or hidden, or public card-database text labelled as such. Legacy profiles
 (`v1-compat`, `v2-memory`, `v3-compact`) are untouched byte-for-byte; `v4-faithful` has its
-own `context.v3|...|observation=observation-faithful-v7` identity and sha.
+own `context.v3|...|observation=observation-faithful-v8` identity and sha.
 
 `SeatObservationTest` drives the live implementation against real engine games: two
 worlds differing only in the opponent's hand and library produce identical observations,
@@ -239,6 +239,13 @@ ids as `[E<n>]` and that `MEMORY SEARCH 0 [E<n>]` fetches that event's archived 
 model can see but cannot drill into is only half a memory. Tests:
 `repeatedOpponentPlayIsSurfacedAsRecurring`, `toolInstructionsExplainHowToDrillIntoACitedEvent`.
 `SeatObservation.VERSION` moved to `observation-faithful-v7`.
+
+**2026-10-13 — object history (`observation-faithful-v8`).** P1b: each observed object now carries a
+bounded zone-transition **trail** (`T3: battlefield -> graveyard`), inherited from the predecessor when
+a move is publicly linked, so an object keeps ONE history even though Forge builds a new `Card` (and
+the seat a new handle) on every move. `INSPECT @N` returns it (`history: ...`), which is the
+object-level half of continuity: without it the model could only see that a *new* thing appeared. One
+test covers it (`inspectShowsAnObjectsZoneTransitionHistory`).
 
 Hand-reveal bridge/parse failures now choose the first minimum-sized legal subset,
 log an automatic fallback, and never call Forge AI. Empty reveal pools return empty.

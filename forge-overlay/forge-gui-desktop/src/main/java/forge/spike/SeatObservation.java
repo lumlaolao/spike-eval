@@ -72,7 +72,7 @@ import forge.spike.LlmSpikeGui.ContextProfile;
  * seat are appended to the same stream, so every seat-visible fact has one E-id and one place to search.
  */
 final class SeatObservation {
-    static final String VERSION = "observation-faithful-v7";
+    static final String VERSION = "observation-faithful-v8";
     /** Printed once per observation so every prompt is self-describing. Part of the prompt bytes and
      *  therefore of this VERSION: change it and bump the version. */
     static final String LEGEND = "LEGEND: @N = your seat's handle for one object, assigned when you first see it; a zone change "
@@ -115,6 +115,10 @@ final class SeatObservation {
         boolean linkAllowed = true; // no hidden zone on the path since the last sighting
         String lastKnownName;       // identity as last seen, null if never known to the viewer
         ZoneType lastZone;
+        /** Where this object has been, for as long as we could watch it: "T3: battlefield -> graveyard".
+         *  Inherited from the predecessor when a zone change is publicly linked, so an object keeps ONE
+         *  history even though Forge makes a new Card (and we a new handle) on every move. */
+        final List<String> trail = new ArrayList<>();
         Tracked(int engineId, int handle, long timestamp, int predecessor) {
             this.engineId = engineId; this.handle = handle; this.timestamp = timestamp; this.predecessor = predecessor;
         }
@@ -154,6 +158,8 @@ final class SeatObservation {
      *  beyond the cap the oldest fact is dropped, so a long game cannot grow this without limit. */
     private static final int KNOWN_HIDDEN_CAP = 12;
     private final Map<String, KnownLoc> knownHidden = new LinkedHashMap<>();
+    /** Most recent zone transitions kept per object (bounded, oldest dropped). */
+    private static final int TRAIL_CAP = 8;
 
     SeatObservation(Game game, Player viewer) {
         this(game, viewer, true);
@@ -224,6 +230,12 @@ final class SeatObservation {
             t.pendingNew = true;
             if (!zoneViewVisible(ev.from()) || !zoneViewVisible(ev.to())) t.linkAllowed = false;
             updateKnownHidden(t, ev.from(), ev.to());
+            // Where it went, for as long as we could watch it. This is the object-level half of
+            // continuity: the model can ask what happened to a thing it saw earlier.
+            String from = ev.from() == null ? "?" : zoneWord(ev.from().zoneType());
+            String to = ev.to() == null ? "?" : zoneWord(ev.to().zoneType());
+            t.trail.add("T" + safeTurn() + ": " + from + " -> " + to + (t.linkAllowed ? "" : " (via a hidden zone)"));
+            while (t.trail.size() > TRAIL_CAP) t.trail.remove(0);
         } catch (Exception ignore) { }
     }
 
@@ -269,6 +281,7 @@ final class SeatObservation {
     }
 
     private static String zoneWord(ZoneType zt) {
+        if (zt == null) return "?";
         return zt == ZoneType.Hand ? "hand" : zt == ZoneType.Library ? "library" : zt.name().toLowerCase(Locale.ROOT);
     }
 
@@ -394,11 +407,17 @@ final class SeatObservation {
         }
         if (known) t.lastKnownName = c.getName();
         t.lastZone = zoneTypeOf(c);
+        if (t.trail.isEmpty()) t.trail.add("T" + safeTurn() + ": first seen in " + zoneWord(t.lastZone));
         return t;
     }
 
     private Tracked register(int id, long ts, int predecessor) {
         Tracked t = new Tracked(id, nextHandle++, ts, predecessor);
+        // A publicly linked move continues the SAME object, so it continues the same history.
+        if (predecessor >= 0) {
+            Tracked prev = byHandle.get(predecessor);
+            if (prev != null) t.trail.addAll(prev.trail);
+        }
         byEngineId.put(id, t);
         byHandle.put(t.handle, t);
         return t;
@@ -1009,7 +1028,8 @@ final class SeatObservation {
             if (!current || !zoneVisible(zoneTypeOf(c), zoneOwnerOf(c))) {
                 return "@" + h + " is HISTORICAL (no longer the current object, or now in a zone you cannot see). Last seen: "
                         + (t.lastKnownName == null ? "identity unknown" : t.lastKnownName)
-                        + (t.lastZone == null ? "" : " in " + t.lastZone) + ". Use current handles for current objects.";
+                        + (t.lastZone == null ? "" : " in " + t.lastZone) + ". Use current handles for current objects."
+                        + trailNote(t);
             }
             StringBuilder b = new StringBuilder("@").append(h).append(" (current): ").append(describe(c, false));
             b.append("\nzone: ").append(zoneTypeOf(c)).append(" | controller: ").append(c.getController() == viewer ? "you" : c.getController().getName())
@@ -1021,6 +1041,7 @@ final class SeatObservation {
             } else {
                 b.append("\ntypes: ").append(typeLine(c)).append(" | identity hidden from you (face-down)");
             }
+            b.append(trailNote(t));
             return b.toString();
         }
         try {
@@ -1039,9 +1060,16 @@ final class SeatObservation {
         }
     }
 
+    /** This object's zone history, for the INSPECT answer. Empty when we never saw it move. */
+    private static String trailNote(Tracked t) {
+        if (t == null || t.trail.isEmpty()) return "";
+        return "\nhistory: " + String.join(" | ", t.trail);
+    }
+
     static String inspectInstructions() {
         return "INSPECT TOOL: you may also reply with exactly ONE line `INSPECT @<handle>` for the current public "
                 + "characteristics and rules text of an object you can see, or `INSPECT <exact card name>` for public "
-                + "card-database text. INSPECT shares the MEMORY tool budget and never reveals hidden identities.\n";
+                + "card-database text. Inspecting an object you have seen also shows its zone history (`history: ...`). "
+                + "INSPECT shares the MEMORY tool budget and never reveals hidden identities.\n";
     }
 }
