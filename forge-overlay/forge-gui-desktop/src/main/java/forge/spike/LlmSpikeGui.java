@@ -1731,11 +1731,11 @@ public final class LlmSpikeGui {
             String host = hostCard != null ? hostCard.getName() : "?";
             if (abilities.size() == 1) { auto("ability-to-play(forced-only-legal)[" + host + "]"); return abilities.get(0); }
             try {
-                if (!smartOk()) { auto("ability-to-play(no-budget)->first[" + host + "]"); return abilities.get(0); }
+                if (!okFor("ability-to-play")) { auto("ability-to-play(no-budget)->first[" + host + "]"); return abilities.get(0); }
                 List<String> labels = new ArrayList<>();
                 for (SpellAbility sa : abilities) labels.add(labelOf(sa));
                 String q = "Choose HOW to play " + host + " -- pick the specific cast mode / cost variant.";
-                int c = decideOne(smart, "ability-to-play", q, labels, null);
+                int c = decideOne(bridgeFor("ability-to-play"), "ability-to-play", q, labels, null);
                 if (c == -2) { auto("ability-to-play(bridge-down)->first[" + host + "]"); return abilities.get(0); }
                 if (c < 0) { auto("ability-to-play(unparsed)->first[" + host + "]"); return abilities.get(0); }
                 p("[ROUTER] ability-to-play: " + labels.get(c));
@@ -2214,13 +2214,13 @@ public final class LlmSpikeGui {
             List<Card> opts = new ArrayList<>(fetchList);
             if (opts.size() == 1 && !isOptional) { auto("zone-change(forced-only-legal)" + srcOf(sa)); return opts.get(0); }
             try {
-                if (!smartOk()) { auto("zone-change(no-budget)->first" + srcOf(sa)); return isOptional ? null : opts.get(0); }
+                if (!okFor("zone-change")) { auto("zone-change(no-budget)->first" + srcOf(sa)); return isOptional ? null : opts.get(0); }
                 List<String> labels = new ArrayList<>();
                 for (Card c : opts) labels.add(labelOf(c));
                 String q = (selectPrompt == null || selectPrompt.isEmpty() ? "Choose a card" : selectPrompt)
                         + " -> " + destination + srcOf(sa)
                         + " (pick the card that best advances your game plan — e.g. reanimate your biggest threat).";
-                int c = decideOne(smart, "zone-change", q, labels, isOptional ? "Decline / none" : null);
+                int c = decideOne(bridgeFor("zone-change"), "zone-change", q, labels, isOptional ? "Decline / none" : null);
                 if (c == -2) { auto("zone-change(bridge-down)->first" + srcOf(sa)); return isOptional ? null : opts.get(0); }
                 if (c < 0) { // decideOne's -1 also covers "still unparseable after retry", which (unlike an
                              // explicit decline) decideOne does NOT log itself — never drop that case silently.
@@ -2255,9 +2255,9 @@ public final class LlmSpikeGui {
                 int pick = 0; // default: the (only, or first) legal candidate — beats an AI decline
                 List<String> labels = new ArrayList<>();
                 for (GameEntity ge : cands) labels.add(labelOf(ge));
-                if (cands.size() > 1 && smartOk()) {
+                if (cands.size() > 1 && okFor("targets")) {
                     String q = "Choose the TARGET for " + labelOf(sa) + " (the spell/ability resolves against whatever you pick).";
-                    int c = decideOne(smart, "targets", q, labels, min == 0 ? "No target (decline)" : null);
+                    int c = decideOne(bridgeFor("targets"), "targets", q, labels, min == 0 ? "No target (decline)" : null);
                     // bridge dead -> AI targeting is an intentional, DOCUMENTED exception to "never Forge AI"
                     // for this one site (see class comment above); still log it so it's never silent.
                     if (c == -2) return aiDelegate("targets(bridge-down)->ai" + srcOf(sa), super.chooseTargetsFor(sa));
@@ -2265,7 +2265,7 @@ public final class LlmSpikeGui {
                         // decideOne's -1 also covers "still unparseable after retry", which decideOne does NOT
                         // log itself (only an explicit decline does, flagged via lastDeclineLogged) — never drop it silently.
                         if (min == 0) {
-                            if (!lastDeclineLogged) evalDec("targets", cands.size(), -1, tierOf(true), 0, "targets(unparsed)->decline", labels);
+                            if (!lastDeclineLogged) evalDec("targets", cands.size(), -1, tierOf(smartTierFor("targets")), 0, "targets(unparsed)->decline", labels);
                             sa.resetTargets(); return true;
                         }
                         // required + unparsed -> intent-aware fallback (report C3): prefer a candidate the
@@ -2274,9 +2274,9 @@ public final class LlmSpikeGui {
                         List<Integer> named = planNamedIndices(cands);
                         if (!named.isEmpty()) {
                             pick = named.get(0);
-                            evalDec("targets", cands.size(), pick, tierOf(true), 0, "targets(unparsed)->plan-named", labels);
+                            evalDec("targets", cands.size(), pick, tierOf(smartTierFor("targets")), 0, "targets(unparsed)->plan-named", labels);
                         } else {
-                            evalDec("targets", cands.size(), 0, tierOf(true), 0, "targets(unparsed)->first", labels);
+                            evalDec("targets", cands.size(), 0, tierOf(smartTierFor("targets")), 0, "targets(unparsed)->first", labels);
                         }
                     } else pick = c;                                          // decideOne logged the success line
                 } else if (cands.size() > 1) {
@@ -2317,17 +2317,17 @@ public final class LlmSpikeGui {
                     int min = Math.max(1, sa.getMinTargets());
                     int pick = 0; // first legal candidate beats leaving it untargeted (which fizzles)
                     String fb = null; // non-null when the pick is a deterministic fallback, not a model choice
-                    if (cands.size() > 1 && smartOk()) {
+                    if (cands.size() > 1 && okFor("target")) {
                         List<String> labels = new ArrayList<>();
                         for (GameEntity ge : cands) labels.add(labelOf(ge));
                         // type=null here -> decideOne never logs internally (incl. its decline branch), so
                         // EVERY exit from this call, including the "optional -> no target" one below, must be
                         // logged by us or it vanishes with zero jsonl/log trace (the exact C5 double-failure shape).
-                        int c = decideOne(smart, null, "Choose the TARGET for " + labelOf(sa)
+                        int c = decideOne(bridgeFor("target"), null, "Choose the TARGET for " + labelOf(sa)
                                 + " (the spell resolves against whatever you pick).", labels,
                                 sa.getMinTargets() == 0 ? "No target" : null);
                         if (c == -1 && sa.getMinTargets() == 0) {
-                            evalDec("target", cands.size(), -1, tierOf(true), 0, "target(optional-decline-or-unparsed)", labels);
+                            evalDec("target", cands.size(), -1, tierOf(smartTierFor("target")), 0, "target(optional-decline-or-unparsed)", labels);
                             continue; // optional -> deliberately no target
                         }
                         if (c >= 0) pick = c;
@@ -2349,7 +2349,7 @@ public final class LlmSpikeGui {
                         if (i != pick) sa.getTargets().add(cands.get(i));
                     List<String> tgtOpts = new ArrayList<>();
                     for (GameEntity ge : cands) tgtOpts.add(labelOf(ge));
-                    evalDec("target", cands.size(), pick, fb == null ? tierOf(true) : "auto", 0, fb, tgtOpts);
+                    evalDec("target", cands.size(), pick, fb == null ? tierOf(smartTierFor("target")) : "auto", 0, fb, tgtOpts);
                     p("[ROUTER] target: " + labelOf(cands.get(pick)) + " <- " + labelOf(sa)
                             + (cands.size() == 1 ? " (only legal)" : ""));
                 } catch (Exception e) { /* leave targeting to the engine for this ability */ }
@@ -2451,10 +2451,10 @@ public final class LlmSpikeGui {
             clearLast();
             if (cost == null) return false;
             try {
-                if (smartOk()) {
+                if (okFor("prevent-effect")) {
                     String desc = oneLine(cost.toSimpleString());
                     List<String> labels = Lists.newArrayList("Pay " + desc, "Decline (let it resolve)");
-                    int c = decideOne(smart, "prevent-effect",
+                    int c = decideOne(bridgeFor("prevent-effect"), "prevent-effect",
                             "Pay " + desc + " to prevent " + (sa == null ? "the spell" : "the spell " + srcOf(sa))
                             + " from affecting you? Say 1 to pay or 2 to decline.", labels, null);
                     if (c == 0) {
@@ -3626,6 +3626,38 @@ public final class LlmSpikeGui {
                     lastPromptTokens, lastCompletionTokens, lastShadowChoice);
         }
         /** Tier label for asked decisions: random arm decisions are harness-made, not model-made. */
+        /** Tier ROUTING table: decision TYPES sent to the FAST tier. Empty (the default) keeps the
+         *  historical behaviour exactly -- every strategic decision is asked of the smart tier.
+         *
+         *  Classification decisions over a menu the harness has ALREADY legalised (which target, which
+         *  card leaves a zone, pay-or-decline, which ability of a card) do not need the reasoning tier.
+         *  Measured 2026-10-13 on deepseek-v4.1-flash: a smart-tier decision cost ~7s because ~95% of
+         *  its completion was hidden reasoning feeding a ~50-token answer, while the same prompt with
+         *  reasoning disabled answered in ~1.3s. PLANNING decisions (play, attackers, mulligan) stay
+         *  smart, because sequencing and combat are exactly what reasoning is for.
+         *
+         *  Opt in with, e.g.:
+         *    TIER_FAST_TYPES="targets,target,zone-change,prevent-effect,ability-to-play"  */
+        static final java.util.Set<String> FAST_TIER_TYPES = parseFastTierTypes();
+
+        private static java.util.Set<String> parseFastTierTypes() {
+            String v = System.getenv("TIER_FAST_TYPES");
+            if (v == null || v.trim().isEmpty()) return java.util.Collections.emptySet();
+            java.util.Set<String> out = new java.util.HashSet<>();
+            for (String p : v.split(",")) if (!p.trim().isEmpty()) out.add(p.trim().toLowerCase(java.util.Locale.ROOT));
+            return out;
+        }
+
+        /** True when a decision type belongs on the smart (reasoning) tier. */
+        static boolean smartTierFor(String type) {
+            return type == null || !FAST_TIER_TYPES.contains(type.toLowerCase(java.util.Locale.ROOT));
+        }
+
+        /** The bridge that handles a decision type, and its budget gate -- one source of truth, so the
+         *  routing table cannot drift from the tier actually used. */
+        private LLMBridge bridgeFor(String type) { return smartTierFor(type) ? smart : fast; }
+        private boolean okFor(String type) { return smartTierFor(type) ? smartOk() : fastOk(); }
+
         private String tierOf(boolean smartTier) { return rnd != null ? "auto" : (smartTier ? "smart" : "fast"); }
         // ---------------- D4 DAgger shadow labeling (SHADOW_AI=1) ----------------
         // Each helper computes the Forge-AI's choice over the SAME menu the student just faced, encoded
