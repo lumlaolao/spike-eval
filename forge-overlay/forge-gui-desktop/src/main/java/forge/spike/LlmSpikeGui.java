@@ -713,6 +713,45 @@ public final class LlmSpikeGui {
         // conversation restarts for speed.
         private final java.util.ArrayDeque<String> intel = new java.util.ArrayDeque<>();
         static final boolean MEMORY_TOOLS = "1".equals(System.getenv("MEMORY_TOOLS"));
+        /** RULES tool: a read-only, paginated index over the public Comprehensive Rules, so the model
+         *  can look up the actual rule text instead of recalling it. Off by default (RULES_TOOL=1 to
+         *  enable), so a run without it has byte-identical prompts — the with/without eval toggle.
+         *  It rides the MEMORY tool loop, so it requires MEMORY_TOOLS=1. */
+        static final boolean RULES_TOOL = "1".equals(System.getenv("RULES_TOOL"));
+        /** The CR text path: RULES_FILE, else data/rules/MagicCompRules.txt from the working
+         *  directory or an ancestor (the acceptance runs from the Forge tree, so it passes RULES_FILE). */
+        static final String RULES_FILE = resolveRulesFile();
+        private static volatile RulesTool sharedRules;
+
+        static String resolveRulesFile() {
+            String env = System.getenv("RULES_FILE");
+            if (env != null && !env.trim().isEmpty()) return env.trim();
+            java.io.File d = new java.io.File(System.getProperty("user.dir", ".")).getAbsoluteFile();
+            for (int i = 0; i < 5 && d != null; i++, d = d.getParentFile()) {
+                java.io.File f = new java.io.File(d, "data/rules/MagicCompRules.txt");
+                if (f.isFile()) return f.getAbsolutePath();
+            }
+            return "data/rules/MagicCompRules.txt";
+        }
+
+        /** Load the rules text once per JVM (it is static reference data, identical for every seat). */
+        static RulesTool rulesTool() {
+            RulesTool t = sharedRules;
+            if (t == null) {
+                synchronized (PlayerControllerLLM.class) {
+                    if (sharedRules == null) sharedRules = RulesTool.load(RULES_FILE);
+                    t = sharedRules;
+                }
+            }
+            return t;
+        }
+
+        /** Effective date of the loaded rules text for provenance — never forces a load when off. */
+        static String rulesEffective() {
+            if (!RULES_TOOL) return "n/a";
+            RulesTool rt = sharedRules;
+            return rt != null && rt.available() ? rt.effectiveDate() : "unavailable";
+        }
         private final ContextMemory contextMemory = new ContextMemory();
         private int contextCallSeq;
         private int archivedEventCount;
@@ -772,6 +811,17 @@ public final class LlmSpikeGui {
             // their game behaviour and prompt bytes are untouched.
             this.observer = ctx.faithfulObservation ? new SeatObservation(game, p) : null;
             if (observer != null && MEMORY_TOOLS) contextMemory.setInspector(observer::inspect);
+            if (MEMORY_TOOLS && RULES_TOOL) {
+                RulesTool rt = rulesTool();
+                if (rt.available()) {
+                    contextMemory.setRulesLookup(RulesTool.instructions(rt.effectiveDate()), rt::lookup);
+                    p("[RULES] " + RulesTool.VERSION + " wired (" + rt.ruleCount() + " rules, "
+                            + rt.glossaryCount() + " terms, effective " + rt.effectiveDate() + ") from " + rt.sourcePath());
+                } else {
+                    p("[RULES] RULES_TOOL=1 but the rules text did not load (" + rt.loadError()
+                            + "); the tool is left OFF so prompts match a no-rules run");
+                }
+            }
             if (!"llm".equals(this.mode)) p("[MODE] baseline arm: " + this.mode);
             if (observer != null) p("[OBSERVATION] " + SeatObservation.VERSION + " (profile " + ctx + ")");
         }
@@ -6002,6 +6052,9 @@ public final class LlmSpikeGui {
                 + ",\"temperature_b\":\"" + jsonEscape(resolvedTemperature(smartBSpec)) + "\""
                 + ",\"memory_tools\":" + PlayerControllerLLM.MEMORY_TOOLS
                 + ",\"memory_tools_version\":\"" + ContextMemory.VERSION + "\""
+                + ",\"rules_tool\":" + PlayerControllerLLM.RULES_TOOL
+                + ",\"rules_tool_version\":\"" + RulesTool.VERSION + "\""
+                + ",\"rules_effective\":\"" + jsonEscape(PlayerControllerLLM.rulesEffective()) + "\""
                 + ",\"seed_bank\":\"" + jsonEscape(System.getenv().getOrDefault("SEED_BANK", "unregistered")) + "\""
                 // Context shape: WHAT THE MODEL COULD SEE. Two runs on different profiles are different
                 // measurements and must never be pooled; before this field there was no way to tell.

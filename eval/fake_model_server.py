@@ -24,6 +24,9 @@ Fault injection:
   --memory-call K               request K answers `MEMORY SEARCH 0 turn`, and request K+2
                                 answers `MEMORY NOTE 1 ...`, so a MEMORY_TOOLS=1 game records
                                 real context_tool rows. Ignored when the prompt shows no tools.
+  --rules-call K                when nonzero, the first tool prompt that advertises the RULES
+                                grammar is answered `RULES SEARCH 0 declare blockers`, so a real
+                                RULES_TOOL=1 lookup round trip is recorded.
 
 Every request is appended to --log as one JSON line: call number, wall time, whether an
 Authorization header was present (never its value), the model requested, prompt length,
@@ -46,6 +49,7 @@ class Policy:
         self.args = args
         self.lock = threading.Lock()
         self.calls = 0
+        self.rules_done = False
         self.log = open(args.log, "a") if args.log else None
 
     def next_call(self):
@@ -66,6 +70,17 @@ class Policy:
                 return "MEMORY SEARCH 0 turn"
             if call == a.memory_call + 2:
                 return "MEMORY NOTE 1 fake-model hypothesis: opponent is on a slow deck (cites M1)."
+        # RULES tool: fire exactly once, on the first tool prompt that advertises the grammar, so the
+        # real RulesTool lookup round trip is exercised (robust to call numbering).
+        if a.rules_call and tools_offered and "RULES TOOL" in prompt:
+            with self.lock:
+                if not self.rules_done:
+                    self.rules_done = True
+                    fire = True
+                else:
+                    fire = False
+            if fire:
+                return "RULES SEARCH 0 declare blockers"
         if "KEEP or MULLIGAN" in prompt or ("KEEP" in prompt and "MULLIGAN" in prompt and "CHOICE:" not in prompt):
             return "KEEP"
         if "BLOCKS:" in prompt:
@@ -159,6 +174,9 @@ def main():
     ap.add_argument("--stall-call", type=int, default=0)
     ap.add_argument("--stall-ms", type=int, default=0)
     ap.add_argument("--memory-call", type=int, default=0)
+    ap.add_argument("--rules-call", type=int, default=0,
+                    help="when nonzero, the first tool prompt advertising the RULES grammar is answered "
+                         "with `RULES SEARCH 0 declare blockers`, so a real rules lookup is exercised")
     args = ap.parse_args()
     Handler.policy = Policy(args)
     srv = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
