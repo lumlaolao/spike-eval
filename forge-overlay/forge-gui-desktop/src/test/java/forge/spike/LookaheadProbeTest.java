@@ -181,6 +181,46 @@ public class LookaheadProbeTest {
         return null;
     }
 
+    private static forge.game.spellability.SpellAbility landAbility(forge.game.card.Card c, Player activator) {
+        for (forge.game.spellability.SpellAbility s : c.getAllPossibleAbilities(activator, false)) {
+            if (s.isLandAbility()) { s.setActivatingPlayer(activator); return s; }
+        }
+        return null;
+    }
+
+    /**
+     * A previewed line may START with a land drop. The seat asked for exactly this and was refused:
+     * runs/loop/g02 turn 6, `simulate {"option":4,"then":[3]}` on a menu whose 4 was "PLAY LAND
+     * Wasteland" and 3 was Stoneforge Mystic's ability, answered "`option` must be the number of a
+     * CAST or ACTIVATE option (1..3)"; 13 of the 92 preview requests in runs/lines/ctl2/native-lookahead
+     * named a PLAY LAND option and all 13 were refused. The land resolves on the copy, so a later step
+     * the land pays for is castable there.
+     */
+    @Test
+    public void aLineThatStartsWithALandDropIsPreviewed() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+        forge.game.card.Card mountain = SeatObservationTest.card("Mountain", me, forge.game.zone.ZoneType.Hand);
+        forge.game.card.Card bolt = SeatObservationTest.card("Lightning Bolt", me, forge.game.zone.ZoneType.Hand);
+        forge.game.spellability.SpellAbility drop = landAbility(mountain, me);
+        Assert.assertNotNull(drop, "fixture: no land-play ability on Mountain");
+        forge.game.spellability.SpellAbility s = spellOn(bolt);
+        Assert.assertNotNull(s);
+        s.setActivatingPlayer(me);   // as a real menu option carries it
+        int life = opp.getLife();
+
+        String report = PlayerLookahead.previewLine(g, me, java.util.Arrays.asList(drop, s), 5L, null);
+        System.out.println("[LOOKAHEAD] " + report);
+        Assert.assertTrue(report.startsWith("if you play Mountain"), report);
+        Assert.assertTrue(report.contains("entered the battlefield: Mountain"), report);
+        Assert.assertTrue(report.contains("then cast Lightning Bolt"), report);
+        Assert.assertTrue(report.contains("life " + life + " -> " + (life - 3)), report);
+        // Live game untouched: the land is still in hand, nobody lost life, the ability has no target left.
+        Assert.assertTrue(mountain.isInZone(forge.game.zone.ZoneType.Hand));
+        Assert.assertEquals(opp.getLife(), life);
+        Assert.assertTrue(s.getTargets() == null || s.getTargets().isEmpty());
+    }
+
     /**
      * v2: an activated ability is previewed. In runs/lines/ctl/native-lookahead 19 of the seat's 38
      * preview requests were for one (Goblin Bombardment, a planeswalker) and every one was refused.
@@ -209,7 +249,7 @@ public class LookaheadProbeTest {
     }
 
     @Test
-    public void aTapAbilityIsPreviewedAndALandDropIsNot() {
+    public void aTapAbilityIsPreviewedAndAManaAbilityIsNot() {
         Game g = SeatObservationTest.bareGame();
         Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
         forge.game.card.Card pinger = SeatObservationTest.card("Prodigal Pyromancer", me, forge.game.zone.ZoneType.Battlefield);
@@ -223,11 +263,14 @@ public class LookaheadProbeTest {
         Assert.assertTrue(theirs.isInZone(forge.game.zone.ZoneType.Battlefield));
         Assert.assertFalse(pinger.isTapped(), "the live permanent must not be tapped by a preview");
 
-        forge.game.card.Card land = SeatObservationTest.card("Mountain", me, forge.game.zone.ZoneType.Hand);
-        forge.game.spellability.SpellAbility drop = null;
-        for (forge.game.spellability.SpellAbility s : land.getAllPossibleAbilities(me, false)) if (s.isLandAbility()) drop = s;
-        if (drop != null)
-            Assert.assertTrue(PlayerLookahead.previewCast(g, me, drop, 5L).startsWith("(a preview covers CAST and ACTIVATE"));
+        // A land drop is previewable (see aLineThatStartsWithALandDropIsPreviewed); a MANA ability is
+        // still refused: "add one mana" resolves to nothing the report can show.
+        forge.game.card.Card forest = SeatObservationTest.card("Forest", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.spellability.SpellAbility mana = null;
+        for (forge.game.spellability.SpellAbility s : forest.getAllPossibleAbilities(me, false)) if (s.isManaAbility()) mana = s;
+        Assert.assertNotNull(mana, "fixture: no mana ability on a Forest");
+        Assert.assertTrue(PlayerLookahead.previewLine(g, me, java.util.Arrays.asList(mana), 5L, null)
+                .startsWith("(a preview covers CAST, ACTIVATE and PLAY LAND options, not mana abilities)"));
     }
 
     /** A line: two plays on one copy. With mana for both, both happen; with mana for one, the preview

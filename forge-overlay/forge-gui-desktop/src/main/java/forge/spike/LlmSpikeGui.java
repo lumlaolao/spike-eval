@@ -2213,16 +2213,23 @@ public final class LlmSpikeGui {
 
                 StringBuilder lookCtx = new StringBuilder(); // at most one lookahead preview per decision
                 // Native tools: the preview is a function the model calls, not a line it must reply with.
-                final boolean nativeSim = lookaheadOn && !options.isEmpty() && MEMORY_TOOLS && NativeTools.enabled()
+                // `simulate` indexes the DECISION'S OWN numbered menu, so the numbers the model reads
+                // off the prompt are the numbers it passes: the CAST/ACTIVATE options followed by the
+                // PLAY LAND options (PASS, the last menu line, is not previewable). A land drop is a
+                // first step the model keeps asking for — "play the land, then the spell it pays for"
+                // (runs/loop/g02 turn 6: {"option":4,"then":[3]} on PLAY LAND Wasteland then Stoneforge
+                // Mystic's ability) — and 13 of 92 requests named one in runs/lines/ctl2/native-lookahead.
+                final List<SpellAbility> simOptions = new ArrayList<>(options);
+                simOptions.addAll(landPlays);
+                final boolean nativeSim = lookaheadOn && !simOptions.isEmpty() && MEMORY_TOOLS && NativeTools.enabled()
                         && b.supportsNativeTools();
-                final List<SpellAbility> simOptions = options;
                 final int simTurn = turn;
                 final java.util.function.Function<String, String> simulateTool = argsJson -> {
                     com.google.gson.JsonObject a = NativeTools.arguments(argsJson);
                     int n = -1;
                     try { if (a != null && a.has("option")) n = a.get("option").getAsInt(); } catch (RuntimeException e) { n = -1; }
                     if (n < 1 || n > simOptions.size())
-                        return "ERROR: `option` must be the number of a CAST or ACTIVATE option (1.." + simOptions.size() + ").";
+                        return "ERROR: `option` must be a menu number of a CAST, ACTIVATE or PLAY LAND option (1.." + simOptions.size() + "); PASS cannot be previewed.";
                     String hint = a.has("target") && a.get("target").isJsonPrimitive() ? a.get("target").getAsString().trim() : null;
                     // `then`: further options to play after it, in order, on the same copy (a line).
                     List<SpellAbility> line = new ArrayList<>();
@@ -2233,7 +2240,7 @@ public final class LlmSpikeGui {
                             int m;
                             try { m = e.getAsInt(); } catch (RuntimeException ex) { m = -1; }
                             if (m < 1 || m > simOptions.size())
-                                return "ERROR: every number in `then` must be a CAST or ACTIVATE option (1.." + simOptions.size() + ").";
+                                return "ERROR: every number in `then` must be a menu number of a CAST, ACTIVATE or PLAY LAND option (1.." + simOptions.size() + ").";
                             line.add(simOptions.get(m - 1));
                             which.append(", then ").append(m);
                         }
