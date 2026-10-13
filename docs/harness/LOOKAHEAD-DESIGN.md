@@ -105,7 +105,7 @@ SIMULATE 3 (attack with Ragavan + Dragon's Rage Channeler):
 - Using Forge's actual strategic policy silently — the continuation policy is disclosed.
 - Public-information *hidden* reasoning — out of scope.
 
-## Combat lookahead (attackers DONE; blockers next)
+## Combat lookahead (attackers + blockers DONE)
 
 Combat is where games are decided, and the engine already exposes the primitives (read
 2026-10-12), so no new simulation is needed:
@@ -114,13 +114,16 @@ Combat is where games are decided, and the engine already exposes the primitives
 - `ComputerUtilCombat.damageIfUnblocked(attacker, attacked, combat, withoutAbilities)` — per attacker;
 - `CombatUtil.canBeBlocked(attacker, combat, defendingPlayer)` — evasive vs blockable.
 
-**Implemented for the attackers decision (2026-10-12):** `PlayerControllerLLM.attackersCeiling(...)`
-appends `OUTLOOK (engine, all unblocked): N damage. Cannot be blocked: <names> (dmg).` to the shared
-attackers question, gated by `LOOKAHEAD` (empty by default, so prompt bytes are unchanged). Both
-seats compute it from the same state, so the byte-identical-shared-template discipline holds.
+**Implemented (2026-10-12), both gated by `LOOKAHEAD` (empty by default → prompt bytes unchanged;
+both seats compute from the same state, so the byte-identical shared-template discipline holds):**
 
-**Blockers next:** the mirror uses `CombatUtil.canBlock(blocker, attacker, combat)`; it is the same
-shared-template change on `buildBlockerPrompt`.
+- attackers: `attackersCeiling(...)` appends `OUTLOOK (engine, all unblocked): N damage. Cannot be
+  blocked: <names> (dmg).` to the shared attackers question.
+- blockers: `blockersCeiling(...)` appends `INCOMING (engine, if nothing blocks): N damage.` to the
+  shared blockers prompt.
+
+Next: extend the same treatment to a per-attacker breakdown at the block decision (what each block
+saves), and the sampled multi-turn rollout.
 
 ## Effort
 
