@@ -879,6 +879,18 @@ public final class LlmSpikeGui {
             return faithfulSaLabel(sa, observer.shortRef(sa.getHostCard()));
         }
 
+        /** True when every part of {@code sa} only produces mana (a ritual): the one kind of response
+         *  to an opponent's spell that changes nothing they did. Unclassifiable -> false (keep asking). */
+        static boolean onlyMakesMana(SpellAbility sa) {
+            try {
+                for (SpellAbility part = sa; part != null; part = part.getSubAbility()) {
+                    ApiType api = part.getApi();
+                    if (api != ApiType.Mana && api != ApiType.ManaReflected) return false;
+                }
+                return true;
+            } catch (Exception e) { return false; }
+        }
+
         /** {@code seg} up to the first of {@code tags} (case-insensitive), for replies that put several
          *  tagged answers on one line. */
         static String cutAtTags(String seg, String... tags) {
@@ -1288,6 +1300,7 @@ public final class LlmSpikeGui {
                 observer.capture();
                 GameHistory.Rendered hist = GameHistory.renderEvents(observer.events(), ctx, eventWatermark);
                 observer.setProfile(oppProfile);
+                observer.setOwnDeckText(deckPlan);
                 observer.setDeckLines(deckLines);
                 String s = observer.render(seat, ctx, hist.text, turnPlan, planTurn);
                 if (hist.watermark != GameHistory.Rendered.KEEP_WATERMARK) eventWatermark = hist.watermark;
@@ -2055,9 +2068,20 @@ public final class LlmSpikeGui {
                 // PASS results, ~15 min/game of declining. Opp EOT and combat still always ask.
                 // (rnd == null: the random eval arm bypasses speed filters so its baseline stays a true
                 // uniform over the unpruned menu — filters exist to save model calls, which random has none of.)
+                // An OPPONENT's spell or ability on the stack is the one window where any real response
+                // counts, targeted or not: "exile each opponent's graveyard" (Soul-Guide Lantern) with
+                // their Reanimate on the stack neither targets nor counters, and this filter used to pass
+                // priority for the seat without asking. With their object on the stack, only pure mana
+                // production is treated as not worth a question.
+                boolean oppOnStack = false;
+                try {
+                    SpellAbility top = me.getGame().getStack().isEmpty() ? null : me.getGame().getStack().peekAbility();
+                    oppOnStack = top != null && top.getActivatingPlayer() != null && top.getActivatingPlayer() != me;
+                } catch (Exception ignore) { }
                 if (SKIP_HEUR && rnd == null && !ownMain && !oppEot && !phh.inCombat()) {
                     boolean anyInteractive = false;
                     for (SpellAbility sa : options) {
+                        if (oppOnStack && !onlyMakesMana(sa)) { anyInteractive = true; break; }
                         try { // walk the whole ability chain — Counter/targeting often lives on a sub
                             for (SpellAbility part = sa; part != null; part = part.getSubAbility()) {
                                 if (part.usesTargeting() || part.getApi() == ApiType.Counter) { anyInteractive = true; break; }
@@ -2077,7 +2101,10 @@ public final class LlmSpikeGui {
                 // question, not a sequencing one, so it does not need the reasoning tier.
                 boolean playSingle = ownMain && options.size() == 1 && landPlays.isEmpty();
                 boolean playSingleFast = playSingle && !smartTierFor("play-single");
-                LLMBridge b = (ownMain && !landOnly && !playSingleFast) ? smart : fast;
+                // Responding to an opponent's spell is where counter/hate timing lives, so it takes the
+                // tier the routing table gives "play-react": smart unless listed in TIER_FAST_TYPES.
+                boolean reactSmart = !ownMain && oppOnStack && rnd == null && smartTierFor("play-react") && smartOk();
+                LLMBridge b = ((ownMain && !landOnly && !playSingleFast) || reactSmart) ? smart : fast;
                 boolean haveBudget = (b == smart) ? smartOk() : fastOk();
 
                 int turn = phh.getTurn();

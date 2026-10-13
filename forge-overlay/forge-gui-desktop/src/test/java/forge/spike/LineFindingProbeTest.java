@@ -501,4 +501,51 @@ public class LineFindingProbeTest {
         Assert.assertNull(c2.chooseSpellAbilityToPlay());
         Assert.assertEquals(s2.prompts.size() + f2.prompts.size(), before, "asked to respond to its own activation");
     }
+
+    /** Puts the rival's {@code spell} on the stack aimed at {@code target}, on the rival's main phase. */
+    static void rivalCasts(Game g, String spell, Card target) {
+        Player rival = g.getPlayers().get(1);
+        g.getPhaseHandler().devModeSet(PhaseType.MAIN1, rival);
+        Card c = card(spell, rival, ZoneType.Hand);
+        SpellAbility sa = c.getFirstSpellAbility();
+        sa.setActivatingPlayer(rival);
+        if (target != null) sa.getTargets().add(target);
+        sa.setHostCard(g.getAction().moveToStack(c, sa));
+        g.getStack().add(sa);
+    }
+
+    /** The opponent casts Reanimate on Griselbrand; the seat controls Soul-Guide Lantern ("exile each
+     *  opponent's graveyard"). That answer neither targets nor counters, and the reactive filter
+     *  passed priority for the seat without a question. Now it is asked, on the reasoning tier. */
+    @Test
+    public void anUntargetedAnswerToAnOpponentsSpellIsOffered() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card lantern = card("Soul-Guide Lantern", me, ZoneType.Battlefield);
+        Card fatty = card("Griselbrand", rival, ZoneType.Graveyard);
+        rivalCasts(g, "Reanimate", fatty);
+        Recorder smart = new Recorder("CHOICE: 1"), fast = new Recorder("CHOICE: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, smart, fast);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertEquals(smart.prompts.size(), 1, "the response window was not asked on the reasoning tier");
+        Assert.assertEquals(fast.prompts.size(), 0);
+        Assert.assertTrue(smart.prompts.get(0).contains("Exile each opponent's graveyard"), smart.prompts.get(0));
+        Assert.assertNotNull(r, "the seat chose option 1 and the harness passed anyway");
+        Assert.assertEquals(r.get(0).getHostCard(), lantern);
+    }
+
+    /** A ritual is not an answer: with only mana production available the seat is still not asked. */
+    @Test
+    public void manaProductionAloneIsNotAResponse() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Swamp", me, ZoneType.Battlefield);
+        card("Dark Ritual", me, ZoneType.Hand);
+        Card fatty = card("Griselbrand", rival, ZoneType.Graveyard);
+        rivalCasts(g, "Reanimate", fatty);
+        Recorder smart = new Recorder("CHOICE: 1"), fast = new Recorder("CHOICE: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, smart, fast);
+        Assert.assertNull(ctrl.chooseSpellAbilityToPlay());
+        Assert.assertEquals(smart.prompts.size() + fast.prompts.size(), 0, "asked whether to answer a spell with a ritual");
+    }
 }

@@ -282,6 +282,19 @@ seat is shown, from `ARCHITECTURE-REVIEW.md` problems 2, 4 and 9:
 Tests: `LineFindingProbeTest` (labels, trigger text, LINES ask), `SeatObservationTest`
 (`oldRevealsAreStampedWithTheirAge`, `deckInteractionsAreShownOnlyAfterTheModelWritesThem`).
 
+**2026-10-13 — the seat reads the opponent's cards (`observation-faithful-v12`).** An opponent's
+card was a name, a P/T and a keyword list (`Orcish Bowmasters 1/1 [flash]`); its rules text was
+available only through `INSPECT`, which was called zero times in the four recorded games checked. The
+observation now prints `OPPONENT CARDS YOU HAVE SEEN (printed rules text from the card database; N
+cards)`: one line per distinct opponent card the seat has identified — in a public zone, on the
+stack, or known to be in a hidden zone — with cost, type and oracle text. A card stays listed after
+it leaves (its text does not stop being known). Not listed: tokens, basic lands, cards in zones the
+seat cannot see, and cards already printed in the seat's own deck text. Capped at 30 cards with an
+explicit omission notice. It is the printed card and nothing else: no interaction is stated.
+Tests: `opponentCardsTheSeatHasSeenAreShownWithTheirRulesText`,
+`opponentCardTextPersistsIsNotDuplicatedAndIgnoresHiddenZones` (the second also re-asserts that two
+worlds differing only in the opponent's hidden cards render identically).
+
 Hand-reveal bridge/parse failures now choose the first minimum-sized legal subset,
 log an automatic fallback, and never call Forge AI. Empty reveal pools return empty.
 The regression uses a 1-to-3-card reveal range to catch accidental over-revealing.

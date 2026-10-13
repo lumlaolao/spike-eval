@@ -72,7 +72,7 @@ import forge.spike.LlmSpikeGui.ContextProfile;
  * seat are appended to the same stream, so every seat-visible fact has one E-id and one place to search.
  */
 final class SeatObservation {
-    static final String VERSION = "observation-faithful-v11";
+    static final String VERSION = "observation-faithful-v12";
     /** Printed once per observation so every prompt is self-describing. Part of the prompt bytes and
      *  therefore of this VERSION: change it and bump the version. */
     static final String LEGEND = "LEGEND: @N = your seat's handle for one object, assigned when you first see it; a zone change "
@@ -147,6 +147,81 @@ final class SeatObservation {
     /** The model's OWN statement of how its cards combine, asked once from its own decklist and shown
      *  back at every decision. It is the model's note, labelled as such, never an engine fact. */
     private String deckLines = "";
+
+    /** Rules text of every OPPONENT card this seat has identified, keyed by name in first-seen order.
+     *  The seat is given its own deck's card text; an opponent's card used to be a name, a P/T and a
+     *  keyword list ("Orcish Bowmasters 1/1 [flash]"), with the text available only through INSPECT —
+     *  which a seat that does not know what it is missing never calls. A card is entered the first
+     *  time the viewer can identify it (a public zone, the stack, or a card it KNOWS is in a hidden
+     *  zone) and stays: the text of a card you have seen does not stop being known when it leaves.
+     *  It is the printed card, read from the card database — never an interaction, never advice. */
+    private final java.util.LinkedHashMap<String, String> oppCardText = new java.util.LinkedHashMap<>();
+    static final int OPP_CARD_TEXT_CAP = 30;
+    static final int OPP_CARD_TEXT_CHARS = 320;
+    /** The seat's own deck text (already in its framing); a card printed there is not repeated. */
+    private String ownDeckText = "";
+
+    void setOwnDeckText(String t) { this.ownDeckText = t == null ? "" : t; }
+
+    private static final ZoneType[] PUBLIC_ZONES = { ZoneType.Battlefield, ZoneType.Stack, ZoneType.Graveyard, ZoneType.Exile, ZoneType.Command };
+
+    /** Record the text of every opponent card the viewer can identify right now. */
+    private void noteOpponentCards() {
+        try {
+            for (Player opp : game.getPlayers()) {
+                if (opp == viewer) continue;
+                for (ZoneType z : PUBLIC_ZONES) {
+                    for (Card c : opp.getCardsIn(z)) {
+                        if (c.isToken() || !identityKnown(c)) continue;
+                        String name = safeName(c);
+                        if (name == null || name.isEmpty() || oppCardText.containsKey(name)) continue;
+                        String line = cardTextLine(name);
+                        if (line != null) oppCardText.put(name, line);
+                    }
+                }
+            }
+            for (KnownLoc k : knownHidden.values()) {
+                if (k.owner == viewer || oppCardText.containsKey(k.name)) continue;
+                String line = cardTextLine(k.name);
+                if (line != null) oppCardText.put(k.name, line);
+            }
+        } catch (Exception ignore) { }
+    }
+
+    /** "{cost} | type P/T — oracle text" from the card database, or null when the card has no rules
+     *  text worth printing (a basic land) or is already printed in the seat's own deck text. */
+    private String cardTextLine(String name) {
+        try {
+            if (ownDeckText.contains("  " + name + " ") || ownDeckText.contains("  " + name + "\n")) return null;
+            PaperCard pc = StaticData.instance().getCommonCards().getCard(name);
+            if (pc == null) return null;
+            forge.card.CardRules r = pc.getRules();
+            String text = r.getOracleText();
+            if (text == null || text.trim().isEmpty()) return null;
+            StringBuilder b = new StringBuilder();
+            try { if (r.getManaCost() != null && !r.getType().isLand()) b.append(r.getManaCost().getShortString()).append(" | "); } catch (Exception ignore) { }
+            b.append(r.getType());
+            try { if (r.getType().isCreature()) b.append(' ').append(r.getPower()).append('/').append(r.getToughness()); } catch (Exception ignore) { }
+            if (r.getType().isBasicLand()) return null;
+            text = text.replace("\\n", " ").replaceAll("\\s+", " ").trim();
+            if (text.length() > OPP_CARD_TEXT_CHARS) text = text.substring(0, OPP_CARD_TEXT_CHARS - 3) + "...";
+            return b.append(" — ").append(text).toString();
+        } catch (Exception e) { return null; }
+    }
+
+    private String opponentCardText() {
+        noteOpponentCards();
+        if (oppCardText.isEmpty()) return "";
+        int n = oppCardText.size(), skip = Math.max(0, n - OPP_CARD_TEXT_CAP), i = 0;
+        StringBuilder b = new StringBuilder("OPPONENT CARDS YOU HAVE SEEN (printed rules text from the card database; ")
+                .append(n).append(n == 1 ? " card" : " cards")
+                .append(skip > 0 ? ", earliest " + skip + " omitted — INSPECT <name> shows any card" : "").append("):\n");
+        for (java.util.Map.Entry<String, String> e : oppCardText.entrySet()) {
+            if (i++ < skip) continue;
+            b.append("  ").append(e.getKey()).append(": ").append(e.getValue()).append('\n');
+        }
+        return b.toString();
+    }
 
     void setDeckLines(String t) { this.deckLines = t == null ? "" : t; }
 
@@ -797,6 +872,7 @@ final class SeatObservation {
                 String landsPlayed = streamCastHistory(opp, GameLogEntryType.LAND, " played ", ctx.castHistoryCap);
                 if (!landsPlayed.isEmpty()) s.append("  LANDS PLAYED: ").append(landsPlayed).append('\n');
             }
+            s.append(opponentCardText());
 
             s.append("STACK (top first): ").append(stack()).append('\n');
             s.append("COMBAT: ").append(combat()).append('\n');
