@@ -19,9 +19,20 @@ final class ContextMemory {
      *  faithful profile). Null under legacy profiles: the command then returns an error, never a
      *  silent no-op, so a transcript shows exactly what the model asked for and what it got. */
     private Function<String, String> inspector;
+    /** Optional RULES tool (a read-only index over the public Comprehensive Rules) supplied by the
+     *  controller when {@code RULES_TOOL=1}. Null under a run without it: the command then returns an
+     *  error and the grammar line is never added, so prompt bytes are unchanged — the eval toggle. */
+    private Function<String, String> rulesLookup;
+    private String rulesInstructions;
 
     void setInspector(Function<String, String> inspector) { this.inspector = inspector; }
     boolean hasInspector() { return inspector != null; }
+
+    void setRulesLookup(String instructions, Function<String, String> lookup) {
+        this.rulesInstructions = instructions;
+        this.rulesLookup = lookup;
+    }
+    boolean hasRulesLookup() { return rulesLookup != null; }
 
     private static final class Entry {
         final String kind;
@@ -50,14 +61,16 @@ final class ContextMemory {
         return entries.size();
     }
 
-    /** Tool instructions for THIS seat: the MEMORY grammar plus INSPECT when an inspector is wired. */
+    /** Tool instructions for THIS seat: the MEMORY grammar plus INSPECT / RULES when wired. */
     String toolInstructions() {
-        return inspector == null ? instructions() : instructions() + SeatObservation.inspectInstructions();
+        return instructions()
+                + (inspector == null ? "" : SeatObservation.inspectInstructions())
+                + (rulesLookup == null ? "" : rulesInstructions);
     }
 
     static boolean isToolRequest(String line) {
         String t = line.stripLeading();
-        return t.startsWith("MEMORY ") || t.startsWith("INSPECT ");
+        return t.startsWith("MEMORY ") || t.startsWith("INSPECT ") || t.startsWith("RULES ");
     }
 
     String brief() {
@@ -102,8 +115,13 @@ final class ContextMemory {
             toolsUsed++;
             String result = execute(reply);
             audit.accept(reply, result);
-            exchanges.append("\nMEMORY REQUEST: ").append(reply.substring(0, Math.min(reply.length(), 1000)))
-                    .append("\nMEMORY RESULT (historical data):\n")
+            // Label the envelope by tool: the RULES tool returns public reference text, not this
+            // seat's historical data, and saying otherwise would be a false claim in the prompt.
+            boolean rules = reply.stripLeading().startsWith("RULES");
+            String label = rules ? "RULES" : "MEMORY";
+            exchanges.append("\n").append(label).append(" REQUEST: ").append(reply.substring(0, Math.min(reply.length(), 1000)))
+                    .append("\n").append(label).append(" RESULT")
+                    .append(rules ? " (public rules text):\n" : " (historical data):\n")
                     .append(result).append('\n');
         }
         return null;
@@ -111,7 +129,13 @@ final class ContextMemory {
 
     String execute(String request) {
         if (request == null || request.length() > 1000 || request.indexOf('\n') >= 0 || request.indexOf('\r') >= 0)
-            return "ERROR: use exactly one MEMORY/INSPECT command line, at most 1000 characters.";
+            return "ERROR: use exactly one MEMORY/INSPECT/RULES command line, at most 1000 characters.";
+        if (request.trim().startsWith("RULES")) {
+            if (rulesLookup == null) return "ERROR: RULES is not available under this context profile.";
+            String result;
+            try { result = rulesLookup.apply(request.trim()); } catch (RuntimeException e) { result = "ERROR: RULES failed: " + e; }
+            return result == null ? "ERROR: RULES returned nothing." : result;
+        }
         if (request.trim().startsWith("INSPECT")) {
             String arg = request.trim().substring("INSPECT".length()).trim();
             if (inspector == null) return "ERROR: INSPECT is not available under this context profile.";

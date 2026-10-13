@@ -24,9 +24,15 @@
 #   lookahead  a loopback game with LOOKAHEAD=1 and the fake server in --policy simulate: the real
 #              PlayerLookahead.previewCast path runs (preview + re-ask), at least one targeting preview is
 #              produced, and no AI fallback occurs
+#   rules      a loopback game with RULES_TOOL=1 + MEMORY_TOOLS=1: the real RulesTool lookup runs end to
+#              end (fake server asks `RULES SEARCH`), the game stamps rules_tool provenance, every prompt
+#              carries the RULES grammar, and no single result exceeds the page cap (context-bound)
 #
 # SCRIPTING RULES (a broken gate reports PASS, which is worse than no gate): absolute paths; no `declare -A`
 # (macOS bash 3.2); never `grep -c X f || echo 0`; assert the build under test is the build that ran.
+# ALSO: the verdict heredocs live inside `$( ... )`, and bash 3.2 scans for the closing paren BEFORE it
+# parses the heredoc, so an unbalanced quote — including one apostrophe in a body comment — breaks the
+# WHOLE file. Keep heredoc bodies free of `'`. (Cost me a debugging session; do not "fix" it by quoting.)
 set -u
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
@@ -35,7 +41,7 @@ JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Content
 JAVA="$JAVA_HOME/bin/java"; JAVAC="$JAVA_HOME/bin/javac"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="${OUT:-$REPO/runs/harness-acceptance/$STAMP}"
-STAGES="${STAGES:-preflight classpath compile javatests pytests canary faketool faithful lookahead}"
+STAGES="${STAGES:-preflight classpath compile javatests pytests canary faketool faithful lookahead rules}"
 EXPECTED="$REPO/eval/harness_acceptance.expected"
 OVERLAY="$REPO/forge-overlay/forge-gui-desktop/src"
 LEDGER="$REPO/docs/harness/controller-ownership.tsv"
@@ -139,7 +145,7 @@ if has_stage javatests; then
     TCLASSES="$(ls "$OVERLAY"/test/java/forge/spike/*Test.java | xargs -n1 basename | sed 's/\.java$//;s/^/forge.spike./' | paste -sd, -)"
     DECLARED="$(grep -h -E '^[[:space:]]+@Test' "$OVERLAY"/test/java/forge/spike/*Test.java | wc -l | tr -d ' ')"
     ( cd "$FORGE/forge-gui-desktop" && MEMORY_TOOLS=1 "$JAVA" -Dapple.awt.UIElement=true \
-        -Dharness.ownership.tsv="$LEDGER" -cp "$CLASSES:$(cat "$CP_FILE")" \
+        -Dharness.ownership.tsv="$LEDGER" -Dharness.rules.file="$REPO/data/rules/MagicCompRules.txt" -cp "$CLASSES:$(cat "$CP_FILE")" \
         org.testng.TestNG -testclass "$TCLASSES" -d "$OUT/testng" ) >"$OUT/javatests.log" 2>&1
     RES="$(python3 - "$OUT/testng/testng-results.xml" <<'EOF'
 import re,sys
@@ -375,7 +381,7 @@ if ai_rows: problems.append("%d tier=ai rows"%ai_rows)
 if model_rows<5: problems.append("only %d model-tier rows"%model_rows)
 if len(calls)<5: problems.append("only %d context_call rows"%len(calls))
 legend=0; handles=0; legacy=0; menu_handles=0; observed=0
-mull=0
+mull=0; rules_leak=0
 for r in calls:
     p=r.get("prompt") or ""
     # The mulligan ask shows only the opening hand (no board exists yet); it carries no observation.
@@ -385,11 +391,15 @@ for r in calls:
     handles+=len(re.findall(r" @\d+", p))
     legacy+=len(re.findall(r"[A-Za-z\]]@\d+", p))          # the legacy candidateLabel form: Name[...]@id
     menu_handles+=len(re.findall(r"\n\s+\d+\) (?:CAST|PLAY LAND) [^\n]*@\d+", p))
+    # Default-off provenance: without RULES_TOOL=1 the rules grammar must never appear, so this
+    # stage keeps prompts byte-identical to a run that has no rules tool at all.
+    if "RULES TOOL" in p: rules_leak+=1
 if observed<len(calls): problems.append("%d/%d prompts lack the faithful observation header"%(len(calls)-observed,len(calls)))
 if legend<len(calls): problems.append("%d/%d prompts lack the legend"%(len(calls)-legend,len(calls)))
 if handles<20: problems.append("only %d seat handles across all prompts"%handles)
 if legacy: problems.append("%d legacy engine-id references (Name@id) leaked into faithful prompts"%legacy)
 if menu_handles<3: problems.append("menu options carrying handles: %d (<3)"%menu_handles)
+if rules_leak: problems.append("%d faithful prompts advertised RULES TOOL without RULES_TOOL=1 (default-off provenance broken)"%rules_leak)
 ok_tools=[x for x in tools if not str(x.get("result","")).startswith("ERROR")]
 if len(ok_tools)<2: problems.append("successful tool rows %d (<2)"%len(ok_tools))
 log=open(d+"/game.log",errors="replace").read()
@@ -402,6 +412,74 @@ print(("FAIL " if problems else "PASS ")+"; ".join(problems+facts))
 EOF
 )"
         case "$VERDICT" in PASS*) pass faithful "${VERDICT#PASS }";; *) fail faithful "${VERDICT#FAIL }";; esac
+      fi
+    fi
+  fi
+fi
+
+# ---------------------------------------------------------------- rules (RULES_TOOL)
+# A loopback game with RULES_TOOL=1 + MEMORY_TOOLS=1: the real RulesTool lookup runs end to end
+# (the fake model answers one tool prompt with `RULES SEARCH`), the game stamps rules provenance,
+# every prompt carries the RULES grammar while it is on, and no single result exceeds the page cap.
+if has_stage rules; then
+  if [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail rules "no compiled classes"; else
+    dir="$OUT/rules"; sdir="$OUT/rules-server"; mkdir -p "$dir" "$sdir"
+    : > "$sdir/fake_requests.jsonl"
+    python3 "$REPO/eval/fake_model_server.py" --port 0 --policy pass --log "$sdir/fake_requests.jsonl" \
+        --rules-call 1 >"$sdir/fake_server.out" 2>&1 &
+    FAKE_PID=$!
+    PORT=""; for i in 1 2 3 4 5 6 7 8 9 10; do PORT="$(awk '/^LISTENING/{print $2}' "$sdir/fake_server.out" 2>/dev/null)"; [ -n "$PORT" ] && break; sleep 0.5; done
+    if [ -z "$PORT" ]; then fail rules "fake model server did not start"; kill $FAKE_PID 2>/dev/null; else
+      say "rules: LLM seat A on loopback fake model, RULES_TOOL=1 + MEMORY_TOOLS=1 (comprehensive-rules lookup)"
+      play rules 42 CONTROLLER_A=llm CONTROLLER_B=floor SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
+          OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" MEMORY_TOOLS=1 RULES_TOOL=1 CONTEXT_PROFILE=v4-faithful \
+          RULES_FILE="$REPO/data/rules/MagicCompRules.txt" SMART_BUDGET=60 FAST_BUDGET=60
+      kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
+      if ! check_build_loaded "$dir"; then fail rules "JVM did not load LlmSpikeGui from $CLASSES"; else
+        ( cd "$REPO" && python3 eval/defect_analyzer.py "$dir" --json "$dir/defects.json" ) >"$dir/defects.txt" 2>&1; ARC=$?
+        VERDICT="$(python3 - "$dir" "$ARC" <<'EOF'
+import glob,json,sys,re
+d=sys.argv[1]; arc=int(sys.argv[2]); problems=[]; facts=[]
+files=glob.glob(d+"/game-*.jsonl")
+if len(files)!=1: print("FAIL jsonl files=%d"%len(files)); sys.exit(0)
+game=None; calls=[]; tools=[]; ai_rows=0
+for line in open(files[0]):
+    try: r=json.loads(line)
+    except Exception: continue
+    t=r.get("t")
+    if t=="game": game=r
+    elif t=="decision":
+        if r.get("tier")=="ai": ai_rows+=1
+    elif t=="context_call": calls.append(r)
+    elif t=="context_tool": tools.append(r)
+if game is None: problems.append("no game row")
+else:
+    if game.get("rules_tool") is not True: problems.append("rules_tool not stamped true (%s)"%game.get("rules_tool"))
+    if game.get("rules_tool_version")!="rules-tool-v1": problems.append("rules_tool_version=%s"%game.get("rules_tool_version"))
+    if game.get("rules_effective")!="September 25, 2026": problems.append("rules_effective=%s"%game.get("rules_effective"))
+    facts.append("winner=%s turns=%s rules_effective=%s"%(game.get("winner"),game.get("turns"),game.get("rules_effective")))
+if ai_rows: problems.append("%d tier=ai rows"%ai_rows)
+rtools=[x for x in tools if str(x.get("request","")).startswith("RULES")]
+ok=[x for x in rtools if not str(x.get("result","")).startswith("ERROR")]
+if not ok: problems.append("no successful RULES context_tool row (%d RULES of %d tool rows)"%(len(rtools),len(tools)))
+else:
+    res=str(ok[0].get("result",""))
+    if "509" not in res: problems.append("RULES result lacks a rule number: %s"%res[:90])
+    # Context bound: a rules reply must never dump a wall of text (page cap 1200 + header).
+    big=[x for x in ok if len(str(x.get("result","")))>1500]
+    if big: problems.append("%d RULES results exceed the page cap (<1500 chars)"%len(big))
+    facts.append("rules_tool_rows=%d/%d first_result=%d_chars"%(len(ok),len(rtools),len(res)))
+offered=sum(1 for r in calls if "RULES TOOL rules-tool-v1" in (r.get("prompt") or ""))
+if calls and offered<len(calls): problems.append("%d/%d prompts lack the RULES grammar line"%(len(calls)-offered,len(calls)))
+log=open(d+"/game.log",errors="replace").read()
+if "[RULES] rules-tool-v1 wired" not in log: problems.append("the tool never announced itself in the log")
+if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] present")
+if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
+facts.append("context_calls=%d rules_prompts=%d/%d"%(len(calls),offered,len(calls)))
+print(("FAIL " if problems else "PASS ")+"; ".join(problems+facts))
+EOF
+)"
+        case "$VERDICT" in PASS*) pass rules "${VERDICT#PASS }";; *) fail rules "${VERDICT#FAIL }";; esac
       fi
     fi
   fi

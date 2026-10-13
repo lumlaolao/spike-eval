@@ -1,6 +1,6 @@
 # mtg-forge-llm-agent
 
-> September 2026 continuation: see [Player harness direction and status](docs/harness/PLAYER-HARNESS.md). Newer Java sources were recovered from the adjacent Forge checkout; older status claims below may be superseded. `MEMORY_TOOLS=1` enables experimental evidence retrieval and a seat-local strategy notebook.
+> September 2026 continuation: see [Player harness direction and status](docs/harness/PLAYER-HARNESS.md). Newer Java sources were recovered from the adjacent Forge checkout; older status claims below may be superseded. `MEMORY_TOOLS=1` enables experimental evidence retrieval and a seat-local strategy notebook; `RULES_TOOL=1` gives the seat a bounded, paginated lookup over the vendored **Comprehensive Rules** ([RULES-TOOL.md](docs/harness/RULES-TOOL.md)).
 
 A spike that lets a **frontier LLM (Claude) play full games of Magic: The Gathering** inside
 [Forge](https://github.com/Card-Forge/forge), the open-source MTG rules engine — rendered live
@@ -109,6 +109,9 @@ the classic instant-speed action window). `[TALLY]` prints running `avgSmart`/`a
 | `PLAN_A` / `PLAN_B` | built-in | strategy framing per seat |
 | `DECKLIST` | `1` (on) | append each seat's own decklist **and its cards' rules text** (read from Forge's card DB) to its plan; `0` restores the pre-decklist prompt bytes |
 | `LOOKAHEAD` | `0` (off) | let the seat ask `SIMULATE: <n>` (optionally `SIMULATE: <n> <target name>`) at a play decision to preview a spell option's resolution on a determinized copy (G8), and add an engine-computed **combat outlook** to the attackers question; off keeps existing prompt bytes |
+| `MEMORY_TOOLS` | `0` (off) | enable the seat-local evidence archive + the `MEMORY`/`INSPECT` tool loop (see `docs/harness/RULES-TOOL.md`, `COMPLETION-GATES.md`) |
+| `RULES_TOOL` | `0` (off) | give the seat the `RULES` tool — a bounded, paginated lookup over the bundled **Comprehensive Rules** (`RULES SEARCH` / `READ` / `SECTION` / `TERM` / `TOC`). Requires `MEMORY_TOOLS=1`; off keeps prompt bytes byte-identical, so evals can run **with and without** rules access |
+| `RULES_FILE` | `data/rules/MagicCompRules.txt` (cwd/ancestor) | path to the CR text the tool reads; the acceptance passes it explicitly (it runs from the Forge tree) |
 | `RECORD` / `RECORD_OUT` / `RECORD_FPS` | off | window recording (see below) |
 | `GAME_SEED` | random | seeds Forge's RNG — same seed = same shuffles/coin flip (bit-reproducible with non-LLM arms) |
 | `SWAP_SEATS` | 0 | `1` seats identity B first — the paired-design flip |
