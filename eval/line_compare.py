@@ -25,13 +25,14 @@ import re
 import sys
 from collections import Counter
 
+from line_report import name_of as label_name
+
 HAND = re.compile(r"\n  hand\(\d+\): ([^\n]*)")
 BOARD = re.compile(r"\nYOU \[[^\n]*\n(?:  [^\n]*\n)*?  board: ([^\n]*)")
 
 
 def name_of(label):
-    s = re.sub(r"^(CAST|ACTIVATE|PLAY LAND)\s+", "", label or "")
-    return re.sub(r"\s+\d+/\d+$", "", re.split(r"\s+@\d+|\s+\[|\s+\d*\{|\s+from |\s+in your |\s+—", s, 1)[0]).strip()
+    return re.sub(r"\s+\d+/\d+$", "", label_name(label))
 
 
 def wilson(k, n):

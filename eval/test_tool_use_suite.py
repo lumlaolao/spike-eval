@@ -42,6 +42,9 @@ class ToolUseSuiteTest(unittest.TestCase):
         self.assertIn(tu.INSPECT_INSTRUCTIONS, java_literals("SeatObservation.java"))
         self.assertIn(tu.ONE_LINE_ERROR, memory)
         self.assertIn("TOOLS_PER_ASK = %d;" % tu.TOOLS_PER_ASK, memory)
+        self.assertIn("PAGE_CHARS = %d;" % tu.PAGE_CHARS, memory)
+        self.assertIn("Math.min(text.length(), %d)" % tu.SNIPPET, memory)
+        self.assertIn(tu.BUDGET_ERROR, memory)
         gui = java_literals("LlmSpikeGui.java")
         for tier in ("smart", "fast"):
             self.assertIn(tu.FORMAT[tier], gui)

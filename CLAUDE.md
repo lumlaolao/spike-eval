@@ -237,18 +237,14 @@ The skills in `.claude/skills/` are not optional helpers. They are how work is d
 | on every PR, and whenever you ask "what is the rule for this?" | `standards` | checks the change against `docs/STANDARDS.md` and keeps that file true |
 | whenever game logs are reviewed | `harness-audit` | separates harness defects from model mistakes; produces puzzle candidates |
 
-Run the three review skills as fresh subagents where the runtime has them, so the reviewer is not
-the author. Record each verdict (`python3 scripts/pr_format.py record-review <n> <skill> <verdict>`)
-and merge only with `bash scripts/pr_merge.sh <n>`, which refuses a PR whose format is wrong, whose
-review is missing, stale or blocking, or whose code changed without an acceptance run. Merge
-commits, never squash. Once per clone: `bash scripts/install_hooks.sh`.
+Run the three review skills as fresh subagents where the runtime has them, so the reviewer is
+not the author. Recording verdicts and the merge gate: `docs/STANDARDS.md` section 1. Once per
+clone: `bash scripts/install_hooks.sh`.
 
 ## Before committing
 
-`pr-review` replaces the older instruction below wherever the `claude-obsidian` plugin is not
-installed; either reviewer satisfies the rule, skipping both does not.
-
-Non-trivial changes: stage, then dispatch the `verifier` agent from the claude-obsidian
-plugin against `git diff --cached` — it has caught a BLOCKER (baseline contamination)
-and multiple HIGHs that validation runs missed. Then commit, and land it through a PR and
+Non-trivial changes: stage, then have the diff reviewed before committing: the `verifier` agent
+from the claude-obsidian plugin against `git diff --cached` where it is installed (it has caught
+a BLOCKER (baseline contamination) and multiple HIGHs that validation runs missed), otherwise
+`pr-review`. Skipping both is not allowed. Then commit, and land it through a PR and
 `scripts/pr_merge.sh`.

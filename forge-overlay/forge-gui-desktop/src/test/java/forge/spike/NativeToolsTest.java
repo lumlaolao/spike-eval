@@ -116,6 +116,16 @@ public class NativeToolsTest {
         return new NativeTools.Turn(content, msg.toString(), List.of(calls));
     }
 
+    /** name -> the whole function definition, as JSON text. */
+    private static Map<String, String> functionsByName(JsonArray defs) {
+        Map<String, String> out = new java.util.LinkedHashMap<>();
+        for (JsonElement e : defs) {
+            JsonObject f = e.getAsJsonObject().getAsJsonObject("function");
+            out.put(f.get("name").getAsString(), f.toString());
+        }
+        return out;
+    }
+
     private static NativeTools.Call call(String id, String name, String args) { return new NativeTools.Call(id, name, args); }
 
     // ---- definitions --------------------------------------------------------------------------
@@ -126,7 +136,7 @@ public class NativeToolsTest {
         if (path == null) throw new SkipException("-Dharness.tooluse.json not set");
         JsonObject suite = JsonParser.parseString(new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8)).getAsJsonObject();
         Assert.assertEquals(suite.get("version").getAsString(), NativeTools.VERSION);
-        Map<String, String> java = NativeTools.describe(NativeTools.definitions(true, true, true));
+        Map<String, String> java = functionsByName(NativeTools.definitions(true, true, true));
         int n = 0;
         for (JsonElement e : suite.getAsJsonArray("tools")) {
             JsonObject f = e.getAsJsonObject().getAsJsonObject("function");
@@ -139,9 +149,9 @@ public class NativeToolsTest {
 
     @Test
     public void aToolIsOfferedOnlyWhenSomethingIsWiredBehindIt() {
-        Assert.assertEquals(new ArrayList<>(NativeTools.describe(NativeTools.definitions(false, false, false)).keySet()),
+        Assert.assertEquals(new ArrayList<>(functionsByName(NativeTools.definitions(false, false, false)).keySet()),
                 List.of("memory_search", "memory_read", "memory_note"));
-        Assert.assertTrue(NativeTools.describe(NativeTools.definitions(true, true, true)).keySet()
+        Assert.assertTrue(functionsByName(NativeTools.definitions(true, true, true)).keySet()
                 .containsAll(List.of("inspect", "rules_lookup", "simulate")));
     }
 

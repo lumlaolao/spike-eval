@@ -10,10 +10,7 @@ The format lives in one script, `scripts/pr_format.py`, and is described in
 
 ## Commit
 
-Subject: `type(scope): what is now true` (max 100 characters, no final period).
-`type` is the kind of change (`feat fix perf eval data test docs refactor chore build`); `scope` is
-the area (`harness`, `tools`, `obs v12`, `play`). The body says why, what was measured, and what
-would have caught it.
+Subject and body rules: `docs/STANDARDS.md` section 2; the commit hook enforces them.
 
 ```bash
 bash scripts/install_hooks.sh                 # once per clone: checks every commit message

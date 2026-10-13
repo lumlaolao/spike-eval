@@ -428,23 +428,14 @@ requests were served. In the pre-fix arm all 6 requests were refused. Twice the 
 native function-call markup into the text reply. This is a harness defect (problem 12, layer:
 tools), found by reading `context_tool` rows rather than by hypothesis.
 
-It was then measured in isolation with the tool-use suite (`eval/tool_use_suite.py`; invented cards,
-so the deciding fact exists only behind a tool; `runs/tooluse/deepseek-v3`):
-
-| protocol | tier | reached the needed lookup | answered correctly | refused / attempts |
-|---|---|---|---|---|
-| text grammar as shipped (v1) | smart | 12/30 (40%) | 16/30 (53%) | 31 / 46 |
-| text grammar, first command line executed (v2) | smart | 18/30 (60%) | 19/30 (63%) | 0 / 38 |
-| native function calling | smart | 26/30 (87%) | 26/30 (87%) | 0 / 72 |
-| text v1 | fast | 14/30 (47%) | 14/30 (47%) | 5 / 37 |
-| native | fast | 22/30 (73%) | 22/30 (73%) | 0 / 78 |
-
-Chance is 38%; a never-call policy reaches 0%; with the fact on screen the model answers 97-100%
-(smart). The suite's refusal rate under the shipped grammar (31 of 46) matches the games' (30 of
-43), which is the reason to believe the suite measures the same thing the games showed. Native
-reached the lookup more often than text v1 in 8 of 10 scenarios and never less (sign test p=0.008,
-smart tier). The first run of the suite was discarded: three of its fixtures were wrong (a lookup
-any reasonable agent would make had no answer), found by reading the transcripts.
+It was then measured in isolation with the tool-use suite (`eval/tool_use_suite.py`; invented
+cards, so the deciding fact exists only behind a tool; `runs/tooluse/deepseek-v3`). The table,
+baselines and sign tests are in `PLAYER-HARNESS.md`, "Tool protocol": on the smart tier native
+calling reached the needed lookup in 26 of 30 asks against 12 of 30 for the shipped grammar
+(never-call policy: 0). The suite's refusal rate under the shipped grammar (31 of 46) matches
+the games' (30 of 43), which is the reason to believe the suite measures the same thing the
+games showed. The first run of the suite was discarded: three of its fixtures were wrong (a
+lookup any reasonable agent would make had no answer), found by reading the transcripts.
 
 The suite also shows what native calling does not fix. With no rules text on screen the model
 attacked into an unknown creature without inspecting it in 4 of 12 smart-tier native asks, once
@@ -452,14 +443,47 @@ writing "Thornback Grazer is a vanilla 4/4 with no trample" about a card it had 
 is a model property the harness can raise, not guarantee, which is why opponent card text is pushed
 into the observation (v12) rather than left to a lookup.
 
+### The same sixteen games on the new tool protocols
+
+Three more arms on the same paired seeds (build `3119ad94978e`, the tree before review fixes that
+changed the round bound from four to three and stopped a preview counting against the per-game
+allowance; observation v12 unchanged; no game capped; load 0.2 per core):
+
+| arm | tool requests | served | refused for form | previews | model wins | plan contradictions |
+|---|---|---|---|---|---|---|
+| text grammar v1 (`control`, `planexec`, `lookahead` pooled for this row only, 48 games) | 43 | 10 | **30** | 7 (in `lookahead`) | 6, 6, 6 of 16 | 7-9% |
+| `textv2` (repaired grammar) | 7 | 7 | 0 | n/a | 6 of 16 | 7 of 151 (4.6%) |
+| `native` | **213** | 202 | 0 | n/a | 6 of 16 | 11 of 170 (6.5%) |
+| `native-lookahead` (`LOOKAHEAD=1`) | 150 | 146 | 0 | **35** | 5 of 16 | 16 of 154 (10.4%) |
+
+`python3 eval/tool_audit.py runs/lines/ctl/<arm>`, `eval/line_compare.py`, `eval/plan_audit.py`.
+
+- **The protocol was the reason the tools went unused.** With native calls the seat made about 13
+  requests a game where it had made under one, 170 of them `inspect`, and none was refused for its
+  form. Repairing the text grammar removed the refusals but not the reluctance (7 requests in 16
+  games): the model reaches for a function, not for a reply format.
+- **Lookahead was finally exercised** (35 previews against 7), which makes `native-lookahead` the
+  first arm that tests the hypothesis rather than the offer.
+- **Nothing moved in the results.** 6, 6 and 5 wins of 16; every paired comparison is 1-3 games
+  either way (sign tests p=1.0). Plan contradictions did not fall with lookahead (10.4%, the highest
+  of any arm, on 154 plays; not distinguishable from 6.5% at this size).
+
+So the measured state of the hypothesis: with lookahead available as a tool and used about twice a
+game, the seat did not win more or contradict its plans less in sixteen paired games. That is not
+evidence that lookahead cannot help (the sample resolves about 35 points and a preview covers one
+spell, not a line), but the specific claim "the seat loses because it has no way to look ahead" is
+not supported. What the logs do show is narrower and already fixed: decisions the seat was never
+given (problems 1-4), text it was never shown (problem 11), and lookups it asked for and was
+refused (problem 12).
+
 ### Decision
 
 1. Native function calling is the standard tool protocol (`CLAUDE.md`), on by default wherever the
    backend supports it. `simulate` is one of the tools.
 2. The text grammar is repaired (`evidence-tools-v2`) and kept only as the fallback.
-3. The sequence hypothesis stays open. The arm that tests it is native tools with `LOOKAHEAD=1`
-   against native tools without, on the same paired seeds, read first on preview requests per game
-   (was 0.4) and plan contradictions, then on wins at a size that can resolve them.
+3. The sequence hypothesis is not supported at this size and stays open at a larger one. The next
+   measurement is not another sixteen games: it is a preview that covers a line (two or more of the
+   seat's own plays), tested first in the tool-use suite, then on enough pairs to resolve ten points.
 4. An MCP server and a sandboxed workspace are not being built
    (`docs/harness/NOTES-mcp-and-workspace.md`).
 

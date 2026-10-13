@@ -29,14 +29,10 @@ final class NativeTools {
     static final String SIMULATE = "simulate";
     private static final List<String> RULES_ACTIONS = List.of("search", "read", "section", "term", "toc");
 
-    /** Test-only override for the NATIVE_TOOLS env flag (env vars cannot be set in-process). */
-    static volatile Boolean TEST_OVERRIDE = null;
-
     /** Native function calling is the STANDARD protocol for the seat's tools. NATIVE_TOOLS=0 is the
      *  explicit opt-out; the text grammar otherwise survives only for a backend that has no function
      *  calling (the Claude CLI lane). */
     static boolean enabled() {
-        if (TEST_OVERRIDE != null) return TEST_OVERRIDE.booleanValue();
         return !"0".equals(System.getenv("NATIVE_TOOLS"));
     }
 
@@ -295,15 +291,5 @@ final class NativeTools {
         JsonObject m = message("tool", content);
         m.addProperty("tool_call_id", callId);
         return m;
-    }
-
-    /** Names and descriptions, for the test that compares this class with eval/tooluse/tools.json. */
-    static Map<String, String> describe(JsonArray defs) {
-        Map<String, String> out = new java.util.LinkedHashMap<>();
-        for (JsonElement e : defs) {
-            JsonObject f = e.getAsJsonObject().getAsJsonObject("function");
-            out.put(f.get("name").getAsString(), f.toString());
-        }
-        return out;
     }
 }

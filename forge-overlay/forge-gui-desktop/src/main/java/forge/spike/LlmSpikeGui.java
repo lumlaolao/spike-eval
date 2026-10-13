@@ -1032,9 +1032,6 @@ public final class LlmSpikeGui {
             try { String v = System.getenv(k); return v == null ? def : Integer.parseInt(v.trim()); }
             catch (Exception e) { return def; }
         }
-        private static String framing(String seat, String plan, boolean terse) {
-            return framing(seat, plan, terse, false);
-        }
         /** `nativeTools`: this tier's backend takes function definitions, so the preamble describes
          *  the tools in one paragraph instead of teaching the text grammar. */
         private static String framing(String seat, String plan, boolean terse, boolean nativeTools) {
@@ -5812,14 +5809,7 @@ public final class LlmSpikeGui {
             long retryMs, int attempts, String finishReason, String firstFailedReply,
             int promptTokens, int completionTokens) {
         emitDecisionRow(pl, seat, type, nOptions, choice, tier, ms, fallback, options, prompt, rawReply,
-                retryMs, attempts, finishReason, firstFailedReply, promptTokens, completionTokens, null);
-    }
-    static void emitDecisionRow(Player pl, String seat, String type, int nOptions, int choice, String tier,
-            long ms, String fallback, List<String> options, String prompt, String rawReply,
-            long retryMs, int attempts, String finishReason, String firstFailedReply,
-            int promptTokens, int completionTokens, Integer shadowChoice) {
-        emitDecisionRow(pl, seat, type, nOptions, choice, tier, ms, fallback, options, prompt, rawReply,
-                retryMs, attempts, finishReason, firstFailedReply, promptTokens, completionTokens, shadowChoice, null);
+                retryMs, attempts, finishReason, firstFailedReply, promptTokens, completionTokens, null, null);
     }
     /** `picks`: additive, present only on multi-pick rows (0-based indices into `options`). */
     static void emitDecisionRow(Player pl, String seat, String type, int nOptions, int choice, String tier,

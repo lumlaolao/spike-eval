@@ -109,13 +109,13 @@ def main(argv=None):
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--fail-on-refused", action="store_true", help="exit 1 if any request was refused for its form")
     a = ap.parse_args(argv)
-    total, per = None, {}
+    per, allfiles = {}, []
     for p in a.paths:
         files = sorted(glob.glob(os.path.join(p, "*.jsonl"))) if os.path.isdir(p) else [p]
         if not files:
             ap.error("no JSONL in %s" % p)
         per[p] = audit(files)
-    allfiles = [f for p in a.paths for f in (sorted(glob.glob(os.path.join(p, "*.jsonl"))) if os.path.isdir(p) else [p])]
+        allfiles += files
     total = audit(allfiles)
     if a.json:
         def plain(x):

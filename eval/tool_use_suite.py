@@ -129,7 +129,6 @@ class Seat:
     def __init__(self, scenario, decision_text):
         self.entries = [dict(e) for e in scenario.get("archive", [])]
         self.inspect = scenario.get("inspect", {})
-        self.notes = []
         self.state = decision_text.split("DECISION:")[0]
         self.entries.append({"kind": "observation", "text": decision_text})
         self.observation_id = len(self.entries)
@@ -190,7 +189,6 @@ class Seat:
                     return "ERROR: cite an observation or reveal, not a hypothesis."
                 note = "[source M%d] %s" % (value, parts[3])
                 self.entries.append({"kind": "agent hypothesis", "text": note})
-                self.notes.append("[M%d] %s" % (len(self.entries), note))
                 return "Saved hypothesis M%d: %s" % (len(self.entries), note)
             return "ERROR: unknown MEMORY command."
         except ValueError:
