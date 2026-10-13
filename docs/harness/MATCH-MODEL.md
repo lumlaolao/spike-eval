@@ -91,4 +91,6 @@ audit — PokerSkill/ToolPoker found this gap is where models look competent and
 
 - The multi-turn sampled rollout (EVAL-DESIGN Phase 1.6) is still open; `PlayerLookahead` is the
   foundation.
-- The knowing–doing check is a documented audit, not yet an automated gate.
+- The knowing–doing check is now a tool, `eval/plan_audit.py` (plan-vs-action over recorded JSONL or a
+  game log; flags a card the plan says to hold that was played the same turn). It is lexical and
+  reports a rate with its trivial baseline; it is not an acceptance gate.
