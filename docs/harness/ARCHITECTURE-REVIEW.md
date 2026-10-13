@@ -495,23 +495,60 @@ card, and passed throughout. It now fails on any failed preview, and the native 
 Mardu mirror. `LookaheadProbeTest` reproduces the engine defect first, so an engine that fixes it
 turns the test red and the workaround can go.
 
-So the measured state of the hypothesis: **untested.** No arm so far has shown the seat a single
-preview. The plan-then-execute result stands (nothing measurable), and so does the narrower finding
+So after those arms the hypothesis was **untested**: none of them had shown the seat a single
+preview. The plan-then-execute result stood (nothing measurable), and so did the narrower finding
 that fixing the protocol took the seat from under one tool request a game to about thirteen. What
-is known to have been wrong is, again, in the harness: decisions the seat was never given (problems
+was known to be wrong was, again, in the harness: decisions the seat was never given (problems
 1-4), text it was never shown (problem 11), lookups it asked for and was refused (problem 12), and
 previews it asked for and never received (problem 13).
+
+### The first arm in which lookahead worked
+
+Same sixteen paired games, merged build (`runs/lines/ctl2`, overlay `a76bd78d6421` for the lookahead
+arm, PR #82: previews that work, cover activated abilities, name what left and entered, and can
+cover a line of up to three plays). No game capped; load at most 0.3 per core.
+
+| arm | previews served / asked | model wins | paired vs `native` (only-this / only-native / same) | plan contradictions |
+|---|---|---|---|---|
+| `textv2` (repaired grammar, no lookahead) | n/a | 5 of 16 (31%, Wilson 14-56%) | 1 / 6 / 9, p=0.12 | 12 of 131 (9.2%) |
+| `native` (no lookahead) | n/a | 10 of 16 (62%, 39-82%) | | 18 of 173 (10.4%) |
+| `native-lookahead` | **63 / 92** | 9 of 16 (56%, 33-77%) | 2 / 3 / 11, p=1.0 | 10 of 162 (6.2%) |
+
+`python3 eval/tool_audit.py runs/lines/ctl2/native-lookahead` (`simulate served 63, empty 3,
+bad-args 26`, nothing FAILED or REFUSED), `eval/line_compare.py`, `eval/plan_audit.py`.
+
+- **The seat used it**: 2 to 14 previews a game, about four on average. 37 were of an activated
+  ability (v1 refused all of those), 19 of a spell, 7 were lines. Real ones from the logs: `if you
+  activate Wasteland [assuming target: Karakas]: ... left the battlefield: Wasteland; ForgeAI ...
+  left the battlefield: Karakas`; `if you activate Marsh Flats, then cast Ajani, Nacatl Pariah, then
+  cast Ocelot Pride: you life 16 -> 15; board 4 -> 7; ...`.
+- **It did not change who won.** 9 of 16 against 10 of 16 without it; three games one way, two the
+  other. Sixteen pairs resolve about 35 points.
+- **Plan contradictions were lower, not distinguishably**: 10 of 162 against 18 of 173 (Fisher
+  p=0.17).
+- **26 requests named an option the preview does not cover**: 13 were `PLAY LAND` and 6 were
+  `PASS`. The seat wants to preview a land drop, and the natural line "land, then the spell the
+  land pays for" cannot be asked for, because that spell is not on the menu until the land is down.
+
+So the measured state of the hypothesis: with lookahead working and used about four times a game,
+**no effect on wins is visible at sixteen pairs, and the effect on plan contradictions is in the
+expected direction and unresolved.** That is weaker than "refuted" and much weaker than
+"confirmed". The other number in the table is not about lookahead: on this build both native arms
+won more than the text arm (10 and 9 against 5; native against text 6 games to 1, p=0.12), where
+on the previous build the same comparison was 6 against 6. One of those two runs is noise, and
+sixteen pairs cannot say which.
 
 ### Decision
 
 1. Native function calling is the standard tool protocol (`CLAUDE.md`), on by default wherever the
    backend supports it. `simulate` is one of the tools.
 2. The text grammar is repaired (`evidence-tools-v2`) and kept only as the fallback.
-3. The sequence hypothesis is untested: no arm delivered a preview (problem 13). The arm that
-   tests it is native tools with `LOOKAHEAD=1` on the build where previews work, read first on
-   `tool_audit.py` (previews served, not requested), then on plan contradictions and wins. Nineteen
-   of the 38 requests were for an activated ability, which the preview does not cover; that is the
-   next thing to build, before a preview of a whole line.
+3. The sequence hypothesis has had one real test (above) and is unresolved. Two things are next,
+   in this order. First, size: the native / native-lookahead pair on enough paired seeds to resolve
+   ten points, since both wins (9 against 10) and plan contradictions (6.2% against 10.4%) are
+   inside the noise of sixteen. Second, the gap the requests point at: a line that starts with a
+   land drop, where the later steps are cards the land makes castable and are therefore not on the
+   menu; 13 of the 92 requests asked to preview a land.
 4. An MCP server and a sandboxed workspace are not being built
    (`docs/harness/NOTES-mcp-and-workspace.md`).
 
