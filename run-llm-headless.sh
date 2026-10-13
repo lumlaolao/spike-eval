@@ -2,6 +2,8 @@
 # Run the LLM-vs-LLM match HEADLESS (no window) — console log only.
 # Run from the forge repo root; it cd's into forge-gui-desktop so assets resolve to ../forge-gui/res.
 set -e
+# Repo root, captured BEFORE the cd below: the rules tool needs an absolute CR path.
+REPO="$(cd "$(dirname "$0")" && pwd)"
 export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
 # Ensure the `claude` CLI (used by HaikuDecider) is on PATH for the launched JVM.
 PATH="$JAVA_HOME/bin:$HOME/.local/bin:$PATH"
@@ -58,6 +60,19 @@ ADDOPENS="--add-opens java.desktop/java.beans=ALL-UNNAMED \
 # the first turn (verified 2026-07-26). This flag suppresses the app's UI
 # presence while leaving AWT working; the seed-42 floor canary is unchanged
 # (identity A wins in 108 turns) with it set.
+# ---- ALWAYS-ON MATCH MODEL (2026-10-13) -------------------------------------------------------
+# Real play runs with the viewer-aware observation and the state blocks that close the known
+# play-quality gaps: KNOWN IN HIDDEN ZONES (unsummon -> Thoughtseize), SPENT THIS TURN (legality
+# stated, never inferred), engine FACTS (next-combat clocks + their instant-speed mana), RECURRING
+# threats, the tiered match history, and the MEMORY / INSPECT / RULES tools. To compare against the
+# historical baseline instead:
+#     CONTEXT_PROFILE=v1-compat MEMORY_TOOLS=0 RULES_TOOL=0 ./run-llm-headless.sh
+# (The eval runner keeps its own guarded baseline; this default is for PLAY.)
+export CONTEXT_PROFILE="${CONTEXT_PROFILE:-v4-faithful}"
+export MEMORY_TOOLS="${MEMORY_TOOLS:-1}"
+export RULES_TOOL="${RULES_TOOL:-1}"
+export RULES_FILE="${RULES_FILE:-$REPO/data/rules/MagicCompRules.txt}"
+
 exec java $ADDOPENS \
   -Xmx4096m \
   -Dio.netty.tryReflectionSetAccessible=true \
