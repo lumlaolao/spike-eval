@@ -28,6 +28,12 @@ Fault injection:
                                 grammar is answered `RULES SEARCH 0 declare blockers`, so a real
                                 RULES_TOOL=1 lookup round trip is recorded.
 
+  --native-calls N              NATIVE_TOOLS=1 games: the first N requests that offer `tools` and may
+                                call one are answered with a function call instead of text, cycling
+                                memory_search, inspect (the first @handle in the prompt), and one
+                                deliberately malformed call. With --policy simulate, a request that
+                                offers the `simulate` tool is always answered by calling it once.
+
 Every request is appended to --log as one JSON line: call number, wall time, whether an
 Authorization header was present (never its value), the model requested, prompt length,
 the reply, and whether it was stalled. Prints `LISTENING <port>` on stdout once bound.
@@ -50,12 +56,39 @@ class Policy:
         self.lock = threading.Lock()
         self.calls = 0
         self.rules_done = False
+        self.native_sent = 0
         self.log = open(args.log, "a") if args.log else None
 
     def next_call(self):
         with self.lock:
             self.calls += 1
             return self.calls
+
+    def tool_calls_for(self, body, prompt):
+        """Function calls to answer a native-tools request with, or None to answer in text. One tool
+        turn per ask: once the list holds a tool result, the answer is text."""
+        offered = [t.get("function", {}).get("name") for t in body.get("tools") or []]
+        if not offered or body.get("tool_choice") == "none":
+            return None
+        if any(m.get("role") == "tool" for m in body.get("messages") or []):
+            return None
+
+        def call(name, arguments):
+            return {"id": "call_%s_%d" % (name, self.calls), "type": "function",
+                    "function": {"name": name, "arguments": arguments if isinstance(arguments, str) else json.dumps(arguments)}}
+        if self.args.policy == "simulate" and "simulate" in offered:
+            return [call("simulate", {"option": 1})]
+        with self.lock:
+            if self.native_sent >= self.args.native_calls:
+                return None
+            k = self.native_sent
+            self.native_sent += 1
+        if k % 3 == 0:
+            return [call("memory_search", {"query": "turn"})]
+        if k % 3 == 1 and "inspect" in offered:
+            handle = re.search(r"@\d+", prompt)
+            return [call("inspect", {"target": handle.group(0) if handle else "Mountain"})]
+        return [call("memory_read", "{not json")]                # refused by the harness, costs no budget
 
     def reply_for(self, prompt, call):
         a = self.args
@@ -128,7 +161,11 @@ class Handler(BaseHTTPRequestHandler):
         try:
             body = json.loads(raw.decode("utf-8"))
             msgs = body.get("messages") or []
-            prompt = "\n".join(str(m.get("content", "")) for m in msgs if m.get("role") != "system")
+            # Tool results are quoted data: they must not be mistaken for the decision's format.
+            prompt = "\n".join(str(m.get("content", "")) for m in msgs if m.get("role") not in ("system", "tool", "assistant"))
+            entry["tools_offered"] = [t.get("function", {}).get("name") for t in body.get("tools") or []]
+            entry["tool_choice"] = body.get("tool_choice")
+            entry["tool_results"] = sum(1 for m in msgs if m.get("role") == "tool")
             entry["model"] = body.get("model")
             entry["prompt_chars"] = len(prompt)
             entry["max_tokens"] = body.get("max_tokens")
@@ -140,10 +177,20 @@ class Handler(BaseHTTPRequestHandler):
         stalled = p.args.stall_call and call == p.args.stall_call
         if stalled:
             time.sleep(p.args.stall_ms / 1000.0)
-        reply = p.reply_for(prompt, call)
+        tool_calls = p.tool_calls_for(body, prompt)
+        reply = None if tool_calls else p.reply_for(prompt, call)
         entry["reply"] = reply
+        entry["tool_calls"] = [c["function"]["name"] for c in tool_calls or []]
         entry["stalled"] = bool(stalled)
         p.record(entry)
+        if tool_calls:
+            self._send(200, {
+                "id": "fake-%d" % call, "object": "chat.completion", "model": SERVED_MODEL,
+                "choices": [{"index": 0, "finish_reason": "tool_calls",
+                             "message": {"role": "assistant", "content": None, "tool_calls": tool_calls}}],
+                "usage": {"prompt_tokens": max(1, len(prompt) // 4), "completion_tokens": 8, "total_tokens": max(1, len(prompt) // 4) + 8},
+            })
+            return
         usage = {"prompt_tokens": max(1, len(prompt) // 4), "completion_tokens": max(1, len(reply) // 4)}
         usage["total_tokens"] = usage["prompt_tokens"] + usage["completion_tokens"]
         self._send(200, {
@@ -174,6 +221,8 @@ def main():
     ap.add_argument("--stall-call", type=int, default=0)
     ap.add_argument("--stall-ms", type=int, default=0)
     ap.add_argument("--memory-call", type=int, default=0)
+    ap.add_argument("--native-calls", type=int, default=0,
+                    help="answer the first N tool-offering requests with a function call (NATIVE_TOOLS=1 games)")
     ap.add_argument("--rules-call", type=int, default=0,
                     help="when nonzero, the first tool prompt advertising the RULES grammar is answered "
                          "with `RULES SEARCH 0 declare blockers`, so a real rules lookup is exercised")

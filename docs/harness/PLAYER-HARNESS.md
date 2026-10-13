@@ -295,6 +295,75 @@ Tests: `opponentCardsTheSeatHasSeenAreShownWithTheirRulesText`,
 `opponentCardTextPersistsIsNotDuplicatedAndIgnoresHiddenZones` (the second also re-asserts that two
 worlds differing only in the opponent's hidden cards render identically).
 
+### Tool protocol: `evidence-tools-v2` and native function calling (2026-10-13)
+
+`eval/tool_audit.py` over the three controlled arms (`runs/lines/ctl`, 48 games, 2,994 model calls)
+counts 43 tool requests. **30 were refused** with `ERROR: use exactly one MEMORY/INSPECT/RULES
+command line`: the reply was not the bare command and nothing else. In 25 of the 30 it held other
+text (a sentence of reasoning first, usually); in 5 it was a valid command with only blank lines
+around it. The smart tier is instructed to write "at most two short sentences of reasoning, then a
+final line", so the harness asked for the sentence and then rejected the request because of it; a refusal also spent one of the seat's two
+tools. Twice the model wrote its own function-call markup into the text reply.
+
+Two changes, both in the tool layer (the observation is unchanged, `observation-faithful-v12`):
+
+- **`evidence-tools-v2`** (the text grammar; now the fallback).
+  `ContextMemory.toolLine` executes the first command line wherever it sits in the reply. A search
+  with no literal match falls back to entries holding every word of the query and says so
+  (`Rival's hand` did not occur in `saw Rival hand [...]`). A reply that holds a tool line is still
+  never handed to the `CHOICE` parser. Stamped as `memory_tools_version`; v1 and v2 games are
+  different conditions.
+- **Native function calling** (`NativeTools.java`; **the standard**, on by default wherever the
+  backend supports it, `NATIVE_TOOLS=0` to opt out). The same tools go out as function definitions
+  and come back as `tool_calls`. `ContextMemory.askNative` turns each call into the canonical
+  command line and runs it through the same `execute`, under the same budget (2 per decision, 64
+  per game), in at most three model rounds per decision like the text loop. A malformed call is
+  answered with an error and costs nothing. `simulate` is offered at play decisions under
+  `LOOKAHEAD=1`: once per decision, one of that decision's two calls, not counted against the 64.
+  `rules_lookup` takes an `action` (search / read / section / term / toc) that maps onto the
+  `RULES` grammar. A reply that is a text-grammar command instead of a call is refused, not parsed.
+  If a provider refuses function calling (a 4xx naming tools), that bridge drops to the text
+  grammar for the rest of the game and the game line says so (`native_tools_downgraded`). The text grammar is not sent. Stamped
+  `native_tools` / `native_tools_seats` (which tiers of which seats) / `native_tools_version` on
+  the game line; `context_call` rows carry
+  `protocol: native` and, after the first round, the message list. Only `openrouter:` bridges
+  support it (`LLMBridge.supportsNativeTools`); a Claude CLI seat keeps the text grammar.
+  `run_batch.py --memory-tools` means native on `openrouter:` seats; `--text-tools` is the opt-out.
+
+Measured with the tool-use suite (`eval/tool_use_suite.py`, invented cards so the deciding fact
+exists only behind a tool; deepseek-v4.1-flash, 3 trials, `runs/tooluse/deepseek-v4`). **Reach**
+means the deciding fact actually came back from a tool, not merely that a tool was called:
+
+| protocol | tier | reach | answered correctly | refused for form / attempts | restraint |
+|---|---|---|---|---|---|
+| text v1 (strict) | smart | 4/30 (13%) | 11/30 (37%) | 33 / 48 | 27/27 |
+| text v2 (lenient) | smart | 12/30 (40%) | 17/30 (57%) | 0 / 32 | 27/27 |
+| native | smart | 26/30 (87%) | 27/30 (90%) | 1 / 75 | 27/27 |
+| text v1 (strict) | fast | 7/30 (23%) | 10/30 (33%) | 6 / 31 | 26/27 |
+| text v2 (lenient) | fast | 9/30 (30%) | 10/30 (33%) | 0 / 37 | 26/27 |
+| native | fast | 18/30 (60%) | 18/30 (60%) | 1 / 72 | 23/27 |
+
+Baselines: answering by chance 38%; a never-call policy reaches 0%; an always-call policy has 0%
+restraint; with the fact printed on screen the model answers 100% (smart) and 83% (fast). On the
+smart tier every ask whose fact came back was answered correctly (4 of 4, 12 of 12, 26 of 26), and
+asks whose fact did not come back were answered correctly 13 times in 48 (below the 38% of
+chance), so reach is what decides the answer here. Scenario by scenario, native reached the fact more often than text v1 in 9 of 10
+scenarios on the smart tier and never less often (sign test p=0.004); 6 of 10 and never less on the
+fast tier (p=0.03). Thirty asks per cell are three trials of ten scenarios, not thirty independent
+samples, and runs differ: the previous run of the same suite (`deepseek-v3`, before the search
+stopped returning the decision being asked, rescored with `--rescore`) gave 9, 14 and 23 of 30
+on the smart tier. The order of the three protocols is the same in both; the size is not.
+
+What it does not show: the two-step scenario (search, then inspect what the search found) was
+reached 0/3 by every protocol; the fast tier asked for nothing in 6 of its 12 native asks about an
+unknown permanent and got 7 of those 12 wrong; and native calling costs restraint on the fast tier
+(23/27). The single native "refused for form" per tier is the model writing its call markup into
+the text once calls were forbidden, which is refused rather than parsed.
+
+Tests: `NativeToolsTest` (21, including a real HTTP round trip on loopback and equality of the Java
+definitions with `eval/tooluse/tools.json`), `eval/test_tool_use_suite.py`, `eval/test_tool_audit.py`;
+acceptance stage `nativetool`.
+
 Hand-reveal bridge/parse failures now choose the first minimum-sized legal subset,
 log an automatic fallback, and never call Forge AI. Empty reveal pools return empty.
 The regression uses a 1-to-3-card reveal range to catch accidental over-revealing.

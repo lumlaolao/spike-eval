@@ -343,6 +343,156 @@ should be replaced by a plan contract, sequence simulation and a forced self-sta
 3. Sequence simulation (WS3-P4) only if the sacrifice outlet stays unused in spots where an engine
    preview would show it winning.
 
+## Part 4. Controlled arms: before and after, and the sequence hypothesis
+
+Parts 1-3 measured the fixed build on its own. This part compares builds and arms on the **same
+paired games**: Mardu Energy (deepseek-v4.1-flash, `v4-faithful`, `MEMORY_TOOLS=1`) against Forge AI
+on the same deck, seeds 42-49 with both seatings (16 games per arm), no game capped. Machine load
+was 0.2-0.3 per core throughout. Reproduce any row with
+`python3 eval/line_compare.py NAME=runs/lines/ctl/<arm> ...`, `eval/plan_audit.py` and
+`eval/line_report.py`. The arms differ in observation version, so they are compared, never pooled.
+
+| arm | build | what differs |
+|---|---|---|
+| `prefix-mirror` | `adf94657` (before PR #76), observation v10 | the pre-fix harness |
+| `control` | `7b248caf`, observation v12 | PRs #76-#79 |
+| `planexec` | same + `PLAN_EXECUTE=1` | the harness may run steps of the model's stated plan |
+| `lookahead` | same + `LOOKAHEAD=1` | the model may reply `SIMULATE: <n>` for a preview |
+
+### What the fixes changed (measured per decision)
+
+| | prefix | control | planexec | lookahead |
+|---|---|---|---|---|
+| plays whose cost is a sacrifice (Goblin Bombardment, Cabal Therapy flashback) | 10 | 9 | 13 | 12 |
+| of those, the sacrificed permanent was chosen by the **model** (or forced: one legal choice) | **0** | 9 | 13 | 12 |
+| optional triggers put to the model **with their text** | 0 of 27 | 46 of 46 | 44 of 44 | 32 of 32 |
+| games in which Ajani flipped to the planeswalker | 3 | 7 | 5 | 6 |
+| loyalty activations | 12 | 20 | 11 | 13 |
+| model calls per turn | 4.3 | 4.2 | 3.9 | 4.0 |
+
+In the pre-fix arm there is no `sacrifice` decision row at all: all 10 sacrifices were picked by
+Forge AI through the hard-coded `AiCostDecision` (problem 1). After the fix every one is the
+model's or forced. That is the claim the PRs make, and it holds on every arm. Ajani flipped in 3 of
+16 pre-fix games against 7, 5 and 6 of 16 after; that direction matches the fix, and at this size
+it is not distinguishable from chance (3/16 vs 18/48 pooled, Fisher p=0.23).
+
+Not every model-owned sacrifice is a good one. In `planexec` seed 48, turn 13, the model flashed
+back Cabal Therapy with Ajani and Guide of Souls on the battlefield, wrote "Ajani's token value is
+largely spent, so I feed Ajani to Therapy", and sacrificed Ajani
+(`runs/lines/ctl/planexec/game-48-1791912207547.jsonl`, the `sacrifice` row). The prompt showed
+both permanents and the cost. That is a model choice, recorded as one, which is the point of the
+fix; whether it was a mistake is a puzzle candidate, not a harness defect.
+
+### What the fixes did not change: who wins
+
+| arm | model wins | Wilson 95% | paired against `control` (only-this / only-control / same) |
+|---|---|---|---|
+| prefix | 5 of 16 (31%) | 14-56% | 2 / 3 / 11, sign test p=1.0 |
+| control | 6 of 16 (38%) | 18-61% | |
+| planexec | 6 of 16 (38%) | 18-61% | 2 / 2 / 12, p=1.0 |
+| lookahead | 6 of 16 (38%) | 18-61% | 3 / 3 / 10, p=1.0 |
+
+Trivial baseline: a seat that always passes loses every game of this matchup. Sixteen paired games
+cannot resolve a difference smaller than roughly 35 points, so this table says only that nothing
+large moved. Against Grixis Reanimator the question is unanswerable for a different reason: the
+pre-fix build won 8 of 8 there and so did v12 (`prefix-reanimator`, `v12-mardu-vs-reanimator`), a
+ceiling. The line events still differ in the expected direction (Ajani flipped in 0 of 8 pre-fix
+games and 2 of 8 after; Therapy flashbacks with Ajani on the battlefield 0 and 2, Ajani kept both
+times).
+
+### The sequence hypothesis: not confirmed, and not yet tested
+
+The hypothesis was that the seat loses because it does not reason in sequences over its own cards
+and the turn ahead, and that giving it a way to plan or look ahead would fix that.
+
+- **Plan-then-execute did nothing measurable.** Same wins as control; plan contradictions 12 of 167
+  plays (7.2%) against 14 of 174 (8.0%) in control and 11 of 150 (7.3%) pre-fix. The harness
+  executed 15 plan steps in 16 games, because the model mostly declined to hand them over
+  ("STEPS: (none -- I want to choose Thoughtseize's target myself)").
+- **Lookahead did nothing measurable, because it was barely used.** The model asked for a preview 7
+  times in 16 games (900 model calls by `tool_audit.py`'s count, the one used below). Same wins; contradictions 14 of 155 (9.0%).
+- **The seat does state sequences.** It wrote a plan in 109-137 turns per arm and its plays
+  contradicted the plan's own hold clauses in 7-9% of plays in every arm, pre-fix included. Stating
+  the line is not the missing piece.
+
+So the two arms did not test "does lookahead help"; they tested "does offering lookahead as an
+optional text reply help", and the answer to that is no. Offered and used are different things:
+
+### Why offered was not used: the tool protocol
+
+`python3 eval/tool_audit.py runs/lines/ctl/control runs/lines/ctl/planexec runs/lines/ctl/lookahead`:
+in 48 games and 2,994 model calls the model made 43 tool requests, and the harness **refused 30 of
+them (70%)** for their form, answered with `ERROR: use exactly one MEMORY/INSPECT/RULES command
+line`: 25 held other text beside a valid command (the sentence the smart tier's own instructions
+ask for), 5 were a valid command with only blank lines around it. Ten
+requests were served. In the pre-fix arm all 6 requests were refused. Twice the model wrote its
+native function-call markup into the text reply. This is a harness defect (problem 12, layer:
+tools), found by reading `context_tool` rows rather than by hypothesis.
+
+It was then measured in isolation with the tool-use suite (`eval/tool_use_suite.py`; invented
+cards, so the deciding fact exists only behind a tool; `runs/tooluse/deepseek-v4`). The table,
+baselines and sign tests are in `PLAYER-HARNESS.md`, "Tool protocol": on the smart tier the
+deciding fact came back from a tool in 26 of 30 asks with native calling, 12 of 30 with the
+repaired grammar and 4 of 30 with the shipped one (never-call policy: 0), and every ask whose fact
+came back was answered correctly. The suite's refusal rate under the shipped grammar (33 of 48)
+matches the games' (30 of 43), which is the reason to believe the suite measures the same thing
+the games showed. Two earlier runs are not the published one: the first had three wrong fixtures (a
+lookup any reasonable agent would make had no answer), and the review of this change found that
+"reach" was being credited for calling a tool whether or not the fact came back, and that a search
+returned the decision that was asking. Both were fixed before the run quoted here.
+
+The suite also shows what native calling does not fix. On the fast tier (reasoning off) the model
+asked for nothing in 6 of 12 native asks about a permanent whose text it had never seen, and got 7
+of the 12 wrong; on the smart tier it inspected all 12. Reach is a model property the harness can
+raise, not guarantee, which is why opponent card text is pushed into the observation (v12) rather
+than left to a lookup.
+
+### The same sixteen games on the new tool protocols
+
+Three more arms on the same paired seeds (build `3119ad94978e`, the tree before review fixes that
+changed the round bound from four to three and stopped a preview counting against the per-game
+allowance; observation v12 unchanged; no game capped; load 0.2 per core):
+
+| arm | tool requests | served | refused for form | previews | model wins | plan contradictions |
+|---|---|---|---|---|---|---|
+| `control` (text grammar v1) | 15 | 4 | **11** | n/a | 6 of 16 | 14 of 174 (8.0%) |
+| `planexec` (v1) | 15 | 3 | **9** | n/a | 6 of 16 | 12 of 167 (7.2%) |
+| `lookahead` (v1, `LOOKAHEAD=1`) | 13 | 3 | **10** | 7 | 6 of 16 | 14 of 155 (9.0%) |
+| `textv2` (repaired grammar) | 7 | 7 | 0 | n/a | 6 of 16 | 7 of 151 (4.6%) |
+| `native` | **213** | 202 | 0 | n/a | 6 of 16 | 11 of 170 (6.5%) |
+| `native-lookahead` (`LOOKAHEAD=1`) | 150 | 146 | 0 | **35** | 5 of 16 | 16 of 154 (10.4%) |
+
+`python3 eval/tool_audit.py runs/lines/ctl/<arm>`, `eval/line_compare.py`, `eval/plan_audit.py`.
+
+- **The protocol was the reason the tools went unused.** With native calls the seat made about 13
+  requests a game where it had made under one, 174 of them `inspect`, and none was refused for its
+  form. Repairing the text grammar removed the refusals but not the reluctance (7 requests in 16
+  games): the model reaches for a function, not for a reply format.
+- **Lookahead was finally exercised** (35 previews against 7), which makes `native-lookahead` the
+  first arm that tests the hypothesis rather than the offer.
+- **Nothing moved in the results.** 6, 6 and 5 wins of 16; every paired comparison is at most 4 games
+  either way (sign tests p=1.0). Plan contradictions did not fall with lookahead (10.4%, the highest
+  of any arm, on 154 plays; not distinguishable from 6.5% at this size).
+
+So the measured state of the hypothesis: with lookahead available as a tool and used about twice a
+game, the seat did not win more or contradict its plans less in sixteen paired games. That is not
+evidence that lookahead cannot help (the sample resolves about 35 points and a preview covers one
+spell, not a line), but the specific claim "the seat loses because it has no way to look ahead" is
+not supported. What the logs do show is narrower and already fixed: decisions the seat was never
+given (problems 1-4), text it was never shown (problem 11), and lookups it asked for and was
+refused (problem 12).
+
+### Decision
+
+1. Native function calling is the standard tool protocol (`CLAUDE.md`), on by default wherever the
+   backend supports it. `simulate` is one of the tools.
+2. The text grammar is repaired (`evidence-tools-v2`) and kept only as the fallback.
+3. The sequence hypothesis is not supported at this size and stays open at a larger one. The next
+   measurement is not another sixteen games: it is a preview that covers a line (two or more of the
+   seat's own plays), tested first in the tool-use suite, then on enough pairs to resolve ten points.
+4. An MCP server and a sandboxed workspace are not being built
+   (`docs/harness/NOTES-mcp-and-workspace.md`).
+
 ## References
 
 Planning: Wang et al. 2023 (arXiv 2305.04091); Xu et al. 2023, ReWOO (2305.18323); Kim et al. 2024,

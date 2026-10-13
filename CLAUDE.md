@@ -69,6 +69,27 @@ The Forge checkout is pinned: `FORGE_COMMIT` records the engine version everythi
 validated against (`install.sh` warns on drift). Don't bump it casually — eval results
 are only comparable within one engine version.
 
+## Standard: the seat's tools are native tool calls (2026-10-13 — user decision, non-negotiable)
+
+**Anything the model can look up or do beyond answering is offered as a native function
+definition and comes back as a `tool_calls` turn.** Do not add a new text command the reply must
+"consist of", and do not parse a tool request out of prose.
+
+- Definitions live in `NativeTools.java` and, identically, in `eval/tooluse/tools.json`
+  (`NativeToolsTest.definitionsMatchTheToolUseSuite` fails when they differ). A new tool is added in
+  both, maps onto one executor command, and shares the per-decision / per-game budget.
+- It is the default wherever the backend has function calling (`openrouter:` specs).
+  `NATIVE_TOOLS=0` / `run_batch.py --text-tools` is the opt-out, for reproducing older runs or
+  measuring the protocol. The text grammar (`MEMORY ...` / `INSPECT ...` lines) survives only as the
+  fallback for a backend without function calling (the Claude CLI lane) and gets no new features.
+- Why: across 48 recorded games the text grammar refused 30 of the model's 43 tool requests for
+  their form, and in the tool-use suite the deciding fact came back from a tool in 87% of asks with
+  native calling against 13% with that grammar (`docs/harness/PLAYER-HARNESS.md`, "Tool protocol").
+- A tool change is measured with `python3 eval/tool_use_suite.py` (reach, correct, restraint, each
+  next to its trivial baseline) before any game is played, and audited in games with
+  `python3 eval/tool_audit.py <run>` — a `REFUSED` request there is a harness defect.
+- Native and text runs are different conditions (`native_tools` on the game line). Never pool them.
+
 ## Key files
 
 - `forge-overlay/.../spike/LlmSpikeGui.java` — everything: `PlayerControllerLLM` (the
@@ -156,7 +177,7 @@ python3 eval/improve_loop.py --controller llm --games 2   # play (floor mode = f
 python3 eval/model_sweep.py                               # per-model certification
 ```
 
-- **`eval/defect_analyzer.py` is the merge gate.** Hard invariants: `ai_tier_count=0`
+- **`eval/defect_analyzer.py` is the run oracle** (the PR merge gate is `scripts/pr_merge.sh`). Hard invariants: `ai_tier_count=0`
   and `silent_drop_total=0` (log-vs-jsonl reconciliation). It exits non-zero on
   violation. Never weaken the analyzer to make a run pass — it is the oracle.
 - **Per-model config lives in `ModelCfg`** (LlmSpikeGui.java, `OPENROUTER_MODEL_CFG`
@@ -203,8 +224,27 @@ regardless of seat swap) — don't "fix" that in either language.
 needed) → H.264 mp4. `RECORD_OUT`, `RECORD_FPS` tune it. Bigger window = crisper video.
 30-second social cut: `ffmpeg -i in.mp4 -vf "setpts=PTS*(30/DUR),fps=30" -an out.mp4`.
 
+## Required skills (every agent, every time — user decision 2026-10-13)
+
+The skills in `.claude/skills/` are not optional helpers. They are how work is done here, and
+`docs/STANDARDS.md` is what they enforce. Read `docs/STANDARDS.md` before changing anything.
+
+| When | Skill | It is required because |
+|---|---|---|
+| before every commit, PR title/body, and merge | `pr-format` | names and structure come from `scripts/pr_format.py`, not from memory |
+| on every PR, before merging | `pr-review` | finds what the author has not seen; BLOCKER or HIGH blocks the merge |
+| on every PR, after `pr-review` | `simplify` | the change loses what it does not need |
+| on every PR, and whenever you ask "what is the rule for this?" | `standards` | checks the change against `docs/STANDARDS.md` and keeps that file true |
+| whenever game logs are reviewed | `harness-audit` | separates harness defects from model mistakes; produces puzzle candidates |
+
+Run the three review skills as fresh subagents where the runtime has them, so the reviewer is
+not the author. Recording verdicts and the merge gate: `docs/STANDARDS.md` section 1. Once per
+clone: `bash scripts/install_hooks.sh`.
+
 ## Before committing
 
-Non-trivial changes: stage, then dispatch the `verifier` agent from the claude-obsidian
-plugin against `git diff --cached` — it has caught a BLOCKER (baseline contamination)
-and multiple HIGHs that validation runs missed. Then commit and push to `main`.
+Non-trivial changes: stage, then have the diff reviewed before committing: the `verifier` agent
+from the claude-obsidian plugin against `git diff --cached` where it is installed (it has caught
+a BLOCKER (baseline contamination) and multiple HIGHs that validation runs missed), otherwise
+`pr-review`. Skipping both is not allowed. Then commit, and land it through a PR and
+`scripts/pr_merge.sh`.

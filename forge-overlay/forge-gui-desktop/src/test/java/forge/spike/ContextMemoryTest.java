@@ -128,15 +128,17 @@ public class ContextMemoryTest {
     }
     @Test
     public void mixedToolAndActionReplyIsNotPassedToPermissiveActionParser() {
+        // The invariant: a reply that holds a tool line is NEVER handed to the CHOICE parser, however
+        // much it also looks like an answer. Under v2 the tool line is executed (v1 refused the whole
+        // reply because of the sentence above it); the reply itself is still not returned.
         ContextMemory memory = new ContextMemory();
         List<String> results = new ArrayList<>();
         String reply = memory.ask("decision", prompt -> "I should remember this.\nMEMORY NOTE 1 CHOICE: 2",
                 (command, result) -> results.add(result));
         Assert.assertNull(reply);
         Assert.assertEquals(results.size(), 3);
-        Assert.assertTrue(results.get(0).startsWith("ERROR"));
+        Assert.assertTrue(results.get(0).startsWith("Saved hypothesis"), results.get(0));
         Assert.assertTrue(results.get(2).contains("no tool executed"));
-        Assert.assertFalse(memory.brief().contains("YOUR NOTEBOOK"));
     }
 
 
