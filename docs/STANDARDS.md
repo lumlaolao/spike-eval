@@ -122,6 +122,9 @@ most log questions).
 - A re-pinned canary carries a dated reason in `eval/harness_acceptance.expected`. Re-pin when an
   auto/floor path changed on purpose and the new value is explained; never to make a run pass.
 - `bash eval/harness_acceptance.sh` is the whole-harness gate; it must pass on the PR's head.
+- The acceptance compile rejects what the Forge checkout build is known to reject: unused and
+  duplicate imports in `forge-overlay/` fail the `compile` stage (`eval/java_imports.py`). When the
+  checkout build rejects something acceptance accepted, the check for it is added here.
 
 ## 6. Measurement
 

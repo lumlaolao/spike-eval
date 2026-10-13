@@ -2,7 +2,11 @@
 what the `nativetool` stage can prove, so the policy itself is pinned here."""
 import argparse
 import json
+import threading
 import unittest
+import urllib.error
+import urllib.request
+from http.server import ThreadingHTTPServer
 
 import fake_model_server as fms
 
@@ -10,7 +14,8 @@ TOOLS = [{"type": "function", "function": {"name": n}} for n in ("inspect", "mem
 
 
 def policy(**kw):
-    a = dict(policy="pass", log=None, stall_call=0, stall_ms=0, memory_call=0, native_calls=0, rules_call=0)
+    a = dict(policy="pass", log=None, stall_call=0, stall_ms=0, memory_call=0, native_calls=0, rules_call=0,
+             refuse_tools=False)
     a.update(kw)
     return fms.Policy(argparse.Namespace(**a))
 
@@ -47,6 +52,34 @@ class FakeModelServerTest(unittest.TestCase):
         self.assertEqual(p.reply_for("Choose:\n  1) A\n  2) B\n  3) PASS\nCHOICE: <number>", 1), "CHOICE: 3")
         self.assertEqual(policy(policy="first").reply_for("  1) A\n  2) B\nCHOICE: <n>", 1), "CHOICE: 1")
         self.assertEqual(p.reply_for("PICKS: <numbers>", 1), "PICKS: none")
+
+
+class RefuseToolsTest(unittest.TestCase):
+    """--refuse-tools over real HTTP: the 404 wording is the one OpenRouterBridge.refusesTools reads."""
+
+    def post(self, port, body):
+        req = urllib.request.Request("http://127.0.0.1:%d/v1/chat/completions" % port, data=json.dumps(body).encode(),
+                                     headers={"Content-Type": "application/json"})
+        try:
+            with urllib.request.urlopen(req, timeout=5) as r:
+                return r.status, json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            return e.code, json.loads(e.read())
+
+    def test_a_request_with_tools_is_refused_and_one_without_is_answered(self):
+        fms.Handler.policy = policy(refuse_tools=True)
+        srv = ThreadingHTTPServer(("127.0.0.1", 0), fms.Handler)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        try:
+            port = srv.server_address[1]
+            status, out = self.post(port, body())
+            self.assertEqual(status, 404)
+            self.assertIn("support tool use", out["error"]["message"])
+            status, out = self.post(port, {"messages": [{"role": "user", "content": "  1) A\n  2) PASS\nCHOICE: <n>"}]})
+            self.assertEqual((status, out["choices"][0]["message"]["content"]), (200, "CHOICE: 2"))
+        finally:
+            srv.shutdown()
+            srv.server_close()
 
 
 if __name__ == "__main__":
