@@ -5000,7 +5000,12 @@ public final class LlmSpikeGui {
          *  latency: the hidden reasoning can consume the whole max_tokens budget before any answer token,
          *  provoking a truncation-retry at double the budget. Measured 2026-10-13 on
          *  deepseek-v4.1-flash: a fast-tier decision burned 4000 tokens of reasoning, retried at 8000,
-         *  and took 182s for one number. Setting this to "minimal" is the fix. */
+         *  and took 182s for one number.
+         *
+         *  "none" is the sentinel that DISABLES reasoning (reasoning:{enabled:false}); measured 1.3s /
+         *  65 completion tokens vs ~7s / ~850 with any effort value, because ~95% of the completion was
+         *  hidden reasoning for a ~50-token answer. Effort values ("low"/"minimal") do NOT reliably cut
+         *  it. Reasoning is kept ON for the smart tier, where planning and timing actually need it. */
         final String fastReasoningEffort;
 
         ModelCfg(int maxTokens, long timeoutMs, String reasoningEffort, Double temperature,
@@ -5066,7 +5071,7 @@ public final class LlmSpikeGui {
             // CHOICE/PICKS answer. See the class javadoc above for the full investigation.
             // fastReasoningEffort="minimal" + a small cap: the fast tier answers high-frequency
             // mechanical questions and must not spend hidden reasoning on them (see the field javadoc).
-            ModelCfg deepseekGpt = new ModelCfg(16000, 90000, "medium", null, 1024, 45000, "minimal");
+            ModelCfg deepseekGpt = new ModelCfg(16000, 90000, "medium", null, 1024, 45000, "none");
             ModelCfg kimi        = new ModelCfg(16000, 150000, null, null, ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
             ModelCfg grok        = new ModelCfg(8000, 90000, null, null, ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
             ModelCfg dflt        = new ModelCfg(4000, 90000, null, null, ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
@@ -5773,7 +5778,12 @@ public final class LlmSpikeGui {
             }
             body.append("{\"role\":\"user\",\"content\":\"").append(jsonEscape(prompt)).append("\"}");
             body.append("],\"max_tokens\":").append(maxTokens);
-            if (reasoningEffort != null && !reasoningEffort.isEmpty())
+            if ("none".equals(reasoningEffort))
+                // Measured 2026-10-13: a mechanical answer costs ~848 completion tokens of which ~800 are
+                // hidden reasoning, and "low"/"minimal" do not reduce that -- only disabling does (65
+                // tokens, 1.3s). "none" is OUR sentinel for that, kept distinct from effort values.
+                body.append(",\"reasoning\":{\"enabled\":false}");
+            else if (reasoningEffort != null && !reasoningEffort.isEmpty())
                 body.append(",\"reasoning\":{\"effort\":\"").append(jsonEscape(reasoningEffort)).append("\"}");
             if (temperature != null)
                 body.append(",\"temperature\":").append(temperature);
