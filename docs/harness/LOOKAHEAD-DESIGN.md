@@ -105,12 +105,33 @@ SIMULATE 3 (attack with Ragavan + Dragon's Rage Channeler):
 - Using Forge's actual strategic policy silently — the continuation policy is disclosed.
 - Public-information *hidden* reasoning — out of scope.
 
+## Combat lookahead (next — source-backed plan)
+
+Combat is where games are decided, and the engine already exposes the primitives (read
+2026-10-12), so this needs no new simulation:
+
+- `ComputerUtilCombat.sumDamageIfUnblocked(attackers, attacked)` — total unblocked damage from a set;
+- `ComputerUtilCombat.damageIfUnblocked(attacker, attacked, combat, withoutAbilities)` — per attacker;
+- `CombatUtil.canBeBlocked(attacker, combat, defendingPlayer)` — evasive vs blockable.
+
+A "combat ceiling" preview is therefore cheap: for the attackers the model is considering, report
+`sumDamageIfUnblocked`, which attackers cannot be blocked at all, and (for each) whether the
+defender even has a legal blocker. At the BLOCKERS decision the mirror applies
+(`CombatUtil.canBlock(blocker, attacker, combat)`).
+
+**Wiring caveat (why it is not done yet):** the attackers/blocks questions are built by
+`buildAttackersQuestion` / `buildBlockerPrompt`, pinned byte-for-byte by
+`*_matchesThe*WireFormatExactly` tests and rebuilt identically by the ai-teacher seat. Adding a
+combat summary means adding a parameter that BOTH seats compute from the same state (or gating it
+behind `LOOKAHEAD`, which then has to reach the ai-teacher call site too) — a shared-template change
+that must keep the two seats byte-identical. That is the work, not the maths.
+
 ## Effort
 
-The fork/replay plumbing is validated; what remains is (a) an in-process entry point,
-(b) the tool grammar + budget + report, (c) determinization extended to the opponent's hand,
-(d) the acceptance fixtures above. Roughly **1 week**, matching EVAL-DESIGN Phase 1.6's estimate
-for "state_export + fork-from-snapshot".
+The in-process entry point, tool grammar/budget/report, copy + determinization, targeting and target
+hints are **built and validated** (this session). Remaining effort is the combat lookahead above,
+multi-target spells beyond the minimum, and the sampled multi-turn rollout (EVAL-DESIGN Phase 1.6's
+"state_export + fork-from-snapshot").
 
 ## Implementation findings (2026-10-12)
 

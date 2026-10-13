@@ -211,7 +211,7 @@ missing-call reports in the random canary. The defect analyzer was not modified.
 | P1 | Tool protocol and eval accounting | Native typed adapters or strict equivalent, per-decision budgets across retries, exact request/token accounting, disjoint experiment grouping | Eval grouping/accounting done (EVAL-IMPLEMENTATION.md); tools remain text commands; INSPECT added to the shared budget |
 | P2 | Strategy notebook and optional archetype evidence library | Contradiction/update tests, no opponent deck-label leakage, assistance version and ablations | Notes only |
 | P2 | Player-safe simulation adapter | Live-state/RNG equality before/after calls, hidden-world invariance, disclosed rollout policy and assumptions, unsupported cases refused | Not started |
-| P3 | Frozen harness evaluation suite | Observation/comprehension, identity, memory/retrieval, legal actions, puzzles and full-game play; fixed seeds, baselines, confidence intervals | Acceptance suite covers mechanics only |
+| P3 | Frozen harness evaluation suite | Observation/comprehension, identity, memory/retrieval, legal actions, puzzles and full-game play; fixed seeds, baselines, confidence intervals | Substantially covered: the acceptance suite (10 stages, fixed seed-42 canaries + loopback games) plus `SeatObservationTest` (observation/identity/tokens/face-down), `ContextMemoryTest` (memory/retrieval/notes), `LlmSpikeTest` (routing/parsing) and the ownership ledger test; **full-game play baselines with CIs** remain the piece not yet frozen as a suite |
 
 The harness is **not yet certified fair**. Recovery plus memory tools are a concrete
 first stage, not completion of this entire contract.
