@@ -239,6 +239,27 @@ public class SeatObservationTest {
         Assert.assertFalse(r.contains("Lava Spike x"), r);
     }
 
+    /** INSPECT answers "what happened to this?" — the object's zone history, which is the object-level
+     *  half of continuity: Forge makes a new Card on every move, so without this the model can only see
+     *  that a NEW thing appeared. */
+    @Test
+    public void inspectShowsAnObjectsZoneTransitionHistory() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        Player rival = g.getPlayers().get(1);
+        SeatObservation o = observerFor(g, 0);
+        Card creature = card("Griselbrand", rival, ZoneType.Battlefield);
+        Zone battlefield = creature.getZone();
+        Zone yard = card("Dark Ritual", rival, ZoneType.Graveyard).getZone();
+        o.describe(creature, false);
+        int h = o.handleOf(creature);
+        Assert.assertTrue(h > 0, "the creature should have a handle");
+        Assert.assertTrue(o.inspect("@" + h).contains("history:"), o.inspect("@" + h));
+        Assert.assertTrue(o.inspect("@" + h).contains("first seen in battlefield"), o.inspect("@" + h));
+        o.onZoneChange(new GameEventCardChangeZone(creature, battlefield, yard));
+        String hist = o.inspect("@" + h);
+        Assert.assertTrue(hist.contains("battlefield -> graveyard"), hist);
+    }
+
     // ---- paired worlds ------------------------------------------------------------------------
 
     @Test

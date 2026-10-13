@@ -110,6 +110,11 @@ line to the opponent block (deterministic recurring-threat facts), and told the 
 tool instructions how to drill into a compacted-history event by its canonical `[E<n>]` id. Prompt
 bytes changed → new provenance identity.
 
+**Later still (2026-10-13): v7 → `observation-faithful-v8`.** Added a bounded
+per-object zone-transition trail, surfaced by `INSPECT @N` as `history: ...` (the object-level half of
+continuity).
+
+
 ## Residual limits (explicit)
 
 - **Name-only references to a hidden object are not redacted.** If an engine call site
