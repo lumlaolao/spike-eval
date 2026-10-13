@@ -110,7 +110,7 @@ option (never Forge AI):
 | `orderSimultaneousSa` | the order simultaneous triggers resolve in (targeting stays the engine's) | as-triggered order |
 | `getCostDecisionMaker` | which permanent to sacrifice for a NON-mana cost (e.g. Cabal Therapy flashback), via `LlmCostDecision`; the candidate filter is copied from `ComputerUtil.chooseSacrificeType` so legality matches the engine | the engine's `AiCostDecision` |
 
-Inventory after these overrides: **47 LLM / 72 AI / 14 BASE**; **3 silent core strategic/payment
+Inventory after these overrides: **47 LLM / 72 AI / 14 BASE** (48 / 71 / 14 after the 2026-10-13 `playChosenSpellAbility` override below); **3 silent core strategic/payment
 hooks remain** (down from 13). (The 2026-10-13 engine pin added three sticker-mechanic hooks, all
 resolved to Forge AI — `chooseSticker`, `chooseStickerNamePosition`, `chooseCardToKeepStickers` —
 taking the hook count 130 → 133; see `ENGINE-PIN.md`.) Still Forge AI and **not routeable without re-deriving engine
@@ -122,3 +122,22 @@ mechanism with no seam; `playTrigger` — its targeting goes through `brains.doT
 the inherited play/targeting loop remains.
 `chooseStartingPlayer` is `boolean`-keyed and
 therefore moves the random canary (see `eval/harness_acceptance.expected`, 2026-10-12).
+
+## Correction: sacrifice-as-cost on the play path (2026-10-13)
+
+The table above lists `getCostDecisionMaker` as model-owned "e.g. Cabal Therapy flashback". That was
+true only for the two `PlaySpellAbility.java` call sites. The path a cast or activation actually
+takes — the inherited `playChosenSpellAbility` → `ComputerUtil.handlePlayingSpellAbility` — pays with
+a hard-coded `new AiCostDecision(...)` (`ComputerUtil.java:129`) and never calls the hook, so Forge's
+AI chose every sacrificed creature and no row was written (`ai=0` could not see it). Reproduced
+against the engine: Goblin Bombardment sacrificed Memnite with zero model asks; a Cabal Therapy
+flashback with Ajani, Nacatl Pariah and another Cat in play sacrificed **Ajani**.
+
+`PlayerControllerLLM.playChosenSpellAbility` now runs the same steps as the engine routine for every
+cast and activation and pays with `LlmCostDecision`, which routes a choosable sacrifice to the model
+and hands every other cost part to the engine's own decision. The cost is read after optional
+keyword costs are added, so a Casualty sacrifice is covered. If the model route fails and the engine
+chooses, it is counted as a `[FALLBACK->AI]` delegation. Tests: `LineFindingProbeTest`. Still not
+routed: an ability with a `TargetingPlayer` parameter stays on the inherited path, and
+`ComputerUtil.playStack` / `playNoStack`
+(triggers, play-from-effect) still construct `AiCostDecision` directly and are **not** routed.

@@ -22,8 +22,13 @@ random.seed=42
 # legal menu, so ANY engine change re-rolls the whole game: now winner A, 29 turns / 167 decisions.
 # Re-pinned deliberately: ai=0 rows, silent drops=0, game not capped. Random is a floor ANCHOR, not a
 # behavioural contract -- its job is to move deterministically under a fixed engine, which it does.
+# 2026-10-13 (later): sacrifice-as-cost moved from Forge AI to the seat on the real play path
+# (playChosenSpellAbility override; see OWNERSHIP.md "Correction"). The random arm now makes those
+# choices itself -- 13 sacrifice decisions appear in the game log that were previously silent -- so
+# the random walk re-rolls: winner A, 26 turns / 171 decisions. Floor is unchanged (it never plays).
+# Re-pinned deliberately: ai=0 rows, silent drops=0, game not capped.
 random.winner=A
-random.turns=29
-random.decisions=167
+random.turns=26
+random.decisions=171
 # Silent Forge-AI strategic/payment hooks reachable in Legacy play (ControllerOwnershipTest baseline).
 ownership.silent_ai_strategic_max=3

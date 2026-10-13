@@ -1,0 +1,1324 @@
+FSkin > can't find skins directory!
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 34086 files in 0 ms (25 parts) using thread pool
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 857 files in 0 ms (8 parts) using thread pool
+[LLM-SEAM] building LLM-vs-LLM spectator match...
+[SEED] 42
+[DECK] loaded 'Grixis Reanimator': 60 main, 15 sideboard  (/Users/lumlumlam/Downloads/Deck - Grixis Reanimator.txt)
+[DECK] loaded 'Mardu Energy': 60 main, 15 sideboard  (/Users/lumlumlam/Downloads/Deck - Mardu Energy.txt)
+[SEATS] A=Grixis Reanimator(llm,openrouter:deepseek/deepseek-v4.1-flash) B=Mardu Energy(llm,openrouter:deepseek/deepseek-v4.1-flash)
+[Grixis Reanimator] [RULES] RULES_TOOL=1 but the rules text did not load (not readable: /Users/lumlumlam/code/forge/data/rules/MagicCompRules.txt); the tool is left OFF so prompts match a no-rules run
+[Grixis Reanimator] [OBSERVATION] observation-faithful-v9 (profile v4-faithful/058312fd4233)
+[Mardu Energy] [RULES] RULES_TOOL=1 but the rules text did not load (not readable: /Users/lumlumlam/code/forge/data/rules/MagicCompRules.txt); the tool is left OFF so prompts match a no-rules run
+[Mardu Energy] [OBSERVATION] observation-faithful-v9 (profile v4-faithful/058312fd4233)
+[LLM-SEAM] match started (games-per-match=3). Watch the Forge window.
+[OPENROUTER Grixis Reanimator/fast] replied in 805 ms
+[Grixis Reanimator] [ROUTER] mulligan: 1/7 lands -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] replied in 2084 ms
+[Grixis Reanimator] [ROUTER] mulligan: KEEP
+[Mardu Energy] [ROUTER] mulligan: heuristic KEEP (3/7 lands)
+[Grixis Reanimator] [TALLY] smart=1 fast=1 auto=0 ai=0 avgSmart=2084ms avgFast=805ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] replied in 8614 ms
+[Grixis Reanimator] [ROUTER] plan: Play Swamp, then Dark Ritual into Unmask targeting myself to bin Atraxa, holding Lotus Petal to power Shallow Grave on turn 2.
+[Grixis Reanimator] [ROUTER] profile: Mardu Energy — fast aggressive creatures plus discard/removal; race them and respect graveyard hate or Path-style removal.
+[Grixis Reanimator] [ROUTER] play: land Swamp
+[Grixis Reanimator] [TALLY] smart=2 fast=1 auto=0 ai=0 avgSmart=5349ms avgFast=805ms
+[Grixis Reanimator] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[Grixis Reanimator] [ROUTER] play: plan step 1 -> Dark Ritual @7 {B} [Add {B}{B}{B}.]
+[Grixis Reanimator] [TALLY] smart=2 fast=1 auto=0 ai=0 avgSmart=5349ms avgFast=805ms
+[Grixis Reanimator] [ROUTER] play(main): 3 castable -> asking deepseek/deepseek-v4.1-flash...
+[Grixis Reanimator] [ROUTER] play: plan step 2 -> Shallow Grave @3 1{B} [Return the top creature card of your graveyard to the battlefield. That creature gains haste until end of turn. Exile it at the beginning of the next end step.]
+[Grixis Reanimator] [TALLY] smart=2 fast=1 auto=0 ai=0 avgSmart=5349ms avgFast=805ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 3557 ms
+[Grixis Reanimator] [ROUTER] play: casts Lotus Petal @1 [Lotus Petal]
+[Grixis Reanimator] [TALLY] smart=2 fast=2 auto=0 ai=0 avgSmart=5349ms avgFast=2181ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1459 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=0 fast=0 auto=0 ai=0
+[Mardu Energy] [ROUTER] play(main): 0 castable + 2 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1180 ms
+[Mardu Energy] [ROUTER] play: land Wasteland
+[Mardu Energy] [TALLY] smart=0 fast=1 auto=0 ai=0 avgFast=1180ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1197 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 422 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1091 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1066 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=0 fast=5 auto=0 ai=0 avgFast=991ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 4080 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=2 fast=3 auto=0 ai=0 avgSmart=5349ms avgFast=1940ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 4989 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 2547 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 647 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 2316 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 479 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 730 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 510 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=2 fast=7 auto=0 ai=0 avgSmart=5349ms avgFast=2343ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1220 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 595 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=0 fast=10 auto=0 ai=0 avgFast=1126ms
+[Mardu Energy] [ROUTER] play(main): 1 castable + 3 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 12773 ms
+[Mardu Energy] [ROUTER] plan: Play Elegant Parlor (tapped) to fix red and surveil for a black source; next turn deploy Hexing Squelcher or Goblin Bombardment while holding Karakas/Wasteland utility.
+[Mardu Energy] [ROUTER] profile: Grixis Reanimator — expect Entomb/Reanimate/Shallow Grave on Atraxa, Griselbrand, or Archon; respect their 4 hidden cards and 2 instant-speed mana.
+[Mardu Energy] [ROUTER] play: land Elegant Parlor
+[Mardu Energy] [AUTO-LEGAL] surveil(forced-only-legal)->keep-all-top
+[Mardu Energy] [TALLY] smart=1 fast=10 auto=1 ai=0 avgSmart=12773ms avgFast=1126ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[Mardu Energy] [ROUTER] play: plan step 1 -> Wasteland @13 [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[OPENROUTER Mardu Energy/fast] replied in 1211 ms
+[Mardu Energy] [ROUTER] target: Elegant Parlor [tapped] @15 (was @14) [Battlefield] <- Wasteland @13 [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 925 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 710 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1224 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 600 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=2 fast=12 auto=0 ai=0 avgSmart=5349ms avgFast=1756ms
+[Grixis Reanimator] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] replied in 15827 ms
+[Grixis Reanimator] [ROUTER] plan: Hold Shallow Grave (graveyard has no creatures); next play Swamp, cast Unmask exiling a black card targeting myself to bin Atraxa, then Shallow Grave to reanimate her with haste.
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1366 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1366 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 593 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=3 fast=15 auto=0 ai=0 avgSmart=8841ms avgFast=1627ms
+[Grixis Reanimator] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[Grixis Reanimator] [ROUTER] play: plan step 1 -> Shallow Grave @6 1{B} [Return the top creature card of your graveyard to the battlefield. That creature gains haste until end of turn. Exile it at the beginning of the next end step.]
+[Grixis Reanimator] [AUTO-LEGAL] color(default)->first
+[Mardu Energy] [TALLY] smart=1 fast=11 auto=1 ai=0 avgSmart=12773ms avgFast=1134ms
+[Mardu Energy] [ROUTER] play(main): 0 castable + 3 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 706 ms
+[Mardu Energy] [ROUTER] play: land Plateau
+[Grixis Reanimator] [TALLY] smart=3 fast=15 auto=1 ai=0 avgSmart=8841ms avgFast=1627ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1881 ms
+[OPENROUTER Grixis Reanimator/fast] replied in 1504 ms
+[Grixis Reanimator] [ROUTER] target: Mardu Energy <- Thoughtseize @17 {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Grixis Reanimator] [ROUTER] play: casts Thoughtseize @17 {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[OPENROUTER Grixis Reanimator/smart] replied in 2531 ms
+[OPENROUTER Grixis Reanimator/smart] replied in 3206 ms
+[OPENROUTER Grixis Reanimator/smart] replied in 5148 ms
+[Grixis Reanimator] [ROUTER] discard(strip Mardu Energy): Hexing Squelcher
+[Mardu Energy] [TALLY] smart=1 fast=12 auto=1 ai=0 avgSmart=12773ms avgFast=1098ms
+[Mardu Energy] [ROUTER] play(main): 0 castable + 2 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 544 ms
+[Mardu Energy] [ROUTER] play: land Karakas
+[Mardu Energy] [TALLY] smart=1 fast=13 auto=1 ai=0 avgSmart=12773ms avgFast=1056ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 798 ms
+[Mardu Energy] [ROUTER] play: casts Goblin Bombardment @11 1{R} [Goblin Bombardment]
+[Grixis Reanimator] [TALLY] smart=6 fast=17 auto=1 ai=0 avgSmart=6235ms avgFast=1634ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 705 ms
+[OPENROUTER Grixis Reanimator/fast] replied in 581 ms
+[Grixis Reanimator] [ROUTER] target: Mardu Energy <- Thoughtseize @29 {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Grixis Reanimator] [ROUTER] play: casts Thoughtseize @29 {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[OPENROUTER Grixis Reanimator/smart] replied in 6037 ms
+[Grixis Reanimator] [ROUTER] discard(strip Mardu Energy): Thoughtseize
+[Mardu Energy] [TALLY] smart=1 fast=14 auto=1 ai=0 avgSmart=12773ms avgFast=1037ms
+[Mardu Energy] [ROUTER] play(main): 1 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 5622 ms
+[Mardu Energy] [ROUTER] plan: Cast Ocelot Pride now to add a lifelink threat and pressure; play Wasteland later to disrupt their mana.
+[Mardu Energy] [ROUTER] profile: Grixis Reanimator — expect Entomb/Reanimate/Shallow Grave on a large threat; respect their 4 hidden cards and instant-speed reanimation.
+[Mardu Energy] [ROUTER] play: casts Ocelot Pride 1/1 @26 {W} [Ocelot Pride - Creature 1 / 1]
+[Mardu Energy] [TALLY] smart=2 fast=14 auto=1 ai=0 avgSmart=9197ms avgFast=1037ms
+[Mardu Energy] [ROUTER] play(main): 1 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 9688 ms
+[Mardu Energy] [ROUTER] play: land Wasteland
+[Mardu Energy] [TALLY] smart=3 fast=14 auto=1 ai=0 avgSmart=9361ms avgFast=1037ms
+[Mardu Energy] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[Mardu Energy] [ROUTER] play: plan step 1 -> Wasteland @31 [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[OPENROUTER Mardu Energy/fast] replied in 1117 ms
+[Mardu Energy] [ROUTER] target: Wasteland [untapped] @31 (was @7) [Battlefield] <- Wasteland @31 [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Mardu Energy] [TALLY] smart=3 fast=15 auto=1 ai=0 avgSmart=9361ms avgFast=1042ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1479 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1177 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 654 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 899 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=3 fast=19 auto=1 ai=0 avgSmart=9361ms avgFast=1044ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 4513 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=7 fast=19 auto=1 ai=0 avgSmart=6206ms avgFast=1530ms
+[Grixis Reanimator] [ROUTER] play(main): 0 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 540 ms
+[Grixis Reanimator] [ROUTER] play: land Swamp
+[Grixis Reanimator] [TALLY] smart=7 fast=20 auto=1 ai=0 avgSmart=6206ms avgFast=1480ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 3188 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 2858 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1249 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 983 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1345 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 838 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 465 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=7 fast=24 auto=1 ai=0 avgSmart=6206ms avgFast=1561ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 2255 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1416 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=3 fast=24 auto=1 ai=0 avgSmart=9361ms avgFast=1201ms
+[Mardu Energy] [ROUTER] play(main): 2 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 6527 ms
+[Mardu Energy] [ROUTER] plan: Cast Voice of Victory now to add a fast clock (mobilize 2 each attack) while keeping Karakas mana; Wasteland is dead against basics so hold it.
+[Mardu Energy] [ROUTER] play: casts Voice of Victory 1/3 @34 1{W} [Voice of Victory - Creature 1 / 3]
+[Mardu Energy] [TALLY] smart=4 fast=24 auto=1 ai=0 avgSmart=8652ms avgFast=1201ms
+[Mardu Energy] [ROUTER] play(main): 1 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 5752 ms
+[Mardu Energy] [ROUTER] play: land Wasteland
+[Mardu Energy] [TALLY] smart=5 fast=24 auto=1 ai=0 avgSmart=8072ms avgFast=1201ms
+[Mardu Energy] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[Mardu Energy] [ROUTER] play: plan step 1 -> Wasteland @36 [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[OPENROUTER Mardu Energy/fast] replied in 717 ms
+[Mardu Energy] [ROUTER] target: Wasteland [untapped] @36 (was @24) [Battlefield] <- Wasteland @36 [{T}, Sacrifice CARDNAME: Destroy target nonbasic land.]
+[Mardu Energy] [TALLY] smart=5 fast=25 auto=1 ai=0 avgSmart=8072ms avgFast=1182ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 953 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 529 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1185 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [AUTO-LEGAL] attackers(forced-only-legal)->attack Ocelot Pride
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 867 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 770 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 2044 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1199 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1419 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 739 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 574 ms
+[OPENROUTER Mardu Energy/fast] replied in 611 ms
+[Mardu Energy] [ROUTER] target: Grixis Reanimator <- Goblin Bombardment @29 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Mardu Energy] [ROUTER] play: casts Goblin Bombardment @29 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1049 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 597 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=5 fast=33 auto=2 ai=0 avgSmart=8072ms avgFast=1125ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[Mardu Energy] [ROUTER] play(plan-invalidated): opponent-side state changed -> re-plan
+[OPENROUTER Mardu Energy/fast] replied in 16131 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 859 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=7 fast=31 auto=1 ai=0 avgSmart=6206ms avgFast=1469ms
+[Grixis Reanimator] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] replied in 17095 ms
+[Grixis Reanimator] [ROUTER] plan: Pass this window; next, Unmask (exile Archon) targeting myself to bin Atraxa, then Animate Dead her for a 7/7 lifelink clock.
+[Grixis Reanimator] [ROUTER] profile: Mardu Energy aggro — Goblin Bombardment sac outlet plus Voice of Victory; respect their removal/sac and race with a reanimated Atraxa.
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 2807 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 773 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 540 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 14457 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1331 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 886 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=8 fast=34 auto=1 ai=0 avgSmart=7567ms avgFast=1477ms
+[Grixis Reanimator] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[Grixis Reanimator] [ROUTER] play: plan step 1 -> Animate Dead @45 1{B} [Animate Dead]
+[OPENROUTER Grixis Reanimator/fast] replied in 5941 ms
+[Grixis Reanimator] [ROUTER] target: Hexing Squelcher 1{R} 2/2 @30 [Graveyard] <- Animate Dead @45 1{B} [Animate Dead]
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 952 ms
+[OPENROUTER Mardu Energy/fast] replied in 745 ms
+[Mardu Energy] [ROUTER] target: Voice of Victory 1/3 [untapped] [sick] @35 (was @34) [Battlefield] <- Goblin Bombardment @29 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Mardu Energy] [ROUTER] play: casts Goblin Bombardment @29 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Mardu Energy] AI failed to play Goblin Bombardment (94) [Mardu Energy's Battlefield]
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1274 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [AUTO-LEGAL] choose-entity(forced-only-legal) [Animate Dead]
+[Grixis Reanimator] [AUTO-LEGAL] choose-entity(forced-only-legal) [Animate Dead]
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1413 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=5 fast=41 auto=2 ai=0 avgSmart=8072ms avgFast=1799ms
+[Mardu Energy] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 3487 ms
+[Mardu Energy] [ROUTER] plan: Cast Guide of Souls to build board and gain life/energy, then attack with Voice of Victory plus its mobilize tokens.
+[Mardu Energy] [ROUTER] play: casts Guide of Souls 1/2 @42 {W} [Guide of Souls - Creature 1 / 2]
+[Mardu Energy] [TALLY] smart=6 fast=41 auto=2 ai=0 avgSmart=7308ms avgFast=1799ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 16326 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1402 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [AUTO-LEGAL] attackers(forced-only-legal)->attack Voice of Victory
+[OPENROUTER Mardu Energy/smart] replied in 5379 ms
+[Mardu Energy] [AUTO-LEGAL] choose-entity(forced-only-legal) [Voice of Victory]
+[Mardu Energy] [AUTO-LEGAL] choose-entity(forced-only-legal) [Voice of Victory]
+[OPENROUTER Mardu Energy/smart] replied in 1015 ms
+[OPENROUTER Mardu Energy/fast] replied in 593 ms
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 804 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] blockers: 3 atk / 1 blk -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] replied in 3048 ms
+[Grixis Reanimator] [ROUTER] blockers: assigned 0
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 2585 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 887 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1856 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=8 fast=48 auto=5 ai=0 avgSmart=6280ms avgFast=2046ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[Mardu Energy] [ROUTER] play(plan-invalidated): opponent-side state changed -> re-plan
+[OPENROUTER Mardu Energy/fast] replied in 1421 ms
+[Mardu Energy] [ROUTER] play: PASS
+[OPENROUTER Mardu Energy/smart] replied in 866 ms
+[Mardu Energy] [ROUTER] order [Voice of Victory] -> Graveyard: Warrior Token, Warrior Token
+[Grixis Reanimator] [TALLY] smart=9 fast=35 auto=3 ai=0 avgSmart=7065ms avgFast=1604ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1014 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 816 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1277 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [AUTO-LEGAL] attackers(forced-only-legal)->attack Hexing Squelcher
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1933 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 452 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] blockers: 1 atk / 1 blk -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 32320 ms
+[Mardu Energy] [ROUTER] blockers: assigned 1
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1167 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 4304 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] damage-assign: all 1 -> Guide of Souls (forced)
+[Mardu Energy] [ROUTER] damage-assign: all 1 -> Hexing Squelcher (forced)
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 458 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 689 ms
+[Mardu Energy] [ROUTER] play: casts Goblin Bombardment @29 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 667 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1499 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 513 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=9 fast=41 auto=4 ai=0 avgSmart=7065ms avgFast=1537ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1339 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 407 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=10 fast=56 auto=5 ai=0 avgSmart=8342ms avgFast=1927ms
+[Mardu Energy] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 7032 ms
+[Mardu Energy] [ROUTER] plan: Cast Amped Raptor to develop a threat and dig for a free spell with energy, then attack with Voice of Victory and its tokens for 3, holding Goblin Bombardment for reach.
+[Mardu Energy] [ROUTER] profile: Grixis Reanimator: Entomb/Shallow Grave into a fatty; respect their 5 hidden cards and instant-speed reanimation, keep Karakas for legendary threats.
+[Mardu Energy] [ROUTER] play: casts Amped Raptor 2/1 @47 1{R} [Amped Raptor - Creature 2 / 1]
+[Mardu Energy] [AUTO-LEGAL] choose-entity(forced-only-legal) [Amped Raptor]
+[OPENROUTER Mardu Energy/fast] replied in 405 ms
+[Mardu Energy] [ROUTER] confirm(Do you want to play Ocelot Pride?): YES
+[Mardu Energy] [AUTO-LEGAL] ability-to-play(forced-only-legal)[Ocelot Pride]
+[Mardu Energy] [TALLY] smart=11 fast=57 auto=7 ai=0 avgSmart=8223ms avgFast=1901ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[Mardu Energy] [ROUTER] play: plan step 1 -> Goblin Bombardment @29 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[OPENROUTER Mardu Energy/fast] replied in 623 ms
+[Mardu Energy] [ROUTER] target: Grixis Reanimator <- Goblin Bombardment @29 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Mardu Energy] [TALLY] smart=11 fast=58 auto=7 ai=0 avgSmart=8223ms avgFast=1879ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[Mardu Energy] [ROUTER] play(plan-invalidated): opponent-side state changed -> re-plan
+[OPENROUTER Mardu Energy/fast] replied in 451 ms
+[OPENROUTER Mardu Energy/fast] replied in 380 ms
+[Mardu Energy] [ROUTER] target: Grixis Reanimator <- Goblin Bombardment @29 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Mardu Energy] [ROUTER] play: casts Goblin Bombardment @29 1{R} [Sacrifice a creature: CARDNAME deals 1 damage to any target.]
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 572 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1337 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1172 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1208 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=9 fast=46 auto=4 ai=0 avgSmart=7065ms avgFast=1492ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1053 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1064 ms
+[OPENROUTER Grixis Reanimator/fast] replied in 534 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [AUTO-LEGAL] attackers(forced-only-legal)->attack Hexing Squelcher
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 882 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 15310 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 886 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 899 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=9 fast=53 auto=5 ai=0 avgSmart=7065ms avgFast=1684ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 16994 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=11 fast=60 auto=7 ai=0 avgSmart=8223ms avgFast=1830ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1324 ms
+[Mardu Energy] [ROUTER] play: casts Ajani, Nacatl Pariah 1/2 @52 1{W} [Ajani, Nacatl Pariah - Creature 1 / 2]
+[Mardu Energy] [TALLY] smart=11 fast=61 auto=7 ai=0 avgSmart=8223ms avgFast=1822ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 14995 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1132 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1819 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 892 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1279 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 645 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 470 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=11 fast=65 auto=7 ai=0 avgSmart=8223ms avgFast=1981ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1009 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 971 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=9 fast=58 auto=5 ai=0 avgSmart=7065ms avgFast=1910ms
+[Grixis Reanimator] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Grixis Reanimator/smart] replied in 21548 ms
+[Grixis Reanimator] [ROUTER] plan: Use Unmask exiling Archon to bin an Atraxa, then next turn Animate Dead her as a 7/7 lifelink clock; this turn only play a land.
+[Grixis Reanimator] [ROUTER] profile: Mardu Energy aggro with Goblin Bombardment sac outlet + Orcish Bowmasters — respect instant-speed ping/sac and Karakas bounce; race with lifelink Atraxa.
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1225 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 584 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [AUTO-LEGAL] attackers(forced-only-legal)->attack Hexing Squelcher
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 2726 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 730 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] blockers: 1 atk / 2 blk -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Mardu Energy/smart] replied in 24202 ms
+[Mardu Energy] [ROUTER] blockers: NONE
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1036 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 449 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 922 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1482 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 2193 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 874 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=10 fast=63 auto=6 ai=0 avgSmart=8513ms avgFast=1887ms
+[Grixis Reanimator] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[Grixis Reanimator] [ROUTER] play(plan-invalidated): opponent-side state changed -> re-plan
+[OPENROUTER Grixis Reanimator/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Grixis Reanimator/smart] replied in 23091 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 663 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=12 fast=72 auto=7 ai=0 avgSmart=9555ms avgFast=1869ms
+[Mardu Energy] [ROUTER] play(main): 3 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 16867 ms
+[Mardu Energy] [ROUTER] plan: Cast Guide of Souls in main1, then attack with Ajani and the Cat Warrior and spend {E}{E}{E} to pump the Cat Warrior to 4/3 flying (5 damage, opponent to 4).
+[Mardu Energy] [ROUTER] play: casts Guide of Souls 1/2 @56 {W} [Guide of Souls - Creature 1 / 2]
+[Mardu Energy] [TALLY] smart=13 fast=72 auto=7 ai=0 avgSmart=10117ms avgFast=1869ms
+[Mardu Energy] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 9215 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 502 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 3396 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] attackers: 2 can attack -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 13432 ms
+[Mardu Energy] [ROUTER] attackers: Ajani, Nacatl Pariah, Cat Warrior Token
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1142 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[OPENROUTER Mardu Energy/fast] replied in 1073 ms
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 644 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 557 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 732 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 5554 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 2833 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 916 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 4250 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=15 fast=78 auto=7 ai=0 avgSmart=10278ms avgFast=1844ms
+[Mardu Energy] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[Mardu Energy] [ROUTER] play(plan-invalidated): opponent-side state changed -> re-plan
+[OPENROUTER Mardu Energy/smart] replied in 8114 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 3838 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=11 fast=69 auto=6 ai=0 avgSmart=9839ms avgFast=1958ms
+[Grixis Reanimator] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Grixis Reanimator/smart] replied in 22232 ms
+[Grixis Reanimator] [ROUTER] plan: I'm at 4 life and dead to their next attack (3 attackers, 6 damage). I have no reanimation target in my graveyard (only Rituals, Shallow Graves, Petal, Thoughtseizes), so Shallow Grave does nothing. My only out is to dig for a creature to discard. Dark Ritual into Faithless Looting is impossible (Looting needs R). Ritual gives BBB into nothing useful. Best is to loot by other means — but no castable draw spell. Passing preserves nothing; but Ritual alone doesn't help without a payoff.
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1762 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1584 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [AUTO-LEGAL] attackers(forced-only-legal)->attack Hexing Squelcher
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1523 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 690 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] blockers: 1 atk / 1 blk -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 2069 ms
+[Mardu Energy] [ROUTER] blockers: NONE
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1645 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1315 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 836 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 731 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 2300 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 13514 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=12 fast=74 auto=7 ai=0 avgSmart=10871ms avgFast=1935ms
+[Grixis Reanimator] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[Grixis Reanimator] [ROUTER] play(plan-invalidated): opponent-side state changed -> re-plan
+[OPENROUTER Grixis Reanimator/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Grixis Reanimator/smart] replied in 20404 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 660 ms
+[Mardu Energy] [ROUTER] play: PASS
+[OPENROUTER Grixis Reanimator/smart] replied in 16763 ms
+[Grixis Reanimator] [ROUTER] cleanup-discard: Atraxa, Grand Unifier
+[Mardu Energy] [TALLY] smart=17 fast=84 auto=7 ai=0 avgSmart=9668ms avgFast=1932ms
+[Mardu Energy] [ROUTER] play(main): 3 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 8795 ms
+[Mardu Energy] [ROUTER] plan: Pass into combat and attack with all three creatures — 6 unblocked damage is lethal against their 4 life.
+[Mardu Energy] [ROUTER] profile: Grixis Reanimator: Shallow Grave/Animate Dead on Atraxa; respect instant-speed reanimation and their 7-card hand, but they have no untapped blocker so my alpha strike closes it.
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1240 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 6842 ms
+[Grixis Reanimator] [ROUTER] play: casts Shallow Grave @16 1{B} [Return the top creature card of your graveyard to the battlefield. That creature gains haste until end of turn. Exile it at the beginning of the next end step.]
+[Grixis Reanimator] [AUTO-LEGAL] zone-change(forced-only-legal) [Shallow Grave]
+[OPENROUTER Grixis Reanimator/smart] replied in 9196 ms
+[OPENROUTER Grixis Reanimator/smart] replied in 5940 ms
+[OPENROUTER Grixis Reanimator/smart] replied in 18813 ms
+[OPENROUTER Grixis Reanimator/smart] replied in 10872 ms
+[OPENROUTER Grixis Reanimator/smart] replied in 16271 ms
+[OPENROUTER Grixis Reanimator/smart] replied in 2061 ms
+[OPENROUTER Grixis Reanimator/smart] replied in 11713 ms
+[OPENROUTER Grixis Reanimator/smart] replied in 3028 ms
+[Grixis Reanimator] [AUTO-LEGAL] some-type(default)->first
+[OPENROUTER Grixis Reanimator/smart] replied in 5447 ms
+[Mardu Energy] [ROUTER] attackers: 3 can attack -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 17275 ms
+[Mardu Energy] [ROUTER] attackers: Ajani, Nacatl Pariah, Cat Warrior Token, Guide of Souls
+[OPENROUTER Mardu Energy/fast] replied in 656 ms
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 502 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] blockers: 3 atk / 1 blk -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] replied in 11064 ms
+[Grixis Reanimator] [ROUTER] blockers: assigned 1
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 759 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] damage-assign: all 3 -> Atraxa, Grand Unifier (forced)
+[Grixis Reanimator] [ROUTER] damage-assign: all 7 -> Ajani, Nacatl Pariah (forced)
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1727 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 3347 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=19 fast=90 auto=7 ai=0 avgSmart=10022ms avgFast=1895ms
+[Mardu Energy] [ROUTER] play(main): 3 castable -> asking deepseek/deepseek-v4.1-flash...
+[Mardu Energy] [ROUTER] play(plan-invalidated): opponent-side state changed -> re-plan
+[OPENROUTER Mardu Energy/smart] replied in 13521 ms
+[Mardu Energy] [ROUTER] play: casts Ocelot Pride 1/1 @58 {W} [Ocelot Pride - Creature 1 / 1]
+[Mardu Energy] [TALLY] smart=20 fast=90 auto=7 ai=0 avgSmart=10197ms avgFast=1895ms
+[Mardu Energy] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Mardu Energy/smart] replied in 21250 ms
+[Mardu Energy] [ROUTER] plan: Opponent is at 8 with Atraxa (7/7 flying) untapped; I have only 1 untapped Karakas and no mana to cast Bombardment, so I pass and attack next turn.
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 966 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=24 fast=75 auto=9 ai=0 avgSmart=10918ms avgFast=2000ms
+[Grixis Reanimator] [ROUTER] play(main): 3 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Grixis Reanimator/smart] replied in 20322 ms
+[Grixis Reanimator] [ROUTER] plan: Cast Dark Ritual, then use the mana with Faithless Looting/reanimation lines to deploy a huge threat while holding Petal.
+[Grixis Reanimator] [ROUTER] play: casts Dark Ritual @60 {B} [Add {B}{B}{B}.]
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 811 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=25 fast=75 auto=9 ai=0 avgSmart=11294ms avgFast=2000ms
+[Grixis Reanimator] [ROUTER] play(main): 3 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[Grixis Reanimator] [ROUTER] play: plan step 1 -> Dark Ritual @76 {B} [Add {B}{B}{B}.]
+[Grixis Reanimator] [TALLY] smart=25 fast=75 auto=9 ai=0 avgSmart=11294ms avgFast=2000ms
+[Grixis Reanimator] [ROUTER] play(main): 2 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Grixis Reanimator/smart] replied in 23265 ms
+[OPENROUTER Grixis Reanimator/smart] replied in 2752 ms
+[OPENROUTER Grixis Reanimator/smart] replied in 2501 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1090 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [AUTO-LEGAL] attackers(forced-only-legal)->attack Hexing Squelcher
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1179 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] blockers: 1 atk / 2 blk -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 4319 ms
+[Mardu Energy] [ROUTER] blockers: NONE
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 730 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 803 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1928 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=28 fast=75 auto=10 ai=0 avgSmart=11102ms avgFast=2000ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[Grixis Reanimator] [ROUTER] play(plan-invalidated): opponent-side state changed -> re-plan
+[OPENROUTER Grixis Reanimator/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Grixis Reanimator/smart] replied in 73656 ms
+[Grixis Reanimator] [ROUTER] play: casts Lotus Petal @79 [Lotus Petal]
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1322 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=29 fast=75 auto=10 ai=0 avgSmart=13259ms avgFast=2000ms
+[Grixis Reanimator] [ROUTER] play(main): 2 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] replied in 28117 ms
+[Grixis Reanimator] [ROUTER] plan: Play Swamp for mana, then cast Faithless Looting to dig for a Reanimate/Dark Ritual, discarding a fatty (Archon/Griselbrand) to reanimate.
+[Grixis Reanimator] [ROUTER] play: land Swamp
+[Grixis Reanimator] [TALLY] smart=30 fast=75 auto=10 ai=0 avgSmart=13754ms avgFast=2000ms
+[Grixis Reanimator] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[Grixis Reanimator] [ROUTER] play: plan step 1 -> Faithless Looting @62 {R} [Draw two cards, then discard two cards.]
+[Grixis Reanimator] [AUTO-LEGAL] color(default)->first
+[OPENROUTER Grixis Reanimator/smart] replied in 12221 ms
+[Grixis Reanimator] [ROUTER] discard: Archon of Cruelty, Atraxa, Grand Unifier
+[OPENROUTER Grixis Reanimator/smart] replied in 6633 ms
+[Grixis Reanimator] [ROUTER] order [Faithless Looting] -> Graveyard: Archon of Cruelty, Atraxa, Grand Unifier
+[Grixis Reanimator] [TALLY] smart=32 fast=75 auto=11 ai=0 avgSmart=13484ms avgFast=2000ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 954 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1577 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=22 fast=99 auto=7 ai=0 avgSmart=10432ms avgFast=1828ms
+[Mardu Energy] [ROUTER] play(main): 1 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Mardu Energy/smart] replied in 19949 ms
+[Mardu Energy] [ROUTER] plan: Play Marsh Flats for a third land, then cast Thoughtseize/Bowmasters next turn while attacking for 5 to close the game.
+[Mardu Energy] [ROUTER] play: land Marsh Flats
+[Mardu Energy] [TALLY] smart=23 fast=99 auto=7 ai=0 avgSmart=10846ms avgFast=1828ms
+[Mardu Energy] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[Mardu Energy] [ROUTER] play: plan step 1 -> Marsh Flats @88 [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Plains or Swamp card, put it onto the battlefield, then shuffle.]
+[Mardu Energy] [AUTO-LEGAL] surveil(forced-only-legal)->keep-all-top
+[Mardu Energy] [TALLY] smart=23 fast=99 auto=8 ai=0 avgSmart=10846ms avgFast=1828ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 560 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 621 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1310 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] attackers: 4 can attack -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 5884 ms
+[Mardu Energy] [ROUTER] attackers: Cat Warrior Token, Guide of Souls, Ocelot Pride, Cat Token
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 2107 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[OPENROUTER Mardu Energy/fast] replied in 590 ms
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 2145 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 769 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 2380 ms
+[Grixis Reanimator] [ROUTER] play: casts Dark Ritual @90 {B} [Add {B}{B}{B}.]
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1180 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 621 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 505 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=24 fast=107 auto=8 ai=0 avgSmart=10639ms avgFast=1756ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[Mardu Energy] [ROUTER] play(plan-invalidated): opponent-side state changed -> re-plan
+[OPENROUTER Mardu Energy/fast] replied in 14460 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=32 fast=79 auto=11 ai=0 avgSmart=13484ms avgFast=1984ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] replied in 14262 ms
+[Grixis Reanimator] [ROUTER] plan: Cast Animate Dead targeting Atraxa in my graveyard (7/7 flying lifelink deathtouch), block next turn to gain 7 and stabilize at low life while digging 10 for more reanimation pieces.
+[Grixis Reanimator] [ROUTER] profile: Mardu Energy aggro with Goblin Bombardment sac outlet, Karakas bounce, and possible Swords/ping — respect instant-speed removal on my reanimated threat while racing.
+[OPENROUTER Grixis Reanimator/fast] replied in 1462 ms
+[Grixis Reanimator] [ROUTER] target: Atraxa, Grand Unifier 3{G}{W}{U}{B} 7/7 @95 (was @51) [Graveyard] <- Animate Dead @99 1{B} [Animate Dead]
+[Grixis Reanimator] [ROUTER] play: casts Animate Dead @99 1{B} [Animate Dead]
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 673 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [AUTO-LEGAL] choose-entity(forced-only-legal) [Animate Dead]
+[Grixis Reanimator] [AUTO-LEGAL] choose-entity(forced-only-legal) [Animate Dead]
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 705 ms
+[Mardu Energy] [ROUTER] play: PASS
+[OPENROUTER Grixis Reanimator/smart] replied in 7329 ms
+[OPENROUTER Grixis Reanimator/smart] replied in 1626 ms
+[OPENROUTER Grixis Reanimator/smart] replied in 15100 ms
+[OPENROUTER Grixis Reanimator/smart] replied in 2470 ms
+[OPENROUTER Grixis Reanimator/smart] replied in 5657 ms
+[OPENROUTER Grixis Reanimator/smart] replied in 5998 ms
+[Grixis Reanimator] [AUTO-LEGAL] some-type(default)->first
+[OPENROUTER Grixis Reanimator/smart] replied in 6736 ms
+[Grixis Reanimator] [TALLY] smart=40 fast=80 auto=14 ai=0 avgSmart=12266ms avgFast=1978ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] replied in 11592 ms
+[Grixis Reanimator] [ROUTER] play: land Badlands
+[Grixis Reanimator] [TALLY] smart=41 fast=80 auto=14 ai=0 avgSmart=12250ms avgFast=1978ms
+[Grixis Reanimator] [ROUTER] play(main): 3 castable -> asking deepseek/deepseek-v4.1-flash...
+[Grixis Reanimator] [ROUTER] play: plan step 1 -> Animate Dead @115 1{B} [Animate Dead]
+[OPENROUTER Grixis Reanimator/fast] replied in 906 ms
+[Grixis Reanimator] [ROUTER] target: Archon of Cruelty 6{B}{B} 6/6 @94 (was @13) [Graveyard] <- Animate Dead @115 1{B} [Animate Dead]
+[Grixis Reanimator] [AUTO-LEGAL] choose-entity(forced-only-legal) [Animate Dead]
+[Grixis Reanimator] [AUTO-LEGAL] choose-entity(forced-only-legal) [Animate Dead]
+[OPENROUTER Mardu Energy/smart] replied in 4084 ms
+[Mardu Energy] [ROUTER] sacrifice [Archon of Cruelty]: Cat Token
+[OPENROUTER Mardu Energy/smart] replied in 3796 ms
+[Mardu Energy] [ROUTER] discard: Thoughtseize
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 681 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [AUTO-LEGAL] attackers(forced-only-legal)->attack Hexing Squelcher
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1141 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 754 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 653 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 892 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 763 ms
+[Mardu Energy] [ROUTER] play: PASS
+[OPENROUTER Grixis Reanimator/smart] replied in 8679 ms
+[Grixis Reanimator] [ROUTER] cleanup-discard: Unmask, Raph & Mikey, Troublemakers
+[Mardu Energy] [TALLY] smart=26 fast=116 auto=8 ai=0 avgSmart=10124ms avgFast=1799ms
+[Mardu Energy] [ROUTER] play(main): 3 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Mardu Energy/smart] replied in 21567 ms
+[Mardu Energy] [ROUTER] plan: They're at 4 life with no untapped blockers or mana — just attack with the team for lethal; no need to cast anything first.
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 3 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 481 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] attackers: 4 can attack -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 1013 ms
+[Mardu Energy] [ROUTER] attackers: Cat Warrior Token, Guide of Souls, Ocelot Pride, Cat Token
+[OPENROUTER Mardu Energy/fast] replied in 709 ms
+[Mardu Energy] [ROUTER] play(react): 3 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 956 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] blockers: 4 atk / 2 blk -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] replied in 4625 ms
+[Grixis Reanimator] [ROUTER] blockers: assigned 2
+[Mardu Energy] [ROUTER] play(react): 3 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 686 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] damage-assign: all 3 -> Atraxa, Grand Unifier (forced)
+[Mardu Energy] [ROUTER] play(react): 3 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1081 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] damage-assign: all 2 -> Archon of Cruelty (forced)
+[Grixis Reanimator] [ROUTER] damage-assign: all 6 -> Ocelot Pride (forced)
+[Grixis Reanimator] [ROUTER] damage-assign: all 5 -> Cat Warrior Token (forced)
+[OPENROUTER Mardu Energy/smart] replied in 2542 ms
+[Mardu Energy] [ROUTER] order -> Graveyard: Cat Warrior Token, Ocelot Pride
+[Mardu Energy] [ROUTER] play(react): 3 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1088 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 3 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 708 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=29 fast=123 auto=8 ai=0 avgSmart=9943ms avgFast=1743ms
+[Mardu Energy] [ROUTER] play(main): 3 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[Mardu Energy] [ROUTER] play(plan-invalidated): opponent-side state changed -> re-plan
+[OPENROUTER Mardu Energy/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Mardu Energy/smart] replied in 17545 ms
+[Mardu Energy] [ROUTER] play: casts Orcish Bowmasters 1/1 @6 1{B} [Orcish Bowmasters - Creature 1 / 1]
+[OPENROUTER Mardu Energy/smart] replied in 4097 ms
+[OPENROUTER Mardu Energy/smart] replied in 3740 ms
+[Mardu Energy] [AUTO-LEGAL] choose-entity(forced-only-legal) [Orcish Bowmasters]
+[Mardu Energy] [TALLY] smart=32 fast=123 auto=9 ai=0 avgSmart=9804ms avgFast=1743ms
+[Mardu Energy] [ROUTER] play(main): 2 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Mardu Energy/smart] replied in 22643 ms
+[Mardu Energy] [ROUTER] plan: Play Arid Mesa, then use Goblin Bombardment to sacrifice a token and ping them if I can, else just develop mana.
+[Mardu Energy] [ROUTER] play: land Arid Mesa
+[Mardu Energy] [TALLY] smart=33 fast=123 auto=9 ai=0 avgSmart=10193ms avgFast=1743ms
+[Mardu Energy] [ROUTER] play(main): 3 castable -> asking deepseek/deepseek-v4.1-flash...
+[Mardu Energy] [ROUTER] play: plan step 1 -> Arid Mesa @156 [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Mountain or Plains card, put it onto the battlefield, then shuffle.]
+[Mardu Energy] [TALLY] smart=33 fast=123 auto=9 ai=0 avgSmart=10193ms avgFast=1743ms
+[Mardu Energy] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Mardu Energy/smart] replied in 17682 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=43 fast=81 auto=17 ai=0 avgSmart=11990ms avgFast=1964ms
+[Grixis Reanimator] [ROUTER] play(main): 4 castable + 2 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Grixis Reanimator/smart] replied in 23032 ms
+[Grixis Reanimator] [ROUTER] plan: Play Badlands, then Faithless Looting to dig for more reanimation/discard, keeping Reanimate mana open to reanimate a fatty and push lethal.
+[Grixis Reanimator] [ROUTER] play: land Badlands
+[Grixis Reanimator] [TALLY] smart=44 fast=81 auto=17 ai=0 avgSmart=12241ms avgFast=1964ms
+[Grixis Reanimator] [ROUTER] play(main): 4 castable -> asking deepseek/deepseek-v4.1-flash...
+[Grixis Reanimator] [ROUTER] play: plan step 1 -> Faithless Looting @77 {R} [Draw two cards, then discard two cards.]
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 581 ms
+[Mardu Energy] [ROUTER] play: PASS
+[OPENROUTER Grixis Reanimator/smart] replied in 17595 ms
+[Grixis Reanimator] [ROUTER] discard: Griselbrand, Thoughtseize
+[OPENROUTER Grixis Reanimator/smart] replied in 10338 ms
+[Grixis Reanimator] [ROUTER] order [Faithless Looting] -> Graveyard: Griselbrand, Thoughtseize
+[OPENROUTER Mardu Energy/smart] replied in 5653 ms
+[Mardu Energy] [AUTO-LEGAL] choose-entity(forced-only-legal) [Orcish Bowmasters]
+[Mardu Energy] [AUTO-LEGAL] choose-entity(forced-only-legal) [Orcish Bowmasters]
+[Grixis Reanimator] [TALLY] smart=46 fast=81 auto=17 ai=0 avgSmart=12316ms avgFast=1964ms
+[Grixis Reanimator] [ROUTER] play(main): 4 castable -> asking deepseek/deepseek-v4.1-flash...
+[Grixis Reanimator] [ROUTER] play: plan step 2 -> Faithless Looting @135 {R} [Draw two cards, then discard two cards.]
+[OPENROUTER Grixis Reanimator/smart] replied in 31669 ms
+[Grixis Reanimator] [ROUTER] discard: Griselbrand, Raph & Mikey, Troublemakers
+[OPENROUTER Grixis Reanimator/smart] replied in 27486 ms
+[Grixis Reanimator] [ROUTER] order [Faithless Looting] -> Graveyard: Griselbrand, Raph & Mikey, Troublemakers
+[OPENROUTER Mardu Energy/smart] replied in 1332 ms
+[Mardu Energy] [AUTO-LEGAL] choose-entity(forced-only-legal) [Orcish Bowmasters]
+[Mardu Energy] [AUTO-LEGAL] choose-entity(forced-only-legal) [Orcish Bowmasters]
+[Grixis Reanimator] [TALLY] smart=48 fast=81 auto=17 ai=0 avgSmart=13035ms avgFast=1964ms
+[Grixis Reanimator] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] replied in 8643 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 565 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] attackers: 3 can attack -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] replied in 8049 ms
+[Grixis Reanimator] [ROUTER] attackers: Atraxa, Grand Unifier, Archon of Cruelty
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 8974 ms
+[Mardu Energy] [ROUTER] play: PASS
+[OPENROUTER Mardu Energy/smart] replied in 2688 ms
+[Mardu Energy] [ROUTER] sacrifice [Archon of Cruelty]: Cat Token
+[Mardu Energy] [AUTO-LEGAL] choose-entity(forced-only-legal) [Orcish Bowmasters]
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 404 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 838 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1221 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=50 fast=81 auto=17 ai=0 avgSmart=12847ms avgFast=1964ms
+[Grixis Reanimator] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[Grixis Reanimator] [ROUTER] play(plan-invalidated): opponent-side state changed -> re-plan
+[OPENROUTER Grixis Reanimator/smart] replied in 22565 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 622 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=37 fast=130 auto=14 ai=0 avgSmart=9830ms avgFast=1750ms
+[Mardu Energy] [ROUTER] play(main): 3 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Mardu Energy/smart] replied in 18513 ms
+[Mardu Energy] [ROUTER] plan: Cast Guide of Souls to add a body and energy, then attack with Orc Army 6/6, Bowmasters, and Guide — 8 unblocked kills through their 1 untapped Swamp; hold Bombardment for reach.
+[Mardu Energy] [ROUTER] profile: Grixis Reanimator: Animate Dead/Shallow Grave on Atraxa/Archon/Griselbrand; they hold 7 cards and could reanimate at instant speed, so keep Karakas for a legendary and race before they stabilize.
+[Mardu Energy] [ROUTER] play: casts Guide of Souls 1/2 @167 {W} [Guide of Souls - Creature 1 / 2]
+[Mardu Energy] [TALLY] smart=38 fast=130 auto=14 ai=0 avgSmart=10059ms avgFast=1750ms
+[Mardu Energy] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Mardu Energy/smart] replied in 13335 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 856 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] attackers: 3 can attack -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Mardu Energy/smart] replied in 43292 ms
+[Mardu Energy] [ROUTER] attackers: Guide of Souls, Orcish Bowmasters, Orc Army Token
+[OPENROUTER Mardu Energy/smart] replied in 10471 ms
+[OPENROUTER Mardu Energy/fast] replied in 1605 ms
+[OPENROUTER Mardu Energy/fast] replied in 1518 ms
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 2657 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] blockers: 3 atk / 2 blk -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] replied in 12905 ms
+[Grixis Reanimator] [ROUTER] blockers: assigned 2
+[Mardu Energy] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 683 ms
+[Mardu Energy] [ROUTER] target: Atraxa, Grand Unifier 6/7 [untapped] [flying, deathtouch, lifelink, vigilance, ward:paylife<2>] [has attached: Animate Dead @134] @135 (was @85) [Battlefield] <- Karakas @25 [{T}: Return target legendary creature to its owner's hand.] (only legal)
+[Mardu Energy] [ROUTER] play: casts Karakas @25 [{T}: Return target legendary creature to its owner's hand.]
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 791 ms
+[Mardu Energy] [ROUTER] play: PASS
+[OPENROUTER Mardu Energy/fast] replied in 4465 ms
+[Mardu Energy] [ROUTER] prevent-effect: paid Pay 2 life -> true
+[Mardu Energy] [ROUTER] damage-assign: all 1 -> Hexing Squelcher (forced)
+[Grixis Reanimator] [ROUTER] damage-assign: all 1 -> Orcish Bowmasters (forced)
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1505 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 514 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=41 fast=139 auto=14 ai=0 avgSmart=10959ms avgFast=1742ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[Mardu Energy] [ROUTER] play(plan-invalidated): opponent-side state changed -> re-plan
+[OPENROUTER Mardu Energy/fast] replied in 1735 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=52 fast=81 auto=17 ai=0 avgSmart=13035ms avgFast=1964ms
+[Grixis Reanimator] [ROUTER] play(main): 4 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Grixis Reanimator/smart] replied in 19861 ms
+[Grixis Reanimator] [ROUTER] plan: flashback Faithless Looting to dig, discard Atraxas, then Reanimate has no good target cheaply. Hmm.
+[Grixis Reanimator] [ROUTER] play: casts Faithless Looting @96 {R} [Draw two cards, then discard two cards.]
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1901 ms
+[Mardu Energy] [ROUTER] play: PASS
+[OPENROUTER Grixis Reanimator/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Grixis Reanimator/smart] replied in 17591 ms
+[Grixis Reanimator] [ROUTER] discard: Atraxa, Grand Unifier, Atraxa, Grand Unifier
+[OPENROUTER Grixis Reanimator/smart] replied in 4418 ms
+[Grixis Reanimator] [ROUTER] order [Faithless Looting] -> Graveyard: Atraxa, Grand Unifier, Atraxa, Grand Unifier
+[Grixis Reanimator] [TALLY] smart=55 fast=81 auto=17 ai=0 avgSmart=13085ms avgFast=1964ms
+[Grixis Reanimator] [ROUTER] play(main): 5 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[Grixis Reanimator] [ROUTER] play: plan step 1 -> Faithless Looting @137 {R} [Draw two cards, then discard two cards.]
+[OPENROUTER Grixis Reanimator/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Grixis Reanimator/smart] replied in 15307 ms
+[Grixis Reanimator] [ROUTER] discard: Atraxa, Grand Unifier, Raph & Mikey, Troublemakers
+[OPENROUTER Grixis Reanimator/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Grixis Reanimator/smart] replied in 15684 ms
+[Grixis Reanimator] [ROUTER] order [Faithless Looting] -> Graveyard: Atraxa, Grand Unifier, Raph & Mikey, Troublemakers
+[Grixis Reanimator] [TALLY] smart=57 fast=81 auto=17 ai=0 avgSmart=13170ms avgFast=1964ms
+[Grixis Reanimator] [ROUTER] play(main): 3 castable + 2 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] replied in 12746 ms
+[Grixis Reanimator] [ROUTER] play: casts Lotus Petal @151 [Lotus Petal]
+[Grixis Reanimator] [TALLY] smart=58 fast=81 auto=17 ai=0 avgSmart=13163ms avgFast=1964ms
+[Grixis Reanimator] [ROUTER] play(main): 3 castable + 2 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Grixis Reanimator/smart] replied in 19310 ms
+[Grixis Reanimator] [ROUTER] play: land Polluted Delta
+[Grixis Reanimator] [TALLY] smart=59 fast=81 auto=17 ai=0 avgSmart=13267ms avgFast=1964ms
+[Grixis Reanimator] [ROUTER] play(main): 4 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Grixis Reanimator/smart] replied in 25766 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] play(react): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1498 ms
+[Grixis Reanimator] [ROUTER] play: casts Shallow Grave @150 1{B} [Return the top creature card of your graveyard to the battlefield. That creature gains haste until end of turn. Exile it at the beginning of the next end step.]
+[Grixis Reanimator] [AUTO-LEGAL] color(default)->first
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 454 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [AUTO-LEGAL] zone-change(forced-only-legal) [Shallow Grave]
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 769 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Grixis Reanimator] [ROUTER] attackers: 3 can attack -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Grixis Reanimator/smart] replied in 24368 ms
+[Grixis Reanimator] [ROUTER] attackers: Hexing Squelcher, Archon of Cruelty, Raph & Mikey, Troublemakers
+[OPENROUTER Grixis Reanimator/smart] replied in 6860 ms
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 684 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [AUTO-LEGAL] choose-entity(forced-only-legal) [Raph & Mikey, Troublemakers]
+[OPENROUTER Mardu Energy/smart] replied in 12708 ms
+[Mardu Energy] [ROUTER] sacrifice [Archon of Cruelty]: Guide of Souls
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1670 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] blockers: 4 atk / 1 blk -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 13438 ms
+[Mardu Energy] [ROUTER] blockers: NONE
+[Grixis Reanimator] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 713 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 552 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [RULES] RULES_TOOL=1 but the rules text did not load (not readable: /Users/lumlumlam/code/forge/data/rules/MagicCompRules.txt); the tool is left OFF so prompts match a no-rules run
+[Grixis Reanimator] [OBSERVATION] observation-faithful-v9 (profile v4-faithful/058312fd4233)
+[Mardu Energy] [RULES] RULES_TOOL=1 but the rules text did not load (not readable: /Users/lumlumlam/code/forge/data/rules/MagicCompRules.txt); the tool is left OFF so prompts match a no-rules run
+[Mardu Energy] [OBSERVATION] observation-faithful-v9 (profile v4-faithful/058312fd4233)
+[OPENROUTER Mardu Energy/fast] replied in 1645 ms
+[Mardu Energy] [ROUTER] mulligan: heuristic KEEP (4/7 lands)
+[Grixis Reanimator] [ROUTER] mulligan: heuristic KEEP (2/7 lands)
+[Mardu Energy] [TALLY] smart=0 fast=1 auto=0 ai=0 avgFast=1645ms
+[Mardu Energy] [ROUTER] play(main): 0 castable + 4 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1362 ms
+[Mardu Energy] [ROUTER] play: land Arid Mesa
+[Mardu Energy] [TALLY] smart=0 fast=2 auto=0 ai=0 avgFast=1503ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 6696 ms
+[Mardu Energy] [ROUTER] play: casts Arid Mesa @8 [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Mountain or Plains card, put it onto the battlefield, then shuffle.]
+[Grixis Reanimator] [TALLY] smart=0 fast=0 auto=0 ai=0
+[Grixis Reanimator] [ROUTER] play(main): 1 castable + 2 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/smart] replied in 9195 ms
+[Grixis Reanimator] [ROUTER] plan: Play Badlands, cast Lotus Petal, Faithless Looting discarding Atraxa + Unmask, then Dark Ritual into Shallow Grave to reanimate Atraxa with haste for a big draw trigger.
+[Grixis Reanimator] [ROUTER] profile: Mardu Energy: aggressive creature/energy deck; respect Swords to Plowshares and hand disruption on my reanimation pieces.
+[Grixis Reanimator] [ROUTER] play: land Badlands
+[Grixis Reanimator] [TALLY] smart=1 fast=0 auto=0 ai=0 avgSmart=9195ms
+[Grixis Reanimator] [ROUTER] play(main): 3 castable -> asking deepseek/deepseek-v4.1-flash...
+[Grixis Reanimator] [ROUTER] play: plan step 1 -> Lotus Petal @1 [Lotus Petal]
+[Grixis Reanimator] [TALLY] smart=1 fast=0 auto=0 ai=0 avgSmart=9195ms
+[Grixis Reanimator] [ROUTER] play(main): 3 castable -> asking deepseek/deepseek-v4.1-flash...
+[Grixis Reanimator] [ROUTER] play: plan step 2 -> Dark Ritual @5 {B} [Add {B}{B}{B}.]
+[Grixis Reanimator] [TALLY] smart=1 fast=0 auto=0 ai=0 avgSmart=9195ms
+[Grixis Reanimator] [ROUTER] play(main): 3 castable -> asking deepseek/deepseek-v4.1-flash...
+[Grixis Reanimator] [ROUTER] play: plan step 3 -> Shallow Grave @9 1{B} [Return the top creature card of your graveyard to the battlefield. That creature gains haste until end of turn. Exile it at the beginning of the next end step.]
+[Grixis Reanimator] [TALLY] smart=1 fast=0 auto=0 ai=0 avgSmart=9195ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 1325 ms
+[Grixis Reanimator] [ROUTER] play: casts Faithless Looting @6 {R} [Draw two cards, then discard two cards.]
+[Grixis Reanimator] [AUTO-LEGAL] color(default)->first
+[OPENROUTER Grixis Reanimator/smart] replied in 3149 ms
+[Grixis Reanimator] [ROUTER] discard: Unmask, Atraxa, Grand Unifier
+[OPENROUTER Grixis Reanimator/smart] replied in 3250 ms
+[Grixis Reanimator] [ROUTER] order [Faithless Looting] -> Graveyard: Unmask, Atraxa, Grand Unifier
+[Grixis Reanimator] [TALLY] smart=3 fast=1 auto=1 ai=0 avgSmart=5198ms avgFast=1325ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 2429 ms
+[OPENROUTER Grixis Reanimator/fast] replied in 1444 ms
+[Grixis Reanimator] [ROUTER] target: Mardu Energy <- Cabal Therapy @16 {B}
+[Grixis Reanimator] [ROUTER] play: casts Cabal Therapy @16 {B} [Choose a nonland card name. Target player reveals their hand and discards all cards with that name.]
+[OPENROUTER Grixis Reanimator/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Grixis Reanimator/smart] replied in 18478 ms
+[Grixis Reanimator] [ROUTER] card-name: Thoughtseize [Cabal Therapy]
+[Mardu Energy] [TALLY] smart=0 fast=3 auto=0 ai=0 avgFast=3234ms
+[Mardu Energy] [ROUTER] play(main): 0 castable + 4 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 2966 ms
+[Mardu Energy] [ROUTER] play: land Arid Mesa
+[Mardu Energy] [TALLY] smart=0 fast=4 auto=0 ai=0 avgFast=3167ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 2762 ms
+[OPENROUTER Mardu Energy/fast] replied in 413 ms
+[Mardu Energy] [ROUTER] play: casts Arid Mesa @73 [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Mountain or Plains card, put it onto the battlefield, then shuffle.]
+[Mardu Energy] [TALLY] smart=0 fast=6 auto=0 ai=0 avgFast=2640ms
+[Mardu Energy] [ROUTER] play(main): 3 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 8457 ms
+[Mardu Energy] [ROUTER] plan: Cast Ajani to create two bodies and start pressuring their life total; next turn deploy more threats or hold up interaction.
+[Mardu Energy] [ROUTER] profile: Grixis Reanimator: will try to reanimate Atraxa (Animate Dead/Exhume) or use Unmask/Therapy to strip my answers; they are tapped out now, so I must race before they combo.
+[Mardu Energy] [ROUTER] play: casts Ajani, Nacatl Pariah 1/2 @5 1{W} [Ajani, Nacatl Pariah - Creature 1 / 2]
+[Grixis Reanimator] [TALLY] smart=4 fast=3 auto=1 ai=0 avgSmart=8518ms avgFast=1732ms
+[Grixis Reanimator] [ROUTER] play(main): 0 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 677 ms
+[Grixis Reanimator] [ROUTER] play: land Bloodstained Mire
+[Grixis Reanimator] [TALLY] smart=4 fast=4 auto=1 ai=0 avgSmart=8518ms avgFast=1468ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 6381 ms
+[Grixis Reanimator] [ROUTER] play: casts Bloodstained Mire @35 [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Swamp or Mountain card, put it onto the battlefield, then shuffle.]
+[Mardu Energy] [TALLY] smart=1 fast=6 auto=0 ai=0 avgSmart=8457ms avgFast=2640ms
+[Mardu Energy] [ROUTER] play(main): 2 castable + 3 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] [TRUNCATED->RETRY-NO-REASONING] finish_reason=length @ max_tokens=4000 -> retrying at 4000 with reasoning disabled
+[OPENROUTER Mardu Energy/smart] replied in 21046 ms
+[Mardu Energy] [ROUTER] plan: Deploy Ajani to go wide and pressure life, keeping Wasteland for their duals; they are low on cards and I want a fast clock before they find a reanimation enabler.
+[Mardu Energy] [ROUTER] play: casts Ajani, Nacatl Pariah 1/2 @6 1{W} [Ajani, Nacatl Pariah - Creature 1 / 2]
+[OPENROUTER Mardu Energy/smart] replied in 5855 ms
+[OPENROUTER Mardu Energy/smart] replied in 2118 ms
+[Mardu Energy] [ROUTER] choose-entity: Ajani, Nacatl Pariah 1/2 [untapped] @78 (was @5) [Battlefield] []
+[OPENROUTER Mardu Energy/smart] replied in 9453 ms
+[OPENROUTER Mardu Energy/fast] replied in 1017 ms
+[Mardu Energy] [TALLY] smart=5 fast=7 auto=0 ai=0 avgSmart=9385ms avgFast=2408ms
+[Mardu Energy] [ROUTER] play(main): 0 castable + 3 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1370 ms
+[OPENROUTER Mardu Energy/fast] replied in 1102 ms
+[Mardu Energy] [ROUTER] play: land Marsh Flats
+[Mardu Energy] [TALLY] smart=5 fast=9 auto=0 ai=0 avgSmart=9385ms avgFast=2148ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 771 ms
+[Mardu Energy] [ROUTER] play: casts Marsh Flats @84 [{T}, Pay 1 life, Sacrifice CARDNAME: Search your library for a Plains or Swamp card, put it onto the battlefield, then shuffle.]
+[Mardu Energy] [ROUTER] attackers: 2 can attack -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 3954 ms
+[Mardu Energy] [ROUTER] attackers: Ajani, Nacatl Pariah, Cat Warrior Token
+[Grixis Reanimator] [TALLY] smart=4 fast=5 auto=1 ai=0 avgSmart=8518ms avgFast=2451ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 5689 ms
+[OPENROUTER Grixis Reanimator/fast] replied in 755 ms
+[OPENROUTER Grixis Reanimator/fast] replied in 664 ms
+[Grixis Reanimator] [ROUTER] target: Mardu Energy <- Thoughtseize @85 {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Grixis Reanimator] [ROUTER] play: casts Thoughtseize @85 {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Grixis Reanimator] [AUTO-LEGAL] discard(forced) -> Hexing Squelcher
+[Mardu Energy] [TALLY] smart=6 fast=10 auto=0 ai=0 avgSmart=8480ms avgFast=2010ms
+[Mardu Energy] [ROUTER] play(main): 0 castable + 3 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 669 ms
+[Mardu Energy] [ROUTER] play: land Marsh Flats
+[Mardu Energy] [TALLY] smart=6 fast=11 auto=0 ai=0 avgSmart=8480ms avgFast=1888ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1156 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1681 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] attackers: 3 can attack -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/smart] replied in 1006 ms
+[Mardu Energy] [ROUTER] attackers: Ajani, Nacatl Pariah, Cat Warrior Token, Cat Warrior Token
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 626 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1211 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 1347 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 813 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=7 fast=17 auto=0 ai=0 avgSmart=7412ms avgFast=1623ms
+[Mardu Energy] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 541 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=4 fast=8 auto=2 ai=0 avgSmart=8518ms avgFast=2420ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] wall-clock timeout after 45000 ms (deadline 45000 ms)
+[Grixis Reanimator] [BRIDGE Grixis Reanimator/fast] no reply (attempt 2/3) -> restarting session, retrying in 500ms
+[OPENROUTER Grixis Reanimator/fast] replied in 2985 ms
+[Grixis Reanimator] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 988 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 2493 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 756 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Grixis Reanimator] [TALLY] smart=4 fast=9 auto=2 ai=0 avgSmart=8518ms avgFast=2483ms
+[Grixis Reanimator] [ROUTER] play(main): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Grixis Reanimator/fast] replied in 13822 ms
+[OPENROUTER Grixis Reanimator/fast] replied in 4709 ms
+[Grixis Reanimator] [ROUTER] target: Mardu Energy <- Thoughtseize @93 {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Grixis Reanimator] [ROUTER] play: casts Thoughtseize @93 {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Mardu Energy] [ROUTER] play(react): 1 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Mardu Energy/fast] replied in 580 ms
+[Mardu Energy] [ROUTER] play: PASS
+[Mardu Energy] [TALLY] smart=7 fast=22 auto=0 ai=0 avgSmart=7412ms avgFast=1498ms
+[Mardu Energy] [ROUTER] play(main): 2 castable + 2 land -> asking deepseek/deepseek-v4.1-flash...
