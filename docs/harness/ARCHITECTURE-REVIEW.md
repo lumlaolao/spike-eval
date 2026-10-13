@@ -197,6 +197,152 @@ Research summary (full citations at the end; each was fetched and checked unless
 - **Blunder scoring by an LLM judge.** The engine diff is cheaper and reproducible; revisit if the
   audit proves too coarse.
 
+## Part 3. What was built, and what it measured
+
+| PR | Change | Review problem |
+|---|---|---|
+| #76 | The model chooses what a cost sacrifices on the real play path; failed plays are logged as failed | 1, 8 |
+| #77 | `observation-faithful-v11`: option labels carry the option's own cost and zone; optional triggers carry their text and are logged; reveal age; bounded, format-only `LINES:` note | 2, 4, 9 |
+| #78 | The seat may respond to its own trigger on the stack; `eval/plan_audit.py` | 3, 5 |
+| #79 | `observation-faithful-v12`: rules text of every opponent card the seat has seen; any non-mana response to an opponent's spell is offered, on the reasoning tier; `eval/line_report.py` | two more, found after this review was written (below) |
+
+### Two problems found after Part 1
+
+**10. The seat never read the opponent's cards** (harness gap; layer: observation). A live prompt at
+turn 12 showed `Orcish Bowmasters 1/1 [untapped] [sick] [flash]` and `Karakas x1`: name, P/T and
+keywords, no rules text. The text was available through `INSPECT`; in the four recorded games checked
+it was called zero times. Fixed in #79.
+
+**11. An untargeted answer to an opponent's spell was never offered** (harness bug; layer: decision
+loop). The reactive filter in `chooseSpellAbilityToPlay` asked the model only if an option targeted
+or countered. Probe: opponent casts Reanimate on Griselbrand, seat controls Soul-Guide Lantern
+(`{T}, Sacrifice: Exile each opponent's graveyard`, `cardsfolder/s/soul_guide_lantern.txt`) →
+`asked=0 returned=PASS`. Fixed in #79 (`anUntargetedAnswerToAnOpponentsSpellIsOffered`).
+
+### Measurement A: Mardu Energy (model) vs Forge AI, mirror, observation v11
+
+`runs/lines/v11-mardu`: seeds 42-45 paired, 8 games, 0 capped, `openrouter:deepseek/deepseek-v4.1-flash`,
+`overlay_sha edb3c41e5cd6`, `context_sha 0895f75a1fbb`, exploratory discipline, load average 3-5 on 18
+cores. Reproduce:
+
+```bash
+python3 eval/line_report.py runs/lines/v11-mardu
+python3 eval/plan_audit.py runs/lines/v11-mardu
+python3 eval/latency_report.py --compact runs/lines/v11-mardu
+```
+
+| What | Before (the audited game / engine probes) | v11, 8 games |
+|---|---|---|
+| Ajani's flip offered → accepted | never transformed in 19 turns; the one probable offer was an unlogged, textless yes/no | **2 offered, 2 accepted** |
+| Ajani, Nacatl Avenger loyalty activations | 0 | **9** (including the ultimate) |
+| Sacrifice-as-cost chosen by the model | 0 of 5 (Forge AI chose all, silently) | **1 of 1** (a Cat token to Goblin Bombardment) |
+| Goblin Bombardment: offered / activated | — | 110 / 1 |
+| Cabal Therapy cast | 0 | 0 |
+| Plays the harness made against the plan | 7 | 0 |
+| Plays the MODEL made against its own plan (`plan_audit.py`) | 2 of 42 | 9 of 65 (13.8%; trivial baseline 0) |
+| Model calls per turn | — | 4.3 (159 smart, 278 fast over 102 turns) |
+| Won by the model | — | 4 of 8 |
+
+How to read it:
+
+- **The Ajani line now happens.** It was offered twice and taken twice, and the planeswalker was
+  then used nine times. Before the fixes the question had no text and no log line.
+- **Cabal Therapy was never castable.** It was in hand at 31 play decisions and every one reads
+  `need 1 more B` in the observation; Thoughtseize was uncastable at 123 decisions for the same
+  reason. The seat fetched or kept white/red sources while holding black spells. That is a
+  sequencing question about land choice, and it is open (below).
+- **Bombardment was offered 110 times and used once.** In the one stated reason on record the seat
+  wrote "we need gas, not a 1-damage sacrifice of our own" creature. That is a choice, not an
+  inability; whether it is a good one is not something this run can say.
+- **The seat states its own lines when asked.** Verbatim from the recorded `LINES:` answers:
+  "Voice of Victory + Goblin Bombardment -> mobilize Warriors on attack, sac them for extra reach";
+  "Ajani, Nacatl Pariah + Ocelot Pride -> ... Ajani flips when Cats die"; "Thoughtseize + Cabal
+  Therapy -> strip their hand, flashback Therapy for double discard". So the join is within this
+  model's reach when it is asked for. Stating a line and playing it are different things: the
+  13.8% plan-contradiction rate is the measured size of that gap, with the caveat that the audit
+  is lexical (one of the nine reads "play Wasteland ... and hold the Thoughtseizes" and is a false
+  positive).
+- **4 of 8 is not evidence** about strength in either direction. `eval/aggregate.py` also prints
+  `FAILED FALLBACK GATE 13.1%` for this run: all 66 flagged rows are `tier=auto` forced-only-legal
+  decisions and the keep-7 mulligan heuristic, none is a failed model call or an AI delegation.
+
+### Measurement B: Mardu Energy (model) vs Forge AI on Grixis Reanimator, observation v12
+
+`runs/lines/v12-mardu-vs-reanimator`: seeds 42-45 paired, 8 games, 0 capped, same model,
+`context_sha 44f97a930af3`, built from commit `2e251bb0`. Not poolable with A (different observation
+version and a different opponent deck). Same three report commands.
+
+| What | v12, 8 games |
+|---|---|
+| Cabal Therapy flashback: offered / cast | 14 / **3** |
+| Sacrifice-as-cost chosen by the model | **3 of 3** (Cat Warrior Token, Cat Warrior Token, Cat Token) |
+| Ajani's flip offered → accepted | **2 → 2**, both directly after a flashback sacrifice |
+| Ajani, Nacatl Avenger loyalty activations | 6 |
+| Play prompts carrying opponent card text | 301 of 313 |
+| Reasoning-tier asks on the opponent's turn | 8 |
+| Plays the model made against its own plan | 7 of 55 (12.7%) |
+| Model calls per turn | 4.9 (156 smart, 255 fast over 84 turns) |
+| Won by the model | 8 of 8 |
+
+**The line the owner said the seat never found, found twice.** From
+`runs/lines/v12-mardu-vs-reanimator/game-*.log`, two different games, consecutive router lines:
+
+```
+play: casts Cabal Therapy @85 from your GRAVEYARD (Flashback) — cost: Sacrifice a creature [...]
+sacrifice [Cabal Therapy]: Cat Warrior Token
+confirm-trigger [Ajani, Nacatl Pariah]: YES
+card-name: Reanimate [Cabal Therapy]
+play: activates Ajani, Nacatl Avenger @88 [0: Create a 2/1 white Cat Warrior creature token. ...]
+```
+
+Each of those five lines depends on a fix in this review: the flashback is labelled with its real
+cost (problem 2), the model picks the Cat instead of Forge AI picking Ajani (problem 1), the flip
+is offered with its text and logged (problem 4), and the name it gives Therapy is one of the
+opponent's cards it has now read (problem 10). It named Entomb, Reanimate, Animate Dead and Atraxa
+across the run.
+
+Limits on what B shows:
+
+- **8 of 8 is not a strength claim.** Forge's AI pilots this deck poorly: the engine marks three of
+  its enablers `AI:RemoveDeck` (Unmask, Faithless Looting, Lotus Petal), and by a grep of the game
+  logs it cast a reanimation spell in only 3 of the 8 games. This opponent is closer to a goldfish
+  than the mirror was. The win column is reported, not used.
+- **The reactive windows cost little here**: 8 reasoning-tier asks on the opponent's turn in 84
+  turns. 4.9 calls per turn against A's 4.3 is across different matchups and is not a comparison.
+- **The Soul-Guide Lantern spot was not exercised.** Neither deck plays an untargeted answer; that
+  fix rests on its engine test, not on a game.
+
+### What this says about the hypothesis
+
+The brief's hypothesis was that plan-then-act is structurally unable to produce good Magic and
+should be replaced by a plan contract, sequence simulation and a forced self-statement.
+
+- **Supported:** a prose plan must not be executed (7 harness contradictions in one game), and a
+  stated plan does not bind the model (13.8% after the harness stopped interfering).
+- **Not supported as the first cause:** every flagship missed line traced to the action interface
+  (problems 1-4, 10, 11), not to the loop's shape. With those fixed, the same loop and the same
+  model played Therapy-flashback-into-Ajani twice in eight games and accepted the flip all four
+  times it was offered across both runs.
+- **Still open:** whether a typed plan and sequence simulation add anything once the interface is
+  honest. The plan-contradiction rate and the unused sacrifice outlet are the two numbers to move.
+
+### Not determined
+
+- Play strength. Eight games cannot show it; a quality verdict needs dozens of paired games.
+- Whether the `LINES:` note changes play. It was on in every game here; there is no arm without it.
+- Whether the land choices that left black spells uncastable come from the fetch-target decision
+  (routed to the no-reasoning tier by `TIER_FAST_TYPES=...,zone-change`) or from the keep/mulligan.
+- `ComputerUtil.playStack` / `playNoStack` still pay with Forge's `AiCostDecision`.
+
+### Next
+
+1. An arm without `LINES:` and an arm with `zone-change` on the reasoning tier, same seeds, to price
+   each.
+2. If the plan-contradiction rate holds, build the typed plan (WS3-P3): steps validated against the
+   legal menu, voided on any engine event.
+3. Sequence simulation (WS3-P4) only if the sacrifice outlet stays unused in spots where an engine
+   preview would show it winning.
+
 ## References
 
 Planning: Wang et al. 2023 (arXiv 2305.04091); Xu et al. 2023, ReWOO (2305.18323); Kim et al. 2024,

@@ -289,6 +289,47 @@ public class SeatObservationTest {
         Assert.assertFalse(later.contains("stale"), "the harness must not judge staleness:\n" + later);
     }
 
+    /** The seat reads the OPPONENT's cards too. An opponent's card it can identify is printed with its
+     *  rules text from the card database; a card in a hidden zone is not; a basic land (no text) is
+     *  not; and the seat's own cards are not repeated here. */
+    @Test
+    public void opponentCardsTheSeatHasSeenAreShownWithTheirRulesText() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        Player rival = g.getPlayers().get(1);
+        card("Orcish Bowmasters", rival, ZoneType.Battlefield);
+        card("Karakas", rival, ZoneType.Battlefield);
+        String r = render(observerFor(g, 0), "");
+        int at = r.indexOf("OPPONENT CARDS YOU HAVE SEEN");
+        Assert.assertTrue(at >= 0, r);
+        String block = r.substring(at, r.indexOf("STACK", at));
+        Assert.assertTrue(block.contains("  Orcish Bowmasters: ") && block.contains("deals 1 damage to any target"), block);
+        Assert.assertTrue(block.contains("  Karakas: ") && block.contains("Return target legendary creature"), block);
+        Assert.assertTrue(block.contains("  Griselbrand: "), "a card in their graveyard is public:\n" + block);
+        assertNoneOf(block, "opponent card text", "Thoughtseize", "Entomb", "Swamp:", "Delver of Secrets", "Force of Will");
+    }
+
+    /** Text once seen stays known after the card leaves; a card already printed in the seat's own
+     *  deck text is not printed twice; and the block never depends on the opponent's hidden cards. */
+    @Test
+    public void opponentCardTextPersistsIsNotDuplicatedAndIgnoresHiddenZones() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        Player rival = g.getPlayers().get(1);
+        Card bow = card("Orcish Bowmasters", rival, ZoneType.Battlefield);
+        SeatObservation o = observerFor(g, 0);
+        o.setOwnDeckText("YOUR DECK:\n  Griselbrand {4}{B}{B}{B}{B} — Flying, lifelink\n");
+        String first = render(o, "");
+        Assert.assertTrue(first.contains("  Orcish Bowmasters: "), first);
+        Assert.assertFalse(first.contains("  Griselbrand: "), "a card in the seat's own deck text was repeated:\n" + first);
+        g.getAction().moveToLibrary(bow, null);
+        String later = render(o, "");
+        Assert.assertTrue(later.contains("  Orcish Bowmasters: "), "the text of a card already seen was forgotten:\n" + later);
+
+        Game a = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        Game b = world(new String[] {"Orcish Bowmasters"}, new String[] {"Karakas"});
+        Assert.assertEquals(render(observerFor(a, 0), ""), render(observerFor(b, 0), ""),
+                "the observation depends on the opponent's hidden hand/library");
+    }
+
     /** The model's own opponent read is re-injected every decision and always labelled unverified:
      *  it is a hypothesis it can revise, never an engine fact. */
     @Test
