@@ -72,7 +72,7 @@ import forge.spike.LlmSpikeGui.ContextProfile;
  * seat are appended to the same stream, so every seat-visible fact has one E-id and one place to search.
  */
 final class SeatObservation {
-    static final String VERSION = "observation-faithful-v10";
+    static final String VERSION = "observation-faithful-v11";
     /** Printed once per observation so every prompt is self-describing. Part of the prompt bytes and
      *  therefore of this VERSION: change it and bump the version. */
     static final String LEGEND = "LEGEND: @N = your seat's handle for one object, assigned when you first see it; a zone change "
@@ -143,6 +143,12 @@ final class SeatObservation {
     private String profile = "";
 
     void setProfile(String p) { this.profile = p == null ? "" : p; }
+
+    /** The model's OWN statement of how its cards combine, asked once from its own decklist and shown
+     *  back at every decision. It is the model's note, labelled as such, never an engine fact. */
+    private String deckLines = "";
+
+    void setDeckLines(String t) { this.deckLines = t == null ? "" : t; }
 
     /** A card the seat KNOWS is sitting in an opponent's hidden zone. Recorded ONLY from what the
      *  viewer could see: (a) a card visible on the battlefield/graveyard/exile that then MOVED into a
@@ -800,7 +806,7 @@ final class SeatObservation {
                 int shown = Math.min(6, reveals.size());
                 s.append("REVEALS TO YOU (historical evidence, seat-local; ").append(reveals.size()).append(" total, latest ")
                  .append(shown).append(" shown; all remain searchable):\n");
-                for (int i = reveals.size() - shown; i < reveals.size(); i++) s.append("  - ").append(reveals.get(i)).append('\n');
+                for (int i = reveals.size() - shown; i < reveals.size(); i++) s.append("  - ").append(staleLabel(reveals.get(i))).append('\n');
             }
             s.append(knownHiddenText());
             s.append(spentThisTurn());
@@ -808,6 +814,8 @@ final class SeatObservation {
             s.append(LlmSpikeGui.PlayerControllerLLM.planText(turnPlan, planTurn, ph.getTurn()));
             if (!profile.isEmpty())
                 s.append("YOUR OPPONENT PROFILE (you wrote this; unverified — revise it as you learn): ").append(profile).append('\n');
+            if (!deckLines.isEmpty())
+                s.append("YOUR CARD INTERACTIONS (you wrote this from your own decklist; unverified): ").append(deckLines).append('\n');
             return s.toString();
         } catch (Exception e) {
             return "== (state unavailable: " + e + ") ==";
@@ -1067,6 +1075,24 @@ final class SeatObservation {
         } catch (Exception e) {
             return "ERROR: card lookup failed.";
         }
+    }
+
+    /** Stamp how old a reveal is: "T3: (8 turns ago) saw their hand ...". The turn stamp was already
+     *  there; the AGE is what makes an old read look old. It is a fact and nothing more — whether an
+     *  old read is still true depends on what the opponent did since, which the seat can see and the
+     *  harness cannot judge (a hand read is still right eight turns later against an opponent who
+     *  has cast nothing). A reveal from the current turn is left unstamped. */
+    private static final java.util.regex.Pattern REVEAL_TURN = java.util.regex.Pattern.compile("^(?:\\[E\\d+\\] )?T(\\d+):");
+
+    private String staleLabel(String reveal) {
+        try {
+            // A recorded reveal reads "[E<n>] T<turn>: <text>" (see recordReveal).
+            java.util.regex.Matcher m = REVEAL_TURN.matcher(reveal);
+            if (!m.find()) return reveal;
+            int age = safeTurn() - Integer.parseInt(m.group(1));
+            if (age <= 0) return reveal;
+            return reveal.substring(0, m.end()) + " (" + age + " turn" + (age == 1 ? "" : "s") + " ago)" + reveal.substring(m.end());
+        } catch (Exception e) { return reveal; }
     }
 
     /** This object's zone history, for the INSPECT answer. Empty when we never saw it move. */

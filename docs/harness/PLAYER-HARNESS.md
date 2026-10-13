@@ -255,6 +255,33 @@ no extra model call. It is a hypothesis, labelled as such, never an engine fact 
 half is the `RECURRING` line). Test:
 `opponentProfileIsShownOnlyWhenTheModelWroteOneAndIsLabelledUnverified`.
 
+**2026-10-13 — options say what they are (`observation-faithful-v11`).** Four changes to what the
+seat is shown, from `ARCHITECTURE-REVIEW.md` problems 2, 4 and 9:
+
+- **Option labels carry the option's own cost and zone.** The legacy label printed the host card's
+  mana cost on every option, so an ability paid with a creature read `CAST Goblin Bombardment 1{R}`
+  and a graveyard flashback paid with a creature read `CAST Cabal Therapy {B}`. Under the faithful
+  profile an ability is `ACTIVATE <ref> [<cost>: <effect>]` and a spell cast from outside the hand
+  or at an alternative cost is `CAST <ref> from your GRAVEYARD (Flashback) — cost: Sacrifice a
+  creature [...]`. A hand spell at its printed cost is unchanged. `CARDNAME` placeholders are
+  replaced with the card's name. A hand spell still shows the card's printed cost, so a split or
+  adventure face is not yet exact. Legacy-profile prompts, labels and tiers are byte-identical (the
+  new `[ROUTER]` log lines appear under every profile).
+- **An optional trigger is asked with its text**, on the tier the routing table gives
+  `confirm-trigger` (smart unless listed in `TIER_FAST_TYPES`; fast if the smart budget is spent), and
+  every optional yes/no is logged
+  (`[ROUTER] confirm-trigger [Ajani, Nacatl Pariah]: YES`). It used to read "Accept this optional
+  triggered ability? Ability: Ajani, Nacatl Pariah 1{W}" on the no-reasoning tier, unlogged.
+- **Reveals carry their age** (`T3: (8 turns ago) ...`) as a fact. The harness does not call a reveal
+  stale; it cannot know.
+- **`LINES:`** — the seat is asked (at most twice per game, riding an existing smart call) to state
+  how its own cards combine; the answer is shown back as `YOUR CARD INTERACTIONS (you wrote this from
+  your own decklist; unverified)`. The ask shows a format only: a test fails if it names any card
+  from `eval/decks/`. This is an audit field first; whether it changes play is unmeasured.
+
+Tests: `LineFindingProbeTest` (labels, trigger text, LINES ask), `SeatObservationTest`
+(`oldRevealsAreStampedWithTheirAge`, `deckInteractionsAreShownOnlyAfterTheModelWritesThem`).
+
 Hand-reveal bridge/parse failures now choose the first minimum-sized legal subset,
 log an automatic fallback, and never call Forge AI. Empty reveal pools return empty.
 The regression uses a 1-to-3-card reveal range to catch accidental over-revealing.

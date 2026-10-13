@@ -145,7 +145,7 @@ if has_stage javatests; then
     TCLASSES="$(ls "$OVERLAY"/test/java/forge/spike/*Test.java | xargs -n1 basename | sed 's/\.java$//;s/^/forge.spike./' | paste -sd, -)"
     DECLARED="$(grep -h -E '^[[:space:]]+@Test' "$OVERLAY"/test/java/forge/spike/*Test.java | wc -l | tr -d ' ')"
     ( cd "$FORGE/forge-gui-desktop" && MEMORY_TOOLS=1 "$JAVA" -Dapple.awt.UIElement=true \
-        -Dharness.ownership.tsv="$LEDGER" -Dharness.rules.file="$REPO/data/rules/MagicCompRules.txt" -cp "$CLASSES:$(cat "$CP_FILE")" \
+        -Dharness.ownership.tsv="$LEDGER" -Dharness.rules.file="$REPO/data/rules/MagicCompRules.txt" -Dharness.decks.dir="$REPO/eval/decks" -cp "$CLASSES:$(cat "$CP_FILE")" \
         org.testng.TestNG -testclass "$TCLASSES" -d "$OUT/testng" ) >"$OUT/javatests.log" 2>&1
     RES="$(python3 - "$OUT/testng/testng-results.xml" <<'EOF'
 import re,sys
@@ -386,7 +386,7 @@ for r in calls:
     p=r.get("prompt") or ""
     # The mulligan ask shows only the opening hand (no board exists yet); it carries no observation.
     if "KEEP" in p and "MULLIGAN" in p and "DECISION:" not in p: mull+=1; observed+=1; legend+=1; continue
-    if "observation-faithful-v10" in p: observed+=1
+    if "observation-faithful-v11" in p: observed+=1
     if "LEGEND: @N" in p: legend+=1
     handles+=len(re.findall(r" @\d+", p))
     legacy+=len(re.findall(r"[A-Za-z\]]@\d+", p))          # the legacy candidateLabel form: Name[...]@id
@@ -403,7 +403,7 @@ if rules_leak: problems.append("%d faithful prompts advertised RULES TOOL withou
 ok_tools=[x for x in tools if not str(x.get("result","")).startswith("ERROR")]
 if len(ok_tools)<2: problems.append("successful tool rows %d (<2)"%len(ok_tools))
 log=open(d+"/game.log",errors="replace").read()
-if "[OBSERVATION] observation-faithful-v10" not in log: problems.append("observer never announced itself in the log")
+if "[OBSERVATION] observation-faithful-v11" not in log: problems.append("observer never announced itself in the log")
 if "state unavailable" in log or "state unavailable" in "".join((r.get("prompt") or "") for r in calls): problems.append("renderer threw (state unavailable)")
 if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] present")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
