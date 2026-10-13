@@ -1,6 +1,6 @@
 # The match model — persistent state, continuity, and memory for the LLM seat
 
-**Status:** built and acceptance-gated (PRs #46–#58, #77). Observation version `observation-faithful-v11`.
+**Status:** built and acceptance-gated (PRs #46–#58, #77). Observation version `observation-faithful-v12`.
 
 ## Why
 
@@ -25,6 +25,7 @@ harness-side answer.
 | `INSPECT @N` → `history:` | where an object has been | the per-object trail |
 | `YOUR CARD INTERACTIONS` | the model's own statement of how its cards combine (labelled unverified) | model-authored, asked at most twice |
 | option labels | what each option costs and which zone it is cast from | the ability's own cost (`getPayCosts`) |
+| `OPPONENT CARDS YOU HAVE SEEN` | what each opponent card the seat has identified actually does | card database text, first seen onward |
 
 Two rules hold throughout:
 
