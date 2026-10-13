@@ -33,7 +33,11 @@ import forge.util.MyRandom;
  * wiring, not here. It is NOT yet wired to the seat; nothing calls it during a real game.
  */
 final class PlayerLookahead {
-    static final String VERSION = "lookahead-preview-v1";
+    /** Stamped on the game line: what a preview covers and reports is part of what the model sees.
+     *  v2 (2026-10-13): activated abilities as well as spells; names of permanents that left or
+     *  entered; hand and library sizes; a refusal instead of "no change" when the copy could not pay;
+     *  and previews that work at all when a sideboard holds a characteristic-defining card. */
+    static final String VERSION = "lookahead-preview-v2";
 
     private PlayerLookahead() { }
 
@@ -74,17 +78,39 @@ final class PlayerLookahead {
         int yardBefore = before.getCardsIn(ZoneType.Graveyard).size();
         int yardAfter = after.getCardsIn(ZoneType.Graveyard).size();
         if (yardAfter != yardBefore) b.append("graveyard ").append(yardBefore).append(" -> ").append(yardAfter).append("; ");
+        // Sizes of hidden zones are public; their contents are not and are never named.
+        int handBefore = before.getCardsIn(ZoneType.Hand).size(), handAfter = after.getCardsIn(ZoneType.Hand).size();
+        if (handAfter != handBefore) b.append("hand ").append(handBefore).append(" -> ").append(handAfter).append("; ");
+        int libBefore = before.getCardsIn(ZoneType.Library).size(), libAfter = after.getCardsIn(ZoneType.Library).size();
+        if (libAfter != libBefore) b.append("library ").append(libBefore).append(" -> ").append(libAfter).append("; ");
+        // WHICH permanents left or arrived: the battlefield is public, and a count alone hides the
+        // whole point of a sacrifice or a removal spell.
+        String left = namesOnlyIn(before, after), entered = namesOnlyIn(after, before);
+        if (!left.isEmpty()) b.append("left the battlefield: ").append(left).append("; ");
+        if (!entered.isEmpty()) b.append("entered the battlefield: ").append(entered).append("; ");
         String out = b.toString().trim();
         if (out.endsWith(";")) out = out.substring(0, out.length() - 1).trim();
         return out.isEmpty() ? "no change" : out;
     }
 
-    /** Immediate-resolution preview of playing {@code liveOption} (a spell): play it on a copy,
+    /** Names (with multiplicity) of battlefield permanents {@code a} controls that {@code b} does not. */
+    private static String namesOnlyIn(Player a, Player b) {
+        java.util.List<String> other = new java.util.ArrayList<>();
+        for (forge.game.card.Card c : b.getCardsIn(ZoneType.Battlefield)) other.add(c.getName());
+        java.util.List<String> out = new java.util.ArrayList<>();
+        for (forge.game.card.Card c : a.getCardsIn(ZoneType.Battlefield)) {
+            if (!other.remove(c.getName())) out.add(c.getName());
+        }
+        java.util.Collections.sort(out);
+        return String.join(", ", out);
+    }
+
+    /** Immediate-resolution preview of playing {@code liveOption} (a spell or an activated ability): play it on a copy,
      *  determinize the copy's libraries BEFORE resolution, resolve, and report the public-only delta
      *  for the seat and each opponent. Runs entirely inside one isolated RNG: the live game and its
      *  RNG stream are untouched (same guarantee as {@link #copyForPreview}).
      *
-     *  <p>v1 refuses anything that is not a spell ability, and never reports hidden identities —
+     *  <p>It refuses land drops and mana abilities, and never reports hidden identities —
      *  this is a *rules preview* of the immediate resolution, not a win-probability rollout (see
      *  docs/harness/LOOKAHEAD-DESIGN.md). The opponent is played by the engine AI, and only
      *  libraries are determinized (the opponent's hand is not), so it is partial determinization. */
@@ -97,7 +123,11 @@ final class PlayerLookahead {
      *  this at their creature" and not only the default target. */
     static String previewCast(Game live, Player seat, forge.game.spellability.SpellAbility liveOption, long seed, String targetHint) {
         if (live == null || seat == null || liveOption == null) return "(no preview)";
-        if (!liveOption.isSpell()) return "(lookahead v1 supports spell options only)";
+        // v2 previews any CAST or ACTIVATE option. In the first arm that could ask, 19 of 38 requests
+        // were for an activated ability (Goblin Bombardment, a planeswalker) and all were turned away.
+        if (liveOption.isLandAbility() || liveOption.isManaAbility())
+            return "(a preview covers CAST and ACTIVATE options, not land drops or mana abilities)";
+        final boolean spell = liveOption.isSpell();
         Random liveRandom = MyRandom.getRandom();
         // The live option carries no target until the model commits, so the engine cannot resolve a
         // targeting spell. Set first-legal targets for the preview and RESTORE them in the finally:
@@ -117,9 +147,13 @@ final class PlayerLookahead {
             try {
                 sim = new GameSimulator(new SimulationController(new GameStateEvaluator.Score(0)), live, seat, null);
             } finally { parked.restore(); }
-            sim.simulateSpellAbility(liveOption, false); // play on the copy, resolve separately below
+            // Play on the copy, resolve separately below. The engine pays the costs there; the
+            // sentinel score is its way of saying it could not (no legal payment on the copy).
+            GameStateEvaluator.Score played = sim.simulateSpellAbility(liveOption, false);
             Game simGame = sim.getSimulatedGameState();
             if (simGame == null) return "(preview unavailable)";
+            if (played != null && played.value == Integer.MIN_VALUE)
+                return "(preview unavailable: the engine could not pay for or play this option on the copy)";
             // Determinize BEFORE resolution so the preview cannot depend on the real hidden order.
             for (Player p : simGame.getPlayers()) {
                 Zone lib = p.getZone(ZoneType.Library);
@@ -128,13 +162,16 @@ final class PlayerLookahead {
             GameSimulator.resolveStack(simGame, simGame.getPlayers().get(1));
 
             Player seatAfter = (Player) sim.getGameCopier().find(seat);
-            StringBuilder b = new StringBuilder("if you cast ").append(label)
+            StringBuilder b = new StringBuilder(spell ? "if you cast " : "if you activate ").append(label)
                     .append(assumed.isEmpty() ? "" : " [assuming target: " + assumed + "]")
                     .append(": you ").append(publicDelta(seat, seatAfter));
             for (Player opp : seat.getOpponents()) {
                 Player oppAfter = (Player) sim.getGameCopier().find(opp);
                 b.append("; ").append(opp.getName()).append(' ').append(publicDelta(opp, oppAfter));
             }
+            // A cost with a choice in it (sacrifice a creature) was paid by the engine on the copy.
+            if (liveOption.getPayCosts() != null && liveOption.getPayCosts().hasSpecificCostType(forge.game.cost.CostSacrifice.class))
+                b.append(". The engine chose what to sacrifice for this preview; in the real play YOU choose");
             return b.toString();
         } catch (Throwable t) {
             // The model is told only that the preview failed; the log says why. Failing without a

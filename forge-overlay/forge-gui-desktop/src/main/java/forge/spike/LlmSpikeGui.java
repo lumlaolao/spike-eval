@@ -1281,7 +1281,7 @@ public final class LlmSpikeGui {
         }
 
         /** If the reply asks for a lookahead preview (`SIMULATE: n`), return the 1-based option
-         *  number; else -1. v1 previews only SPELL options, so n must be within the castable list. */
+         *  number; else -1. n must be within the castable list. */
         static int parseSimulateOption(String reply, int nSpells) {
             if (reply == null || nSpells <= 0) return -1;
             String seg = lastSegment(reply, "SIMULATE:");
@@ -2223,7 +2223,7 @@ public final class LlmSpikeGui {
                     int n = -1;
                     try { if (a != null && a.has("option")) n = a.get("option").getAsInt(); } catch (RuntimeException e) { n = -1; }
                     if (n < 1 || n > simOptions.size())
-                        return "ERROR: `option` must be the number of a SPELL option (1.." + simOptions.size() + ").";
+                        return "ERROR: `option` must be the number of a CAST or ACTIVATE option (1.." + simOptions.size() + ").";
                     String hint = a.has("target") && a.get("target").isJsonPrimitive() ? a.get("target").getAsString().trim() : null;
                     String preview = PlayerLookahead.previewCast(me.getGame(), me, simOptions.get(n - 1), simTurn,
                             hint == null || hint.isEmpty() ? null : hint);
@@ -2238,7 +2238,7 @@ public final class LlmSpikeGui {
                             : "That reply had no parseable choice. Answer with ONE line only: CHOICE: <a number 1.." + passIdx + " from the list above>.")
                             + lookCtx
                             + (lookaheadOn && attempt == 0 && !nativeSim
-                               ? "\nYou may instead reply `SIMULATE: <number>` (optionally `SIMULATE: <number> <target name>`) to see what a SPELL option (1.." + options.size()
+                               ? "\nYou may instead reply `SIMULATE: <number>` (optionally `SIMULATE: <number> <target name>`) to see what a CAST or ACTIVATE option (1.." + options.size()
                                  + ") resolves to; you will then be asked again with the result." : "");
                     String reply = ask(b, prompt, nativeSim && attempt == 0 ? simulateTool : null);
                     if (reply != null && askPlan && attempt == 0) {
@@ -6628,6 +6628,8 @@ public final class LlmSpikeGui {
                 + ",\"native_tools_seats\":\"" + jsonEscape(nativeSeats) + "\""
                 + ",\"native_tools_downgraded\":\"" + jsonEscape(String.join(",", new java.util.TreeSet<>(NativeTools.DOWNGRADED))) + "\""
                 + ",\"native_tools_version\":\"" + NativeTools.VERSION + "\""
+                + ",\"lookahead\":" + PlayerControllerLLM.lookaheadEnabled()
+                + ",\"lookahead_version\":\"" + PlayerLookahead.VERSION + "\""
                 + ",\"rules_tool\":" + PlayerControllerLLM.RULES_TOOL
                 + ",\"rules_tool_version\":\"" + RulesTool.VERSION + "\""
                 + ",\"rules_effective\":\"" + jsonEscape(PlayerControllerLLM.rulesEffective()) + "\""

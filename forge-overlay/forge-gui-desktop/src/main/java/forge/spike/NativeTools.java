@@ -24,7 +24,8 @@ import com.google.gson.JsonParser;
 final class NativeTools {
     private NativeTools() { }
 
-    static final String VERSION = "seat-tools-v1";
+    /** v2 (2026-10-13): `simulate` covers activated abilities and says what it reports. */
+    static final String VERSION = "seat-tools-v2";
     static final String SIMULATE = "simulate";
     private static final List<String> RULES_ACTIONS = List.of("search", "read", "section", "term", "toc");
 
@@ -165,9 +166,11 @@ final class NativeTools {
                 "action"));
         }
         if (simulate) a.add(fn(SIMULATE,
-                "Preview what ONE numbered SPELL option of the current decision resolves to, on a copy of the game "
-                + "built only from what you can see. It is an estimate, not the engine's verdict: hidden cards are "
-                + "guessed. At most one preview per decision.",
+                "Preview what ONE numbered CAST or ACTIVATE option of the current decision does when it resolves, "
+                + "on a copy of the game built only from what you can see: which permanents leave or arrive, and "
+                + "each player's life, hand, library and graveyard counts. It is an estimate, not the engine's "
+                + "verdict: hidden cards are guessed, and the engine pays the costs on the copy. At most one "
+                + "preview per decision.",
                 props("option", prop("integer", "The option number from the decision's list.", 1, null),
                       "target", prop("string", "Optional: the name of the target to preview against.", null, null)),
                 "option"));

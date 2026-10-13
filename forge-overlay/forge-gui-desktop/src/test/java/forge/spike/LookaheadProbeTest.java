@@ -174,6 +174,62 @@ public class LookaheadProbeTest {
         Assert.assertEquals(new java.util.ArrayList<>(table.keySet()), keysBefore);
     }
 
+    private static forge.game.spellability.SpellAbility abilityOn(forge.game.card.Card c, Player activator) {
+        for (forge.game.spellability.SpellAbility s : c.getSpellAbilities()) {
+            if (s.isActivatedAbility() && !s.isManaAbility()) { s.setActivatingPlayer(activator); return s; }
+        }
+        return null;
+    }
+
+    /**
+     * v2: an activated ability is previewed. In runs/lines/ctl/native-lookahead 19 of the seat's 38
+     * preview requests were for one (Goblin Bombardment, a planeswalker) and every one was refused.
+     * The report names what left the battlefield, because "board 3 -> 2" hides the whole point.
+     */
+    @Test
+    public void anActivatedAbilityWithASacrificeCostIsPreviewed() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+        forge.game.card.Card bombardment = SeatObservationTest.card("Goblin Bombardment", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.card.Card fodder = SeatObservationTest.card("Elite Vanguard", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.spellability.SpellAbility sa = abilityOn(bombardment, me);
+        Assert.assertNotNull(sa, "fixture: no activated ability on Goblin Bombardment");
+        int lifeBefore = opp.getLife();
+
+        String report = PlayerLookahead.previewCast(g, me, sa, 5L, opp.getName());
+        System.out.println("[LOOKAHEAD] " + report);
+        Assert.assertTrue(report.startsWith("if you activate Goblin Bombardment"), report);
+        Assert.assertTrue(report.contains("left the battlefield: Elite Vanguard"), report);
+        Assert.assertTrue(report.contains("life " + lifeBefore + " -> " + (lifeBefore - 1)), report);
+        Assert.assertTrue(report.contains("in the real play YOU choose"), "the engine-paid sacrifice must be flagged: " + report);
+        // Live game untouched: the creature is still there, nobody lost life, the option has no targets left on it.
+        Assert.assertTrue(fodder.isInZone(forge.game.zone.ZoneType.Battlefield));
+        Assert.assertEquals(opp.getLife(), lifeBefore);
+        Assert.assertTrue(sa.getTargets() == null || sa.getTargets().isEmpty());
+    }
+
+    @Test
+    public void aTapAbilityIsPreviewedAndALandDropIsNot() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+        forge.game.card.Card pinger = SeatObservationTest.card("Prodigal Pyromancer", me, forge.game.zone.ZoneType.Battlefield);
+        pinger.setSickness(false);
+        forge.game.card.Card theirs = SeatObservationTest.card("Elite Vanguard", opp, forge.game.zone.ZoneType.Battlefield);
+        String report = PlayerLookahead.previewCast(g, me, abilityOn(pinger, me), 5L, "Elite Vanguard");
+        System.out.println("[LOOKAHEAD] " + report);
+        Assert.assertTrue(report.startsWith("if you activate Prodigal Pyromancer [assuming target: Elite Vanguard]"), report);
+        Assert.assertTrue(report.contains("left the battlefield: Elite Vanguard"), report);
+        Assert.assertFalse(report.contains("YOU choose"), "no sacrifice in this cost: " + report);
+        Assert.assertTrue(theirs.isInZone(forge.game.zone.ZoneType.Battlefield));
+        Assert.assertFalse(pinger.isTapped(), "the live permanent must not be tapped by a preview");
+
+        forge.game.card.Card land = SeatObservationTest.card("Mountain", me, forge.game.zone.ZoneType.Hand);
+        forge.game.spellability.SpellAbility drop = null;
+        for (forge.game.spellability.SpellAbility s : land.getAllPossibleAbilities(me, false)) if (s.isLandAbility()) drop = s;
+        if (drop != null)
+            Assert.assertTrue(PlayerLookahead.previewCast(g, me, drop, 5L).startsWith("(a preview covers CAST and ACTIVATE"));
+    }
+
     /** A targeting spell is previewed against a first-legal target, and the live option is restored. */
     @Test
     public void previewCastResolvesATargetingSpellAndRestoresTheLiveOption() {

@@ -364,6 +364,29 @@ Tests: `NativeToolsTest` (21, including a real HTTP round trip on loopback and e
 definitions with `eval/tooluse/tools.json`), `eval/test_tool_use_suite.py`, `eval/test_tool_audit.py`;
 acceptance stage `nativetool`.
 
+### Lookahead preview v2 (2026-10-13)
+
+`lookahead-preview-v2`, stamped `lookahead` / `lookahead_version` on the game line (v1 was never
+stamped). Three changes, each from what the first arms that could ask for a preview showed
+(`runs/lines/ctl/native-lookahead`: 38 requests, none answered):
+
+- **Previews work when a sideboard holds a characteristic-defining card**
+  (`PlayerLookahead.UncopiedEffects`; ARCHITECTURE-REVIEW problem 13). Sixteen of the 38 died here.
+- **Activated abilities are previewed**, not only spells. Nineteen of the 38 were for one. A land
+  drop or a mana ability is still refused. When a cost holds a choice (sacrifice a creature) the
+  engine pays it on the copy and the report says so: "The engine chose what to sacrifice for this
+  preview; in the real play YOU choose".
+- **The report names what happened.** `if you activate Goblin Bombardment [assuming target: Rival]:
+  you board 2 -> 1; graveyard 0 -> 1; left the battlefield: Elite Vanguard; Rival life 20 -> 19`.
+  v1 gave only life, board count and graveyard count. Added: permanents that left or entered, by
+  name (the battlefield is public), and hand and library sizes (sizes of hidden zones are public,
+  their contents are never named). If the copy cannot pay for the option the preview says so
+  instead of reporting "no change".
+
+Still one option at a time and still one preview per decision. It is an estimate: libraries are
+shuffled on the copy, the opponent's hand is not determinized, and the opponent is not given a turn.
+Tests: `LookaheadProbeTest` (9). Loopback Mardu mirror: 104 of 104 previews return a result.
+
 Hand-reveal bridge/parse failures now choose the first minimum-sized legal subset,
 log an automatic fallback, and never call Forge AI. Empty reveal pools return empty.
 The regression uses a 1-to-3-card reveal range to catch accidental over-revealing.

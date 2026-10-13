@@ -49,7 +49,8 @@ def classify(request, result):
         return "REFUSED"
     if "(preview failed" in first or result.startswith("ERROR: preview"):
         return "FAILED"
-    if "supports spell options only" in first or "(no preview)" in first or "(preview unavailable)" in first:
+    if "supports spell options only" in first or "a preview covers CAST and ACTIVATE" in first \
+            or "(no preview)" in first or "(preview unavailable" in first:
         return "empty"
     if result.startswith("Matches=0") or (result.startswith("ERROR:") and (
             "found no visible object" in result or "is not available" in result or "no card named" in result)):
