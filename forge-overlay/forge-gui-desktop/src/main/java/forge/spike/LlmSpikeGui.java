@@ -1728,7 +1728,8 @@ public final class LlmSpikeGui {
                 for (Card c : legal) { try { if (c.isInfectDamage(defender)) { anyInfect = true; break; } } catch (Exception ignore) { } }
                 // Shared question template (single source; the ai-teacher seat rebuilds byte-identically).
                 List<Integer> picks = decideMany(smart, null,
-                        buildAttackersQuestion(defender.getName(), oppLife, oppPoison, anyInfect),
+                        buildAttackersQuestion(defender.getName(), oppLife, oppPoison, anyInfect,
+                                attackersCeiling(legal, defender, combat)),
                         labels, 0, legal.size());
                 if (picks == null) {
                     // Bridge dead -> intent-aware fallback (report C3), still fully deterministic, never
@@ -4121,6 +4122,33 @@ public final class LlmSpikeGui {
          *  lethal hint so its template is single-sourced. {@code oppLife}/{@code oppPoison} are the
          *  defender's life / poison counters; {@code anyInfect} = any legal attacker deals poison damage. */
         static String buildAttackersQuestion(String defenderName, int oppLife, int oppPoison, boolean anyInfect) {
+            return buildAttackersQuestion(defenderName, oppLife, oppPoison, anyInfect, "");
+        }
+
+        /** G8 lookahead (LOOKAHEAD=1): public-info combat ceiling for the attackers decision, computed
+         *  from the engine's own combat maths — the total unblocked damage if every legal attacker
+         *  attacks, and which attackers cannot be blocked at all. Empty (byte-identical default) when
+         *  lookahead is off. Both seats compute it from the same state, so their prompts stay identical. */
+        static String attackersCeiling(CardCollection legal, Player defender, Combat combat) {
+            if (!lookaheadEnabled() || legal == null || legal.isEmpty() || defender == null) return "";
+            try {
+                int dmg = ComputerUtilCombat.sumDamageIfUnblocked(legal, defender);
+                StringBuilder evasive = new StringBuilder();
+                for (Card c : legal) {
+                    try {
+                        if (!CombatUtil.canBeBlocked(c, combat, defender)) {
+                            if (evasive.length() > 0) evasive.append(", ");
+                            evasive.append(c.getName()).append(" (").append(ComputerUtilCombat.damageIfUnblocked(c, defender, combat, false)).append(')');
+                        }
+                    } catch (Exception ignore) { }
+                }
+                return " OUTLOOK (engine, all unblocked): " + dmg + " damage."
+                        + (evasive.length() > 0 ? " Cannot be blocked: " + evasive + "." : " Every attacker can be blocked.");
+            } catch (Exception e) { return ""; }
+        }
+
+        /** Adds the optional combat outlook to the shared attackers question. */
+        static String buildAttackersQuestion(String defenderName, int oppLife, int oppPoison, boolean anyInfect, String outlook) {
             int poisonNeeded = Math.max(0, 10 - oppPoison);
             String lethalHint = "COUNT LETHAL: opp life " + oppLife + ", poison " + oppPoison + "/10 -- lethal needs "
                     + oppLife + " dmg OR " + poisonNeeded + " poison"
@@ -4128,7 +4156,8 @@ public final class LlmSpikeGui {
                     + ". If your unblocked/unstoppable damage meets either number, attack with everything needed and WIN NOW.";
             return "COMBAT — declare attackers vs " + defenderName + " (life " + oppLife
                     + "). Pick which creatures attack (attacking with 0 is legal and sometimes correct — "
-                    + "weigh their untapped mana and possible blocks). " + lethalHint;
+                    + "weigh their untapped mana and possible blocks). " + lethalHint
+                    + (outlook == null ? "" : outlook);
         }
 
         /** The LLM seat's bespoke blockers prompt (BLOCKS: wire format, not a decideOne/Many template).
@@ -4550,7 +4579,8 @@ public final class LlmSpikeGui {
                         boolean anyInfect = false;
                         for (Card c : legal) { try { if (c.isInfectDamage(defender)) { anyInfect = true; break; } } catch (Exception ignore) { } }
                         // Shared question template (single source; byte-identical to the LLM seat's).
-                        String q = PlayerControllerLLM.buildAttackersQuestion(defender.getName(), oppLife, oppPoison, anyInfect);
+                        String q = PlayerControllerLLM.buildAttackersQuestion(defender.getName(), oppLife, oppPoison, anyInfect,
+                                PlayerControllerLLM.attackersCeiling(legal, defender, combat));
                         prompt = PlayerControllerLLM.buildDecideManyPrompt(snap(), q, labels, 0, nLegal);
                     }
                 }

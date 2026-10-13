@@ -105,26 +105,22 @@ SIMULATE 3 (attack with Ragavan + Dragon's Rage Channeler):
 - Using Forge's actual strategic policy silently — the continuation policy is disclosed.
 - Public-information *hidden* reasoning — out of scope.
 
-## Combat lookahead (next — source-backed plan)
+## Combat lookahead (attackers DONE; blockers next)
 
 Combat is where games are decided, and the engine already exposes the primitives (read
-2026-10-12), so this needs no new simulation:
+2026-10-12), so no new simulation is needed:
 
 - `ComputerUtilCombat.sumDamageIfUnblocked(attackers, attacked)` — total unblocked damage from a set;
 - `ComputerUtilCombat.damageIfUnblocked(attacker, attacked, combat, withoutAbilities)` — per attacker;
 - `CombatUtil.canBeBlocked(attacker, combat, defendingPlayer)` — evasive vs blockable.
 
-A "combat ceiling" preview is therefore cheap: for the attackers the model is considering, report
-`sumDamageIfUnblocked`, which attackers cannot be blocked at all, and (for each) whether the
-defender even has a legal blocker. At the BLOCKERS decision the mirror applies
-(`CombatUtil.canBlock(blocker, attacker, combat)`).
+**Implemented for the attackers decision (2026-10-12):** `PlayerControllerLLM.attackersCeiling(...)`
+appends `OUTLOOK (engine, all unblocked): N damage. Cannot be blocked: <names> (dmg).` to the shared
+attackers question, gated by `LOOKAHEAD` (empty by default, so prompt bytes are unchanged). Both
+seats compute it from the same state, so the byte-identical-shared-template discipline holds.
 
-**Wiring caveat (why it is not done yet):** the attackers/blocks questions are built by
-`buildAttackersQuestion` / `buildBlockerPrompt`, pinned byte-for-byte by
-`*_matchesThe*WireFormatExactly` tests and rebuilt identically by the ai-teacher seat. Adding a
-combat summary means adding a parameter that BOTH seats compute from the same state (or gating it
-behind `LOOKAHEAD`, which then has to reach the ai-teacher call site too) — a shared-template change
-that must keep the two seats byte-identical. That is the work, not the maths.
+**Blockers next:** the mirror uses `CombatUtil.canBlock(blocker, attacker, combat)`; it is the same
+shared-template change on `buildBlockerPrompt`.
 
 ## Effort
 
