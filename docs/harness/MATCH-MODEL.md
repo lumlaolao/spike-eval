@@ -44,6 +44,13 @@ CONTEXT_PROFILE=v1-compat MEMORY_TOOLS=0 RULES_TOOL=0 ./run-llm-headless.sh   # 
 The **engine** default stays `v1-compat`, deliberately: `ContextProfileTest` pins
 `V1_COMPAT.sha()`, and the ai-teacher/student prompt pairing needs it byte-stable.
 
+The **eval runner** (`run_batch.py`) therefore **pins every condition key explicitly**
+(`CONTEXT_PROFILE`, `MEMORY_TOOLS`, `RULES_TOOL`) rather than relying on "unset → JVM default", so a
+batch can never inherit the play scripts' always-on defaults into a baseline arm. Deck paths are
+resolved to absolute paths up front: the game runs from the Forge tree, so a relative path fails to
+load and — because Forge starts an AWT thread — the JVM lingers and burns the whole `--cap-minutes`
+instead of exiting.
+
 ## How this is measured
 
 **M2 — capability probes** (`MatchModelProbeTest`): one deterministic probe per failure class

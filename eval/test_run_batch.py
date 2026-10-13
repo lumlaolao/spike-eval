@@ -161,8 +161,13 @@ class TestConditionEnv(unittest.TestCase):
         with mock.patch.dict(os.environ, ambient, clear=False):
             with tempfile.TemporaryDirectory() as d:
                 env = run_batch.build_env(make_args(), 7100, False, Path(d))
-                self.assertNotIn("CONTEXT_PROFILE", env)
-                self.assertNotIn("MEMORY_TOOLS", env)
+                # The runner PINS the baseline explicitly. It must NOT inherit the play scripts'
+                # always-on match-model defaults (run-llm-headless.sh defaults CONTEXT_PROFILE=
+                # v4-faithful, MEMORY_TOOLS=1, RULES_TOOL=1), or a baseline arm would silently stamp
+                # the match model and be either refused as a condition mismatch or pooled wrongly.
+                self.assertEqual(env["CONTEXT_PROFILE"], "v1-compat")
+                self.assertEqual(env["MEMORY_TOOLS"], "0")
+                self.assertEqual(env["RULES_TOOL"], "0")
                 self.assertNotIn("CTX_RECENT_EVENTS", env)
                 # Egress consent is untouched: it is the user's, not the batch's.
                 self.assertEqual(env.get("OPENROUTER_ALLOW_EGRESS"), "1")
