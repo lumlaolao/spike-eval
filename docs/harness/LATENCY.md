@@ -55,6 +55,30 @@ Giving a reasoner more room to think is exactly the wrong response. For a row kn
 the retry now **disables reasoning** and keeps a modest budget (~1 s); every other model keeps the
 historic double-the-budget retry, which is right for a genuinely long answer.
 
+## The arms, end to end (measured, 1 seed each — mechanisms solid, turns=noise)
+
+| arm | turns | decisions | smart | fast | **plan** | auto | comp median | comp max |
+|---|---|---|---|---|---|---|---|---|
+| baseline | 7 | 40 | 26 | 5 | – | 9 | 720 | 6,564 |
+| + fast tier disables reasoning | 8 | 40 | 30 | 1 | – | 9 | 488 | 8,519 |
+| + tier routing | 9 | 58 | 24 | 23 | – | 11 | 103 | 15,539 |
+| + smart budget 4000 | 8 | 44 | 20 | 11 | – | 13 | 175 | 3,784 |
+| **A: + `play-single` routing** | **11** | 65 | 18 | **37** | – | 10 | **49** | 3,314 |
+| **B: A + plan-then-execute** | 10 | 63 | **10** | 34 | **7** | 12 | **26** | 3,642 |
+
+What each lever bought, in mechanism terms:
+
+- **`play-single`** took `play`'s median completion from **309 → 80 tokens** and moved 37 of 65
+  decisions to the (reasoning-disabled) fast tier. It was the single biggest *token* reduction.
+- **plan-then-execute fired 7 times in one game** and **halved the smart calls (18 → 10)** — exactly
+  the "one smart call per turn" shape. It invalidates on interruption (1 firing here) and those steps
+  are logged `tier=plan`, so the hit rate is visible rather than assumed.
+
+**Caveat, stated plainly:** one seed per arm. The turn counts (7–11) are noise; the per-decision
+numbers (tier split, completion median/max, retries, plan firings) are the signal. **Neither lever has
+a QUALITY measurement yet** — that needs `--pairs` over several seeds with the puzzle corpus, which is
+the next step before either becomes a default.
+
 ## The four arms (measured, 1 seed — the MECHANISMS are solid, the throughput column is noise)
 
 | arm | turns/8min | decisions | smart | fast | completion median | completion MAX | retries |
@@ -86,7 +110,12 @@ the no-reasoning overrun retry. After both, `play`'s worst case is 3,661 tokens.
 
 ## Levers, in order of expected value
 
-1. **`play` — the only lever left that matters.** It is ~60 % of decisions and the sole source of the
+1. **Adopt A + B for real play, after a quality check.** Both are built, opt-in, and measured to work
+   (`TIER_FAST_TYPES=...,play-single` and `PLAN_EXECUTE=1`). Before either becomes the default, run a
+   paired quality comparison — plan-then-execute executes the model's OWN stated intent, but its
+   interruption signature is opponent-side only, so it cannot notice that a step stopped being right
+   for a reason on our own side (a draw, a changed board).
+2. **`play` remains the cost centre** even after A and B. It is ~60 % of decisions and the sole source of the
    multi-second tail. Two ways down: (a) route a *play* window to the fast tier when the menu offers no
    real sequencing choice, or (b) **plan-then-execute** — one smart call per turn that states the
    sequence, which the harness then executes step by step, re-planning only on interruption. (b) is the
