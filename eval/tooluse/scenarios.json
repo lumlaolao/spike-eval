@@ -1,0 +1,489 @@
+{
+ "version": "tooluse-scenarios-v2",
+ "comment": "Every card is INVENTED so the model cannot answer from training recall: the fact that decides each need-scenario exists only behind a tool. Each need-scenario also runs as a TWIN with the fact printed in the state ({FACT}); the twin measures restraint and is the comprehension ceiling for the answer. cls=plain has nothing hidden. `needs` lists alternatives; each alternative is a set of [tool regex, argument regex] lookups that must all have executed. `oracle` is one sufficient call sequence, used by the offline oracle policy to prove every scenario is solvable through each protocol. `hidden` are the deciding strings: absent from the need prompt, present in the twin (test-enforced).",
+ "scenarios": [
+  {
+   "id": "inspect-attack",
+   "cls": "inspect_handle",
+   "n_options": 2,
+   "answer": [
+    2
+   ],
+   "state": "TURN 6 (yours) - DECLARE ATTACKERS\nYOU [Pilot] life 14 | hand(1): Mountain\n  board: Ridgeback Brute 3/3 @12 [untapped; no abilities], Mountain x4\nOPPONENT [Rival] life 9 | hand: 2 cards (hidden)\n  board: Glasswright Sentinel 2/2 @41 [untapped], Island x3 [tapped]\n{FACT}",
+   "decision": "DECISION: declare attackers. Choose ONE:\n  1) ATTACK with Ridgeback Brute 3/3 @12\n  2) NO ATTACK\nEnd with EXACTLY: CHOICE: <number>",
+   "fact": "CARD TEXT @41 Glasswright Sentinel: First strike, deathtouch.",
+   "inspect": {
+    "@41": "@41 (current): Glasswright Sentinel 2/2 [untapped]\nzone: Battlefield | controller: Rival | owner: Rival\ntypes: Creature - Construct\noracle: First strike, deathtouch.\nhistory: T4: stack -> battlefield",
+    "Glasswright Sentinel": "CARD REFERENCE (public database text; not evidence that this card is in the game): Glasswright Sentinel 1{U}\ntypes: Creature - Construct | 2/2\noracle: First strike, deathtouch."
+   },
+   "needs": [
+    [
+     [
+      "inspect",
+      "@41|Glasswright Sentinel"
+     ]
+    ]
+   ],
+   "oracle": [
+    [
+     "inspect",
+     {
+      "target": "@41"
+     }
+    ]
+   ],
+   "hidden": [
+    "First strike, deathtouch"
+   ]
+  },
+  {
+   "id": "inspect-relics",
+   "cls": "inspect_handle",
+   "n_options": 3,
+   "answer": [
+    2
+   ],
+   "state": "TURN 7 (yours) - MAIN1\nYOU [Pilot] life 6 | hand(0)\n  board: Relic of Ost @17 [untapped], Relic of Venn @18 [untapped], Mountain x2 [untapped]\n  mana available: {R:2}\nOPPONENT [Rival] life 4 | hand: 3 cards (hidden)\n  board: Slatewall 0/6 @30 [untapped; defender], Island x4\n{FACT}",
+   "decision": "DECISION: You have priority (MAIN1). You can pay for only ONE of these. Choose ONE action:\n  1) ACTIVATE Relic of Ost @17 - cost: {2}, Sacrifice Relic of Ost\n  2) ACTIVATE Relic of Venn @18 - cost: {2}, Sacrifice Relic of Venn\n  3) PASS (do nothing)\nEnd with EXACTLY: CHOICE: <number>",
+   "fact": "CARD TEXT @17 Relic of Ost: {2}, Sacrifice Relic of Ost: You gain 4 life. | CARD TEXT @18 Relic of Venn: {2}, Sacrifice Relic of Venn: It deals 4 damage to any target.",
+   "inspect": {
+    "@17": "@17 (current): Relic of Ost [untapped]\nzone: Battlefield | controller: you | owner: you\ntypes: Artifact\noracle: {2}, Sacrifice Relic of Ost: You gain 4 life.",
+    "Relic of Ost": "CARD REFERENCE (public database text; not evidence that this card is in the game): Relic of Ost {1}\ntypes: Artifact\noracle: {2}, Sacrifice Relic of Ost: You gain 4 life.",
+    "@18": "@18 (current): Relic of Venn [untapped]\nzone: Battlefield | controller: you | owner: you\ntypes: Artifact\noracle: {2}, Sacrifice Relic of Venn: It deals 4 damage to any target.",
+    "Relic of Venn": "CARD REFERENCE (public database text; not evidence that this card is in the game): Relic of Venn {1}\ntypes: Artifact\noracle: {2}, Sacrifice Relic of Venn: It deals 4 damage to any target."
+   },
+   "needs": [
+    [
+     [
+      "inspect",
+      "@17|@18|Relic of"
+     ]
+    ]
+   ],
+   "oracle": [
+    [
+     "inspect",
+     {
+      "target": "@18"
+     }
+    ]
+   ],
+   "hidden": [
+    "deals 4 damage to any target"
+   ]
+  },
+  {
+   "id": "inspect-punisher",
+   "cls": "inspect_handle",
+   "n_options": 3,
+   "answer": [
+    2
+   ],
+   "state": "TURN 5 (yours) - MAIN1\nYOU [Pilot] life 5 | hand(2): Searing Dart {R} [Instant: deals 3 damage to any target], Stonehide Cub 1{G} 2/2 [no abilities]\n  board: Mountain x2 [untapped], Forest x1 [untapped]\nOPPONENT [Rival] life 3 | hand: 1 card (hidden)\n  board: Orrery of Vael @33 [enchantment], Island x3 [tapped]\n{FACT}",
+   "decision": "DECISION: You have priority (MAIN1). Choose ONE action:\n  1) CAST Searing Dart targeting Rival (3 damage)\n  2) CAST Stonehide Cub 2/2\n  3) PASS (do nothing)\nEnd with EXACTLY: CHOICE: <number>",
+   "fact": "CARD TEXT @33 Orrery of Vael: Whenever a player casts a noncreature spell, Orrery of Vael deals 5 damage to that player.",
+   "inspect": {
+    "@33": "@33 (current): Orrery of Vael\nzone: Battlefield | controller: Rival | owner: Rival\ntypes: Enchantment\noracle: Whenever a player casts a noncreature spell, Orrery of Vael deals 5 damage to that player.",
+    "Orrery of Vael": "CARD REFERENCE (public database text; not evidence that this card is in the game): Orrery of Vael 2{U}\ntypes: Enchantment\noracle: Whenever a player casts a noncreature spell, Orrery of Vael deals 5 damage to that player."
+   },
+   "needs": [
+    [
+     [
+      "inspect",
+      "@33|Orrery of Vael"
+     ]
+    ]
+   ],
+   "oracle": [
+    [
+     "inspect",
+     {
+      "target": "@33"
+     }
+    ]
+   ],
+   "hidden": [
+    "deals 5 damage to that player"
+   ]
+  },
+  {
+   "id": "inspect-block",
+   "cls": "inspect_handle",
+   "n_options": 2,
+   "answer": [
+    1
+   ],
+   "state": "TURN 8 (Rival's) - DECLARE BLOCKERS\nYOU [Pilot] life 12 | hand(0)\n  board: Cat Token 1/1 @20 [untapped; no abilities], Plains x3\nOPPONENT [Rival] life 12 | hand: 2 cards (hidden)\n  board: Thornback Grazer 4/4 @52 [attacking], Forest x4 [tapped]\n{FACT}",
+   "decision": "DECISION: declare blockers. Choose ONE:\n  1) BLOCK Thornback Grazer @52 with Cat Token @20\n  2) NO BLOCK\nEnd with EXACTLY: CHOICE: <number>",
+   "fact": "CARD TEXT @52 Thornback Grazer: Whenever Thornback Grazer deals combat damage to a player, that player sacrifices three lands.",
+   "inspect": {
+    "@52": "@52 (current): Thornback Grazer 4/4 [attacking]\nzone: Battlefield | controller: Rival | owner: Rival\ntypes: Creature - Beast\noracle: Whenever Thornback Grazer deals combat damage to a player, that player sacrifices three lands.",
+    "Thornback Grazer": "CARD REFERENCE (public database text; not evidence that this card is in the game): Thornback Grazer 2{G}{G}\ntypes: Creature - Beast | 4/4\noracle: Whenever Thornback Grazer deals combat damage to a player, that player sacrifices three lands."
+   },
+   "needs": [
+    [
+     [
+      "inspect",
+      "@52|Thornback Grazer"
+     ]
+    ]
+   ],
+   "oracle": [
+    [
+     "inspect",
+     {
+      "target": "@52"
+     }
+    ]
+   ],
+   "hidden": [
+    "sacrifices three lands"
+   ]
+  },
+  {
+   "id": "inspect-known-hand",
+   "cls": "inspect_name",
+   "n_options": 3,
+   "answer": [
+    2
+   ],
+   "state": "TURN 6 (yours) - MAIN1\nYOU [Pilot] life 15 | hand(2): Bastion Colossus 2{G}{G} 6/6 [Creature; no abilities], Veilpiercer Sigil 2{B}{B} [Enchantment: at the beginning of your upkeep, draw a card and each opponent loses 2 life]\n  board: Forest x2 [untapped], Swamp x2 [untapped]\n  mana available: 4 (enough for exactly one of your spells)\nOPPONENT [Rival] life 15 | hand: 1 card\n  board: Island x2 [untapped]\nKNOWN IN HIDDEN ZONES (you SAW these): Rival's hand: Sevrin's Design (T4)\n{FACT}",
+   "decision": "DECISION: You have priority (MAIN1). Choose ONE action:\n  1) CAST Bastion Colossus 6/6\n  2) CAST Veilpiercer Sigil\n  3) PASS (do nothing)\nEnd with EXACTLY: CHOICE: <number>",
+   "fact": "CARD TEXT Sevrin's Design {1}{U} Instant: Counter target creature spell.",
+   "inspect": {
+    "Sevrin's Design": "CARD REFERENCE (public database text; not evidence that this card is in the game): Sevrin's Design 1{U}\ntypes: Instant\noracle: Counter target creature spell."
+   },
+   "needs": [
+    [
+     [
+      "inspect",
+      "Sevrin"
+     ]
+    ]
+   ],
+   "oracle": [
+    [
+     "inspect",
+     {
+      "target": "Sevrin's Design"
+     }
+    ]
+   ],
+   "hidden": [
+    "Counter target creature spell"
+   ]
+  },
+  {
+   "id": "inspect-tutor",
+   "cls": "inspect_name",
+   "n_options": 2,
+   "answer": [
+    2
+   ],
+   "state": "TURN 5 (yours) - MAIN1, resolving your spell Eldritch Summons\nYOU [Pilot] life 6 | hand(0)\n  board: Swamp x4\nOPPONENT [Rival] life 18 | hand: 2 cards (hidden)\n  board: Skyreef Drake 3/3 @44 [flying], Skyreef Drake 3/3 @45 [flying], Island x4\n{FACT}",
+   "decision": "DECISION: Eldritch Summons - put ONE of these cards from your library onto the battlefield. Choose ONE:\n  1) Ostrin's Bargain\n  2) Tellweather Vane\nEnd with EXACTLY: CHOICE: <number>",
+   "fact": "CARD TEXT Ostrin's Bargain: Creature 3/1, haste. | CARD TEXT Tellweather Vane: Artifact. Creatures with flying can't attack you.",
+   "inspect": {
+    "Ostrin's Bargain": "CARD REFERENCE (public database text; not evidence that this card is in the game): Ostrin's Bargain 1{B}\ntypes: Creature - Rogue | 3/1\noracle: Haste",
+    "Tellweather Vane": "CARD REFERENCE (public database text; not evidence that this card is in the game): Tellweather Vane {2}\ntypes: Artifact\noracle: Creatures with flying can't attack you."
+   },
+   "needs": [
+    [
+     [
+      "inspect",
+      "Ostrin|Tellweather"
+     ]
+    ]
+   ],
+   "oracle": [
+    [
+     "inspect",
+     {
+      "target": "Tellweather Vane"
+     }
+    ]
+   ],
+   "hidden": [
+    "with flying can't attack you"
+   ]
+  },
+  {
+   "id": "read-truncated-hand",
+   "cls": "memory_read",
+   "n_options": 4,
+   "answer": [
+    3
+   ],
+   "state": "TURN 6 (yours) - MAIN1, resolving your spell Mind Lance\nYOU [Pilot] life 16 | hand(1): Swamp\n  board: Swamp x3\nOPPONENT [Rival] life 20 | hand: 3 cards\n  board: Tidewater Adept 1/1 @64, Harbor Skiff @65, Coral Lookout 1/3 @66, Island x2\nGAME HISTORY (compacted): T2: you cast Gaze of Ost and saw Rival's whole hand [E7]. T3-T5: Rival played Island, Island, Tidewater Adept, Harbor Skiff, Coral Lookout and drew 3 cards you have not seen.\n{FACT}",
+   "decision": "DECISION: Mind Lance - name a card; Rival discards every card with that name. Choose ONE:\n  1) Tidewater Adept\n  2) Coral Lookout\n  3) Halcyon Verdict\n  4) Brine Hexer\nEnd with EXACTLY: CHOICE: <number>",
+   "fact": "KNOWN IN HIDDEN ZONES (you SAW these): Rival's hand: Sunken Reliquary (T2), Halcyon Verdict (T2)",
+   "archive": [
+    {
+     "kind": "observation",
+     "text": "T1 observation"
+    },
+    {
+     "kind": "observation",
+     "text": "T2 observation"
+    },
+    {
+     "kind": "historical reveal",
+     "text": "T2: revealed from Rival's Hand to you (you cast Gaze of Ost): Island @61 [land], Island @62 [land], Tidewater Adept 1{U} 1/1 @63 [creature], Tidewater Adept 1{U} 1/1 @64 [creature], Harbor Skiff {2} @65 [artifact], Coral Lookout 2{U} 1/3 @66 [creature], Sunken Reliquary {3} @67 [artifact], Halcyon Verdict 2{W}{W} @68 [sorcery]; you made Rival discard Tidewater Adept @63."
+    }
+   ],
+   "needs": [
+    [
+     [
+      "memory_read",
+      "^3\\b"
+     ]
+    ],
+    [
+     [
+      "memory_search",
+      "Halcyon|Verdict"
+     ]
+    ]
+   ],
+   "oracle": [
+    [
+     "memory_read",
+     {
+      "evidence_id": 3,
+      "offset": 0
+     }
+    ]
+   ],
+   "hidden": [
+    "Halcyon Verdict"
+   ]
+  },
+  {
+   "id": "read-truncated-sweeper",
+   "cls": "memory_read",
+   "n_options": 4,
+   "answer": [
+    2
+   ],
+   "state": "TURN 7 (yours) - MAIN1, resolving your creature Warden of Names\nYOU [Pilot] life 13 | hand(0)\n  board: Warden of Names 2/2 @9, Plains x4\nOPPONENT [Rival] life 17 | hand: 2 cards\n  board: Kelp Warden 2/1 @73, Gullwing Scout 1/1 @74 [flying], Pale Lantern @75, Marsh x4\nGAME HISTORY (compacted): T3: you cast Gaze of Ost and saw Rival's whole hand [E11]. T4-T6: Rival played Marsh, Kelp Warden, Gullwing Scout, Pale Lantern and drew 3 cards you have not seen; Rival has cast no sorcery.\n{FACT}",
+   "decision": "DECISION: Warden of Names - name a card; it cannot be cast while Warden of Names is on the battlefield. Choose ONE:\n  1) Kelp Warden\n  2) Vesper Undertow\n  3) Gullwing Scout\n  4) Drowned Atlas\nEnd with EXACTLY: CHOICE: <number>",
+   "fact": "KNOWN IN HIDDEN ZONES (you SAW these): Rival's hand: Vesper Undertow (T3)",
+   "archive": [
+    {
+     "kind": "observation",
+     "text": "T1 observation"
+    },
+    {
+     "kind": "observation",
+     "text": "T2 observation"
+    },
+    {
+     "kind": "observation",
+     "text": "T3 observation"
+    },
+    {
+     "kind": "observation",
+     "text": "T3 observation b"
+    },
+    {
+     "kind": "historical reveal",
+     "text": "T3: revealed from Rival's Hand to you (you cast Gaze of Ost): Marsh @70 [land], Marsh @71 [land], Marsh @72 [land], Kelp Warden 1{B} 2/1 @73 [creature], Gullwing Scout 1{W} 1/1 @74 [creature; flying], Pale Lantern {1} @75 [artifact], Drowned Atlas {4} @76 [artifact], Vesper Undertow 3{B}{B} @77 [sorcery]; you made Rival discard Drowned Atlas @76."
+    }
+   ],
+   "needs": [
+    [
+     [
+      "memory_read",
+      "^5\\b"
+     ]
+    ],
+    [
+     [
+      "memory_search",
+      "Vesper|Undertow"
+     ]
+    ]
+   ],
+   "oracle": [
+    [
+     "memory_read",
+     {
+      "evidence_id": 5
+     }
+    ]
+   ],
+   "hidden": [
+    "Vesper Undertow"
+   ]
+  },
+  {
+   "id": "search-old-hand",
+   "cls": "memory_search",
+   "n_options": 4,
+   "answer": [
+    1
+   ],
+   "state": "TURN 8 (yours) - MAIN1, resolving your spell Mind Lance\nYOU [Pilot] life 11 | hand(0)\n  board: Swamp x5\nOPPONENT [Rival] life 19 | hand: 1 card\n  board: Ostrin's Bargain 3/1 @31, Marsh x2\nGAME HISTORY (compacted): T2: you cast Gaze of Ost and saw Rival's hand of 4 cards [E6]. T3: Rival played Marsh. T4: Rival played Marsh, cast Ostrin's Bargain. Rival has drawn no extra cards and has missed land drops since T4.\n{FACT}",
+   "decision": "DECISION: Mind Lance - name a card; Rival discards every card with that name. Choose ONE:\n  1) Pale Lantern\n  2) Gullwing Scout\n  3) Sevrin's Design\n  4) Thornback Grazer\nEnd with EXACTLY: CHOICE: <number>",
+   "fact": "KNOWN IN HIDDEN ZONES (you SAW these): Rival's hand: Pale Lantern (T2)",
+   "archive": [
+    {
+     "kind": "observation",
+     "text": "T1 observation"
+    },
+    {
+     "kind": "observation",
+     "text": "[E6] T2 Reveal: [private reveal to you] saw Rival hand [Pale Lantern, Ostrin's Bargain, Marsh, Marsh]"
+    },
+    {
+     "kind": "historical reveal",
+     "text": "T2: saw Rival hand [Pale Lantern, Ostrin's Bargain, Marsh, Marsh], stripped nothing"
+    },
+    {
+     "kind": "historical reveal",
+     "text": "T3: engine presented Swamp from Pilot's Library for a choice"
+    },
+    {
+     "kind": "historical reveal",
+     "text": "T3: engine presented Relic of Ost from Pilot's Library for a choice"
+    },
+    {
+     "kind": "historical reveal",
+     "text": "T5: engine presented Mind Lance from Pilot's Library for a choice"
+    },
+    {
+     "kind": "historical reveal",
+     "text": "T5: engine presented Swamp from Pilot's Library for a choice"
+    },
+    {
+     "kind": "historical reveal",
+     "text": "T7: engine presented Gaze of Ost from Pilot's Library for a choice"
+    }
+   ],
+   "needs": [
+    [
+     [
+      "memory_search|memory_read",
+      "."
+     ]
+    ]
+   ],
+   "oracle": [
+    [
+     "memory_search",
+     {
+      "query": "[E6]"
+     }
+    ]
+   ],
+   "hidden": [
+    "Pale Lantern"
+   ]
+  },
+  {
+   "id": "search-then-inspect",
+   "cls": "memory_chain",
+   "n_options": 2,
+   "answer": [
+    2
+   ],
+   "state": "TURN 6 (yours) - MAIN1\nYOU [Pilot] life 17 | hand(2): Skyreef Drake 2{U}{U} 3/3 [flying], Ridgeback Brute 2{R}{R} 4/4 [no abilities]\n  board: Island x2 [untapped], Mountain x2 [untapped]\n  mana available: 4 (enough for exactly one of your spells)\nOPPONENT [Rival] life 12 | hand: 1 card\n  board: Marsh x3 [untapped]\nGAME HISTORY (compacted): T1: Rival revealed one card from hand to pay for Ost's Pact [E3]; Rival has not cast it and has drawn no extra cards; every other card Rival drew was played as a land.\n{FACT}",
+   "decision": "DECISION: You have priority (MAIN1). Choose ONE action:\n  1) CAST Skyreef Drake 3/3 flying\n  2) CAST Ridgeback Brute 4/4\nEnd with EXACTLY: CHOICE: <number>",
+   "fact": "KNOWN IN HIDDEN ZONES (you SAW these): Rival's hand: Tellweather Vane (T1) | CARD TEXT Tellweather Vane {2}: Artifact. Creatures with flying can't attack you.",
+   "archive": [
+    {
+     "kind": "observation",
+     "text": "[E3] T1 Reveal: Rival revealed Tellweather Vane from hand to pay for Ost's Pact"
+    },
+    {
+     "kind": "historical reveal",
+     "text": "T1: Rival revealed Tellweather Vane from hand to pay for Ost's Pact"
+    },
+    {
+     "kind": "observation",
+     "text": "T2 observation"
+    },
+    {
+     "kind": "historical reveal",
+     "text": "T2: engine presented Island from Pilot's Library for a choice"
+    },
+    {
+     "kind": "historical reveal",
+     "text": "T3: engine presented Mountain from Pilot's Library for a choice"
+    },
+    {
+     "kind": "historical reveal",
+     "text": "T4: engine presented Skyreef Drake from Pilot's Library for a choice"
+    },
+    {
+     "kind": "historical reveal",
+     "text": "T5: engine presented Ridgeback Brute from Pilot's Library for a choice"
+    }
+   ],
+   "inspect": {
+    "Tellweather Vane": "CARD REFERENCE (public database text; not evidence that this card is in the game): Tellweather Vane {2}\ntypes: Artifact\noracle: Creatures with flying can't attack you.",
+    "Ost's Pact": "CARD REFERENCE (public database text; not evidence that this card is in the game): Ost's Pact {B}\ntypes: Sorcery\noracle: As an additional cost to cast this spell, reveal a card from your hand. You lose 2 life."
+   },
+   "needs": [
+    [
+     [
+      "memory_search|memory_read",
+      "."
+     ],
+     [
+      "inspect",
+      "Tellweather"
+     ]
+    ]
+   ],
+   "oracle": [
+    [
+     "memory_search",
+     {
+      "query": "[E3]"
+     }
+    ],
+    [
+     "inspect",
+     {
+      "target": "Tellweather Vane"
+     }
+    ]
+   ],
+   "hidden": [
+    "Tellweather Vane",
+    "with flying can't attack you"
+   ]
+  },
+  {
+   "id": "plain-land",
+   "cls": "plain",
+   "n_options": 2,
+   "answer": [
+    1
+   ],
+   "state": "TURN 1 (yours) - MAIN1\nYOU [Pilot] life 20 | hand(7): Mountain, Mountain, Mountain, Ridgeback Brute 2{R}{R} 4/4 [no abilities], Searing Dart {R} [Instant: deals 3 damage to any target], Searing Dart, Stonehide Cub 1{G} 2/2 [no abilities]\n  board: (empty)\nOPPONENT [Rival] life 20 | hand: 7 cards (hidden)\n  board: (empty)",
+   "decision": "DECISION: You have priority (MAIN1). Choose ONE action:\n  1) PLAY LAND Mountain\n  2) PASS (do nothing)\nEnd with EXACTLY: CHOICE: <number>"
+  },
+  {
+   "id": "plain-lethal",
+   "cls": "plain",
+   "n_options": 2,
+   "answer": [
+    1
+   ],
+   "state": "TURN 9 (yours) - DECLARE ATTACKERS\nYOU [Pilot] life 8 | hand(0)\n  board: Ridgeback Brute 4/4 @12 [untapped; no abilities], Mountain x5\nOPPONENT [Rival] life 2 | hand: 0 cards\n  board: Island x4 [tapped] (no creatures, no other permanents)",
+   "decision": "DECISION: declare attackers. Choose ONE:\n  1) ATTACK with Ridgeback Brute 4/4 @12\n  2) NO ATTACK\nEnd with EXACTLY: CHOICE: <number>"
+  },
+  {
+   "id": "plain-burn-face",
+   "cls": "plain",
+   "n_options": 3,
+   "answer": [
+    1
+   ],
+   "state": "TURN 7 (yours) - MAIN1\nYOU [Pilot] life 3 | hand(1): Searing Dart {R} [Instant: deals 3 damage to any target]\n  board: Mountain x1 [untapped]\nOPPONENT [Rival] life 3 | hand: 0 cards\n  board: Slatewall 0/6 @30 [untapped; defender; no other abilities], Island x4 [tapped]",
+   "decision": "DECISION: You have priority (MAIN1). Choose ONE action:\n  1) CAST Searing Dart targeting Rival (3 damage)\n  2) CAST Searing Dart targeting Slatewall @30\n  3) PASS (do nothing)\nEnd with EXACTLY: CHOICE: <number>"
+  }
+ ]
+}

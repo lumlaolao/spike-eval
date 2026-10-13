@@ -21,6 +21,10 @@
 #              Authorization header on the wire, analyzer gates, provenance stamped as loopback
 #   faithful   the same loopback game under CONTEXT_PROFILE=v4-faithful: viewer-aware renderer in a real game,
 #              legend in every prompt, menu options and state sharing seat handles, no legacy engine-id leak
+#   nativetool a loopback game on the STANDARD tool protocol (native function calling, on by default):
+#              tools sent as function definitions, real tool-call turns served through the same executor
+#              and budget, the text grammar never sent. faketool/faithful/rules pin NATIVE_TOOLS=0: they
+#              are the regression tests of the text-grammar fallback.
 #   lookahead  a loopback game with LOOKAHEAD=1 and the fake server in --policy simulate: the real
 #              PlayerLookahead.previewCast path runs (preview + re-ask), at least one targeting preview is
 #              produced, and no AI fallback occurs
@@ -41,7 +45,7 @@ JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Content
 JAVA="$JAVA_HOME/bin/java"; JAVAC="$JAVA_HOME/bin/javac"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="${OUT:-$REPO/runs/harness-acceptance/$STAMP}"
-STAGES="${STAGES:-preflight classpath compile javatests pytests canary faketool faithful lookahead rules}"
+STAGES="${STAGES:-preflight classpath compile javatests pytests canary faketool faithful lookahead nativetool rules}"
 EXPECTED="$REPO/eval/harness_acceptance.expected"
 OVERLAY="$REPO/forge-overlay/forge-gui-desktop/src"
 LEDGER="$REPO/docs/harness/controller-ownership.tsv"
@@ -145,7 +149,7 @@ if has_stage javatests; then
     TCLASSES="$(ls "$OVERLAY"/test/java/forge/spike/*Test.java | xargs -n1 basename | sed 's/\.java$//;s/^/forge.spike./' | paste -sd, -)"
     DECLARED="$(grep -h -E '^[[:space:]]+@Test' "$OVERLAY"/test/java/forge/spike/*Test.java | wc -l | tr -d ' ')"
     ( cd "$FORGE/forge-gui-desktop" && MEMORY_TOOLS=1 "$JAVA" -Dapple.awt.UIElement=true \
-        -Dharness.ownership.tsv="$LEDGER" -Dharness.rules.file="$REPO/data/rules/MagicCompRules.txt" -Dharness.decks.dir="$REPO/eval/decks" -cp "$CLASSES:$(cat "$CP_FILE")" \
+        -Dharness.ownership.tsv="$LEDGER" -Dharness.rules.file="$REPO/data/rules/MagicCompRules.txt" -Dharness.decks.dir="$REPO/eval/decks" -Dharness.tooluse.json="$REPO/eval/tooluse/tools.json" -cp "$CLASSES:$(cat "$CP_FILE")" \
         org.testng.TestNG -testclass "$TCLASSES" -d "$OUT/testng" ) >"$OUT/javatests.log" 2>&1
     RES="$(python3 - "$OUT/testng/testng-results.xml" <<'EOF'
 import re,sys
@@ -253,7 +257,7 @@ if has_stage faketool; then
     if [ -z "$PORT" ]; then fail faketool "fake model server did not start"; kill $FAKE_PID 2>/dev/null; else
       say "faketool: LLM seat A on loopback fake model at port $PORT (B = floor), MEMORY_TOOLS=1, one 9s stall vs 4s deadline"
       play faketool 42 CONTROLLER_A=llm CONTROLLER_B=floor SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
-          OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" OPENROUTER_TIMEOUT_MS=4000 MEMORY_TOOLS=1 SMART_BUDGET=60 FAST_BUDGET=60
+          OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" OPENROUTER_TIMEOUT_MS=4000 MEMORY_TOOLS=1 NATIVE_TOOLS=0 SMART_BUDGET=60 FAST_BUDGET=60
       kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
       if ! check_build_loaded "$dir"; then fail faketool "JVM did not load LlmSpikeGui from $CLASSES"; else
         ( cd "$REPO" && python3 eval/defect_analyzer.py "$dir" --json "$dir/defects.json" ) >"$dir/defects.txt" 2>&1; ARC=$?
@@ -336,6 +340,80 @@ if has_stage lookahead; then
   fi
 fi
 
+# ---------------------------------------------------------------- nativetool
+# The standard tool protocol end to end on loopback, with NATIVE_TOOLS deliberately UNSET (so the
+# default itself is what is tested): the seat's tools go out as function definitions, the fake
+# model answers with real tool calls (a search, an inspect, one malformed call, and a lookahead
+# preview on every play decision), the harness serves them through the same executor and budget, and
+# the text grammar is never sent. It would fail if the bridge dropped the `tools` field, treated a
+# tool-call turn as a dead reply, charged the malformed call, or left the grammar in the prompt.
+if has_stage nativetool; then
+  if [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail nativetool "no compiled classes"; else
+    dir="$OUT/nativetool"; sdir="$OUT/nativetool-server"; mkdir -p "$dir" "$sdir"
+    : > "$sdir/fake_requests.jsonl"
+    python3 "$REPO/eval/fake_model_server.py" --port 0 --policy simulate --native-calls 9 --log "$sdir/fake_requests.jsonl" \
+        >"$sdir/fake_server.out" 2>&1 &
+    FAKE_PID=$!
+    PORT=""; for i in 1 2 3 4 5 6 7 8 9 10; do PORT="$(awk '/^LISTENING/{print $2}' "$sdir/fake_server.out" 2>/dev/null)"; [ -n "$PORT" ] && break; sleep 0.5; done
+    if [ -z "$PORT" ]; then fail nativetool "fake model server did not start"; kill $FAKE_PID 2>/dev/null; else
+      say "nativetool: LLM seat A on loopback fake model, native tools by default (NATIVE_TOOLS unset), MEMORY_TOOLS=1 LOOKAHEAD=1 under v4-faithful (burn mirror)"
+      play nativetool 42 CONTROLLER_A=llm CONTROLLER_B=floor SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
+          OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" MEMORY_TOOLS=1 LOOKAHEAD=1 CONTEXT_PROFILE=v4-faithful GAME_CAP_MS=120000 \
+          DECK_A="$REPO/eval/decks/burn.txt" DECK_B="$REPO/eval/decks/burn.txt" DECK_A_NAME=Burn DECK_B_NAME=BurnB
+      kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
+      if ! check_build_loaded "$dir"; then fail nativetool "JVM did not load LlmSpikeGui from $CLASSES"; else
+        ( cd "$REPO" && python3 eval/defect_analyzer.py "$dir" --json "$dir/defects.json" ) >"$dir/defects.txt" 2>&1; ARC=$?
+        VERDICT="$(python3 - "$dir" "$sdir" "$ARC" <<'EOF'
+import glob,json,sys
+d,sdir,arc=sys.argv[1],sys.argv[2],int(sys.argv[3]); problems=[]
+files=glob.glob(d+"/game-*.jsonl")
+rows=[]
+for f in files:
+    for line in open(f):
+        try: rows.append(json.loads(line))
+        except Exception: pass
+game=next((r for r in rows if r.get("t")=="game"),None)
+if not game: problems.append("no game line")
+else:
+    if game.get("native_tools") is not True: problems.append("native_tools=%r not stamped"%game.get("native_tools"))
+    if not game.get("native_tools_version"): problems.append("native_tools_version missing")
+calls=[r for r in rows if r.get("t")=="context_call"]
+tools=[r for r in rows if r.get("t")=="context_tool"]
+if not calls: problems.append("no context_call rows")
+if any(r.get("protocol")!="native" for r in calls): problems.append("a context_call row is not protocol=native")
+if any("MEMORY TOOLS evidence-tools" in (r.get("prompt") or "") or "INSPECT TOOL:" in (r.get("prompt") or "") for r in calls):
+    problems.append("the text grammar was sent in a native-tools prompt")
+def served(name): return [r for r in tools if r.get("request","").startswith("TOOL CALL "+name+" ") and not r.get("result","").startswith("ERROR")]
+for name in ("memory_search","inspect","simulate"):
+    if not served(name): problems.append("no served %s call"%name)
+refused=[r for r in tools if r.get("result","").startswith("ERROR: tool arguments")]
+if not refused: problems.append("the malformed call was not refused")
+if any(not r.get("request","").startswith("TOOL CALL ") for r in tools): problems.append("a context_tool row is not a native call")
+later=[r for r in calls if r.get("round",0)>0]
+if not later or not all(isinstance(r.get("messages"),list) and any(m.get("role")=="tool" for m in r["messages"]) for r in later):
+    problems.append("a later-round context_call row lacks the tool exchange")
+dec=[r for r in rows if r.get("t")=="decision" and r.get("tier") in ("smart","fast")]
+if any((r.get("raw_reply") or "").startswith("TOOL CALL") for r in dec): problems.append("the raw_reply of a decision row is a tool call, not the answer")
+if any(r.get("tier")=="ai" for r in rows if r.get("t")=="decision"): problems.append("a decision fell back to the Forge AI")
+reqs=[json.loads(l) for l in open(sdir+"/fake_requests.jsonl")]
+with_tools=[r for r in reqs if r.get("tools_offered")]
+if not reqs or len(with_tools)!=len(reqs): problems.append("%d of %d requests carried no tools"%(len(reqs)-len(with_tools),len(reqs)))
+if not any(r.get("tool_results") for r in reqs): problems.append("no request carried a tool result back")
+if any(r.get("has_authorization") for r in reqs): problems.append("authorization header sent to loopback")
+if not any("simulate" in r.get("tools_offered",[]) for r in reqs): problems.append("simulate was never offered")
+if all("simulate" in r.get("tools_offered",[]) for r in reqs): problems.append("simulate was offered outside play decisions")
+if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
+facts="context_calls=%d (later rounds %d) tool_rows=%d served: search=%d inspect=%d simulate=%d refused_malformed=%d fake_requests=%d"%(
+    len(calls),len(later),len(tools),len(served("memory_search")),len(served("inspect")),len(served("simulate")),len(refused),len(reqs))
+print(("FAIL "+"; ".join(problems)+" | "+facts) if problems else "PASS "+facts)
+EOF
+)"
+        case "$VERDICT" in PASS*) pass nativetool "${VERDICT#PASS }";; *) fail nativetool "${VERDICT#FAIL }";; esac
+      fi
+    fi
+  fi
+fi
+
 # ---------------------------------------------------------------- faithful
 # The same loopback game under CONTEXT_PROFILE=v4-faithful: proves the viewer-aware renderer runs in a
 # real game (not only in fixtures), that every prompt is self-describing (legend), that menu options and
@@ -352,7 +430,7 @@ if has_stage faithful; then
     if [ -z "$PORT" ]; then fail faithful "fake model server did not start"; kill $FAKE_PID 2>/dev/null; else
       say "faithful: LLM seat A on loopback fake model (port $PORT) under CONTEXT_PROFILE=v4-faithful, MEMORY_TOOLS=1"
       play faithful 42 CONTROLLER_A=llm CONTROLLER_B=floor SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
-          OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" MEMORY_TOOLS=1 CONTEXT_PROFILE=v4-faithful SMART_BUDGET=40 FAST_BUDGET=40
+          OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" MEMORY_TOOLS=1 NATIVE_TOOLS=0 CONTEXT_PROFILE=v4-faithful SMART_BUDGET=40 FAST_BUDGET=40
       kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
       if ! check_build_loaded "$dir"; then fail faithful "JVM did not load LlmSpikeGui from $CLASSES"; else
         ( cd "$REPO" && python3 eval/defect_analyzer.py "$dir" --json "$dir/defects.json" ) >"$dir/defects.txt" 2>&1; ARC=$?
@@ -432,7 +510,7 @@ if has_stage rules; then
     if [ -z "$PORT" ]; then fail rules "fake model server did not start"; kill $FAKE_PID 2>/dev/null; else
       say "rules: LLM seat A on loopback fake model, RULES_TOOL=1 + MEMORY_TOOLS=1 (comprehensive-rules lookup)"
       play rules 42 CONTROLLER_A=llm CONTROLLER_B=floor SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
-          OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" MEMORY_TOOLS=1 RULES_TOOL=1 CONTEXT_PROFILE=v4-faithful \
+          OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" MEMORY_TOOLS=1 NATIVE_TOOLS=0 RULES_TOOL=1 CONTEXT_PROFILE=v4-faithful \
           RULES_FILE="$REPO/data/rules/MagicCompRules.txt" SMART_BUDGET=60 FAST_BUDGET=60
       kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
       if ! check_build_loaded "$dir"; then fail rules "JVM did not load LlmSpikeGui from $CLASSES"; else

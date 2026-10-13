@@ -102,6 +102,12 @@ interface LLMBridge {
     // to reap CLI subprocesses (see the System.exit comment in LlmSpikeHeadless.main).
     /** One-shot reset for stateful bridges (CLI); stateless backends (API) can no-op. */
     default void restart() { }
+    /** True when this backend can take native function definitions (see {@link NativeTools}). */
+    default boolean supportsNativeTools() { return false; }
+    /** One assistant turn over a whole message list (a JSON array, system preamble excluded), with
+     *  `toolsJson` offered. `allowCalls=false` still declares the tools (the list already holds tool
+     *  calls) but forbids another call. Null on failure/non-answer, like {@link #ask}. */
+    default NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls) { return null; }
     /** The OpenAI-compatible `finish_reason` ("stop", "length", ...) of the most recently completed
      *  ask(), or null when the backend doesn't report one (Claude CLI) or nothing has completed yet.
      *  A plain last-value field is sufficient — the controller's ask() path is single-threaded per
@@ -655,11 +661,14 @@ public final class LlmSpikeGui {
         // or null when SHADOW is off, the shadow computation threw, or this decision has no shadow path.
         // Reset every decision so a stale shadow can never attach to a later row (same discipline as lastPrompt).
         private Integer lastShadowChoice = null;
+        /** The 0-based option indices a multi-pick decision chose, for the decision row. `choice` on
+         *  such a row is the COUNT of picks, so without this the row never said which were picked. */
+        private List<Integer> lastPicks = null;
         private void clearLast() {
             lastPrompt = null; lastReply = null; lastTier = null; lastAskMs = 0; lastFinishReason = null;
             lastPromptTokens = -1; lastCompletionTokens = -1;
             lastSuccessMs = 0; lastRetryMs = 0; lastAttempts = 0; lastFirstFailedReply = null; lastDeclineLogged = false;
-            lastShadowChoice = null;
+            lastShadowChoice = null; lastPicks = null;
         }
 
         // per-turn play-loop state (was static in v1 — now per-instance so two seats don't collide)
@@ -817,8 +826,8 @@ public final class LlmSpikeGui {
         PlayerControllerLLM(Game game, Player p, LobbyPlayer lp, String seat, String deckPlan,
                             String smartModel, String fastModel, String mode) {
             this(game, p, lp, seat, deckPlan,
-                    LLMBridgeFactory.create(seat + "/smart", smartModel, framing(seat, deckPlan, false)),
-                    LLMBridgeFactory.create(seat + "/fast",  fastModel,  framing(seat, deckPlan, true)),
+                    LLMBridgeFactory.create(seat + "/smart", smartModel, framing(seat, deckPlan, false, NativeTools.usedBy(smartModel))),
+                    LLMBridgeFactory.create(seat + "/fast",  fastModel,  framing(seat, deckPlan, true, NativeTools.usedBy(fastModel))),
                     mode);
         }
 
@@ -1024,6 +1033,11 @@ public final class LlmSpikeGui {
             catch (Exception e) { return def; }
         }
         private static String framing(String seat, String plan, boolean terse) {
+            return framing(seat, plan, terse, false);
+        }
+        /** `nativeTools`: this tier's backend takes function definitions, so the preamble describes
+         *  the tools in one paragraph instead of teaching the text grammar. */
+        private static String framing(String seat, String plan, boolean terse, boolean nativeTools) {
             String format = terse
                     // fast tier answers high-frequency low-stakes spots: reasoning tokens are pure latency there
                     ? "FORMAT: reply with ONLY the final line in EXACTLY the format I request (e.g. `CHOICE: 3`). "
@@ -1038,7 +1052,7 @@ public final class LlmSpikeGui {
                     + "decision with a numbered list of the ONLY legal options — every option is already "
                     + "engine-validated, so pick purely on strategy. The state snapshot in each message is "
                     + "authoritative: trust it over your memory of earlier turns. "
-                    + (MEMORY_TOOLS ? ContextMemory.instructions()
+                    + (MEMORY_TOOLS ? (nativeTools ? NativeTools.instructions() : ContextMemory.instructions())
                         : "You have NO tools and cannot inspect anything yourself — everything you need is in the message; answer directly.\n")
                     + "PRINCIPLES: (1) Sequence toward your game plan, not the shiniest single play. "
                     + "(2) At instant speed with nothing to gain, PASS. "
@@ -1235,6 +1249,7 @@ public final class LlmSpikeGui {
                 int lo = Math.max(0, min), hi = Math.min(max, options.size());
                 if (hi < lo) return null;
                 List<Integer> res = new ArrayList<>(all.subList(0, lo + (hi > lo ? rnd.nextInt(hi - lo + 1) : 0)));
+                lastPicks = res;
                 if (type != null) evalDec(type, options.size(), res.size(), tierOf(b == smart), System.currentTimeMillis() - t0, null, options);
                 return res;
             }
@@ -1260,6 +1275,7 @@ public final class LlmSpikeGui {
                 if (out.size() > max) out = out.subList(0, max);
                 if (out.size() >= min) {
                     // ms=0 -> evalDec substitutes lastSuccessMs (successful-attempt-only time); see decideOne.
+                    lastPicks = out;
                     if (type != null) evalDec(type, options.size(), out.size(), tierOf(b == smart), 0, null, options);
                     return out;
                 }
@@ -2200,6 +2216,23 @@ public final class LlmSpikeGui {
                 }
 
                 StringBuilder lookCtx = new StringBuilder(); // at most one lookahead preview per decision
+                // Native tools: the preview is a function the model calls, not a line it must reply with.
+                final boolean nativeSim = lookaheadOn && !options.isEmpty() && MEMORY_TOOLS && NativeTools.enabled()
+                        && b.supportsNativeTools();
+                final List<SpellAbility> simOptions = options;
+                final int simTurn = turn;
+                final java.util.function.Function<String, String> simulateTool = argsJson -> {
+                    com.google.gson.JsonObject a = NativeTools.arguments(argsJson);
+                    int n = -1;
+                    try { if (a != null && a.has("option")) n = a.get("option").getAsInt(); } catch (RuntimeException e) { n = -1; }
+                    if (n < 1 || n > simOptions.size())
+                        return "ERROR: `option` must be the number of a SPELL option (1.." + simOptions.size() + ").";
+                    String hint = a.has("target") && a.get("target").isJsonPrimitive() ? a.get("target").getAsString().trim() : null;
+                    String preview = PlayerLookahead.previewCast(me.getGame(), me, simOptions.get(n - 1), simTurn,
+                            hint == null || hint.isEmpty() ? null : hint);
+                    p("[ROUTER] lookahead " + n + ": " + preview);
+                    return "LOOKAHEAD (option " + n + "): " + preview;
+                };
                 if (rnd != null) choice = 1 + rnd.nextInt(passIdx); // random arm: uniform incl. PASS
                 for (int attempt = 0; rnd == null && attempt < 2 && choice < 1; attempt++) {
                     String prompt = (attempt == 0
@@ -2207,10 +2240,10 @@ public final class LlmSpikeGui {
                               + (asks.isEmpty() ? PLAY_PROMPT_TAIL : asks + "Then end with EXACTLY: CHOICE: <number>")
                             : "That reply had no parseable choice. Answer with ONE line only: CHOICE: <a number 1.." + passIdx + " from the list above>.")
                             + lookCtx
-                            + (lookaheadOn && attempt == 0
+                            + (lookaheadOn && attempt == 0 && !nativeSim
                                ? "\nYou may instead reply `SIMULATE: <number>` (optionally `SIMULATE: <number> <target name>`) to see what a SPELL option (1.." + options.size()
                                  + ") resolves to; you will then be asked again with the result." : "");
-                    String reply = ask(b, prompt);
+                    String reply = ask(b, prompt, nativeSim && attempt == 0 ? simulateTool : null);
                     if (reply != null && askPlan && attempt == 0) {
                         String pl = lastSegment(reply, "PLAN:");
                         if (pl != null) { // models sometimes co-mingle "PLAN: ... CHOICE: 3" — cut at the tag
@@ -3729,7 +3762,11 @@ public final class LlmSpikeGui {
         /** Every model call funnels through here — also the single capture point for the decision record:
          *  store the full prompt/reply/tier/finish_reason so evalDec can attach them (a retry overwrites,
          *  so the LAST attempt's prompt/raw_reply are what get logged). */
-        private String ask(LLMBridge b, String prompt) {
+        private String ask(LLMBridge b, String prompt) { return ask(b, prompt, null); }
+
+        /** `simulate`: when non-null and native tools are on, the decision also offers a lookahead
+         *  preview as a tool; it maps the call's JSON arguments to the preview text. */
+        private String ask(LLMBridge b, String prompt, java.util.function.Function<String, String> simulate) {
             if (!MEMORY_TOOLS || !"llm".equals(mode)) return askModel(b, prompt);
             // Archive the existing player-narration stream before its lossy prompt compaction.
             // Never attach raw engine objects or omniscient evaluation records to this archive.
@@ -3747,6 +3784,40 @@ public final class LlmSpikeGui {
             } catch (Exception e) {
                 contextMemory.observe("HISTORY UNAVAILABLE at T" + safeTurn() + "; archive may be incomplete.");
             }
+            java.util.function.BiConsumer<String, String> audit = (command, result) -> EvalLog.write(
+                    "{\"t\":\"context_tool\",\"version\":\"" + ContextMemory.VERSION + "\",\"seat\":\"" + jsonEscape(seat)
+                    + "\",\"turn\":" + safeTurn() + ",\"call\":" + contextCallSeq
+                    + ",\"request\":\"" + jsonEscape(command) + "\",\"result\":\"" + jsonEscape(result) + "\"}");
+            if (NativeTools.enabled() && b.supportsNativeTools()) {
+                // Native function calling: same archive, same executor, same budget; the request is a
+                // structured call instead of a line of text the reply must consist of.
+                String nativeReply = contextMemory.askNative(prompt, (user, messages, tools, allowCalls, round) -> {
+                    // A refusal of tools is not worth the bridge-retry ladder: stop at once.
+                    if (!b.supportsNativeTools()) return null;
+                    if (!(b == smart ? smartOk() : fastOk())) return null;
+                    long start = System.currentTimeMillis();
+                    NativeTools.Turn[] got = new NativeTools.Turn[1];
+                    String text = askModel(b, user, () -> {
+                        got[0] = b.chat(messages, tools, allowCalls);
+                        return got[0] == null ? null : got[0].text();
+                    });
+                    EvalLog.write("{\"t\":\"context_call\",\"version\":\"" + ContextMemory.VERSION
+                            + "\",\"protocol\":\"native\",\"tools_version\":\"" + NativeTools.VERSION
+                            + "\",\"seat\":\"" + jsonEscape(seat) + "\",\"turn\":" + safeTurn()
+                            + ",\"call\":" + (++contextCallSeq) + ",\"round\":" + round
+                            + ",\"tier\":\"" + (b == smart ? "smart" : "fast")
+                            + "\",\"elapsed_ms\":" + (System.currentTimeMillis() - start)
+                            + ",\"prompt_tokens\":" + lastPromptTokens + ",\"completion_tokens\":" + lastCompletionTokens
+                            + ",\"prompt\":\"" + jsonEscape(user) + "\""
+                            // Later rounds carry the tool exchanges; the first is just the prompt above.
+                            + (round == 0 ? "" : ",\"messages\":" + messages)
+                            + ",\"raw_reply\":" + (text == null ? "null" : "\"" + jsonEscape(text) + "\"") + "}");
+                    return text == null ? null : got[0];
+                }, simulate, audit);
+                // Still native-capable: that reply (or its absence) is this decision's answer. Refused
+                // mid-ask: ask this same decision again through the text grammar below.
+                if (b.supportsNativeTools()) return nativeReply;
+            }
             return contextMemory.ask(prompt, request -> {
                 if (!(b == smart ? smartOk() : fastOk())) return null;
                 long start = System.currentTimeMillis();
@@ -3761,20 +3832,23 @@ public final class LlmSpikeGui {
                         + ",\"prompt\":\"" + jsonEscape(request) + "\",\"raw_reply\":"
                         + (response == null ? "null" : "\"" + jsonEscape(response) + "\"") + "}");
                 return response;
-            }, (command, result) -> EvalLog.write("{\"t\":\"context_tool\",\"version\":\""
-                    + ContextMemory.VERSION + "\",\"seat\":\"" + jsonEscape(seat)
-                    + "\",\"turn\":" + safeTurn() + ",\"call\":" + contextCallSeq
-                    + ",\"request\":\"" + jsonEscape(command) + "\",\"result\":\"" + jsonEscape(result) + "\"}"));
+            }, audit);
         }
 
         private String askModel(LLMBridge b, String prompt) {
+            return askModel(b, prompt, () -> b.ask(prompt));
+        }
+
+        /** `call` is the round-trip itself, so a native tool turn gets the same retry, timing and
+         *  health bookkeeping as a plain ask. `prompt` is what the decision row records. */
+        private String askModel(LLMBridge b, String prompt, java.util.function.Supplier<String> call) {
             long tAsk = System.currentTimeMillis();
             if (b == smart) smartCalls++; else fastCalls++;
             lastPrompt = prompt;
             lastTier = (b == smart) ? "smart" : "fast";
             lastAttempts++;
             long tSub = System.currentTimeMillis();
-            String reply = b.ask(prompt);
+            String reply = call.get();
             long subMs = System.currentTimeMillis() - tSub;
             // Dead/unresponsive bridge (process exit, stream EOF, deadline timeout, IO error — a parse
             // failure returns text, never null): restart stateful backends and re-ask, up to 2 more
@@ -3793,7 +3867,7 @@ public final class LlmSpikeGui {
                 try { Thread.sleep(wait); lastRetryMs += wait; } catch (InterruptedException ie) { Thread.currentThread().interrupt(); break; }
                 lastAttempts++;
                 tSub = System.currentTimeMillis();
-                reply = b.ask(prompt);
+                reply = call.get();
                 subMs = System.currentTimeMillis() - tSub;
             }
             // Per-seat health signal: observability for a bridge that's gone dark for many consecutive
@@ -3894,7 +3968,8 @@ public final class LlmSpikeGui {
             if (ms <= 0 && lastPrompt != null && ("smart".equals(tier) || "fast".equals(tier))) ms = lastSuccessMs;
             emitDecisionRow(getPlayer(), seat, type, nOptions, choice, tier, ms, fallback, options,
                     lastPrompt, lastReply, lastRetryMs, lastAttempts, lastFinishReason, lastFirstFailedReply,
-                    lastPromptTokens, lastCompletionTokens, lastShadowChoice);
+                    lastPromptTokens, lastCompletionTokens, lastShadowChoice, lastPicks);
+            lastPicks = null;
         }
         /** Tier label for asked decisions: random arm decisions are harness-made, not model-made. */
         /** Tier ROUTING table: decision TYPES sent to the FAST tier. Empty (the default) keeps the
@@ -5743,6 +5818,14 @@ public final class LlmSpikeGui {
             long ms, String fallback, List<String> options, String prompt, String rawReply,
             long retryMs, int attempts, String finishReason, String firstFailedReply,
             int promptTokens, int completionTokens, Integer shadowChoice) {
+        emitDecisionRow(pl, seat, type, nOptions, choice, tier, ms, fallback, options, prompt, rawReply,
+                retryMs, attempts, finishReason, firstFailedReply, promptTokens, completionTokens, shadowChoice, null);
+    }
+    /** `picks`: additive, present only on multi-pick rows (0-based indices into `options`). */
+    static void emitDecisionRow(Player pl, String seat, String type, int nOptions, int choice, String tier,
+            long ms, String fallback, List<String> options, String prompt, String rawReply,
+            long retryMs, int attempts, String finishReason, String firstFailedReply,
+            int promptTokens, int completionTokens, Integer shadowChoice, List<Integer> picks) {
         if (!EvalLog.on()) return;
         try {
             PhaseHandler ph = pl.getGame().getPhaseHandler();
@@ -5774,8 +5857,9 @@ public final class LlmSpikeGui {
                     .append(",\"prompt_tokens\":").append(promptTokens < 0 ? "null" : promptTokens)
                     .append(",\"completion_tokens\":").append(completionTokens < 0 ? "null" : completionTokens)
                     // D4 DAgger additive field: the Forge-AI's shadow label over this row's menu, or null.
-                    .append(",\"shadow_choice\":").append(shadowChoice == null ? "null" : shadowChoice)
-                    .append('}');
+                    .append(",\"shadow_choice\":").append(shadowChoice == null ? "null" : shadowChoice);
+            if (picks != null) sb.append(",\"picks\":").append(picks.toString().replace(" ", ""));
+            sb.append('}');
             // The write, the index increment, and the hook dispatch must be one atomic unit
             // with respect to concurrently-deciding seats: fork addressing depends on
             // index == emission order == file line order. EvalLog.write is static synchronized,
@@ -6045,6 +6129,33 @@ public final class LlmSpikeGui {
         int lastSendCount() { return lastSendCount; }
 
         @Override public String ask(String prompt) {
+            OrResult r = complete("{\"role\":\"user\",\"content\":\"" + jsonEscape(prompt) + "\"}", null, false);
+            return r == null ? null : r.content;
+        }
+
+        /** False once the provider has refused a request BECAUSE it carried tools (see send()). */
+        @Override public boolean supportsNativeTools() { return !nativeRefused; }
+        private volatile boolean nativeRefused = false;
+
+        /** A 4xx whose body talks about tools / functions is the provider saying this model or route
+         *  has no function calling -- not a transient failure. Package-private for NativeToolsTest. */
+        static boolean refusesTools(int status, String body) {
+            if (status < 400 || status >= 500 || status == 401 || status == 403 || status == 408 || status == 429) return false;
+            String b = body == null ? "" : body.toLowerCase(java.util.Locale.ROOT);
+            return b.contains("tool") || b.contains("function call");
+        }
+
+        @Override public NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls) {
+            String m = messagesJson.trim();
+            // The caller hands a JSON array; send() splices its elements after the system preamble.
+            OrResult r = complete(m.substring(1, m.length() - 1), toolsJson, allowCalls);
+            return r == null ? null : r.turn;
+        }
+
+        /** One ask: a completion plus the truncation retry, under ONE deadline. `messages` is the
+         *  comma-separated message objects after the system preamble. `toolsJson == null` is the
+         *  plain-text call every pre-native run made, byte for byte. */
+        private OrResult complete(String messages, String toolsJson, boolean allowCalls) {
             long t0 = System.currentTimeMillis();
             // ONE deadline for the whole call, retry included. run_batch.py's post-cap grace
             // budgets for ModelCfg.maxConfiguredTimeoutMs() as "the longest a single decision can
@@ -6061,10 +6172,9 @@ public final class LlmSpikeGui {
                 String reasoningEffort = fastTier ? cfg.fastReasoningEffort : cfg.reasoningEffort;
                 Double temperature = cfg.temperature;
 
-                OrResult r = send(prompt, maxTokens, reasoningEffort, temperature, deadline);
+                OrResult r = send(messages, toolsJson, allowCalls, maxTokens, reasoningEffort, temperature, deadline);
                 if (r == null) return null; // transport/HTTP-status failure, already logged by send()
-                r = new OrResult(collapseDegenerateRepetition(r.content), r.finishReason,
-                        r.promptTokens, r.completionTokens); // F2 residual (usage carried through)
+                r = r.withContent(collapseDegenerateRepetition(r.content)); // F2 residual (usage carried through)
 
                 // TRUNCATION RECOVERY (Infra-3): MUST run BEFORE isNonAnswer() below -- ordering bug
                 // (HARNESS-ANALYSIS.md F2; see the class javadoc above for the full 2026-07-21
@@ -6076,7 +6186,7 @@ public final class LlmSpikeGui {
                 // reply that hasn't already produced a recognizable decision tag -- empty or partial --
                 // BEFORE ever asking "is this a non-answer". Only once finish_reason isn't "length" (or
                 // the tag already made it out) do we fall through to the non-answer/bridge-down check.
-                if ("length".equals(r.finishReason) && !looksLikeDecisionTag(r.content)) {
+                if ("length".equals(r.finishReason) && !r.hasCalls() && !looksLikeDecisionTag(r.content)) {
                     // A REASONER that burns the whole budget on hidden reasoning and emits no answer
                     // token (measured 2026-10-13: a 16000-token smart completion, retried at 32000,
                     // ~3 minutes of the 8-minute game cap) does not need MORE room to think -- that is
@@ -6095,15 +6205,15 @@ public final class LlmSpikeGui {
                             + (reasoner ? "-NO-REASONING" : "") + "] finish_reason=length @ max_tokens="
                             + maxTokens + " -> retrying at " + retryTokens
                             + (reasoner ? " with reasoning disabled" : ""));
-                    OrResult retry = send(prompt, retryTokens, retryEffort, temperature, deadline);
+                    OrResult retry = send(messages, toolsJson, allowCalls, retryTokens, retryEffort, temperature, deadline);
                     // Only adopt the retry if it's not itself a non-answer: a truncated-but-substantive
                     // original reply is a better final result than a garbled/empty retry, and either way
                     // the isNonAnswer() check right below still gets the final say.
-                    if (retry != null && !isNonAnswer(retry.content))
-                        r = new OrResult(collapseDegenerateRepetition(retry.content), retry.finishReason,
-                                retry.promptTokens, retry.completionTokens);
+                    if (retry != null && (retry.hasCalls() || !isNonAnswer(retry.content)))
+                        r = retry.withContent(collapseDegenerateRepetition(retry.content));
                 }
-                if (isNonAnswer(r.content)) {
+                // A turn that is only tool calls has no text and is not a non-answer.
+                if (!r.hasCalls() && isNonAnswer(r.content)) {
                     System.out.println("[OPENROUTER " + label + "] non-answer -> treating as bridge-down");
                     lastFinishReason = r.finishReason;
                     lastPromptTokens = r.promptTokens; lastCompletionTokens = r.completionTokens;
@@ -6113,8 +6223,9 @@ public final class LlmSpikeGui {
                 lastPromptTokens = r.promptTokens; lastCompletionTokens = r.completionTokens;
                 long dur = System.currentTimeMillis() - t0;
                 totalMs += dur; calls++;
-                System.out.println("[OPENROUTER " + label + "] replied in " + dur + " ms");
-                return r.content;
+                System.out.println("[OPENROUTER " + label + "] replied in " + dur + " ms"
+                        + (r.hasCalls() ? " with " + r.turn.calls.size() + " tool call(s)" : ""));
+                return r;
             } catch (Exception e) {
                 System.out.println("[OPENROUTER " + label + "] error: " + e);
                 return null;
@@ -6123,8 +6234,8 @@ public final class LlmSpikeGui {
 
         /** One HTTP round-trip. Returns null (transport/HTTP failure already logged) or a result
          *  carrying both the completion text and its finish_reason. */
-        private OrResult send(String prompt, int maxTokens, String reasoningEffort, Double temperature,
-                              long deadline) throws Exception {
+        private OrResult send(String messages, String toolsJson, boolean allowCalls, int maxTokens,
+                              String reasoningEffort, Double temperature, long deadline) throws Exception {
             long remaining = deadline - System.currentTimeMillis();
             if (remaining <= 0) {
                 System.out.println("[OPENROUTER " + label + "] budget exhausted before send ("
@@ -6138,7 +6249,7 @@ public final class LlmSpikeGui {
             if (preamble != null && !preamble.isEmpty()) {
                 body.append("{\"role\":\"system\",\"content\":\"").append(jsonEscape(preamble)).append("\"},");
             }
-            body.append("{\"role\":\"user\",\"content\":\"").append(jsonEscape(prompt)).append("\"}");
+            body.append(messages);
             body.append("],\"max_tokens\":").append(maxTokens);
             if ("none".equals(reasoningEffort))
                 // Measured 2026-10-13: a mechanical answer costs ~848 completion tokens of which ~800 are
@@ -6149,6 +6260,9 @@ public final class LlmSpikeGui {
                 body.append(",\"reasoning\":{\"effort\":\"").append(jsonEscape(reasoningEffort)).append("\"}");
             if (temperature != null)
                 body.append(",\"temperature\":").append(temperature);
+            if (toolsJson != null)
+                body.append(",\"tools\":").append(toolsJson)
+                    .append(",\"tool_choice\":\"").append(allowCalls ? "auto" : "none").append("\"");
             body.append("}");
 
             HttpRequest.Builder rb = HttpRequest.newBuilder()
@@ -6179,6 +6293,14 @@ public final class LlmSpikeGui {
             }
             if (resp.statusCode() != 200) {
                 System.out.println("[OPENROUTER " + label + "] HTTP " + resp.statusCode() + ": " + oneLine(resp.body()));
+                if (toolsJson != null && refusesTools(resp.statusCode(), resp.body())) {
+                    // Retrying the same request cannot work. Stop offering tools on this bridge so the
+                    // seat keeps its lookups through the text grammar, and say so on the game line.
+                    nativeRefused = true;
+                    NativeTools.DOWNGRADED.add(label);
+                    System.out.println("[OPENROUTER " + label + "] [NATIVE-TOOLS->TEXT] the provider refused function "
+                            + "calling for " + model + "; this seat/tier uses the text tool grammar from here on");
+                }
                 return null;
             }
             String served = extractServedModel(resp.body());
@@ -6190,15 +6312,31 @@ public final class LlmSpikeGui {
             // -1 when the field is absent. Additive persistence for Stage-0 token-cost calibration.
             int promptTokens = extractJsonInt(resp.body(), "\"prompt_tokens\":");
             int completionTokens = extractJsonInt(resp.body(), "\"completion_tokens\":");
-            return new OrResult(content, finishReason, promptTokens, completionTokens);
+            if (toolsJson != null) {
+                // A native turn is structured (tool calls, a null content): parse it, do not scan it.
+                NativeTools.Turn turn = NativeTools.parseTurn(resp.body());
+                if (turn == null) {
+                    System.out.println("[OPENROUTER " + label + "] unparseable native turn: " + oneLine(resp.body()));
+                    return null;
+                }
+                return new OrResult(turn.content, finishReason, promptTokens, completionTokens, turn);
+            }
+            return new OrResult(content, finishReason, promptTokens, completionTokens, null);
         }
 
         private static final class OrResult {
             final String content, finishReason;
             final int promptTokens, completionTokens;
-            OrResult(String content, String finishReason, int promptTokens, int completionTokens) {
+            final NativeTools.Turn turn; // null on the plain-text path
+            OrResult(String content, String finishReason, int promptTokens, int completionTokens, NativeTools.Turn turn) {
                 this.content = content; this.finishReason = finishReason;
                 this.promptTokens = promptTokens; this.completionTokens = completionTokens;
+                this.turn = turn;
+            }
+            boolean hasCalls() { return turn != null && !turn.calls.isEmpty(); }
+            OrResult withContent(String c) {
+                return new OrResult(c, finishReason, promptTokens, completionTokens,
+                        turn == null ? null : new NativeTools.Turn(c, turn.messageJson, turn.calls));
             }
         }
 
@@ -6446,6 +6584,7 @@ public final class LlmSpikeGui {
         String smartBSpec = System.getenv().getOrDefault("SMART_MODEL_B", smartDef);
         String fastASpec  = System.getenv().getOrDefault("FAST_MODEL_A", fastDef);
         String fastBSpec  = System.getenv().getOrDefault("FAST_MODEL_B", fastDef);
+        String nativeSeats = NativeTools.seats(PlayerControllerLLM.MEMORY_TOOLS, System.getenv().getOrDefault("CONTROLLER_A", "llm"), smartASpec, fastASpec, System.getenv().getOrDefault("CONTROLLER_B", "llm"), smartBSpec, fastBSpec);
         boolean anyOpenRouter = smartASpec.startsWith("openrouter:") || smartBSpec.startsWith("openrouter:")
                 || fastASpec.startsWith("openrouter:") || fastBSpec.startsWith("openrouter:");
         // Gate the accessor so a zero-model floor/random run doesn't class-init the OpenRouter bridge
@@ -6489,6 +6628,13 @@ public final class LlmSpikeGui {
                 + ",\"temperature_b\":\"" + jsonEscape(resolvedTemperature(smartBSpec)) + "\""
                 + ",\"memory_tools\":" + PlayerControllerLLM.MEMORY_TOOLS
                 + ",\"memory_tools_version\":\"" + ContextMemory.VERSION + "\""
+                // Native function calling rides the memory-tool loop, so it is in effect only with it.
+                // True when ANY tier of ANY model-driven seat got its tools natively; the seats line
+                // says exactly which, and the downgraded line which of those lost it mid-game.
+                + ",\"native_tools\":" + !nativeSeats.isEmpty()
+                + ",\"native_tools_seats\":\"" + jsonEscape(nativeSeats) + "\""
+                + ",\"native_tools_downgraded\":\"" + jsonEscape(String.join(",", new java.util.TreeSet<>(NativeTools.DOWNGRADED))) + "\""
+                + ",\"native_tools_version\":\"" + NativeTools.VERSION + "\""
                 + ",\"rules_tool\":" + PlayerControllerLLM.RULES_TOOL
                 + ",\"rules_tool_version\":\"" + RulesTool.VERSION + "\""
                 + ",\"rules_effective\":\"" + jsonEscape(PlayerControllerLLM.rulesEffective()) + "\""

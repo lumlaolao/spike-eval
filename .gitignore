@@ -43,3 +43,8 @@ puzzles/modern/raw/api/
 puzzles/modern/raw/items/rulesguru.jsonl
 # Card-knowledge export: regenerable from Forge's own card DB at runtime (see data/cards/build.py).
 data/cards/raw/
+
+# Claude Code: agent and skill definitions under .claude/ ARE tracked (docs/STANDARDS.md);
+# per-machine settings and worktrees are not.
+.claude/settings.local.json
+.claude/worktrees/

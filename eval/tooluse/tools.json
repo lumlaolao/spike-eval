@@ -1,0 +1,170 @@
+{
+  "version": "seat-tools-v1",
+  "comment": "The seat's read-only tools as native function definitions. Each maps 1:1 onto a command ContextMemory.execute already implements (text_command), so the native and text protocols reach the SAME executor and differ only in how the request is expressed. Descriptions carry the same epistemic caveats the text grammar states. rules_lookup and simulate are served by the engine side only (RulesTool, PlayerLookahead); the tool-use suite has no fixture for them and does not offer them.",
+  "tools": [
+    {
+      "type": "function",
+      "text_command": "INSPECT {target}",
+      "function": {
+        "name": "inspect",
+        "description": "Current public characteristics and printed rules text of one object you can see (pass its handle, e.g. \"@41\"), or the public card-database text of a card (pass its exact name). Inspecting an object you have seen also shows its zone history. Never reveals hidden identities.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "target": {
+              "type": "string",
+              "description": "An object handle such as \"@41\", or an exact card name."
+            }
+          },
+          "required": [
+            "target"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "text_command": "MEMORY SEARCH {offset} {query}",
+      "function": {
+        "name": "memory_search",
+        "description": "Literal, case-insensitive text search over this seat's archived observations and reveals. Returns up to 10 snippets per page with their evidence ids. Historical observations are NOT current state. Cannot query hidden state.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Literal text to find, e.g. a card name or an event id like \"[E80]\"."
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Result offset for paging; 0 for the first page."
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "text_command": "MEMORY READ {evidence_id} {offset}",
+      "function": {
+        "name": "memory_read",
+        "description": "Read one archived evidence entry in full (2000 characters per page). Use it when a snippet ends with \"[READ for full text]\". Historical observations are NOT current state.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "evidence_id": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "The n of an [M<n>] evidence id."
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Character offset; 0 for the start."
+            }
+          },
+          "required": [
+            "evidence_id"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "text_command": "MEMORY NOTE {evidence_id} {note}",
+      "function": {
+        "name": "memory_note",
+        "description": "Save a hypothesis or plan to your notebook, citing the evidence entry it rests on. Notes are YOUR unverified hypotheses, never engine facts; they are shown back to you on later decisions.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "evidence_id": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "The observation or reveal [M<n>] the note cites."
+            },
+            "note": {
+              "type": "string",
+              "maxLength": 500
+            }
+          },
+          "required": [
+            "evidence_id",
+            "note"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "text_command": "RULES {action} {query} {offset}",
+      "function": {
+        "name": "rules_lookup",
+        "description": "Look up the official Magic Comprehensive Rules. Replies are bounded pages with a next= offset. Returns public reference text, not evidence about this game.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "description": "search: find rules by words. read: one rule in full (query = its number, e.g. \"509.1a\"). section: a digest of a section (query = its number, e.g. \"509\"). term: a glossary definition (query = the word). toc: list the chapters (no query).",
+              "enum": [
+                "search",
+                "read",
+                "section",
+                "term",
+                "toc"
+              ]
+            },
+            "query": {
+              "type": "string",
+              "description": "Words, a rule or section number, or a glossary word; omit for toc."
+            },
+            "offset": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Page offset from a previous reply's next=; 0 for the first page."
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "text_command": "SIMULATE {option} {target}",
+      "function": {
+        "name": "simulate",
+        "description": "Preview what ONE numbered SPELL option of the current decision resolves to, on a copy of the game built only from what you can see. It is an estimate, not the engine's verdict: hidden cards are guessed. At most one preview per decision.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "option": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "The option number from the decision's list."
+            },
+            "target": {
+              "type": "string",
+              "description": "Optional: the name of the target to preview against."
+            }
+          },
+          "required": [
+            "option"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  ]
+}

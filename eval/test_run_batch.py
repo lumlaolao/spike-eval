@@ -229,6 +229,34 @@ class TestResumeIdentity(unittest.TestCase):
             game_line(1, False, context_profile="v1-compat", memory_tools=True), exp))
         self.assertFalse(run_batch.game_line_matches(game_line(1, False, smart_a="opus"), exp))
 
+    def test_native_tools_is_the_default_protocol_and_its_own_condition(self):
+        OR = "openrouter:deepseek/deepseek-v4.1-flash"
+        # Tools + a backend with function calling -> native, unless --text-tools opts out.
+        self.assertTrue(run_batch.native_tools_requested(make_args(memory_tools=True, smart_a=OR)))
+        self.assertFalse(run_batch.native_tools_requested(make_args(memory_tools=True, smart_a=OR, text_tools=True)))
+        self.assertFalse(run_batch.native_tools_requested(make_args(memory_tools=False, smart_a=OR)))
+        self.assertFalse(run_batch.native_tools_requested(make_args(memory_tools=True, smart_a="haiku")))
+        self.assertFalse(run_batch.native_tools_requested(make_args(memory_tools=True, smart_a=OR, controller_a="floor")))
+        self.assertTrue(run_batch.native_tools_requested(
+            make_args(memory_tools=True, smart_a="haiku", controller_a="ai", smart_b=OR, controller_b="llm")))
+        # Each tier decides alone: a CLI smart tier with an openrouter fast tier still calls natively.
+        self.assertTrue(run_batch.native_tools_requested(make_args(memory_tools=True, smart_a="haiku", fast_a=OR)))
+
+        text = run_batch.resume_expectation(make_args(context_profile="v4-faithful", memory_tools=True))
+        native = run_batch.resume_expectation(make_args(context_profile="v4-faithful", memory_tools=True,
+                                                        native_tools=True))
+        text_line = game_line(1, False, context_profile="v4-faithful", memory_tools=True, native_tools=False)
+        old_line = game_line(1, False, context_profile="v4-faithful", memory_tools=True)   # predates the field
+        native_line = game_line(1, False, context_profile="v4-faithful", memory_tools=True, native_tools=True)
+        self.assertTrue(run_batch.game_line_matches(text_line, text))
+        self.assertTrue(run_batch.game_line_matches(old_line, text))
+        self.assertFalse(run_batch.game_line_matches(native_line, text))
+        self.assertTrue(run_batch.game_line_matches(native_line, native))
+        self.assertFalse(run_batch.game_line_matches(old_line, native))
+        self.assertEqual(run_batch.condition_diff({"memory_tools": True}, {"memory_tools": True, "native_tools": False}), [])
+        self.assertEqual(run_batch.condition_diff({"memory_tools": True}, {"memory_tools": True, "native_tools": True}),
+                         [("native_tools", None, True)])
+
     def test_expectation_under_memory_tools_rejects_baseline_lines(self):
         exp = run_batch.resume_expectation(make_args(context_profile="v2-memory", memory_tools=True))
         self.assertFalse(run_batch.game_line_matches(game_line(1, False), exp))
@@ -322,6 +350,24 @@ class TestManifest(unittest.TestCase):
             same = run_batch.batch_condition(
                 make_args(context_profile="v2-memory", memory_tools=True), cited=False)
             self.assertIsNone(run_batch.check_resume_condition(d, same, cited=False))
+
+    def test_legacy_text_grammar_dir_refuses_native_games(self):
+        OR = "openrouter:deepseek/deepseek-v4.1-flash"
+        with tempfile.TemporaryDirectory() as d:
+            # Written before native_tools existed: a memory-tools game that ran the text grammar.
+            write_game(d, "game-7100-1000.jsonl",
+                       game_line(7100, False, context_profile="v4-faithful", memory_tools=True, rules_tool=False,
+                                 smart_a=OR, fast_a=OR, checkpoint_sha="unknown", discipline="exploratory"))
+            kw = dict(context_profile="v4-faithful", memory_tools=True, smart_a=OR, fast_a=OR)
+            native = make_args(**kw)
+            native.native_tools = run_batch.native_tools_requested(native)
+            self.assertTrue(native.native_tools)
+            msg = run_batch.check_resume_condition(d, run_batch.batch_condition(native, cited=False), cited=False)
+            self.assertIsNotNone(msg)
+            self.assertIn("native_tools", msg)
+            text = make_args(text_tools=True, **kw)
+            text.native_tools = run_batch.native_tools_requested(text)
+            self.assertIsNone(run_batch.check_resume_condition(d, run_batch.batch_condition(text, cited=False), cited=False))
 
     def test_unverifiable_legacy_dir_refused_for_cited_warned_for_exploratory(self):
         with tempfile.TemporaryDirectory() as d:

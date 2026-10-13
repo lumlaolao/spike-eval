@@ -69,6 +69,27 @@ The Forge checkout is pinned: `FORGE_COMMIT` records the engine version everythi
 validated against (`install.sh` warns on drift). Don't bump it casually — eval results
 are only comparable within one engine version.
 
+## Standard: the seat's tools are native tool calls (2026-10-13 — user decision, non-negotiable)
+
+**Anything the model can look up or do beyond answering is offered as a native function
+definition and comes back as a `tool_calls` turn.** Do not add a new text command the reply must
+"consist of", and do not parse a tool request out of prose.
+
+- Definitions live in `NativeTools.java` and, identically, in `eval/tooluse/tools.json`
+  (`NativeToolsTest.definitionsMatchTheToolUseSuite` fails when they differ). A new tool is added in
+  both, maps onto one executor command, and shares the per-decision / per-game budget.
+- It is the default wherever the backend has function calling (`openrouter:` specs).
+  `NATIVE_TOOLS=0` / `run_batch.py --text-tools` is the opt-out, for reproducing older runs or
+  measuring the protocol. The text grammar (`MEMORY ...` / `INSPECT ...` lines) survives only as the
+  fallback for a backend without function calling (the Claude CLI lane) and gets no new features.
+- Why: across 48 recorded games the text grammar refused 30 of the model's 43 tool requests for
+  their form, and in the tool-use suite native calling reached the needed lookup in 87% of
+  scenarios against 40% (`docs/harness/PLAYER-HARNESS.md`, "Tool protocol").
+- A tool change is measured with `python3 eval/tool_use_suite.py` (reach, correct, restraint, each
+  next to its trivial baseline) before any game is played, and audited in games with
+  `python3 eval/tool_audit.py <run>` — a `REFUSED` request there is a harness defect.
+- Native and text runs are different conditions (`native_tools` on the game line). Never pool them.
+
 ## Key files
 
 - `forge-overlay/.../spike/LlmSpikeGui.java` — everything: `PlayerControllerLLM` (the

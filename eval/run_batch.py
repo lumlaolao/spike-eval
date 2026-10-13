@@ -74,7 +74,7 @@ RUN_DEFINING_KEYS = (
     # Context shape and memory tools are experimental CONDITIONS (they change
     # what the model can see and do); only --context-profile/--memory-tools set
     # them, never the ambient environment or --env.
-    "CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL",
+    "CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS",
 )
 # Per-knob context overrides (CTX_RECENT_EVENTS, ...) stamp a "+ovr" profile
 # name and a different context_sha on the game line. Cited mode refuses them;
@@ -91,7 +91,7 @@ MANIFEST_SCHEMA = "batch-manifest.v1"
 CONDITION_KEYS = (
     "discipline", "deck_a", "deck_b", "name_a", "name_b",
     "controller_a", "controller_b", "smart_a", "smart_b", "fast_a", "fast_b",
-    "plan_a", "plan_b", "context_profile", "memory_tools", "rules_tool", "ctx_overrides",
+    "plan_a", "plan_b", "context_profile", "memory_tools", "rules_tool", "native_tools", "ctx_overrides",
     "checkpoint_sha", "engine_sha", "overlay_sha", "deck_sha",
     "cap_minutes", "shadow_ai", "env_overrides",
 )
@@ -234,6 +234,7 @@ def build_env(args, seed, swap, out_dir):
     env["CONTEXT_PROFILE"] = args.context_profile or "v1-compat"
     env["MEMORY_TOOLS"] = "1" if getattr(args, "memory_tools", False) else "0"
     env["RULES_TOOL"] = "1" if getattr(args, "rules_tool", False) else "0"
+    env["NATIVE_TOOLS"] = "1" if getattr(args, "native_tools", False) else "0"
     # Explicitly clear SWAP_SEATS when not swapping so an inherited value
     # can't silently flip seats.
     if swap:
@@ -407,6 +408,10 @@ def resume_expectation(args):
         expect["memory_tools"] = [True]
     else:
         expect["memory_tools"] = [False, ABSENT]
+    if getattr(args, "native_tools", False):
+        expect["native_tools"] = [True]
+    else:
+        expect["native_tools"] = [False, ABSENT]
     if getattr(args, "rules_tool", False):
         expect["rules_tool"] = [True]
     else:
@@ -478,6 +483,7 @@ def batch_condition(args, cited):
         "context_profile": getattr(args, "context_profile", None),
         "memory_tools": bool(getattr(args, "memory_tools", False)),
         "rules_tool": bool(getattr(args, "rules_tool", False)),
+        "native_tools": bool(getattr(args, "native_tools", False)),
         "ctx_overrides": ctx,
         "checkpoint_sha": forced.get("CHECKPOINT_SHA"),
         "engine_sha": forced.get("ENGINE_SHA"),
@@ -490,10 +496,26 @@ def batch_condition(args, cited):
     }
 
 
+def native_tools_requested(args):
+    """Native function calling is the standard tool protocol: it is in effect whenever the seat has
+    tools at all (--memory-tools), some LLM seat is on a backend that supports it (openrouter:), and
+    --text-tools did not opt out. Mirrors NativeTools.usedBy + the game line's native_tools stamp."""
+    if not getattr(args, "memory_tools", False) or getattr(args, "text_tools", False):
+        return False
+    seats = [(getattr(args, "controller_a", None), getattr(args, "smart_a", None), getattr(args, "fast_a", None)),
+             (getattr(args, "controller_b", None), getattr(args, "smart_b", None), getattr(args, "fast_b", None))]
+    # Each tier decides alone (NativeTools.seats): one openrouter tier on a model-driven seat is enough.
+    return any((c or "llm") == "llm" and (spec or "").startswith("openrouter:")
+               for c, smart, fast in seats for spec in (smart, fast))
+
+
 def condition_diff(old, new):
     """[(key, old_value, new_value)] over CONDITION_KEYS that differ."""
+    def norm(m, k):
+        # A manifest written before native_tools existed ran without it.
+        return bool(m.get(k)) if k == "native_tools" else m.get(k)
     return [(k, old.get(k), new.get(k)) for k in CONDITION_KEYS
-            if old.get(k) != new.get(k)]
+            if norm(old, k) != norm(new, k)]
 
 
 def load_manifest(out_dir):
@@ -519,7 +541,7 @@ def legacy_dir_condition(out_dir):
     lines do not carry are omitted (unknowable, not 'matches')."""
     field_map = {
         "context_profile": "context_profile", "memory_tools": "memory_tools",
-        "rules_tool": "rules_tool",
+        "rules_tool": "rules_tool", "native_tools": "native_tools",
         "controller_a": "controller_a", "controller_b": "controller_b",
         "smart_a": "smart_a", "smart_b": "smart_b", "fast_a": "fast_a", "fast_b": "fast_b",
         "name_a": "deck_a", "name_b": "deck_b", "discipline": "discipline",
@@ -535,6 +557,10 @@ def legacy_dir_condition(out_dir):
                 seen.setdefault(key, set()).add(json.dumps(rec[field], sort_keys=True))
     if not n:
         return None
+    # A game line written before native_tools existed ran the text grammar. Without this a legacy
+    # directory of text-grammar games would accept native-tools games on resume.
+    if "memory_tools" in seen:
+        seen.setdefault("native_tools", {json.dumps(False)})
     return {"n_game_lines": n,
             "fields": {k: [json.loads(v) for v in sorted(vals)] for k, vals in seen.items()}}
 
@@ -564,7 +590,7 @@ def check_resume_condition(out_dir, condition, cited):
             want = "v1-compat"
         if key == "memory_tools":
             want = bool(want)
-        if key == "rules_tool":
+        if key in ("rules_tool", "native_tools"):
             want = bool(want)
         if key in ("controller_a", "controller_b", "smart_a", "smart_b",
                    "fast_a", "fast_b") and want is None:
@@ -958,6 +984,12 @@ def main():
                          "(MEMORY SEARCH/READ/NOTE). Default off. Agent-plus-tools "
                          "results are a separate condition from unassisted play and "
                          "must live in their own --out.")
+    ap.add_argument("--text-tools", action="store_true",
+                    help="NATIVE_TOOLS=0: with --memory-tools, use the text tool grammar instead "
+                         "of native function calling. Native calling is the standard and is what "
+                         "--memory-tools means on openrouter: seats; this flag is the opt-out, for "
+                         "reproducing pre-2026-10-13 runs or measuring the protocol. A separate "
+                         "condition: its own --out.")
     ap.add_argument("--rules-tool", action="store_true",
                     help="RULES_TOOL=1: give LLM seats the Comprehensive Rules lookup "
                          "(RULES SEARCH/READ/SECTION/TERM/TOC). Default off; a separate "
@@ -984,6 +1016,8 @@ def main():
             _refuse("--deck sets both seats; do not also pass --deck-a/--deck-b.")
         args.deck_a = args.deck
         args.deck_b = args.deck
+
+    args.native_tools = native_tools_requested(args)
 
     # Deck paths are made ABSOLUTE here. A game's working directory is the Forge tree
     # (run-llm-headless.sh cd's into forge-gui-desktop), so a relative path never resolves — and
