@@ -29,6 +29,9 @@ import forge.game.zone.ZoneType;
  * {@code getCostDecisionMaker} without re-deriving legality.
  */
 final class LlmCostDecision extends AiCostDecision {
+    /** Marks a sacrifice the seat is paying as a COST (as opposed to one an effect forces on it), so
+     *  the controller can ask the right question. */
+    static final String COST_MESSAGE = "Sacrifice as a cost";
 
     LlmCostDecision(Player ai0, SpellAbility sa, boolean effect) {
         super(ai0, sa, effect);
@@ -65,11 +68,21 @@ final class LlmCostDecision extends AiCostDecision {
             if (typeList.size() < amount) return null; // engine handles the impossible case
 
             forge.game.card.CardCollectionView pick = player.getController().choosePermanentsToSacrifice(ability, amount, amount,
-                    typeList, "Sacrifice as a cost");
+                    typeList, COST_MESSAGE);
             if (pick != null && !pick.isEmpty()) return PaymentDecision.card(pick);
-        } catch (Exception ignore) {
-            // fall through to the engine's own decision
+            if (amount <= 0) return super.visit(cost); // nothing to choose (X=0): the engine's bookkeeping
+            fellBack("empty pick");
+        } catch (Exception e) {
+            fellBack(e.getClass().getSimpleName());
         }
         return super.visit(cost);
+    }
+
+    /** The model-owned route failed and the engine's AI is about to choose. Never silent. */
+    private void fellBack(String why) {
+        try {
+            if (player.getController() instanceof LlmSpikeGui.PlayerControllerLLM)
+                ((LlmSpikeGui.PlayerControllerLLM) player.getController()).costDecisionFellBack(why);
+        } catch (Exception ignore) { }
     }
 }

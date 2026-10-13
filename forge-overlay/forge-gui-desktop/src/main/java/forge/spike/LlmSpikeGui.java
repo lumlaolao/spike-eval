@@ -2563,6 +2563,63 @@ public final class LlmSpikeGui {
             return new ArrayList<>();
         }
 
+        /** The play path for a cast or activation. The inherited implementation hands the ability to
+         *  {@code ComputerUtil.handlePlayingSpellAbility}, which pays EVERY cost with a hard-coded
+         *  {@code new AiCostDecision(...)} and never consults {@link #getCostDecisionMaker} — so Forge's
+         *  AI silently chose which creature Goblin Bombardment or a Cabal Therapy flashback sacrificed
+         *  (it takes the "worst" one: with Ajani, Nacatl Pariah and another Cat it sacrifices Ajani).
+         *  This runs the same steps as the engine routine at the pinned commit and pays with
+         *  {@link LlmCostDecision}, which routes a choosable sacrifice to the model and delegates every
+         *  other cost part to the engine's own decision. The cost is read AFTER optional keyword costs
+         *  are added, so a sacrifice that arrives that way (Casualty) is covered too. Only an ability
+         *  that defers targeting to another player stays on the inherited path.
+         *  RE-DIFF against {@code handlePlayingSpellAbility} on every engine re-pin (ENGINE-PIN.md). */
+        @Override
+        public boolean playChosenSpellAbility(SpellAbility sa) {
+            boolean ours = false;
+            try {
+                ours = !sa.isLandAbility() && sa.getHostCard() != null;
+                for (SpellAbility part = sa; ours && part != null; part = part.getSubAbility())
+                    if (part.hasParam("TargetingPlayer")) ours = false;
+            } catch (Exception e) { ours = false; }
+            if (!ours) return super.playChosenSpellAbility(sa);
+
+            final Player ai = getPlayer();
+            final Card source = sa.getHostCard();
+            final Game game = source.getGame();
+            final forge.game.zone.Zone hz = source.isCopiedSpell() ? null : source.getZone();
+            source.setSplitStateToPlayAbility(sa);
+            if (sa.isSpell() && !source.isCopiedSpell()) {
+                sa = forge.game.ability.AbilityUtils.addSpliceEffects(sa);
+                if (sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty()) {
+                    sa.resetTargets();
+                    if (getAi().canPlaySa(sa) != forge.ai.AiPlayDecision.WillPlay) return true;
+                }
+                sa.setHostCard(game.getAction().moveToStack(source, sa));
+            }
+            if (!sa.isCopied()) { sa.resetPaidHash(); sa.setPaidLife(0); }
+            sa = forge.game.GameActionUtil.addExtraKeywordCost(sa);
+            if (sa.getApi() == ApiType.Charm && !forge.game.ability.effects.CharmEffect.makeChoices(sa)) return true;
+
+            game.getStack().freezeStack(sa);
+            final CostPayment pay = new CostPayment(sa.getPayCosts(), sa);
+            if (pay.payComputerCosts(new LlmCostDecision(ai, sa, false))) {
+                game.getStack().addAndUnfreeze(sa);
+                if (sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty())
+                    game.getAction().reveal(sa.getSplicedCards(), ai, true, "Computer reveals spliced cards from ");
+                return true;
+            }
+            // Same recovery as the engine routine, but SAID: a play that did not happen must never read
+            // as "casts X" in the log (the audited game recorded a failed activation as a cast).
+            p("[ROUTER] play: FAILED to pay for " + labelOf(sa) + " -> nothing was played");
+            sa.setSkip(true);
+            if (hz != null && hz.is(ZoneType.Stack)) {
+                Card c = game.getAction().moveTo(hz.getZoneType(), source, null, null);
+                for (SpellAbility csa : c.getSpellAbilities()) csa.setSkip(true);
+            }
+            return true;
+        }
+
         /** G7: the card-choosing NON-mana costs (which permanent to sacrifice) go to the model via
          *  {@link LlmCostDecision}; every other cost type stays the engine's. */
         @Override
@@ -3483,12 +3540,20 @@ public final class LlmSpikeGui {
             if (validTargets == null || validTargets.isEmpty())
                 return super.choosePermanentsToSacrifice(sa, min, max, validTargets, message);
             List<Card> opts = new ArrayList<>(validTargets);
-            if (opts.size() <= min) return firstN(opts, min, "sacrifice(forced)"); // whole set forced, no real choice
+            if (opts.size() <= min) return firstN(opts, min, "sacrifice(forced)" + srcOf(sa)); // whole set forced, no real choice
             try {
                 if (!smartOk()) return firstN(opts, min, "sacrifice(no-budget)");
                 List<String> labels = new ArrayList<>();
                 for (Card c : opts) labels.add(cardLabel(c));
-                String q = "You must SACRIFICE " + (min == max ? String.valueOf(min) : min + "-" + max)
+                // A COST is something the seat chose to pay; an edict is something done to it. Different
+                // questions: the edict framing ("keep your best threats") is wrong for a sacrifice outlet,
+                // where WHICH permanent leaves is often the whole point of the play.
+                boolean asCost = message != null && message.startsWith(LlmCostDecision.COST_MESSAGE);
+                String q = asCost
+                        ? "COST: to pay for" + srcOf(sa) + " (" + oneLine(String.valueOf(sa)) + ") you must SACRIFICE "
+                          + (min == max ? String.valueOf(min) : min + "-" + max) + " of these permanents. "
+                          + "It leaves the battlefield now, as the cost is paid, before the ability resolves. Choose which."
+                        : "You must SACRIFICE " + (min == max ? String.valueOf(min) : min + "-" + max)
                         + " permanent(s)" + srcOf(sa)
                         + (message == null || message.isEmpty() ? "" : ": " + oneLine(message))
                         + ". Choose what to give up — keep your best remaining threats/blockers/mana sources.";
@@ -3637,6 +3702,10 @@ public final class LlmSpikeGui {
 
         /** Record + loudly log a genuine handoff to Forge's built-in AI. Grep "[FALLBACK->AI]" to audit how
          *  often the engine brain — not the LLM — actually made a call. Goal: keep this near zero. */
+        /** A cost decision the model should have made fell through to the engine's AI. Counted and
+         *  logged like every other delegation, so the ai=0 invariant sees it. */
+        void costDecisionFellBack(String why) { noteAi("sacrifice-cost(" + why + ")"); }
+
         private void noteAi(String where) {
             aiDelegations++;
             p("[FALLBACK->AI] " + where + "  (ai=" + aiDelegations + " smart=" + smartCalls + " fast=" + fastCalls + " auto=" + autoPicks + ")");

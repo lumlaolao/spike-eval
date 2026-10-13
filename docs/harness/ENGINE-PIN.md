@@ -47,6 +47,9 @@ The only API-visible changes that touched the overlay's surface:
    ownership ledger to be the one that breaks; regenerate it and the inventory **deliberately** if the
    engine added or removed hooks (keep the files sorted; update `ControllerOwnershipTest`'s count and
    the counts in `OWNERSHIP.md`).
+4b. **Re-diff the copied play routine.** `PlayerControllerLLM.playChosenSpellAbility` repeats the
+   steps of `ComputerUtil.handlePlayingSpellAbility` so it can pay with `LlmCostDecision` (the engine
+   hard-codes `AiCostDecision` there). If upstream changed that method, port the change.
 5. Update `FORGE_COMMIT`, then run the **full** acceptance. If the canaries moved, that is a real
    behaviour change: re-pin `eval/harness_acceptance.expected` **deliberately and with a note**, never
    by relaxing the assertion.

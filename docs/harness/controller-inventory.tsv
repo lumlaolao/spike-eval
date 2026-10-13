@@ -116,7 +116,7 @@ payCombatCost[class forge.game.card.Card, class forge.game.cost.Cost, class forg
 payCostDuringRoll[class forge.game.cost.Cost, class forge.game.spellability.SpellAbility]	forge.ai.PlayerControllerAi
 payCostToPreventEffect[class forge.game.cost.Cost, class forge.game.spellability.SpellAbility, boolean, interface forge.util.collect.FCollectionView]	forge.ai.PlayerControllerAi
 payManaCost[class forge.card.mana.ManaCost, class forge.game.cost.CostPartMana, class forge.game.spellability.SpellAbility, class java.lang.String, class forge.game.mana.ManaConversionMatrix, boolean]	forge.ai.PlayerControllerAi
-playChosenSpellAbility[class forge.game.spellability.SpellAbility]	forge.ai.PlayerControllerAi
+playChosenSpellAbility[class forge.game.spellability.SpellAbility]	forge.spike.LlmSpikeGui$PlayerControllerLLM
 playSaFromPlayEffect[class forge.game.spellability.SpellAbility]	forge.ai.PlayerControllerAi
 playSpellAbilityNoStack[class forge.game.spellability.SpellAbility, boolean]	forge.ai.PlayerControllerAi
 playTrigger[class forge.game.card.Card, class forge.game.trigger.WrappedAbility, boolean]	forge.ai.PlayerControllerAi
