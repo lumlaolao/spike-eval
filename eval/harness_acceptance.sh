@@ -25,6 +25,9 @@
 #              tools sent as function definitions, real tool-call turns served through the same executor
 #              and budget, the text grammar never sent. faketool/faithful/rules pin NATIVE_TOOLS=0: they
 #              are the regression tests of the text-grammar fallback.
+#   nativerefuse a loopback game whose provider answers 404 "no endpoints support tool use" to any request
+#              carrying tools: each bridge drops to the text grammar after ONE refusal, the game line says
+#              so, the seat keeps its lookups through the text loop, and nothing falls back to the Forge AI
 #   lookahead  a loopback game with LOOKAHEAD=1 and the fake server in --policy simulate: the real
 #              PlayerLookahead.previewCast path runs (preview + re-ask), at least one targeting preview is
 #              produced, and no AI fallback occurs
@@ -45,7 +48,7 @@ JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Content
 JAVA="$JAVA_HOME/bin/java"; JAVAC="$JAVA_HOME/bin/javac"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="${OUT:-$REPO/runs/harness-acceptance/$STAMP}"
-STAGES="${STAGES:-preflight classpath compile javatests pytests canary faketool faithful lookahead nativetool rules}"
+STAGES="${STAGES:-preflight classpath compile javatests pytests canary faketool faithful lookahead nativetool nativerefuse rules}"
 EXPECTED="$REPO/eval/harness_acceptance.expected"
 OVERLAY="$REPO/forge-overlay/forge-gui-desktop/src"
 LEDGER="$REPO/docs/harness/controller-ownership.tsv"
@@ -138,8 +141,11 @@ if has_stage compile; then
       "$OVERLAY"/main/java/forge/spike/*.java "$OVERLAY"/test/java/forge/spike/*.java >"$OUT/javac.log" 2>&1
     RC=$?
     NC="$(find "$CLASSES" -name '*.class' | wc -l | tr -d ' ')"
-    if [ $RC -eq 0 ] && [ -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then pass compile "$NC classes from overlay sources (isolated dir; checkout untouched)"
-    else fail compile "javac rc=$RC (see $OUT/javac.log)"; fi
+    # The checkout build (checkstyle) rejects unused and duplicate imports; this javac does not.
+    python3 "$REPO/eval/java_imports.py" "$OVERLAY" >"$OUT/java_imports.log" 2>&1; IRC=$?
+    if [ $RC -ne 0 ] || [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail compile "javac rc=$RC (see $OUT/javac.log)"
+    elif [ $IRC -ne 0 ]; then fail compile "imports the Forge checkout build rejects: $(head -3 "$OUT/java_imports.log" | tr '\n' ' ')"
+    else pass compile "$NC classes from overlay sources (isolated dir; checkout untouched); imports clean"; fi
   fi
 fi
 
@@ -330,10 +336,11 @@ if has_stage lookahead; then
         LOOK="$(grep -c '\[ROUTER\] lookahead' "$dir/game.log" 2>/dev/null)"; LOOK="${LOOK:-0}"
         TGT="$(grep -c 'assuming target:' "$dir/game.log" 2>/dev/null)"; TGT="${TGT:-0}"
         AILOG="$(grep -c '\[FALLBACK->AI\]' "$dir/game.log" 2>/dev/null)"; AILOG="${AILOG:-0}"
-        if [ "$LOOK" -ge 1 ] && [ "$TGT" -ge 1 ] && [ "$AILOG" -eq 0 ]; then
-          pass lookahead "preview rounds=$LOOK (targeting previews=$TGT), no AI fallbacks"
+        PFAIL="$(grep -c '\[ROUTER\] lookahead.*preview failed' "$dir/game.log" 2>/dev/null)"; PFAIL="${PFAIL:-0}"
+        if [ "$LOOK" -ge 1 ] && [ "$TGT" -ge 1 ] && [ "$AILOG" -eq 0 ] && [ "$PFAIL" -eq 0 ]; then
+          pass lookahead "preview rounds=$LOOK (targeting previews=$TGT), 0 failed previews, no AI fallbacks"
         else
-          fail lookahead "preview rounds=$LOOK targeting=$TGT fallbacks=$AILOG (need >=1 preview, >=1 targeting preview, 0 fallbacks)"
+          fail lookahead "preview rounds=$LOOK targeting=$TGT failed_previews=$PFAIL fallbacks=$AILOG (need >=1 preview, >=1 targeting preview, 0 failed, 0 fallbacks)"
         fi
       fi
     fi
@@ -357,10 +364,13 @@ if has_stage nativetool; then
     FAKE_PID=$!
     PORT=""; for i in 1 2 3 4 5 6 7 8 9 10; do PORT="$(awk '/^LISTENING/{print $2}' "$sdir/fake_server.out" 2>/dev/null)"; [ -n "$PORT" ] && break; sleep 0.5; done
     if [ -z "$PORT" ]; then fail nativetool "fake model server did not start"; kill $FAKE_PID 2>/dev/null; else
-      say "nativetool: LLM seat A on loopback fake model, native tools by default (NATIVE_TOOLS unset), MEMORY_TOOLS=1 LOOKAHEAD=1 under v4-faithful (burn mirror)"
+      # Mardu mirror on purpose: both sideboards hold Barrowgoyf, the characteristic-defining card that
+      # made the engine copier throw on every preview (PlayerLookahead.UncopiedEffects). The burn
+      # mirror the lookahead stage plays has no such card and never saw the defect.
+      say "nativetool: LLM seat A on loopback fake model, native tools by default (NATIVE_TOOLS unset), MEMORY_TOOLS=1 LOOKAHEAD=1 under v4-faithful (Mardu mirror)"
       play nativetool 42 CONTROLLER_A=llm CONTROLLER_B=floor SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
           OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" MEMORY_TOOLS=1 LOOKAHEAD=1 CONTEXT_PROFILE=v4-faithful GAME_CAP_MS=120000 \
-          DECK_A="$REPO/eval/decks/burn.txt" DECK_B="$REPO/eval/decks/burn.txt" DECK_A_NAME=Burn DECK_B_NAME=BurnB
+          DECK_A="$REPO/eval/decks/mardu-energy.txt" DECK_B="$REPO/eval/decks/mardu-energy.txt" DECK_A_NAME=MarduA DECK_B_NAME=MarduB
       kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
       if ! check_build_loaded "$dir"; then fail nativetool "JVM did not load LlmSpikeGui from $CLASSES"; else
         ( cd "$REPO" && python3 eval/defect_analyzer.py "$dir" --json "$dir/defects.json" ) >"$dir/defects.txt" 2>&1; ARC=$?
@@ -377,8 +387,9 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 else:
     if game.get("native_tools") is not True: problems.append("native_tools=%r not stamped"%game.get("native_tools"))
-    if game.get("native_tools_version")!="seat-tools-v1": problems.append("native_tools_version=%r (expected seat-tools-v1; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
+    if game.get("native_tools_version")!="seat-tools-v2": problems.append("native_tools_version=%r (expected seat-tools-v2; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
     if game.get("memory_tools_version")!="evidence-tools-v2": problems.append("memory_tools_version=%r (expected evidence-tools-v2; move this pin WITH ContextMemory.VERSION)"%game.get("memory_tools_version"))
+    if game.get("lookahead_version")!="lookahead-preview-v2" or game.get("lookahead") is not True: problems.append("lookahead=%r lookahead_version=%r (expected True, lookahead-preview-v2; move this pin WITH PlayerLookahead.VERSION)"%(game.get("lookahead"),game.get("lookahead_version")))
     if game.get("native_tools_seats")!="A/smart,A/fast": problems.append("native_tools_seats=%r"%game.get("native_tools_seats"))
 calls=[r for r in rows if r.get("t")=="context_call"]
 tools=[r for r in rows if r.get("t")=="context_tool"]
@@ -404,6 +415,12 @@ if not reqs or len(with_tools)!=len(reqs): problems.append("%d of %d requests ca
 if not any(r.get("tool_results") for r in reqs): problems.append("no request carried a tool result back")
 if any(r.get("has_authorization") for r in reqs): problems.append("authorization header sent to loopback")
 if not any("simulate" in r.get("tools_offered",[]) for r in reqs): problems.append("simulate was never offered")
+previews=[r for r in tools if r.get("request","").startswith("TOOL CALL simulate ")]
+broken=[r for r in previews if "preview failed" in r.get("result","")]
+if broken: problems.append("%d of %d previews failed (the engine copy threw; see [LOOKAHEAD] in game.log)"%(len(broken),len(previews)))
+if not any("if you cast" in r.get("result","") for r in previews): problems.append("no preview returned a result")
+lines=[r for r in previews if "then" in r.get("request","")]
+if not any(", then " in r.get("result","") for r in lines): problems.append("no line preview played two options (%d asked)"%len(lines))
 if all("simulate" in r.get("tools_offered",[]) for r in reqs): problems.append("simulate was offered outside play decisions")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
 facts="context_calls=%d (later rounds %d) tool_rows=%d served: search=%d inspect=%d simulate=%d refused_malformed=%d fake_requests=%d"%(
@@ -412,6 +429,64 @@ print(("FAIL "+"; ".join(problems)+" | "+facts) if problems else "PASS "+facts)
 EOF
 )"
         case "$VERDICT" in PASS*) pass nativetool "${VERDICT#PASS }";; *) fail nativetool "${VERDICT#FAIL }";; esac
+      fi
+    fi
+  fi
+fi
+
+# ---------------------------------------------------------------- nativerefuse
+# A provider with no function calling. It would fail if a refusal were retried forever, if the seat
+# lost its tools instead of dropping to the text grammar, if the game line still claimed a clean
+# native game, or if the lost decision were handed to the Forge AI.
+if has_stage nativerefuse; then
+  if [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail nativerefuse "no compiled classes"; else
+    dir="$OUT/nativerefuse"; sdir="$OUT/nativerefuse-server"; mkdir -p "$dir" "$sdir"
+    : > "$sdir/fake_requests.jsonl"
+    python3 "$REPO/eval/fake_model_server.py" --port 0 --policy pass --refuse-tools --memory-call 8 --log "$sdir/fake_requests.jsonl" \
+        >"$sdir/fake_server.out" 2>&1 &
+    FAKE_PID=$!
+    PORT=""; for i in 1 2 3 4 5 6 7 8 9 10; do PORT="$(awk '/^LISTENING/{print $2}' "$sdir/fake_server.out" 2>/dev/null)"; [ -n "$PORT" ] && break; sleep 0.5; done
+    if [ -z "$PORT" ]; then fail nativerefuse "fake model server did not start"; kill $FAKE_PID 2>/dev/null; else
+      say "nativerefuse: LLM seat A on a loopback provider that refuses tools (404), MEMORY_TOOLS=1 under v4-faithful"
+      play nativerefuse 42 CONTROLLER_A=llm CONTROLLER_B=floor SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
+          OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" MEMORY_TOOLS=1 CONTEXT_PROFILE=v4-faithful SMART_BUDGET=40 FAST_BUDGET=40
+      kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
+      if ! check_build_loaded "$dir"; then fail nativerefuse "JVM did not load LlmSpikeGui from $CLASSES"; else
+        ( cd "$REPO" && python3 eval/defect_analyzer.py "$dir" --json "$dir/defects.json" ) >"$dir/defects.txt" 2>&1; ARC=$?
+        VERDICT="$(python3 - "$dir" "$sdir" "$ARC" <<'EOF'
+import glob,json,sys
+d,sdir,arc=sys.argv[1],sys.argv[2],int(sys.argv[3]); problems=[]
+rows=[]
+for f in glob.glob(d+"/game-*.jsonl"):
+    for line in open(f):
+        try: rows.append(json.loads(line))
+        except Exception: pass
+game=next((r for r in rows if r.get("t")=="game"),None)
+reqs=[json.loads(l) for l in open(sdir+"/fake_requests.jsonl")]
+refused=[r for r in reqs if r.get("refused_tools")]
+text=[r for r in reqs if not r.get("tools_offered")]
+if not game: problems.append("no game line")
+else:
+    down=sorted(x for x in (game.get("native_tools_downgraded") or "").split(",") if x)
+    if not down: problems.append("native_tools_downgraded is empty")
+    if len(refused)!=len(down): problems.append("%d refused requests for %d downgraded bridges (a refusal was retried)"%(len(refused),len(down)))
+if not refused: problems.append("the provider never refused: tools were not offered")
+if not text: problems.append("no text-grammar request followed the refusal")
+calls=[r for r in rows if r.get("t")=="context_call"]
+native_after=[r for r in calls if r.get("protocol")=="native" and r.get("raw_reply")]
+if native_after: problems.append("%d native rounds got a reply from a provider that refuses tools"%len(native_after))
+grammar=[r for r in calls if "MEMORY TOOLS evidence-tools" in (r.get("prompt") or "")]
+if not grammar: problems.append("the text grammar was never sent after the downgrade")
+tools=[r for r in rows if r.get("t")=="context_tool" and not str(r.get("result","")).startswith("ERROR")]
+if not tools: problems.append("no tool was served through the text loop after the downgrade")
+if any(r.get("tier")=="ai" for r in rows if r.get("t")=="decision"): problems.append("a decision fell back to the Forge AI")
+if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
+facts="refused=%d downgraded=%s text_requests=%d grammar_prompts=%d tools_served_by_text=%d"%(
+    len(refused),(game or {}).get("native_tools_downgraded"),len(text),len(grammar),len(tools))
+print(("FAIL "+"; ".join(problems)+" | "+facts) if problems else "PASS "+facts)
+EOF
+)"
+        case "$VERDICT" in PASS*) pass nativerefuse "${VERDICT#PASS }";; *) fail nativerefuse "${VERDICT#FAIL }";; esac
       fi
     fi
   fi

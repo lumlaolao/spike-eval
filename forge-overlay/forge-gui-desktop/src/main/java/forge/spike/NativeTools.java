@@ -24,7 +24,8 @@ import com.google.gson.JsonParser;
 final class NativeTools {
     private NativeTools() { }
 
-    static final String VERSION = "seat-tools-v1";
+    /** v2 (2026-10-13): `simulate` covers activated abilities and says what it reports. */
+    static final String VERSION = "seat-tools-v2";
     static final String SIMULATE = "simulate";
     private static final List<String> RULES_ACTIONS = List.of("search", "read", "section", "term", "toc");
 
@@ -115,6 +116,18 @@ final class NativeTools {
         return p;
     }
 
+    private static JsonObject intArray(String description) {
+        JsonObject items = new JsonObject();
+        items.addProperty("type", "integer");
+        items.addProperty("minimum", 1);
+        JsonObject p = new JsonObject();
+        p.addProperty("type", "array");
+        p.add("items", items);
+        p.addProperty("maxItems", 2);
+        p.addProperty("description", description);
+        return p;
+    }
+
     private static JsonObject props(Object... nameThenProp) {
         JsonObject o = new JsonObject();
         for (int i = 0; i < nameThenProp.length; i += 2) o.add((String) nameThenProp[i], (JsonObject) nameThenProp[i + 1]);
@@ -165,11 +178,15 @@ final class NativeTools {
                 "action"));
         }
         if (simulate) a.add(fn(SIMULATE,
-                "Preview what ONE numbered SPELL option of the current decision resolves to, on a copy of the game "
-                + "built only from what you can see. It is an estimate, not the engine's verdict: hidden cards are "
-                + "guessed. At most one preview per decision.",
+                "Preview what a numbered CAST or ACTIVATE option of the current decision does when it resolves, on a "
+                + "copy of the game built only from what you can see: which permanents leave or arrive, and each "
+                + "player's life, hand, library and graveyard counts. Pass `then` to preview a LINE: further options "
+                + "played after it, in order, on the same copy (it tells you if a later one can no longer be paid "
+                + "for). It is an estimate, not the engine's verdict: hidden cards are guessed, and the engine pays "
+                + "the costs on the copy. At most one preview per decision.",
                 props("option", prop("integer", "The option number from the decision's list.", 1, null),
-                      "target", prop("string", "Optional: the name of the target to preview against.", null, null)),
+                      "target", prop("string", "Optional: the name of the target to preview the first option against.", null, null),
+                      "then", intArray("Optional: up to two more option numbers to play after it, in order.")),
                 "option"));
         return a;
     }

@@ -125,6 +125,148 @@ public class LookaheadProbeTest {
         Assert.assertTrue(theirs.isInZone(forge.game.zone.ZoneType.Battlefield));
     }
 
+    /**
+     * The defect behind every failed preview of the Mardu games (runs/lines/ctl/native-lookahead: 16
+     * of 16 spell previews; 104 of 104 on loopback): a characteristic-defining card in a SIDEBOARD
+     * has a static effect the engine's copier cannot map, because it does not copy that zone.
+     */
+    @Test
+    public void aSideboardCardWithACharacteristicDefiningAbilityDoesNotBreakThePreview() throws Exception {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+        for (int i = 0; i < 2; i++) SeatObservationTest.card("Mountain", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.card.Card pyro = SeatObservationTest.card("Pyroclasm", me, forge.game.zone.ZoneType.Hand);
+        SeatObservationTest.card("Elite Vanguard", opp, forge.game.zone.ZoneType.Battlefield);
+        SeatObservationTest.card("Barrowgoyf", opp, forge.game.zone.ZoneType.Sideboard);
+        SeatObservationTest.card("Barrowgoyf", me, forge.game.zone.ZoneType.Sideboard);
+        g.getAction().checkStaticAbilities();
+
+        // The fixture reproduces the engine defect. If this stops throwing, the engine was fixed and
+        // PlayerLookahead.UncopiedEffects can be deleted.
+        try {
+            new forge.ai.simulation.GameCopier(g).makeCopy();
+            Assert.fail("the engine copier now handles a sideboard CDA card: remove the workaround");
+        } catch (RuntimeException e) {
+            Assert.assertTrue(String.valueOf(e.getMessage()).contains("Couldn't map Barrowgoyf"), String.valueOf(e));
+        }
+
+        java.util.Map<Object, Object> table = PlayerLookahead.UncopiedEffects.tableOf(g);
+        java.util.List<Object> keysBefore = new java.util.ArrayList<>(table.keySet());
+        java.util.List<Object> valuesBefore = new java.util.ArrayList<>(table.values());
+        Assert.assertTrue(keysBefore.size() >= 2, "fixture: no static effects for the sideboard cards");
+
+        String report = PlayerLookahead.previewCast(g, me, spellOn(pyro), 5L);
+        Assert.assertFalse(report.contains("preview failed"), report);
+        Assert.assertTrue(report.contains("board 1 -> 0"), report);
+        Assert.assertNotNull(PlayerLookahead.copyForPreview(g, 5L));
+
+        // The live table is exactly what it was: same objects, same order.
+        java.util.List<Object> keysAfter = new java.util.ArrayList<>(table.keySet()), valuesAfter = new java.util.ArrayList<>(table.values());
+        Assert.assertEquals(keysAfter.size(), keysBefore.size());
+        for (int i = 0; i < keysBefore.size(); i++) {
+            Assert.assertSame(keysAfter.get(i), keysBefore.get(i), "effect order changed at " + i);
+            Assert.assertSame(valuesAfter.get(i), valuesBefore.get(i));
+        }
+        PlayerLookahead.UncopiedEffects parked = PlayerLookahead.UncopiedEffects.park(g);
+        Assert.assertEquals(parked.parked, 2, "both sideboard effects are parked");
+        Assert.assertEquals(table.size(), keysBefore.size() - 2);
+        parked.restore();
+        Assert.assertEquals(new java.util.ArrayList<>(table.keySet()), keysBefore);
+    }
+
+    private static forge.game.spellability.SpellAbility abilityOn(forge.game.card.Card c, Player activator) {
+        for (forge.game.spellability.SpellAbility s : c.getSpellAbilities()) {
+            if (s.isActivatedAbility() && !s.isManaAbility()) { s.setActivatingPlayer(activator); return s; }
+        }
+        return null;
+    }
+
+    /**
+     * v2: an activated ability is previewed. In runs/lines/ctl/native-lookahead 19 of the seat's 38
+     * preview requests were for one (Goblin Bombardment, a planeswalker) and every one was refused.
+     * The report names what left the battlefield, because "board 3 -> 2" hides the whole point.
+     */
+    @Test
+    public void anActivatedAbilityWithASacrificeCostIsPreviewed() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+        forge.game.card.Card bombardment = SeatObservationTest.card("Goblin Bombardment", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.card.Card fodder = SeatObservationTest.card("Elite Vanguard", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.spellability.SpellAbility sa = abilityOn(bombardment, me);
+        Assert.assertNotNull(sa, "fixture: no activated ability on Goblin Bombardment");
+        int lifeBefore = opp.getLife();
+
+        String report = PlayerLookahead.previewCast(g, me, sa, 5L, opp.getName());
+        System.out.println("[LOOKAHEAD] " + report);
+        Assert.assertTrue(report.startsWith("if you activate Goblin Bombardment"), report);
+        Assert.assertTrue(report.contains("left the battlefield: Elite Vanguard"), report);
+        Assert.assertTrue(report.contains("life " + lifeBefore + " -> " + (lifeBefore - 1)), report);
+        Assert.assertTrue(report.contains("in the real play YOU choose"), "the engine-paid sacrifice must be flagged: " + report);
+        // Live game untouched: the creature is still there, nobody lost life, the option has no targets left on it.
+        Assert.assertTrue(fodder.isInZone(forge.game.zone.ZoneType.Battlefield));
+        Assert.assertEquals(opp.getLife(), lifeBefore);
+        Assert.assertTrue(sa.getTargets() == null || sa.getTargets().isEmpty());
+    }
+
+    @Test
+    public void aTapAbilityIsPreviewedAndALandDropIsNot() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+        forge.game.card.Card pinger = SeatObservationTest.card("Prodigal Pyromancer", me, forge.game.zone.ZoneType.Battlefield);
+        pinger.setSickness(false);
+        forge.game.card.Card theirs = SeatObservationTest.card("Elite Vanguard", opp, forge.game.zone.ZoneType.Battlefield);
+        String report = PlayerLookahead.previewCast(g, me, abilityOn(pinger, me), 5L, "Elite Vanguard");
+        System.out.println("[LOOKAHEAD] " + report);
+        Assert.assertTrue(report.startsWith("if you activate Prodigal Pyromancer [assuming target: Elite Vanguard]"), report);
+        Assert.assertTrue(report.contains("left the battlefield: Elite Vanguard"), report);
+        Assert.assertFalse(report.contains("YOU choose"), "no sacrifice in this cost: " + report);
+        Assert.assertTrue(theirs.isInZone(forge.game.zone.ZoneType.Battlefield));
+        Assert.assertFalse(pinger.isTapped(), "the live permanent must not be tapped by a preview");
+
+        forge.game.card.Card land = SeatObservationTest.card("Mountain", me, forge.game.zone.ZoneType.Hand);
+        forge.game.spellability.SpellAbility drop = null;
+        for (forge.game.spellability.SpellAbility s : land.getAllPossibleAbilities(me, false)) if (s.isLandAbility()) drop = s;
+        if (drop != null)
+            Assert.assertTrue(PlayerLookahead.previewCast(g, me, drop, 5L).startsWith("(a preview covers CAST and ACTIVATE"));
+    }
+
+    /** A line: two plays on one copy. With mana for both, both happen; with mana for one, the preview
+     *  says the second could not be paid for, which is the sequencing answer the seat is asking for. */
+    @Test
+    public void aLineOfTwoPlaysIsPreviewedOnOneCopyAndStopsWhereTheManaRunsOut() {
+        for (int lands = 1; lands <= 2; lands++) {
+            Game g = SeatObservationTest.bareGame();
+            Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+            for (int i = 0; i < lands; i++) SeatObservationTest.card("Mountain", me, forge.game.zone.ZoneType.Battlefield);
+            forge.game.card.Card b1 = SeatObservationTest.card("Lightning Bolt", me, forge.game.zone.ZoneType.Hand);
+            forge.game.card.Card b2 = SeatObservationTest.card("Lightning Bolt", me, forge.game.zone.ZoneType.Hand);
+            int life = opp.getLife();
+            forge.game.spellability.SpellAbility s1 = spellOn(b1), s2 = spellOn(b2);
+            s1.setActivatingPlayer(me);   // as a real menu option carries it
+            s2.setActivatingPlayer(me);
+            String report = PlayerLookahead.previewLine(g, me, java.util.Arrays.asList(s1, s2), 5L, opp.getName());
+            System.out.println("[LOOKAHEAD] lands=" + lands + ": " + report);
+            if (lands == 2) {
+                Assert.assertTrue(report.startsWith("if you cast Lightning Bolt [assuming target: " + opp.getName() + "], then cast Lightning Bolt"), report);
+                Assert.assertTrue(report.contains("life " + life + " -> " + (life - 6)), report);
+                Assert.assertFalse(report.contains("could NOT"), report);
+            } else {
+                Assert.assertTrue(report.contains("life " + life + " -> " + (life - 3)), report);
+                Assert.assertTrue(report.contains("could NOT pay for or play Lightning Bolt"), report);
+                Assert.assertTrue(report.contains("hand 2 -> 1"), "the unpaid second spell must not be reported as gone from hand: " + report);
+            }
+            Assert.assertEquals(opp.getLife(), life, "the live game is untouched");
+            Assert.assertEquals(me.getCardsIn(forge.game.zone.ZoneType.Hand).size(), 2);
+            for (forge.game.card.Card c : me.getCardsIn(forge.game.zone.ZoneType.Battlefield)) Assert.assertFalse(c.isTapped());
+        }
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0);
+        forge.game.spellability.SpellAbility s = spellOn(SeatObservationTest.card("Lightning Bolt", me, forge.game.zone.ZoneType.Hand));
+        Assert.assertTrue(PlayerLookahead.previewLine(g, me, java.util.Arrays.asList(s, s, s, s), 5L, null).startsWith("(a preview covers at most 3"));
+        // Seen on loopback: the same option twice was reported as two casts with one card's worth of change.
+        Assert.assertTrue(PlayerLookahead.previewLine(g, me, java.util.Arrays.asList(s, s), 5L, null).startsWith("(a line names each option once"));
+    }
+
     /** A targeting spell is previewed against a first-legal target, and the live option is restored. */
     @Test
     public void previewCastResolvesATargetingSpellAndRestoresTheLiveOption() {

@@ -1,5 +1,5 @@
 {
-  "version": "seat-tools-v1",
+  "version": "seat-tools-v2",
   "comment": "The seat's read-only tools as native function definitions. Each maps 1:1 onto a command ContextMemory.execute already implements (text_command), so the native and text protocols reach the SAME executor and differ only in how the request is expressed. Descriptions carry the same epistemic caveats the text grammar states. rules_lookup and simulate are served by the engine side only (RulesTool, PlayerLookahead); the tool-use suite has no fixture for them and does not offer them.",
   "tools": [
     {
@@ -142,10 +142,10 @@
     },
     {
       "type": "function",
-      "text_command": "SIMULATE {option} {target}",
+      "text_command": "SIMULATE {option} {target} {then}",
       "function": {
         "name": "simulate",
-        "description": "Preview what ONE numbered SPELL option of the current decision resolves to, on a copy of the game built only from what you can see. It is an estimate, not the engine's verdict: hidden cards are guessed. At most one preview per decision.",
+        "description": "Preview what a numbered CAST or ACTIVATE option of the current decision does when it resolves, on a copy of the game built only from what you can see: which permanents leave or arrive, and each player's life, hand, library and graveyard counts. Pass `then` to preview a LINE: further options played after it, in order, on the same copy (it tells you if a later one can no longer be paid for). It is an estimate, not the engine's verdict: hidden cards are guessed, and the engine pays the costs on the copy. At most one preview per decision.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -156,7 +156,16 @@
             },
             "target": {
               "type": "string",
-              "description": "Optional: the name of the target to preview against."
+              "description": "Optional: the name of the target to preview the first option against."
+            },
+            "then": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "maxItems": 2,
+              "description": "Optional: up to two more option numbers to play after it, in order."
             }
           },
           "required": [

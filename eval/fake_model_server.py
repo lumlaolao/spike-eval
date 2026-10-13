@@ -34,6 +34,10 @@ Fault injection:
                                 deliberately malformed call. With --policy simulate, a request that
                                 offers the `simulate` tool is always answered by calling it once.
 
+  --refuse-tools                a provider with no function calling: any request carrying `tools` is
+                                answered 404 "No endpoints found that support tool use." and logged
+                                with refused_tools=true. Requests without tools are answered as usual.
+
 Every request is appended to --log as one JSON line: call number, wall time, whether an
 Authorization header was present (never its value), the model requested, prompt length,
 the reply, and whether it was stalled. Prints `LISTENING <port>` on stdout once bound.
@@ -77,7 +81,13 @@ class Policy:
             return {"id": "call_%s_%d" % (name, self.calls), "type": "function",
                     "function": {"name": name, "arguments": arguments if isinstance(arguments, str) else json.dumps(arguments)}}
         if self.args.policy == "simulate" and "simulate" in offered:
-            return [call("simulate", {"option": 1})]
+            with self.lock:
+                self.previews = getattr(self, "previews", 0) + 1
+                n = self.previews
+            # Every other preview asks for a LINE (option 1, then option 2), so the line path runs in
+            # the acceptance game: both plays when there is mana for both, "could not be paid for"
+            # when there is not, and an error when the decision has only one such option.
+            return [call("simulate", {"option": 1, "then": [2]} if n % 2 == 0 else {"option": 1})]
         with self.lock:
             if self.native_sent >= self.args.native_calls:
                 return None
@@ -174,6 +184,12 @@ class Handler(BaseHTTPRequestHandler):
             p.record(entry)
             self._send(400, {"error": {"message": str(e)}})
             return
+        if getattr(p.args, "refuse_tools", False) and body.get("tools"):
+            entry["refused_tools"] = True
+            entry["reply"] = None
+            p.record(entry)
+            self._send(404, {"error": {"message": "No endpoints found that support tool use.", "code": 404}})
+            return
         stalled = p.args.stall_call and call == p.args.stall_call
         if stalled:
             time.sleep(p.args.stall_ms / 1000.0)
@@ -223,6 +239,8 @@ def main():
     ap.add_argument("--memory-call", type=int, default=0)
     ap.add_argument("--native-calls", type=int, default=0,
                     help="answer the first N tool-offering requests with a function call (NATIVE_TOOLS=1 games)")
+    ap.add_argument("--refuse-tools", action="store_true",
+                    help="answer 404 to any request that carries `tools` (a provider without function calling)")
     ap.add_argument("--rules-call", type=int, default=0,
                     help="when nonzero, the first tool prompt advertising the RULES grammar is answered "
                          "with `RULES SEARCH 0 declare blockers`, so a real rules lookup is exercised")

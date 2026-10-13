@@ -409,8 +409,10 @@ and the turn ahead, and that giving it a way to plan or look ahead would fix tha
   plays (7.2%) against 14 of 174 (8.0%) in control and 11 of 150 (7.3%) pre-fix. The harness
   executed 15 plan steps in 16 games, because the model mostly declined to hand them over
   ("STEPS: (none -- I want to choose Thoughtseize's target myself)").
-- **Lookahead did nothing measurable, because it was barely used.** The model asked for a preview 7
-  times in 16 games (900 model calls by `tool_audit.py`'s count, the one used below). Same wins; contradictions 14 of 155 (9.0%).
+- **Lookahead did nothing measurable, because it was barely used and never worked.** The model
+  asked for a preview 7 times in 16 games (900 model calls by `tool_audit.py`'s count, the one
+  used below) and none returned a result (problem 13, below). Same wins; contradictions 14 of 155
+  (9.0%).
 - **The seat does state sequences.** It wrote a plan in 109-137 turns per arm and its plays
   contradicted the plan's own hold clauses in 7-9% of plays in every arm, pre-fix included. Stating
   the line is not the missing piece.
@@ -457,10 +459,10 @@ allowance; observation v12 unchanged; no game capped; load 0.2 per core):
 |---|---|---|---|---|---|---|
 | `control` (text grammar v1) | 15 | 4 | **11** | n/a | 6 of 16 | 14 of 174 (8.0%) |
 | `planexec` (v1) | 15 | 3 | **9** | n/a | 6 of 16 | 12 of 167 (7.2%) |
-| `lookahead` (v1, `LOOKAHEAD=1`) | 13 | 3 | **10** | 7 | 6 of 16 | 14 of 155 (9.0%) |
+| `lookahead` (v1, `LOOKAHEAD=1`) | 13 | 3 | **10** | 0 of 7 requested | 6 of 16 | 14 of 155 (9.0%) |
 | `textv2` (repaired grammar) | 7 | 7 | 0 | n/a | 6 of 16 | 7 of 151 (4.6%) |
 | `native` | **213** | 202 | 0 | n/a | 6 of 16 | 11 of 170 (6.5%) |
-| `native-lookahead` (`LOOKAHEAD=1`) | 150 | 146 | 0 | **35** | 5 of 16 | 16 of 154 (10.4%) |
+| `native-lookahead` (`LOOKAHEAD=1`) | 150 | 111 | 0 | **0 of 38 requested** | 5 of 16 | 16 of 154 (10.4%) |
 
 `python3 eval/tool_audit.py runs/lines/ctl/<arm>`, `eval/line_compare.py`, `eval/plan_audit.py`.
 
@@ -468,28 +470,48 @@ allowance; observation v12 unchanged; no game capped; load 0.2 per core):
   requests a game where it had made under one, 174 of them `inspect`, and none was refused for its
   form. Repairing the text grammar removed the refusals but not the reluctance (7 requests in 16
   games): the model reaches for a function, not for a reply format.
-- **Lookahead was finally exercised** (35 previews against 7), which makes `native-lookahead` the
-  first arm that tests the hypothesis rather than the offer.
-- **Nothing moved in the results.** 6, 6 and 5 wins of 16; every paired comparison is at most 4 games
-  either way (sign tests p=1.0). Plan contradictions did not fall with lookahead (10.4%, the highest
-  of any arm, on 154 plays; not distinguishable from 6.5% at this size).
+- **Lookahead was requested, and never delivered.** The seat asked for 38 previews in
+  `native-lookahead` (7 in the text `lookahead` arm). Not one returned a result. Sixteen threw
+  inside the engine (`(preview failed: RuntimeException)`), nineteen were for an activated ability
+  (`lookahead v1 supports spell options only`), three named an option that was not a spell. In the
+  text arm it was 4 failed and 3 not-a-spell. `python3 eval/tool_audit.py
+  runs/lines/ctl/native-lookahead` now prints `simulate REFUSED 0, FAILED 16, empty 19, bad-args 3`;
+  it had counted all of them as served, which is how the first version of this section came to say
+  lookahead "was finally exercised".
+- **Nothing moved in the results**, and for lookahead nothing could have: 6, 6 and 5 wins of 16;
+  every paired comparison is at most 4 games either way (sign tests p=1.0).
 
-So the measured state of the hypothesis: with lookahead available as a tool and used about twice a
-game, the seat did not win more or contradict its plans less in sixteen paired games. That is not
-evidence that lookahead cannot help (the sample resolves about 35 points and a preview covers one
-spell, not a line), but the specific claim "the seat loses because it has no way to look ahead" is
-not supported. What the logs do show is narrower and already fixed: decisions the seat was never
-given (problems 1-4), text it was never shown (problem 11), and lookups it asked for and was
-refused (problem 12).
+**Problem 13 (layer: lookahead; strong evidence): every spell preview failed in any game with a
+characteristic-defining card in a sideboard.** Forge's `GameCopier` copies seven zones and not the
+Sideboard. A characteristic-defining ability (Barrowgoyf: "power is equal to the number of card
+types among cards in all graveyards") applies in every zone, so the engine keeps a static effect
+whose source is the sideboard card, and `GameCopier.makeCopy -> StaticEffect.removeMapped` throws
+`Couldn't map Barrowgoyf`. The Mardu list has two in its sideboard. Reproduced without a model: a
+loopback Mardu mirror with the fake server previewing every play failed 104 of 104 times; with
+`PlayerLookahead.UncopiedEffects` (those effects are taken out of the engine's table while the copy
+is made and put back in the original order; no card and no live state is changed) it is 104 of
+104 working. The acceptance stage that tests previews played a burn mirror, which has no such
+card, and passed throughout. It now fails on any failed preview, and the native stage plays the
+Mardu mirror. `LookaheadProbeTest` reproduces the engine defect first, so an engine that fixes it
+turns the test red and the workaround can go.
+
+So the measured state of the hypothesis: **untested.** No arm so far has shown the seat a single
+preview. The plan-then-execute result stands (nothing measurable), and so does the narrower finding
+that fixing the protocol took the seat from under one tool request a game to about thirteen. What
+is known to have been wrong is, again, in the harness: decisions the seat was never given (problems
+1-4), text it was never shown (problem 11), lookups it asked for and was refused (problem 12), and
+previews it asked for and never received (problem 13).
 
 ### Decision
 
 1. Native function calling is the standard tool protocol (`CLAUDE.md`), on by default wherever the
    backend supports it. `simulate` is one of the tools.
 2. The text grammar is repaired (`evidence-tools-v2`) and kept only as the fallback.
-3. The sequence hypothesis is not supported at this size and stays open at a larger one. The next
-   measurement is not another sixteen games: it is a preview that covers a line (two or more of the
-   seat's own plays), tested first in the tool-use suite, then on enough pairs to resolve ten points.
+3. The sequence hypothesis is untested: no arm delivered a preview (problem 13). The arm that
+   tests it is native tools with `LOOKAHEAD=1` on the build where previews work, read first on
+   `tool_audit.py` (previews served, not requested), then on plan contradictions and wins. Nineteen
+   of the 38 requests were for an activated ability, which the preview does not cover; that is the
+   next thing to build, before a preview of a whole line.
 4. An MCP server and a sandboxed workspace are not being built
    (`docs/harness/NOTES-mcp-and-workspace.md`).
 
