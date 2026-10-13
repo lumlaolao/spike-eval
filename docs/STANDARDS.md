@@ -79,7 +79,7 @@ Install the commit hook once with `bash scripts/install_hooks.sh`.
 | `eval/<name>/` | data a driver reads (`tooluse/`, `decks/`, `suites/`) | versioned inside the file |
 | `scripts/` | repository tooling (gate, format, hooks) | stdlib / bash 3.2; `pr_format.py` holds the logic and is tested from `eval/test_pr_format.py`; the shell scripts are thin wrappers |
 | `docs/harness/` | what the harness does and what was measured | a claim cites a file, a test or a run |
-| `.claude/skills/` | the skills every agent must use | tracked; local settings and worktrees are not |
+| `.claude/skills/` | the skills every agent must use; Claude Code and OpenCode both discover them here, so they are not copied elsewhere | tracked; local settings and worktrees are not |
 | `runs/`, `datasets/` | generated data | never committed; never `git add -A` at the root |
 
 One concept, one home. Before adding a file, look for the one that already does the job

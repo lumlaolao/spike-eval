@@ -6,8 +6,10 @@ only points at them and repeats what is never optional.
 
 ## Always
 
-- **Use the required skills** in `.claude/skills/` (each is a `SKILL.md` you read and follow; run
-  the three review skills as fresh subagents when your runtime has them):
+- **Use the required skills** in `.claude/skills/`. Claude Code and OpenCode both load them from
+  there by name, so there is one copy and nothing to install (checked on OpenCode 2.0.27:
+  `opencode api skill.list --param "location[directory]=$PWD"` lists all five). Run the three
+  review skills as fresh subagents when your runtime has them and the owner has not asked for none:
   - `pr-format` before every commit, PR title/body and merge;
   - `pr-review`, then `simplify`, then `standards` on **every** PR before it is merged;
   - `harness-audit` whenever game logs are reviewed.
