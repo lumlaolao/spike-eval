@@ -97,6 +97,11 @@ line (land drop AVAILABLE/USED, spells cast, attackers declared) so legality is 
 inferred from absence. Same discipline: prompt bytes changed, so v4 is a new provenance identity
 (v4 artifacts are not comparable to v3).
 
+**Later still (2026-10-13): v4 → `observation-faithful-v5`.** The seat's plan is no longer dropped at
+the turn boundary: it is rendered with the turn it was stated and flagged stale when the turn moves
+on, and it is asked for once per turn on either player's turn (so an instant-speed "hold up mana"
+plan exists). Prompt bytes changed → new provenance identity.
+
 ## Residual limits (explicit)
 
 - **Name-only references to a hidden object are not redacted.** If an engine call site

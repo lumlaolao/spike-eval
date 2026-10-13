@@ -72,13 +72,16 @@ import forge.spike.LlmSpikeGui.ContextProfile;
  * seat are appended to the same stream, so every seat-visible fact has one E-id and one place to search.
  */
 final class SeatObservation {
-    static final String VERSION = "observation-faithful-v4";
+    static final String VERSION = "observation-faithful-v5";
     /** Printed once per observation so every prompt is self-describing. Part of the prompt bytes and
      *  therefore of this VERSION: change it and bump the version. */
     static final String LEGEND = "LEGEND: @N = your seat's handle for one object, assigned when you first see it; a zone change "
             + "makes a NEW object with a new handle, and '(was @k)' is shown only when you could see its whole path. "
             + "'face-down <type>' = identity hidden from you. Menu options name the same handles. "
-            + "Zones list every card unless an explicit '(+N more not shown)' omission is printed.\n";
+            + "Zones list every card unless an explicit '(+N more not shown)' omission is printed. "
+            + "'SPENT THIS TURN' states what you have already used (land drop, spells, attackers) so legality is never "
+            + "inferred from absence; 'KNOWN IN HIDDEN ZONES' is what YOU saw go into an opponent's hidden zone (your "
+            + "knowledge, dropped once you see it leave); 'YOUR PLAN' is your own plan with the turn you stated it.\n";
 
     /** Log types narrated. The legacy set plus INFORMATION, which carries public reveal notices
      *  (CostReveal) the legacy filter silently dropped. PHASE and MANA remain noise. */
@@ -710,8 +713,7 @@ final class SeatObservation {
             }
             s.append(knownHiddenText());
             s.append(spentThisTurn());
-            if (planTurn == ph.getTurn() && ph.isPlayerTurn(viewer) && turnPlan != null && !turnPlan.isEmpty())
-                s.append("YOUR TURN PLAN (stated earlier this turn — execute it or consciously deviate): ").append(turnPlan);
+            s.append(LlmSpikeGui.PlayerControllerLLM.planText(turnPlan, planTurn, ph.getTurn()));
             return s.toString();
         } catch (Exception e) {
             return "== (state unavailable: " + e + ") ==";

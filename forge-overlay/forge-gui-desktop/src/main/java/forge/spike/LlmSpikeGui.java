@@ -1002,8 +1002,10 @@ public final class LlmSpikeGui {
               + "nothing pending. `-> targets` shows what each is aimed at.\n"
               + "`RECENT EVENTS (oldest->newest)`: the engine's own log of what happened between your decisions\n"
               + "(opponent plays, combat results, discards). `INTEL: ...`: durable facts you learned (revealed\n"
-              + "hands, cards you named). `YOUR TURN PLAN (...)`: the one-line plan you stated earlier this turn —\n"
-              + "execute it or consciously deviate.\n"
+              + "hands, cards you named). `SPENT THIS TURN: ...`: what you have already used this turn (land drop\n"
+              + "AVAILABLE/USED, spells cast, attackers declared) — stated, never inferred from a missing option.\n"
+              + "`YOUR PLAN (...)`: your own one-line plan and the turn you stated it — execute it, or consciously\n"
+              + "deviate and say why; it survives into the opponent's turn, where holding mana matters.\n"
               + "Option lists label each card the same way: `Name (P/T)[loyalty N][tapped]/[untapped][counters]`,\n"
               + "so duplicate-named permanents are always distinguishable — read the tag before you pick.\n"
               + "`@N` after an in-play card (board, lands, and option lists alike) is that specific permanent's\n"
@@ -1215,6 +1217,21 @@ public final class LlmSpikeGui {
          *  seat can produce a byte-format-identical game-state prompt). The instance {@code snapshot()}
          *  above just forwards its per-seat fields, so the LLM seat's output is unchanged; the
          *  ai-teacher seat passes an empty intel deque + no turn plan (it accumulates neither). */
+        /** The seat's OWN stated plan, kept for as long as it is relevant. It is deliberately NOT
+         *  dropped when the turn passes: "hold up UU and counter their payoff" only means anything on
+         *  THEIR turn, which a same-turn gate erased. It carries the turn it was stated and is flagged
+         *  as possibly stale once the turn has moved on, so the model can follow it or consciously
+         *  deviate — and say which. Shared by both renderers so they cannot drift. */
+        static String planText(String turnPlan, int planTurn, int nowTurn) {
+            if (turnPlan == null || turnPlan.isEmpty()) return "";
+            StringBuilder b = new StringBuilder("YOUR PLAN (you stated this at T").append(planTurn).append(" — ");
+            b.append(planTurn == nowTurn
+                    ? "this turn; execute it, or consciously deviate and say why"
+                    : "a previous turn; the board may have changed — re-state it or consciously continue");
+            b.append("): ").append(turnPlan).append('\n');
+            return b.toString();
+        }
+
         static String buildSnapshot(Player me, String seat, java.util.Collection<String> intel, String turnPlan, int planTurn) {
             // Stateless callers (the ai-teacher logging seat, LlmSpikeFork's enumerate snapshot) have
             // no per-seat decision history, so they render with watermark -1: under FIXED_TAIL that is
@@ -1274,8 +1291,8 @@ public final class LlmSpikeGui {
                 s.append(history);
                 if (!intel.isEmpty()) s.append("INTEL: ").append(String.join(" | ", intel)).append('\n');
                 // Same-turn plan continuity: the line the model declared at its first main-phase decision.
-                if (planTurn == ph.getTurn() && ph.isPlayerTurn(me) && !turnPlan.isEmpty())
-                    s.append("YOUR TURN PLAN (stated earlier this turn — execute it or consciously deviate): ").append(turnPlan);
+                if (!turnPlan.isEmpty())
+                    s.append(planText(turnPlan, planTurn, ph.getTurn()));
                 return s.toString();
             } catch (Exception e) {
                 return "== (state unavailable) ==";
@@ -2008,7 +2025,7 @@ public final class LlmSpikeGui {
                 int choice = -1;
                 // First main-phase decision of OUR turn: also ask for a one-line turn plan (piggybacked —
                 // costs zero extra calls). It rides in the snapshot for every later decision this turn.
-                boolean askPlan = ownMain && !landOnly && planTurn != turn && b == smart; // fast tier is terse-only
+                boolean askPlan = !landOnly && planTurn != turn && b == smart; // once per turn, EITHER player's turn
                 boolean lookaheadOn = lookaheadEnabled();
                 StringBuilder lookCtx = new StringBuilder(); // at most one lookahead preview per decision
                 if (rnd != null) choice = 1 + rnd.nextInt(passIdx); // random arm: uniform incl. PASS
