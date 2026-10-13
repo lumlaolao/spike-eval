@@ -10,7 +10,11 @@ floor.turns=108
 # 2026-10-13: engine pin bumped c1c64a53 -> 6c1810dd0b42 (3 months upstream). The floor arm is
 # deterministic, but the ENGINE changed (card scripts, AI, rules handling). Same winner AND turns;
 # decisions 1053 -> 1064. Re-pinned deliberately: ai=0 rows, silent drops=0, game not capped.
-floor.decisions=1064
+# 2026-10-13 (later): the seat may respond to its OWN trigger on the stack (it used to auto-pass
+# without a row). The floor arm reaches that window 4 times and takes its usual
+# play(no-budget)->PASS, so 4 more auto rows are written: 1064 -> 1068. Same winner, same turns,
+# no game action changed. Re-pinned deliberately: ai=0 rows, silent drops=0.
+floor.decisions=1068
 random.seed=42
 # 2026-09-07: model-owned optional confirmations expose four previously silent AI
 # trigger choices to the random policy (first divergence: confirm-trigger, turn 15, decision 61).
