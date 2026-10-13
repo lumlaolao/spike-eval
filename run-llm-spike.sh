@@ -2,6 +2,8 @@
 # Launch the Forge desktop GUI with our LLM-Agent controller in a spectator match.
 # Run from the forge repo root; it cd's into forge-gui-desktop so assets resolve to ../forge-gui/res.
 set -e
+# Repo root, captured BEFORE the cd below: the rules tool needs an absolute CR path.
+REPO="$(cd "$(dirname "$0")" && pwd)"
 export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
 # Ensure the `claude` CLI (used by HaikuDecider) is on PATH for the launched JVM.
 PATH="$JAVA_HOME/bin:$HOME/.local/bin:$PATH"
@@ -46,6 +48,14 @@ ADDOPENS="--add-opens java.desktop/java.beans=ALL-UNNAMED \
 --add-opens java.base/java.math=ALL-UNNAMED \
 --add-opens java.base/java.util.concurrent=ALL-UNNAMED \
 --add-opens java.base/java.net=ALL-UNNAMED"
+
+# ---- ALWAYS-ON MATCH MODEL (2026-10-13) -------------------------------------------------------
+# See run-llm-headless.sh: the same defaults, so the GUI and headless seats play the same way.
+# Compare with the baseline:  CONTEXT_PROFILE=v1-compat MEMORY_TOOLS=0 RULES_TOOL=0 ./run-llm-spike.sh
+export CONTEXT_PROFILE="${CONTEXT_PROFILE:-v4-faithful}"
+export MEMORY_TOOLS="${MEMORY_TOOLS:-1}"
+export RULES_TOOL="${RULES_TOOL:-1}"
+export RULES_FILE="${RULES_FILE:-$REPO/data/rules/MagicCompRules.txt}"
 
 exec java $ADDOPENS \
   -Xmx4096m \

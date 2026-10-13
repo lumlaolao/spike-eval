@@ -112,6 +112,7 @@ the classic instant-speed action window). `[TALLY]` prints running `avgSmart`/`a
 | `MEMORY_TOOLS` | `0` (off) | enable the seat-local evidence archive + the `MEMORY`/`INSPECT` tool loop (see `docs/harness/RULES-TOOL.md`, `COMPLETION-GATES.md`) |
 | `RULES_TOOL` | `0` (off) | give the seat the `RULES` tool — a bounded, paginated lookup over the bundled **Comprehensive Rules** (`RULES SEARCH` / `READ` / `SECTION` / `TERM` / `TOC`). Requires `MEMORY_TOOLS=1`; off keeps prompt bytes byte-identical, so evals can run **with and without** rules access |
 | `RULES_FILE` | `data/rules/MagicCompRules.txt` (cwd/ancestor) | path to the CR text the tool reads; the acceptance passes it explicitly (it runs from the Forge tree) |
+| `CONTEXT_PROFILE` | `v1-compat` (engine) | which observation shape the seat gets. The **play scripts default it to `v4-faithful`** — the always-on match model: viewer-aware handles, `KNOWN IN HIDDEN ZONES`, `SPENT THIS TURN`, engine `FACTS`, `RECURRING` threats, tiered match history. The eval runner keeps its own guarded `v1-compat` baseline (student/teacher prompt pairing depends on it). Registered: `v1-compat`, `v2-memory`, `v3-compact`, `v4-faithful`. |
 | `RECORD` / `RECORD_OUT` / `RECORD_FPS` | off | window recording (see below) |
 | `GAME_SEED` | random | seeds Forge's RNG — same seed = same shuffles/coin flip (bit-reproducible with non-LLM arms) |
 | `SWAP_SEATS` | 0 | `1` seats identity B first — the paired-design flip |
