@@ -14,6 +14,7 @@ chooseBinary[class forge.game.spellability.SpellAbility, class java.lang.String,
 chooseBinary[class forge.game.spellability.SpellAbility, class java.lang.String, class forge.game.player.PlayerController$BinaryChoiceType, interface java.util.Map]	forge.ai.PlayerControllerAi
 chooseCardName[class forge.game.spellability.SpellAbility, interface java.util.List, class java.lang.String]	forge.spike.LlmSpikeGui$PlayerControllerLLM
 chooseCardName[class forge.game.spellability.SpellAbility, interface java.util.function.Predicate, class java.lang.String, class java.lang.String]	forge.spike.LlmSpikeGui$PlayerControllerLLM
+chooseCardToKeepStickers[interface forge.game.card.CardCollectionView]	forge.ai.PlayerControllerAi
 chooseCardsForConvokeOrImprovise[class forge.game.spellability.SpellAbility, class forge.card.mana.ManaCost, interface forge.game.card.CardCollectionView, boolean, boolean, class java.lang.Integer]	forge.ai.PlayerControllerAi
 chooseCardsForCost[interface forge.game.card.CardCollectionView, class forge.game.spellability.SpellAbility, class forge.game.cost.CostPartWithList, int, boolean, class java.lang.String]	forge.ai.PlayerControllerAi
 chooseCardsForEffectMultiple[interface java.util.Map, class forge.game.spellability.SpellAbility, class java.lang.String, boolean]	forge.ai.PlayerControllerAi
@@ -71,6 +72,8 @@ chooseSpellAbilityToPlay[]	forge.spike.LlmSpikeGui$PlayerControllerLLM
 chooseSprocket[class forge.game.card.Card, interface java.util.List]	forge.ai.PlayerControllerAi
 chooseStartingHand[interface java.util.List]	forge.ai.PlayerControllerAi
 chooseStartingPlayer[boolean]	forge.ai.PlayerControllerAi
+chooseStickerNamePosition[class forge.game.card.sticker.Sticker, class forge.game.card.Card]	forge.ai.PlayerControllerAi
+chooseSticker[interface java.util.List, class forge.game.card.Card, class forge.game.spellability.SpellAbility, boolean]	forge.ai.PlayerControllerAi
 chooseTarget[class forge.game.spellability.SpellAbility, interface java.util.List]	forge.ai.PlayerControllerAi
 chooseTargetsFor[class forge.game.spellability.SpellAbility]	forge.spike.LlmSpikeGui$PlayerControllerLLM
 complainCardsCantPlayWell[class forge.deck.Deck]	forge.ai.PlayerControllerAi

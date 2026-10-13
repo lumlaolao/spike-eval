@@ -14,6 +14,7 @@ chooseBinary[class forge.game.spellability.SpellAbility, class java.lang.String,
 chooseBinary[class forge.game.spellability.SpellAbility, class java.lang.String, class forge.game.player.PlayerController$BinaryChoiceType, interface java.util.Map]	LLM	strategic	model	rare	Model owns every overload; complete numeric domain or binary menu; deterministic audited fallback; no Forge AI delegation.
 chooseCardName[class forge.game.spellability.SpellAbility, interface java.util.List, class java.lang.String]	LLM	strategic	model+ai-fallback	rare	Model-routed; empty list / exception -> super (tier=ai row).
 chooseCardName[class forge.game.spellability.SpellAbility, interface java.util.function.Predicate, class java.lang.String, class java.lang.String]	LLM	strategic	model+ai-fallback	core	Model-routed (Pithing Needle, Cabal Therapy naming); no-pool / exception -> super (tier=ai row).
+chooseCardToKeepStickers[interface forge.game.card.CardCollectionView]	AI	mechanics	ai-inherited	none	Stickers (Unfinity): which card keeps its stickers when too many would remain; Forge AI.
 chooseCardsForConvokeOrImprovise[class forge.game.spellability.SpellAbility, class forge.card.mana.ManaCost, interface forge.game.card.CardCollectionView, boolean, boolean, class java.lang.Integer]	AI	payment	ai-inherited	rare	Which creatures/artifacts tap for convoke/improvise: Forge AI.
 chooseCardsForCost[interface forge.game.card.CardCollectionView, class forge.game.spellability.SpellAbility, class forge.game.cost.CostPartWithList, int, boolean, class java.lang.String]	AI	payment	ai-inherited	none	Engine placeholder (assert false); AI path pays via AiCostDecision instead.
 chooseCardsForEffectMultiple[interface java.util.Map, class forge.game.spellability.SpellAbility, class java.lang.String, boolean]	AI	strategic	ai-inherited	rare	Best-by-AI-evaluation pick per category. Model never asked.
@@ -71,6 +72,8 @@ chooseSpellAbilityToPlay[]	LLM	strategic	model	core	Priority-window play decisio
 chooseSprocket[class forge.game.card.Card, interface java.util.List]	AI	exotic	ai-inherited	none	Contraption mechanic.
 chooseStartingHand[interface java.util.List]	AI	strategic	ai-inherited	none	Multiple-hands variant rule; scored by AI hand evaluation.
 chooseStartingPlayer[boolean]	LLM	strategic	model	core	Model-routed play/draw after winning the toss (Forge AI always plays first); deterministic fallback: play first; no Forge AI delegation.
+chooseStickerNamePosition[class forge.game.card.sticker.Sticker, class forge.game.card.Card]	AI	mechanics	ai-inherited	none	Stickers (Unfinity): which printed-name slot a sticker covers; Forge AI.
+chooseSticker[interface java.util.List, class forge.game.card.Card, class forge.game.spellability.SpellAbility, boolean]	AI	mechanics	ai-inherited	none	Stickers (Unfinity): choose a sticker to place on a card; Forge AI.
 chooseTarget[class forge.game.spellability.SpellAbility, interface java.util.List]	AI	strategic	ai-inherited	rare	Spellskite-style redirect target: first option.
 chooseTargetsFor[class forge.game.spellability.SpellAbility]	LLM	strategic	model+ai-fallback	core	Model-routed targeting; no-target / bridge-down / under-filled -> super (tier=ai row where noted).
 complainCardsCantPlayWell[class forge.deck.Deck]	AI	match	ai-inherited	none	AI deck-sanity report; also sets the AI aggression profile from the deck.
