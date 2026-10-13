@@ -108,10 +108,15 @@ python3 harvest.py catalog
 
 | Source | Items | Authority | How collected |
 |---|---|---|---|
-| [RulesGuru](https://rulesguru.org) | 162 | judge-curated Q&A with explicit CR citations | public JSON API (`/api/questions/`), one random matching question per request with criteria rotation |
-| [Cranial Insertion](https://www.cranial-insertion.com) | 23 | long-running judge rules column (L2+ judges) | article HTML, Q&A pairs transcribed |
-| [Ask a Magic Judge](https://magicjudge.tumblr.com) | 7 | judge-run rules blog | Tumblr read API (`/api/read/json?type=answer`) |
-| Wizards official card rulings (Gatherer, via [Scryfall](https://scryfall.com/docs/api/rulings)) | 3 | `official-ruling` | Scryfall rulings endpoint |
+| [RulesGuru](https://rulesguru.org) | 281 | judge-curated Q&A with explicit CR citations | public JSON API (`/api/questions/`), one random matching question per request with criteria rotation |
+| [Cranial Insertion](https://www.cranial-insertion.com) | 56 | long-running judge rules column (L2+ judges) | article HTML, Q&A pairs transcribed |
+| [Ask a Magic Judge](https://magicjudge.tumblr.com) | 32 | judge-run rules blog | Tumblr read API (`/api/read/json?type=answer`) |
+| Wizards official card rulings (Gatherer, via [Scryfall](https://scryfall.com/docs/api/rulings)) | 49 | `official-ruling` | Scryfall rulings endpoint (`.../cards/<id>/rulings`), interactions picked from the ruling text |
+| [Judge Foundry](https://judgefoundry.org) | 3 | `judge-article` (quiz wrap-ups with explicit CR cites) | judge-authored Q&A wrap-up articles |
+
+**Total: 421** (2026-10-13). The 2026-10-13 extension added 226 items (RulesGuru 162→281,
+Cranial Insertion 23→56, Ask a Magic Judge 7→32, official rulings 3→49, Judge Foundry new) — all
+`verified: true` against a source actually fetched, all current-rules/2019+.
 
 Sources deliberately **not** used for corpus items (see Gaps): r/mtgpuzzles
 (board states are images, not text) and mtgpuzzles.com (pictorial solutions).
