@@ -689,6 +689,12 @@ public final class LlmSpikeGui {
         static final boolean PLAN_EXECUTE = "1".equals(System.getenv("PLAN_EXECUTE"));
         private String planSig;      // opponent-side signature when the plan was stated
         private int planStepIdx;     // how many plan steps have been executed this turn
+        /** The model's EXPLICIT cast list (`STEPS: A, B`), in order. Only this is auto-executed.
+         *  Free-text matching was a real bug (2026-10-13): a plan reading "Hold Shallow Grave
+         *  (graveyard has no creatures)" matched as a step to CAST, and the harness cast it -- a
+         *  misplay the MODEL had explicitly ruled out in the same sentence. Prose cannot distinguish
+         *  "cast X" from "hold X", so only an explicit list is honoured. */
+        private final java.util.List<String> planSteps = new java.util.ArrayList<>();
         private int profileTurn = -99;
         private static final int PROFILE_REFRESH_TURNS = 5;
 
@@ -2055,6 +2061,7 @@ public final class LlmSpikeGui {
                 boolean askProfile = askPlan && (oppProfile.isEmpty() || turn - profileTurn >= PROFILE_REFRESH_TURNS);
                 String asks = askPlan
                         ? "First state your plan for THIS TURN as `PLAN: <one short line>` (the sequence you intend, e.g. 'ritual into Reanimate on Griselbrand, hold Petal'). "
+                          + "If (and only if) you want the harness to execute steps of that plan for you without asking again this turn, add `STEPS: <card name>, <card name>` listing ONLY cards you intend to CAST, in the order you will cast them; omit anything you are holding. "
                         : "";
                 if (askProfile) asks += "Also state your read of the OPPONENT as `PROFILE: <one short line>` "
                         + "(their deck/plan and the cards to respect, e.g. 'Grixis Reanimator: Entomb+Reanimate, respect Force of Will'). ";
@@ -2067,19 +2074,20 @@ public final class LlmSpikeGui {
                         p("[ROUTER] play(plan-invalidated): opponent-side state changed -> re-plan");
                         planSig = null; turnPlan = ""; planTurn = -1; planStepIdx = 0;
                     } else {
-                        List<int[]> named = planOrderedOptions(options);
-                        if (planStepIdx < named.size()) {
-                            int idx = named.get(planStepIdx)[1];
-                            if (idx >= 0 && idx < options.size()) {
-                                SpellAbility planned = options.get(idx);
-                                planStepIdx++;
-                                playDecisionsThisTurn++;
-                                evalDec("play", passIdx, idx, "plan", 0,
-                                        "play(plan-executed)->step" + planStepIdx, playLabels);
-                                p("[ROUTER] play: plan step " + planStepIdx + " -> " + labelOf(planned));
-                                ensureTargetsSet(planned);
-                                return Lists.newArrayList(planned);
-                            }
+                        // Walk the EXPLICIT step list in order. A step no longer in the menu (already
+                        // cast, or no longer castable) is skipped rather than jumping to a later step.
+                        while (planStepIdx < planSteps.size()) {
+                            String step = planSteps.get(planStepIdx);
+                            planStepIdx++;
+                            int idx = planStepInMenu(step, options);
+                            if (idx < 0) continue;
+                            SpellAbility planned = options.get(idx);
+                            playDecisionsThisTurn++;
+                            evalDec("play", passIdx, idx, "plan", 0,
+                                    "play(plan-executed)->step" + planStepIdx, playLabels);
+                            p("[ROUTER] play: plan step " + planStepIdx + " (" + step + ") -> " + labelOf(planned));
+                            ensureTargetsSet(planned);
+                            return Lists.newArrayList(planned);
                         }
                     }
                 }
@@ -2109,6 +2117,13 @@ public final class LlmSpikeGui {
                                 planTurn = turn;
                                 planSig = oppPlanSig();   // plan-then-execute: what "not interrupted" means
                                 planStepIdx = 0;
+                                planSteps.clear();
+                                String st = lastSegment(reply, "STEPS:");
+                                if (st != null) {
+                                    int cutS = st.toUpperCase().indexOf("CHOICE:");
+                                    if (cutS >= 0) st = st.substring(0, cutS);
+                                    for (String one : st.split(",")) if (!one.trim().isEmpty()) planSteps.add(one.trim());
+                                }
                                 p("[ROUTER] plan: " + turnPlan);
                             }
                         }
@@ -4111,24 +4126,30 @@ public final class LlmSpikeGui {
             } catch (Exception e) { return ""; }
         }
 
-        /** Play-option indices whose card NAME appears in the model's own plan, ordered by WHERE THE
-         *  NAME APPEARS IN THE PLAN TEXT -- the order the model said it would play them, which is the
-         *  entire point of a plan. (namedIndices returns menu order, which can invert that sequence.)
-         *  Matching is the option name inside the plan text, never the reverse, so a plan saying "Bolt"
-         *  does not fire "Lightning Bolt". */
-        private List<int[]> planOrderedOptions(List<SpellAbility> options) {
-            List<int[]> out = new ArrayList<>();
-            if (turnPlan == null || turnPlan.isEmpty()) return out;
-            String upper = turnPlan.toUpperCase(Locale.ROOT);
-            for (int i = 0; i < options.size(); i++) {
+        /** Menu index of an explicit plan step, by EXACT (case-insensitive) card name, or -1. Exact
+         *  matching, never substring: "Bolt" must not fire "Lightning Bolt". */
+        private int planStepInMenu(String step, List<SpellAbility> options) {
+            List<String> names = new ArrayList<>();
+            for (SpellAbility sa : options) {
                 String n = null;
-                try { n = options.get(i).getHostCard() == null ? null : options.get(i).getHostCard().getName(); } catch (Exception ignore) { }
-                if (n == null || n.isEmpty()) continue;
-                int at = upper.indexOf(n.toUpperCase(Locale.ROOT));
-                if (at >= 0) out.add(new int[] { at, i });
+                try { n = sa.getHostCard() == null ? null : sa.getHostCard().getName(); } catch (Exception ignore) { }
+                names.add(n);
             }
-            out.sort((a, c) -> Integer.compare(a[0], c[0]));
-            return out;
+            return planStepIndex(names, step);
+        }
+
+        /** Pure core of {@link #planStepInMenu}: index of `step` in `cardNames` by EXACT
+         *  case-insensitive name, or -1. Exact and never substring -- "Bolt" must not fire
+         *  "Lightning Bolt", and a wrong auto-cast is a real misplay, not a cosmetic one.
+         *  State- and Game-free so it is directly testable. */
+        static int planStepIndex(List<String> cardNames, String step) {
+            String want = step == null ? "" : step.trim().toUpperCase(Locale.ROOT);
+            if (want.isEmpty()) return -1;
+            for (int i = 0; i < cardNames.size(); i++) {
+                String n = cardNames.get(i);
+                if (n != null && n.toUpperCase(Locale.ROOT).equals(want)) return i;
+            }
+            return -1;
         }
 
         private List<Integer> planNamedIndices(List<? extends GameEntity> cands) {

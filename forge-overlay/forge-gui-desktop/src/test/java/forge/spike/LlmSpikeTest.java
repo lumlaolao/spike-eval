@@ -986,6 +986,21 @@ public class LlmSpikeTest {
     /** The tier routing table is OPT-IN. With TIER_FAST_TYPES unset -- the test environment, and every
      *  default run -- EVERY decision type must still go to the smart tier; otherwise a latency tweak
      *  would silently change the eval condition of every existing comparison. */
+    /** Regression for a REAL misplay (2026-10-13): plan-then-execute matched "Shallow Grave" in a
+     *  plan that read "HOLD Shallow Grave (graveyard has no creatures)" and cast it. Only an explicit
+     *  STEPS list is honoured now, and its matching is EXACT, never substring. */
+    @Test
+    public void planStepMatchingIsExactNotSubstring() {
+        java.util.List<String> names = java.util.List.of("Lightning Bolt", "Shallow Grave", "Dark Ritual");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.planStepIndex(names, "Shallow Grave"), 1);
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.planStepIndex(names, "shallow grave"), 1);
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.planStepIndex(names, "Bolt"), -1,
+                "a substring must never match: 'Bolt' firing 'Lightning Bolt' is a real misplay");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.planStepIndex(names, "Grave"), -1);
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.planStepIndex(names, ""), -1);
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.planStepIndex(names, null), -1);
+    }
+
     @Test
     public void tierRoutingDefaultsToSmartForEveryType() {
         for (String t : new String[] {"play", "attackers", "mulligan", "targets", "target",
