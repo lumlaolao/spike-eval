@@ -1933,7 +1933,7 @@ public final class LlmSpikeGui {
             try {
                 Player defender = null;
                 for (Player pl : combat.getDefendingPlayers()) { defender = pl; break; }
-                if (defender == null) { noteAi("declareAttackers(no-defender)"); super.declareAttackers(attacker, combat); return; }
+                if (defender == null) { auto("attackers(no-defender)->none"); return; } // declare nothing, never the AI
                 CardCollection legal = new CardCollection();
                 for (Card c : attacker.getCreaturesInPlay()) if (CombatUtil.canAttack(c, defender)) legal.add(c);
                 if (legal.isEmpty()) return;
@@ -2013,8 +2013,10 @@ public final class LlmSpikeGui {
                 evalDec("attackers", legal.size(), picks.size(), tierOf(true), 0, null, labels); // choice = # declared
                 p("[ROUTER] attackers: " + (picks.isEmpty() ? "none" : chosen.toString()));
             } catch (Exception e) {
-                noteAi("declareAttackers(err " + e + ")");
-                super.declareAttackers(attacker, combat);
+                // A failure branch takes a deterministic LEGAL option, never the Forge AI for strategy
+                // (#126): declaring no attackers is legal and cannot be the AI's line. The engine
+                // resolves combat from an empty set.
+                auto("attackers(err)->none");
             }
         }
 
@@ -2086,8 +2088,9 @@ public final class LlmSpikeGui {
                 evalDec("blockers", blockers.size() + assigned, assigned, "smart", 0, null, blkLabels); // choice = # blocks
                 p("[ROUTER] blockers: assigned " + assigned);
             } catch (Exception e) {
-                noteAi("declareBlockers(err " + e + ")");
-                super.declareBlockers(defender, combat);
+                // Same rule as declareAttackers (#126): a deterministic LEGAL default, never the AI.
+                // Declaring no blockers is legal.
+                auto("blockers(err)->none");
             }
         }
 
