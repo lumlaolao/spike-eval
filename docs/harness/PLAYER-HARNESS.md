@@ -305,6 +305,15 @@ would undo. Legacy profiles keep their bytes. Tests: `aNameAskStatesWhoTheSpellT
 `aLibraryOrderIsAskedTopDownAndTheFirstPickEndsOnTop`,
 `theShuffleAskAfterAnOrderSaysWhatTheShuffleWouldUndo`.
 
+**2026-10-14 — a Dig pile that goes on top is ordered top-down too (`observation-faithful-v14`).**
+The top-down order covered Ponder-style rearranges and ChangeZone moves but not `Dig` or
+`DigUntil` (issue #107): Cruel Fate's "put the rest on top in any order" was still asked
+"first = goes in/on top first", so the card named first ended lowest. A Dig or DigUntil order is now
+asked top-down when every library pile the ask could be for lands on top; Dig asks for its chosen
+and its rest pile with one SpellAbility, so a top pile beside a bottom one keeps the literal wording.
+Legacy profiles keep their bytes. Tests: `aDigRestPileToTheTopIsAskedTopDownAndTheFirstPickEndsOnTop`,
+`aDigOrderIsAskedTopDownOnlyWhenEveryLibraryPileItCouldBeLandsOnTop`.
+
 ### Tool protocol: `evidence-tools-v2` and native function calling (2026-10-13)
 
 `eval/tool_audit.py` over the three controlled arms (`runs/lines/ctl`, 48 games, 2,994 model calls)

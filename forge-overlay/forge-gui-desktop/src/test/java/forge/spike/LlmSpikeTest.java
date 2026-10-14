@@ -1887,6 +1887,76 @@ public class LlmSpikeTest {
         }
     }
 
+    /** Issue #107: a Dig pile whose rest goes back ON TOP (Cruel Fate: "put the rest on top of their
+     *  library in any order", LibraryPosition2$ 0) is placed like Ponder's -- DigEffect moves each card
+     *  to position 0 in turn, so the last card returned ends on top. It must be asked top-down and
+     *  reversed, as the Ponder path is; before, the seat's first pick ended at the bottom of the pile. */
+    @Test
+    public void aDigRestPileToTheTopIsAskedTopDownAndTheFirstPickEndsOnTop() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        Card fate = addHandCard("Cruel Fate", me);
+        forge.game.card.CardCollection rest = new forge.game.card.CardCollection();
+        for (String n : new String[] {"Scalding Tarn", "Chain Lightning", "Force of Will"})
+            rest.add(SeatObservationTest.card(n, me, ZoneType.Library));
+        forge.game.spellability.SpellAbility sa = null;
+        for (forge.game.spellability.SpellAbility s : fate.getSpellAbilities()) if (s.isSpell()) sa = s;
+        sa.setActivatingPlayer(me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 2,3,1");
+        LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = LlmSpikeGui.ContextProfile.V4_FAITHFUL;
+        try {
+            LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                    new LobbyPlayerAi("order-test", null), "order-test", "", bridge, bridge, "llm");
+            forge.game.card.CardCollectionView out = ctrl.orderMoveToZoneList(rest, ZoneType.Library, sa);
+            Assert.assertTrue(bridge.prompts.get(0).contains("TOP"), bridge.prompts.get(0));
+            // DigEffect's rest pile: for (c : afterOrder) moveTo(Library, c, libraryPosition2 = 0).
+            for (Card c : out) game.getAction().moveToLibrary(c, 0, sa);
+            Assert.assertEquals(me.getCardsIn(ZoneType.Library).get(0).getName(), "Chain Lightning");
+            Assert.assertEquals(me.getCardsIn(ZoneType.Library).get(1).getName(), "Force of Will");
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null;
+        }
+    }
+
+    /** Issue #107, the other Dig and DigUntil shapes: an order is called top-down only when every pile the
+     *  ask could be for lands on top. Dig asks for its chosen and its rest pile with one SpellAbility, so
+     *  a top pile beside a bottom one (Munda, Ambush Leader) keeps the literal wording. */
+    @Test
+    public void aDigOrderIsAskedTopDownOnlyWhenEveryLibraryPileItCouldBeLandsOnTop() {
+        Object[][] cases = {
+            {"DB$ Dig | DigNum$ 3 | ChangeNum$ 1 | DestinationZone$ Graveyard | LibraryPosition2$ 0", true},
+            {"DB$ Dig | DigNum$ 3 | ChangeNum$ 1", false},
+            {"DB$ Dig | DigNum$ 4 | ChangeNum$ Any | DestinationZone$ Library | LibraryPosition$ 0 | LibraryPosition2$ 0", true},
+            {"DB$ Dig | DigNum$ 4 | ChangeNum$ Any | DestinationZone$ Library | LibraryPosition$ 0", false},
+            {"DB$ Dig | DigNum$ 4 | ChangeNum$ 1 | DestinationZone$ Library | LibraryPosition$ 0 | DestinationZone2$ Graveyard", true},
+            {"DB$ DigUntil | Valid$ Card.nonLand | RevealedDestination$ Library", true},
+            {"DB$ DigUntil | Valid$ Card.nonLand | RevealedDestination$ Library | RevealedLibraryPosition$ -1", false},
+            {"DB$ DigUntil | Valid$ Card.nonLand | RevealedDestination$ Library | NoneFoundDestination$ Library | NoneFoundLibraryPosition$ -1", false},
+        };
+        for (Object[] c : cases) {
+            Game game = buildBareGame();
+            Player me = game.getPlayers().get(0);
+            Card host = addHandCard("Cruel Fate", me);
+            forge.game.card.CardCollection pile = new forge.game.card.CardCollection();
+            for (String n : new String[] {"Island", "Brainstorm"})
+                pile.add(SeatObservationTest.card(n, me, ZoneType.Library));
+            forge.game.spellability.SpellAbility sa = forge.game.ability.AbilityFactory.getAbility((String) c[0], host);
+            sa.setActivatingPlayer(me);
+            FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 2,1");
+            LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = LlmSpikeGui.ContextProfile.V4_FAITHFUL;
+            try {
+                LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                        new LobbyPlayerAi("order-test", null), "order-test", "", bridge, bridge, "llm");
+                forge.game.card.CardCollectionView out = ctrl.orderMoveToZoneList(pile, ZoneType.Library, sa);
+                boolean top = (Boolean) c[1];
+                Assert.assertEquals(bridge.prompts.get(0).contains("TOP"), top, c[0] + "\n" + bridge.prompts.get(0));
+                Assert.assertEquals(out.get(0).getName(), top ? "Island" : "Brainstorm", (String) c[0]);
+            } finally {
+                LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null;
+            }
+        }
+    }
+
     /** The g08 fix is the target note IN the name ask, not just the helper: drive chooseCardName. */
     @Test
     public void theNameAskItselfCarriesTheTargetUnderTheFaithfulProfileOnly() {
