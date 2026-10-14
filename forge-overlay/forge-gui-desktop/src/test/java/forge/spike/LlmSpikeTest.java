@@ -1755,6 +1755,38 @@ public class LlmSpikeTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** runs/loop/g09 (seed 62): four Ponders in a row, each time the seat said "put Chain Lightning on
+     *  top so I draw it now", listed it first, and drew something else. The engine moves the returned
+     *  list to the top one card at a time, so the LAST card returned ends on top, and the prompt's
+     *  "first = goes in/on top first" read as "first = top". The faithful prompt now asks top-down and
+     *  the router reverses the list, as Forge's own human controller does. */
+    @Test
+    public void aLibraryOrderIsAskedTopDownAndTheFirstPickEndsOnTop() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        Card ponder = addHandCard("Ponder", me);
+        forge.game.card.CardCollection top = new forge.game.card.CardCollection();
+        for (String n : new String[] {"Scalding Tarn", "Chain Lightning", "Force of Will"})
+            top.add(SeatObservationTest.card(n, me, ZoneType.Library));
+        forge.game.spellability.SpellAbility sa = null;
+        for (forge.game.spellability.SpellAbility s : ponder.getSpellAbilities()) if (s.isSpell()) sa = s;
+        sa.setActivatingPlayer(me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 2,3,1");
+        LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = LlmSpikeGui.ContextProfile.V4_FAITHFUL;
+        try {
+            LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                    new LobbyPlayerAi("order-test", null), "order-test", "", bridge, bridge, "llm");
+            forge.game.card.CardCollectionView out = ctrl.orderMoveToZoneList(top, ZoneType.Library, sa);
+            Assert.assertTrue(bridge.prompts.get(0).contains("TOP"), bridge.prompts.get(0));
+            // RearrangeTopOfLibraryEffect: for (next : out) moveToLibrary(next, 0) -- the last one ends on top.
+            for (Card c : out) game.getAction().moveToLibrary(c, 0, sa);
+            Assert.assertEquals(me.getCardsIn(ZoneType.Library).get(0).getName(), "Chain Lightning");
+            Assert.assertEquals(me.getCardsIn(ZoneType.Library).get(1).getName(), "Force of Will");
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null;
+        }
+    }
+
     /** runs/loop/g08 (seat on `haiku`, the Claude CLI lane): the game line said served_smart_a=unknown
      *  and every row had prompt_tokens=-1, so cost_report read 35 model calls as 0 tokens, while the
      *  CLI's own result line names the model that answered and its usage. */

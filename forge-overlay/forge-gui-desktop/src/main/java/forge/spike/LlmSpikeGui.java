@@ -2976,14 +2976,23 @@ public final class LlmSpikeGui {
                 List<Card> opts = new ArrayList<>(cards);
                 List<String> labels = new ArrayList<>();
                 for (Card c : opts) labels.add(cardLabel(c));
+                // The engine moves the returned list to the top of a deck one card at a time, so the LAST
+                // card ends on top; "first = goes in/on top first" was read as "first = top", and in
+                // runs/loop/g09 four Ponders each buried the card the seat meant to draw. Under the
+                // faithful profile the question is asked top-down and the answer reversed, as Forge's
+                // own human controller does; legacy profiles keep their bytes and their literal wording.
+                boolean topDown = observer != null && orderedMoveToTopOfLibrary(destinationZone, source);
                 String q = "Put these " + opts.size() + " card(s)" + srcOf(source) + " into " + destinationZone
-                        + " in your preferred order. List ALL " + opts.size() + " of them (first = goes in/on top first).";
+                        + " in your preferred order. List ALL " + opts.size() + " of them "
+                        + (topDown ? "from the TOP down: the first card you name will be the top card, drawn first."
+                                   : "(first = goes in/on top first).");
                 List<Integer> picks = decideMany(smart, "order", q, labels, opts.size(), opts.size());
                 if (picks == null || picks.size() != opts.size()) { auto("order(unparsed)->as-is"); return cards; }
                 CardCollection out = new CardCollection();
                 StringBuilder log = new StringBuilder();
                 for (int i : picks) { out.add(opts.get(i)); if (log.length() > 0) log.append(", "); log.append(opts.get(i).getName()); }
-                p("[ROUTER] order" + srcOf(source) + " -> " + destinationZone + ": " + log);
+                p("[ROUTER] order" + srcOf(source) + " -> " + destinationZone + (topDown ? " (top first)" : "") + ": " + log);
+                if (topDown) java.util.Collections.reverse(out);
                 return out;
             } catch (Exception e) {
                 auto("order(err)->as-is");
