@@ -536,9 +536,8 @@ def condition_diff_norm(m, k):
 
 def condition_diff(old, new):
     """[(key, old_value, new_value)] over CONDITION_KEYS that differ."""
-    norm = condition_diff_norm
-    return [(k, norm(old, k), norm(new, k)) for k in CONDITION_KEYS
-            if norm(old, k) != norm(new, k)]
+    return [(k, condition_diff_norm(old, k), condition_diff_norm(new, k)) for k in CONDITION_KEYS
+            if condition_diff_norm(old, k) != condition_diff_norm(new, k)]
 
 
 def load_manifest(out_dir):
@@ -564,7 +563,7 @@ def legacy_dir_condition(out_dir):
     lines do not carry are omitted (unknowable, not 'matches')."""
     field_map = {
         "context_profile": "context_profile", "memory_tools": "memory_tools",
-        "rules_tool": "rules_tool", "native_tools": "native_tools", "lookahead": "lookahead",
+        "rules_tool": "rules_tool", "native_tools": "native_tools",
         "controller_a": "controller_a", "controller_b": "controller_b",
         "smart_a": "smart_a", "smart_b": "smart_b", "fast_a": "fast_a", "fast_b": "fast_b",
         "name_a": "deck_a", "name_b": "deck_b", "discipline": "discipline",
@@ -588,10 +587,11 @@ def legacy_dir_condition(out_dir):
 
 
 def unstamped_lookahead(manifest):
-    """Whether a game line with no `lookahead` stamp ran with it on: what the manifest recorded
-    (--lookahead, or before that flag --env LOOKAHEAD=1), else off. Lines from before the stamp
-    (2026-10-13) cannot say for themselves."""
-    if manifest is None:
+    """Whether a game line with no `lookahead` stamp ran with it on. Lines from before the stamp
+    (2026-10-13) cannot say for themselves; a manifest from before --lookahead can (its
+    --env LOOKAHEAD=1). Under a manifest that has the key, every line was written by a JVM that
+    stamps it, so an unstamped one is off, as run_one judged it when it was written."""
+    if manifest is None or "lookahead" in manifest.get("condition", {}):
         return False
     return condition_diff_norm(manifest.get("condition", {}), "lookahead")
 
@@ -618,7 +618,8 @@ def check_resume_condition(out_dir, condition, cited):
         # stamped with the requested value proves otherwise.
         want_la = bool(condition.get("lookahead"))
         stamps = [rec.get("lookahead") for rec in iter_game_lines(out_dir)]
-        proven = "lookahead" not in recorded and stamps and all(s == want_la for s in stamps)
+        proven = ("lookahead" not in recorded and not condition_diff_norm(recorded, "lookahead")
+                  and stamps and all(s == want_la for s in stamps))
         diff = [d for d in condition_diff(recorded, condition)
                 if not ((proven and d[0] == "lookahead") or (lines and d[0] == "native_tools"))]
         if lines and lines["fields"]["native_tools"] != [bool(condition.get("native_tools"))]:
@@ -638,12 +639,10 @@ def check_resume_condition(out_dir, condition, cited):
         return None
     problems = []
     for key, vals in legacy["fields"].items():
-        if key == "lookahead":
-            continue
         want = condition.get(key)
         if key == "context_profile" and want is None:
             want = "v1-compat"
-        if key in ("memory_tools", "rules_tool", "native_tools", "lookahead"):
+        if key in ("memory_tools", "rules_tool", "native_tools"):
             want = bool(want)
         if key in ("controller_a", "controller_b", "smart_a", "smart_b",
                    "fast_a", "fast_b") and want is None:

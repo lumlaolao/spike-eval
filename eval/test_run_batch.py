@@ -253,8 +253,8 @@ class TestLookahead(unittest.TestCase):
         self.assertEqual(run_batch.condition_diff(old, base), [("lookahead", True, False)])
 
     def test_resume_refuses_every_directory_that_mixes_or_contradicts_lookahead(self):
-        # The rule: a line's lookahead is its stamp, or, unstamped (before 2026-10-13), what the
-        # manifest recorded (--lookahead, or --env LOOKAHEAD=1 before the flag), else off. A
+        # The rule: a line's lookahead is its stamp, or, unstamped (before 2026-10-13), what a
+        # pre-flag manifest recorded (--env LOOKAHEAD=1), else off. A
         # directory resumes only when every line and the manifest agree with the request; a
         # pre-flag manifest that recorded nothing is overruled only by lines all stamped alike.
         base = run_batch.batch_condition(make_args(), cited=False)
@@ -268,9 +268,9 @@ class TestLookahead(unittest.TestCase):
         expect = {
             "none":         {"zero": (1, 1), "U": (1, 0), "T": (0, 1), "F": (1, 0), "U+T": (0, 0), "U+F": (1, 0), "T+F": (0, 0)},
             "key=off":      {"zero": (1, 0), "U": (1, 0), "T": (0, 0), "F": (1, 0), "U+T": (0, 0), "U+F": (1, 0), "T+F": (0, 0)},
-            "key=on":       {"zero": (0, 1), "U": (0, 1), "T": (0, 1), "F": (0, 0), "U+T": (0, 1), "U+F": (0, 0), "T+F": (0, 0)},
+            "key=on":       {"zero": (0, 1), "U": (0, 0), "T": (0, 1), "F": (0, 0), "U+T": (0, 0), "U+F": (0, 0), "T+F": (0, 0)},
             "pre-flag":     {"zero": (1, 0), "U": (1, 0), "T": (0, 1), "F": (1, 0), "U+T": (0, 0), "U+F": (1, 0), "T+F": (0, 0)},
-            "pre-flag+env": {"zero": (0, 1), "U": (0, 1), "T": (0, 1), "F": (1, 0), "U+T": (0, 1), "U+F": (0, 0), "T+F": (0, 0)},
+            "pre-flag+env": {"zero": (0, 1), "U": (0, 1), "T": (0, 1), "F": (0, 0), "U+T": (0, 1), "U+F": (0, 0), "T+F": (0, 0)},
         }
         for mname, manifest in manifests.items():
             for lname, recs in lines.items():
