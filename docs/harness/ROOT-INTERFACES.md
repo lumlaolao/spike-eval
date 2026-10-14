@@ -93,17 +93,17 @@ Of the 29 `strategic` rows the ledger marks `ai-inherited`:
 | `chooseNewTargetsFor` / `chooseTarget` | `ChangeTargetsEffect`, `SpellAbility` (redirect) | **yes — `hook-redirect-copy`** |
 | `chooseSingleCardFace` | `VentureEffect` | **yes — `hook-venture`** |
 | `chooseSingleCardState` | `UnlockDoorEffect` (rooms) | no |
-| `chooseSingleReplacementEffect` | `ReplacementHandler` | rare |
-| `chooseSingleStaticAbility` | `CostAdjustment` | no |
+| `chooseSingleReplacementEffect` | `ReplacementHandler` | edge — needs two overlapping replacement effects |
+| `chooseSingleStaticAbility` | `CostAdjustment` | edge — choice among cost-reduction statics |
 | `chooseFlipResult` | `FlipCoinEffect` | **yes — `hook-flip`** |
 | `willPutCardOnTop` | `ClashEffect` | **yes — `hook-clash`** |
 | `chooseSaToActivateFromOpeningHand` | `GameAction` | **yes — `hook-opening-hand`** |
-| `chooseStartingHand` | `BackupPlanService` | no |
-| `confirmStaticApplication` | `Combat` | rare |
+| `chooseStartingHand` | `BackupPlanService` | **unreachable — no card script calls it** |
+| `confirmStaticApplication` | `Combat` (damage-assignment static) | edge — reached in ordinary combat, not one card |
 | `playSaFromPlayEffect` | `PlayEffect` (`DB$ Play`, 281 cards) | **yes — `hook-play-exile`** |
 | `exertAttackers` / `enlistAttackers` | `PhaseHandler` | **yes — `hook-exert`** |
 | `chooseCardsForSplice` | `AbilityUtils` (splice) | **yes — `hook-splice`** |
-| `chooseCardsForZoneChange` | `ChangeZoneEffect` | no |
+| `chooseCardsForZoneChange` | `ChangeZoneEffect` | edge — multi-card zone change |
 | `chooseEntitiesForEffect` | `DigEffect` (wrapper — routes to `chooseSingleEntityForEffect`, owned) | routed |
 
 `allowRepeat` was already live (`Eldrazi Confluence`, `eval/decks/painter.txt:24`); the seven

@@ -95,8 +95,14 @@ top level only).
 ## Not done
 
 - No model game has been read on these decks yet, so no defect is filed from a game — issues #126 and #127 are fixed from the inventory; #128 is still open.
-- Six hooks still lack a deck: `chooseCardsForZoneChange` (a `ChangeZoneEffect` variant with no
-  obvious card), `chooseSingleStaticAbility` (`CostAdjustment`), `chooseSingleReplacementEffect`
-  (`ReplacementHandler`), `confirmStaticApplication` (`Combat` — likely already reached in any game),
-  and `chooseStartingHand` (no card script uses it); `chooseKeywordForPump` is **unreachable** (no
-  card uses `PumpEffect`'s `KWChoice`).
+- Six hooks are not one-card hooks; each is an edge of the engine, so no probe deck is built:
+  - `confirmStaticApplication` — `Combat.java:733/811/823`, the damage-assignment static
+    (`AlternativeDamageAssignment`); reached in ordinary combat, not by a named card.
+  - `chooseSingleReplacementEffect` — `ReplacementHandler.java:229/664`; needs two overlapping
+    replacement effects on one event.
+  - `chooseSingleStaticAbility` — `CostAdjustment.java:231`; a choice among cost-reduction statics.
+  - `chooseCardsForZoneChange` — `ChangeZoneEffect.java:1150`; a multi-card zone change.
+  - `chooseStartingHand` — `BackupPlanService.java:49`; **no card script reaches it**.
+  - `chooseKeywordForPump` — `PumpEffect`'s `KWChoice`; **no card script reaches it**.
+  The last two are unreachable, which is itself the finding: the hook exists in the interface but
+  nothing in Forge's card set calls it.
