@@ -29,7 +29,19 @@ import forge.model.FModel;
 public final class LlmSpikeHeadless {
     private LlmSpikeHeadless() {}
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
+        // A failure before the game thread starts (a missing deck, a bad model spec) used to end
+        // only the main thread: Forge's model init leaves non-daemon pools behind, so the JVM sat
+        // idle until the batch backstop killed it -- 5 minutes for a typo'd DECK_A. Exit instead.
+        try { run(); }
+        catch (Throwable t) {
+            System.out.println("[HEADLESS] startup failed: " + t);
+            t.printStackTrace(System.out);
+            System.exit(2);
+        }
+    }
+
+    private static void run() throws Exception {
         // Milestone D (eval/EVAL-DESIGN.md §3.1): FORK_MODE=check|enumerate|rollout delegates to the
         // replay-and-rollout harness instead of a normal match. Absent (the default), behavior below
         // is byte-identical to before this branch existed.
