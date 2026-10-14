@@ -86,9 +86,15 @@ class Policy:
             with self.lock:
                 self.previews = getattr(self, "previews", 0) + 1
                 n = self.previews
-            # Every other preview asks for a LINE (option 1, then option 2), so the line path runs in
-            # the acceptance game: both plays when there is mana for both, "could not be paid for"
-            # when there is not, and an error when the decision has only one such option.
+            # Every third preview asks for the PASS option (the last menu line), so the PASS path runs
+            # in the acceptance game: it must come back "if you pass", not refused. Every other preview
+            # asks for a LINE (option 1, then option 2), so the line path runs in the acceptance game:
+            # both plays when there is mana for both, "could not be paid for" when there is not, and an
+            # error when the decision has only one such option.
+            if n % 3 == 0:
+                m = re.search(r"(?m)^\s*(\d+)\) PASS\b", prompt)
+                if m:
+                    return [call("simulate", {"option": int(m.group(1))})]
             return [call("simulate", {"option": 1, "then": [2]} if n % 2 == 0 else {"option": 1})]
         with self.lock:
             if self.native_sent >= self.args.native_calls:

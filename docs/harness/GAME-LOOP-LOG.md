@@ -168,3 +168,28 @@ loop and flashing back Dread Return for Thassa's Oracle with an empty library.
 - clean  mulligan (asked, 4 lands kept), the combo execution, Force of Will reserves, all target
   choices (every activate correctly targeted Cephalid Illusionist), Dread Return flashback into
   Thassa's Oracle.
+
+### g05 follow-up  2026-10-13  the two items the owner picked up
+
+- FIXED  PASS previews (item 1's other half). `simulate` now accepts the PASS option and answers "if
+  you pass, nothing resolves: the board, hands, life and graveyards are unchanged. A preview cannot
+  play out the opponent's turn." without making a copy. The tool description and
+  `eval/tooluse/tools.json` say so, `seat-tools-v3 -> v4` with the acceptance pin moved, and the
+  acceptance's fake model now asks for PASS every third preview, so the path is proved end to end.
+  Tests: `LookaheadProbeTest.previewPassSaysNothingResolvesAndDoesNotPlayTheOpponentsTurn`,
+  the fake server's PASS assertion, and the nativetool stage's "no PASS preview was served" check.
+- FIXED  the 4000-token cap (item 3), as ONE uniform budget for every model: smart 8000/150s with no
+  reasoning hint, fast 1024/45s with reasoning off, replacing the per-model 4000/8000/16000 table.
+  Two findings decided it. OpenRouter's `reasoning.max_tokens` is Anthropic-style and the authorised
+  model does not accept it (its model entry has no `supports_max_tokens`), so reasoning cannot be
+  capped separately; and the harness was sending deepseek `effort:"medium"`, which is NOT in its
+  `supported_efforts` (max/high/low) — the model's default is high, so the hint was steering with a
+  value the model does not have. 8000 is 2x the measured smart p99 (3811 of 5346 completions across
+  runs/lines and runs/loop; median 710). `model_cfg_sha` moves, so runs either side are not pooled.
+  Tests: `modelCfg_everyRowGetsOneBudgetSoAnEvalComparesModelsUnderOneInfra`,
+  `everyModelSpecResolvesToTheSameConfig`, and the canonical-string pin.
+- OPEN   the one-preview budget: after a preview, the seat's corrected retry is still refused
+  ("one preview per decision"). A cost call, not a bug.
+- OPEN   `order` decisions (17 in g05, 16% of its model calls) still go to the smart tier, though they
+  are a classification over a menu the harness has already legalised — the fast tier's own documented
+  criterion. Left for the owner because it changes which model answers the decision.

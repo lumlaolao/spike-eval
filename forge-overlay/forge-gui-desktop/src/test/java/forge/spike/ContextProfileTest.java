@@ -235,15 +235,19 @@ public class ContextProfileTest {
                 "maxDecisionMs() must exceed a single timeout or the retry loop is unbudgeted");
     }
 
-    /** Claude CLI specs must resolve to the Claude entry, not the 90s catch-all default that the
-     *  first opus harness run timed out against. */
+    /** Every model spec resolves to ONE config. The Claude specs used to get their own 180s entry,
+     *  because the first opus harness run timed out against the 90s catch-all; with the table uniform
+     *  there is no separate entry left to fall through to, and the invariant worth pinning is that a
+     *  spec with a matching key and one without get the same budget (the values themselves are pinned
+     *  by LlmSpikeTest.modelCfg_everyRowGetsOneBudgetSoAnEvalComparesModelsUnderOneInfra). */
     @Test
-    public void claudeCliModelsGetTheirOwnTimeout() {
-        long dflt = LlmSpikeGui.ModelCfg.forModel("some-unknown-model").timeoutMs;
+    public void everyModelSpecResolvesToTheSameConfig() {
+        LlmSpikeGui.ModelCfg dflt = LlmSpikeGui.ModelCfg.forModel("some-unknown-model");
         for (String spec : new String[] {"claude-opus-4-8", "opus", "claude-sonnet-5", "haiku",
-                                         "anthropic/claude-opus-4.8"}) {
-            Assert.assertTrue(LlmSpikeGui.ModelCfg.forModel(spec).timeoutMs > dflt,
-                    spec + " must not fall through to the catch-all default");
+                                         "anthropic/claude-opus-4.8", "deepseek/deepseek-v4.1-flash", "kimi"}) {
+            LlmSpikeGui.ModelCfg c = LlmSpikeGui.ModelCfg.forModel(spec);
+            Assert.assertEquals(c.timeoutMs, dflt.timeoutMs, spec + " has its own smart timeout");
+            Assert.assertEquals(c.maxTokens, dflt.maxTokens, spec + " has its own smart cap");
         }
     }
 
@@ -279,14 +283,12 @@ public class ContextProfileTest {
         Assert.assertTrue(c.startsWith("modelcfg.v1|"), "canonical form must carry its version: " + c);
         for (String key : new String[] {"opus", "sonnet", "haiku", "deepseek", "gpt", "kimi", "grok", "default"})
             Assert.assertTrue(c.contains(key + ":"), "row missing from canonical form: " + key);
-        // deepseek is the row with a non-null value in every slot, so it proves all SEVEN reach the
-        // hash. 2026-10-13: the fast tier gained fastReasoningEffort ("minimal") and its budget moved
-        // 4000/60000 -> 1024/45000 -- a reasoning model was burning the whole budget on hidden
-        // reasoning before any answer token (a measured 182s decision). Deliberate change.
-        Assert.assertTrue(c.contains("deepseek:4000,90000,medium,null,1024,45000,none|"),
+        // Every row renders field-for-field. Since 2026-10-13 there is ONE uniform row, so the check
+        // is that all seven fields reach the hash on a row that has a value in every slot (deepseek),
+        // and that the row the run_batch.py grace budget is pinned against renders identically (opus).
+        Assert.assertTrue(c.contains("deepseek:8000,150000,null,null,1024,45000,none|"),
                 "deepseek row not rendered field-for-field: " + c);
-        // The Claude row is the one the run_batch.py grace budget is pinned against.
-        Assert.assertTrue(c.contains("opus:8000,180000,null,null,512,30000,null|"),
+        Assert.assertTrue(c.contains("opus:8000,150000,null,null,1024,45000,none|"),
                 "claude row not rendered field-for-field: " + c);
     }
 

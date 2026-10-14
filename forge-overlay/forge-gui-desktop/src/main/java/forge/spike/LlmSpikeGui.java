@@ -2214,8 +2214,8 @@ public final class LlmSpikeGui {
                 StringBuilder lookCtx = new StringBuilder(); // at most one lookahead preview per decision
                 // Native tools: the preview is a function the model calls, not a line it must reply with.
                 // `simulate` indexes the DECISION'S OWN numbered menu, so the numbers the model reads
-                // off the prompt are the numbers it passes: the CAST/ACTIVATE options followed by the
-                // PLAY LAND options (PASS, the last menu line, is not previewable). A land drop is a
+                // off the prompt are the numbers it passes: the CAST/ACTIVATE options, then the PLAY
+                // LAND options, then PASS. A land drop is a
                 // first step the model keeps asking for — "play the land, then the spell it pays for"
                 // (runs/loop/g02 turn 6: {"option":4,"then":[3]} on PLAY LAND Wasteland then Stoneforge
                 // Mystic's ability) — and 13 of 92 requests named one in runs/lines/ctl2/native-lookahead.
@@ -2224,29 +2224,33 @@ public final class LlmSpikeGui {
                 final boolean nativeSim = lookaheadOn && !simOptions.isEmpty() && MEMORY_TOOLS && NativeTools.enabled()
                         && b.supportsNativeTools();
                 final int simTurn = turn;
+                final int simPassIdx = passIdx;      // PASS is the last menu line; a preview of it is not an option
                 final java.util.function.Function<String, String> simulateTool = argsJson -> {
                     com.google.gson.JsonObject a = NativeTools.arguments(argsJson);
                     int n = -1;
                     try { if (a != null && a.has("option")) n = a.get("option").getAsInt(); } catch (RuntimeException e) { n = -1; }
-                    if (n < 1 || n > simOptions.size())
-                        return "ERROR: `option` must be a menu number of a CAST, ACTIVATE or PLAY LAND option (1.." + simOptions.size() + "); PASS cannot be previewed.";
+                    if (n < 1 || n > simPassIdx)
+                        return "ERROR: `option` must be a menu number of a CAST, ACTIVATE, PLAY LAND or PASS option (1.." + simPassIdx + ").";
                     String hint = a.has("target") && a.get("target").isJsonPrimitive() ? a.get("target").getAsString().trim() : null;
                     // `then`: further options to play after it, in order, on the same copy (a line).
+                    // PASS resolves nothing, so it is never a step in the line; a request that is only
+                    // PASS is answered by previewPass() instead of a copy.
                     List<SpellAbility> line = new ArrayList<>();
-                    line.add(simOptions.get(n - 1));
+                    if (n != simPassIdx) line.add(simOptions.get(n - 1));
                     StringBuilder which = new StringBuilder(String.valueOf(n));
                     if (a.has("then") && a.get("then").isJsonArray()) {
                         for (com.google.gson.JsonElement e : a.getAsJsonArray("then")) {
                             int m;
                             try { m = e.getAsInt(); } catch (RuntimeException ex) { m = -1; }
-                            if (m < 1 || m > simOptions.size())
-                                return "ERROR: every number in `then` must be a menu number of a CAST, ACTIVATE or PLAY LAND option (1.." + simOptions.size() + ").";
-                            line.add(simOptions.get(m - 1));
+                            if (m < 1 || m > simPassIdx)
+                                return "ERROR: every number in `then` must be a menu number of a CAST, ACTIVATE, PLAY LAND or PASS option (1.." + simPassIdx + ").";
+                            if (m != simPassIdx) line.add(simOptions.get(m - 1));
                             which.append(", then ").append(m);
                         }
                     }
-                    String preview = PlayerLookahead.previewLine(me.getGame(), me, line, simTurn,
-                            hint == null || hint.isEmpty() ? null : hint);
+                    String preview = line.isEmpty() ? PlayerLookahead.previewPass()
+                            : PlayerLookahead.previewLine(me.getGame(), me, line, simTurn,
+                                  hint == null || hint.isEmpty() ? null : hint);
                     p("[ROUTER] lookahead " + which + ": " + preview);
                     return "LOOKAHEAD (option " + which + "): " + preview;
                 };
@@ -5379,43 +5383,25 @@ public final class LlmSpikeGui {
     }
 
     /**
-     * Per-model infra defaults (max output tokens, timeout, OpenRouter "reasoning effort" hint,
-     * temperature) keyed by a case-insensitive SUBSTRING match against the model id (e.g. "deepseek"
-     * matches "deepseek/deepseek-v4-pro"). Evidence: HARNESS-ANALYSIS.md D1/F2 — one flat
-     * 2048-tok/90s/1-retry config applied uniformly starves verbose reasoners (deepseek, gpt, kimi)
-     * while being needlessly generous for terse ones, cleanly splitting the field into models that
-     * never fail and models that fail constantly on IDENTICAL infra. `fastMaxTokens`/`fastTimeoutMs`
-     * are the separate, smaller caps the "fast" tier (confirms/numbers/cleanup) uses; they default to
-     * the same flat value for every row, but a row MAY override them (see deepseekGpt below) when
-     * evidence shows the flat default starves that model even on the fast tier.
+     * Infra defaults (max output tokens, timeout, OpenRouter "reasoning" hint, temperature) keyed by a
+     * case-insensitive SUBSTRING match against the model id (e.g. "deepseek" matches
+     * "deepseek/deepseek-v4-pro"). ONE uniform row serves every key: the budget must not depend on
+     * which model is playing, or an eval compares models under different infra and the row with the
+     * smaller cap is the one whose answer is truncated and then retried with reasoning DISABLED --
+     * measured, that is a different question, not a slower one. The per-model values this table used
+     * to carry (4000/8000/16000 smart, 512/1024 fast) came from HARNESS-ANALYSIS.md D1/F2, where one
+     * flat 2048-tok/90s/1-retry config starved verbose reasoners (deepseek, gpt, kimi) while being
+     * needlessly generous for terse ones; a generous uniform cap answers the starvation without making
+     * the harness part of the measurement.
      *
-     * Investigation (2026-07-21, gpt-5/deepseek model-sweep games): every finish_reason=length ->
-     * bridge-down conversion for both models (8 for gpt-5, 10 for deepseek — matching sweep-verdicts.json
-     * exactly) was on the FAST tier (type=confirm, type=play), NEVER the smart tier (0 non-answers there
-     * across both games' full logs). The OpenRouterBridge.ask() [TRUNCATED->RETRY] doubling path never
-     * fired even once (grep the .log: zero occurrences) despite 8-10 finish_reason=length events per
-     * game, because isNonAnswer(r.content) runs BEFORE the truncation-retry check and a fully-empty
-     * `content` (finish_reason=length with the reasoning budget exhausted before any output token) is
-     * indistinguishable from a plain non-answer — it short-circuits to bridge-down first, so the retry
-     * was dead code for exactly the case it exists to handle. That ordering WAS an architecture bug,
-     * out of scope for a config-table-only fix at the time this note was written; it has since been
-     * fixed directly in OpenRouterBridge.ask() (the finish_reason=="length" truncation-retry check now
-     * runs BEFORE isNonAnswer()) — this table's per-model headroom values remain independently useful
-     * (they widen the budget the retry doubles from) but are no longer the only lever. What IS fixable
-     * purely from this table: the fast tier's request never sends a
-     * `reasoning` hint at all for ANY model (OpenRouterBridge.ask() unconditionally nulls it out for
-     * fastTier — "the fast tier's contract is terse, no extended reasoning"), yet gpt-5/deepseek are
-     * native reasoning models that still spend hidden reasoning tokens server-side by default even
-     * with no explicit reasoning param. At the flat DEFAULT_FAST_MAX_TOKENS=512 that hidden reasoning
-     * alone exhausts the whole budget, leaving zero tokens for the one-line CHOICE/PICKS answer, every
-     * time. kimi (no reasoning-effort row value either) and grok show far fewer/zero such fast-tier
-     * failures at the same flat 512 cap, so the fix is model-specific: give ONLY the reasoning-heavy
-     * deepseek/gpt row a much larger fastMaxTokens (enough headroom to survive the hidden reasoning
-     * burn and still emit the final line) and a longer fastTimeoutMs to match the larger generation.
-     * Reasoning-effort tuning was the other evidence-supported option, but is not reachable from this
-     * table alone: fast-tier calls null out reasoningEffort unconditionally regardless of what a
-     * ModelCfg row sets, so "set effort low for fast-tier decisions" would require touching
-     * OpenRouterBridge.ask() itself — an architecture change explicitly out of scope for this pass.
+     * History worth keeping: every finish_reason=length -> bridge-down conversion in the 2026-07-21
+     * gpt-5/deepseek sweep (8 and 10 events, matching sweep-verdicts.json exactly) was on the FAST
+     * tier, and the [TRUNCATED->RETRY] path never fired once, because isNonAnswer(content) ran BEFORE
+     * the truncation-retry check and an empty content with a length finish is indistinguishable from a
+     * plain non-answer. That ordering was an architecture bug and is fixed in OpenRouterBridge.ask():
+     * the finish_reason=="length" retry now runs first, and for a row whose fast tier disables
+     * reasoning it retries with reasoning off rather than a bigger budget (see the
+     * {@code fastReasoningEffort} field).
      *
      * Env OPENROUTER_MODEL_CFG (JSON) can add rows or override individual fields on existing ones
      * without a rebuild, e.g. {@code {"mistral":{"maxTokens":6000},"deepseek":{"timeoutMs":150000}}}.
@@ -5423,8 +5409,6 @@ public final class LlmSpikeGui {
      * never a hard replacement.
      */
     static final class ModelCfg {
-        static final int DEFAULT_FAST_MAX_TOKENS = 512;
-        static final long DEFAULT_FAST_TIMEOUT_MS = 30000;
 
         final int maxTokens;
         final long timeoutMs;
@@ -5496,49 +5480,28 @@ public final class LlmSpikeGui {
 
         private static Map<String, ModelCfg> buildTable() {
             Map<String, ModelCfg> t = new java.util.LinkedHashMap<>();
-            // Evidence-grounded starting values (HARNESS-ANALYSIS.md §5 Infra-1): deepseek/gpt hit the
-            // 2048-token cap hard and need reasoning headroom; kimi's own median latency already
-            // exceeds the flat 90s deadline; grok needs more room than the default but not as much as
-            // the worst reasoners; everything else keeps the original flat config.
-            // fastMaxTokens=4000/fastTimeoutMs=60000 (vs. the flat 512/30000 default): gpt-5 and deepseek
-            // are native reasoning models that burn hidden reasoning tokens on the FAST tier too, even
-            // though the fast-tier request never sends a `reasoning` hint — at 512 tokens that reasoning
-            // alone ate the whole budget every time (8/8 gpt-5 and 10/10 deepseek finish_reason=length
-            // fast-tier events came back with EMPTY content), so no room was ever left for the one-line
-            // CHOICE/PICKS answer. See the class javadoc above for the full investigation.
-            // fastReasoningEffort="minimal" + a small cap: the fast tier answers high-frequency
-            // mechanical questions and must not spend hidden reasoning on them (see the field javadoc).
-            // Smart budget 16000 -> 4000: a REAL play decision produced 15,539 completion tokens
-            // (~50s of generation) for an answer that is normally ~400. 4000 keeps 10x headroom over
-            // the median while bounding the ramble; if one still overruns, the truncation retry now
-            // drops reasoning instead of doubling the budget, so the tail costs seconds, not minutes.
-            ModelCfg deepseekGpt = new ModelCfg(4000, 90000, "medium", null, 1024, 45000, "none");
-            ModelCfg kimi        = new ModelCfg(16000, 150000, null, null, ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
-            ModelCfg grok        = new ModelCfg(8000, 90000, null, null, ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
-            ModelCfg dflt        = new ModelCfg(4000, 90000, null, null, ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
-            // Claude CLI models (ClaudeBridge). Added 2026-09-01 after opus-4.8/medium became the
-            // standing harness-test instrument and immediately tripped the 90s `default`: the smart
-            // bridge timed out mid-game and burned two retries plus a session restart, on a run whose
-            // max SUCCESSFUL latency was 22.9s and mean 7.2s. So 90s is right for the common case and
-            // far too tight for the tail, which is what a per-model entry is for.
-            //
-            // 180s, NOT MORE, AND THAT CEILING IS LOAD-BEARING: LlmSpikeHeadless sizes its post-cap
-            // shutdown grace as maxConfiguredTimeoutMs() + 10s, and run_batch.py's backstop budgets
-            // for that with a hardcoded GRACE_S = 200 (it cannot call the Java side). 180s keeps the
-            // grace at 190s, inside that budget. Raising any timeout above 190s REQUIRES raising
-            // GRACE_S too, or capped games get killed before an in-flight ask lands — the orphaned-row
-            // silent drop that defect_analyzer.py exists to catch. graceFitsRunBatchBudget() in
-            // LlmSpikeTest asserts this mechanically so it cannot be forgotten.
-            ModelCfg claudeCli   = new ModelCfg(8000, 180000, null, null,
-                                                ModelCfg.DEFAULT_FAST_MAX_TOKENS, ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
-            t.put("opus", claudeCli);
-            t.put("sonnet", claudeCli);
-            t.put("haiku", claudeCli);
-            t.put("deepseek", deepseekGpt);
-            t.put("gpt", deepseekGpt);
-            t.put("kimi", kimi);
-            t.put("grok", grok);
-            t.put("default", dflt);
+            // ONE uniform config for every row: the answer budget must not depend on which model is
+            // playing, or an eval compares models under different infra, and the row with the smaller
+            // cap is the one whose answer is truncated and then retried with reasoning DISABLED --
+            // measured, that is a different question, not a slower one. It cannot be fixed by capping
+            // reasoning separately: OpenRouter's `reasoning.max_tokens` is Anthropic-style and the
+            // authorised model does not accept it (its model entry has no supports_max_tokens, and
+            // supported_efforts is max/high/low, so the "medium" this table used to send was not a
+            // value the model has). So the cap covers reasoning and answer together, at 8000: twice
+            // the p99 of the measured smart completions (n=5346 over runs/lines and runs/loop:
+            // median 710, p99 3811) and twice what deepseek had. A model that still overruns is
+            // truncated once and retried with reasoning off, which the game log and match_review
+            // already report per game, so the tail is visible rather than silent.
+            ModelCfg uniform = new ModelCfg(8000, 150000, null, null, 1024, 45000, "none");
+            // THE 150s CEILING IS LOAD-BEARING: LlmSpikeHeadless sizes its post-cap shutdown grace as
+            // maxConfiguredTimeoutMs() + 10s, and run_batch.py's backstop budgets for that with a
+            // hardcoded GRACE_S = 200 (it cannot call the Java side). 150s keeps the grace at 160s,
+            // inside that budget. Raising any timeout above 190s REQUIRES raising GRACE_S too, or
+            // capped games get killed before an in-flight ask lands — the orphaned-row silent drop
+            // that defect_analyzer.py exists to catch. graceFitsRunBatchBudget() in LlmSpikeTest
+            // asserts this mechanically so it cannot be forgotten.
+            for (String key : new String[]{"opus", "sonnet", "haiku", "deepseek", "gpt", "kimi", "grok", "default"})
+                t.put(key, uniform);
             try { applyEnvOverride(t); }
             catch (Exception e) { System.out.println("[MODEL-CFG] failed to parse OPENROUTER_MODEL_CFG, using built-in defaults: " + e); }
             return t;

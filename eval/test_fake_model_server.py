@@ -46,6 +46,10 @@ class FakeModelServerTest(unittest.TestCase):
         self.assertEqual((c["name"], json.loads(c["arguments"])), ("simulate", {"option": 1}))
         second = p.tool_calls_for(body(), "x")[0]["function"]
         self.assertEqual(json.loads(second["arguments"]), {"option": 1, "then": [2]})      # every other one is a line
+        # ... and every third one asks for PASS, whose menu number is read off the prompt, so the
+        # acceptance game exercises the PASS preview (served, not refused).
+        third = p.tool_calls_for(body(), "Choose ONE action:\n  1) CAST X\n  2) PLAY LAND\n  3) PASS (do nothing)")[0]["function"]
+        self.assertEqual(json.loads(third["arguments"]), {"option": 3})
         self.assertIsNone(p.tool_calls_for(body(tools=TOOLS[:3]), "x"))       # not offered, no allowance
 
     def test_text_replies_are_always_a_legal_format(self):

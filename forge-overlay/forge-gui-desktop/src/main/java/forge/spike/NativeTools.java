@@ -27,7 +27,7 @@ final class NativeTools {
     /** v2 (2026-10-13): `simulate` covers activated abilities and says what it reports.
      *  v3 (2026-10-13): `simulate`'s option numbers are the decision's own menu numbers, so a
      *  PLAY LAND option can be previewed and the land can pay for a later step of the line. */
-    static final String VERSION = "seat-tools-v3";
+    static final String VERSION = "seat-tools-v4";
     static final String SIMULATE = "simulate";
     private static final List<String> RULES_ACTIONS = List.of("search", "read", "section", "term", "toc");
 
@@ -180,14 +180,15 @@ final class NativeTools {
                 "action"));
         }
         if (simulate) a.add(fn(SIMULATE,
-                "Preview what a numbered option of the current decision does when it resolves — a CAST, an ACTIVATE "
-                + "or a PLAY LAND — on a copy of the game built only from what you can see: which permanents leave or "
-                + "arrive, and each player's life, hand, library and graveyard counts. Pass `then` to preview a LINE: "
-                + "further options played after it, in order, on the same copy (it tells you if a later one can no "
-                + "longer be paid for). It is an estimate, not the engine's verdict: hidden cards are guessed, and the "
-                + "engine pays the costs on the copy. At most one preview per decision.",
-                props("option", prop("integer", "The number of a CAST, ACTIVATE or PLAY LAND option in the decision's "
-                                + "menu. PASS cannot be previewed.", 1, null),
+                "Preview what a numbered option of the current decision does when it resolves — a CAST, an ACTIVATE, "
+                + "a PLAY LAND or PASS — on a copy of the game built only from what you can see: which permanents leave "
+                + "or arrive, and each player's life, hand, library and graveyard counts. PASS resolves nothing, so its "
+                + "preview is that answer and no copy is made; it does not play out the opponent's turn. Pass `then` to "
+                + "preview a LINE: further options played after it, in order, on the same copy (it tells you if a later "
+                + "one can no longer be paid for). It is an estimate, not the engine's verdict: hidden cards are guessed, "
+                + "and the engine pays the costs on the copy. At most one preview per decision.",
+                props("option", prop("integer", "The number of a CAST, ACTIVATE, PLAY LAND or PASS option in the "
+                                + "decision's menu.", 1, null),
                       "target", prop("string", "Optional: the name of the target to preview the first option against.", null, null),
                       "then", intArray("Optional: up to two more menu numbers to play after it, in order.")),
                 "option"));

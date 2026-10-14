@@ -400,7 +400,7 @@ Both come from loop games read after the v2 arms, and the doc had not recorded v
 
 **v3: `simulate` indexes the decision's own menu, and a land drop may start a line.** The option
 numbers the model passes are the numbers it reads off the prompt: the menu is the CAST and ACTIVATE
-options followed by the PLAY LAND ones, and PASS is not previewable. A line may begin with a land
+options followed by the PLAY LAND ones and then PASS. A line may begin with a land
 drop, played on the copy. Before v3 only spells and abilities were addressable, so the seat was
 refused for passing the numbers it had been shown (runs/loop/g02 T4-5: `option` 3 on a two-spell menu
 with two land options after it).
