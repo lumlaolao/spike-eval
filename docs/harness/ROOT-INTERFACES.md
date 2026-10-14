@@ -59,13 +59,13 @@ Not every `super.` is a defect. The delegating *conditions* sort into two kinds:
 |---|---|---|
 | the list is null/empty, or a legal answer is forced | `chooseCardsForEffect:2954`, `chooseSingleEntityForEffect:2402/2416`, `choosePermanentsToSacrifice:3916`, `chooseCardsToDelve:2662`, `chooseOptionalCosts:2718`, `chooseSomeType:3433`, `chooseProtectionType:3451` | **harmless** — no decision exists to make |
 | `delayedReveal != null` (choose from a set the seat just looked at) | `chooseSingleEntityForEffect:2416`, `chooseSingleCardForZoneChange:2450` | **strategic, AI** — the reveal identities are recorded (`:2410`) but the *pick* is the AI's |
-| `allowRepeat` (a mode may be chosen more than once) | `chooseModeForAbility:3596` | **strategic, AI** — reachable in-pool: `Eldrazi Confluence` ("choose three, you may choose the same mode more than once") in `eval/decks/painter.txt:24` |
+| `allowRepeat` (a mode may be chosen more than once) | `chooseModeForAbility:3596` | **fixed (#127)** — routed through `decideModesRepeat`; `hook-repeat-modes` is its regression repro |
 | a declaration throws | `declareAttackers:1955`, `declareBlockers:2028` | **strategic, AI** — against the project rule "failure branches take a deterministic legal option"; the whole attack/block becomes the AI's |
 | a model name cannot be matched to a legal card | `chooseCardName:3506/3530/3558/3560` | fallback; the model should be re-asked instead |
 
-So the hazard is not "the seat calls `super`" — it is that **three narrow conditions (`delayedReveal`,
-`allowRepeat`, a declaration exception) route a real decision to the AI from inside the seat's own
-hook**, and one of them (`allowRepeat`) is live in the evaluated pool.
+So the hazard is not "the seat calls `super`" — it is that **two narrow conditions (`delayedReveal`,
+a declaration exception) route a real decision to the AI from inside the seat's own hook**;
+`allowRepeat` was the third and is fixed (#127).
 
 ### The AI-owned strategic hooks (the un-overridden set)
 

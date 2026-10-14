@@ -39,7 +39,7 @@ chooseEntitiesForEffect[interface forge.util.collect.FCollectionView, int, int, 
 chooseFlipResult[class forge.game.spellability.SpellAbility, class forge.game.player.Player, boolean]	AI	strategic	ai-inherited	none	Coin flips; not in eval decks.
 chooseKeywordForPump[interface java.util.List, class forge.game.spellability.SpellAbility, class java.lang.String, class forge.game.card.Card]	AI	strategic	ai-inherited	rare	Keyword choice for pump effects by AI heuristic.
 chooseManaFromPool[interface java.util.List]	AI	payment	ai-inherited	rare	First mana in pool; AI payment path rarely reaches it.
-chooseModeForAbility[class forge.game.spellability.SpellAbility, interface java.util.List, int, int, boolean]	LLM	strategic	model+ai-fallback	core	Model-routed (charm/modal); repeat-mode or exception -> super (tier=ai row).
+chooseModeForAbility[class forge.game.spellability.SpellAbility, interface java.util.List, int, int, boolean]	LLM	strategic	model+ai-fallback	core	Model-routed (charm/modal) including repeat modes (allowRepeat -> decideModesRepeat, #127); an exception -> super (tier=ai row).
 chooseNewTargetsFor[class forge.game.spellability.SpellAbility, interface java.util.function.Predicate, boolean]	AI	strategic	ai-inherited	rare	Returns null (AI cannot retarget). Redirect/copy effects lose the choice.
 chooseNumberForCostReduction[class forge.game.spellability.SpellAbility, int, int]	AI	payment	ai-inherited	rare	Always max.
 chooseNumberForKeywordCost[class forge.game.spellability.SpellAbility, class forge.game.cost.Cost, interface forge.game.keyword.KeywordInterface, class java.lang.String, int]	AI	payment	ai-inherited	rare	How many times to pay a keyword cost (casualty etc.): AI affordability loop.

@@ -1283,6 +1283,68 @@ public final class LlmSpikeGui {
             return null; // still short after retry -> caller's legal default
         }
 
+        /** The repeatable-mode ask (a Charm that "may choose the same mode more than once"): the model
+         *  picks up to `num` indices and the SAME index may appear again. decideMany dedupes via a
+         *  LinkedHashSet, so this keeps duplicates instead. Null on bridge-down, or a reply with fewer
+         *  than `min` parseable picks, so the caller can take its deterministic legal default. */
+        private List<Integer> decideModesRepeat(LLMBridge b, String question, List<String> options, int min, int num) {
+            clearLast();
+            long t0 = System.currentTimeMillis();
+            if (rnd != null) {                       // RANDOM arm: `num` uniform picks WITH replacement
+                List<Integer> res = new ArrayList<>();
+                int n = Math.max(1, Math.min(num, 8));
+                for (int i = 0; i < n; i++) res.add(rnd.nextInt(options.size()));
+                lastPicks = res;
+                evalDec("modes", options.size(), res.size(), tierOf(b == smart), System.currentTimeMillis() - t0, null, options);
+                return res;
+            }
+            String base = buildDecideManyPrompt(snapshot(), question, options, min, num);
+            for (int attempt = 0; attempt < 2; attempt++) {
+                String prompt = attempt == 0 ? base
+                        : base + "\n\n(Answer with ONE line only: PICKS: <" + min + " to " + num
+                          + " numbers from the list; the same number may repeat>.)";
+                String reply = ask(b, prompt);
+                if (reply == null) return null;
+                String seg = lastSegment(reply, "PICKS:");
+                if (seg == null) continue;
+                List<Integer> out = new ArrayList<>();
+                Matcher m = Pattern.compile("\\d+").matcher(seg);
+                while (m.find() && out.size() < Math.max(1, num)) {
+                    int idx = Integer.parseInt(m.group());
+                    if (idx >= 1 && idx <= options.size()) out.add(idx - 1);
+                }
+                if (out.size() >= min) {
+                    lastPicks = out;
+                    evalDec("modes", options.size(), out.size(), tierOf(b == smart), 0, null, options);
+                    return out;
+                }
+            }
+            return null;
+        }
+
+        /** `n` copies of one mode: a forced single mode under allowRepeat ("choose three, you may
+         *  choose the same mode more than once") is that mode three times. */
+        private static List<AbilitySub> repeated(AbilitySub sub, int n) {
+            List<AbilitySub> out = new ArrayList<>();
+            for (int i = 0; i < Math.max(1, n); i++) out.add(sub);
+            return out;
+        }
+
+        /** Deterministic legal modes with no model call, never Forge AI: without allowRepeat the first
+         *  `min` distinct modes; with it, distinct first and then repeats of the first mode when the
+         *  count exceeds the menu (legal only because allowRepeat permits it). */
+        private static List<AbilitySub> defaultModes(List<AbilitySub> possible, int min, int num, boolean allowRepeat) {
+            List<AbilitySub> out = new ArrayList<>();
+            if (!allowRepeat) {
+                for (int i = 0; i < Math.min(Math.max(min, 0), possible.size()); i++) out.add(possible.get(i));
+                return out;
+            }
+            int target = Math.max(1, Math.max(num, Math.max(min, 0)));
+            for (int i = 0; i < possible.size() && out.size() < target; i++) out.add(possible.get(i));
+            while (out.size() < target) out.add(possible.get(0));
+            return out;
+        }
+
         /** The second ask of a play decision whose first reply had no parseable choice: the same state
          *  and menu, and the correction. Never the correction alone. */
         static String playRetryPrompt(String stateAndMenu, int passIdx) {
@@ -3589,29 +3651,41 @@ public final class LlmSpikeGui {
         public List<AbilitySub> chooseModeForAbility(SpellAbility sa, List<AbilitySub> possible, int min, int num, boolean allowRepeat) {
             clearLast();
             try {
-                // allowRepeat (choose the same mode more than once) is a mechanic this router does not
-                // model — an intentional, documented scope-out, same shape as chooseSingleEntityForEffect's
-                // delayedReveal exception above. possible==null/empty is a degenerate engine state (a
-                // modal ability with nothing to choose from) with no legal candidate to default to either.
-                if (possible == null || possible.isEmpty() || allowRepeat)
-                    return aiDelegate("modes(repeat/empty)", super.chooseModeForAbility(sa, possible, min, num, allowRepeat));
-                if (possible.size() == 1 && min >= 1) { auto("modes(forced-only-legal)"); return Lists.newArrayList(possible.get(0)); } // forced
-                // No budget: deterministic first-`min` modes, never Forge AI.
+                // possible==null/empty is a degenerate engine state (a modal ability with nothing to
+                // choose from) and has no legal candidate to default to. allowRepeat ("choose three,
+                // you may choose the same mode more than once") IS routed: the model picks the modes,
+                // repeats included, so a repeatable Charm is no longer the Forge AI's (#127).
+                if (possible == null || possible.isEmpty())
+                    return aiDelegate("modes(empty)", super.chooseModeForAbility(sa, possible, min, num, allowRepeat));
+                if (possible.size() == 1 && min >= 1) { auto("modes(forced-only-legal)"); return repeated(possible.get(0), Math.max(min, Math.min(num, 1))); } // forced
+                // No budget: deterministic legal modes (distinct first, then repeats), never Forge AI.
                 if (!smartOk()) {
-                    List<AbilitySub> defPick = new ArrayList<>();
-                    for (int i = 0; i < Math.min(Math.max(min, 0), possible.size()); i++) defPick.add(possible.get(i));
+                    List<AbilitySub> defPick = defaultModes(possible, min, num, allowRepeat);
                     auto("modes(no-budget)->first" + defPick.size());
                     return defPick;
                 }
                 List<String> labels = new ArrayList<>();
                 for (AbilitySub ab : possible) labels.add(oneLine(ab.getDescription()));
+                if (allowRepeat) {
+                    List<Integer> rp = decideModesRepeat(smart, "MODAL SPELL — choose mode(s) for " + labelOf(sa)
+                            + " (you may choose the same mode more than once).", labels, Math.max(0, min), num);
+                    if (rp == null || rp.size() < min) {
+                        List<AbilitySub> defPick = defaultModes(possible, min, num, true);
+                        auto("modes(repeat,unparsed)->first" + defPick.size());
+                        return defPick;
+                    }
+                    List<AbilitySub> out = new ArrayList<>();
+                    StringBuilder log = new StringBuilder();
+                    for (int i : rp) { out.add(possible.get(i)); if (log.length() > 0) log.append(" + "); log.append(labels.get(i)); }
+                    p("[ROUTER] modes(repeat): " + log);
+                    return out;
+                }
                 List<Integer> picks = decideMany(smart, "modes", "MODAL SPELL — choose mode(s) for " + labelOf(sa) + ".",
                         labels, Math.max(0, min), Math.min(num, possible.size()));
                 // decideMany's null covers BOTH bridge-down and still-unparseable-after-retry — same
-                // deterministic first-`min` default as the no-budget branch above, never Forge AI.
+                // deterministic legal default as the no-budget branch above, never Forge AI.
                 if (picks == null || picks.size() < min) {
-                    List<AbilitySub> defPick = new ArrayList<>();
-                    for (int i = 0; i < Math.min(Math.max(min, 0), possible.size()); i++) defPick.add(possible.get(i));
+                    List<AbilitySub> defPick = defaultModes(possible, min, num, false);
                     auto("modes(unparsed)->first" + defPick.size());
                     return defPick;
                 }

@@ -14,7 +14,7 @@ to compute a win rate. Each is exactly 60 cards and every card name resolves in 
 |---|---|---|---|---|
 | `hook-piles` | `chooseCardsPile` | Forge AI | `TwoPilesEffect` | — |
 | `hook-redirect-copy` | `chooseSingleSpellForEffect`, `chooseNewTargetsFor`, `chooseTarget` | Forge AI | `CopySpellAbilityEffect`, `ChangeTargetsEffect` | — |
-| `hook-repeat-modes` | `allowRepeat` modes | Forge AI (`chooseModeForAbility:3596`) | `Charm` with `CanRepeatModes$ True` | **#127** |
+| `hook-repeat-modes` | `allowRepeat` modes | **fixed (#127)** — routed via `decideModesRepeat` | `Charm` with `CanRepeatModes$ True` | **#127** (this deck is its repro) |
 | `hook-clash` | `willPutCardOnTop` | Forge AI | `ClashEffect` | — |
 | `hook-exert` | `exertAttackers`, `enlistAttackers` | Forge AI | `PhaseHandler` | (with the map) |
 | `hook-flip` | `chooseFlipResult` | Forge AI | `FlipCoinEffect` | — |
