@@ -37,13 +37,18 @@ python3 eval/run_batch.py --seeds $SEED --exploratory --jobs 1 --budget-usd 0.15
   --controller-a llm --controller-b ai \
   --smart-a openrouter:deepseek/deepseek-v4.1-flash --fast-a openrouter:deepseek/deepseek-v4.1-flash \
   --context-profile v4-faithful --memory-tools --env LOOKAHEAD=1 --env MULLIGAN_HEURISTIC=0 \
-  --env "TIER_FAST_TYPES=targets,target,zone-change,prevent-effect,ability-to-play,play-single" \
+  --env "TIER_FAST_TYPES=targets,target,zone-change,prevent-effect,ability-to-play,play-single,order" \
   --out $PWD/runs/loop/g$N --cap-minutes 20
 ```
 
 Vary the deck and the seating between games (`--deck-a/--deck-b`, add `--pairs` only when you want
 both seatings of one seed): a defect usually belongs to a card type, and one deck shows few.
 `MULLIGAN_HEURISTIC=0` so the mulligan is the model's decision too.
+
+`order` is in the fast-tier list for the reason the others are: it is a classification over a menu the
+harness has already legalised (which milled cards reach the graveyard in which order), and the smart
+tier spent 17 calls on it in runs/loop/g05 — 16% of that game's model calls — on an order the seat
+itself called irrelevant ("Order doesn't change the outcome").
 
 ## 2. The sheet (mechanical, never skip)
 

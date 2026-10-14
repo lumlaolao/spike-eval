@@ -190,9 +190,10 @@ loop and flashing back Dread Return for Thassa's Oracle with an empty library.
   `everyModelSpecResolvesToTheSameConfig`, and the canonical-string pin.
 - OPEN   the one-preview budget: after a preview, the seat's corrected retry is still refused
   ("one preview per decision"). A cost call, not a bug.
-- OPEN   `order` decisions (17 in g05, 16% of its model calls) still go to the smart tier, though they
-  are a classification over a menu the harness has already legalised — the fast tier's own documented
-  criterion. Left for the owner because it changes which model answers the decision.
+- FIXED  `order` decisions now go to the fast tier (`...,order` in the game-loop command's
+  TIER_FAST_TYPES, with the reason stated there): 17 of g05's 105 model calls went on an order the
+  seat itself called irrelevant, over an already-legalised menu. It changes which model answers, so
+  it waited for the owner's call.
 
 ### g06  2026-10-13  seed 58  Painter (seat) vs Infect (Forge AI)  lost T12  $0.08  build 8ad60d78
 
