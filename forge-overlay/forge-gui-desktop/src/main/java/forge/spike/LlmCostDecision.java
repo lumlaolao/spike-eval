@@ -4,6 +4,7 @@ import java.util.Set;
 
 import com.google.common.collect.Sets;
 
+import forge.ai.AiCardMemory;
 import forge.ai.AiCostDecision;
 import forge.ai.ComputerUtilCost;
 import forge.game.card.CardCollectionView;
@@ -22,9 +23,9 @@ import forge.game.spellability.SpellAbility;
 import forge.game.zone.ZoneType;
 
 /**
- * Cost decision maker for the LLM seat. It routes the CARD-CHOOSING non-mana costs — which permanent
- * to sacrifice for a cost (Cabal Therapy flashback, Feign Death-style, edict-adjacent payments) — to
- * the model-owned controller hook, and delegates every other cost type to {@link AiCostDecision}.
+ * Cost decision maker for the LLM seat. It routes the CARD-CHOOSING non-mana costs — what a cost
+ * sacrifices, exiles, returns to hand or taps (see each visit) — to the model-owned controller hooks,
+ * and delegates every other cost type to {@link AiCostDecision}.
  *
  * <p>The candidate filter below is copied VERBATIM from {@code ComputerUtil.chooseSacrificeType} so
  * legality is identical to the engine's own AI path (sacrifice-eligible, not the pumped target, not a
@@ -37,11 +38,15 @@ final class LlmCostDecision extends AiCostDecision {
      *  the controller can ask the right question. */
     static final String COST_MESSAGE = "Sacrifice as a cost";
 
-    /** What this cost's tap parts already took, so a second one cannot take them again. */
+    /** Cards a tap-type part may not take: as in AiCostDecision, the mana sources the menu's test
+     *  payment reserved for this ability (PAYS_TAP_COST; mana is paid first, and tapping a tapped card
+     *  is a silent no-op, so offering one lets the cost go unpaid), plus what earlier tap parts took. */
     private final CardCollection tapped = new CardCollection();
 
     LlmCostDecision(Player ai0, SpellAbility sa, boolean effect) {
         super(ai0, sa, effect);
+        Set<Card> tappedForMana = AiCardMemory.getMemorySet(ai0, AiCardMemory.MemorySet.PAYS_TAP_COST);
+        if (tappedForMana != null) tapped.addAll(tappedForMana);
     }
 
     @Override
@@ -78,9 +83,9 @@ final class LlmCostDecision extends AiCostDecision {
                     typeList, COST_MESSAGE);
             if (pick != null && !pick.isEmpty()) return PaymentDecision.card(pick);
             if (amount <= 0) return super.visit(cost); // nothing to choose (X=0): the engine's bookkeeping
-            fellBack("empty pick");
+            fellBack("sacrifice-cost", "empty pick");
         } catch (Exception e) {
-            fellBack(e.getClass().getSimpleName());
+            fellBack("sacrifice-cost", e.getClass().getSimpleName());
         }
         return super.visit(cost);
     }
@@ -110,13 +115,12 @@ final class LlmCostDecision extends AiCostDecision {
 
             String from = (cost.zoneRestriction == 1 ? "your " : "any player's ") + (cost.getFrom().size() == 1
                     ? cost.getFrom().get(0).name().toLowerCase() : String.valueOf(cost.getFrom()).toLowerCase());
-            CardCollectionView pick = player.getController().chooseCardsForEffect(typeList, ability,
-                    "COST: to pay for " + source.getName() + " you must EXILE " + amount + " of these cards from "
-                    + from + ". They leave now, as the cost is paid. Choose which", amount, amount, false, null);
-            if (pick != null && pick.size() == amount) return PaymentDecision.card(pick);
-            fellBack("exile pick of " + (pick == null ? 0 : pick.size()));
+            CardCollectionView pick = ask(typeList, amount, "exile", "COST: to pay for " + source.getName()
+                    + " you must EXILE " + amount + " of these cards from " + from
+                    + ". They leave now, as the cost is paid. Choose which");
+            if (pick != null) return PaymentDecision.card(pick);
         } catch (Exception e) {
-            fellBack(e.getClass().getSimpleName());
+            fellBack("exile-cost", e.getClass().getSimpleName());
         }
         return super.visit(cost);
     }
@@ -135,14 +139,12 @@ final class LlmCostDecision extends AiCostDecision {
             typeList = ComputerUtilCost.paymentChoicesWithoutTargets(typeList, ability, player);
             if (amount <= 0 || typeList.size() <= amount) return super.visit(cost); // nothing to choose
 
-            CardCollectionView pick = player.getController().chooseCardsForEffect(typeList, ability,
-                    "COST: to pay for " + source.getName() + " you must RETURN " + amount
-                    + " of these permanents to your hand. They leave the battlefield now, as the cost is paid. Choose which",
-                    amount, amount, false, null);
-            if (pick != null && pick.size() == amount) return PaymentDecision.card(pick);
-            fellBack("return pick of " + (pick == null ? 0 : pick.size()));
+            CardCollectionView pick = ask(typeList, amount, "return", "COST: to pay for " + source.getName()
+                    + " you must RETURN " + amount
+                    + " of these permanents to your hand. They leave the battlefield now, as the cost is paid. Choose which");
+            if (pick != null) return PaymentDecision.card(pick);
         } catch (Exception e) {
-            fellBack(e.getClass().getSimpleName());
+            fellBack("return-cost", e.getClass().getSimpleName());
         }
         return super.visit(cost);
     }
@@ -157,7 +159,7 @@ final class LlmCostDecision extends AiCostDecision {
     @Override
     public PaymentDecision visit(CostTapType cost) {
         String type = cost.getType();
-        if (type.contains("+withTotalPowerGE") || type.contains("sharesCreatureTypeWith")) return super.visit(cost);
+        if (type.contains("+withTotalPowerGE") || type.contains("sharesCreatureTypeWith")) return engineTap(cost);
         try {
             final int amount = cost.getAbilityAmount(ability);
             CardCollection all = new CardCollection(player.getCardsIn(ZoneType.Battlefield));
@@ -166,28 +168,44 @@ final class LlmCostDecision extends AiCostDecision {
             typeList = CardLists.filter(typeList, CardPredicates.CAN_TAP);
             if (!cost.canTapSource) typeList.remove(source);
             if (ability.isKeyword(Keyword.STATION)) typeList = CardLists.filter(typeList, c -> c.getNetPower() > 0);
-            if (amount <= 0 || typeList.size() <= amount) return super.visit(cost); // nothing to choose
+            if (amount <= 0 || typeList.size() <= amount) return engineTap(cost); // nothing to choose
 
-            CardCollectionView pick = player.getController().chooseCardsForEffect(typeList, ability,
-                    "COST: to pay for " + source.getName() + " you must TAP " + amount
-                    + " of these untapped permanents. A tapped creature cannot attack or block until it untaps. Choose which",
-                    amount, amount, false, null);
-            if (pick != null && pick.size() == amount) {
+            CardCollectionView pick = ask(typeList, amount, "tap", "COST: to pay for " + source.getName()
+                    + " you must TAP " + amount
+                    + " of these untapped permanents. A tapped creature cannot attack or block until it untaps. Choose which");
+            if (pick != null) {
                 tapped.addAll(pick);
                 return PaymentDecision.card(pick);
             }
-            fellBack("tap pick of " + (pick == null ? 0 : pick.size()));
         } catch (Exception e) {
-            fellBack(e.getClass().getSimpleName());
+            fellBack("tap-cost", e.getClass().getSimpleName());
         }
-        return super.visit(cost);
+        return engineTap(cost);
+    }
+
+    /** The engine's own pick, kept in {@code tapped}: the parent's exclusion set is private, so without
+     *  this a later tap part could name a card an earlier one already took. */
+    private PaymentDecision engineTap(CostTapType cost) {
+        PaymentDecision d = super.visit(cost);
+        if (d != null && d.cards != null) tapped.addAll(d.cards);
+        return d;
+    }
+
+    /** Asks the seat for exactly {@code amount} of {@code typeList}; null (logged as a fallback) when
+     *  the pick is short, so the caller lets the engine choose. */
+    private CardCollectionView ask(CardCollection typeList, int amount, String kind, String question) {
+        CardCollectionView pick = player.getController().chooseCardsForEffect(typeList, ability, question,
+                amount, amount, false, null);
+        if (pick != null && pick.size() == amount) return pick;
+        fellBack(kind + "-cost", kind + " pick of " + (pick == null ? 0 : pick.size()));
+        return null;
     }
 
     /** The model-owned route failed and the engine's AI is about to choose. Never silent. */
-    private void fellBack(String why) {
+    private void fellBack(String kind, String why) {
         try {
             if (player.getController() instanceof LlmSpikeGui.PlayerControllerLLM)
-                ((LlmSpikeGui.PlayerControllerLLM) player.getController()).costDecisionFellBack(why);
+                ((LlmSpikeGui.PlayerControllerLLM) player.getController()).costDecisionFellBack(kind, why);
         } catch (Exception ignore) { }
     }
 }

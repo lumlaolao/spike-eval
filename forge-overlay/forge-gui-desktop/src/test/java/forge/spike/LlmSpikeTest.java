@@ -1726,21 +1726,26 @@ public class LlmSpikeTest {
     /** A tap-type cost (Glare of Subdual: "Tap an untapped creature you control") was paid by Forge's AI,
      *  lowest power first, with no row, so the AI chose which creature stayed up to attack or block.
      *  The real play path pays with LlmCostDecision (playChosenSpellAbility), so the pick must be the
-     *  seat's. Mana abilities (Heritage Druid) are paid inside ComputerUtilMana and are NOT covered. */
+     *  seat's -- among the creatures the engine itself would consider: not a tapped one, and not one
+     *  the menu's test payment reserved as a mana source (mana is paid first; tapping it again would be
+     *  a silent no-op and the cost would go unpaid). */
     @Test
     public void aTapTypeCostIsTheSeatsChoice() {
         Game game = buildBareGame();
         Player me = game.getPlayers().get(0);
         Card glare = addBattlefieldCard("Glare of Subdual", me);
-        addBattlefieldCard("Llanowar Elves", me);
+        addBattlefieldCard("Savannah Lions", me).setTapped(true);
+        Card elves = addBattlefieldCard("Llanowar Elves", me);
         addBattlefieldCard("Grizzly Bears", me);
-        addBattlefieldCard("Serra Angel", me);
-        forge.game.spellability.SpellAbility ab = glare.getSpellAbilities().get(0);
+        Card angel = addBattlefieldCard("Serra Angel", me);
+        forge.game.spellability.SpellAbility ab = null;
+        for (forge.game.spellability.SpellAbility s : glare.getSpellAbilities()) if (!s.isSpell()) ab = s;
         ab.setActivatingPlayer(me);
-        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 3");
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 2");
         LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
                 new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
         me.dangerouslySetController(ctrl);
+        forge.ai.AiCardMemory.rememberCard(me, elves, forge.ai.AiCardMemory.MemorySet.PAYS_TAP_COST);
         forge.game.cost.CostTapType tap = null;
         for (forge.game.cost.CostPart part : ab.getPayCosts().getCostParts())
             if (part instanceof forge.game.cost.CostTapType) tap = (forge.game.cost.CostTapType) part;
@@ -1750,9 +1755,12 @@ public class LlmSpikeTest {
         Assert.assertNotNull(d);
         Assert.assertEquals(bridge.prompts.size(), 1, "the tap was not asked");
         Assert.assertTrue(bridge.prompts.get(0).contains("TAP 1"), bridge.prompts.get(0));
-        // Forge's AI taps the lowest-power creature (Llanowar Elves); the seat asked for Serra Angel.
+        // The candidates are Grizzly Bears and Serra Angel, so pick 2 is the Angel. Offering the tapped
+        // Lions or the reserved Elves would shift it to the Bears. Forge's AI would tap the Bears.
         Assert.assertEquals(d.cards.size(), 1);
-        Assert.assertEquals(d.cards.get(0).getName(), "Serra Angel", "the seat's pick (3) was not used");
+        Assert.assertEquals(d.cards.get(0).getName(), "Serra Angel", "the seat's pick (2) was not used");
+        Assert.assertTrue(tap.payAsDecided(me, d, ab, false), "the decided tap was not paid");
+        Assert.assertTrue(angel.isTapped(), "paying the decision did not tap the Angel");
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
