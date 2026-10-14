@@ -948,39 +948,38 @@ public class LlmSpikeTest {
     }
 
     // ================================================================================
-    // INVESTIGATION 3 (truncation/bridge-down root cause): gpt-5 and deepseek's fast-tier decisions
-    // (confirm/play) were losing their entire token budget to hidden reasoning at the flat
-    // DEFAULT_FAST_MAX_TOKENS=512 every model shares, leaving zero room for the actual answer. The fix
-    // gives ONLY the reasoning-heavy row (matched by substring "deepseek"/"gpt") a larger fastMaxTokens/
-    // fastTimeoutMs; models with no evidence of this failure mode keep the flat default.
+    // The model table is UNIFORM (2026-10-13). It used to give deepseek/gpt a larger fast budget
+    // than everyone else and every row its own smart cap (4000/8000/16000), which made the harness
+    // part of what was being measured: the row with the smaller cap was the one whose answer got
+    // truncated and then retried with reasoning DISABLED, a different question rather than a slower
+    // one. The cap now covers reasoning and answer together, at one value, for every model.
     // ================================================================================
 
     @Test
-    public void modelCfg_reasoningModelsGetLargerFastTierBudgetThanFlatDefault() {
-        LlmSpikeGui.ModelCfg gpt = LlmSpikeGui.ModelCfg.forModel("openai/gpt-5");
+    public void modelCfg_everyRowGetsOneBudgetSoAnEvalComparesModelsUnderOneInfra() {
         LlmSpikeGui.ModelCfg deepseek = LlmSpikeGui.ModelCfg.forModel("deepseek/deepseek-v4-pro");
-        LlmSpikeGui.ModelCfg other = LlmSpikeGui.ModelCfg.forModel("some/other-model");
-
-        Assert.assertTrue(gpt.fastMaxTokens > LlmSpikeGui.ModelCfg.DEFAULT_FAST_MAX_TOKENS,
-                "gpt-5 is a reasoning model that burns hidden reasoning tokens even on the fast tier -- "
-                + "the flat 512-token default left zero room for the final CHOICE/PICKS line every time "
-                + "(8/8 finish_reason=length events had empty content in the gpt-5 model-sweep game)");
-        Assert.assertEquals(deepseek.fastMaxTokens, gpt.fastMaxTokens,
-                "gpt and deepseek share the same ModelCfg row (both matched the same evidence)");
-        Assert.assertTrue(gpt.fastTimeoutMs > LlmSpikeGui.ModelCfg.DEFAULT_FAST_TIMEOUT_MS,
-                "a larger token budget needs more time to generate");
-        Assert.assertEquals(other.fastMaxTokens, LlmSpikeGui.ModelCfg.DEFAULT_FAST_MAX_TOKENS,
-                "models without evidence of this failure mode (kimi/grok/default) must keep the flat default");
-        Assert.assertEquals(other.fastTimeoutMs, LlmSpikeGui.ModelCfg.DEFAULT_FAST_TIMEOUT_MS);
-        // ...and the fast tier now says so EXPLICITLY: a reasoner that is not told "minimal" spends
-        // hidden reasoning on a mechanical question, which was the actual latency driver (measured
-        // 2026-10-13: 4000-token reasoning burn -> truncation retry -> 182s for one number).
-        Assert.assertEquals(gpt.fastReasoningEffort, "none",
-                "the reasoning-model row must DISABLE fast-tier reasoning: measured ~848 completion "
-                + "tokens of which ~800 were hidden reasoning for a ~50-token answer, and \"low\"/\"minimal\" "
-                + "do not reliably reduce it -- only disabling does (65 tokens, 1.3s vs ~7s)");
-        Assert.assertNull(other.fastReasoningEffort,
-                "models without this failure mode must not be sent a reasoning hint");
+        LlmSpikeGui.ModelCfg[] rows = {
+            LlmSpikeGui.ModelCfg.forModel("openai/gpt-5"),
+            deepseek,
+            LlmSpikeGui.ModelCfg.forModel("moonshot/kimi-k2"),
+            LlmSpikeGui.ModelCfg.forModel("anthropic/claude-opus-4.8"),
+            LlmSpikeGui.ModelCfg.forModel("some/other-model"),
+        };
+        for (LlmSpikeGui.ModelCfg c : rows) {
+            Assert.assertEquals(c.maxTokens, deepseek.maxTokens, "smart cap differs by model");
+            Assert.assertEquals(c.timeoutMs, deepseek.timeoutMs, "smart timeout differs by model");
+            Assert.assertNull(c.reasoningEffort, "the smart tier must not be steered per model");
+            Assert.assertEquals(c.fastMaxTokens, deepseek.fastMaxTokens, "fast cap differs by model");
+            Assert.assertEquals(c.fastTimeoutMs, deepseek.fastTimeoutMs, "fast timeout differs by model");
+            Assert.assertEquals(c.fastReasoningEffort, "none",
+                    "the fast tier must DISABLE reasoning for every row: measured ~848 completion tokens "
+                    + "of which ~800 were hidden reasoning for a ~50-token answer, and \"low\"/\"minimal\" "
+                    + "do not reliably reduce it -- only disabling does (65 tokens, 1.3s vs ~7s)");
+        }
+        Assert.assertTrue(deepseek.maxTokens >= 8000,
+                "the smart cap covers reasoning AND the answer now, so it must clear the measured p99 "
+                + "(3811 of 5346 smart completions) with room to spare");
+        Assert.assertTrue(deepseek.maxTokens > deepseek.fastMaxTokens);
     }
 
     /** The tier routing table is OPT-IN. With TIER_FAST_TYPES unset -- the test environment, and every

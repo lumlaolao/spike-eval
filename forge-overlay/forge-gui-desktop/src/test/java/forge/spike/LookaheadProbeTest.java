@@ -423,4 +423,18 @@ public class LookaheadProbeTest {
         Assert.assertTrue(report.contains("assuming target: Elite Vanguard"), report);
         Assert.assertTrue(report.contains("board 2 -> 1"), "the named creature should die: " + report);
     }
+
+    /** A PASS preview resolves nothing, so no copy is made and the answer says so. The one thing it
+     *  cannot answer is what the opponent will do if the seat does nothing, so it says that too,
+     *  rather than implying the preview played their turn. runs/loop/g03 and runs/loop/g05 both had
+     *  the seat ask for PASS and get an error instead. */
+    @Test
+    public void previewPassSaysNothingResolvesAndDoesNotPlayTheOpponentsTurn() {
+        String report = PlayerLookahead.previewPass();
+        System.out.println("[LOOKAHEAD] " + report);
+        Assert.assertTrue(report.startsWith("if you pass, nothing resolves"), report);
+        Assert.assertTrue(report.contains("unchanged"), report);
+        Assert.assertTrue(report.contains("opponent's turn"),
+                "a PASS preview must not imply it plays out their turn: " + report);
+    }
 }

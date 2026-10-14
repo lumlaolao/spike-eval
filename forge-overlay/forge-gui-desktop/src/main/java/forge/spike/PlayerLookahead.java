@@ -148,6 +148,19 @@ final class PlayerLookahead {
         return previewLine(live, seat, java.util.Collections.singletonList(liveOption), seed, targetHint);
     }
 
+    /**
+     * The preview of a PASS option. PASS resolves nothing, so there is no copy to make and nothing to
+     * resolve: the honest answer is that nothing changes. It is spelled out because a PASS preview is
+     * the one request that can mean "what happens if I do nothing", which the preview cannot answer --
+     * it never plays out the opponent's turn. Refusing it (before this, the last menu line was refused
+     * outright; 6 of 92 requests in runs/lines/ctl2/native-lookahead and one in runs/loop/g03 asked
+     * for PASS) left the seat an error where the harness does know the answer.
+     */
+    static String previewPass() {
+        return "if you pass, nothing resolves: the board, hands, life and graveyards are unchanged. "
+             + "A preview cannot play out the opponent's turn.";
+    }
+
     /** At most this many plays in one previewed line. */
     static final int MAX_LINE = 3;
 
