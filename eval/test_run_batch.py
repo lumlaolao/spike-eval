@@ -260,6 +260,10 @@ class TestLookahead(unittest.TestCase):
             run_batch.write_manifest(d, old_no_env, seeds=[7100], pairs=False, jobs=1)
             self.assertIn("lookahead", run_batch.check_resume_condition(d, base, cited=False) or "")
             self.assertIsNone(run_batch.check_resume_condition(d, la, cited=False))
+            # Only some lines stamped: the others' condition is unknowable, so neither resumes.
+            write_game(d, "game-7101-1000.jsonl", game_line(7101, False))
+            for cond in (base, la):
+                self.assertIn("stamped on 1 of 2", run_batch.check_resume_condition(d, cond, cited=False) or "")
 
 
 class TestResumeIdentity(unittest.TestCase):

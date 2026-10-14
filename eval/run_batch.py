@@ -9,9 +9,10 @@ CONDITION are skipped. The condition (decks, identities, controllers, models,
 context profile, memory tools, checkpoint, shas, cap, plans, env overrides) is
 written to <out>/batch-manifest.json on first launch; a later invocation with a
 different condition against the same --out is refused, so one directory is
-always one experiment. --context-profile and --memory-tools are the only way to
-set CONTEXT_PROFILE / MEMORY_TOOLS (ambient values are scrubbed, --env is
-refused for them); unset means the JVM's historical baseline.
+always one experiment. --context-profile, --memory-tools, --rules-tool,
+--text-tools and --lookahead are the only way to set CONDITION_ENV_KEYS (ambient
+values are scrubbed, --env is refused for them); unset means the JVM's
+historical baseline.
 
 Two modes:
   CITED (default) — the only mode whose numbers may be quoted. Enforces a
@@ -59,13 +60,13 @@ SPIKE_REL = "forge-gui-desktop/src/main/java/forge/spike"
 SPIKE_FILES = ("LlmSpikeGui.java", "LlmSpikeHeadless.java")
 # Env keys cited mode owns; a user --env override of these is refused.
 CITED_FORCED_KEYS = ("MULLIGAN_HEURISTIC", "SKIP_HEURISTICS", "PLAN_A", "PLAN_B")
+# Set by --context-profile, --memory-tools, --rules-tool, --text-tools and --lookahead.
+CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD")
 # Env keys that DEFINE the run (decks, identities, arms, models, seeding,
 # caps, provenance). Cited mode refuses --env overrides of these — otherwise
 # e.g. `--env DECK_A=other.txt` would silently break the mirror while the run
 # stays stamped "cited". They are also scrubbed from the ambient environment
 # in build_env so a stray exported var can't leak into any batch.
-# Set by --context-profile, --memory-tools, --rules-tool, --text-tools and --lookahead.
-CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD")
 RUN_DEFINING_KEYS = (
     "DECK_A", "DECK_B", "DECK_A_NAME", "DECK_B_NAME",
     "CONTROLLER_A", "CONTROLLER_B",
@@ -566,20 +567,20 @@ def legacy_dir_condition(out_dir):
         "checkpoint_sha": "checkpoint_sha", "engine_sha": "engine_sha",
         "overlay_sha": "overlay_sha", "deck_sha": "deck_sha",
     }
-    seen = {}
+    seen, stamped = {}, {}
     n = 0
     for rec in iter_game_lines(out_dir):
         n += 1
+        # A game line written before native_tools existed ran the text grammar (or no tools).
+        # Without this a legacy directory of text-grammar games would accept native-tools games.
+        rec = dict({"native_tools": False}, **rec)
         for key, field in field_map.items():
             if field in rec:
                 seen.setdefault(key, set()).add(json.dumps(rec[field], sort_keys=True))
+                stamped[key] = stamped.get(key, 0) + 1
     if not n:
         return None
-    # A game line written before native_tools existed ran the text grammar. Without this a legacy
-    # directory of text-grammar games would accept native-tools games on resume.
-    if "memory_tools" in seen:
-        seen.setdefault("native_tools", {json.dumps(False)})
-    return {"n_game_lines": n,
+    return {"n_game_lines": n, "stamped": stamped,
             "fields": {k: [json.loads(v) for v in sorted(vals)] for k, vals in seen.items()}}
 
 
@@ -591,22 +592,24 @@ def check_resume_condition(out_dir, condition, cited):
     manifest = load_manifest(out_dir)
     if manifest is not None:
         # A manifest older than a tool flag cannot say whether the tool was on (an exported
-        # LOOKAHEAD=1 used to leak in unrecorded); where its game lines carry the stamp, they decide.
+        # LOOKAHEAD=1 used to leak in unrecorded). Where every game line carries the stamp, the
+        # lines decide; where only some do, the others are unknowable, and the directory is refused.
         missing = [k for k in ("native_tools", "lookahead") if k not in manifest.get("condition", {})]
         lines = legacy_dir_condition(out_dir) if missing else None
-        by_lines = [k for k in missing if lines and k in lines["fields"]]
+        counts = {k: (lines or {}).get("stamped", {}).get(k, 0) for k in missing}
+        by_lines = [k for k in missing if counts[k]]
         diff = [d for d in condition_diff(manifest.get("condition", {}), condition) if d[0] not in by_lines]
+        for k in by_lines:
+            want = bool(condition.get(k))
+            if counts[k] < lines["n_game_lines"]:
+                diff.append((k, "stamped on %d of %d game lines" % (counts[k], lines["n_game_lines"]), want))
+            elif lines["fields"][k] != [want]:
+                diff.append((k, lines["fields"][k], want))
         if diff:
             return ("%s already holds games under a different condition; a batch "
                     "directory is one experiment. Differences:\n           - "
                     % out_dir
                     + "\n           - ".join("%s: recorded %r, requested %r" % d for d in diff)
-                    + "\n           Use a new --out for the new condition.")
-        stamped = [(k, lines["fields"][k], bool(condition.get(k))) for k in by_lines
-                   if lines["fields"][k] != [bool(condition.get(k))]]
-        if stamped:
-            return ("%s holds game lines of a different condition than requested:\n           - " % out_dir
-                    + "\n           - ".join("%s: recorded %s, requested %r" % d for d in stamped)
                     + "\n           Use a new --out for the new condition.")
         return None
     legacy = legacy_dir_condition(out_dir)
