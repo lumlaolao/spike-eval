@@ -35,6 +35,8 @@ CODE_PATHS = ("forge-overlay/", "eval/", "scripts/", "install.sh", "run-llm-")
 # `- acceptance @ <head sha>: OUT=<dir> <N>/<N> stages PASS ...`
 ACCEPTANCE = re.compile(r"^- acceptance @ ([0-9a-f]{7,40}): OUT=(\S+) (\d+)/(\d+) stages PASS\b", re.M)
 TRAILER = re.compile(r"^(Co-Authored-By|Claude-Session|Signed-off-by): ", re.I)
+# A whole line that is still a `new-pr` skeleton placeholder, e.g. `<which stamps moved, or: none>`.
+PLACEHOLDER = re.compile(r"^\s*(- )?<[^<>\n]+>\s*$", re.M)
 
 
 def subject_problems(subject):
@@ -102,6 +104,8 @@ def pr_problems(title, body, head=None, files=(), gate=False, commits=()):
             out.append("body has no `## %s` section" % s)
         elif not secs[s].strip() or re.fullmatch(r"\s*(TODO|TBD|\.\.\.)\s*", secs[s], re.I):
             out.append("`## %s` is empty" % s)
+        elif PLACEHOLDER.search(secs[s]):
+            out.append("`## %s` still holds a skeleton placeholder: %s" % (s, PLACEHOLDER.search(secs[s]).group(0).strip()))
     if present != [s for s in SECTIONS if s in secs]:
         out.append("sections are out of order; expected %s" % ", ".join(SECTIONS))
     if not gate:
@@ -164,7 +168,7 @@ def skeleton(base):
         "## Evidence", "", "- acceptance @ %s: OUT=/tmp/<name> <N>/<N> stages PASS, <J> Java, <P> Python" % head,
         "- <measurement, next to its trivial baseline>", "",
         "## Provenance", "", "<which stamps moved, or: none>", "",
-        "## Review", ""] + ["- %s @ %s: <CLEAN|LOW|MEDIUM|HIGH|BLOCKER> <one line>" % (a, head) for a in SKILLS] + [
+        "## Review", ""] + ["- %s @ %s: <%s> <one line>" % (a, head, "|".join(SKILL_VERDICTS[a])) for a in SKILLS] + [
         "", "## Not done", "", "<left out on purpose, and what would reopen it>", ""]
     return title, "\n".join(body)
 

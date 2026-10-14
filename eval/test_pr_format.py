@@ -103,6 +103,23 @@ class PrFormatTest(unittest.TestCase):
         swapped = BODY.replace("## What", "## TMP").replace("## Why", "## What").replace("## TMP", "## Why")
         self.assertTrue(any("out of order" in p for p in pf.pr_problems("docs: x", swapped)))
 
+    def test_an_unfilled_skeleton_is_refused_and_names_each_placeholder(self):
+        # The skeleton new-pr prints used to pass the form check: every section held some text.
+        title, body = pf.skeleton("HEAD")
+        problems = pf.pr_problems("docs: x", body)
+        for section in ("Why", "Evidence", "Provenance", "Not done"):
+            self.assertTrue(any("`## %s` still holds a skeleton placeholder" % section in p for p in problems),
+                            (section, problems))
+        # Prose that merely contains angle brackets is not a placeholder.
+        prose = BODY.replace("MCP server; see the note.", "The <details> block stays; `List<String>` is fine.")
+        self.assertEqual(pf.pr_problems("docs: x", prose), [])
+
+    def test_the_skeleton_offers_each_skill_its_own_verdicts(self):
+        review = pf.sections(pf.skeleton("HEAD")[1])["Review"]
+        for skill in pf.SKILLS:
+            self.assertIn("- %s @ " % skill, review)
+            self.assertIn("<%s>" % "|".join(pf.SKILL_VERDICTS[skill]), review)
+
     def test_recording_replaces_the_line_by_heading_and_survives_odd_notes(self):
         body = BODY.replace("## Why\n", "## Why\n\nThe `## Review` section was empty before.\n")
         new = pf.updated_body(body, "Review", "- pr-review @", "- pr-review @ abc123456: MEDIUM reach 87% vs 40%")
