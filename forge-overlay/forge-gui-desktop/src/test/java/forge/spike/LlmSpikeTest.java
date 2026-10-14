@@ -1919,19 +1919,23 @@ public class LlmSpikeTest {
     }
 
     /** Issue #107, the other Dig and DigUntil shapes: an order is called top-down only when every pile the
-     *  ask could be for lands on top. Dig asks for its chosen and its rest pile with one SpellAbility, so
-     *  a top pile beside a bottom one (Munda, Ambush Leader) keeps the literal wording. */
+     *  ask could be for lands at position 0. Dig asks for its chosen and its rest pile with one SpellAbility,
+     *  so two library piles keep the literal wording: a top pile beside a bottom one (Munda, Ambush Leader),
+     *  and two top piles too, since DigEffect puts the rest pile above the chosen one. */
     @Test
     public void aDigOrderIsAskedTopDownOnlyWhenEveryLibraryPileItCouldBeLandsOnTop() {
         Object[][] cases = {
             {"DB$ Dig | DigNum$ 3 | ChangeNum$ 1 | DestinationZone$ Graveyard | LibraryPosition2$ 0", true},
             {"DB$ Dig | DigNum$ 3 | ChangeNum$ 1", false},
-            {"DB$ Dig | DigNum$ 4 | ChangeNum$ Any | DestinationZone$ Library | LibraryPosition$ 0 | LibraryPosition2$ 0", true},
+            {"DB$ Dig | DigNum$ 4 | ChangeNum$ Any | DestinationZone$ Library | LibraryPosition$ 0 | LibraryPosition2$ 0", false},
             {"DB$ Dig | DigNum$ 4 | ChangeNum$ Any | DestinationZone$ Library | LibraryPosition$ 0", false},
             {"DB$ Dig | DigNum$ 4 | ChangeNum$ 1 | DestinationZone$ Library | LibraryPosition$ 0 | DestinationZone2$ Graveyard", true},
+            {"DB$ Dig | DigNum$ 4 | ChangeNum$ 1 | DestinationZone$ Graveyard | LibraryPosition2$ 1", false},
             {"DB$ DigUntil | Valid$ Card.nonLand | RevealedDestination$ Library", true},
             {"DB$ DigUntil | Valid$ Card.nonLand | RevealedDestination$ Library | RevealedLibraryPosition$ -1", false},
             {"DB$ DigUntil | Valid$ Card.nonLand | RevealedDestination$ Library | NoneFoundDestination$ Library | NoneFoundLibraryPosition$ -1", false},
+            {"DB$ DigUntil | Valid$ Card.nonLand | RevealedDestination$ Graveyard | NoneFoundDestination$ Library | NoneFoundLibraryPosition$ 0", true},
+            {"DB$ DigUntil | Valid$ Card.nonLand | RevealedDestination$ Graveyard | NoneFoundDestination$ Library | NoneFoundLibraryPosition$ -1", false},
         };
         for (Object[] c : cases) {
             Game game = buildBareGame();
