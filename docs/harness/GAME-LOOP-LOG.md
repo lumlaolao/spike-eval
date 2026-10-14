@@ -109,3 +109,62 @@ seat's own line (Aether Vial, Goblin Matron into Krenko, Wasteland on a Volcanic
   engine self-heals by setting the activator. 4 here, 1 in g01, 0 in g02.
 - clean  mulligan (asked, 5 lands kept), every land drop, the Vial / Matron / Krenko sequence, the
   Wasteland target, all attack steps.
+
+### g04  2026-10-13  seed 56  Sneak and Show (seat) vs Miracles (Forge AI)  won T14  $0.05  build 21011774
+
+Sheet: TAKEN 0, LOST 0, 4 TOOL exhausted, one SLOW, 5 truncations in the log. 553 s for the game
+(g02 266 s, g03 306 s). The seat won by Sneak-Attacking Emrakul, Griselbrand and Atraxa in.
+
+- OPEN   item 3 is worst on this deck, and the retry mechanism is now clear enough to name. The
+  smart tier's 4000-token cap truncates; the truncation retry shares the ask's single 90 s deadline;
+  if the first attempt was slow the retry is starved and the ask goes to bridge-down, which the
+  caller answers with a WHOLE new attempt. T8 (log lines 57-63; jsonl:14 attempts=3 retry_ms=90509):
+  truncation at ~67 s -> retry cut at 22616 ms of the 90000 ms deadline -> non-answer -> bridge-down
+  -> the same ask retried (70 s + 31 s) and answered. The model took ~160 s to decide to play a land.
+- NOTE   the cap bites by deck: 5 truncations here against 1 in g02 and g03. Sneak and Show's
+  decisions (a Sneak Attack line, the Show and Tell choice) reason longer, which is the shape the
+  owner is weighing for the eval across models.
+- MODEL  4 TOOL exhausted (17% of requests): the prompt says "Tool calls available this ask: 2", the
+  model spent both -- often re-reading the same evidence (165, a 43-character observation) in four
+  different decisions -- and then asked for a third on the same decision (jsonl:71, 87). The budget is
+  stated and the over-ask is the model's; recorded, not fixed.
+- clean  mulligan (asked, 3 lands kept), the Show and Tell and Sneak Attack lines, the Atraxa ETB
+  pick, Griselbrand's draw-7, Emrakul's annihilator, all attack steps, the one forced number.
+
+### g05  2026-10-13  seed 57  Cephalid Breakfast (seat) vs Lands (Forge AI)  won T5  $0.05  build 21011774
+
+Sheet: TAKEN 0, LOST 0; 2 TOOL bad-args; 1 SLOW (7993 ms); 1 truncation in the log. The seat won on
+turn 5 (WinsGameSpellEffect) by milling its library with the Nomads en-Kor / Cephalid Illusionist
+loop and flashing back Dread Return for Thassa's Oracle with an empty library.
+
+- FIXED  the preview ignored the target the seat named and reported the source instead. It asked for
+  `simulate {"option": 1, "target": "Cephalid Illusionist 1/1 [untapped] [sick] @75"}` (jsonl:57)
+  and the report came back "if you activate Nomads en-Kor [assuming target: Nomads en-Kor]: you no
+  change" -- a no-op on the ability the whole game turned on. `PlayerLookahead.pickTarget` asked only
+  whether the candidate's NAME contained the hint, and the seat sends the label the board printed,
+  which is longer than the name, so a label never matched and the pick fell silently to
+  `defaultTarget`. The match now runs both ways and the longest name wins. Test
+  `LookaheadProbeTest.previewCastHonoursATargetHintThatQuotesThePrintedLabel`. Stamp
+  lookahead-preview-v4.
+- FIXED  plan_audit charged a hold to a card its clause named only as the consequence: "keep
+  targeting Illusionist to mill the library so Narcomoebas and Dread Return fill the graveyard" held
+  the Illusionist, and the Dread Return flashback is that plan succeeding. The splitter now breaks on
+  `so`. Test `test_a_hold_is_not_charged_to_the_card_a_consequence_clause_names`. No arm rate moved
+  (all ten arms in ARCHITECTURE-REVIEW Part 4 identical), so no published number changed.
+- OPEN   item 3 (truncation, shared 90 s deadline) -- one more occurrence here: line 170 of the
+  log, [TRUNCATED->RETRY-NO-REASONING] at 4000, then replied 22154 ms. Single, not starved.
+- OPEN   the other half of the friction, a cost call: with the target honoured the seat's first ask
+  answers it, but "one preview per decision" still refused a corrected retry (jsonl:59, 119). Whether
+  a second preview should be allowed when the seat names a different target is a budget decision, not
+  a bug.
+- OPEN   the mill loop cost 17 `order` decisions on the SMART tier -- 16% of the game's 105 model
+  calls, for the graveyard order of three milled cards, which the seat itself called irrelevant
+  ("Order doesn't change the outcome"). `order` is not in TIER_FAST_TYPES, so it goes to the slow,
+  expensive model; routing it to the fast tier is a tradeoff for the owner, not fixed here.
+- MODEL  one of those order decisions took 2 attempts (7993 ms): the first reply reasoned about the
+  mill order and omitted the required `PICKS:` tag. The retry recovered it.
+- NOTE  "hidden has neither ManaCost nor Color" at the Brainstorm preview (line 48) -- engine warning
+  during a copy-preview of a cantrip. Not investigated; harmless-looking.
+- clean  mulligan (asked, 4 lands kept), the combo execution, Force of Will reserves, all target
+  choices (every activate correctly targeted Cephalid Illusionist), Dread Return flashback into
+  Thassa's Oracle.
