@@ -76,7 +76,8 @@ NATIVE_INSTRUCTIONS = (
     "state; notes are YOUR unverified hypotheses. After your tool calls, answer in the requested format.\n")
 # Served only by the engine side (RulesTool, PlayerLookahead): the suite has no fixture for them.
 ENGINE_ONLY = ("rules_lookup", "simulate")
-# ContextMemory.askNative: said once when the model writes a tool request as text with its calls spent.
+# ContextMemory.askNative: said once when the model writes a tool request as text, or makes a call on a
+# round where none is allowed.
 PRESS = ("No tool calls are available for this decision any more. Do not ask for one. Answer the decision "
          "above now, ending with the exact answer line it asks for.")
 ONE_LINE_ERROR = "ERROR: use exactly one MEMORY/INSPECT/RULES command line, at most 1000 characters."
@@ -385,7 +386,7 @@ def run_native(scenario, kind, tier, model, tools, meta):
             fn = tc.get("function") or {}
             name, raw = fn.get("name"), fn.get("arguments")
             command, rejected = None, None
-            if used >= TOOLS_PER_ASK:
+            if not allow or used >= TOOLS_PER_ASK:     # a provider may ignore tool_choice "none"
                 result, rejected = BUDGET_ERROR, "budget"
             else:
                 try:
@@ -402,6 +403,11 @@ def run_native(scenario, kind, tier, model, tools, meta):
             calls.append({"request": {"name": name, "arguments": raw}, "command": command, "result": result,
                           "ok": rejected is None, "rejected": rejected})
             messages.append({"role": "tool", "tool_call_id": tc.get("id"), "content": result})
+        if not allow:
+            if pressed:
+                return {"reply": None, "choice": None, "calls": calls, "usage": usage}
+            pressed, used = True, TOOLS_PER_ASK
+            messages.append({"role": "user", "content": PRESS})
     return {"reply": None, "choice": None, "calls": calls, "usage": usage}
 
 

@@ -347,7 +347,7 @@ public class NativeToolsTest {
         Assert.assertEquals(reply, "CHOICE: 1");
         Assert.assertEquals(allowed, List.of(true, true, false, false));
         Assert.assertEquals(inspected, List.of("@1"), "the forbidden call did not run");
-        Assert.assertEquals(results.get(2), "ERROR: no tool calls are available for this decision; no tool executed.");
+        Assert.assertTrue(results.get(2).startsWith("ERROR: tool budget exhausted"), results.get(2));
         Assert.assertTrue(memory.brief().contains("MEMORY tools remaining this game: " + (ContextMemory.TOOLS_PER_GAME - 1) + "."),
                 memory.brief());
         // Every call id is answered before the reminder, as chat-completions requires.
@@ -356,6 +356,23 @@ public class NativeToolsTest {
         Assert.assertEquals(tail.get("role").getAsString(), "user");
         Assert.assertTrue(tail.get("content").getAsString().startsWith("No tool calls are available"));
         Assert.assertEquals(sent.get(sent.size() - 2).getAsJsonObject().get("tool_call_id").getAsString(), "c");
+    }
+
+    /** Told once that its tools are spent (here for call markup written as text), a seat that then
+     *  makes a real call has been told already: the ask ends instead of being told a second time. */
+    @Test
+    public void aForbiddenCallAfterTheReminderEndsTheAsk() {
+        ContextMemory memory = new ContextMemory();
+        memory.setInspector(arg -> "text");
+        int[] rounds = {0};
+        String reply = memory.askNative("DECISION", (user, messages, tools, allow, round) -> {
+            rounds[0]++;
+            if (round == 0) return turn("<tool_call>inspect @1</tool_call>");
+            if (round == 1) return turn(null, call("b", "inspect", "{\"target\":\"@1\"}"));
+            return turn("CHOICE: 1");
+        }, null, (a, b) -> { });
+        Assert.assertNull(reply);
+        Assert.assertEquals(rounds[0], 2);
     }
 
     /** Recorded (runs/tooluse/deepseek-v3, native/smart/search-old-hand): with calls forbidden the

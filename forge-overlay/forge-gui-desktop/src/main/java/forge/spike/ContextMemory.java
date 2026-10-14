@@ -211,11 +211,9 @@ final class ContextMemory {
             messages.add(JsonParser.parseString(turn.messageJson));
             for (NativeTools.Call c : turn.calls) {
                 String result;
-                if (!allow) {
-                    // tool_choice "none" is a request the provider may ignore. A call made anyway on a
-                    // forbidden round must not run: on the last round its result could never be read.
-                    result = "ERROR: no tool calls are available for this decision; no tool executed.";
-                } else if (used >= TOOLS_PER_ASK || toolsUsed >= TOOLS_PER_GAME) {
+                // tool_choice "none" is a request the provider may ignore. A call made anyway on a
+                // forbidden round must not run: on the last round its result could never be read.
+                if (!allow || used >= TOOLS_PER_ASK || toolsUsed >= TOOLS_PER_GAME) {
                     result = "ERROR: tool budget exhausted; no tool executed. Answer the original decision.";
                 } else if (NativeTools.SIMULATE.equals(c.name)) {
                     if (simulate == null) result = "ERROR: unknown tool `" + c.name + "`.";
