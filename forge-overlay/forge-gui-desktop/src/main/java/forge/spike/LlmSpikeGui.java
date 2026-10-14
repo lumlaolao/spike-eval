@@ -2832,16 +2832,19 @@ public final class LlmSpikeGui {
             // Without such a source on the battlefield nothing runs, so every other payment is unchanged.
             boolean any = false;
             for (Card c : me.getCardsIn(ZoneType.Battlefield))
-                for (SpellAbility ma : c.getManaAbilities()) any |= tapTypePart(ma) != null;
+                for (SpellAbility ma : c.getManaAbilities()) any |= hasTapTypeCost(ma);
             if (!any) return;
             CardCollection plan = ComputerUtilMana.getManaSourcesToPayCost(
                     ComputerUtilMana.calculateManaCost(new Cost(toPay, effect), sa, me, true, 0, effect), sa, me, effect);
             if (plan == null) return;
-            for (Card host : new java.util.LinkedHashSet<>(plan)) {
+            for (Card host : plan) {
                 for (SpellAbility ma : host.getManaAbilities()) {
-                    if (tapTypePart(ma) == null) continue;
+                    if (!hasTapTypeCost(ma)) continue;
                     ma.setActivatingPlayer(me);
-                    if (!ma.canPlay() || !CostPayment.canPayAdditionalCosts(ma.getPayCosts(), ma, effect)) continue;
+                    if (!ma.canPlay() || !CostPayment.canPayAdditionalCosts(ma.getPayCosts(), ma, effect)) {
+                        costDecisionFellBack("mana-tap-cost", host.getName() + " cannot be activated first");
+                        break;
+                    }
                     forge.game.spellability.AbilityManaPart part = ma.getManaPart();
                     if (part == null || part.isAnyMana() || part.isComboMana() || ma.getApi() == ApiType.ManaReflected) {
                         costDecisionFellBack("mana-tap-cost", host.getName() + " also chooses a color");
@@ -2852,14 +2855,16 @@ public final class LlmSpikeGui {
                     if (new CostPayment(ma.getPayCosts(), ma).payComputerCosts(new LlmCostDecision(me, ma, effect).reserve(others))) {
                         getGame().getStack().addAndUnfreeze(ma);
                         p("[ROUTER] mana-tap-cost: activated " + host.getName() + " before paying " + toPay);
+                    } else {
+                        costDecisionFellBack("mana-tap-cost", host.getName() + " payment refused");
                     }
                     break;
                 }
             }
         }
 
-        private static forge.game.cost.CostTapType tapTypePart(SpellAbility ma) {
-            return ma.getPayCosts() == null ? null : ma.getPayCosts().getCostPartByType(forge.game.cost.CostTapType.class);
+        private static boolean hasTapTypeCost(SpellAbility ma) {
+            return ma.getPayCosts() != null && ma.getPayCosts().hasSpecificCostType(forge.game.cost.CostTapType.class);
         }
 
         /** Simultaneous-trigger ORDER (trigger targeting stays the engine's — the inherited

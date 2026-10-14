@@ -48,9 +48,9 @@ The four remaining hooks were re-examined against the Forge source (not assumed)
 | Hook | Verdict | Evidence from the source |
 | --- | --- | --- |
 | `getCostDecisionMaker` | **ROUTED** | `PlayerControllerAi` returns `AiCostDecision`; `CostDecisionMakerBase` exposes `protected player/ability/source`, so a subclass can route the card-choosing `visit(CostSacrifice)` to `choosePermanentsToSacrifice`. Done in `LlmCostDecision`, with the candidate filter **copied verbatim from `ComputerUtil.chooseSacrificeType`** so legality matches. Ownership 4 -> 3. |
-| `payManaCost` | **stays AI (no seam)** | `PlayerControllerAi.payManaCost` = `ComputerUtilMana.payManaCost(new Cost(toPay, effect), player, sa, effect)` — the entire mana-payment mechanism in one call; source selection is internal, not a hook. |
+| `payManaCost` | **partly routed** | `PlayerControllerAi.payManaCost` = `ComputerUtilMana.payManaCost(new Cost(toPay, effect), player, sa, effect)` — the entire mana-payment mechanism in one call; source selection is internal, not a hook, and stays AI. A mana ability with a tap-type cost (Heritage Druid) is activated by the seat through `LlmCostDecision` before that call (#105), so which Elves it taps is the model's. |
 | `playTrigger` | **stays AI (no targeting seam)** | `playTrigger` = `prepareSingleSa(host, sa, mandatory) && ComputerUtil.playNoStack(...)`; `prepareSingleSa` sets targets/modes via `brains.doTrigger`, which is the AI core. Its yes/no is already model-owned via `confirmTrigger`. |
 | `orderAndPlaySimultaneousSa` | **half-routed already** | The strategic ORDER is model-owned (`orderSimultaneousSa`); the inherited loop calls it virtually, then plays/targets via `prepareSingleSa`. Nothing strategic is silent; only the mechanics remain with the engine. |
 
-**G7 conclusion:** 10 of 13 originally-silent hooks are model-owned; the 3 that remain are
-no-seam engine mechanics, justified above by reading the source. G7 is *classified and justified*.
+**G7 conclusion:** 11 of 13 originally-silent hooks are model-owned (`payManaCost` since #105, for
+its tap-type mana sources); the 2 that remain are no-seam engine mechanics, justified above by reading the source. G7 is *classified and justified*.

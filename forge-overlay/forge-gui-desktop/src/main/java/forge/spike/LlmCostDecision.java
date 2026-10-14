@@ -44,7 +44,7 @@ final class LlmCostDecision extends AiCostDecision {
     /** Keeps {@code cards} out of every tap part this cost asks about: the mana payment this cost is
      *  part of still needs them. */
     LlmCostDecision reserve(Iterable<Card> cards) {
-        for (Card c : cards) tapped.add(c);
+        tapped.addAll(cards);
         return this;
     }
 
