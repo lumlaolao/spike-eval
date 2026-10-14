@@ -308,6 +308,7 @@ class GroupingTest(unittest.TestCase):
         start = java.index('EvalLog.write("{\\"t\\":\\"game\\"')
         keys = re.findall(r'\\"([a-z_0-9]+)\\":', java[start:java.index(");", start)])
         self.assertIn("native_tools", keys)          # the extraction found the statement
+        self.assertEqual(keys[-1], "claude_effort_fast")  # ... and read it to its end
         outcome = {"t", "seed", "swap", "winner", "turns", "win_condition", "duration_ms"}
         known = set(aggregate.CONDITION_FIELDS) | set(aggregate.NON_BEHAVIORAL_PROVENANCE) | outcome
         self.assertEqual([k for k in keys if k not in known], [],

@@ -99,9 +99,10 @@ PROVENANCE_FIELDS = (
     # Reasoning effort is part of the player's identity, like temperature.
     ("claude_effort_smart", MISSING),
     ("claude_effort_fast", MISSING),
-    # What the seat can do beyond answering (added 2026-10-14): the tool protocol (native vs text)
-    # and each opt-in tool are conditions and never pool (CLAUDE.md). native_tools_downgraded is an observation (a provider refused function calling mid-game):
-    # such a game is not a clean native-tools game and stays apart, as served_* do.
+    # What the seat can do beyond answering: the tool protocol (native vs text) and each opt-in
+    # tool are conditions and never pool (CLAUDE.md). native_tools_downgraded is an observation
+    # (a provider refused function calling mid-game): such a game is not a clean native-tools
+    # game and stays apart, as served_* do.
     ("native_tools", MISSING),
     ("native_tools_seats", MISSING),
     ("native_tools_version", MISSING),
