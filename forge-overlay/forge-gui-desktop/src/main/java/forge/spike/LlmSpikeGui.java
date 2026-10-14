@@ -2465,21 +2465,18 @@ public final class LlmSpikeGui {
             for (T t : optionList) opts.add(t);
             if (opts.isEmpty())
                 return isOptional ? null : super.chooseSingleEntityForEffect(optionList, delayedReveal, sa, title, isOptional, relatedPlayer, params);
-            // delayedReveal carries a reveal side-effect — keep the engine's reveal semantics (the pick
-            // itself still delegates to the engine AI below; routing the pick ITSELF through the model
-            // is a mechanics-level change out of scope here). But the identities being revealed ARE
-            // known to us right now (scry/Ponder/Sensei's Divining Top-style "look at top N" effects use
-            // exactly this signature) — record them via the existing INTEL/remember() pattern so a later
-            // decision this turn can at least see what the library-look/reveal turned up, instead of the
-            // information vanishing the instant this call returns (the C2 "opaque reveal" gap).
+            // delayedReveal carries a reveal side-effect: keep the engine's reveal semantics by
+            // revealing BEFORE the pick (exactly PlayerControllerAi's order), then route the pick
+            // through the model like any other entity choice (#128). The identities being revealed are
+            // recorded so a later decision this turn can see what the look/reveal turned up (the C2
+            // "opaque reveal" gap).
             if (delayedReveal != null) {
                 try {
+                    reveal(delayedReveal);
                     List<String> seen = new ArrayList<>();
                     for (forge.game.card.CardView cv : delayedReveal.getCards()) seen.add(cv.getName());
                     if (!seen.isEmpty()) remember("REVEALED (" + zoneLabel(delayedReveal.getZone()) + "): " + String.join(", ", seen));
                 } catch (Exception ignore) { }
-                return aiDelegate("choose-entity(delayedReveal)" + srcOf(sa),
-                        super.chooseSingleEntityForEffect(optionList, delayedReveal, sa, title, isOptional, relatedPlayer, params));
             }
             if (opts.size() == 1 && !isOptional) { auto("choose-entity(forced-only-legal)" + srcOf(sa)); return opts.get(0); }
             try {
@@ -2511,8 +2508,12 @@ public final class LlmSpikeGui {
         public Card chooseSingleCardForZoneChange(ZoneType destination, List<ZoneType> origin, SpellAbility sa,
                 CardCollection fetchList, DelayedReveal delayedReveal, String selectPrompt, boolean isOptional, Player decider) {
             clearLast();
-            if (fetchList == null || fetchList.isEmpty() || delayedReveal != null || decider != getPlayer())
+            // decider != getPlayer() (the engine asks this controller to choose for ANOTHER player)
+            // still delegates; a delayedReveal does NOT — reveal it in the engine's order, then route
+            // the pick through the model like any other zone-change card choice (#128).
+            if (fetchList == null || fetchList.isEmpty() || decider != getPlayer())
                 return super.chooseSingleCardForZoneChange(destination, origin, sa, fetchList, delayedReveal, selectPrompt, isOptional, decider);
+            if (delayedReveal != null) { try { reveal(delayedReveal); } catch (Exception ignore) { } }
             List<Card> opts = new ArrayList<>(fetchList);
             if (opts.size() == 1 && !isOptional) { auto("zone-change(forced-only-legal)" + srcOf(sa)); return opts.get(0); }
             try {
