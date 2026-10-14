@@ -52,7 +52,10 @@ def modern_line(seed, swap, winner, **kw):
          "memory_tools": False, "memory_tools_version": "evidence-tools-v1",
          "seed_bank": "stage3-holdout",
          "context_profile": "v1-compat", "context_sha": "1111",
-         "claude_effort_smart": "n/a", "claude_effort_fast": "n/a"}
+         "claude_effort_smart": "n/a", "claude_effort_fast": "n/a",
+         "native_tools": False, "native_tools_seats": "", "native_tools_version": "seat-tools-v4",
+         "native_tools_downgraded": "", "rules_tool": False, "rules_tool_version": "rules-tool-v1",
+         "rules_effective": "", "lookahead": False, "lookahead_version": "lookahead-preview-v4"}
     g.update(kw)
     return g
 
@@ -111,7 +114,12 @@ class GroupingTest(unittest.TestCase):
     def test_two_models_and_memory_toggle_partition(self):
         for field, other in (("smart_a", "openrouter:teacher"), ("memory_tools", True),
                              ("checkpoint_sha", "f" * 12), ("context_sha", "9999"),
-                             ("game_cap_ms", 60000), ("claude_effort_smart", "max")):
+                             ("game_cap_ms", 60000), ("claude_effort_smart", "max"),
+                             # The tool protocol and the opt-in tools are conditions (CLAUDE.md:
+                             # "Native and text runs are different conditions. Never pool them").
+                             ("native_tools", True), ("native_tools_version", "seat-tools-v5"),
+                             ("native_tools_downgraded", "Identity-A/smart"),
+                             ("rules_tool", True), ("lookahead", True)):
             with self.subTest(field=field), tempfile.TemporaryDirectory() as d:
                 write(d, "game-1-1000.jsonl", [modern_line(1, False, "A")])
                 write(d, "game-1-2000.jsonl", [modern_line(1, False, "B", **{field: other})])

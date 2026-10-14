@@ -99,6 +99,20 @@ PROVENANCE_FIELDS = (
     # Reasoning effort is part of the player's identity, like temperature.
     ("claude_effort_smart", MISSING),
     ("claude_effort_fast", MISSING),
+    # What the seat can do beyond answering (added 2026-10-14). The game line has stamped these
+    # since the tools shipped, but they were not part of the key, so a directory holding native-
+    # and text-protocol games, or RULES_TOOL / LOOKAHEAD on and off, pooled into one win rate.
+    # native_tools_downgraded is an observation (a provider refused function calling mid-game):
+    # such a game is not a clean native-tools game and stays apart, as served_* do.
+    ("native_tools", MISSING),
+    ("native_tools_seats", MISSING),
+    ("native_tools_version", MISSING),
+    ("native_tools_downgraded", MISSING),
+    ("rules_tool", MISSING),
+    ("rules_tool_version", MISSING),
+    ("rules_effective", MISSING),
+    ("lookahead", MISSING),
+    ("lookahead_version", MISSING),
 )
 
 # Identity fields a cited run must resolve. A value in this set means the field
