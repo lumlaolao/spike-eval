@@ -35,17 +35,19 @@ Every hunter and fixer on one machine shares the Forge checkout (`FORGE_HOME`, d
   directory (`mkdir` is atomic on macOS and Linux; `flock` is not on macOS):
 
   ```bash
-  until mkdir "$HOME/.forge-agent-lock" 2>/dev/null; do cat "$HOME/.forge-agent-lock/who"; sleep 60; done
-  echo "<session or branch> $(date -u +%FT%TZ)" > "$HOME/.forge-agent-lock/who"
-  # install, build, play or run acceptance ...
-  rm -rf "$HOME/.forge-agent-lock"
+  L="$HOME/.forge-agent-lock"
+  mkdir "$L" 2>/dev/null && echo "<session or branch> $(date -u +%FT%TZ)" > "$L/who"   # 0: you hold it
+  rm -rf "$L"                                       # release, as soon as the game or run ends, failed or not
   ```
 
-  A lock whose `who` is more than three hours old and has no `LlmSpikeHeadless` or `mvn` process
-  running may be removed; say so where you report. The lock also keeps the Claude CLI lane at one
-  game per machine (`eval/CONCURRENCY.md` section 7). Agents in separate cloud containers each have
-  their own checkout, so the lock never waits there: parallel hunting means separate containers.
-- **Cite the build the game ran on**, not your `HEAD`: the `overlay_sha` on the game line.
+  If `mkdir` fails, read `$L/who` and try again later, in a background wait or a later turn: a
+  foreground `sleep` loop is refused by Claude Code and outlives the tool's timeout. A lock is stale
+  when the directory is more than three hours old (`find "$L" -maxdepth 0 -mmin +180` prints it)
+  and no `LlmSpikeHeadless` or `mvn` process runs. Break it only with `mv "$L" "$L.stale.$$"`, which
+  succeeds for one waiter alone, then delete the moved directory, take the lock with `mkdir`, and
+  say so where you report. The lock also keeps the Claude CLI lane at one game per machine
+  (`eval/CONCURRENCY.md` section 7). Agents in separate cloud containers each have their own
+  checkout, so the lock never waits there: parallel hunting means separate containers.
 
 ## 0. Once per repository: the labels
 
@@ -81,8 +83,9 @@ git log --oneline -15 origin/main                        # fixes that landed sin
 ```
 
 Take the lock (above), then build from current `origin/main` (`game-loop` step 4.4 for the
-commands), never from a fixer's branch, so a defect you file is a defect on main. Every issue cites
-the main sha and the game line's `overlay_sha`. Release the lock when the game ends.
+commands), never from a fixer's branch, so a defect you file is a defect on main. Inside the lock,
+before installing, record `git rev-parse --short HEAD` and check `git status --short` is empty:
+that sha is the build every issue from this game cites. Release the lock when the game ends.
 
 ## 2. Play one game
 
@@ -92,8 +95,7 @@ The command is `game-loop` step 1. Choose the lane by what you are allowed to sp
   `--budget-usd`, and only when `secrets.env` already holds the egress opt-in. Never set
   `OPENROUTER_ALLOW_EGRESS` yourself.
 - **Claude CLI:** `--smart-a haiku --fast-a haiku`, when the owner has asked for this lane (the six
-  defects above were found on it, in a session where no OpenRouter key was set). No API key and no
-  egress flag. Never opus. One game per machine (the lock above).
+  defects above were found on it). No API key and no egress flag. Never opus.
 
 Pick the deck the hunt log shows least played, and vary which seat it takes. A defect usually
 belongs to a card type (alternative costs, library ordering, card naming, tap costs), and one deck
@@ -172,8 +174,8 @@ the fix. `runs/` is never committed, so everything the fixer needs is pasted int
 One sentence: what the harness does wrong, in general terms (not just this game).
 
 ## What happened
-Game: `runs/hunt/gNN`, seed S, swap 0/1, <deck> (seat) vs <deck> (Forge AI), lane `haiku` (claude -p),
-built from main @ <sha> (overlay_sha <x>). Turn T, decision `<type>`, jsonl line L.
+Game: `runs/hunt/gNN`, seed S, swap 0/1, <deck> (seat) vs <deck> (Forge AI), lane <lane>,
+built from main @ <sha>. Turn T, decision `<type>`, jsonl line L.
 What the model was shown, chose, and what the game then did, in two or three sentences.
 
 ## What should have happened
@@ -226,7 +228,7 @@ issues instead of commits. Hunted games are logged there, because many hunters c
 to one file; games played under `game-loop` still go in `GAME-LOOP-LOG.md`.
 
 ```
-### g12  2026-10-14  seed 71  Elves (seat) vs Death and Taxes (Forge AI)  lost T9  haiku  main @ 3f1c2aa
+### g12  2026-10-14  seed 71  Elves (seat) vs Death and Taxes (Forge AI)  lost T9  <lane>  main @ 3f1c2aa
 Sheet: TAKEN 0, LOST 0, TOOL 0, SLOW 0; analyzer PASS.
 - FILED  #41 sev:blocker  Heritage Druid's tap cost is paid by Forge AI (jsonl:88)
 - SEEN   #37 again (jsonl:120)
@@ -246,3 +248,4 @@ nothing new in the backlog; say which in the thread.
 - File what it has not confirmed in the row and the engine. A wrong issue costs a fixer a whole
   cycle. If unsure whether it is the harness or the model, the row decides; if the row cannot,
   say so in the issue and use `sev:low`.
+- Launch a batch. One game, read, filed, then the next.

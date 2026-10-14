@@ -93,7 +93,8 @@ That comment is the proof the next reader trusts, so quote the actual failure.
 ## 5. Fix it
 
 Follow `game-loop` step 4, items 2 and 3 (the fix lives in `forge-overlay/`; a changed prompt bumps
-its version). Also:
+its version). Never fall back to Forge AI for a strategic choice: a failure branch takes a
+deterministic legal option and logs it. Also:
 
 - Keep it to what the issue needs. Anything else you notice is a comment on the issue or a new
   issue in the hunter's format, not part of this PR.
@@ -111,9 +112,6 @@ its version). Also:
    changed an automatic path on purpose is re-pinned with a dated reason naming the issue. Canaries
    are pinned per OS (`docs/STANDARDS.md` section 5): re-pin the OS you ran on, and name the OS you
    could not run, as stale, in `eval/harness_acceptance.expected` and the PR.
-
-Every install, build, game and acceptance run here happens under the lock from
-`defect-hunt`'s "Sharing a machine with other agents": hunters may be mid-game.
 
 ## 7. Merge main again, then the PR
 
