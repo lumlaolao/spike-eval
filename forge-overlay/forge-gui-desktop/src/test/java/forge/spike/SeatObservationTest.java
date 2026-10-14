@@ -718,4 +718,44 @@ public class SeatObservationTest {
         Assert.assertEquals(reply, "CHOICE: 1");
         Assert.assertTrue(prompts.get(1).contains("MEMORY RESULT (historical data):\n@" + h + " is HISTORICAL"), prompts.get(1));
     }
+
+    /** runs/loop/g08 (seed 61, T3 and T5): the seat cast Cabal Therapy targeting ITSELF to bin
+     *  Griselbrand, then a separate name ask -- which never said who the target was and told it to name
+     *  "the card most likely there" -- named Ajani and then Amped Raptor, cards in the opponent's hand.
+     *  The name decision must state whose hand the named card leaves. */
+    @Test
+    public void aNameAskStatesWhoTheSpellTargets() {
+        Game g = bareGame();
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+        Card therapy = card("Cabal Therapy", me, ZoneType.Hand);
+        forge.game.spellability.SpellAbility sa = null;
+        for (forge.game.spellability.SpellAbility s : therapy.getSpellAbilities()) if (s.isSpell()) { sa = s; break; }
+        Assert.assertNotNull(sa);
+        sa.setActivatingPlayer(me);
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.targetNote(sa, me), "", "no target chosen yet: nothing to state");
+
+        sa.getSubAbility().getTargets().add(me);
+        String self = LlmSpikeGui.PlayerControllerLLM.targetNote(sa, me);
+        Assert.assertTrue(self.contains("YOU (Viewer)"), self);
+
+        sa.getSubAbility().resetTargets();
+        sa.getSubAbility().getTargets().add(opp);
+        String them = LlmSpikeGui.PlayerControllerLLM.targetNote(sa, me);
+        Assert.assertTrue(them.contains("Rival"), them);
+        Assert.assertFalse(them.contains("YOU"), them);
+    }
+
+    /** runs/loop/g08 (seed 61, T1 and T3): Unmask sat in hand beside four other black cards and was
+     *  never on the play menu ("Unmask isn't offered as an option, so I can't set up Reanimate yet").
+     *  A spell castable by its alternative cost (exile a black card) must be offered. */
+    @Test
+    public void aSpellCastableOnlyByItsAlternativeCostIsOffered() {
+        Game g = bareGame();
+        Player me = g.getPlayers().get(0);
+        card("Unmask", me, ZoneType.Hand);
+        card("Griselbrand", me, ZoneType.Hand);
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true);
+        List<String> labels = LlmSpikeGui.PlayerControllerLLM.buildPlayLabels(po.spells, po.landCards);
+        Assert.assertTrue(labels.stream().anyMatch(l -> l.contains("Unmask")), labels.toString());
+    }
 }

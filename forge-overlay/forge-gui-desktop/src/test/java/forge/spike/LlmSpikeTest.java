@@ -1690,6 +1690,202 @@ public class LlmSpikeTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** runs/loop/g08 follow-up: once Unmask was offered by its alternative cost, WHICH black card it
+     *  exiled was picked by Forge's AI inside the cost payment (no row, no log line) -- with Griselbrand
+     *  and Thoughtseize in hand that is the whole decision. The exile must be the seat's. */
+    @Test
+    public void anExileFromHandCostIsTheSeatsChoice() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        Card unmask = addHandCard("Unmask", me);
+        addHandCard("Griselbrand", me);
+        addHandCard("Thoughtseize", me);
+        forge.game.spellability.SpellAbility base = null;
+        for (forge.game.spellability.SpellAbility s : unmask.getSpellAbilities()) if (s.isSpell()) base = s;
+        forge.game.spellability.SpellAbility alt = forge.game.GameActionUtil.getAlternativeCosts(base, me, false).get(0);
+        alt.setActivatingPlayer(me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+        me.dangerouslySetController(ctrl);
+        forge.game.cost.CostExile exile = null;
+        for (forge.game.cost.CostPart part : alt.getPayCosts().getCostParts())
+            if (part instanceof forge.game.cost.CostExile) exile = (forge.game.cost.CostExile) part;
+        Assert.assertNotNull(exile, "fixture: Unmask's alternative cost exiles from hand");
+
+        forge.game.cost.PaymentDecision d = new LlmCostDecision(me, alt, false).visit(exile);
+        Assert.assertNotNull(d);
+        Assert.assertEquals(bridge.prompts.size(), 1, "the exile was not asked");
+        Assert.assertTrue(bridge.prompts.get(0).contains("EXILE"), bridge.prompts.get(0));
+        Assert.assertEquals(d.cards.size(), 1);
+        // Forge's AI exiles the lowest-power card (Thoughtseize); the seat asked for Griselbrand.
+        Assert.assertEquals(d.cards.get(0).getName(), "Griselbrand", "the seat's pick (1) was not used");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** runs/loop/g09 (seed 62, UR Delver on haiku): Daze by its alternative cost, and the seat's plan
+     *  said "returning my tapped Volcanic Island" -- but which Island a return cost bounces was Forge
+     *  AI's (lowest power first, no row). With a tapped and an untapped Island that is the decision. */
+    @Test
+    public void aReturnToHandCostIsTheSeatsChoice() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        Card daze = addHandCard("Daze", me);
+        addBattlefieldCard("Island", me);
+        addBattlefieldCard("Volcanic Island", me).setTapped(true);
+        forge.game.spellability.SpellAbility base = null;
+        for (forge.game.spellability.SpellAbility s : daze.getSpellAbilities()) if (s.isSpell()) base = s;
+        forge.game.spellability.SpellAbility alt = forge.game.GameActionUtil.getAlternativeCosts(base, me, false).get(0);
+        alt.setActivatingPlayer(me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 2");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+        me.dangerouslySetController(ctrl);
+        forge.game.cost.CostReturn ret = null;
+        for (forge.game.cost.CostPart part : alt.getPayCosts().getCostParts())
+            if (part instanceof forge.game.cost.CostReturn) ret = (forge.game.cost.CostReturn) part;
+        Assert.assertNotNull(ret, "fixture: Daze's alternative cost returns an Island");
+
+        forge.game.cost.PaymentDecision d = new LlmCostDecision(me, alt, false).visit(ret);
+        Assert.assertNotNull(d);
+        Assert.assertEquals(bridge.prompts.size(), 1, "the return was not asked");
+        Assert.assertTrue(bridge.prompts.get(0).contains("RETURN"), bridge.prompts.get(0));
+        Assert.assertEquals(d.cards.size(), 1);
+        Assert.assertEquals(d.cards.get(0).getName(), "Volcanic Island", "the seat's pick (2) was not used");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** runs/loop/g09 (seed 62): four Ponders in a row, each time the seat said "put Chain Lightning on
+     *  top so I draw it now", listed it first, and drew something else. The engine moves the returned
+     *  list to the top one card at a time, so the LAST card returned ends on top, and the prompt's
+     *  "first = goes in/on top first" read as "first = top". The faithful prompt now asks top-down and
+     *  the router reverses the list, as Forge's own human controller does. */
+    @Test
+    public void aLibraryOrderIsAskedTopDownAndTheFirstPickEndsOnTop() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        Card ponder = addHandCard("Ponder", me);
+        forge.game.card.CardCollection top = new forge.game.card.CardCollection();
+        for (String n : new String[] {"Scalding Tarn", "Chain Lightning", "Force of Will"})
+            top.add(SeatObservationTest.card(n, me, ZoneType.Library));
+        forge.game.spellability.SpellAbility sa = null;
+        for (forge.game.spellability.SpellAbility s : ponder.getSpellAbilities()) if (s.isSpell()) sa = s;
+        sa.setActivatingPlayer(me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 2,3,1");
+        LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = LlmSpikeGui.ContextProfile.V4_FAITHFUL;
+        try {
+            LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                    new LobbyPlayerAi("order-test", null), "order-test", "", bridge, bridge, "llm");
+            forge.game.card.CardCollectionView out = ctrl.orderMoveToZoneList(top, ZoneType.Library, sa);
+            Assert.assertTrue(bridge.prompts.get(0).contains("TOP"), bridge.prompts.get(0));
+            // RearrangeTopOfLibraryEffect: for (next : out) moveToLibrary(next, 0) -- the last one ends on top.
+            for (Card c : out) game.getAction().moveToLibrary(c, 0, sa);
+            Assert.assertEquals(me.getCardsIn(ZoneType.Library).get(0).getName(), "Chain Lightning");
+            Assert.assertEquals(me.getCardsIn(ZoneType.Library).get(1).getName(), "Force of Will");
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null;
+        }
+    }
+
+    /** Review of the top-down order fix: Flow State (and Goblin Ringleader) Dig the rest of their cards
+     *  to the BOTTOM, which orderedMoveToTopOfLibrary does not see. Such an order must not be called
+     *  "the top card, drawn first", nor reversed. */
+    @Test
+    public void aDigRestPileToTheBottomIsNotAskedAsTheTop() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        Card flow = addHandCard("Flow State", me);
+        forge.game.card.CardCollection rest = new forge.game.card.CardCollection();
+        for (String n : new String[] {"Island", "Brainstorm"})
+            rest.add(SeatObservationTest.card(n, me, ZoneType.Library));
+        forge.game.spellability.SpellAbility sa = null;
+        for (forge.game.spellability.SpellAbility s : flow.getSpellAbilities()) if (s.isSpell()) sa = s;
+        sa.setActivatingPlayer(me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 2,1");
+        LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = LlmSpikeGui.ContextProfile.V4_FAITHFUL;
+        try {
+            LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                    new LobbyPlayerAi("order-test", null), "order-test", "", bridge, bridge, "llm");
+            forge.game.card.CardCollectionView out = ctrl.orderMoveToZoneList(rest, ZoneType.Library, sa);
+            Assert.assertFalse(bridge.prompts.get(0).contains("TOP"), bridge.prompts.get(0));
+            Assert.assertEquals(out.get(0).getName(), "Brainstorm", "a bottom pile must come back in the order named");
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null;
+        }
+    }
+
+    /** The g08 fix is the target note IN the name ask, not just the helper: drive chooseCardName. */
+    @Test
+    public void theNameAskItselfCarriesTheTargetUnderTheFaithfulProfileOnly() {
+        for (boolean faithful : new boolean[] {true, false}) {
+            Game game = buildBareGame();
+            Player me = game.getPlayers().get(0);
+            Card therapy = addHandCard("Cabal Therapy", me);
+            forge.game.spellability.SpellAbility sa = null;
+            for (forge.game.spellability.SpellAbility s : therapy.getSpellAbilities()) if (s.isSpell()) sa = s;
+            sa.setActivatingPlayer(me);
+            sa.getSubAbility().getTargets().add(me);
+            List<forge.card.ICardFace> faces = new java.util.ArrayList<>();
+            for (String n : new String[] {"Griselbrand", "Thoughtseize"})
+                faces.add(FModel.getMagicDb().getCommonCards().getCard(n).getRules().getMainPart());
+            FixedReplyBridge bridge = new FixedReplyBridge("CHOICE: 1");
+            LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = faithful ? LlmSpikeGui.ContextProfile.V4_FAITHFUL : LlmSpikeGui.ContextProfile.V1_COMPAT;
+            try {
+                LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                        new LobbyPlayerAi("name-test", null), "name-test", "", bridge, bridge, "llm");
+                Assert.assertEquals(ctrl.chooseCardName(sa, faces, "Choose a nonland card name."), "Griselbrand");
+                Assert.assertEquals(bridge.prompts.get(0).contains("This spell targets: YOU"), faithful, bridge.prompts.get(0));
+            } finally {
+                LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null;
+            }
+        }
+    }
+
+    /** runs/loop/g10 (seed 63): the smart tier ordered Ponder's three cards with Brainstorm on top, then
+     *  the shuffle question went to the fast tier -- a separate conversation that never saw the order
+     *  -- which answered YES with no reasoning (jsonl:11) and threw the order away. The shuffle ask
+     *  must carry the order the seat just chose. */
+    @Test
+    public void theShuffleAskAfterAnOrderSaysWhatTheShuffleWouldUndo() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        Card ponder = addHandCard("Ponder", me);
+        forge.game.card.CardCollection top = new forge.game.card.CardCollection();
+        for (String n : new String[] {"Volcanic Island", "Spell Pierce", "Brainstorm"})
+            top.add(SeatObservationTest.card(n, me, ZoneType.Library));
+        forge.game.spellability.SpellAbility sa = null;
+        for (forge.game.spellability.SpellAbility s : ponder.getSpellAbilities()) if (s.isSpell()) sa = s;
+        sa.setActivatingPlayer(me);
+        SeqBridge bridge = new SeqBridge("PICKS: 3,2,1", "CHOICE: 2");
+        LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = LlmSpikeGui.ContextProfile.V4_FAITHFUL;
+        try {
+            LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                    new LobbyPlayerAi("order-test", null), "order-test", "", bridge, bridge, "llm");
+            ctrl.orderMoveToZoneList(top, ZoneType.Library, sa);
+            ctrl.confirmAction(sa, null, "Do you want to shuffle the library?", null, null, null);
+            String ask = bridge.prompts.get(bridge.prompts.size() - 1);
+            Assert.assertTrue(ask.contains("Brainstorm, Spell Pierce, Volcanic Island"), ask);
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null;
+        }
+    }
+
+    /** runs/loop/g08 (seat on `haiku`, the Claude CLI lane): the game line said served_smart_a=unknown
+     *  and every row had prompt_tokens=-1, so cost_report read 35 model calls as 0 tokens, while the
+     *  CLI's own result line names the model that answered and its usage. */
+    @Test
+    public void theCliResultLineGivesTheServedModelAndTokens() {
+        String line = "{\"type\":\"result\",\"subtype\":\"success\",\"result\":\"OK\",\"stop_reason\":\"end_turn\","
+                + "\"usage\":{\"input_tokens\":2,\"cache_creation_input_tokens\":8216,\"cache_read_input_tokens\":26697,"
+                + "\"output_tokens\":4,\"output_tokens_details\":{\"thinking_tokens\":0}},"
+                + "\"modelUsage\":{\"claude-haiku-5-5\":{\"inputTokens\":2,\"outputTokens\":4}}}";
+        Assert.assertEquals(LlmSpikeGui.ClaudeBridge.servedModel(line), "claude-haiku-5-5");
+        Assert.assertEquals(LlmSpikeGui.ClaudeBridge.usageInt(line, "output_tokens"), 4);
+        Assert.assertEquals(LlmSpikeGui.ClaudeBridge.promptTokens(line), 2 + 8216 + 26697);
+        Assert.assertNull(LlmSpikeGui.ClaudeBridge.servedModel("{\"type\":\"result\",\"result\":\"OK\"}"));
+        Assert.assertEquals(LlmSpikeGui.ClaudeBridge.promptTokens("{\"type\":\"result\"}"), -1);
+    }
+
     @Test
     public void g8SimulateDirectiveIsParsedAndBoundsChecked() {
         Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.parseSimulateOption("SIMULATE: 2", 3), 2);
