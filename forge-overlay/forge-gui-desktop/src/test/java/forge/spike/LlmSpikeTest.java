@@ -1723,6 +1723,38 @@ public class LlmSpikeTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** runs/loop/g09 (seed 62, UR Delver on haiku): Daze by its alternative cost, and the seat's plan
+     *  said "returning my tapped Volcanic Island" -- but which Island a return cost bounces was Forge
+     *  AI's (lowest power first, no row). With a tapped and an untapped Island that is the decision. */
+    @Test
+    public void aReturnToHandCostIsTheSeatsChoice() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        Card daze = addHandCard("Daze", me);
+        addBattlefieldCard("Island", me);
+        addBattlefieldCard("Volcanic Island", me).setTapped(true);
+        forge.game.spellability.SpellAbility base = null;
+        for (forge.game.spellability.SpellAbility s : daze.getSpellAbilities()) if (s.isSpell()) base = s;
+        forge.game.spellability.SpellAbility alt = forge.game.GameActionUtil.getAlternativeCosts(base, me, false).get(0);
+        alt.setActivatingPlayer(me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 2");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+        me.dangerouslySetController(ctrl);
+        forge.game.cost.CostReturn ret = null;
+        for (forge.game.cost.CostPart part : alt.getPayCosts().getCostParts())
+            if (part instanceof forge.game.cost.CostReturn) ret = (forge.game.cost.CostReturn) part;
+        Assert.assertNotNull(ret, "fixture: Daze's alternative cost returns an Island");
+
+        forge.game.cost.PaymentDecision d = new LlmCostDecision(me, alt, false).visit(ret);
+        Assert.assertNotNull(d);
+        Assert.assertEquals(bridge.prompts.size(), 1, "the return was not asked");
+        Assert.assertTrue(bridge.prompts.get(0).contains("RETURN"), bridge.prompts.get(0));
+        Assert.assertEquals(d.cards.size(), 1);
+        Assert.assertEquals(d.cards.get(0).getName(), "Volcanic Island", "the seat's pick (2) was not used");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
     /** runs/loop/g08 (seat on `haiku`, the Claude CLI lane): the game line said served_smart_a=unknown
      *  and every row had prompt_tokens=-1, so cost_report read 35 model calls as 0 tokens, while the
      *  CLI's own result line names the model that answered and its usage. */

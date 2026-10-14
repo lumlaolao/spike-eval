@@ -12,6 +12,7 @@ import forge.game.card.CardCollection;
 import forge.game.card.CardLists;
 import forge.game.card.CardPredicates;
 import forge.game.cost.CostExile;
+import forge.game.cost.CostReturn;
 import forge.game.cost.CostSacrifice;
 import forge.game.cost.PaymentDecision;
 import forge.game.keyword.Keyword;
@@ -109,6 +110,32 @@ final class LlmCostDecision extends AiCostDecision {
                     + from + ". They leave now, as the cost is paid. Choose which", amount, amount, false, null);
             if (pick != null && pick.size() == amount) return PaymentDecision.card(pick);
             fellBack("exile pick of " + (pick == null ? 0 : pick.size()));
+        } catch (Exception e) {
+            fellBack(e.getClass().getSimpleName());
+        }
+        return super.visit(cost);
+    }
+
+    /** Which permanent a return-to-hand cost bounces (Daze returns an Island, Gush two). Forge's AI
+     *  takes the lowest-power one, so between a tapped and an untapped Island it decides whether the
+     *  seat still has mana this turn (runs/loop/g09, Daze). Candidates are
+     *  {@code ComputerUtil.chooseReturnType}'s. */
+    @Override
+    public PaymentDecision visit(CostReturn cost) {
+        if (cost.payCostFromSource()) return super.visit(cost);
+        try {
+            final int amount = cost.getAbilityAmount(ability);
+            CardCollection typeList = CardLists.getValidCards(player.getCardsIn(ZoneType.Battlefield),
+                    cost.getType().split(";"), source.getController(), source, ability);
+            typeList = ComputerUtilCost.paymentChoicesWithoutTargets(typeList, ability, player);
+            if (amount <= 0 || typeList.size() <= amount) return super.visit(cost); // nothing to choose
+
+            CardCollectionView pick = player.getController().chooseCardsForEffect(typeList, ability,
+                    "COST: to pay for " + source.getName() + " you must RETURN " + amount
+                    + " of these permanents to your hand. They leave the battlefield now, as the cost is paid. Choose which",
+                    amount, amount, false, null);
+            if (pick != null && pick.size() == amount) return PaymentDecision.card(pick);
+            fellBack("return pick of " + (pick == null ? 0 : pick.size()));
         } catch (Exception e) {
             fellBack(e.getClass().getSimpleName());
         }
