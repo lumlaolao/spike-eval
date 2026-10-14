@@ -148,7 +148,7 @@ class ToolUseSuiteTest(unittest.TestCase):
         res = tu.run_native(s, "need", "smart", scripted([bad, call, call, {"content": "CHOICE: 2"}]),
                             self.tools, {"tier": "smart"})
         self.assertEqual(res["choice"], 2)
-        self.assertEqual([c["rejected"] for c in res["calls"]][-1], "budget")
+        self.assertEqual(res["calls"][-1]["rejected"], "budget")
         self.assertIn(tu.PRESS, java_literals("ContextMemory.java"))
 
     def test_text_tool_request_at_zero_budget_yields_no_answer(self):
