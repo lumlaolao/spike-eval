@@ -1783,6 +1783,170 @@ public class LlmSpikeTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** Issue #105: Heritage Druid ("Tap three untapped Elves you control: Add {G}{G}{G}") is a MANA
+     *  ability, activated inside the engine's mana payment, which pays its cost with a hard-coded
+     *  AiCostDecision: Forge's AI tapped the three lowest-power Elves and no row said so. Paying a
+     *  {G}{G}{G} spell through the seat must ask which three Elves the Druid taps. */
+    @Test
+    public void aManaAbilitysTapTypeCostIsTheSeatsChoice() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        addBattlefieldCard("Heritage Druid", me);
+        addBattlefieldCard("Elvish Visionary", me);
+        Card sentinel = addBattlefieldCard("Nettle Sentinel", me);
+        Card warrior = addBattlefieldCard("Elvish Warrior", me);
+        Card baloth = addHandCard("Leatherback Baloth", me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 1,2,4");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+        me.dangerouslySetController(ctrl);
+        forge.game.spellability.SpellAbility spell = baloth.getFirstSpellAbility();
+        spell.setActivatingPlayer(me);
+
+        Assert.assertTrue(ctrl.payManaCost(spell.getPayCosts().getCostMana(), spell, null, null, false),
+                "the {G}{G}{G} was not paid");
+        Assert.assertEquals(bridge.prompts.size(), 1, "which Elves Heritage Druid taps was not asked");
+        Assert.assertTrue(bridge.prompts.get(0).contains("TAP 3"), bridge.prompts.get(0));
+        // Candidates in board order: Druid, Visionary, Sentinel, Warrior. Forge's AI taps the lowest
+        // power (Druid, Visionary, Sentinel); the seat kept the Sentinel up.
+        Assert.assertFalse(sentinel.isTapped(), "the seat's pick (1,2,4) was not used");
+        Assert.assertTrue(warrior.isTapped(), "the seat's pick (1,2,4) was not used");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** The Druid's tap must not take an Elf the rest of the payment taps for mana: {G}{G}{G}{G} needs
+     *  the Druid's GGG AND Llanowar Elves' G, so Llanowar is not offered. */
+    @Test
+    public void aManaAbilitysTapTypeCostDoesNotOfferTheRestOfThePaymentsSources() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        Card druid = addBattlefieldCard("Heritage Druid", me);
+        addBattlefieldCard("Llanowar Elves", me).setSickness(false);
+        addBattlefieldCard("Elvish Visionary", me);
+        addBattlefieldCard("Elvish Warrior", me);
+        Card sentinel = addBattlefieldCard("Nettle Sentinel", me);
+        Card baloth = addHandCard("Leatherback Baloth", me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 1,2,3");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+        me.dangerouslySetController(ctrl);
+        forge.game.spellability.SpellAbility spell = baloth.getFirstSpellAbility();
+        spell.setActivatingPlayer(me);
+
+        // Candidates: Druid, Visionary, Warrior, Sentinel. Had Llanowar been offered, picks 1,2,3 would
+        // tap it for the Druid and the fourth G could not be paid.
+        Assert.assertTrue(ctrl.payManaCost(new forge.card.mana.ManaCost(new forge.card.mana.ManaCostParser("G G G G")), null, spell, null, null, false),
+                "{G}{G}{G}{G} was not paid");
+        Assert.assertEquals(bridge.prompts.size(), 1, "which Elves Heritage Druid taps was not asked");
+        Assert.assertFalse(bridge.prompts.get(0).contains(") Llanowar Elves"), bridge.prompts.get(0));
+        Assert.assertTrue(bridge.prompts.get(0).contains("making mana for Leatherback Baloth"), bridge.prompts.get(0));
+        Assert.assertTrue(druid.isTapped());
+        Assert.assertFalse(sentinel.isTapped(), "the seat's pick (1,2,3) was not used");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** Mana the Druid made for an earlier spell and left floating is spent by the next one without a
+     *  new activation: that is not the engine choosing Elves, and must not be said as a fallback. */
+    @Test
+    public void floatingDruidManaFromAnEarlierPaymentIsNotAFallback() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        addBattlefieldCard("Heritage Druid", me);
+        addBattlefieldCard("Elvish Visionary", me);
+        addBattlefieldCard("Nettle Sentinel", me);
+        addBattlefieldCard("Elvish Warrior", me);
+        Card visionary = addHandCard("Elvish Visionary", me);
+        Card sentinel = addHandCard("Nettle Sentinel", me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 1,2,4");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+        me.dangerouslySetController(ctrl);
+        forge.game.spellability.SpellAbility first = visionary.getFirstSpellAbility();
+        first.setActivatingPlayer(me);
+        forge.game.spellability.SpellAbility second = sentinel.getFirstSpellAbility();
+        second.setActivatingPlayer(me);
+
+        Assert.assertTrue(ctrl.payManaCost(first.getPayCosts().getCostMana(), first, null, null, false), "{1}{G} was not paid");
+        Assert.assertEquals(me.getManaPool().totalMana(), 1, "fixture: one G of the Druid's GGG floats");
+        Assert.assertTrue(ctrl.payManaCost(second.getPayCosts().getCostMana(), second, null, null, false), "{G} was not paid");
+        Assert.assertEquals(bridge.prompts.size(), 1, "the Druid's tap was not asked once");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "spending floating Druid mana was said as a fallback");
+    }
+
+    /** {G}x6 from one Druid and six other Elves needs the Druid twice. The engine's test payment uses a
+     *  source once, so it finds no plan and the seat is never asked; the real payment activates the
+     *  Druid twice with Forge AI's choice of Elves. That must be said, once, not left silent. */
+    @Test
+    public void anEngineActivationOfATapTypeSourceIsSaid() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        addBattlefieldCard("Heritage Druid", me);
+        for (String elf : new String[] {"Elvish Visionary", "Nettle Sentinel", "Elvish Warrior",
+                "Elvish Visionary", "Nettle Sentinel", "Elvish Warrior"}) addBattlefieldCard(elf, me);
+        Card baloth = addHandCard("Leatherback Baloth", me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 1,2,3");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+        me.dangerouslySetController(ctrl);
+        forge.game.spellability.SpellAbility spell = baloth.getFirstSpellAbility();
+        spell.setActivatingPlayer(me);
+
+        Assert.assertTrue(ctrl.payManaCost(new forge.card.mana.ManaCost(new forge.card.mana.ManaCostParser("G G G G G G")),
+                null, spell, null, null, false), "{G}x6 was not paid");
+        Assert.assertEquals(bridge.prompts.size(), 0, "fixture: the engine's plan was expected to be empty");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 1, "the engine's choice of Elves was not said exactly once");
+    }
+
+    /** The engine's real payment does not raise toPay again (CostPayment already did), so the plan
+     *  must not either: under Thalia, Regrowth costs {2}{G}, exactly the Druid's GGG. A plan raised
+     *  twice ({3}{G}) is unpayable, and the engine then tapped the Elves itself. */
+    @Test
+    public void aManaAbilitysTapTypeCostIsAskedUnderACostRaiser() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        addBattlefieldCard("Thalia, Guardian of Thraben", game.getPlayers().get(1));
+        addBattlefieldCard("Heritage Druid", me);
+        addBattlefieldCard("Elvish Visionary", me);
+        Card sentinel = addBattlefieldCard("Nettle Sentinel", me);
+        addBattlefieldCard("Elvish Warrior", me);
+        Card regrowth = addHandCard("Regrowth", me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 1,2,4");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+        me.dangerouslySetController(ctrl);
+        forge.game.spellability.SpellAbility spell = regrowth.getFirstSpellAbility();
+        spell.setActivatingPlayer(me);
+
+        Assert.assertTrue(ctrl.payManaCost(new forge.card.mana.ManaCost(new forge.card.mana.ManaCostParser("2 G")), null, spell, null, null, false),
+                "Regrowth's raised {2}{G} was not paid");
+        Assert.assertEquals(bridge.prompts.size(), 1, "the Druid's tap was not asked under Thalia");
+        Assert.assertFalse(sentinel.isTapped(), "the seat's pick (1,2,4) was not used");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** Birchlore Rangers also chooses a color, which stays the engine's: with a real choice of Elves the
+     *  seat is not asked and the fallback is said, once. */
+    @Test
+    public void aColorChoosingTapTypeManaSourceIsALoggedFallback() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        addBattlefieldCard("Birchlore Rangers", me);
+        addBattlefieldCard("Elvish Visionary", me);
+        addBattlefieldCard("Nettle Sentinel", me);
+        Card bears = addHandCard("Grizzly Bears", me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 1,2");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+        me.dangerouslySetController(ctrl);
+        forge.game.spellability.SpellAbility spell = bears.getFirstSpellAbility();
+        spell.setActivatingPlayer(me);
+
+        Assert.assertTrue(ctrl.payManaCost(new forge.card.mana.ManaCost(new forge.card.mana.ManaCostParser("G")), null, spell, null, null, false),
+                "{G} was not paid");
+        Assert.assertEquals(bridge.prompts.size(), 0, "a color-choosing source was asked");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 1, "the engine's choice of Elves was not said exactly once");
+    }
+
     private static forge.game.spellability.SpellAbility activated(Card host, Player me) {
         forge.game.spellability.SpellAbility ab = null;
         for (forge.game.spellability.SpellAbility s : host.getSpellAbilities()) if (!s.isSpell()) ab = s;

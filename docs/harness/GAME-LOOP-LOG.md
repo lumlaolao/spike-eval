@@ -316,6 +316,7 @@ tokens over 28 calls (`python3 eval/cost_report.py runs/loop/g09`; the persisten
   return cost bounced was Forge AI's. Test: aReturnToHandCostIsTheSeatsChoice.
 - OPEN   CostTapType (Heritage Druid taps three Elves) is still paid by Forge AI: AiCostDecision keeps
   its "already tapped for this payment" set private, so a subclass cannot copy its legality safely.
+  (Fixed later by #105: the seat activates the Druid before the engine pays.)
 - clean  mulligan, Bolt target (Eidolon), blocks, the shuffle confirms.
 
 ### g10  2026-10-14  seed 63  Sneak and Show (seat) vs UR Delver (Forge AI)  won T8  claude -p haiku  build 6b7b261  runs/loop/g10

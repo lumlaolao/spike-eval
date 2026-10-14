@@ -151,8 +151,10 @@ public class ControllerOwnershipTest {
                 default:     ok = false;
             }
             if (!ok) problems.add("ownership '" + own + "' impossible for impl " + impl + ": " + sig);
-            if (impl.equals("AI") && own.equals("ai-inherited") && reach.equals("core")
-                    && (kind.equals("strategic") || kind.equals("payment"))) aiStrategicCore++;
+            // An override that routes only part of a hook (notes "PARTLY OWNED") still leaves the rest
+            // silent, so it stays in the count.
+            boolean silent = (impl.equals("AI") && own.equals("ai-inherited")) || notes.startsWith("PARTLY OWNED");
+            if (silent && reach.equals("core") && (kind.equals("strategic") || kind.equals("payment"))) aiStrategicCore++;
         }
         Assert.assertTrue(problems.isEmpty(), String.join("\n  ", problems));
         // Reported, not hidden: this number is the open G7 backlog. It may only go DOWN; raising it

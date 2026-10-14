@@ -19,9 +19,11 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -2810,6 +2812,111 @@ public final class LlmSpikeGui {
             return super.getCostDecisionMaker(player, ability, effect, prompt);
         }
 
+        /** #105: a MANA ability's tap-type cost (Heritage Druid: "Tap three untapped Elves you control")
+         *  is paid inside {@code ComputerUtilMana} with a hard-coded {@code AiCostDecision}, so Forge's AI
+         *  chose which Elves to tap. When the engine's own test payment of this cost plans to use such an
+         *  ability, the seat activates it first through {@link LlmCostDecision}, keeping out the other
+         *  sources that plan taps; the engine then pays from the floating mana, which it always spends
+         *  first. A source that also chooses a color stays the engine's, said as a fallback, as is any
+         *  such source the engine's real payment uses without the seat having activated it. A mana
+         *  ability's own mana cost (a filter paid mid-payment) is left alone: a test payment there
+         *  would clear what the outer payment has set aside. */
+        @Override
+        public boolean payManaCost(forge.card.mana.ManaCost toPay, forge.game.cost.CostPartMana costPartMana,
+                SpellAbility sa, String prompt, forge.game.mana.ManaConversionMatrix matrix, boolean effect) {
+            Set<Card> said = new HashSet<>();
+            try {
+                if (!sa.isManaAbility()) prepayTapTypeManaAbilities(toPay, sa, effect, said);
+            } catch (Exception e) {
+                costDecisionFellBack("mana-tap-cost", e.getClass().getSimpleName());
+            }
+            // Mana already floating (the seat's prepay, or an earlier payment's leftover) was made by a
+            // choice already accounted for; only mana the engine's payment makes is new.
+            Set<forge.game.mana.Mana> floating = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+            for (forge.game.mana.Mana m : getPlayer().getManaPool()) floating.add(m);
+            boolean paid = super.payManaCost(toPay, costPartMana, sa, prompt, matrix, effect);
+            try {
+                for (forge.game.mana.Mana m : sa.getPayingMana()) {
+                    Card host = m.getSourceCard();
+                    // said.add is false for a host already reported.
+                    if (host != null && !floating.contains(m)
+                            && host.getManaAbilities().anyMatch(PlayerControllerLLM::hasTapTypeCost) && said.add(host))
+                        costDecisionFellBack("mana-tap-cost", host.getName() + " was activated by the engine's payment");
+                }
+            } catch (Exception e) {
+                costDecisionFellBack("mana-tap-cost", e.getClass().getSimpleName());
+            }
+            return paid;
+        }
+
+        /** Activates each tap-type mana ability the engine's plan for {@code toPay} uses; adds to
+         *  {@code said} each source whose engine activation it has already reported. */
+        private void prepayTapTypeManaAbilities(forge.card.mana.ManaCost toPay, SpellAbility sa, boolean effect, Set<Card> said) {
+            final Player me = getPlayer();
+            // Without such a source on the battlefield nothing runs, so every other payment is unchanged.
+            if (!me.getCardsIn(ZoneType.Battlefield).anyMatch(c -> c.getManaAbilities().anyMatch(PlayerControllerLLM::hasTapTypeCost))) return;
+            // A big payment can use the Druid more than once, but the engine's test payment uses each
+            // source once. So plan, activate what the plan uses, and plan again: the floating mana is
+            // spent first, and the next plan covers what is left. A source the seat cannot activate
+            // (said) is not tried again; a round that activates nothing ends it.
+            for (int round = 0; round < 8; round++) {
+                CardCollection plan = ComputerUtilMana.getManaSourcesToPayCost(neededMana(toPay, sa, effect), sa, me, effect);
+                if (plan == null) return;
+                boolean activated = false;
+                for (Card host : plan) {
+                    if (said.contains(host)) continue;
+                    for (SpellAbility ma : host.getManaAbilities()) {
+                        if (!hasTapTypeCost(ma)) continue;
+                        ma.setActivatingPlayer(me);
+                        if (!ma.canPlay() || !CostPayment.canPayAdditionalCosts(ma.getPayCosts(), ma, effect)) {
+                            said.add(host);
+                            costDecisionFellBack("mana-tap-cost", host.getName() + " cannot be activated first");
+                            break;
+                        }
+                        CardCollection others = new CardCollection(plan);
+                        others.remove(host);
+                        LlmCostDecision decision = new LlmCostDecision(me, ma, effect).forPayment(sa, others);
+                        forge.game.spellability.AbilityManaPart part = ma.getManaPart();
+                        if (part == null || part.isAnyMana() || part.isComboMana() || ma.getApi() == ApiType.ManaReflected) {
+                            // Said here, or not at all when its tap leaves no choice, so the check after
+                            // the payment does not report it.
+                            said.add(host);
+                            if (decision.hasTapChoice(ma.getPayCosts().getCostPartByType(forge.game.cost.CostTapType.class)))
+                                costDecisionFellBack("mana-tap-cost", host.getName() + " also chooses a color");
+                            break;
+                        }
+                        if (new CostPayment(ma.getPayCosts(), ma).payComputerCosts(decision)) {
+                            getGame().getStack().addAndUnfreeze(ma);
+                            activated = true;
+                            p("[ROUTER] mana-tap-cost: activated " + host.getName() + " before paying " + toPay);
+                        } else {
+                            said.add(host);
+                            costDecisionFellBack("mana-tap-cost", host.getName() + " payment refused");
+                        }
+                        break;
+                    }
+                }
+                if (!activated) return;
+            }
+        }
+
+        /** {@code toPay} as the real payment counts it (ComputerUtilMana.calculateManaCost with
+         *  test=false): it already carries the raises CostPayment applied, so they are not applied
+         *  again; X is counted, and the reductions are applied once. A fresh object each time, because
+         *  a test payment pays it down. */
+        private forge.game.mana.ManaCostBeingPaid neededMana(forge.card.mana.ManaCost toPay, SpellAbility sa, boolean effect) {
+            forge.game.mana.ManaCostBeingPaid need = new forge.game.mana.ManaCostBeingPaid(toPay);
+            if (need.getXcounter() > 0)
+                need.setXManaCostPaid(forge.game.ability.AbilityUtils.calculateAmount(sa.getHostCard(),
+                        sa.getParamOrDefault("XAlternative", "X"), sa), sa.getXColor() == null ? "1" : sa.getXColor());
+            forge.game.cost.CostAdjustment.adjust(need, sa, getPlayer(), null, true, effect);
+            return need;
+        }
+
+        private static boolean hasTapTypeCost(SpellAbility ma) {
+            return ma.getPayCosts() != null && ma.getPayCosts().hasSpecificCostType(forge.game.cost.CostTapType.class);
+        }
+
         /** Simultaneous-trigger ORDER (trigger targeting stays the engine's — the inherited
          *  orderAndPlaySimultaneousSa calls this virtually, then prepares/plays each). The model
          *  lists the order it wants the triggers to RESOLVE; the engine plays them in
@@ -4143,7 +4250,7 @@ public final class LlmSpikeGui {
          *      MANDATORY_ATTACKERS / TRICK_ATTACKERS / CHOSEN_FOG_EFFECT / PAYS_*_COST. These SURVIVE the
          *      call, and PlayerControllerLLM extends PlayerControllerAi, so ComputerUtilMana:935's
          *      isManaSourceReserved check (which early-returns only for NON-PlayerControllerAi controllers)
-         *      DOES apply to the student's real cast — the student does not override payManaCost. A stale
+         *      DOES apply to the student's real cast — its payManaCost override still pays through it. A stale
          *      shadow reservation would therefore change which lands the student taps, and the reserved
          *      branch short-circuits before a percentTrue draw, desyncing the RNG too. Snapshot every
          *      MemorySet before the call and restore it after. getMemorySet returns the LIVE set, so the

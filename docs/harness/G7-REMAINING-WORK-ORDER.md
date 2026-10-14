@@ -48,7 +48,7 @@ The four remaining hooks were re-examined against the Forge source (not assumed)
 | Hook | Verdict | Evidence from the source |
 | --- | --- | --- |
 | `getCostDecisionMaker` | **ROUTED** | `PlayerControllerAi` returns `AiCostDecision`; `CostDecisionMakerBase` exposes `protected player/ability/source`, so a subclass can route the card-choosing `visit(CostSacrifice)` to `choosePermanentsToSacrifice`. Done in `LlmCostDecision`, with the candidate filter **copied verbatim from `ComputerUtil.chooseSacrificeType`** so legality matches. Ownership 4 -> 3. |
-| `payManaCost` | **stays AI (no seam)** | `PlayerControllerAi.payManaCost` = `ComputerUtilMana.payManaCost(new Cost(toPay, effect), player, sa, effect)` — the entire mana-payment mechanism in one call; source selection is internal, not a hook. |
+| `payManaCost` | **stays AI (no seam)** | `PlayerControllerAi.payManaCost` = `ComputerUtilMana.payManaCost(new Cost(toPay, effect), player, sa, effect)` — the entire mana-payment mechanism in one call; source selection is internal, not a hook. Only which Elves a tap-type mana source (Heritage Druid) taps is the seat's, since #105. |
 | `playTrigger` | **stays AI (no targeting seam)** | `playTrigger` = `prepareSingleSa(host, sa, mandatory) && ComputerUtil.playNoStack(...)`; `prepareSingleSa` sets targets/modes via `brains.doTrigger`, which is the AI core. Its yes/no is already model-owned via `confirmTrigger`. |
 | `orderAndPlaySimultaneousSa` | **half-routed already** | The strategic ORDER is model-owned (`orderSimultaneousSa`); the inherited loop calls it virtually, then plays/targets via `prepareSingleSa`. Nothing strategic is silent; only the mechanics remain with the engine. |
 

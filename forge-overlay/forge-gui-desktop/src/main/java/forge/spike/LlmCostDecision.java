@@ -41,6 +41,19 @@ final class LlmCostDecision extends AiCostDecision {
         super(ai0, sa, effect);
     }
 
+    /** What the mana this ability makes is for, when it is activated during another payment. */
+    private String manaFor;
+
+    /** This mana ability is being activated to pay for {@code paid}: its tap parts say so, and keep
+     *  {@code reserved} out, because the rest of that payment still needs them. A pick with no choice
+     *  goes to the engine, which does not see {@code reserved}; it skips the plan's {T} sources only
+     *  because the plan's test payment just filled PAYS_TAP_COST, which the parent copies when built. */
+    LlmCostDecision forPayment(SpellAbility paid, Iterable<Card> reserved) {
+        manaFor = paid.getHostCard() == null ? null : paid.getHostCard().getName();
+        tapped.addAll(reserved);
+        return this;
+    }
+
     /** Which permanent a sacrifice cost takes. The candidate filter is copied VERBATIM from
      *  {@code ComputerUtil.chooseSacrificeType} so legality is identical to the engine's own AI path
      *  (sacrifice-eligible, not the pumped target, not a Casualty-granting permanent); a short or empty
@@ -149,26 +162,18 @@ final class LlmCostDecision extends AiCostDecision {
      *  something). Forge's AI taps the lowest-power ones, so it decides which creatures stay up to
      *  attack or block. Candidates are {@code ComputerUtil.chooseTapType}'s; crewing (total power) and
      *  creature-type sharing stay the engine's, as does a pick with no choice. A MANA ability's tap
-     *  cost (Heritage Druid, Springleaf Drum) is paid inside {@code ComputerUtilMana} with its own
-     *  {@code AiCostDecision} and never reaches this class.
+     *  cost (Heritage Druid) reaches this class only through the seat's
+     *  {@code PlayerControllerLLM.payManaCost}, which activates it before the engine's payment does.
      */
     @Override
     public PaymentDecision visit(CostTapType cost) {
-        String type = cost.getType();
-        if (type.contains("+withTotalPowerGE") || type.contains("sharesCreatureTypeWith")) return engineTap(cost);
         try {
             final int amount = cost.getAbilityAmount(ability);
-            CardCollection all = new CardCollection(player.getCardsIn(ZoneType.Battlefield));
-            all.removeAll(tapped);
-            all.removeAll(manaSources());
-            CardCollection typeList = CardLists.getValidCards(all, type.split(";"), source.getController(), source, ability);
-            typeList = CardLists.filter(typeList, CardPredicates.CAN_TAP);
-            if (!cost.canTapSource) typeList.remove(source);
-            if (ability.isKeyword(Keyword.STATION)) typeList = CardLists.filter(typeList, c -> c.getNetPower() > 0);
-            if (amount <= 0 || typeList.size() <= amount) return engineTap(cost); // nothing to choose
+            CardCollection typeList = tapCandidates(cost);
+            if (typeList == null || amount <= 0 || typeList.size() <= amount) return engineTap(cost); // nothing to choose
 
             CardCollectionView pick = ask(typeList, amount, "tap", "COST: to pay for " + source.getName()
-                    + " you must TAP " + amount
+                    + (manaFor == null ? "" : " (making mana for " + manaFor + ")") + " you must TAP " + amount
                     + " of these untapped permanents. A tapped creature cannot attack or block until it untaps. Choose which");
             if (pick != null) {
                 tapped.addAll(pick);
@@ -178,6 +183,27 @@ final class LlmCostDecision extends AiCostDecision {
             fellBack("tap-cost", e.getClass().getSimpleName());
         }
         return engineTap(cost);
+    }
+
+    /** The permanents this tap part may take, or null for a shape the engine keeps: crewing (total
+     *  power) and creature-type sharing. */
+    private CardCollection tapCandidates(CostTapType cost) {
+        String type = cost.getType();
+        if (type.contains("+withTotalPowerGE") || type.contains("sharesCreatureTypeWith")) return null;
+        CardCollection all = new CardCollection(player.getCardsIn(ZoneType.Battlefield));
+        all.removeAll(tapped);
+        all.removeAll(manaSources());
+        CardCollection typeList = CardLists.getValidCards(all, type.split(";"), source.getController(), source, ability);
+        typeList = CardLists.filter(typeList, CardPredicates.CAN_TAP);
+        if (!cost.canTapSource) typeList.remove(source);
+        if (ability.isKeyword(Keyword.STATION)) typeList = CardLists.filter(typeList, c -> c.getNetPower() > 0);
+        return typeList;
+    }
+
+    /** Whether paying {@code cost} leaves a choice of which permanents to tap. */
+    boolean hasTapChoice(CostTapType cost) {
+        CardCollection typeList = tapCandidates(cost);
+        return typeList != null && typeList.size() > cost.getAbilityAmount(ability);
     }
 
     /** The permanents this ability's own mana payment will tap. The mana part is paid before the tap
