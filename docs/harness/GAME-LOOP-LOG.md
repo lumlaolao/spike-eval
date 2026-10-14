@@ -193,3 +193,28 @@ loop and flashing back Dread Return for Thassa's Oracle with an empty library.
 - OPEN   `order` decisions (17 in g05, 16% of its model calls) still go to the smart tier, though they
   are a classification over a menu the harness has already legalised — the fast tier's own documented
   criterion. Left for the owner because it changes which model answers the decision.
+
+### g06  2026-10-13  seed 58  Painter (seat) vs Infect (Forge AI)  lost T12  $0.08  build 8ad60d78
+
+Sheet: TAKEN 0, LOST 0, TOOL 0 (8 of 8 served), SLOW 0; 3 truncations. 921 s.
+
+- OPEN   the cap data point g06 existed for. At the uniform 8000, 3 of 33 smart calls truncated and
+  were retried at 4096 with reasoning disabled. Smart completions on this deck: median 2042, max 7615
+  -- the cap sits AT the tail, and 5 of 33 exceeded 4000, so all five would have truncated under the
+  old deepseek cap. 8000 was picked as 2x the CROSS-RUN p99 (3811), which understates a deck that
+  reasons this long. 16000 is the value with headroom; the owner's call before g07.
+- DEFECT a colour choice was taken by the harness four times ("color(default)->first", T5/7/9/11) with
+  no model row and no options recorded -- on the deck whose signature card, Painter's Servant, is a
+  colour-naming one. `chooseColor` asks only when `colors.countColors() >= 2 && smartOk()`, and the
+  auto row records neither, so a forced single-colour set cannot be told from a decision taken because
+  the smart budget was gone. `match_review` does not count it either (TAKEN 0), so the sheet missed
+  it. Needs the legal-set size on the auto row before it can be called a TAKEN; not fixed here.
+- PUZZLE T11-ish: the plan said "Hold Lotus Petal (no mana to pay {3} for Grindstone)" and the model
+  played it (jsonl:134). The stated hold was not honoured.
+- NOTE   plan_audit's other hit, "keep Grindstone + keys untapped" against playing Grindstone, reads
+  as a false positive: "keep X untapped" holds the ACTIVATION, and casting the artifact does not tap
+  it. A third FP class, noted not fixed.
+- NOTE   the turn-by-turn read of the Saga chapters and the Karn/Tezzeret loyalty abilities was NOT
+  done this pass; only the sheet, the truncations, the colour autos and the two plan clauses were
+  examined. The next session on this deck should start there.
+- clean  mulligan (asked, twice), the tool sheet (8 requests, all served), attackers/blockers.
