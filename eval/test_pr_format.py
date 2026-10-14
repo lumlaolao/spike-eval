@@ -107,7 +107,7 @@ class PrFormatTest(unittest.TestCase):
         # The skeleton new-pr prints used to pass the form check: every section held some text.
         title, body = pf.skeleton("HEAD")
         problems = pf.pr_problems("docs: x", body)
-        for section in ("Why", "Evidence", "Provenance", "Not done"):
+        for section in ("Why", "Evidence", "Provenance", "Review", "Not done"):
             self.assertTrue(any("`## %s` still holds a skeleton placeholder" % section in p for p in problems),
                             (section, problems))
         # Only the acceptance line left unfilled on a docs-only PR (the gate's acceptance check is skipped).
@@ -116,7 +116,8 @@ class PrFormatTest(unittest.TestCase):
         self.assertTrue(any("`## Evidence` still holds" in p for p in pf.pr_problems("docs: x", evidence_only)))
         # Prose, HTML and autolinks with angle brackets are not placeholders.
         for line in ("The <details> block stays; `List<String>` is fine.", "<details>", "</details>",
-                     "<!-- reviewer note -->", "- <https://github.com/x/y/actions/runs/1>", "<br>"):
+                     "<!-- reviewer note -->", "- <https://github.com/x/y/actions/runs/1>", "<br>",
+                     '<img src="https://x/y.png" width="400">', "<details open>", '<p align="center">'):
             self.assertEqual(pf.pr_problems("docs: x", BODY.replace("MCP server; see the note.", line)), [], line)
 
     def test_the_skeleton_offers_each_skill_its_own_verdicts(self):
