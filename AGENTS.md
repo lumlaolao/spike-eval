@@ -9,16 +9,16 @@ only points at them and repeats what is never optional.
 - **Use the required skills** in `.claude/skills/`. Claude Code and OpenCode both load them from
   there by name, so there is one copy and nothing to install (checked on OpenCode 2.0.28:
   `opencode api skill.list --param "location[directory]=$PWD"` lists every skill in
-  `.claude/skills/`). Run the three
-  review skills as fresh subagents when your runtime has them and the owner has not asked for none:
+  `.claude/skills/`). Run the three review skills as fresh subagents when your runtime has them and
+  the owner has not asked for none; the rest apply when their trigger fires:
   - `pr-format` before every commit, PR title/body and merge;
   - `pr-review`, then `simplify`, then `standards` on **every** PR before it is merged;
   - `game-loop` whenever a game is played: one match, read it, fix the harness, then the next;
   - `harness-audit` whenever game logs are reviewed;
-  - `defect-hunt` when a game is played to fill the defect backlog: the same reading, but each
-    harness defect is filed as its own labelled issue and nothing is fixed;
+  - `defect-hunt` when a game is played to fill the defect backlog: each harness defect is filed as
+    its own labelled issue, and nothing is fixed;
   - `defect-fix` when one filed harness defect is fixed: claim it, prove it on `main`, fix in
-    `forge-overlay/`, then the gate.
+    `forge-overlay/`, then the merge gate.
 - **Merge only with** `bash scripts/pr_merge.sh <number>` (format, three recorded verdicts for the
   current head, an acceptance run when code changed; merge commit, never squash).
 - **The seat's tools are native tool calls.** Anything the model can look up or do beyond answering
