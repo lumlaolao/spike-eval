@@ -1,5 +1,5 @@
 {
-  "version": "seat-tools-v4",
+  "version": "seat-tools-v5",
   "comment": "The seat's read-only tools as native function definitions. Each maps 1:1 onto a command ContextMemory.execute already implements (text_command), so the native and text protocols reach the SAME executor and differ only in how the request is expressed. Descriptions carry the same epistemic caveats the text grammar states. rules_lookup and simulate are served by the engine side only (RulesTool, PlayerLookahead); the tool-use suite has no fixture for them and does not offer them.",
   "tools": [
     {

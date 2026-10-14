@@ -396,7 +396,9 @@ if has_stage nativetool; then
       # option numbers the model reads off the prompt are the numbers it passes; a preview aims at the
       # target the seat names, not the label-vs-name mismatch that ignored it; and PASS is a previewable
       # menu option now, answered without a copy). The game this stage plays is unchanged; only the
-      # literals the stamps are compared to moved.
+      # literals the stamps are compared to moved. 2026-10-14: seat-tools-v5 (a call on a round that
+      # offered no tools is refused, not run); the fake model honours tool_choice, so again only the
+      # literal moved.
       say "nativetool: LLM seat A on loopback fake model, native tools by default (NATIVE_TOOLS unset), MEMORY_TOOLS=1 LOOKAHEAD=1 under v4-faithful (Mardu mirror)"
       play nativetool 42 CONTROLLER_A=llm CONTROLLER_B=floor SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
           OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" MEMORY_TOOLS=1 LOOKAHEAD=1 CONTEXT_PROFILE=v4-faithful GAME_CAP_MS=120000 \
@@ -417,7 +419,7 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 else:
     if game.get("native_tools") is not True: problems.append("native_tools=%r not stamped"%game.get("native_tools"))
-    if game.get("native_tools_version")!="seat-tools-v4": problems.append("native_tools_version=%r (expected seat-tools-v4; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
+    if game.get("native_tools_version")!="seat-tools-v5": problems.append("native_tools_version=%r (expected seat-tools-v5; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
     if game.get("memory_tools_version")!="evidence-tools-v2": problems.append("memory_tools_version=%r (expected evidence-tools-v2; move this pin WITH ContextMemory.VERSION)"%game.get("memory_tools_version"))
     if game.get("lookahead_version")!="lookahead-preview-v4" or game.get("lookahead") is not True: problems.append("lookahead=%r lookahead_version=%r (expected True, lookahead-preview-v4; move this pin WITH PlayerLookahead.VERSION)"%(game.get("lookahead"),game.get("lookahead_version")))
     if game.get("native_tools_seats")!="A/smart,A/fast": problems.append("native_tools_seats=%r"%game.get("native_tools_seats"))
