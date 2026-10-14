@@ -1,0 +1,1 @@
+RW aggro built to reach PhaseHandler's exert and enlist hooks: Amonkhet exert creatures (Glory-Bound Initiate, Ahn-Crop Crasher, Combat Celebrant, Gust Walker, Trueheart Twins, Sandstorm Crasher) and one enlist soldier (Goblin Morale Sergeant). The seat owns declareAttackers but not exertAttackers/enlistAttackers, so the exert/enlist choice is the AI's (issue filed with the map).
