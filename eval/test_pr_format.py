@@ -114,10 +114,13 @@ class PrFormatTest(unittest.TestCase):
         evidence_only = BODY.replace("- acceptance @ abc123456: OUT=/tmp/acc-native-1 12/12 stages PASS",
                                      "- acceptance @ abc123456: OUT=/tmp/<name> <N>/<N> stages PASS")
         self.assertTrue(any("`## Evidence` still holds" in p for p in pf.pr_problems("docs: x", evidence_only)))
+        java_left = BODY.replace("12/12 stages PASS", "12/12 stages PASS, <J> Java")
+        self.assertTrue(any("`## Evidence` still holds" in p for p in pf.pr_problems("docs: x", java_left)))
         # Prose, HTML and autolinks with angle brackets are not placeholders.
         for line in ("The <details> block stays; `List<String>` is fine.", "<details>", "</details>",
                      "<!-- reviewer note -->", "- <https://github.com/x/y/actions/runs/1>", "<br>",
-                     '<img src="https://x/y.png" width="400">', "<details open>", '<p align="center">'):
+                     '<img src="https://x/y.png" width="400">', "<details open>", '<p align="center">',
+                     "The skeleton's `<one line>` is now refused."):
             self.assertEqual(pf.pr_problems("docs: x", BODY.replace("MCP server; see the note.", line)), [], line)
 
     def test_the_skeleton_offers_each_skill_its_own_verdicts(self):
