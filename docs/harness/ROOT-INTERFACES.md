@@ -44,7 +44,7 @@ The engine only ever calls `PlayerController`. Two consequences drive the whole 
 | Combat | `declareAttackers`, `declareBlockers`, `assignCombatDamage`, `orderBlockers/orderBlocker/orderAttackers`, `exertAttackers`, `enlistAttackers` (`PlayerController.java:111,154-170`) | `ComputerUtilCombat` | overrides declarations and damage assignment (`:1869,:1960,:3763`); blocker/attacker *ordering* partly AI | a declaration and its ordering are the same decision split across two methods; the seat owns one, the engine the other | the ordering half of a declaration (ledger `controller-ownership.tsv:109-111` marks `orderAttackers/orderBlocker/orderBlockers` `ai-observed`: "damage order chosen by AiBlockController"); not yet filed |
 | Zone changes / card movement | `chooseSingleCardForZoneChange`, `orderMoveToZoneList`, `choosePermanentsToSacrifice`, `chooseCardsForEffect`, `chooseCardsToDiscard*`, `arrangeForScry/Surveil` (`PlayerController.java:115,129,193-204,229-243,367`) | `ComputerUtil` / the AI brains (`PlayerControllerAi.java:279` `ComputerUtil.choosePermanentsToSacrifice`, `:289` `brains.chooseCardsForEffect`, `:1596` `brains.chooseCardToHiddenOriginChangeZone`) | overrides the picks (`:2446,:2950,:3083,:3912`); Forge's `AiCardMemory` is consulted in `LlmCostDecision` | the four zone-change overrides read the engine's list as passed; the tap/sacrifice **cost** filters re-derive their own (`LlmCostDecision.visit(CostSacrifice)`, `LlmCostDecision.java:57-88`) | same reserve shape as Mana payment above |
 | Information / reveal | `reveal(...)`, `notifyOfValue`, `confirmReplacementEffect`, `confirmStaticApplication`, `chooseCardsPile` (`PlayerController.java:148-152,179-191,318`) | the AI's information machinery is live: `reveal` records to `AiCardMemory.REVEALED_CARDS` (`PlayerControllerAi.java:502`, read by the AI at `ComputerUtil.java:1521`), and `chooseCardsPile` `:1427`, `confirmStaticApplication` `:400`, `confirmReplacementEffect` `:455` all decide; only `notifyOfValue` `:969` is a no-op | seat overrides `reveal` (`:1003`) and rebuilds state in `SeatObservation` | the seat's *observation* is a rendering of engine state, versioned separately from the interface | observation profile work (`SeatObservation.VERSION`) |
-| Cross-tier context | (no engine method; a harness concern) | the engine hands each decision to the current tier | two independent `claude`/API conversations (smart, fast) | **the decision context is per-call, not per priority window**: an ask answered by one tier does not carry the play the other tier chose | **#108** (a cost/shuffle ask does not say which play caused it), GAME-LOOP-LOG g08/g10 |
+| Cross-tier context | (no engine method; a harness concern) | the engine hands each decision to the current tier | two independent `claude`/API conversations (smart, fast) | **the decision context is per-call, not per priority window**: an ask answered by one tier does not carry the play the other tier chose | **#108** (a cost/shuffle ask does not say which play caused it), GAME-LOOP-LOG g08-g10 |
 
 ## Root fixes, in dependency order
 
@@ -53,12 +53,13 @@ Each is an interface-level change that removes a class of defects, not one sympt
 - **R1 — targeting: own the choice, not the machinery.** Give the seat a hook that makes the model's
   choice *where the engine computes it*, so `chooseTargetsFor` never re-implements target assignment:
   ask the engine for the ability's `TargetChoices` (the whole chain: multi-target, split, modal) and
-  have the model pick among them, then let the engine apply them. This removes the `getMaxTargets()==1`
-  restriction, the `resetTargets()/add()` duplication in both `chooseTargetsFor` and `ensureTargetsSet`,
-  and the sub-ability bail to `brains.doTrigger`. Closes the "targeting is messed up" class and the
+  have the model pick among them, then let the engine apply them. This removes the three things the
+  Targeting row names: the single-target restriction, the duplicated assignment, and the sub-ability
+  bail. Closes the "targeting is messed up" class and the
   silent multi-target AI fallback. *(Found by code reading; filed as #124.)*
 - **R2 — mana: stop duplicating `ComputerUtilMana`'s plan.** Either (a) leave `payManaCost` to the
-  engine entirely and expose only the choice among *equivalent* payment plans (the G7 finding), or
+  engine entirely and expose only the choice among *equivalent* payment plans (the `payManaCost` row
+  of `G7-REMAINING-WORK-ORDER.md`), or
   (b) ask the engine, dry-run, which permanents its real payment will tap and use that as the reserve
   set, instead of `manaSources()`'s own computation. Closes **#110** and **#111** together, because
   both are "the reserve is not what the payment will use". *(Root of two filed defects.)*
@@ -80,7 +81,8 @@ Each is an interface-level change that removes a class of defects, not one sympt
   in the same PR (the G7 method, `G7-REMAINING-WORK-ORDER.md`).
 - A claim here cites the line it was read from: the engine under `~/code/forge` (pinned by
   `ENGINE-PIN.md`) for `PlayerController*`, and **this repo's** `forge-overlay/.../spike/*.java` for
-  the seat (the checkout copy is shifted by ~3 lines; never cite it).
+  the seat. Never cite the checkout copy: it is the last `install.sh` snapshot (`install.sh:16`), not
+  this source, and its line numbers disagree.
 - A row's "interface gap" that gains a *new* partial-override fallback should be filed as a
   `harness-defect` issue in the hunter's format, so the map stays a plan and not a wish list.
 
