@@ -64,13 +64,13 @@ def price_of(prices, spec):
     return prices.get(model_id(spec) or "")
 
 
-def identity_of(g, seat):
-    """'a' or 'b': which deck identity a row's seat (player name) belongs to. The game row names them
-    deck_a/deck_b, a batch manifest name_a/name_b. A row with no seat, or one that matches neither or
-    both names (a mirror under one name), is seat A's, which is what every price here assumed before."""
+def identities_of(g, seat):
+    """The deck identities ('a', 'b') a row's seat (player name) may belong to. The game row names them
+    deck_a/deck_b, a batch manifest name_a/name_b. Both, when both identities carry that name (an
+    exploratory batch may give them one); only 'a' for a row with no seat or one matching neither."""
     a = seat is not None and seat in (g.get("deck_a"), g.get("name_a"))
     b = seat is not None and seat in (g.get("deck_b"), g.get("name_b"))
-    return "b" if b and not a else "a"
+    return ("a", "b") if a and b else ("b",) if b else ("a",)
 
 
 def report_dir(run_dir, prices):
@@ -93,14 +93,19 @@ def report_dir(run_dir, prices):
             out["calls"] += calls
             out["prompt_tokens"] += pin
             out["completion_tokens"] += pout
-            # A call is priced by its own seat's spec for that tier: pricing seat B's calls by seat A's spec
-            # read a model-B-vs-ai batch as free, so --budget-usd never stopped it.
-            spec = g.get("%s_%s" % ("smart" if tier == "smart" else "fast", identity_of(g, seat)))
-            p = price_of(prices, spec)
-            if p is None:
-                if model_id(spec):
-                    out["unpriced"].add(model_id(spec))
+            # Priced by the calling seat's own spec: under seat A's, a model-B-vs-ai batch reads as $0 and
+            # --budget-usd never stops it. A name both seats share is priced at the dearer spec (an upper bound).
+            specs = [g.get("%s_%s" % ("smart" if tier == "smart" else "fast", i)) for i in identities_of(g, seat)]
+            priced = []
+            for s in specs:
+                if price_of(prices, s) is not None:
+                    priced.append(s)
+                elif model_id(s):
+                    out["unpriced"].add(model_id(s))
+            if not priced:
                 continue
+            spec = max(priced, key=lambda s: pin * price_of(prices, s)["prompt"] + pout * price_of(prices, s)["completion"])
+            p = price_of(prices, spec)
             out["models"].add(model_id(spec))
             out["checked"].add(p.get("checked", "?"))
             out["usd"] += pin * p["prompt"] + pout * p["completion"]

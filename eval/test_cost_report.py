@@ -57,7 +57,8 @@ class CostReportTest(unittest.TestCase):
         self.assertIsNone(cr.model_id("haiku"))
 
     def test_each_seat_is_priced_by_its_own_model(self):
-        # Seat B is the only model here: seat A is Forge's AI, so pricing by smart_a priced nothing.
+        # Each call is priced by its own seat's model: two different models first, then a killed game
+        # where only B is a model.
         cheap = "openrouter:acme/cheap"
         prices = dict(PRICES, **{"acme/cheap": {"prompt": 0.000001, "completion": 0.000002, "checked": "2026-10-14"}})
         with tempfile.TemporaryDirectory() as d:
@@ -75,6 +76,13 @@ class CostReportTest(unittest.TestCase):
             write(d, "batch-manifest.json", [{"condition": {"name_a": "Delver", "name_b": "Burn",
                                                             "smart_a": "ai", "smart_b": OR}}])
             self.assertAlmostEqual(cr.report_dir(d, prices)["usd"], 0.0441, places=9)
+            # Both identities under one name (an exploratory batch allows it): the dearer spec, never $0.
+            write(d, "batch-manifest.json", [{"condition": {"name_a": "Burn", "name_b": "Burn",
+                                                            "smart_a": "ai", "smart_b": OR}}])
+            self.assertAlmostEqual(cr.report_dir(d, prices)["usd"], 0.0441, places=9)
+            write(d, "batch-manifest.json", [{"condition": {"name_a": "Burn", "name_b": "Burn",
+                                                            "smart_a": cheap, "smart_b": OR}}])
+            self.assertAlmostEqual(cr.report_dir(d, prices)["usd"], 1.0, places=9)
 
     def test_the_price_file_has_the_authorised_model(self):
         p = cr.load_prices()["deepseek/deepseek-v4.1-flash"]
