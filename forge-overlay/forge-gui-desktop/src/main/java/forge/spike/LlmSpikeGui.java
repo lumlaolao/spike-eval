@@ -51,6 +51,7 @@ import forge.deck.Deck;
 import forge.deck.DeckSection;
 import forge.deck.DeckgenUtil;
 import forge.game.Game;
+import forge.game.GameActionUtil;
 import forge.game.GameEntity;
 import forge.game.GameLogEntry;
 import forge.game.GameLogEntryType;
@@ -3316,7 +3317,8 @@ public final class LlmSpikeGui {
                 if (faces.size() <= 20) {
                     List<String> labels = new ArrayList<>();
                     for (ICardFace f : faces) labels.add(f.getName());
-                    int c = decideOne(smart, "card-name", "NAME A CARD" + srcOf(sa) + ": " + oneLine(message), labels, null);
+                    int c = decideOne(smart, "card-name", "NAME A CARD" + srcOf(sa) + ": " + oneLine(message)
+                            + (observer != null ? targetNote(sa, getPlayer()) : ""), labels, null);
                     if (c >= 0) { p("[ROUTER] card-name: " + labels.get(c) + srcOf(sa)); return labels.get(c); }
                     // Bridge-down (c==-2) or still-unparseable-after-retry (c==-1): same deterministic
                     // first-face default the no-model branch above uses, never Forge AI.
@@ -3399,8 +3401,11 @@ public final class LlmSpikeGui {
         private String askCardName(SpellAbility sa, String message, String valid) {
             String q = snapshot() + "\nDECISION: NAME A CARD" + srcOf(sa) + ": " + oneLine(message)
                     + (valid != null && !valid.isEmpty() ? " (must match: " + oneLine(valid) + ")" : "")
-                    + ". Use everything you've seen this game — revealed hands, their deck's archetype — to name "
-                    + "the card most likely there / most dangerous to your plan. "
+                    + (observer != null
+                        ? "." + targetNote(sa, getPlayer())
+                            + " Use everything you've seen this game (revealed hands, the target's deck) to choose the name. "
+                        : ". Use everything you've seen this game — revealed hands, their deck's archetype — to name "
+                            + "the card most likely there / most dangerous to your plan. ")
                     + "End with EXACTLY: CARD: <exact English card name>";
             for (int attempt = 0; attempt < 2; attempt++) {
                 String reply = ask(smart, attempt == 0 ? q
@@ -4315,6 +4320,22 @@ public final class LlmSpikeGui {
             for (ZoneType z : zones) { if (b.length() > 0) b.append('/'); b.append(z); }
             return b.toString();
         }
+        /** Who the spell's targets are, for a decision asked after targeting (a name, a number). A
+         *  name ask that does not say whose hand it reaches is answered as if it were the opponent's:
+         *  runs/loop/g08 targeted itself with Cabal Therapy to bin Griselbrand and then named Ajani. */
+        static String targetNote(SpellAbility sa, Player me) {
+            try {
+                List<String> who = new ArrayList<>();
+                for (forge.game.spellability.TargetChoices tc : sa.getAllTargetChoices()) {
+                    for (forge.game.GameObject o : tc) {
+                        String n = o == me ? "YOU (" + me.getName() + ")"
+                                : o instanceof Card ? ((Card) o).getName() : o.toString();
+                        if (!who.contains(n)) who.add(n);
+                    }
+                }
+                return who.isEmpty() ? "" : " This spell targets: " + String.join(", ", who) + ".";
+            } catch (Exception e) { return ""; }
+        }
         private static String srcOf(SpellAbility sa) {
             try { return sa != null && sa.getHostCard() != null ? " [" + sa.getHostCard().getName() + "]" : ""; }
             catch (Exception e) { return ""; }
@@ -4523,11 +4544,29 @@ public final class LlmSpikeGui {
          *  original inline code). */
         static PlayOptions enumeratePlayOptions(Player me, boolean ownMain) {
             List<SpellAbility> options = new ArrayList<>();
+            // getSpellAbilities drops a spell's alternative costs whenever the spell is also castable
+            // normally, leaving the AI to re-expand them later; this menu never did, so Unmask, Force of
+            // Will and every other "rather than pay this spell's mana cost" spell went unoffered
+            // (runs/loop/g08: Unmask in hand beside four black cards, never on the menu). Expand here.
+            List<SpellAbility> candidates = new ArrayList<>();
+            java.util.Set<SpellAbility> altCosts = new java.util.HashSet<>();
             for (SpellAbility sa : ComputerUtilAbility.getSpellAbilities(
                     ComputerUtilAbility.getAvailableCards(me.getGame(), me), me)) {
+                candidates.add(sa);
+                if (!sa.isSpell() || sa.getAlternativeCost() != null) continue;
+                try {
+                    for (SpellAbility alt : GameActionUtil.getAlternativeCosts(sa, me, false)) {
+                        if (!candidates.contains(alt)) { candidates.add(alt); altCosts.add(alt); }
+                    }
+                } catch (Exception ignore) { /* the base spell is still offered */ }
+            }
+            for (SpellAbility sa : candidates) {
                 if (sa.isLandAbility() || sa.isManaAbility()) continue;
                 if (!sa.canPlay()) continue;
-                if (!ComputerUtilMana.canPayManaCost(sa, me, 0, false)) continue;
+                // An alternative cost is rarely mana alone (exile a card, pay life, return an Island),
+                // so it is checked as a whole cost; the normal cast keeps its historical mana check.
+                if (altCosts.contains(sa) ? !ComputerUtilCost.canPayCost(sa, me, false)
+                        : !ComputerUtilMana.canPayManaCost(sa, me, 0, false)) continue;
                 // Skip a targeted spell that currently has NO legal target — casting it just fizzles
                 // ("Couldn't add to stack, failed to target"), e.g. Animate Dead with an empty graveyard.
                 if (sa.usesTargeting()) {

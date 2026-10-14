@@ -6,10 +6,12 @@ import com.google.common.collect.Sets;
 
 import forge.ai.AiCostDecision;
 import forge.ai.ComputerUtilCost;
+import forge.game.card.CardCollectionView;
 import forge.game.card.Card;
 import forge.game.card.CardCollection;
 import forge.game.card.CardLists;
 import forge.game.card.CardPredicates;
+import forge.game.cost.CostExile;
 import forge.game.cost.CostSacrifice;
 import forge.game.cost.PaymentDecision;
 import forge.game.keyword.Keyword;
@@ -72,6 +74,41 @@ final class LlmCostDecision extends AiCostDecision {
             if (pick != null && !pick.isEmpty()) return PaymentDecision.card(pick);
             if (amount <= 0) return super.visit(cost); // nothing to choose (X=0): the engine's bookkeeping
             fellBack("empty pick");
+        } catch (Exception e) {
+            fellBack(e.getClass().getSimpleName());
+        }
+        return super.visit(cost);
+    }
+
+    /** Which card an exile cost takes (Unmask and Force of Will exile a card from hand, others from a
+     *  graveyard). Forge's AI exiles the lowest-power legal card, so with Griselbrand and Thoughtseize
+     *  in hand it decides what the seat keeps, with no row and no log line (runs/loop/g08 follow-up).
+     *  Candidates are {@code ComputerUtil.chooseExileFrom}'s; the shapes with no choice in them
+     *  (from the source, all, top of a graveyard, library, a total-mana-value bound, any one zone)
+     *  stay the engine's. */
+    @Override
+    public PaymentDecision visit(CostExile cost) {
+        String type = cost.getType();
+        if (cost.payCostFromSource() || "All".equals(type) || type.contains("FromTopGrave") || type.contains("+withTotalCMCGE")
+                || cost.zoneRestriction == 0
+                || (cost.getFrom().size() == 1 && cost.getFrom().get(0) == ZoneType.Library)) {
+            return super.visit(cost);
+        }
+        try {
+            final int amount = cost.getAbilityAmount(ability);
+            CardCollection typeList = new CardCollection(cost.zoneRestriction != 1
+                    ? player.getGame().getCardsIn(cost.getFrom()) : player.getCardsIn(cost.getFrom()));
+            typeList = CardLists.getValidCards(typeList, type.split(";"), source.getController(), source, ability);
+            typeList = CardLists.filter(typeList, CardPredicates.canExiledBy(ability, isEffect()));
+            typeList = ComputerUtilCost.paymentChoicesWithoutTargets(typeList, ability, player);
+            if (amount <= 0 || typeList.size() <= amount) return super.visit(cost); // nothing to choose
+
+            String from = cost.getFrom().size() == 1 ? cost.getFrom().get(0).name().toLowerCase() : "zones";
+            CardCollectionView pick = player.getController().chooseCardsForEffect(typeList, ability,
+                    "COST: to pay for " + source.getName() + " you must EXILE " + amount + " of these cards from your "
+                    + from + ". They leave now, as the cost is paid. Choose which", amount, amount, false, null);
+            if (pick != null && pick.size() == amount) return PaymentDecision.card(pick);
+            fellBack("exile pick of " + (pick == null ? 0 : pick.size()));
         } catch (Exception e) {
             fellBack(e.getClass().getSimpleName());
         }

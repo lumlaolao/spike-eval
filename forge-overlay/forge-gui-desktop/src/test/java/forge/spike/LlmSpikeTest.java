@@ -1690,6 +1690,39 @@ public class LlmSpikeTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** runs/loop/g08 follow-up: once Unmask was offered by its alternative cost, WHICH black card it
+     *  exiled was picked by Forge's AI inside the cost payment (no row, no log line) -- with Griselbrand
+     *  and Thoughtseize in hand that is the whole decision. The exile must be the seat's. */
+    @Test
+    public void anExileFromHandCostIsTheSeatsChoice() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        Card unmask = addHandCard("Unmask", me);
+        addHandCard("Griselbrand", me);
+        addHandCard("Thoughtseize", me);
+        forge.game.spellability.SpellAbility base = null;
+        for (forge.game.spellability.SpellAbility s : unmask.getSpellAbilities()) if (s.isSpell()) base = s;
+        forge.game.spellability.SpellAbility alt = forge.game.GameActionUtil.getAlternativeCosts(base, me, false).get(0);
+        alt.setActivatingPlayer(me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+        me.dangerouslySetController(ctrl);
+        forge.game.cost.CostExile exile = null;
+        for (forge.game.cost.CostPart part : alt.getPayCosts().getCostParts())
+            if (part instanceof forge.game.cost.CostExile) exile = (forge.game.cost.CostExile) part;
+        Assert.assertNotNull(exile, "fixture: Unmask's alternative cost exiles from hand");
+
+        forge.game.cost.PaymentDecision d = new LlmCostDecision(me, alt, false).visit(exile);
+        Assert.assertNotNull(d);
+        Assert.assertEquals(bridge.prompts.size(), 1, "the exile was not asked");
+        Assert.assertTrue(bridge.prompts.get(0).contains("EXILE"), bridge.prompts.get(0));
+        Assert.assertEquals(d.cards.size(), 1);
+        // Forge's AI exiles the lowest-power card (Thoughtseize); the seat asked for Griselbrand.
+        Assert.assertEquals(d.cards.get(0).getName(), "Griselbrand", "the seat's pick (1) was not used");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
     @Test
     public void g8SimulateDirectiveIsParsedAndBoundsChecked() {
         Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.parseSimulateOption("SIMULATE: 2", 3), 2);
