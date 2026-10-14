@@ -45,6 +45,10 @@ set -u
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 FORGE="${FORGE_HOME:-$HOME/code/forge}"
 JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home}"
+# Off the Mac the Homebrew default does not exist: take the JDK that javac on PATH belongs to.
+if [ ! -x "$JAVA_HOME/bin/javac" ] && command -v javac >/dev/null 2>&1; then
+  JAVA_HOME="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")"
+fi
 JAVA="$JAVA_HOME/bin/java"; JAVAC="$JAVA_HOME/bin/javac"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="${OUT:-$REPO/runs/harness-acceptance/$STAMP}"
@@ -66,8 +70,23 @@ FAILED=0
 say()  { echo "[$(date -u +%H:%M:%S)] $*"; }
 pass() { echo "PASS $1: $2" | tee -a "$SUMMARY"; }
 fail() { echo "FAIL $1: $2" | tee -a "$SUMMARY"; FAILED=1; }
+# Canary pins can differ by OS: the same commit plays seed 42 to a different count on Linux than on
+# the reference Mac (see the expectations file). A "<os>.<key>" line wins over the plain "<key>".
+PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]')"
 want() { # $1 key -> value from the expectations file
-  awk -F= -v k="$1" '$1==k {print $2}' "$EXPECTED"
+  # A key written twice prints DUPLICATE, which matches no outcome: a re-pin appended under the old
+  # line must fail the run, not be silently ignored.
+  awk -F= -v k="$1" -v pk="$PLATFORM.$1" '$1==pk {p=$2; np++} $1==k {v=$2; n++}
+    END {if (np) print (np>1 ? "DUPLICATE" : p); else print (n>1 ? "DUPLICATE" : v)}' "$EXPECTED"
+}
+pinset() { # $1 arm -> which pins the canary is checked against
+  if grep -q "^$PLATFORM\.$1\." "$EXPECTED"; then echo "$PLATFORM pins"; else echo "plain (Mac) pins"; fi
+}
+# md5 is macOS, md5sum is Linux. With neither, both sides of a comparison would hash to "" and the
+# gate would pass on anything; an exit inside $( ) does not stop this script, so the caller checks.
+digest() {
+  if command -v md5 >/dev/null 2>&1; then md5
+  elif command -v md5sum >/dev/null 2>&1; then md5sum | cut -d" " -f1; fi
 }
 has_stage() { case " $STAGES " in *" $1 "*) return 0;; *) return 1;; esac; }
 
@@ -111,11 +130,12 @@ if has_stage classpath; then
     # Two guards, because target/ is gitignored in the checkout: git status catches source edits,
     # and a mtime marker catches ANY file Maven writes under the engine's target/ trees (a rebuild
     # of the pinned classes would be invisible to git and must fail this stage).
-    BEFORE="$(git -C "$FORGE" status --porcelain 2>/dev/null | md5)"
+    BEFORE="$(git -C "$FORGE" status --porcelain 2>/dev/null | digest)"
     MARK="$OUT/.mvn-marker"; touch "$MARK"; sleep 1
     ( cd "$FORGE" && mvn -o -q -pl forge-gui-desktop -am dependency:build-classpath -Dmdep.outputFile="$DEPS" -Dmdep.includeScope=test ) >"$OUT/mvn-classpath.log" 2>&1
-    AFTER="$(git -C "$FORGE" status --porcelain 2>/dev/null | md5)"
-    [ "$BEFORE" = "$AFTER" ] || fail classpath "mvn dependency:build-classpath changed the Forge working tree"
+    AFTER="$(git -C "$FORGE" status --porcelain 2>/dev/null | digest)"
+    if [ -z "$BEFORE" ]; then fail classpath "no md5 or md5sum on PATH: cannot check the Forge working tree"
+    elif [ "$BEFORE" != "$AFTER" ]; then fail classpath "mvn dependency:build-classpath changed the Forge working tree"; fi
     TOUCHED="$(find "$FORGE"/forge-*/target -type f -newer "$MARK" 2>/dev/null | head -3)"
     [ -z "$TOUCHED" ] || fail classpath "Maven wrote into the engine's target/ trees (pinned classes may have been rebuilt): $TOUCHED"
   fi
@@ -231,6 +251,7 @@ if has_stage canary; then
   if [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail canary "no compiled classes"; else
     for arm in floor random; do
       seed="$(want $arm.seed)"
+      case "$seed" in ''|*[!0-9]*) fail "canary-$arm" "seed pin '$seed' is missing, duplicated or not a number in $EXPECTED"; continue;; esac
       say "canary $arm/$arm seed $seed"
       play "canary-$arm" "$seed" CONTROLLER_A=$arm CONTROLLER_B=$arm
       dir="$OUT/canary-$arm"
@@ -244,8 +265,8 @@ if has_stage canary; then
       EW="$(want $arm.winner)"; ET="$(want $arm.turns)"; ED="$(want $arm.decisions)"
       if [ $ARC -ne 0 ]; then fail "canary-$arm" "defect_analyzer rc=$ARC ($AI, $DROP; see $dir/defects.txt)"
       elif [ "$W" != "$EW" ] || [ "$T" != "$ET" ] || [ "$D" != "$ED" ]; then
-        fail "canary-$arm" "outcome winner=$W turns=$T decisions=$D differs from pinned winner=$EW turns=$ET decisions=$ED (re-pin deliberately if an auto/floor path changed)"
-      else pass "canary-$arm" "seed $seed: winner=$W turns=$T decisions=$D as pinned; $AI $DROP; build verified via class-load log"; fi
+        fail "canary-$arm" "outcome winner=$W turns=$T decisions=$D differs from pinned winner=$EW turns=$ET decisions=$ED, $(pinset $arm) (re-pin deliberately if an auto/floor path changed)"
+      else pass "canary-$arm" "seed $seed: winner=$W turns=$T decisions=$D as pinned ($(pinset $arm)); $AI $DROP; build verified via class-load log"; fi
     done
   fi
 fi
@@ -557,7 +578,7 @@ for r in calls:
     p=r.get("prompt") or ""
     # The mulligan ask shows only the opening hand (no board exists yet); it carries no observation.
     if "KEEP" in p and "MULLIGAN" in p and "DECISION:" not in p: mull+=1; observed+=1; legend+=1; continue
-    if "observation-faithful-v12" in p: observed+=1
+    if "observation-faithful-v13" in p: observed+=1
     if "LEGEND: @N" in p: legend+=1
     handles+=len(re.findall(r" @\d+", p))
     legacy+=len(re.findall(r"[A-Za-z\]]@\d+", p))          # the legacy candidateLabel form: Name[...]@id
@@ -574,7 +595,7 @@ if rules_leak: problems.append("%d faithful prompts advertised RULES TOOL withou
 ok_tools=[x for x in tools if not str(x.get("result","")).startswith("ERROR")]
 if len(ok_tools)<2: problems.append("successful tool rows %d (<2)"%len(ok_tools))
 log=open(d+"/game.log",errors="replace").read()
-if "[OBSERVATION] observation-faithful-v12" not in log: problems.append("observer never announced itself in the log")
+if "[OBSERVATION] observation-faithful-v13" not in log: problems.append("observer never announced itself in the log")
 if "state unavailable" in log or "state unavailable" in "".join((r.get("prompt") or "") for r in calls): problems.append("renderer threw (state unavailable)")
 if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] present")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
