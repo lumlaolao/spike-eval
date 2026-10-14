@@ -80,34 +80,37 @@ Of the 29 `strategic` rows the ledger marks `ai-inherited`:
 
 | AI-owned hook | engine effect that calls it | in the pool today? |
 |---|---|---|
-| `chooseCardsPile` | `TwoPilesEffect` (separate into two piles) | no |
+| `chooseCardsPile` | `TwoPilesEffect` (separate into two piles) | **yes — `hook-piles`** |
 | `choosePermanentsToDestroy` | `SacrificeEffect` | no |
-| `chooseCardsToDiscardUnlessType` | `DiscardEffect` (`UnlessType`) | no |
-| `chooseSingleSpellForEffect` | `CopySpellAbilityEffect` (copy a spell) | no |
+| `chooseCardsToDiscardUnlessType` | `DiscardEffect` (`UnlessType`) | **yes — `hook-discard-unless`** |
+| `chooseSingleSpellForEffect` | `CopySpellAbilityEffect` (copy a spell) | **yes — `hook-redirect-copy`** |
 | `chooseSpellAbilitiesForEffect` | `VillainousChoiceEffect` | no |
 | `chooseCardsForEffectMultiple` | `DigMultipleEffect` | no |
 | `chooseColors` | `ChooseColorEffect` / `GameAction` | no |
 | `chooseCounterType` | `CountersPutOrRemoveEffect` | no |
 | `chooseKeywordForPump` | `PumpEffect` | no |
-| `chooseNewTargetsFor` / `chooseTarget` | `ChangeTargetsEffect`, `SpellAbility` (redirect) | no |
+| `chooseNewTargetsFor` / `chooseTarget` | `ChangeTargetsEffect`, `SpellAbility` (redirect) | **yes — `hook-redirect-copy`** |
 | `chooseSingleCardFace` | `VentureEffect` | no |
 | `chooseSingleCardState` | `UnlockDoorEffect` (rooms) | no |
 | `chooseSingleReplacementEffect` | `ReplacementHandler` | rare |
 | `chooseSingleStaticAbility` | `CostAdjustment` | no |
-| `chooseFlipResult` | `FlipCoinEffect` | no |
-| `willPutCardOnTop` | `ClashEffect` | no |
+| `chooseFlipResult` | `FlipCoinEffect` | **yes — `hook-flip`** |
+| `willPutCardOnTop` | `ClashEffect` | **yes — `hook-clash`** |
 | `chooseSaToActivateFromOpeningHand` | `GameAction` | no |
 | `chooseStartingHand` | `BackupPlanService` | no |
 | `confirmStaticApplication` | `Combat` | rare |
 | `playSaFromPlayEffect` | `PlayEffect` (play / exile-and-play) | no |
-| `exertAttackers` / `enlistAttackers` | `PhaseHandler` | no |
+| `exertAttackers` / `enlistAttackers` | `PhaseHandler` | **yes — `hook-exert`** |
 | `chooseCardsForSplice` | `AbilityUtils` (splice) | no |
 | `chooseCardsForZoneChange` | `ChangeZoneEffect` | no |
 | `chooseEntitiesForEffect` | `DigEffect` (wrapper — routes to `chooseSingleEntityForEffect`, owned) | routed |
 
-Only **`allowRepeat`** (via `Eldrazi Confluence`, `eval/decks/painter.txt:24`) is known-reachable by
-the current 16-deck pool; the rest stay dormant until a deck adds the effect. Re-run this table when
-the pool changes: a new card is what promotes a `rare` hook to live.
+`allowRepeat` was already live (`Eldrazi Confluence`, `eval/decks/painter.txt:24`); the seven
+`hook-*` decks (`docs/harness/HOOK-DECKS.md`) now make six more of these hooks reachable on purpose —
+`chooseCardsPile`, `chooseSingleSpellForEffect`, `chooseNewTargetsFor`/`chooseTarget`,
+`chooseCardsToDiscardUnlessType`, `chooseFlipResult`, `willPutCardOnTop`, and
+`exertAttackers`/`enlistAttackers`. The rest stay dormant until a deck adds the effect. Re-run this
+table when the pool changes: a new card is what promotes a `rare` hook to live.
 - The rest of the `ai-inherited` set is **15 `exotic`** (Un-set, dice, Attractions), **9 `payment`**,
   **7 `mechanics`** and **6 `ui`** — out of strategic scope.
 
