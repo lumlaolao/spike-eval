@@ -56,6 +56,15 @@ class MatchReviewTest(unittest.TestCase):
         self.assertNotIn("Voice of Victory", text, "a forced pick is counted, not listed")
         self.assertLess(text.index("LOST"), text.index("TAKEN x"), "lost decisions are listed first")
 
+    def test_a_choice_the_seat_was_not_asked_about_is_taken(self):
+        # runs/loop/g06: four Painter's Servant colour choices with five colours legal, recorded as
+        # "color(default)->first" -- neither "forced" nor a rule of thumb, so the sheet called them
+        # other-automatic and TAKEN was 0 while the seat had lost the decision.
+        self.assertEqual(mr.classify_auto(dec("color", "auto", "color(default)->first of 5 legal")), "TAKEN")
+        self.assertEqual(mr.classify_auto(dec("some-type", "auto", "some-type(default)->first of 12 legal")), "TAKEN")
+        # ONE legal colour is genuinely forced and stays free.
+        self.assertEqual(mr.classify_auto(dec("color", "auto", "color(forced)->first")), "forced")
+
     def test_one_candidate_is_forced_only_in_a_pick_one_menu(self):
         self.assertEqual(mr.classify_auto(dec("attackers", "auto", "attackers(forced-only-legal)->attack X")), "TAKEN")
         self.assertEqual(mr.classify_auto(dec("target", "auto", "forced(only-legal)")), "forced")

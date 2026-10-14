@@ -208,7 +208,10 @@ Sheet: TAKEN 0, LOST 0, TOOL 0 (8 of 8 served), SLOW 0; 3 truncations. 921 s.
   colour-naming one. `chooseColor` asks only when `colors.countColors() >= 2 && smartOk()`, and the
   auto row records neither, so a forced single-colour set cannot be told from a decision taken because
   the smart budget was gone. `match_review` does not count it either (TAKEN 0), so the sheet missed
-  it. Needs the legal-set size on the auto row before it can be called a TAKEN; not fixed here.
+  it. FIXED: the fallbacks now record the legal-set size -- "color(forced)->first" for a single legal
+  colour, "color(default)->first of N legal" otherwise -- and match_review counts an unasked
+  multi-option choice as TAKEN (UNASKED_CHOICE). Tests: classify_auto unit test plus the harness
+  compile. Games recorded before this still read "color(default)->first" with no count.
 - PUZZLE T11-ish: the plan said "Hold Lotus Petal (no mana to pay {3} for Grindstone)" and the model
   played it (jsonl:134). The stated hold was not honoured.
 - NOTE   plan_audit's other hit, "keep Grindstone + keys untapped" against playing Grindstone, reads
