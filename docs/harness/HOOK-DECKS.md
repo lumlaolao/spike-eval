@@ -84,8 +84,7 @@ top level only).
 
 ## Not done
 
-- No model game has been read on these decks yet, so no defect is filed from a game — the hooks'
-  issues (#126, #127, #128) come from the code inventory.
+- No model game has been read on these decks yet, so no defect is filed from a game — issues #126 and #127 are fixed from the inventory; #128 is still open.
 - Nine hooks still lack a deck: `chooseSpellAbilitiesForEffect` (VillainousChoice / Doctor Who cards —
   buildable but off-archetype), `chooseCardsForSplice`, `chooseCardsForZoneChange`,
   `chooseSingleStaticAbility`, `chooseSingleReplacementEffect`, `confirmStaticApplication`,
