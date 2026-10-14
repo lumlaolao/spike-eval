@@ -239,7 +239,7 @@ python3 eval/latency_report.py --compact runs/lines/v11-mardu
 | Goblin Bombardment: offered / activated | — | 110 / 1 |
 | Cabal Therapy cast | 0 | 0 |
 | Plays the harness made against the plan | 7 | 0 |
-| Plays the MODEL made against its own plan (`plan_audit.py`) | 2 of 42 | 9 of 65 (13.8%; trivial baseline 0) |
+| Plays the MODEL made against its own plan (`plan_audit.py`) | 2 of 42 | 8 of 65 (12.3%; trivial baseline 0) |
 | Model calls per turn | — | 4.3 (159 smart, 278 fast over 102 turns) |
 | Won by the model | — | 4 of 8 |
 
@@ -259,9 +259,9 @@ How to read it:
   "Ajani, Nacatl Pariah + Ocelot Pride -> ... Ajani flips when Cats die"; "Thoughtseize + Cabal
   Therapy -> strip their hand, flashback Therapy for double discard". So the join is within this
   model's reach when it is asked for. Stating a line and playing it are different things: the
-  13.8% plan-contradiction rate is the measured size of that gap, with the caveat that the audit
-  is lexical (one of the nine reads "play Wasteland ... and hold the Thoughtseizes" and is a false
-  positive).
+  12.3% plan-contradiction rate is the measured size of that gap, with the caveat that the audit
+  is lexical (the false positive it once read there -- "play Wasteland ... and hold the
+  Thoughtseizes", charged to the Wasteland that was then played -- is now split correctly).
 - **4 of 8 is not evidence** about strength in either direction. `eval/aggregate.py` also prints
   `FAILED FALLBACK GATE 13.1%` for this run: all 66 flagged rows are `tier=auto` forced-only-legal
   decisions and the keep-7 mulligan heuristic, none is a failed model call or an AI delegation.
@@ -318,7 +318,7 @@ The brief's hypothesis was that plan-then-act is structurally unable to produce 
 should be replaced by a plan contract, sequence simulation and a forced self-statement.
 
 - **Supported:** a prose plan must not be executed (7 harness contradictions in one game), and a
-  stated plan does not bind the model (13.8% after the harness stopped interfering).
+  stated plan does not bind the model (12.3% after the harness stopped interfering).
 - **Not supported as the first cause:** every flagship missed line traced to the action interface
   (problems 1-4, 10, 11), not to the loop's shape. With those fixed, the same loop and the same
   model played Therapy-flashback-into-Ajani twice in eight games and accepted the flip all four
@@ -351,6 +351,12 @@ on the same deck, seeds 42-49 with both seatings (16 games per arm), no game cap
 was 0.2-0.3 per core throughout. Reproduce any row with
 `python3 eval/line_compare.py NAME=runs/lines/ctl/<arm> ...`, `eval/plan_audit.py` and
 `eval/line_report.py`. The arms differ in observation version, so they are compared, never pooled.
+
+2026-10-13: every **plan contradictions** number on this page was recomputed after `plan_audit.py`
+stopped counting two shapes as hold violations — a hold charged to the card a coordinated `and`
+clause told the seat to play ("play Wasteland and hold Swords to Plowshares", g02 T6), and a bare
+"later" ("use it later", g03 T9). Both were false positives, so each count moved down by 1 to 5 and
+no sign changed; the Fisher p beside the ctl2 pair is from the recomputed counts.
 
 | arm | build | what differs |
 |---|---|---|
@@ -405,16 +411,16 @@ times).
 The hypothesis was that the seat loses because it does not reason in sequences over its own cards
 and the turn ahead, and that giving it a way to plan or look ahead would fix that.
 
-- **Plan-then-execute did nothing measurable.** Same wins as control; plan contradictions 12 of 167
-  plays (7.2%) against 14 of 174 (8.0%) in control and 11 of 150 (7.3%) pre-fix. The harness
+- **Plan-then-execute did nothing measurable.** Same wins as control; plan contradictions 11 of 167
+  plays (6.6%) against 10 of 174 (5.7%) in control and 7 of 150 (4.7%) pre-fix. The harness
   executed 15 plan steps in 16 games, because the model mostly declined to hand them over
   ("STEPS: (none -- I want to choose Thoughtseize's target myself)").
 - **Lookahead did nothing measurable, because it was barely used and never worked.** The model
   asked for a preview 7 times in 16 games (900 model calls by `tool_audit.py`'s count, the one
-  used below) and none returned a result (problem 13, below). Same wins; contradictions 14 of 155
-  (9.0%).
+  used below) and none returned a result (problem 13, below). Same wins; contradictions 13 of 155
+  (8.4%).
 - **The seat does state sequences.** It wrote a plan in 109-137 turns per arm and its plays
-  contradicted the plan's own hold clauses in 7-9% of plays in every arm, pre-fix included. Stating
+  contradicted the plan's own hold clauses in 4-8% of plays in every arm, pre-fix included. Stating
   the line is not the missing piece.
 
 So the two arms did not test "does lookahead help"; they tested "does offering lookahead as an
@@ -457,12 +463,12 @@ allowance; observation v12 unchanged; no game capped; load 0.2 per core):
 
 | arm | tool requests | served | refused for form | previews | model wins | plan contradictions |
 |---|---|---|---|---|---|---|
-| `control` (text grammar v1) | 15 | 4 | **11** | n/a | 6 of 16 | 14 of 174 (8.0%) |
-| `planexec` (v1) | 15 | 3 | **9** | n/a | 6 of 16 | 12 of 167 (7.2%) |
-| `lookahead` (v1, `LOOKAHEAD=1`) | 13 | 3 | **10** | 0 of 7 requested | 6 of 16 | 14 of 155 (9.0%) |
-| `textv2` (repaired grammar) | 7 | 7 | 0 | n/a | 6 of 16 | 7 of 151 (4.6%) |
+| `control` (text grammar v1) | 15 | 4 | **11** | n/a | 6 of 16 | 10 of 174 (5.7%) |
+| `planexec` (v1) | 15 | 3 | **9** | n/a | 6 of 16 | 11 of 167 (6.6%) |
+| `lookahead` (v1, `LOOKAHEAD=1`) | 13 | 3 | **10** | 0 of 7 requested | 6 of 16 | 13 of 155 (8.4%) |
+| `textv2` (repaired grammar) | 7 | 7 | 0 | n/a | 6 of 16 | 6 of 151 (4.0%) |
 | `native` | **213** | 202 | 0 | n/a | 6 of 16 | 11 of 170 (6.5%) |
-| `native-lookahead` (`LOOKAHEAD=1`) | 150 | 111 | 0 | **0 of 38 requested** | 5 of 16 | 16 of 154 (10.4%) |
+| `native-lookahead` (`LOOKAHEAD=1`) | 150 | 111 | 0 | **0 of 38 requested** | 5 of 16 | 13 of 154 (8.4%) |
 
 `python3 eval/tool_audit.py runs/lines/ctl/<arm>`, `eval/line_compare.py`, `eval/plan_audit.py`.
 
@@ -510,9 +516,9 @@ cover a line of up to three plays). No game capped; load at most 0.3 per core.
 
 | arm | previews served / asked | model wins | paired vs `native` (only-this / only-native / same) | plan contradictions |
 |---|---|---|---|---|
-| `textv2` (repaired grammar, no lookahead) | n/a | 5 of 16 (31%, Wilson 14-56%) | 1 / 6 / 9, p=0.12 | 12 of 131 (9.2%) |
-| `native` (no lookahead) | n/a | 10 of 16 (62%, 39-82%) | | 18 of 173 (10.4%) |
-| `native-lookahead` | **63 / 92** | 9 of 16 (56%, 33-77%) | 2 / 3 / 11, p=1.0 | 10 of 162 (6.2%) |
+| `textv2` (repaired grammar, no lookahead) | n/a | 5 of 16 (31%, Wilson 14-56%) | 1 / 6 / 9, p=0.12 | 7 of 131 (5.3%) |
+| `native` (no lookahead) | n/a | 10 of 16 (62%, 39-82%) | | 15 of 173 (8.7%) |
+| `native-lookahead` | **63 / 92** | 9 of 16 (56%, 33-77%) | 2 / 3 / 11, p=1.0 | 7 of 162 (4.3%) |
 
 `python3 eval/tool_audit.py runs/lines/ctl2/native-lookahead` (`simulate served 63, empty 3,
 bad-args 26`, nothing FAILED or REFUSED), `eval/line_compare.py`, `eval/plan_audit.py`.
@@ -524,8 +530,8 @@ bad-args 26`, nothing FAILED or REFUSED), `eval/line_compare.py`, `eval/plan_aud
   cast Ocelot Pride: you life 16 -> 15; board 4 -> 7; ...`.
 - **It did not change who won.** 9 of 16 against 10 of 16 without it; three games one way, two the
   other. Sixteen pairs resolve about 35 points.
-- **Plan contradictions were lower, not distinguishably**: 10 of 162 against 18 of 173 (Fisher
-  p=0.17).
+- **Plan contradictions were lower, not distinguishably**: 7 of 162 against 15 of 173 (Fisher
+  p=0.13).
 - **26 requests named an option the preview does not cover**: 13 were `PLAY LAND` and 6 were
   `PASS`. The seat wants to preview a land drop, and the natural line "land, then the spell the
   land pays for" cannot be asked for, because that spell is not on the menu until the land is down.
@@ -545,7 +551,7 @@ sixteen pairs cannot say which.
 2. The text grammar is repaired (`evidence-tools-v2`) and kept only as the fallback.
 3. The sequence hypothesis has had one real test (above) and is unresolved. Two things are next,
    in this order. First, size: the native / native-lookahead pair on enough paired seeds to resolve
-   ten points, since both wins (9 against 10) and plan contradictions (6.2% against 10.4%) are
+   ten points, since both wins (9 against 10) and plan contradictions (4.3% against 8.7%) are
    inside the noise of sixteen. Second, the gap the requests point at: a line that starts with a
    land drop, where the later steps are cards the land makes castable and are therefore not on the
    menu; 13 of the 92 requests asked to preview a land.
