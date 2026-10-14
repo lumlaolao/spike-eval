@@ -68,6 +68,14 @@ class PlanAuditTest(unittest.TestCase):
                      "Actually holding Arid Mesa and Wasteland is fine"):
             self.assertIsNotNone(pa.held_in(plan, "Goblin Bombardment" if "Goblin" in plan else "Wasteland"), plan)
 
+    def test_a_hold_is_not_charged_to_the_card_a_consequence_clause_names(self):
+        # runs/loop/g05 T5: the seat's own reasoning held the Illusionist ("keep targeting Illusionist
+        # to mill the library") and named Dread Return only as the payoff the milling was for. The
+        # Dread Return play later that turn is that payoff, not a violation of the hold on the mill.
+        self.assertIsNone(pa.held_in(
+            "The loop is the plan: keep targeting Illusionist to mill the library so Narcomoebas and "
+            "Dread Return fill the graveyard.", "Dread Return"))
+
     def test_a_plan_does_not_govern_a_later_turn(self):
         res = self.audit_log(LOG)
         # Goblin Bombardment was cast on a Mardu turn with no plan of its own: not scored at all.
