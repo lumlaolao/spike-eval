@@ -4197,7 +4197,7 @@ public final class LlmSpikeGui {
             // removeSVar/setSVar (which touch the private map alone).
             //
             // KNOWN RESIDUAL COVERAGE GAPS (accepted; the delta below is surgical, not total):
-            //   * `chain` covers the MENU (po.spells + po.landPlays, capped 12+4) and their sub-chains. The
+            //   * `chain` covers the MENU (po.spells, every castable entry, + po.landPlays capped at 4) and their sub-chains. The
             //     AI additionally walks getAvailableCards()/getPossibleETBCounters() over graveyard, exile
             //     and library-top, so SVar writes to SAs OUTSIDE the menu are not rolled back. The menu is
             //     what the student can actually cast, so those are the SAs that matter for the cast itself.
@@ -4247,8 +4247,8 @@ public final class LlmSpikeGui {
                         return -1; // genuine PASS — same as the student's play-PASS (-1)
                     }
                     int idx = PlayerControllerAiLogging.indexOfPlay(r.get(0), po);
-                    // AI picked an ability OUTSIDE our capped play menu (activated/mana ability the 12-spell
-                    // menu excludes): this is NOT a pass. Return null so build_dagger_examples drops the row
+                    // AI picked an ability OUTSIDE our play menu (an activated/mana ability the menu
+                    // excludes, or a land past the 4-land cap): this is NOT a pass. Return null so build_dagger_examples drops the row
                     // instead of minting a false CHOICE:PASS target — mirroring the ai-log seat's
                     // "ai-choice-not-in-menu" fallback (which build_ai_teacher_examples drops via drop_fallback).
                     // Only a genuine empty AI reply maps to -1/PASS.
@@ -4607,8 +4607,8 @@ public final class LlmSpikeGui {
                         if (tr != null && tr.getAllCandidates(sa, false).size() < Math.max(1, sa.getMinTargets())) continue;
                     } catch (Exception ignore) { /* can't evaluate -> offer it, prior behavior */ }
                 }
-                // Uncapped: a cap at 12 silently dropped every later spell (issue #106), and the
-                // alternative-cost entries made a full blue hand reach it.
+                // Every castable entry is offered: a cap here hides spells from the seat without a log
+                // line (issue #106).
                 options.add(sa);
             }
             // Distinct lands we could play this main phase (by name), each offered as its own option so the
