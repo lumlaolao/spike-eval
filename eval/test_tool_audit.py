@@ -57,6 +57,11 @@ class ToolAuditTest(unittest.TestCase):
         self.assertEqual(ta.classify("TOOL CALL simulate {\"option\":1}", "LOOKAHEAD (option 1): (preview failed: RuntimeException)"), "FAILED")
         self.assertEqual(ta.classify("x", "LOOKAHEAD (option 2): (lookahead v1 supports spell options only)"), "empty")
         self.assertEqual(ta.classify("x", "ERROR: `option` must be the number of a SPELL option (1..2)."), "bad-args")
+        # Recorded (runs/loop/g03 line 211): a well-formed call naming a menu option the preview does
+        # not cover. It is a bad argument, not a form refusal, even though the message opens with a
+        # backticked argument name like the "`offset` must be an integer" case above.
+        self.assertEqual(ta.classify("TOOL CALL simulate {\"option\": 3}",
+            "ERROR: `option` must be a menu number of a CAST, ACTIVATE or PLAY LAND option (1..2); PASS cannot be previewed."), "bad-args")
         self.assertEqual(ta.classify("x", "LOOKAHEAD (option 1): if you cast Guide of Souls: you board 1 -> 2; Rival no change"), "served")
         # A served read that QUOTES an error phrase is still served.
         self.assertEqual(ta.classify("x", "M3 (observation) chars 0..90/90 next=END\nERROR: tool budget exhausted; found no visible object"), "served")

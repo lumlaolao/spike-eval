@@ -43,7 +43,11 @@ def classify(request, result):
     first = result.split("\n", 1)[0]
     if result.startswith("ERROR: tool budget exhausted"):
         return "exhausted"
-    if "must be the number of" in first or "must be a CAST or ACTIVATE option" in first:                 # a well-formed call naming an option that is not there
+    # A well-formed call naming an option that is not there. Checked before the form refusals because
+    # a bad-args message can open with a backticked argument name ("`option` must be ..."), which the
+    # "ERROR: `" form prefix below would otherwise claim as a refusal (runs/loop/g03 line 211).
+    if "must be the number of" in first or "must be a CAST or ACTIVATE option" in first \
+            or "must be a menu number of" in first:
         return "bad-args"
     if result.startswith(FORM_ERRORS) or (result.startswith("ERROR:") and " needs " in result.split("\n", 1)[0]):
         return "REFUSED"
