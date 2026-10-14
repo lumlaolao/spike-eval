@@ -420,7 +420,8 @@ def resume_expectation(args):
         expect["rules_tool"] = [True]
     else:
         expect["rules_tool"] = [False, ABSENT]
-    expect["lookahead"] = [True] if getattr(args, "lookahead", False) else [False, ABSENT]
+    on = getattr(args, "lookahead", False)
+    expect["lookahead"] = [on] if on != getattr(args, "unstamped_lookahead", False) else [on, ABSENT]
     for field, val in (("controller_a", args.controller_a), ("controller_b", args.controller_b),
                        ("smart_a", args.smart_a), ("smart_b", args.smart_b),
                        ("fast_a", args.fast_a), ("fast_b", args.fast_b)):
@@ -520,19 +521,22 @@ def spent_usd(out_dir):
     return cost_report.report_dir(str(out_dir), cost_report.load_prices())["usd"]
 
 
+def condition_diff_norm(m, k):
+    """A condition field as compared on resume. A manifest written before native_tools existed ran
+    without it; one written before --lookahead recorded LOOKAHEAD, if at all, as an --env override."""
+    env = m.get("env_overrides") or {}
+    if k == "native_tools":
+        return bool(m.get(k))
+    if k == "lookahead":
+        return bool(m.get(k)) or env.get("LOOKAHEAD") == "1"
+    if k == "env_overrides":
+        return {e: v for e, v in env.items() if e != "LOOKAHEAD"}
+    return m.get(k)
+
+
 def condition_diff(old, new):
     """[(key, old_value, new_value)] over CONDITION_KEYS that differ."""
-    def norm(m, k):
-        # A manifest written before native_tools existed ran without it. One written before
-        # --lookahead recorded LOOKAHEAD, if at all, as an --env override.
-        env = m.get("env_overrides") or {}
-        if k == "native_tools":
-            return bool(m.get(k))
-        if k == "lookahead":
-            return bool(m.get(k)) or env.get("LOOKAHEAD") == "1"
-        if k == "env_overrides":
-            return {e: v for e, v in env.items() if e != "LOOKAHEAD"}
-        return m.get(k)
+    norm = condition_diff_norm
     return [(k, norm(old, k), norm(new, k)) for k in CONDITION_KEYS
             if norm(old, k) != norm(new, k)]
 
@@ -567,7 +571,7 @@ def legacy_dir_condition(out_dir):
         "checkpoint_sha": "checkpoint_sha", "engine_sha": "engine_sha",
         "overlay_sha": "overlay_sha", "deck_sha": "deck_sha",
     }
-    seen, stamped = {}, {}
+    seen = {}
     n = 0
     for rec in iter_game_lines(out_dir):
         n += 1
@@ -577,11 +581,27 @@ def legacy_dir_condition(out_dir):
         for key, field in field_map.items():
             if field in rec:
                 seen.setdefault(key, set()).add(json.dumps(rec[field], sort_keys=True))
-                stamped[key] = stamped.get(key, 0) + 1
     if not n:
         return None
-    return {"n_game_lines": n, "stamped": stamped,
+    return {"n_game_lines": n,
             "fields": {k: [json.loads(v) for v in sorted(vals)] for k, vals in seen.items()}}
+
+
+def unstamped_lookahead(manifest):
+    """Whether a game line with no `lookahead` stamp ran with it on: what the manifest recorded
+    (--lookahead, or before that flag --env LOOKAHEAD=1), else off. Lines from before the stamp
+    (2026-10-13) cannot say for themselves."""
+    if manifest is None:
+        return False
+    return condition_diff_norm(manifest.get("condition", {}), "lookahead")
+
+
+def lookahead_problem(out_dir, unstamped, condition):
+    """(key, recorded, requested) when the directory's games did not all run with the requested
+    lookahead value, each line read by its own stamp or, unstamped, as `unstamped`; else None."""
+    want = bool(condition.get("lookahead"))
+    seen = {bool(rec.get("lookahead", unstamped)) for rec in iter_game_lines(out_dir)}
+    return ("lookahead", sorted(seen), want) if seen and seen != {want} else None
 
 
 def check_resume_condition(out_dir, condition, cited):
@@ -591,21 +611,21 @@ def check_resume_condition(out_dir, condition, cited):
     in cited mode an unverifiable legacy dir is refused outright."""
     manifest = load_manifest(out_dir)
     if manifest is not None:
-        # A manifest older than a tool flag cannot say whether the tool was on (an exported
-        # LOOKAHEAD=1 used to leak in unrecorded). Where every game line carries the stamp, the
-        # lines decide; where only some do, the others are unknowable, and the directory is refused;
-        # where none do, the manifest decides (lines before the stamp, 2026-10-13, cannot say).
-        missing = [k for k in ("native_tools", "lookahead") if k not in manifest.get("condition", {})]
-        lines = legacy_dir_condition(out_dir) if missing else None
-        counts = {k: (lines or {}).get("stamped", {}).get(k, 0) for k in missing}
-        by_lines = [k for k in missing if counts[k]]
-        diff = [d for d in condition_diff(manifest.get("condition", {}), condition) if d[0] not in by_lines]
-        for k in by_lines:
-            want = bool(condition.get(k))
-            if counts[k] < lines["n_game_lines"]:
-                diff.append((k, "stamped on %d of %d game lines" % (counts[k], lines["n_game_lines"]), want))
-            elif lines["fields"][k] != [want]:
-                diff.append((k, lines["fields"][k], want))
+        # A manifest older than --text-tools cannot say which protocol ran; its game lines can.
+        recorded = manifest.get("condition", {})
+        lines = legacy_dir_condition(out_dir) if "native_tools" not in recorded else None
+        # A manifest from before --lookahead that recorded nothing reads as off; every game line
+        # stamped with the requested value proves otherwise.
+        want_la = bool(condition.get("lookahead"))
+        stamps = [rec.get("lookahead") for rec in iter_game_lines(out_dir)]
+        proven = "lookahead" not in recorded and stamps and all(s == want_la for s in stamps)
+        diff = [d for d in condition_diff(recorded, condition)
+                if not ((proven and d[0] == "lookahead") or (lines and d[0] == "native_tools"))]
+        if lines and lines["fields"]["native_tools"] != [bool(condition.get("native_tools"))]:
+            diff.append(("native_tools", lines["fields"]["native_tools"], bool(condition.get("native_tools"))))
+        la = lookahead_problem(out_dir, unstamped_lookahead(manifest), condition)
+        if la and not any(d[0] == "lookahead" for d in diff):
+            diff.append(la)
         if diff:
             return ("%s already holds games under a different condition; a batch "
                     "directory is one experiment. Differences:\n           - "
@@ -618,6 +638,8 @@ def check_resume_condition(out_dir, condition, cited):
         return None
     problems = []
     for key, vals in legacy["fields"].items():
+        if key == "lookahead":
+            continue
         want = condition.get(key)
         if key == "context_profile" and want is None:
             want = "v1-compat"
@@ -628,12 +650,9 @@ def check_resume_condition(out_dir, condition, cited):
             continue  # runner left it to the JVM default; cannot compare
         if len(vals) > 1 or vals[0] != want:
             problems.append("%s: recorded %s, requested %r" % (key, vals, want))
-    # An unstamped line counts as lookahead off (it predates the flag being stamped): it can share
-    # a directory with off games, never with on games, and a mix of the two cannot be told apart.
-    la_stamped, n = legacy["stamped"].get("lookahead", 0), legacy["n_game_lines"]
-    if la_stamped < n and (la_stamped or bool(condition.get("lookahead"))):
-        problems.append("lookahead: stamped on %d of %d game lines, requested %r"
-                        % (la_stamped, n, bool(condition.get("lookahead"))))
+    la = lookahead_problem(out_dir, False, condition)
+    if la:
+        problems.append("%s: recorded %s, requested %r" % la)
     unverifiable = [k for k in ("context_profile", "memory_tools", "rules_tool", "checkpoint_sha")
                     if k not in legacy["fields"]]
     if problems:
@@ -1119,6 +1138,7 @@ def main():
     # different condition; then record this invocation.
     condition = batch_condition(args, cited)
     try:
+        args.unstamped_lookahead = unstamped_lookahead(load_manifest(out_dir))
         problem = check_resume_condition(out_dir, condition, cited)
     except ManifestError as e:
         problem = str(e)

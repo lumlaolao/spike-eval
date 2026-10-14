@@ -252,26 +252,47 @@ class TestLookahead(unittest.TestCase):
         old_no_env = {k: v for k, v in base.items() if k != "lookahead"}
         self.assertEqual(run_batch.condition_diff(old, la), [])
         self.assertEqual(run_batch.condition_diff(old, base), [("lookahead", True, False)])
-        with tempfile.TemporaryDirectory() as d:
-            write_game(d, "game-7100-1000.jsonl", game_line(7100, False, lookahead=True))
-            self.assertIn("lookahead", run_batch.check_resume_condition(d, base, cited=False))
-            self.assertIsNone(run_batch.check_resume_condition(d, la, cited=False))
-            # A manifest from before the flag, of a shell that exported LOOKAHEAD=1: its lines say so.
-            run_batch.write_manifest(d, old_no_env, seeds=[7100], pairs=False, jobs=1)
-            self.assertIn("lookahead", run_batch.check_resume_condition(d, base, cited=False) or "")
-            self.assertIsNone(run_batch.check_resume_condition(d, la, cited=False))
-            # Only some lines stamped: the others' condition is unknowable, so neither resumes.
-            write_game(d, "game-7101-1000.jsonl", game_line(7101, False))
-            for cond in (base, la):
-                self.assertIn("stamped on 1 of 2", run_batch.check_resume_condition(d, cond, cited=False) or "")
-        with tempfile.TemporaryDirectory() as d:   # the same mix with no manifest at all
-            write_game(d, "game-7100-1000.jsonl", game_line(7100, False, lookahead=True))
-            write_game(d, "game-7101-1000.jsonl", game_line(7101, False))
-            self.assertIn("stamped on 1 of 2", run_batch.check_resume_condition(d, la, cited=False) or "")
-        with tempfile.TemporaryDirectory() as d:   # no manifest, no stamps: off may resume, on may not
-            write_game(d, "game-7100-1000.jsonl", game_line(7100, False))
-            self.assertIn("stamped on 0 of 1", run_batch.check_resume_condition(d, la, cited=False) or "")
-            self.assertNotIn("lookahead", run_batch.check_resume_condition(d, base, cited=False) or "")
+
+    def test_resume_refuses_every_directory_that_mixes_or_contradicts_lookahead(self):
+        # The rule: a line's lookahead is its stamp, or, unstamped (before 2026-10-13), what the
+        # manifest recorded (--lookahead, or --env LOOKAHEAD=1 before the flag), else off. A
+        # directory resumes only when every line and the manifest agree with the request; a
+        # pre-flag manifest that recorded nothing is overruled only by lines all stamped alike.
+        base = run_batch.batch_condition(make_args(), cited=False)
+        la = run_batch.batch_condition(make_args(lookahead=True), cited=False)
+        pre = {k: v for k, v in base.items() if k != "lookahead"}
+        manifests = {"none": None, "key=off": base, "key=on": la, "pre-flag": pre,
+                     "pre-flag+env": dict(pre, env_overrides={"LOOKAHEAD": "1"})}
+        U, T, F = {}, {"lookahead": True}, {"lookahead": False}
+        lines = {"zero": [], "U": [U], "T": [T], "F": [F], "U+T": [U, T], "U+F": [U, F], "T+F": [T, F]}
+        # (manifest, lines) -> (resumes off, resumes on)
+        expect = {
+            "none":         {"zero": (1, 1), "U": (1, 0), "T": (0, 1), "F": (1, 0), "U+T": (0, 0), "U+F": (1, 0), "T+F": (0, 0)},
+            "key=off":      {"zero": (1, 0), "U": (1, 0), "T": (0, 0), "F": (1, 0), "U+T": (0, 0), "U+F": (1, 0), "T+F": (0, 0)},
+            "key=on":       {"zero": (0, 1), "U": (0, 1), "T": (0, 1), "F": (0, 0), "U+T": (0, 1), "U+F": (0, 0), "T+F": (0, 0)},
+            "pre-flag":     {"zero": (1, 0), "U": (1, 0), "T": (0, 1), "F": (1, 0), "U+T": (0, 0), "U+F": (1, 0), "T+F": (0, 0)},
+            "pre-flag+env": {"zero": (0, 1), "U": (0, 1), "T": (0, 1), "F": (1, 0), "U+T": (0, 1), "U+F": (0, 0), "T+F": (0, 0)},
+        }
+        for mname, manifest in manifests.items():
+            for lname, recs in lines.items():
+                with tempfile.TemporaryDirectory() as d:
+                    if manifest is not None:
+                        run_batch.write_manifest(d, manifest, seeds=[7100], pairs=False, jobs=1)
+                    for i, extra in enumerate(recs):
+                        write_game(d, "game-%d-1000.jsonl" % (7100 + i), game_line(7100 + i, False, **extra))
+                    got = tuple(int("lookahead" not in (run_batch.check_resume_condition(d, c, cited=False) or ""))
+                                for c in (base, la))
+                    with self.subTest(manifest=mname, lines=lname):
+                        self.assertEqual(got, expect[mname][lname])
+
+    def test_unstamped_lines_of_a_pre_flag_lookahead_batch_count_as_done(self):
+        # A batch run with --env LOOKAHEAD=1 before the flag: its unstamped lines ran with the
+        # preview on, so resuming under --lookahead must not replay them.
+        args = make_args(lookahead=True)
+        args.unstamped_lookahead = run_batch.unstamped_lookahead(
+            {"condition": {"env_overrides": {"LOOKAHEAD": "1"}}})
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False), run_batch.resume_expectation(args)))
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False), run_batch.resume_expectation(make_args(lookahead=True))))
 
 
 class TestResumeIdentity(unittest.TestCase):
