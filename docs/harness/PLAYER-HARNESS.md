@@ -394,6 +394,31 @@ Still one preview per decision. It is an estimate: libraries are
 shuffled on the copy, the opponent's hand is not determinized, and the opponent is not given a turn.
 Tests: `LookaheadProbeTest` (10). Loopback Mardu mirror: 104 of 104 previews return a result.
 
+### Lookahead preview v3-v4 (2026-10-13)
+
+Both come from loop games read after the v2 arms, and the doc had not recorded v3.
+
+**v3: `simulate` indexes the decision's own menu, and a land drop may start a line.** The option
+numbers the model passes are the numbers it reads off the prompt: the menu is the CAST and ACTIVATE
+options followed by the PLAY LAND ones, and PASS is not previewable. A line may begin with a land
+drop, played on the copy. Before v3 only spells and abilities were addressable, so the seat was
+refused for passing the numbers it had been shown (runs/loop/g02 T4-5: `option` 3 on a two-spell menu
+with two land options after it).
+
+**v4: `target` may be the label the board printed, not only the bare name.** The seat sends what it
+reads off the board, and the board prints `Name P/T [tags] @handle` ("@N = your seat's handle for one
+object"). `pickTarget` asked only whether the candidate's *name* contained the hint, and a label is
+longer than the name, so a label never matched and the pick fell silently to `defaultTarget`.
+runs/loop/g05 T5: the seat asked to preview Nomads en-Kor targeting "Cephalid Illusionist 1/1
+[untapped] [sick] @75", and the report came back "[assuming target: Nomads en-Kor]: you no change" —
+a no-op preview of the ability the whole game turned on; it then spent its one allowed retry on the
+same request and was refused ("one preview per decision"). The match now runs both ways (name
+contains hint, or hint contains name) and the longest name wins, so a name that is a prefix of
+another cannot take the pick.
+
+Tests: `LookaheadProbeTest` (13: `previewCastHonoursATargetHintThatQuotesThePrintedLabel`,
+`aLineThatStartsWithALandDropIsPreviewed`, `previewCastHonoursATargetHint`).
+
 Hand-reveal bridge/parse failures now choose the first minimum-sized legal subset,
 log an automatic fallback, and never call Forge AI. Empty reveal pools return empty.
 The regression uses a 1-to-3-card reveal range to catch accidental over-revealing.

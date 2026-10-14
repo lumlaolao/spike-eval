@@ -36,10 +36,13 @@ HOLD = re.compile(
 # only when a verb follows, so that `and` joining two OBJECTS of one verb ("hold Swords to
 # Plowshares and Goblin Bombardment") stays one clause and the hold still covers both -- splitting
 # those suppressed real violations (runs/lines/ctl2/native-lookahead).
+# `so` introduces the consequence, not the instruction: "keep targeting Illusionist to mill the
+# library so Narcomoebas and Dread Return fill the graveyard" holds the Illusionist and merely names
+# the payoff, so the Dread Return play is not a violation (runs/loop/g05 T5).
 VERBS = (r"hold|holding|held|keep|keeping|save|saving|cast|casts|casting|play|plays|playing|"
          r"attack|attacks|attacking|deploy|deploys|deploying|activate|activates|activating|"
          r"use|uses|using|discard|discards|target|targets|sacrifice|sacrifices")
-CLAUSE = re.compile(r"[;.]\s|,\s|\bthen\b|\bwhile\b|\bbut\b|\band\s+(?=(?:%s)\b)" % VERBS, re.I)
+CLAUSE = re.compile(r"[;.]\s|,\s|\bthen\b|\bwhile\b|\bbut\b|\bso\b|\band\s+(?=(?:%s)\b)" % VERBS, re.I)
 LOG_PLAN = re.compile(r"^\[(?P<seat>[^\]]+)\] \[ROUTER\] plan: (?P<plan>.*)$")
 LOG_PLAY = re.compile(r"^\[(?P<seat>[^\]]+)\] \[ROUTER\] play: (?P<how>casts|plan step \d+(?: \([^)]*\))? ->) (?P<label>.*)$")
 
