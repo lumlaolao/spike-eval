@@ -116,7 +116,7 @@ interface LLMBridge {
      *  truncation without re-deriving it from raw_reply. */
     default String getLastFinishReason() { return null; }
     /** Prompt (input) token count reported by the backend's response `usage` object for the most
-     *  recently completed ask(), or -1 when the backend reports no usage (Claude CLI) or nothing has
+     *  recently completed ask(), or -1 when the backend reports no usage or nothing has
      *  completed yet. Persisted per-decision in the eval JSONL so Stage-0 calibration can sum true
      *  input/output token cost without re-deriving it. Same last-value single-threaded-per-seat
      *  contract as getLastFinishReason(). */
@@ -5729,6 +5729,7 @@ public final class LlmSpikeGui {
         private BufferedWriter in;
         private int asksSinceStart = 0;
         private long totalMs = 0; private int calls = 0; // latency accounting, read by [TALLY]
+        private volatile int lastPromptTokens = -1, lastCompletionTokens = -1;
 
         ClaudeBridge(String label, String model, String preamble) {
             this.label = label;
@@ -5767,6 +5768,7 @@ public final class LlmSpikeGui {
 
         @Override public synchronized String ask(String prompt) {
             long t0 = System.currentTimeMillis();
+            lastPromptTokens = -1; lastCompletionTokens = -1;
             try {
                 if (RESET_EVERY > 0 && asksSinceStart >= RESET_EVERY) {
                     System.out.println("[CLAUDE " + label + "] refreshing session after " + asksSinceStart + " asks (bounds context growth)");
@@ -5789,6 +5791,10 @@ public final class LlmSpikeGui {
                     if (line == null) { reset(); return null; }
                     if (line.contains("\"type\":\"result\"")) {
                         String r = extractJsonString(line, "\"result\":\"");
+                        lastPromptTokens = promptTokens(line);
+                        lastCompletionTokens = usageInt(line, "output_tokens");
+                        String served = servedModel(line);
+                        if (served != null) servedModels.put(label, served);
                         if (isNonAnswer(r)) {
                             System.out.println("[CLAUDE " + label + "] non-answer result -> treating as bridge-down");
                             return null; // caller's retry/fallback path will log an honest bridge-down reason
@@ -5815,6 +5821,29 @@ public final class LlmSpikeGui {
         @Override public String getModel() { return model; }
         @Override public long getTotalMs() { return totalMs; }
         @Override public int getCalls() { return calls; }
+        @Override public int getLastPromptTokens() { return lastPromptTokens; }
+        @Override public int getLastCompletionTokens() { return lastCompletionTokens; }
+
+        // The CLI's result line carries what the spec does not: `haiku` is an alias, and the model that
+        // answered is the key of its "modelUsage" object; the prompt is input + both cache counts.
+        static String servedModel(String resultLine) {
+            int k = resultLine == null ? -1 : resultLine.indexOf("\"modelUsage\":{\"");
+            if (k < 0) return null;
+            int a = k + "\"modelUsage\":{\"".length(), b = resultLine.indexOf('"', a);
+            return b > a ? resultLine.substring(a, b) : null;
+        }
+        static int usageInt(String resultLine, String key) {
+            int u = resultLine == null ? -1 : resultLine.indexOf("\"usage\":{");
+            if (u < 0) return -1;
+            java.util.regex.Matcher m = java.util.regex.Pattern.compile("\"" + key + "\":(\\d+)").matcher(resultLine);
+            return m.find(u) ? Integer.parseInt(m.group(1)) : -1;
+        }
+        static int promptTokens(String resultLine) {
+            int in = usageInt(resultLine, "input_tokens");
+            if (in < 0) return -1;
+            return in + Math.max(0, usageInt(resultLine, "cache_creation_input_tokens"))
+                    + Math.max(0, usageInt(resultLine, "cache_read_input_tokens"));
+        }
 
         private void reset() {
             try { if (proc != null) proc.destroyForcibly(); } catch (Exception ignore) { }
