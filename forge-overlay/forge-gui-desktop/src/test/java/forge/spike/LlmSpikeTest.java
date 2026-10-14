@@ -1723,6 +1723,39 @@ public class LlmSpikeTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** A tap-type cost (Glare of Subdual: "Tap an untapped creature you control") was paid by Forge's AI,
+     *  lowest power first, with no row, so the AI chose which creature stayed up to attack or block.
+     *  The real play path pays with LlmCostDecision (playChosenSpellAbility), so the pick must be the
+     *  seat's. Mana abilities (Heritage Druid) are paid inside ComputerUtilMana and are NOT covered. */
+    @Test
+    public void aTapTypeCostIsTheSeatsChoice() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        Card glare = addBattlefieldCard("Glare of Subdual", me);
+        addBattlefieldCard("Llanowar Elves", me);
+        addBattlefieldCard("Grizzly Bears", me);
+        addBattlefieldCard("Serra Angel", me);
+        forge.game.spellability.SpellAbility ab = glare.getSpellAbilities().get(0);
+        ab.setActivatingPlayer(me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 3");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+        me.dangerouslySetController(ctrl);
+        forge.game.cost.CostTapType tap = null;
+        for (forge.game.cost.CostPart part : ab.getPayCosts().getCostParts())
+            if (part instanceof forge.game.cost.CostTapType) tap = (forge.game.cost.CostTapType) part;
+        Assert.assertNotNull(tap, "fixture: Glare of Subdual's cost taps a creature");
+
+        forge.game.cost.PaymentDecision d = new LlmCostDecision(me, ab, false).visit(tap);
+        Assert.assertNotNull(d);
+        Assert.assertEquals(bridge.prompts.size(), 1, "the tap was not asked");
+        Assert.assertTrue(bridge.prompts.get(0).contains("TAP 1"), bridge.prompts.get(0));
+        // Forge's AI taps the lowest-power creature (Llanowar Elves); the seat asked for Serra Angel.
+        Assert.assertEquals(d.cards.size(), 1);
+        Assert.assertEquals(d.cards.get(0).getName(), "Serra Angel", "the seat's pick (3) was not used");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
     /** runs/loop/g09 (seed 62, UR Delver on haiku): Daze by its alternative cost, and the seat's plan
      *  said "returning my tapped Volcanic Island" -- but which Island a return cost bounces was Forge
      *  AI's (lowest power first, no row). With a tapped and an untapped Island that is the decision. */

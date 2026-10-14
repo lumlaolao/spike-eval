@@ -14,6 +14,7 @@ import forge.game.card.CardPredicates;
 import forge.game.cost.CostExile;
 import forge.game.cost.CostReturn;
 import forge.game.cost.CostSacrifice;
+import forge.game.cost.CostTapType;
 import forge.game.cost.PaymentDecision;
 import forge.game.keyword.Keyword;
 import forge.game.player.Player;
@@ -35,6 +36,9 @@ final class LlmCostDecision extends AiCostDecision {
     /** Marks a sacrifice the seat is paying as a COST (as opposed to one an effect forces on it), so
      *  the controller can ask the right question. */
     static final String COST_MESSAGE = "Sacrifice as a cost";
+
+    /** What this cost's tap parts already took, so a second one cannot take them again. */
+    private final CardCollection tapped = new CardCollection();
 
     LlmCostDecision(Player ai0, SpellAbility sa, boolean effect) {
         super(ai0, sa, effect);
@@ -137,6 +141,42 @@ final class LlmCostDecision extends AiCostDecision {
                     amount, amount, false, null);
             if (pick != null && pick.size() == amount) return PaymentDecision.card(pick);
             fellBack("return pick of " + (pick == null ? 0 : pick.size()));
+        } catch (Exception e) {
+            fellBack(e.getClass().getSimpleName());
+        }
+        return super.visit(cost);
+    }
+
+    /** Which permanents a tap-type cost taps (Glare of Subdual and Opposition tap a creature to tap
+     *  something). Forge's AI taps the lowest-power ones, so it decides which creatures stay up to
+     *  attack or block. Candidates are {@code ComputerUtil.chooseTapType}'s; crewing (total power) and
+     *  creature-type sharing stay the engine's, as does a pick with no choice. A MANA ability's tap
+     *  cost (Heritage Druid, Springleaf Drum) is paid inside {@code ComputerUtilMana} with its own
+     *  {@code AiCostDecision} and never reaches this class.
+     */
+    @Override
+    public PaymentDecision visit(CostTapType cost) {
+        String type = cost.getType();
+        if (type.contains("+withTotalPowerGE") || type.contains("sharesCreatureTypeWith")) return super.visit(cost);
+        try {
+            final int amount = cost.getAbilityAmount(ability);
+            CardCollection all = new CardCollection(player.getCardsIn(ZoneType.Battlefield));
+            all.removeAll(tapped);
+            CardCollection typeList = CardLists.getValidCards(all, type.split(";"), source.getController(), source, ability);
+            typeList = CardLists.filter(typeList, CardPredicates.CAN_TAP);
+            if (!cost.canTapSource) typeList.remove(source);
+            if (ability.isKeyword(Keyword.STATION)) typeList = CardLists.filter(typeList, c -> c.getNetPower() > 0);
+            if (amount <= 0 || typeList.size() <= amount) return super.visit(cost); // nothing to choose
+
+            CardCollectionView pick = player.getController().chooseCardsForEffect(typeList, ability,
+                    "COST: to pay for " + source.getName() + " you must TAP " + amount
+                    + " of these untapped permanents. A tapped creature cannot attack or block until it untaps. Choose which",
+                    amount, amount, false, null);
+            if (pick != null && pick.size() == amount) {
+                tapped.addAll(pick);
+                return PaymentDecision.card(pick);
+            }
+            fellBack("tap pick of " + (pick == null ? 0 : pick.size()));
         } catch (Exception e) {
             fellBack(e.getClass().getSimpleName());
         }
