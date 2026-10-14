@@ -18,6 +18,8 @@ final class ContextMemory {
     static final int TOOLS_PER_ASK = 2;
     static final int TOOLS_PER_GAME = 64;
     private static final int PAGE_CHARS = 2000;
+    private static final String TOOLS_SPENT = "No tool calls are available for this decision any more. "
+            + "Do not ask for one. Answer the decision above now, ending with the exact answer line it asks for.";
     private final List<Entry> entries = new ArrayList<>();
     private final List<String> notes = new ArrayList<>();
     private int toolsUsed;
@@ -201,8 +203,7 @@ final class ContextMemory {
                     if (pressed || round >= TOOLS_PER_ASK + 1) return null;
                     pressed = true;
                     used = TOOLS_PER_ASK;
-                    messages.add(NativeTools.message("user", "No tool calls are available for this decision any more. "
-                            + "Do not ask for one. Answer the decision above now, ending with the exact answer line it asks for."));
+                    messages.add(NativeTools.message("user", TOOLS_SPENT));
                     continue;
                 }
                 return turn.content;
@@ -210,7 +211,11 @@ final class ContextMemory {
             messages.add(JsonParser.parseString(turn.messageJson));
             for (NativeTools.Call c : turn.calls) {
                 String result;
-                if (used >= TOOLS_PER_ASK || toolsUsed >= TOOLS_PER_GAME) {
+                if (!allow) {
+                    // tool_choice "none" is a request the provider may ignore. A call made anyway on a
+                    // forbidden round must not run: on the last round its result could never be read.
+                    result = "ERROR: no tool calls are available for this decision; no tool executed.";
+                } else if (used >= TOOLS_PER_ASK || toolsUsed >= TOOLS_PER_GAME) {
                     result = "ERROR: tool budget exhausted; no tool executed. Answer the original decision.";
                 } else if (NativeTools.SIMULATE.equals(c.name)) {
                     if (simulate == null) result = "ERROR: unknown tool `" + c.name + "`.";
@@ -227,6 +232,13 @@ final class ContextMemory {
                 }
                 audit.accept(c.render(), result);
                 messages.add(NativeTools.toolResult(c.id, result));
+            }
+            if (!allow) {
+                // Same recovery as call markup written as text: say once that the answer is due.
+                if (pressed) return null;
+                pressed = true;
+                used = TOOLS_PER_ASK;
+                messages.add(NativeTools.message("user", TOOLS_SPENT));
             }
         }
         return null;
