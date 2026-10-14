@@ -35,6 +35,19 @@ CODE_PATHS = ("forge-overlay/", "eval/", "scripts/", "install.sh", "run-llm-")
 # `- acceptance @ <head sha>: OUT=<dir> <N>/<N> stages PASS ...`
 ACCEPTANCE = re.compile(r"^- acceptance @ ([0-9a-f]{7,40}): OUT=(\S+) (\d+)/(\d+) stages PASS\b", re.M)
 TRAILER = re.compile(r"^(Co-Authored-By|Claude-Session|Signed-off-by): ", re.I)
+# The `new-pr` skeleton's placeholders, matched exactly: a shape (any `<...>` line) also caught real
+# HTML such as `<img src=...>` and `<details open>`.
+PH_WHY = "<the evidence it was needed: file:line, a run directory, a count>"
+PH_OUT = "OUT=/tmp/<name>"
+PH_COUNT = "<N>/<N>"
+PH_JAVA = "<J> Java"
+PH_PYTHON = "<P> Python"
+PH_MEASURE = "<measurement, next to its trivial baseline>"
+PH_PROVENANCE = "<which stamps moved, or: none>"
+PH_REVIEW = "<one line>"
+PH_NOT_DONE = "<left out on purpose, and what would reopen it>"
+PLACEHOLDERS = (PH_WHY, PH_OUT, PH_COUNT, PH_JAVA, PH_PYTHON, PH_MEASURE, PH_PROVENANCE, PH_REVIEW, PH_NOT_DONE)
+CODE_SPAN = re.compile(r"`[^`\n]*`")
 
 
 def subject_problems(subject):
@@ -102,6 +115,8 @@ def pr_problems(title, body, head=None, files=(), gate=False, commits=()):
             out.append("body has no `## %s` section" % s)
         elif not secs[s].strip() or re.fullmatch(r"\s*(TODO|TBD|\.\.\.)\s*", secs[s], re.I):
             out.append("`## %s` is empty" % s)
+        elif (ph := next((p for p in PLACEHOLDERS if p in CODE_SPAN.sub("", secs[s])), None)):
+            out.append("`## %s` still holds a skeleton placeholder: %s" % (s, ph))
     if present != [s for s in SECTIONS if s in secs]:
         out.append("sections are out of order; expected %s" % ", ".join(SECTIONS))
     if not gate:
@@ -160,12 +175,12 @@ def skeleton(base):
     title = subjects[-1] if len(subjects) == 1 else (subjects[0] if subjects else "type(scope): what is now true")
     head = run("git", "rev-parse", "--short=9", "HEAD").strip()
     body = ["## What", ""] + ["- " + s for s in reversed(subjects)] + [
-        "", "## Why", "", "<the evidence it was needed: file:line, a run directory, a count>", "",
-        "## Evidence", "", "- acceptance @ %s: OUT=/tmp/<name> <N>/<N> stages PASS, <J> Java, <P> Python" % head,
-        "- <measurement, next to its trivial baseline>", "",
-        "## Provenance", "", "<which stamps moved, or: none>", "",
-        "## Review", ""] + ["- %s @ %s: <CLEAN|LOW|MEDIUM|HIGH|BLOCKER> <one line>" % (a, head) for a in SKILLS] + [
-        "", "## Not done", "", "<left out on purpose, and what would reopen it>", ""]
+        "", "## Why", "", PH_WHY, "",
+        "## Evidence", "", "- acceptance @ %s: %s %s stages PASS, %s, %s" % (head, PH_OUT, PH_COUNT, PH_JAVA, PH_PYTHON),
+        "- " + PH_MEASURE, "",
+        "## Provenance", "", PH_PROVENANCE, "",
+        "## Review", ""] + ["- %s @ %s: <%s> %s" % (a, head, "|".join(SKILL_VERDICTS[a]), PH_REVIEW) for a in SKILLS] + [
+        "", "## Not done", "", PH_NOT_DONE, ""]
     return title, "\n".join(body)
 
 

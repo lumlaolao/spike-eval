@@ -103,6 +103,32 @@ class PrFormatTest(unittest.TestCase):
         swapped = BODY.replace("## What", "## TMP").replace("## Why", "## What").replace("## TMP", "## Why")
         self.assertTrue(any("out of order" in p for p in pf.pr_problems("docs: x", swapped)))
 
+    def test_an_unfilled_skeleton_is_refused_and_names_each_placeholder(self):
+        # The skeleton new-pr prints used to pass the form check: every section held some text.
+        title, body = pf.skeleton("HEAD")
+        problems = pf.pr_problems("docs: x", body)
+        for section in ("Why", "Evidence", "Provenance", "Review", "Not done"):
+            self.assertTrue(any("`## %s` still holds a skeleton placeholder" % section in p for p in problems),
+                            (section, problems))
+        # Only the acceptance line left unfilled on a docs-only PR (the gate's acceptance check is skipped).
+        evidence_only = BODY.replace("- acceptance @ abc123456: OUT=/tmp/acc-native-1 12/12 stages PASS",
+                                     "- acceptance @ abc123456: OUT=/tmp/<name> <N>/<N> stages PASS")
+        self.assertTrue(any("`## Evidence` still holds" in p for p in pf.pr_problems("docs: x", evidence_only)))
+        java_left = BODY.replace("12/12 stages PASS", "12/12 stages PASS, <J> Java")
+        self.assertTrue(any("`## Evidence` still holds" in p for p in pf.pr_problems("docs: x", java_left)))
+        # Prose, HTML and autolinks with angle brackets are not placeholders.
+        for line in ("The <details> block stays; `List<String>` is fine.", "<details>", "</details>",
+                     "<!-- reviewer note -->", "- <https://github.com/x/y/actions/runs/1>", "<br>",
+                     '<img src="https://x/y.png" width="400">', "<details open>", '<p align="center">',
+                     "The skeleton's `<one line>` is now refused."):
+            self.assertEqual(pf.pr_problems("docs: x", BODY.replace("MCP server; see the note.", line)), [], line)
+
+    def test_the_skeleton_offers_each_skill_its_own_verdicts(self):
+        review = pf.sections(pf.skeleton("HEAD")[1])["Review"]
+        for skill in pf.SKILLS:
+            self.assertIn("- %s @ " % skill, review)
+            self.assertIn("<%s>" % "|".join(pf.SKILL_VERDICTS[skill]), review)
+
     def test_recording_replaces_the_line_by_heading_and_survives_odd_notes(self):
         body = BODY.replace("## Why\n", "## Why\n\nThe `## Review` section was empty before.\n")
         new = pf.updated_body(body, "Review", "- pr-review @", "- pr-review @ abc123456: MEDIUM reach 87% vs 40%")
