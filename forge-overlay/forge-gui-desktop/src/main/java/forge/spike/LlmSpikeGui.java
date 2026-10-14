@@ -2810,6 +2810,58 @@ public final class LlmSpikeGui {
             return super.getCostDecisionMaker(player, ability, effect, prompt);
         }
 
+        /** #105: a MANA ability's tap-type cost (Heritage Druid: "Tap three untapped Elves you control")
+         *  is paid inside {@code ComputerUtilMana} with a hard-coded {@code AiCostDecision}, so Forge's AI
+         *  chose which Elves to tap. When the engine's own test payment of this cost plans to use such an
+         *  ability, the seat activates it first through {@link LlmCostDecision}, keeping out the other
+         *  sources that plan taps; the engine then pays from the floating mana, which it always spends
+         *  first. A source that also chooses a color stays the engine's, said as a fallback. */
+        @Override
+        public boolean payManaCost(forge.card.mana.ManaCost toPay, forge.game.cost.CostPartMana costPartMana,
+                SpellAbility sa, String prompt, forge.game.mana.ManaConversionMatrix matrix, boolean effect) {
+            try {
+                prepayTapTypeManaAbilities(toPay, sa, effect);
+            } catch (Exception e) {
+                costDecisionFellBack("mana-tap-cost", e.getClass().getSimpleName());
+            }
+            return super.payManaCost(toPay, costPartMana, sa, prompt, matrix, effect);
+        }
+
+        private void prepayTapTypeManaAbilities(forge.card.mana.ManaCost toPay, SpellAbility sa, boolean effect) {
+            final Player me = getPlayer();
+            // Without such a source on the battlefield nothing runs, so every other payment is unchanged.
+            boolean any = false;
+            for (Card c : me.getCardsIn(ZoneType.Battlefield))
+                for (SpellAbility ma : c.getManaAbilities()) any |= tapTypePart(ma) != null;
+            if (!any) return;
+            CardCollection plan = ComputerUtilMana.getManaSourcesToPayCost(
+                    ComputerUtilMana.calculateManaCost(new Cost(toPay, effect), sa, me, true, 0, effect), sa, me, effect);
+            if (plan == null) return;
+            for (Card host : new java.util.LinkedHashSet<>(plan)) {
+                for (SpellAbility ma : host.getManaAbilities()) {
+                    if (tapTypePart(ma) == null) continue;
+                    ma.setActivatingPlayer(me);
+                    if (!ma.canPlay() || !CostPayment.canPayAdditionalCosts(ma.getPayCosts(), ma, effect)) continue;
+                    forge.game.spellability.AbilityManaPart part = ma.getManaPart();
+                    if (part == null || part.isAnyMana() || part.isComboMana() || ma.getApi() == ApiType.ManaReflected) {
+                        costDecisionFellBack("mana-tap-cost", host.getName() + " also chooses a color");
+                        break;
+                    }
+                    CardCollection others = new CardCollection(plan);
+                    others.remove(host);
+                    if (new CostPayment(ma.getPayCosts(), ma).payComputerCosts(new LlmCostDecision(me, ma, effect).reserve(others))) {
+                        getGame().getStack().addAndUnfreeze(ma);
+                        p("[ROUTER] mana-tap-cost: activated " + host.getName() + " before paying " + toPay);
+                    }
+                    break;
+                }
+            }
+        }
+
+        private static forge.game.cost.CostTapType tapTypePart(SpellAbility ma) {
+            return ma.getPayCosts() == null ? null : ma.getPayCosts().getCostPartByType(forge.game.cost.CostTapType.class);
+        }
+
         /** Simultaneous-trigger ORDER (trigger targeting stays the engine's — the inherited
          *  orderAndPlaySimultaneousSa calls this virtually, then prepares/plays each). The model
          *  lists the order it wants the triggers to RESOLVE; the engine plays them in

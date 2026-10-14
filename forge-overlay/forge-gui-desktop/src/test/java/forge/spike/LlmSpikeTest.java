@@ -1783,6 +1783,37 @@ public class LlmSpikeTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** Issue #105: Heritage Druid ("Tap three untapped Elves you control: Add {G}{G}{G}") is a MANA
+     *  ability, activated inside the engine's mana payment, which pays its cost with a hard-coded
+     *  AiCostDecision: Forge's AI tapped the three lowest-power Elves and no row said so. Paying a
+     *  {G}{G}{G} spell through the seat must ask which three Elves the Druid taps. */
+    @Test
+    public void aManaAbilitysTapTypeCostIsTheSeatsChoice() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        addBattlefieldCard("Heritage Druid", me);
+        addBattlefieldCard("Elvish Visionary", me);
+        Card sentinel = addBattlefieldCard("Nettle Sentinel", me);
+        Card warrior = addBattlefieldCard("Elvish Warrior", me);
+        Card baloth = addHandCard("Leatherback Baloth", me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 1,2,4");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+        me.dangerouslySetController(ctrl);
+        forge.game.spellability.SpellAbility spell = baloth.getFirstSpellAbility();
+        spell.setActivatingPlayer(me);
+
+        Assert.assertTrue(ctrl.payManaCost(spell.getPayCosts().getCostMana(), spell, null, null, false),
+                "the {G}{G}{G} was not paid");
+        Assert.assertEquals(bridge.prompts.size(), 1, "which Elves Heritage Druid taps was not asked");
+        Assert.assertTrue(bridge.prompts.get(0).contains("TAP 3"), bridge.prompts.get(0));
+        // Candidates in board order: Druid, Visionary, Sentinel, Warrior. Forge's AI taps the lowest
+        // power (Druid, Visionary, Sentinel); the seat kept the Sentinel up.
+        Assert.assertFalse(sentinel.isTapped(), "the seat's pick (1,2,4) was not used");
+        Assert.assertTrue(warrior.isTapped(), "the seat's pick (1,2,4) was not used");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
     private static forge.game.spellability.SpellAbility activated(Card host, Player me) {
         forge.game.spellability.SpellAbility ab = null;
         for (forge.game.spellability.SpellAbility s : host.getSpellAbilities()) if (!s.isSpell()) ab = s;

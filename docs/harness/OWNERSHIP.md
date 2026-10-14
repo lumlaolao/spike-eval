@@ -110,13 +110,15 @@ option (never Forge AI):
 | `orderSimultaneousSa` | the order simultaneous triggers resolve in (targeting stays the engine's) | as-triggered order |
 | `getCostDecisionMaker` | which card a NON-mana cost sacrifices (Cabal Therapy flashback), exiles (Unmask), returns to hand (Daze) or taps (Glare of Subdual), via `LlmCostDecision`; each candidate filter is copied from the engine's `ComputerUtil.choose*Type` routine so legality matches the engine | the engine's `AiCostDecision` |
 
-Inventory after these overrides: **47 LLM / 72 AI / 14 BASE** (48 / 71 / 14 after the 2026-10-13 `playChosenSpellAbility` override below); **3 silent core strategic/payment
-hooks remain** (down from 13). (The 2026-10-13 engine pin added three sticker-mechanic hooks, all
+Inventory after these overrides: **47 LLM / 72 AI / 14 BASE** (48 / 71 / 14 after the 2026-10-13 `playChosenSpellAbility` override below; 49 / 70 / 14 after the 2026-10-14 `payManaCost` override, #105); **3 silent core strategic/payment
+hooks remain** (down from 13; 2 since the `payManaCost` override, #105). (The 2026-10-13 engine pin added three sticker-mechanic hooks, all
 resolved to Forge AI — `chooseSticker`, `chooseStickerNamePosition`, `chooseCardToKeepStickers` —
 taking the hook count 130 → 133; see `ENGINE-PIN.md`.) Still Forge AI and **not routeable without re-deriving engine
 mechanics** (established by reading the engine source, not assumed):
 `payManaCost` — its implementation is `ComputerUtilMana.payManaCost(...)`, the whole mana-payment
-mechanism with no seam; `playTrigger` — its targeting goes through `brains.doTrigger` inside
+mechanism with no seam (since 2026-10-14 it is overridden for one part only: a mana ability with a
+tap-type cost, Heritage Druid, is activated by the seat before the engine pays, so which Elves it taps
+is the model's, #105; which sources pay is still Forge AI's); `playTrigger` — its targeting goes through `brains.doTrigger` inside
 `prepareSingleSa`, and its yes/no is already covered by `confirmTrigger`;
 `orderAndPlaySimultaneousSa` — the strategic ORDER is model-owned (via `orderSimultaneousSa`), only
 the inherited play/targeting loop remains.

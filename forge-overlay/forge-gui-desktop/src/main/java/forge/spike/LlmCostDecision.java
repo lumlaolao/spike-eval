@@ -41,6 +41,13 @@ final class LlmCostDecision extends AiCostDecision {
         super(ai0, sa, effect);
     }
 
+    /** Keeps {@code cards} out of every tap part this cost asks about: the mana payment this cost is
+     *  part of still needs them. */
+    LlmCostDecision reserve(Iterable<Card> cards) {
+        for (Card c : cards) tapped.add(c);
+        return this;
+    }
+
     /** Which permanent a sacrifice cost takes. The candidate filter is copied VERBATIM from
      *  {@code ComputerUtil.chooseSacrificeType} so legality is identical to the engine's own AI path
      *  (sacrifice-eligible, not the pumped target, not a Casualty-granting permanent); a short or empty
@@ -149,8 +156,8 @@ final class LlmCostDecision extends AiCostDecision {
      *  something). Forge's AI taps the lowest-power ones, so it decides which creatures stay up to
      *  attack or block. Candidates are {@code ComputerUtil.chooseTapType}'s; crewing (total power) and
      *  creature-type sharing stay the engine's, as does a pick with no choice. A MANA ability's tap
-     *  cost (Heritage Druid, Springleaf Drum) is paid inside {@code ComputerUtilMana} with its own
-     *  {@code AiCostDecision} and never reaches this class.
+     *  cost (Heritage Druid) reaches this class only through the seat's
+     *  {@code PlayerControllerLLM.payManaCost}, which activates it before the engine's payment does.
      */
     @Override
     public PaymentDecision visit(CostTapType cost) {
