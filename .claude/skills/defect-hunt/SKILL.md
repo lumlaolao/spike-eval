@@ -35,18 +35,16 @@ Every hunter and fixer on one machine shares the Forge checkout (`FORGE_HOME`, d
   directory (`mkdir` is atomic on macOS and Linux; `flock` is not on macOS):
 
   ```bash
-  L="$HOME/.forge-agent-lock"
-  mkdir "$L" 2>/dev/null && echo "<session or branch> $(date -u +%FT%TZ)" > "$L/who"   # 0: you hold it
-  grep -qxF "<your line>" "$L/who" && rm -rf "$L"   # release when the game or run ends, failed or not
+  L="$HOME/.forge-agent-lock"; MINE="$PWD.forge-lock-mine"   # beside your worktree, run from its root
+  mkdir "$L" 2>/dev/null && echo "<session or branch> $(date -u +%FT%TZ)" | tee "$MINE" > "$L/who"
+  cmp -s "$MINE" "$L/who" && rm -rf "$L" "$MINE"   # release when the game or run ends, failed or not
   ```
 
   If `mkdir` fails, read `$L/who` and try again later, in a background wait or a later turn: a
-  foreground `sleep` loop is refused by Claude Code and outlives the tool's timeout. A lock is stale
-  when the directory is more than three hours old (`find "$L" -maxdepth 0 -mmin +180` prints it)
-  and no `LlmSpikeHeadless` or `mvn` process runs. Break it only with `mv "$L" "$L.stale.$$"`, then
-  check the moved directory is still that old: if it is fresh, another waiter broke the stale lock
-  and took a new one first, so `mv` it back and try later. Otherwise delete it, take the lock with
-  `mkdir`, and say so where you report. Release only a lock whose `who` is still your line.
+  foreground `sleep` loop is refused by Claude Code and outlives the tool's timeout. Never remove
+  a lock you do not hold. A lock more than three hours old (`find "$L" -maxdepth 0 -mmin +180`
+  prints it) with no `LlmSpikeHeadless` or `mvn` process running is reported to the owner, who
+  removes it: breaking it yourself races other waiters.
   The lock also keeps the Claude CLI lane at one game per machine (`eval/CONCURRENCY.md` section
   7). Agents in separate cloud containers each have their own checkout, so the lock never waits
   there: parallel hunting means separate containers.
