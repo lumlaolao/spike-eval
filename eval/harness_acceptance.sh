@@ -251,6 +251,7 @@ if has_stage canary; then
   if [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail canary "no compiled classes"; else
     for arm in floor random; do
       seed="$(want $arm.seed)"
+      case "$seed" in ''|*[!0-9]*) fail "canary-$arm" "seed pin '$seed' is missing, duplicated or not a number in $EXPECTED"; continue;; esac
       say "canary $arm/$arm seed $seed"
       play "canary-$arm" "$seed" CONTROLLER_A=$arm CONTROLLER_B=$arm
       dir="$OUT/canary-$arm"

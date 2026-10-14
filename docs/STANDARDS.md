@@ -124,7 +124,8 @@ most log questions).
 - A canary may be pinned per OS: an `<os>.<key>` line (lowercase `uname -s`) wins over the plain
   key, and the plain keys are the reference Mac's. An OS pin is taken only from a reproduced run on
   that OS, carries the same dated reason as a re-pin, and shows that no commit moved it (the same
-  number at the commit where the plain pin was set). A change that moves a canary re-pins it on
+  number on that OS at the commit where the plain pin was set, or at the base of the change that
+  adds the OS pin). A change that moves a canary re-pins it on
   every OS that has a pin, or names the OS left stale in the expectations file and the PR.
 - `bash eval/harness_acceptance.sh` is the whole-harness gate; it must pass on the PR's head.
 - The acceptance compile rejects what the Forge checkout build is known to reject: unused and
