@@ -38,6 +38,10 @@ FORCED = re.compile(r"forced|only-legal|\(forced\)", re.I)
 LOST = re.compile(r"bridge-down|unparsed|no-reply|budget-exhausted|\(err\)|parse", re.I)
 # A decision made by a rule of thumb in the harness instead of by the seat.
 HEURISTIC = re.compile(r"heuristic", re.I)
+# A choice the seat could have made and was not asked about: the harness's own fallback records how
+# many options were legal, and more than one is not a forced pick (runs/loop/g06: four Painter's
+# Servant colour choices recorded as "color(default)->first" against a five-colour legal set).
+UNASKED_CHOICE = re.compile(r"of (\d+) legal", re.I)
 LOG_PATTERNS = (("AI fallback", r"\[FALLBACK->AI\]"), ("exception", r"Exception"), ("preview failed", r"preview failed"),
                 ("payment failed", r"FAILED to pay"), ("circuit breaker", r"CIRCUIT-BREAKER"),
                 ("provider error", r"\] HTTP [45]\d\d"), ("truncated reply", r"TRUNCATED->RETRY"),
@@ -50,6 +54,9 @@ def classify_auto(row):
     if LOST.search(fb):
         return "LOST"
     if HEURISTIC.search(fb):
+        return "TAKEN"
+    m = UNASKED_CHOICE.search(fb)
+    if m and int(m.group(1)) >= 2:
         return "TAKEN"
     if FORCED.search(fb):
         # One candidate in a SUBSET decision is not forced (attack or not, keep or not).

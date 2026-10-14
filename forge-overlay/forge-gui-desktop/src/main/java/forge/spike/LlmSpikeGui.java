@@ -3204,12 +3204,17 @@ public final class LlmSpikeGui {
         }
 
         /** Colour choice (Painter's Servant, protection, Caves of Koilos-style). Legal set from the
-         *  engine. Deterministic fallback: the first colour in the set. */
+         *  engine. Deterministic fallback: the first colour in the set -- and the fallback says HOW
+         *  MANY colours were legal, because only one of them is a forced pick. A multi-colour set the
+         *  model was not asked about is a decision the HARNESS took: that is how four Painter's Servant
+         *  colour choices in runs/loop/g06 were taken with no row a reader could tell apart from a
+         *  forced one (match_review counts "forced" as free and reports the rest as other-automatic). */
         @Override
         public byte chooseColor(String message, SpellAbility sa, ColorSet colors) {
             clearLast();
+            int legal = colors == null ? 0 : colors.countColors();
             try {
-                if (colors != null && colors.countColors() >= 2 && smartOk()) {
+                if (legal >= 2 && smartOk()) {
                     List<MagicColor.Color> present = new ArrayList<>();
                     for (MagicColor.Color c : colors) present.add(c);
                     if (present.size() >= 2) {
@@ -3222,7 +3227,7 @@ public final class LlmSpikeGui {
                     }
                 }
             } catch (Exception e) { /* deterministic fallback below */ }
-            auto("color(default)->first");
+            auto(legal < 2 ? "color(forced)->first" : "color(default)->first of " + legal + " legal");
             return firstColorMask(colors);
         }
 
@@ -3261,7 +3266,9 @@ public final class LlmSpikeGui {
                 }
             } catch (Exception e) { /* deterministic fallback below */ }
             if (validTypes == null || validTypes.isEmpty()) return super.chooseSomeType(kindOfType, sa, validTypes, isOptional);
-            auto("some-type(default)->first");
+            auto(validTypes == null || validTypes.size() < 2
+                    ? "some-type(forced)->first"
+                    : "some-type(default)->first of " + validTypes.size() + " legal");
             return validTypes.iterator().next();
         }
 
