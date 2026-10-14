@@ -1,0 +1,1 @@
+GW value built to reach chooseCardsForEffectMultiple: Harper Recruiter and Ojer Kaslem, Deepest Growth use DB$ DigMultiple (look at the top N, split into hand and library), which calls the multi-group chooseCardsForEffectMultiple (AI-owned).

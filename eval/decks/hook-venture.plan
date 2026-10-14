@@ -1,0 +1,1 @@
+White aggro built to reach chooseSingleCardFace: the dungeon/venture cards (Radiant Solar, Triumphant Adventurer, Nadaar, Intrepid Outlander, Shortcut Seeker, Immovable Rod) use DB$ Venture, which calls chooseSingleCardFace (AI-owned) to pick the room.

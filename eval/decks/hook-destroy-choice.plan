@@ -1,0 +1,1 @@
+BR control built to reach choosePermanentsToDestroy: Imperial Edict, Wei Assassins and Burning of Xinye all use DB$ Sacrifice with Destroy$ True, which calls choosePermanentsToDestroy (AI-owned) instead of choosePermanentsToSacrifice (owned).
