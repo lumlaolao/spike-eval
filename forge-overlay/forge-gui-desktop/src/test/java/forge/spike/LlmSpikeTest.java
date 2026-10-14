@@ -1787,6 +1787,35 @@ public class LlmSpikeTest {
         }
     }
 
+    /** runs/loop/g10 (seed 63): the smart tier ordered Ponder's three cards with Brainstorm on top, then
+     *  the shuffle question went to the fast tier -- a separate conversation that never saw the order
+     *  -- which answered YES with no reasoning (jsonl:11) and threw the order away. The shuffle ask
+     *  must carry the order the seat just chose. */
+    @Test
+    public void theShuffleAskAfterAnOrderSaysWhatTheShuffleWouldUndo() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        Card ponder = addHandCard("Ponder", me);
+        forge.game.card.CardCollection top = new forge.game.card.CardCollection();
+        for (String n : new String[] {"Volcanic Island", "Spell Pierce", "Brainstorm"})
+            top.add(SeatObservationTest.card(n, me, ZoneType.Library));
+        forge.game.spellability.SpellAbility sa = null;
+        for (forge.game.spellability.SpellAbility s : ponder.getSpellAbilities()) if (s.isSpell()) sa = s;
+        sa.setActivatingPlayer(me);
+        SeqBridge bridge = new SeqBridge("PICKS: 3,2,1", "CHOICE: 2");
+        LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = LlmSpikeGui.ContextProfile.V4_FAITHFUL;
+        try {
+            LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                    new LobbyPlayerAi("order-test", null), "order-test", "", bridge, bridge, "llm");
+            ctrl.orderMoveToZoneList(top, ZoneType.Library, sa);
+            ctrl.confirmAction(sa, null, "Do you want to shuffle the library?", null, null, null);
+            String ask = bridge.prompts.get(bridge.prompts.size() - 1);
+            Assert.assertTrue(ask.contains("Brainstorm, Spell Pierce, Volcanic Island"), ask);
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null;
+        }
+    }
+
     /** runs/loop/g08 (seat on `haiku`, the Claude CLI lane): the game line said served_smart_a=unknown
      *  and every row had prompt_tokens=-1, so cost_report read 35 model calls as 0 tokens, while the
      *  CLI's own result line names the model that answered and its usage. */

@@ -2967,6 +2967,11 @@ public final class LlmSpikeGui {
          *  trace. Reuses decideMany's PICKS plumbing with min=max=size: ALL n cards must be named, in
          *  the order they should move (first pick = whatever "first" means for that destination, e.g.
          *  new top-of-library). Deterministic fallback keeps the engine-given order, never Forge AI. */
+        /** The top-of-library order this seat just chose (names, top first) and the ability that asked,
+         *  for the shuffle question that can follow it; see confirmAction. */
+        private String lastTopOrder;
+        private SpellAbility lastTopOrderSa;
+
         @Override
         public CardCollectionView orderMoveToZoneList(CardCollectionView cards, ZoneType destinationZone, SpellAbility source) {
             clearLast();
@@ -2992,7 +2997,10 @@ public final class LlmSpikeGui {
                 StringBuilder log = new StringBuilder();
                 for (int i : picks) { out.add(opts.get(i)); if (log.length() > 0) log.append(", "); log.append(opts.get(i).getName()); }
                 p("[ROUTER] order" + srcOf(source) + " -> " + destinationZone + (topDown ? " (top first)" : "") + ": " + log);
-                if (topDown) java.util.Collections.reverse(out);
+                if (topDown) {
+                    lastTopOrder = log.toString(); lastTopOrderSa = source;
+                    java.util.Collections.reverse(out);
+                }
                 return out;
             } catch (Exception e) {
                 auto("order(err)->as-is");
@@ -3072,9 +3080,17 @@ public final class LlmSpikeGui {
         public boolean confirmAction(SpellAbility sa, PlayerActionConfirmMode mode, String message,
                 List<String> options, Card cardToShow, Map<String, Object> params) {
             clearLast();
+            // The "may shuffle" after an ordering goes to the fast tier, a separate conversation that never
+            // saw the order: in runs/loop/g10 it answered YES to Ponder's shuffle and undid the order the
+            // smart tier had just chosen. State the order it would undo; consumed by this ask either way.
+            String undoes = "";
+            if (lastTopOrderSa != null && lastTopOrderSa == sa && message != null && message.toLowerCase().contains("shuffle"))
+                undoes = " You just put these on top of your library, top first: " + lastTopOrder
+                        + ". Shuffling randomizes the whole library, those cards included.";
+            lastTopOrderSa = null;
             if (!fastOk()) { auto("confirm(no-model)->NO"); return false; } // deterministic decline, not the AI
             try {
-                String q = "Yes/No decision" + srcOf(sa) + ": " + (message == null ? String.valueOf(mode) : message);
+                String q = "Yes/No decision" + srcOf(sa) + ": " + (message == null ? String.valueOf(mode) : message) + undoes;
                 List<String> yn = Lists.newArrayList("YES (do it)", "NO (decline)");
                 int c = decideOne(fast, "confirm", q, yn, null);
                 // UNPARSED and BRIDGE-DOWN both take the same deterministic decline default — a dead
