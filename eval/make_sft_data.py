@@ -86,14 +86,20 @@ BUILDS = {
 
 MODEL_TIERS = ("smart", "fast")  # only model-authored tiers become examples
 
-# Expected character lengths — a guard against silent drift in the Java source.
-# Re-pinned 2026-07-26 (7492 -> 8154): task #8 added the two `OPP CAST THIS
-# GAME` / `OPP LANDS PLAYED` description lines to STATIC_REFERENCE. Verified
-# component-by-component against origin/main that NOTHING else moved — the base
-# body, tail, and both FORMAT branches are byte-identical — so terse framing
-# (fast tier, ai-teacher, dagger) reconstructs exactly as before. A stale pin is
-# a pin that can't fail: re-pin deliberately, never delete.
-EXPECT_STATIC_REFERENCE_LEN = 8154
+# Pin on the framing EVERY build reconstructs: base body, tail and both FORMAT
+# branches (sha256 prefix of their concatenation). Terse sources (fast tier,
+# ai-teacher, dagger) are only exact while these bytes match what their games
+# saw. STATIC_REFERENCE is deliberately NOT pinned here: only builds with
+# static_reference_on_smart append it, and system() checks it per build against
+# BUILDS[...]["static_reference_len"]. A global STATIC_REFERENCE pin made the
+# constructor refuse every source, terse ones included, whenever that appendix
+# grew (it went 8154 -> 8832 -> 9078 in the RULES-tool and P3 commits and this
+# whole tool, plus test_make_sft_data / test_replay_match / test_seed_policy,
+# crashed on construction). Re-pinned 2026-10-14 at 4d26ad3b3f51c217, which
+# hashes identically at eef8c9d, 38217eb and 0b90848: the framing has not moved
+# since STAGE0. A stale pin is a pin that can't fail: re-pin deliberately,
+# never delete.
+EXPECT_FRAMING_SHA256 = "4d26ad3b3f51c217"
 
 
 # ------------------------------------------------------- Java literal parsing
@@ -151,7 +157,7 @@ class PreambleBuilder:
 
     Extracts three pieces from framing()/STATIC_REFERENCE and reassembles them
     the way framing() does, interpolating only the two dynamic parts (seat,
-    plan). Self-checks the pieces against structural anchors + a length guard so
+    plan). Self-checks the pieces against structural anchors + a framing hash so
     a future edit to the Java source can never silently corrupt the preamble.
     """
 
@@ -198,9 +204,11 @@ class PreambleBuilder:
             repr(self.format_terse[:24])
         assert self.format_verbose.startswith('FORMAT: at most two'), \
             repr(self.format_verbose[:24])
-        assert len(self.static_reference) == EXPECT_STATIC_REFERENCE_LEN, \
-            "STATIC_REFERENCE is %d chars, expected %d" % (
-                len(self.static_reference), EXPECT_STATIC_REFERENCE_LEN)
+        framing = hashlib.sha256((self.body + self.tail + self.format_terse
+                                  + self.format_verbose).encode("utf-8"))
+        assert framing.hexdigest()[:16] == EXPECT_FRAMING_SHA256, \
+            "framing() body/tail/FORMAT drifted: sha256 %s, expected %s" % (
+                framing.hexdigest()[:16], EXPECT_FRAMING_SHA256)
 
     def base(self, seat, plan, terse):
         fmt = self.format_terse if terse else self.format_verbose
