@@ -2986,13 +2986,7 @@ public final class LlmSpikeGui {
                 // runs/loop/g09 four Ponders each buried the card the seat meant to draw. Under the
                 // faithful profile the question is asked top-down and the answer reversed, as Forge's
                 // own human controller does; legacy profiles keep their bytes and their literal wording.
-                // Only where the cards really go on top: Dig's rest pile goes to LibraryPosition2 (default
-                // the bottom), which orderedMoveToTopOfLibrary does not read (Goblin Ringleader, Flow State).
-                ApiType api = source == null ? null : source.getApi();
-                boolean topDown = observer != null && destinationZone == ZoneType.Library
-                        && (api == ApiType.RearrangeTopOfLibrary
-                            || ((api == ApiType.ChangeZone || api == ApiType.ChangeZoneAll)
-                                && orderedMoveToTopOfLibrary(destinationZone, source)));
+                boolean topDown = observer != null && orderGoesOnTop(destinationZone, source);
                 String q = "Put these " + opts.size() + " card(s)" + srcOf(source) + " into " + destinationZone
                         + " in your preferred order. List ALL " + opts.size() + " of them "
                         + (topDown ? "from the TOP down: the first card you name will be the top card, drawn first."
@@ -3012,6 +3006,38 @@ public final class LlmSpikeGui {
                 auto("order(err)->as-is");
                 return cards;
             }
+        }
+
+        /** Whether the cards of an order end on top of the library, so the LAST one returned is the top.
+         *  orderedMoveToTopOfLibrary reads only LibraryPosition / RevealedLibraryPosition, and with neither
+         *  it says "top", which is wrong for Dig's rest pile: DigEffect places that pile at LibraryPosition2
+         *  (default -1, the bottom: Goblin Ringleader, Flow State; 0, the top: Cruel Fate, issue #107). Dig
+         *  asks for its chosen pile and its rest pile with the same SpellAbility, so when both go to the
+         *  library the pile cannot be told apart, and the literal wording is kept: even both at 0 puts the
+         *  rest pile above the chosen one, so "the top card, drawn first" would be false for the chosen pile.
+         *  Only position 0 is the top card; a deeper position keeps the literal wording too. */
+        private boolean orderGoesOnTop(ZoneType destinationZone, SpellAbility sa) {
+            if (destinationZone != ZoneType.Library || sa == null) return false;
+            ApiType api = sa.getApi();
+            if (api == ApiType.RearrangeTopOfLibrary) return true;
+            if (api == ApiType.ChangeZone || api == ApiType.ChangeZoneAll) return orderedMoveToTopOfLibrary(destinationZone, sa);
+            if (api == ApiType.Dig) {
+                boolean chosenHere = ZoneType.smartValueOf(sa.getParamOrDefault("DestinationZone", "Hand")) == ZoneType.Library;
+                boolean restHere = ZoneType.smartValueOf(sa.getParamOrDefault("DestinationZone2", "Library")) == ZoneType.Library;
+                if (chosenHere == restHere) return false;
+                return Integer.parseInt(sa.getParamOrDefault(restHere ? "LibraryPosition2" : "LibraryPosition", "-1")) == 0;
+            }
+            if (api == ApiType.DigUntil) {
+                // DigUntilEffect: the revealed pile goes to RevealedLibraryPosition (absent = 0, the top), or,
+                // when nothing was found, to NoneFoundDestination at NoneFoundLibraryPosition.
+                boolean revealedHere = ZoneType.smartValueOf(sa.getParam("RevealedDestination")) == ZoneType.Library;
+                boolean noneHere = ZoneType.smartValueOf(sa.getParam("NoneFoundDestination")) == ZoneType.Library;
+                boolean revealedTop = forge.game.ability.AbilityUtils.calculateAmount(sa.getHostCard(), sa.getParam("RevealedLibraryPosition"), sa) == 0;
+                boolean noneTop = forge.game.ability.AbilityUtils.calculateAmount(sa.getHostCard(), sa.getParam("NoneFoundLibraryPosition"), sa) == 0;
+                if (revealedHere && noneHere) return revealedTop && noneTop;
+                return noneHere ? noneTop : revealedTop;
+            }
+            return false;
         }
 
         /** Optional decisions are model choices; engine execution and target selection happen later. */
