@@ -5,10 +5,8 @@ description: Stage one of the defect backlog for mtg-forge-llm-agent. Play one g
 
 # Defect hunt: play, read, file. Never fix.
 
-This is stage one of a two-stage loop. Hunters play games and write defect notes; fixers
-(`defect-fix`) each take one note, reproduce it, fix it and open a PR. The split exists so that
-many agents can work at once without colliding: hunters only add issues, fixers only touch the
-code for the issue they claimed.
+Stage one of two: hunters only add issues, fixers (`defect-fix`) only touch the code for the
+issue they claimed, so many agents can work at once.
 
 It is the `game-loop` skill with step 4 ("fix what the harness got wrong") replaced by "file it".
 Read `.claude/skills/game-loop/SKILL.md` and `.claude/skills/harness-audit/SKILL.md` first; this
@@ -22,26 +20,54 @@ candidate, never an issue.
 **The sheet is not enough.** On the claude -p lane in October 2026, `match_review.py` came back
 clean on three games that between them held six real defects: alternative costs never offered,
 Forge AI picking which card a cost exiled, Ponder's order reversed, a shuffle ask that undid the
-order, Cabal Therapy naming a card from the wrong hand, zero tokens recorded. Every one was found
-by reading rows. A game you only ran the scripts on has not been hunted.
+order, Cabal Therapy naming a card from the wrong hand, zero tokens recorded (`runs/loop/g08`-`g10`;
+`docs/harness/GAME-LOOP-LOG.md` g08-g10). Every one was found by reading rows. A game you only ran
+the scripts on has not been hunted.
+
+## Sharing a machine with other agents
+
+Every hunter and fixer on one machine shares the Forge checkout (`FORGE_HOME`, default
+`~/code/forge`): `install.sh` and `mvn` replace what any running or about-to-start game loads. So:
+
+- **Each agent has its own clone or `git worktree` of this repository.** Never switch branches in a
+  tree another agent is using.
+- **One agent holds the checkout from install to the end of its game or acceptance run**, by a lock
+  directory (`mkdir` is atomic on macOS and Linux; `flock` is not on macOS):
+
+  ```bash
+  until mkdir "$HOME/.forge-agent-lock" 2>/dev/null; do cat "$HOME/.forge-agent-lock/who"; sleep 60; done
+  echo "<session or branch> $(date -u +%FT%TZ)" > "$HOME/.forge-agent-lock/who"
+  # install, build, play or run acceptance ...
+  rm -rf "$HOME/.forge-agent-lock"
+  ```
+
+  A lock whose `who` is more than three hours old and has no `LlmSpikeHeadless` or `mvn` process
+  running may be removed; say so where you report. The lock also keeps the Claude CLI lane at one
+  game per machine (`eval/CONCURRENCY.md` section 7). Agents in separate cloud containers each have
+  their own checkout, so the lock never waits there: parallel hunting means separate containers.
+- **Cite the build the game ran on**, not your `HEAD`: the `overlay_sha` on the game line.
 
 ## 0. Once per repository: the labels
 
 ```bash
-gh label create harness-defect --color B60205 --description "Harness defect found by reading a game" 2>/dev/null
-gh label create sev:blocker  --color 5C0000 2>/dev/null
-gh label create sev:high     --color D93F0B 2>/dev/null
-gh label create sev:medium   --color FBCA04 2>/dev/null
-gh label create sev:low      --color C2E0C6 2>/dev/null
-gh label create claimed      --color 1D76DB --description "A fixer is on it; see its CLAIM comment" 2>/dev/null
-gh label create hunt-log     --color BFD4F2 2>/dev/null
-gh label create needs-owner  --color 5319E7 --description "Needs the owner's decision before anyone fixes it" 2>/dev/null
-gh label create cannot-reproduce --color EEEEEE 2>/dev/null
+gh label list --limit 100                                  # create only what is missing
+gh label create harness-defect --color B60205 --description "Harness defect found by reading a game"
+gh label create sev:blocker  --color 5C0000
+gh label create sev:high     --color D93F0B
+gh label create sev:medium   --color FBCA04
+gh label create sev:low      --color C2E0C6
+gh label create claimed      --color 1D76DB --description "A fixer is on it; see its CLAIM comment"
+gh label create hunt-log     --color BFD4F2
+gh label create needs-owner  --color 5319E7 --description "Needs the owner's decision before anyone fixes it"
+gh label create cannot-reproduce --color EEEEEE
 ```
 
 Then make sure one open issue titled `Defect hunt: game log` with the label `hunt-log` exists
 (create it if not, and pin it). Each game gets one comment there (step 6).
-Use the GitHub MCP tools instead of `gh` where that is what your session has.
+In a cloud session `gh` may be refused (no token, or GraphQL blocked). Use the GitHub MCP tools
+there (`list_issues`, `search_issues`, `issue_read`, `issue_write`, `add_issue_comment`); a label
+applied to an issue that does not exist yet is created by GitHub, so check it afterwards with
+`get_label`. The same holds for every `gh` command in this skill and in `defect-fix`.
 
 ## 1. Before each game
 
@@ -54,18 +80,20 @@ gh issue view <hunt-log issue> --comments | tail -80     # which decks and seeds
 git log --oneline -15 origin/main                        # fixes that landed since
 ```
 
-Build from current `origin/main` (`game-loop` step 4.4 for the commands), never from a fixer's
-branch, so a defect you file is a defect on main. Note the short sha; every issue cites it.
+Take the lock (above), then build from current `origin/main` (`game-loop` step 4.4 for the
+commands), never from a fixer's branch, so a defect you file is a defect on main. Every issue cites
+the main sha and the game line's `overlay_sha`. Release the lock when the game ends.
 
 ## 2. Play one game
 
 The command is `game-loop` step 1. Choose the lane by what you are allowed to spend:
 
-- **Claude CLI (default where `claude` is logged in):** `--smart-a haiku --fast-a haiku`. No API
-  key and no egress flag. Never opus. This is the lane the six defects above were found on.
-- **OpenRouter:** only the model the owner has authorised (`docs/STANDARDS.md` section 6), always
-  with `--budget-usd`, and only when `secrets.env` already holds the egress opt-in. Never set
+- **OpenRouter:** the model `docs/STANDARDS.md` section 6 names as authorised, always with
+  `--budget-usd`, and only when `secrets.env` already holds the egress opt-in. Never set
   `OPENROUTER_ALLOW_EGRESS` yourself.
+- **Claude CLI:** `--smart-a haiku --fast-a haiku`, when the owner has asked for this lane (the six
+  defects above were found on it, in a session where no OpenRouter key was set). No API key and no
+  egress flag. Never opus. One game per machine (the lock above).
 
 Pick the deck the hunt log shows least played, and vary which seat it takes. A defect usually
 belongs to a card type (alternative costs, library ordering, card naming, tap costs), and one deck
@@ -111,7 +139,8 @@ For every candidate, before you write anything:
 4. **Check it is new.** Search the backlog (open and closed), `GAME-LOOP-LOG.md` OPEN lines, and
    the "Not done" section of recent PRs. If it is already filed, add a comment to that issue with
    the new occurrence (run, row, deck, sha) instead of a new issue: how often a defect fires is how
-   fixers choose. If a closed issue's defect is back, reopen it with the evidence.
+   fixers choose. If that issue is labelled `cannot-reproduce`, remove the label: your occurrence
+   is the reproduction it lacked. If a closed issue's defect is back, reopen it with the evidence.
 5. **One defect per issue.** Two symptoms with one cause are one issue; one symptom with two
    causes is two. A fixer must be able to close it with one PR.
 
@@ -144,7 +173,7 @@ One sentence: what the harness does wrong, in general terms (not just this game)
 
 ## What happened
 Game: `runs/hunt/gNN`, seed S, swap 0/1, <deck> (seat) vs <deck> (Forge AI), lane `haiku` (claude -p),
-built from main @ <sha>. Turn T, decision `<type>`, jsonl line L.
+built from main @ <sha> (overlay_sha <x>). Turn T, decision `<type>`, jsonl line L.
 What the model was shown, chose, and what the game then did, in two or three sentences.
 
 ## What should have happened
@@ -193,7 +222,8 @@ local paths outside the repository.
 ## 6. Log the game, then the next
 
 One comment on the `Defect hunt: game log` issue, in the `GAME-LOOP-LOG.md` entry format, citing
-issues instead of commits:
+issues instead of commits. Hunted games are logged there, because many hunters cannot all commit
+to one file; games played under `game-loop` still go in `GAME-LOOP-LOG.md`.
 
 ```
 ### g12  2026-10-14  seed 71  Elves (seat) vs Death and Taxes (Forge AI)  lost T9  haiku  main @ 3f1c2aa
@@ -212,9 +242,7 @@ nothing new in the backlog; say which in the thread.
 
 - Edit `forge-overlay/`, commit, push or open a PR. Not even a one-line fix: a fixer may already
   have claimed it, and the split is what keeps the agents from colliding.
-- Rebuild or run acceptance while any game runs on the same machine, its own or another
-  agent's (`pgrep -f LlmSpikeHeadless`).
+- Install, build or play without holding the lock (above).
 - File what it has not confirmed in the row and the engine. A wrong issue costs a fixer a whole
   cycle. If unsure whether it is the harness or the model, the row decides; if the row cannot,
   say so in the issue and use `sev:low`.
-- Launch a batch. One game, read, filed, then the next.

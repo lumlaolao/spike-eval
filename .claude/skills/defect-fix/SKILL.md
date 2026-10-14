@@ -10,7 +10,9 @@ defect as a GitHub issue labelled `harness-defect`. You take exactly one, show i
 current `main`, fix it, show it is gone, and open the PR that closes it. Many fixers run at once,
 so the claim protocol and the merge rules below are what keep you from colliding.
 
-Read `CLAUDE.md`, `docs/STANDARDS.md`, and step 4 of `.claude/skills/game-loop/SKILL.md` (how a
+Read `CLAUDE.md`, `docs/STANDARDS.md`, the "Sharing a machine with other agents" section of
+`.claude/skills/defect-hunt/SKILL.md` (your own worktree; the lock around any install, build, game
+or acceptance run), and step 4 of `.claude/skills/game-loop/SKILL.md` (how a
 harness fix is made here) before you start. Everything there applies; this file adds the claim,
 the verification and the hand-off.
 
@@ -26,8 +28,9 @@ highest severity (`sev:blocker` > `sev:high` > `sev:medium` > `sev:low`); among 
 seen in the most games (count its **Seen** lines and "seen again" comments), then the oldest.
 Read the whole issue and every comment before you claim it.
 
-A claim is stale when it is more than 24 hours old with no linked PR and no `RELEASE`. You may take
-a stale one: say so in your CLAIM comment and quote the stale claim.
+A claim is **live** when it has no later `RELEASE` from its claimer, and it is either under 24
+hours old or has an open PR linked. Any other claim is stale. To take an issue whose only claim is
+stale, first comment `RELEASE (stale) <the quoted claim>`, then claim it as below.
 
 ## 2. Claim it
 
@@ -40,7 +43,7 @@ gh issue comment <n> --body "CLAIM <your session link or branch name> <UTC time>
 gh issue view <n> --comments        # re-read now
 ```
 
-If an earlier `CLAIM` comment with no later `RELEASE` from that claimer is there, yours lost:
+If an earlier live `CLAIM` is there, yours lost:
 comment `RELEASE lost the race to <their claim>` and go back to step 1 without removing the label.
 Hold one claim at a time. If two issues turn out to share one cause, claim the second too and fix
 both in one PR.
@@ -55,7 +58,7 @@ git fetch origin main && git switch -c fix/<short-name> origin/main
 ```
 
 Use `type/short-name` from `docs/STANDARDS.md` section 2. If your session assigns you a branch,
-use that one and say so in the PR, as #95 did.
+use that one and say so in the PR's Not done.
 
 ## 4. Prove it still happens
 
@@ -76,9 +79,9 @@ The issue was filed against an older `main`. Before writing any fix:
      (`--controller-a random`, zero cost, deterministic on one OS) with a deck holding the card,
      then grep the log or the rows for the decision. Floor never builds a play menu, so it proves
      nothing about plays, attacks or blocks (`CLAUDE.md`, validation ladder).
-   - **c. One model-lane game** only when a and b cannot reach it: `--smart-a haiku --fast-a haiku`
-     on the Claude CLI, or the owner-authorised OpenRouter model with `--budget-usd`. Never opus,
-     never a batch.
+   - **c. One model-lane game** only when a and b cannot reach it, on a lane `defect-hunt` step 2
+     allows (the egress opt-in must already be in `secrets.env`; never set it yourself). Never
+     opus, never a batch.
 3. **If nothing reproduces it,** do not fix on faith. Comment what you ran and what you saw, add
    `cannot-reproduce`, and `RELEASE`. If you think the issue's **What should have happened** is
    itself wrong (the engine allows what the hunter called a defect), say so with the engine source
@@ -89,14 +92,12 @@ That comment is the proof the next reader trusts, so quote the actual failure.
 
 ## 5. Fix it
 
-`game-loop` step 4, items 2 and 3:
+Follow `game-loop` step 4, items 2 and 3 (the fix lives in `forge-overlay/`; a changed prompt bumps
+its version). Also:
 
-- Fix in `forge-overlay/` only, never in the Forge checkout. No fallback to Forge AI for a
-  strategic choice; a failure branch takes a deterministic legal option and logs it.
 - Keep it to what the issue needs. Anything else you notice is a comment on the issue or a new
   issue in the hunter's format, not part of this PR.
-- If the fix changes what the model sees, bump the version that covers it (`SeatObservation`,
-  `ContextMemory`, `NativeTools`) and its literal assertion in `eval/harness_acceptance.sh`.
+- A version bump (`game-loop` 4.2) also updates its literal assertion in `eval/harness_acceptance.sh`.
 - Close the **Detector gap**: if the issue names a script that should have flagged it, teach that
   script in the same PR with its own test (`eval/test_<name>.py`), and break it once to see it go red.
 
@@ -105,13 +106,14 @@ That comment is the proof the next reader trusts, so quote the actual failure.
 1. The test from step 4 now passes, and the rest of its class still does.
 2. If you reproduced on rung b or c, rerun the same command on the fixed build and show the
    **Fixed when** result in the new row or log line. Quote it.
-3. `bash eval/harness_acceptance.sh` on the final commit. A canary that moved because the fix
+3. `bash eval/harness_acceptance.sh` (under the lock). It runs again on the merged head in step 7;
+   this first run finds your own breakage early. A canary that moved because the fix
    changed an automatic path on purpose is re-pinned with a dated reason naming the issue. Canaries
    are pinned per OS (`docs/STANDARDS.md` section 5): re-pin the OS you ran on, and name the OS you
    could not run, as stale, in `eval/harness_acceptance.expected` and the PR.
 
-Before building: on a machine other agents share, no `install.sh` or `mvn` while any game runs
-(`pgrep -f LlmSpikeHeadless` must print nothing). Hunters may be mid-game.
+Every install, build, game and acceptance run here happens under the lock from
+`defect-hunt`'s "Sharing a machine with other agents": hunters may be mid-game.
 
 ## 7. Merge main again, then the PR
 
@@ -124,7 +126,8 @@ git fetch origin main && git merge origin/main     # a merge commit; never rebas
 ```
 
 If a version you bumped also moved on main, bump again from main's value. If a canary pin moved on
-main, re-pin from a run on the merged tree. Then run acceptance and the reviews on that commit.
+main, re-pin from a run on the merged tree. Then repeat step 6 on the merged head, and run the
+reviews on that commit.
 
 Then `pr-format` from start to finish:
 
@@ -133,12 +136,11 @@ Then `pr-format` from start to finish:
   `Fixes #<n>` (one per issue) so the merge closes it.
 - **Evidence** has the red-then-green test, the rung b/c rerun if any, and the acceptance line.
 - **Not done** lists what the issue mentioned that this PR does not cover.
-- Run `pr-review`, `simplify` and `standards` as fresh subagents on the final head, fix what blocks,
-  and record each verdict with `scripts/pr_format.py record-review`.
+- The three reviews and `record-review` as `pr-format` says, on the final head.
 
-Merge only with `bash scripts/pr_merge.sh <pr>`, and only when the owner has said agents may merge
-their fixes. Otherwise stop at a gate-ready PR and say it is ready. If main moves while you wait
-and the PR conflicts, merge main again and rerun step 6.3 and the reviews: verdicts are for one head.
+Merge only with `bash scripts/pr_merge.sh <pr>`, once the gate passes (`docs/STANDARDS.md`
+section 1), unless the owner has said to hold merges. If main moves first and the PR conflicts,
+merge main again and rerun step 6.3 and the reviews: verdicts are for one head.
 
 ## 8. Hand off
 
