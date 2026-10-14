@@ -46,6 +46,49 @@ The engine only ever calls `PlayerController`. Two consequences drive the whole 
 | Information / reveal | `reveal(...)`, `notifyOfValue`, `confirmReplacementEffect`, `confirmStaticApplication`, `chooseCardsPile` (`PlayerController.java:148-152,179-191,318`) | the AI's information machinery is live: `reveal` records to `AiCardMemory.REVEALED_CARDS` (`PlayerControllerAi.java:502`, read by the AI at `ComputerUtil.java:1521`), and `chooseCardsPile` `:1427`, `confirmStaticApplication` `:400`, `confirmReplacementEffect` `:455` all decide; only `notifyOfValue` `:969` is a no-op | seat overrides `reveal` (`:1003`) and rebuilds state in `SeatObservation` | the seat's *observation* is a rendering of engine state, versioned separately from the interface | observation profile work (`SeatObservation.VERSION`) |
 | Cross-tier context | (no engine method; a harness concern) | the engine hands each decision to the current tier | two independent `claude`/API conversations (smart, fast) | **the decision context is per-call, not per priority window**: an ask answered by one tier does not carry the play the other tier chose | **#108** (a cost/shuffle ask does not say which play caused it), GAME-LOOP-LOG g08-g10 |
 
+## Partial overrides: the mechanical inventory
+
+`PlayerController` declares **108** decision methods; `PlayerControllerLLM` overrides **43**. Of those
+43, **27** contain a `super.` call — the seat owns the method but hands a case back to the engine. The
+other 65 are answered by the Forge AI outright (`controller-ownership.tsv`: 69 `ai-inherited` rows, of
+which **29 are `strategic`**).
+
+Not every `super.` is a defect. The delegating *conditions* sort into two kinds:
+
+| The seat delegates when… | Where | Verdict |
+|---|---|---|
+| the list is null/empty, or a legal answer is forced | `chooseCardsForEffect:2954`, `chooseSingleEntityForEffect:2402/2416`, `choosePermanentsToSacrifice:3916`, `chooseCardsToDelve:2662`, `chooseOptionalCosts:2718`, `chooseSomeType:3433`, `chooseProtectionType:3451` | **harmless** — no decision exists to make |
+| `delayedReveal != null` (choose from a set the seat just looked at) | `chooseSingleEntityForEffect:2416`, `chooseSingleCardForZoneChange:2450` | **strategic, AI** — the reveal identities are recorded (`:2410`) but the *pick* is the AI's |
+| `allowRepeat` (a mode may be chosen more than once) | `chooseModeForAbility:3596` | **strategic, AI** — reachable in-pool: `Eldrazi Confluence` ("choose three, you may choose the same mode more than once") in `eval/decks/painter.txt:24` |
+| a declaration throws | `declareAttackers:1955`, `declareBlockers:2028` | **strategic, AI** — against the project rule "failure branches take a deterministic legal option"; the whole attack/block becomes the AI's |
+| a model name cannot be matched to a legal card | `chooseCardName:3506/3530/3558/3560` | fallback; the model should be re-asked instead |
+
+So the hazard is not "the seat calls `super`" — it is that **three narrow conditions (`delayedReveal`,
+`allowRepeat`, a declaration exception) route a real decision to the AI from inside the seat's own
+hook**, and one of them (`allowRepeat`) is live in the evaluated pool.
+
+### The AI-owned strategic hooks (the un-overridden set)
+
+Of the 29 `strategic` rows the ledger marks `ai-inherited`:
+
+- **3 `core`**: `playTrigger`, `orderAndPlaySimultaneousSa` (G7: intentionally engine mechanics, their
+  yes/no and order are the seat's), and `chooseEntitiesForEffect` — a `wrapper` class in the ledger,
+  i.e. `PlayerControllerAi.chooseEntitiesForEffect` delegates per entity to `chooseSingleEntityForEffect`,
+  which the seat *does* own, so it is routed by delegation rather than silent.
+- **26 `rare`/`none`**, each reachable only when a card uses it: `chooseCardsPile`,
+  `choosePermanentsToDestroy`, `chooseCardsToDiscardUnlessType`, `chooseSingleSpellForEffect`,
+  `chooseSpellAbilitiesForEffect`, `chooseCardsForEffectMultiple`, `chooseColors`, `chooseCounterType`,
+  `chooseKeywordForPump`, `chooseNewTargetsFor`, `chooseSingleCardFace`/`State`,
+  `chooseSingleReplacementEffect`, `chooseSingleStaticAbility`, `chooseSaToActivateFromOpeningHand`,
+  `chooseStartingHand`, `chooseTarget`, `confirmStaticApplication`, `playSaFromPlayEffect`,
+  `willPutCardOnTop`, `exertAttackers`, `enlistAttackers`, `chooseCardsForSplice`,
+  `chooseCardsForZoneChange`, `chooseFlipResult`.
+- The rest of the `ai-inherited` set is **15 `exotic`** (Un-set, dice, Attractions), **9 `payment`**,
+  **7 `mechanics`** and **6 `ui`** — out of strategic scope.
+
+Routine for this inventory: re-run it when a deck joins the pool — a new card can promote a `rare`
+hook to live, and each promotion is a new root row, not a one-off bug.
+
 ## Root fixes, in dependency order
 
 Each is an interface-level change that removes a class of defects, not one symptom.
