@@ -81,3 +81,31 @@ the whole of the reading.
 - NOTE   plan_audit reports one HOLD-VIOLATION at T6 and it is a false positive: the clause "play
   Wasteland and hold Swords to Plowshares" holds Swords, and the splitter does not split on "and".
 - clean  mulligan (asked, 5 lands kept), all three attack steps, targets, the served Wasteland preview.
+
+### g03  2026-10-13  seed 55  Goblins (seat) vs UR Delver (Forge AI)  lost T14  $0.05  build 5ae9bd3b
+
+Sheet: TAKEN 0, LOST 0, SLOW 0; one TOOL row. Two flipped Delvers and a Bolt closed it out; the
+seat's own line (Aether Vial, Goblin Matron into Krenko, Wasteland on a Volcanic Island) was sound.
+
+- FIXED  the seat's `simulate {"option":3}` on a menu whose 3 was PASS was refused, and the refusal
+  was counted as a form `TOOL REFUSED` because the message shipped in #86 opens with a backticked
+  argument name ("ERROR: `option` ..."), which `tool_audit.FORM_ERRORS` claims. A call naming a menu
+  option the preview does not cover is a bad argument, not a form refusal. Test in
+  `test_tool_audit.test_a_refusal_is_about_form_not_about_what_the_tool_found` (runs/loop/g03:211).
+- FIXED  `plan_audit` reported a HOLD-VIOLATION at T9 that was a false positive, the second in two
+  games (g02 T6 was the first). The clause splitter did not split "play Wasteland and hold Swords",
+  so the hold on Swords was charged to Wasteland; and a bare "later" ("use it later") counted as a
+  hold. It now splits an `and` that joins two verbs, keeps an `and` that joins two objects of one
+  hold, and no longer treats "later" alone as a hold. Test
+  `test_plan_audit.test_a_play_the_plan_endorses_is_not_a_hold_violation`. On the recorded arms
+  (`eval/plan_audit.py runs/lines/ctl2/<arm>`): textv2 12 -> 7 of 131, native 18 -> 15 of 173,
+  native-lookahead 10 -> 7 of 162; every case removed in `native` was the same "cast X and hold Y"
+  false positive.
+- OPEN   item 1's other half, PASS: the seat asked to preview PASS (the tool says PASS cannot be
+  previewed; 6 of 92 requests in runs/lines/ctl2/native-lookahead, 1 here). Whether the harness should
+  answer "PASS: no change" or keep refusing is a call for the owner.
+- NOTE   engine noise, not the harness: `X Did not have activator set in SpellAbilityRestriction.canPlay()`
+  (Force of Will, Scalding Tarn, Delver of Secrets) is the ForgeAI enumerating its own hand, and the
+  engine self-heals by setting the activator. 4 here, 1 in g01, 0 in g02.
+- clean  mulligan (asked, 5 lands kept), every land drop, the Vial / Matron / Krenko sequence, the
+  Wasteland target, all attack steps.

@@ -24,10 +24,22 @@ import os
 import re
 import sys
 
+# `later` alone is not a hold signal: "use it later" describes a use, not a decision to hold
+# (runs/loop/g03 T9 flagged "playing Wasteland ... use it later to destroy their land" as a hold on
+# Wasteland the seat then played). "hold"/"save"/"keep"/"next" carry the instruction; a bare
+# "later" does not.
 HOLD = re.compile(
-    r"\b(hold|holding|held|keep|keeping|save|saving|later|next|dead|don'?t (?:cast|play|use)|"
+    r"\b(hold|holding|held|keep|keeping|save|saving|next|dead|don'?t (?:cast|play|use)|"
     r"not (?:cast|play|use)|without (?:casting|using))\b", re.I)
-CLAUSE = re.compile(r"[;.]\s|,\s|\bthen\b|\bwhile\b|\bbut\b", re.I)
+# `and` coordinating two VERBS joins two instructions: "play Wasteland and hold Swords to
+# Plowshares" holds the second, and a play of the first is not a violation (runs/loop/g02 T6). Split
+# only when a verb follows, so that `and` joining two OBJECTS of one verb ("hold Swords to
+# Plowshares and Goblin Bombardment") stays one clause and the hold still covers both -- splitting
+# those suppressed real violations (runs/lines/ctl2/native-lookahead).
+VERBS = (r"hold|holding|held|keep|keeping|save|saving|cast|casts|casting|play|plays|playing|"
+         r"attack|attacks|attacking|deploy|deploys|deploying|activate|activates|activating|"
+         r"use|uses|using|discard|discards|target|targets|sacrifice|sacrifices")
+CLAUSE = re.compile(r"[;.]\s|,\s|\bthen\b|\bwhile\b|\bbut\b|\band\s+(?=(?:%s)\b)" % VERBS, re.I)
 LOG_PLAN = re.compile(r"^\[(?P<seat>[^\]]+)\] \[ROUTER\] plan: (?P<plan>.*)$")
 LOG_PLAY = re.compile(r"^\[(?P<seat>[^\]]+)\] \[ROUTER\] play: (?P<how>casts|plan step \d+(?: \([^)]*\))? ->) (?P<label>.*)$")
 

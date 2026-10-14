@@ -55,6 +55,19 @@ class PlanAuditTest(unittest.TestCase):
         # "Animate Dead" contains the word "dead"; the card's own name is never a hold reason.
         self.assertEqual(cards.count("Animate Dead"), 1)
 
+    def test_a_play_the_plan_endorses_is_not_a_hold_violation(self):
+        # Recorded false positives. g02 T6: the HOLD belongs to the clause after "and", not to the
+        # land the seat then played. g03 T9: "use it later" describes the land's use, not holding it.
+        self.assertIsNone(pa.held_in(
+            "Activate Stoneforge Mystic to put Batterskull into play, then play Wasteland and hold Swords to Plowshares.",
+            "Wasteland"))
+        self.assertIsNone(pa.held_in(
+            "Actually playing Wasteland as a land drop means I can use it later to destroy their land", "Wasteland"))
+        # ... but an `and` joining two objects of one "hold" is NOT two clauses: both stay held.
+        for plan in ("hold Swords to Plowshares and Goblin Bombardment",
+                     "Actually holding Arid Mesa and Wasteland is fine"):
+            self.assertIsNotNone(pa.held_in(plan, "Goblin Bombardment" if "Goblin" in plan else "Wasteland"), plan)
+
     def test_a_plan_does_not_govern_a_later_turn(self):
         res = self.audit_log(LOG)
         # Goblin Bombardment was cast on a Mardu turn with no plan of its own: not scored at all.
