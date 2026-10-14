@@ -25,6 +25,9 @@ to compute a win rate. Each is exactly 60 cards and every card name resolves in 
 | `hook-counter-type` | `chooseCounterType` | Forge AI | `CountersPutOrRemoveEffect` / `CountersMoveEffect` | — |
 | `hook-two-colors` | `chooseColors` | Forge AI | `ChooseColorEffect` (`TwoColors$ True`) | — |
 | `hook-dig-multiple` | `chooseCardsForEffectMultiple` | Forge AI | `DigMultipleEffect` | — |
+| `hook-splice` | `chooseCardsForSplice` | Forge AI | `AbilityUtils` (splice) | — |
+| `hook-opening-hand` | `chooseSaToActivateFromOpeningHand` | Forge AI | `GameAction` | — |
+| `hook-villainous-choice` | `chooseSpellAbilitiesForEffect` | Forge AI | `VillainousChoiceEffect` | — |
 
 ## The cards, and why each deck reaches its hook
 
@@ -55,6 +58,13 @@ to compute a win rate. Each is exactly 60 cards and every card name resolves in 
   the seat owns.
 - **`hook-dig-multiple`** — `Harper Recruiter` and `Ojer Kaslem, Deepest Growth` use `DB$ DigMultiple`
   (look at the top N, split into hand and library), i.e. `chooseCardsForEffectMultiple`.
+- **`hook-splice`** — `Glacial Ray`, `Into the Fray`, `Roar of Jukai` and `Ich-Tekik` are Arcane with
+  "Splice onto Arcane" (`AbilityUtils` -> `chooseCardsForSplice`).
+- **`hook-opening-hand`** — `Serum Powder`, `Gemstone Caverns` and the Leyline/Chancellor cycle act
+  from the opening hand (`GameAction` -> `chooseSaToActivateFromOpeningHand`).
+- **`hook-villainous-choice`** — the Doctor Who Villainous Choice cards (`Great Intelligence's Plan`,
+  `Genesis of the Daleks`, `The Dalek Emperor`, `Davros`, `Missy`) call
+  `chooseSpellAbilitiesForEffect` to pick the two options offered.
 
 ## Running one
 
@@ -76,7 +86,7 @@ top level only).
 
 ## Verified
 
-- Card-name resolution: all 60 names per deck (13 decks) resolve in Forge's card DB.
+- Card-name resolution: all 60 names per deck (16 decks) resolve in Forge's card DB.
 - Load test (`hook-piles`, 2026-10-14): a zero-model floor mirror, seed 42, ran to turn 108 with no
   load error and the deck's cards in the log (`Fact or Fiction`, `Gifts Ungiven`, 26 `Island`; none
   of the default Grixis Reanimator cards). Floor short-circuits plays, so it proves the deck **loads**,
@@ -85,8 +95,8 @@ top level only).
 ## Not done
 
 - No model game has been read on these decks yet, so no defect is filed from a game — issues #126 and #127 are fixed from the inventory; #128 is still open.
-- Nine hooks still lack a deck: `chooseSpellAbilitiesForEffect` (VillainousChoice / Doctor Who cards —
-  buildable but off-archetype), `chooseCardsForSplice`, `chooseCardsForZoneChange`,
-  `chooseSingleStaticAbility`, `chooseSingleReplacementEffect`, `confirmStaticApplication`,
-  `chooseStartingHand`, `chooseSaToActivateFromOpeningHand`; and `chooseKeywordForPump` is
-  **unreachable** (no card uses `PumpEffect`'s `KWChoice`).
+- Six hooks still lack a deck: `chooseCardsForZoneChange` (a `ChangeZoneEffect` variant with no
+  obvious card), `chooseSingleStaticAbility` (`CostAdjustment`), `chooseSingleReplacementEffect`
+  (`ReplacementHandler`), `confirmStaticApplication` (`Combat` — likely already reached in any game),
+  and `chooseStartingHand` (no card script uses it); `chooseKeywordForPump` is **unreachable** (no
+  card uses `PumpEffect`'s `KWChoice`).

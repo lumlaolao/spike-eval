@@ -37,7 +37,7 @@ The engine only ever calls `PlayerController`. Two consequences drive the whole 
 | Engine subsystem | Interface method(s) the engine calls | Engine implementation | What the seat does | Interface gap (root cause) | Filed defects it explains |
 |---|---|---|---|---|---|
 | Play loop / priority | `chooseSpellAbilityToPlay()` (`PlayerController.java:287`) | `ComputerUtilAbility` builds the legal castable list; the AI loops it | overrides fully (`chooseSpellAbilityToPlay`): builds its own menu and picks | the seat re-derives the menu; legality stays the engine's, but *description* and *ordering* are the seat's | menu misdescription (ARCHITECTURE-REVIEW #2), the 12-spell cap (fixed #116), a Dig pile's order (#115) |
-| **Targeting** | `chooseTargetsFor(sa)` (`PlayerController.java:120`, self-labelled "this is bad a function for it assigns targets to sa inside its body") | **`PlayerControllerAi.chooseTargetsFor` = `brains.doTrigger(sa, true)`** (`PlayerControllerAi.java:1416-1418`) — the AI core sets targets *and* modes through the engine's own `TargetChoices` | **partial override** (`chooseTargetsFor`): single-target only (`getMaxTargets() != 1` -> `super`), bails on any targeting sub-ability, then manually `sa.resetTargets()` + `TargetChoices.add(...)` from `TargetRestrictions.getAllCandidates`. A second hand-rolled copy sits in `ensureTargetsSet`  for the AI cast path | the seat shadows one slice of `doTrigger`'s job and delegates the rest; **multi-target, split, modal and sub-ability targeting are AI or engine, and target *modes* are never the seat's** | the "targeting is messed up" class; **multi-target fixed (#124)**, sub-ability chain still AI |
+| **Targeting** | `chooseTargetsFor(sa)` (`PlayerController.java:120`, self-labelled "this is bad a function for it assigns targets to sa inside its body") | **`PlayerControllerAi.chooseTargetsFor` = `brains.doTrigger(sa, true)`** (`PlayerControllerAi.java:1416-1418`) — the AI core sets targets *and* modes through the engine's own `TargetChoices` | **partial override** (`chooseTargetsFor`): single-target only (`getMaxTargets() != 1` -> `super`), bails on any targeting sub-ability, then manually `sa.resetTargets()` + `TargetChoices.add(...)` from `TargetRestrictions.getAllCandidates`. A second hand-rolled copy sits in `ensureTargetsSet`  for the AI cast path | the seat shadows one slice of `doTrigger`'s job and delegates the rest; **multi-target, split, modal and sub-ability targeting are AI or engine, and target *modes* are never the seat's** | the "targeting is messed up" class; **single-target, multi-target and sub-ability chains fixed (#124)**; divided-value/split target sets still AI |
 | Mana payment | `payManaCost(...)` (`PlayerController.java:354`) | **one call**: `ComputerUtilMana.payManaCost(new Cost(toPay, effect), player, sa, effect)` (`PlayerControllerAi.java:1258-1260`) | partial override (`payManaCost`): prepays tap-type mana abilities the engine's *test* payment plans to use, and keeps its own reserve set | the seat decides *which sources are spoken for* from the reservation the engine's **test** payment — not its real payment — fills (`LlmCostDecision.manaSources`, `LlmCostDecision.java:214-217`: `ComputerUtilMana.canPayManaCost`, then `AiCardMemory.PAYS_TAP_COST`) instead of by asking the engine what its real payment will tap — so a **raised** cost and a **prepay filter** both reserve nothing | **#110** (raised cost ignores the reserve), **#111** (filter-land prepay taps an unreserved source) |
 | Non-mana cost decisions | `getCostDecisionMaker(...)` (`PlayerController.java:361`) | `new AiCostDecision(player, ability, effect)` (`PlayerControllerAi.java:1285-1287`) | `LlmCostDecision` subclass (`getCostDecisionMaker`) delegating the card-choosing `visit(...)`s to model-owned hooks | the candidate filter was **copied verbatim from `ComputerUtil.chooseSacrificeType`** (the drift risk #95 matched but did not remove); the wording prints raw Java (`LlmCostDecision.java:125-126`) | **#109** (multi-zone exile wording) |
 | Triggers | `playTrigger`, `confirmTrigger`, `orderSimultaneousSa`, `orderAndPlaySimultaneousSa` (`PlayerController.java:103-105,152`) | `prepareSingleSa(...) && ComputerUtil.playNoStack(...)`; `prepareSingleSa` sets targets/modes via `brains.doTrigger` | owns the yes/no (`confirmTrigger`) and the strategic order (`orderSimultaneousSa`); leaves play/targeting to the engine | trigger **targeting** rides `doTrigger` (same seam as targeting); `playTrigger`'s yes/no is already the seat's | G7 `playTrigger`/`orderAndPlaySimultaneousSa` (intentionally left AI, `G7-REMAINING-WORK-ORDER.md`) |
@@ -85,7 +85,7 @@ Of the 29 `strategic` rows the ledger marks `ai-inherited`:
 | `choosePermanentsToDestroy` | `SacrificeEffect` (`Destroy$ True`) | **yes — `hook-destroy-choice`** |
 | `chooseCardsToDiscardUnlessType` | `DiscardEffect` (`UnlessType`) | **yes — `hook-discard-unless`** |
 | `chooseSingleSpellForEffect` | `CopySpellAbilityEffect` (copy a spell) | **yes — `hook-redirect-copy`** |
-| `chooseSpellAbilitiesForEffect` | `VillainousChoiceEffect` | no |
+| `chooseSpellAbilitiesForEffect` | `VillainousChoiceEffect` | **yes — `hook-villainous-choice`** |
 | `chooseCardsForEffectMultiple` | `DigMultipleEffect` | **yes — `hook-dig-multiple`** |
 | `chooseColors` | `ChooseColorEffect` (`TwoColors$ True`) / `GameAction` | **yes — `hook-two-colors`** |
 | `chooseCounterType` | `CountersPutOrRemoveEffect` / `CountersMoveEffect` | **yes — `hook-counter-type`** |
@@ -97,12 +97,12 @@ Of the 29 `strategic` rows the ledger marks `ai-inherited`:
 | `chooseSingleStaticAbility` | `CostAdjustment` | no |
 | `chooseFlipResult` | `FlipCoinEffect` | **yes — `hook-flip`** |
 | `willPutCardOnTop` | `ClashEffect` | **yes — `hook-clash`** |
-| `chooseSaToActivateFromOpeningHand` | `GameAction` | no |
+| `chooseSaToActivateFromOpeningHand` | `GameAction` | **yes — `hook-opening-hand`** |
 | `chooseStartingHand` | `BackupPlanService` | no |
 | `confirmStaticApplication` | `Combat` | rare |
 | `playSaFromPlayEffect` | `PlayEffect` (`DB$ Play`, 281 cards) | **yes — `hook-play-exile`** |
 | `exertAttackers` / `enlistAttackers` | `PhaseHandler` | **yes — `hook-exert`** |
-| `chooseCardsForSplice` | `AbilityUtils` (splice) | no |
+| `chooseCardsForSplice` | `AbilityUtils` (splice) | **yes — `hook-splice`** |
 | `chooseCardsForZoneChange` | `ChangeZoneEffect` | no |
 | `chooseEntitiesForEffect` | `DigEffect` (wrapper — routes to `chooseSingleEntityForEffect`, owned) | routed |
 
@@ -110,7 +110,7 @@ Of the 29 `strategic` rows the ledger marks `ai-inherited`:
 `hook-*` decks (`docs/harness/HOOK-DECKS.md`) now make six more of these hooks reachable on purpose —
 `chooseCardsPile`, `chooseSingleSpellForEffect`, `chooseNewTargetsFor`/`chooseTarget`,
 `chooseCardsToDiscardUnlessType`, `chooseFlipResult`, `willPutCardOnTop`, and
-`exertAttackers`/`enlistAttackers`, and—with the `hook-destroy-choice`, `hook-play-exile`, `hook-venture`, `hook-counter-type`, `hook-two-colors` and `hook-dig-multiple` decks—`choosePermanentsToDestroy`, `playSaFromPlayEffect`, `chooseSingleCardFace`, `chooseCounterType`, `chooseColors` and `chooseCardsForEffectMultiple`. The rest stay dormant until a deck adds the effect. Re-run this
+`exertAttackers`/`enlistAttackers`, and—with the `hook-destroy-choice`, `hook-play-exile`, `hook-venture`, `hook-counter-type`, `hook-two-colors` and `hook-dig-multiple` decks—`choosePermanentsToDestroy`, `playSaFromPlayEffect`, `chooseSingleCardFace`, `chooseCounterType`, `chooseColors` and `chooseCardsForEffectMultiple`, and later `chooseSpellAbilitiesForEffect`, `chooseSaToActivateFromOpeningHand` and `chooseCardsForSplice`. The rest stay dormant until a deck adds the effect. Re-run this
 table when the pool changes: a new card is what promotes a `rare` hook to live.
 - The rest of the `ai-inherited` set is **15 `exotic`** (Un-set, dice, Attractions), **9 `payment`**,
   **7 `mechanics`** and **6 `ui`** — out of strategic scope.

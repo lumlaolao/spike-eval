@@ -1,0 +1,1 @@
+RG Arcane built to reach chooseCardsForSplice: Glacial Ray, Into the Fray, Roar of Jukai and Ich-Tekik are Arcane with "Splice onto Arcane", which calls chooseCardsForSplice (AI-owned) to pick the spliced cards.

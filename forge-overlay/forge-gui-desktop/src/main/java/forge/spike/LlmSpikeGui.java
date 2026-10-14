@@ -2548,8 +2548,23 @@ public final class LlmSpikeGui {
             try {
                 if (sa == null || !sa.usesTargeting() || sa.getMaxTargets() < 1)
                     return super.chooseTargetsFor(sa);
-                for (SpellAbility sub = sa.getSubAbility(); sub != null; sub = sub.getSubAbility())
-                    if (sub.usesTargeting()) return super.chooseTargetsFor(sa);
+                // A spell that divides a value among its targets ("distribute 5 damage") needs
+                // sa.setDividedValue, which the seat does not set: keep the engine's choice (#124).
+                if (sa.isDividedAsYouChoose()) return super.chooseTargetsFor(sa);
+                // A targeting SUB-ABILITY chain used to bail to the Forge AI for the whole chain.
+                // Route every targeting ability in the chain through the same menu (ensureTargetsSet
+                // walks it), then succeed if the root's own required targets are set (#124).
+                for (SpellAbility sub = sa.getSubAbility(); sub != null; sub = sub.getSubAbility()) {
+                    if (!sub.usesTargeting()) continue;
+                    try {
+                        ensureTargetsSet(sa);
+                        if (!sa.usesTargeting() || sa.getTargets().size() >= Math.max(1, sa.getMinTargets())) {
+                            p("[ROUTER] targets(chain): " + labelOf(sa));
+                            return true;
+                        }
+                    } catch (Exception ignore) { }
+                    return super.chooseTargetsFor(sa);
+                }
                 TargetRestrictions tr = sa.getTargetRestrictions();
                 if (tr == null) return super.chooseTargetsFor(sa);
                 List<GameEntity> cands = tr.getAllCandidates(sa, false);
