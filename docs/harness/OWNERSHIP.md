@@ -52,7 +52,7 @@ play: **18**. The test prints this as `[OWNERSHIP] ...` and fails if it grows.
 | orderAndPlaySimultaneousSa | trigger order AND trigger targets via `brains.doTrigger` |
 | orderSimultaneousSa | trigger order |
 | payCostToPreventEffect | whether to pay for Daze / Force Spike / Spell Pierce / Mana Tithe |
-| payManaCost | which sources pay every spell (colours left open) |
+| payManaCost | which sources pay every spell (colours left open); since #105 not which Elves a tap-type mana source taps |
 | playTrigger | triggered-ability targets and modes via `brains.doTrigger` |
 
 Two information hooks were captured on 2026-09-07: both `reveal` overloads are now
