@@ -14,6 +14,10 @@ only points at them and repeats what is never optional.
   - `pr-review`, then `simplify`, then `standards` on **every** PR before it is merged;
   - `game-loop` whenever a game is played: one match, read it, fix the harness, then the next;
   - `harness-audit` whenever game logs from many games are reviewed.
+  - `defect-hunt` when a game is played to fill the defect backlog: the same reading, but every
+    harness defect is filed as its own labelled issue and nothing is fixed;
+  - `defect-fix` when one filed harness defect is fixed: claim it, watch a test fail on main, fix in
+    `forge-overlay/` only, then the gate.
 - **Merge only with** `bash scripts/pr_merge.sh <number>` (format, three recorded verdicts for the
   current head, an acceptance run when code changed; merge commit, never squash).
 - **The seat's tools are native tool calls.** Anything the model can look up or do beyond answering
