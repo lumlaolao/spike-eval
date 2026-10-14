@@ -27,6 +27,12 @@ dependency classpath when Maven is unavailable.
 Change a number only together with the commit that legitimately moved it, and say why in
 that commit. Re-pinning to make a run pass is the failure mode this file exists to prevent.
 
+The canary games are not the same on every OS: seed 42 plays to a different decision count on
+Linux than on the reference Mac at the same commit (cause not found yet; JDK, CPU count, locale
+and timezone are ruled out). A key prefixed with the lowercase `uname -s` (`linux.floor.decisions`)
+wins over the plain key on that OS, and the plain keys are the Mac's. Pin an OS only from a run on
+that OS, reproduced, with the same note a re-pin needs.
+
 ## What acceptance does not prove
 
 - Strategic quality or fairness of play. The fake model passes on everything.

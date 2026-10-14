@@ -40,3 +40,18 @@ random.turns=19
 random.decisions=65
 # Silent Forge-AI strategic/payment hooks reachable in Legacy play (ControllerOwnershipTest baseline).
 ownership.silent_ai_strategic_max=3
+# 2026-10-14: LINUX pins (PR #95). The same commit plays seed 42 differently on Linux (Debian
+# container, Xvfb) than on the reference Mac, so the canaries are pinned per OS; a "linux." key wins
+# over the plain key there, and the plain keys stay the Mac's. Floor is A/108/1081 on Linux at every
+# commit tried -- 6686ceb (when the Mac pin of 1068 was set), 37cff95, main b425298 and this PR -- so
+# no commit moved it; 13 more auto rows, same winner and turns. Not the cause: JDK 17 vs 21, CPU count
+# (-XX:ActiveProcessorCount=1 and 12), locale (C.UTF-8), timezone. Not yet found.
+# Random on Linux is A/56/290 at this PR, reproduced 5 times (JDK 17, CPU 1/4/12, C.UTF-8, TZ); this PR
+# moves the random arm on every OS (it now casts alternative-cost spells and picks what exile and
+# return costs take), so the Mac random pin above is STALE until it is re-pinned on the Mac.
+linux.floor.winner=A
+linux.floor.turns=108
+linux.floor.decisions=1081
+linux.random.winner=A
+linux.random.turns=56
+linux.random.decisions=290

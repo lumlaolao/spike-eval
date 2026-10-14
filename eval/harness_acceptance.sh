@@ -70,8 +70,11 @@ FAILED=0
 say()  { echo "[$(date -u +%H:%M:%S)] $*"; }
 pass() { echo "PASS $1: $2" | tee -a "$SUMMARY"; }
 fail() { echo "FAIL $1: $2" | tee -a "$SUMMARY"; FAILED=1; }
+# Canary pins can differ by OS: the same commit plays seed 42 to a different count on Linux than on
+# the reference Mac (see the expectations file). A "<os>.<key>" line wins over the plain "<key>".
+PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]')"
 want() { # $1 key -> value from the expectations file
-  awk -F= -v k="$1" '$1==k {print $2}' "$EXPECTED"
+  awk -F= -v k="$1" -v pk="$PLATFORM.$1" '$1==pk {print $2; found=1; exit} $1==k && v=="" {v=$2} END {if (!found) print v}' "$EXPECTED"
 }
 # md5 is macOS, md5sum is Linux. With neither, both sides of a comparison would hash to "" and the
 # gate would pass on anything; an exit inside $( ) does not stop this script, so the caller checks.
