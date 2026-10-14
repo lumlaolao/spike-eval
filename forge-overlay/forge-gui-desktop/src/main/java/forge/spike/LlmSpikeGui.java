@@ -5512,8 +5512,14 @@ public final class LlmSpikeGui {
             // capped games get killed before an in-flight ask lands — the orphaned-row silent drop
             // that defect_analyzer.py exists to catch. graceFitsRunBatchBudget() in LlmSpikeTest
             // asserts this mechanically so it cannot be forgotten.
-            for (String key : new String[]{"opus", "sonnet", "haiku", "deepseek", "gpt", "kimi", "grok", "default"})
+            for (String key : new String[]{"opus", "sonnet", "haiku", "deepseek", "gpt", "kimi", "default"})
                 t.put(key, uniform);
+            // grok cannot be told to stop reasoning: x-ai/grok-4.7 reports reasoning.mandatory=true
+            // and supported_efforts xhigh/high/medium/low (OpenRouter /api/v1/models, read
+            // 2026-10-13), so the "none" sentinel -- reasoning:{enabled:false} -- is REJECTED on every
+            // fast-tier call, which is high-frequency. It asks for the lowest effort it has instead:
+            // still cheap on a mechanical answer, and legal. Every other row can be disabled outright.
+            t.put("grok", new ModelCfg(16000, 150000, null, null, 1024, 45000, "low"));
             try { applyEnvOverride(t); }
             catch (Exception e) { System.out.println("[MODEL-CFG] failed to parse OPENROUTER_MODEL_CFG, using built-in defaults: " + e); }
             return t;

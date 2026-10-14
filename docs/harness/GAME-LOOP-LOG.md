@@ -263,3 +263,13 @@ Sheet: TAKEN 0, LOST 0, TOOL 1 (9 of 10 served), SLOW 0; 1 truncation. 938 s.
   auto rows, the truncations and the token distribution were.
 - clean  the tool sheet (9 of 10 served, nothing REFUSED/FAILED/empty/exhausted), mulligan, the one
   target.
+- FIXED  a bug shipped in #89, found by reading OpenRouter's model metadata rather than by a game:
+  the uniform fastReasoningEffort="none" sends reasoning:{enabled:false}, which a MANDATORY-
+  reasoning model rejects. x-ai/grok-4.7 reports mandatory=true (supported_efforts
+  xhigh/high/medium/low), so every fast-tier call on that row would have failed -- and the fast
+  tier is high-frequency. grok now gets the lowest effort it supports ("low") there; every
+  other row keeps the disable. The uniformity test asserts the exception explicitly.
+- FINDING for the next change: "high" is supported by all three OpenRouter families (deepseek
+  max/high/low, kimi max/high/low, grok xhigh/high/medium/low), so an explicit, uniform
+  reasoning.effort is feasible -- that would STATE the thinking budget instead of leaving it an
+  emergent product of the cap.
