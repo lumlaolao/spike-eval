@@ -45,7 +45,9 @@ final class LlmCostDecision extends AiCostDecision {
     private String manaFor;
 
     /** This mana ability is being activated to pay for {@code paid}: its tap parts say so, and keep
-     *  {@code reserved} out, because the rest of that payment still needs them. */
+     *  {@code reserved} out, because the rest of that payment still needs them. A pick with no choice
+     *  goes to the engine, which does not see {@code reserved}; it skips the plan's {T} sources only
+     *  because the plan's test payment just filled PAYS_TAP_COST, which the parent copies when built. */
     LlmCostDecision forPayment(SpellAbility paid, Iterable<Card> reserved) {
         manaFor = paid.getHostCard() == null ? null : paid.getHostCard().getName();
         tapped.addAll(reserved);

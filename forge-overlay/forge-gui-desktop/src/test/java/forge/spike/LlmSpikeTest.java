@@ -1873,6 +1873,30 @@ public class LlmSpikeTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "spending floating Druid mana was said as a fallback");
     }
 
+    /** {G}x6 from one Druid and six other Elves needs the Druid twice. The engine's test payment uses a
+     *  source once, so it finds no plan and the seat is never asked; the real payment activates the
+     *  Druid twice with Forge AI's choice of Elves. That must be said, once, not left silent. */
+    @Test
+    public void anEngineActivationOfATapTypeSourceIsSaid() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        addBattlefieldCard("Heritage Druid", me);
+        for (String elf : new String[] {"Elvish Visionary", "Nettle Sentinel", "Elvish Warrior",
+                "Elvish Visionary", "Nettle Sentinel", "Elvish Warrior"}) addBattlefieldCard(elf, me);
+        Card baloth = addHandCard("Leatherback Baloth", me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 1,2,3");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+        me.dangerouslySetController(ctrl);
+        forge.game.spellability.SpellAbility spell = baloth.getFirstSpellAbility();
+        spell.setActivatingPlayer(me);
+
+        Assert.assertTrue(ctrl.payManaCost(new forge.card.mana.ManaCost(new forge.card.mana.ManaCostParser("G G G G G G")),
+                null, spell, null, null, false), "{G}x6 was not paid");
+        Assert.assertEquals(bridge.prompts.size(), 0, "fixture: the engine's plan was expected to be empty");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 1, "the engine's choice of Elves was not said exactly once");
+    }
+
     /** The engine's real payment does not raise toPay again (CostPayment already did), so the plan
      *  must not either: under Thalia, Regrowth costs {2}{G}, exactly the Druid's GGG. A plan raised
      *  twice ({3}{G}) is unpayable, and the engine then tapped the Elves itself. */
