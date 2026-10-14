@@ -37,17 +37,19 @@ Every hunter and fixer on one machine shares the Forge checkout (`FORGE_HOME`, d
   ```bash
   L="$HOME/.forge-agent-lock"
   mkdir "$L" 2>/dev/null && echo "<session or branch> $(date -u +%FT%TZ)" > "$L/who"   # 0: you hold it
-  rm -rf "$L"                                       # release, as soon as the game or run ends, failed or not
+  grep -qxF "<your line>" "$L/who" && rm -rf "$L"   # release when the game or run ends, failed or not
   ```
 
   If `mkdir` fails, read `$L/who` and try again later, in a background wait or a later turn: a
   foreground `sleep` loop is refused by Claude Code and outlives the tool's timeout. A lock is stale
   when the directory is more than three hours old (`find "$L" -maxdepth 0 -mmin +180` prints it)
-  and no `LlmSpikeHeadless` or `mvn` process runs. Break it only with `mv "$L" "$L.stale.$$"`, which
-  succeeds for one waiter alone, then delete the moved directory, take the lock with `mkdir`, and
-  say so where you report. The lock also keeps the Claude CLI lane at one game per machine
-  (`eval/CONCURRENCY.md` section 7). Agents in separate cloud containers each have their own
-  checkout, so the lock never waits there: parallel hunting means separate containers.
+  and no `LlmSpikeHeadless` or `mvn` process runs. Break it only with `mv "$L" "$L.stale.$$"`, then
+  check the moved directory is still that old: if it is fresh, another waiter broke the stale lock
+  and took a new one first, so `mv` it back and try later. Otherwise delete it, take the lock with
+  `mkdir`, and say so where you report. Release only a lock whose `who` is still your line.
+  The lock also keeps the Claude CLI lane at one game per machine (`eval/CONCURRENCY.md` section
+  7). Agents in separate cloud containers each have their own checkout, so the lock never waits
+  there: parallel hunting means separate containers.
 
 ## 0. Once per repository: the labels
 
