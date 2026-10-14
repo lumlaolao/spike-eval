@@ -35,19 +35,21 @@ Every hunter and fixer on one machine shares the Forge checkout (`FORGE_HOME`, d
   directory (`mkdir` is atomic on macOS and Linux; `flock` is not on macOS):
 
   ```bash
-  L="$HOME/.forge-agent-lock"; MINE="$PWD.forge-lock-mine"   # beside your worktree, run from its root
-  mkdir "$L" 2>/dev/null && echo "<session or branch> $(date -u +%FT%TZ)" | tee "$MINE" > "$L/who"
-  cmp -s "$MINE" "$L/who" && rm -rf "$L" "$MINE"   # release when the game or run ends, failed or not
+  L="$HOME/.forge-agent-lock"; MINE="$(git -C <your worktree> rev-parse --show-toplevel).forge-lock-mine"
+  mkdir "$L" 2>/dev/null && echo "<session or branch> $(date -u +%FT%TZ)" | tee "$MINE" > "$L/who" \
+    && cmp -s "$MINE" "$L/who"                     # 0: you hold it and can release it
+  cmp -s "$MINE" "$L/who" && rm -rf "$L" "$MINE" || echo "NOT RELEASED: $(cat "$L/who")"
   ```
 
-  If `mkdir` fails, read `$L/who` and try again later, in a background wait or a later turn: a
-  foreground `sleep` loop is refused by Claude Code and outlives the tool's timeout. Never remove
-  a lock you do not hold. A lock more than three hours old (`find "$L" -maxdepth 0 -mmin +180`
-  prints it) with no `LlmSpikeHeadless` or `mvn` process running is reported to the owner, who
-  removes it: breaking it yourself races other waiters.
-  The lock also keeps the Claude CLI lane at one game per machine (`eval/CONCURRENCY.md` section
-  7). Agents in separate cloud containers each have their own checkout, so the lock never waits
-  there: parallel hunting means separate containers.
+  Release as soon as the game or run ends, failed or not. If the take line printed an error after
+  `mkdir` succeeded, remove `$L` at once and try again. If `mkdir` fails, read `$L/who` and try
+  again later, in a background wait or a later turn: a foreground `sleep` loop is refused by Claude
+  Code and outlives the tool's timeout. Never remove a lock you do not hold. A lock more than three
+  hours old (`find "$L" -maxdepth 0 -mmin +180` prints it) with no `LlmSpikeHeadless` or `mvn`
+  process running is reported to the owner, who removes it: breaking it yourself races other
+  waiters. The lock also keeps the Claude CLI lane at one game per machine (`eval/CONCURRENCY.md`
+  section 7). Agents in separate cloud containers each have their own checkout, so the lock never
+  waits there: parallel hunting means separate containers.
 
 ## 0. Once per repository: the labels
 
