@@ -1,5 +1,6 @@
 package forge.spike;
 
+import java.util.Collections;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
@@ -7,6 +8,7 @@ import com.google.common.collect.Sets;
 import forge.ai.AiCardMemory;
 import forge.ai.AiCostDecision;
 import forge.ai.ComputerUtilCost;
+import forge.ai.ComputerUtilMana;
 import forge.game.card.CardCollectionView;
 import forge.game.card.Card;
 import forge.game.card.CardCollection;
@@ -26,29 +28,23 @@ import forge.game.zone.ZoneType;
  * Cost decision maker for the LLM seat. It routes the CARD-CHOOSING non-mana costs — what a cost
  * sacrifices, exiles, returns to hand or taps (see each visit) — to the model-owned controller hooks,
  * and delegates every other cost type to {@link AiCostDecision}.
- *
- * <p>The candidate filter below is copied VERBATIM from {@code ComputerUtil.chooseSacrificeType} so
- * legality is identical to the engine's own AI path (sacrifice-eligible, not the pumped target, not a
- * Casualty-granting permanent). The model only ever chooses among those legal candidates; a short or
- * empty pick falls back to the engine's decision. This is the G7 "ownership" fix for
- * {@code getCostDecisionMaker} without re-deriving legality.
  */
 final class LlmCostDecision extends AiCostDecision {
     /** Marks a sacrifice the seat is paying as a COST (as opposed to one an effect forces on it), so
      *  the controller can ask the right question. */
     static final String COST_MESSAGE = "Sacrifice as a cost";
 
-    /** Cards a tap-type part may not take: as in AiCostDecision, the mana sources the menu's test
-     *  payment reserved for this ability (PAYS_TAP_COST; mana is paid first, and tapping a tapped card
-     *  is a silent no-op, so offering one lets the cost go unpaid), plus what earlier tap parts took. */
+    /** What this cost's earlier tap parts already took, so a later one cannot take them again. */
     private final CardCollection tapped = new CardCollection();
 
     LlmCostDecision(Player ai0, SpellAbility sa, boolean effect) {
         super(ai0, sa, effect);
-        Set<Card> tappedForMana = AiCardMemory.getMemorySet(ai0, AiCardMemory.MemorySet.PAYS_TAP_COST);
-        if (tappedForMana != null) tapped.addAll(tappedForMana);
     }
 
+    /** Which permanent a sacrifice cost takes. The candidate filter is copied VERBATIM from
+     *  {@code ComputerUtil.chooseSacrificeType} so legality is identical to the engine's own AI path
+     *  (sacrifice-eligible, not the pumped target, not a Casualty-granting permanent); a short or empty
+     *  pick falls back to the engine's decision. */
     @Override
     public PaymentDecision visit(CostSacrifice cost) {
         // Forced / no-choice shapes stay with the engine (pay-from-source, original host, sacrifice-all).
@@ -164,6 +160,7 @@ final class LlmCostDecision extends AiCostDecision {
             final int amount = cost.getAbilityAmount(ability);
             CardCollection all = new CardCollection(player.getCardsIn(ZoneType.Battlefield));
             all.removeAll(tapped);
+            all.removeAll(manaSources());
             CardCollection typeList = CardLists.getValidCards(all, type.split(";"), source.getController(), source, ability);
             typeList = CardLists.filter(typeList, CardPredicates.CAN_TAP);
             if (!cost.canTapSource) typeList.remove(source);
@@ -181,6 +178,18 @@ final class LlmCostDecision extends AiCostDecision {
             fellBack("tap-cost", e.getClass().getSimpleName());
         }
         return engineTap(cost);
+    }
+
+    /** The permanents this ability's own mana payment will tap. The mana part is paid before the tap
+     *  part, and tapping a tapped card is a silent no-op, so offering one would let the cost go unpaid.
+     *  AiCostDecision reads PAYS_TAP_COST as it stands, but the seat test-pays many other abilities
+     *  while building its menu, so that set belongs to whichever was last; a test payment of THIS
+     *  ability refreshes it first. Without a mana part nothing is reserved. */
+    private Set<Card> manaSources() {
+        if (!ability.getPayCosts().hasManaCost()) return Collections.emptySet();
+        ComputerUtilMana.canPayManaCost(ability, player, 0, isEffect());
+        Set<Card> reserved = AiCardMemory.getMemorySet(player, AiCardMemory.MemorySet.PAYS_TAP_COST);
+        return reserved == null ? Collections.emptySet() : reserved;
     }
 
     /** The engine's own pick, kept in {@code tapped}: the parent's exclusion set is private, so without
