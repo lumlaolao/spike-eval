@@ -110,9 +110,14 @@ class PrFormatTest(unittest.TestCase):
         for section in ("Why", "Evidence", "Provenance", "Not done"):
             self.assertTrue(any("`## %s` still holds a skeleton placeholder" % section in p for p in problems),
                             (section, problems))
-        # Prose that merely contains angle brackets is not a placeholder.
-        prose = BODY.replace("MCP server; see the note.", "The <details> block stays; `List<String>` is fine.")
-        self.assertEqual(pf.pr_problems("docs: x", prose), [])
+        # Only the acceptance line left unfilled on a docs-only PR (the gate's acceptance check is skipped).
+        evidence_only = BODY.replace("- acceptance @ abc123456: OUT=/tmp/acc-native-1 12/12 stages PASS",
+                                     "- acceptance @ abc123456: OUT=/tmp/<name> <N>/<N> stages PASS")
+        self.assertTrue(any("`## Evidence` still holds" in p for p in pf.pr_problems("docs: x", evidence_only)))
+        # Prose, HTML and autolinks with angle brackets are not placeholders.
+        for line in ("The <details> block stays; `List<String>` is fine.", "<details>", "</details>",
+                     "<!-- reviewer note -->", "- <https://github.com/x/y/actions/runs/1>", "<br>"):
+            self.assertEqual(pf.pr_problems("docs: x", BODY.replace("MCP server; see the note.", line)), [], line)
 
     def test_the_skeleton_offers_each_skill_its_own_verdicts(self):
         review = pf.sections(pf.skeleton("HEAD")[1])["Review"]

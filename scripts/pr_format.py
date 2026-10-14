@@ -35,8 +35,10 @@ CODE_PATHS = ("forge-overlay/", "eval/", "scripts/", "install.sh", "run-llm-")
 # `- acceptance @ <head sha>: OUT=<dir> <N>/<N> stages PASS ...`
 ACCEPTANCE = re.compile(r"^- acceptance @ ([0-9a-f]{7,40}): OUT=(\S+) (\d+)/(\d+) stages PASS\b", re.M)
 TRAILER = re.compile(r"^(Co-Authored-By|Claude-Session|Signed-off-by): ", re.I)
-# A whole line that is still a `new-pr` skeleton placeholder, e.g. `<which stamps moved, or: none>`.
-PLACEHOLDER = re.compile(r"^\s*(- )?<[^<>\n]+>\s*$", re.M)
+# A line still holding a `new-pr` skeleton placeholder: a whole-line `<which stamps moved, or: none>`
+# (every one has a space inside; `<details>`, `</x>`, `<!-- -->` and `<https://...>` are not ones), or the
+# acceptance line's `<N>/<N>`.
+PLACEHOLDER = re.compile(r"^\s*(- )?<(?![!/]|https?:)[^<>\n]*\s[^<>\n]*>\s*$|^.*<N>/<N>.*$", re.M)
 
 
 def subject_problems(subject):
@@ -104,8 +106,8 @@ def pr_problems(title, body, head=None, files=(), gate=False, commits=()):
             out.append("body has no `## %s` section" % s)
         elif not secs[s].strip() or re.fullmatch(r"\s*(TODO|TBD|\.\.\.)\s*", secs[s], re.I):
             out.append("`## %s` is empty" % s)
-        elif PLACEHOLDER.search(secs[s]):
-            out.append("`## %s` still holds a skeleton placeholder: %s" % (s, PLACEHOLDER.search(secs[s]).group(0).strip()))
+        elif (ph := PLACEHOLDER.search(secs[s])):
+            out.append("`## %s` still holds a skeleton placeholder: %s" % (s, ph.group(0).strip()))
     if present != [s for s in SECTIONS if s in secs]:
         out.append("sections are out of order; expected %s" % ", ".join(SECTIONS))
     if not gate:
