@@ -3,9 +3,8 @@
 
 Ten eval/test_*.py files predate unittest here: their checks are module-level `test_` functions
 driven by their own `main()`, which exits non-zero on a failure. `unittest discover` collects
-none of them, so `harness_acceptance.sh`'s pytests stage reported green while three of them
-(make_sft_data, replay_match, seed_policy) had been failing since 2026-10-12. This file runs each
-such script in a subprocess and requires exit 0.
+none of them, so `harness_acceptance.sh`'s pytests stage could not see them fail. This file runs
+each such script in a subprocess and requires exit 0.
 
 A file is "script-style" when it defines a module-level `test_` function and no TestCase class
 (test_defect_analyzer.py has its own TestCase adapter, so it is collected already). It cannot see a
@@ -22,9 +21,9 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 
 
-def script_style_tests(directory=HERE):
+def script_style_tests():
     found = []
-    for path in sorted(directory.glob("test_*.py")):
+    for path in sorted(HERE.glob("test_*.py")):
         if path.name == Path(__file__).name:
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"))

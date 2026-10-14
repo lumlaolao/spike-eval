@@ -23,8 +23,8 @@ def stage0_pin_aligned(pb):
 
     Stage-1 fixtures tag synthetic games "STAGE0" to exercise split/dedupe/write
     plumbing — they are not reconstructing real STAGE0 corpora. system() refuses
-    when the tree has drifted from what STAGE0 runs saw (it has, since task #8
-    grew STATIC_REFERENCE 7492 -> 8154), so these tests state explicitly that
+    when the tree has drifted from what STAGE0 runs saw (it has: STATIC_REFERENCE
+    has grown past the 7492 chars STAGE0 saw), so these tests state explicitly that
     they accept whatever text the tree currently holds. Production paths keep
     the strict guard.
     """
@@ -75,6 +75,22 @@ def write_game(d, name, game, decisions):
 
 
 # --------------------------------------------------- preamble reconstruction
+
+def test_framing_drift_is_refused_even_under_python_O():
+    # One changed word in framing()'s base body must stop the builder: terse sources reuse it.
+    src = Path(m.DEFAULT_JAVA).read_text(encoding="utf-8")
+    drifted = src.replace("PROTOCOL: I am the Forge rules engine.", "PROTOCOL: I am the Forge engine.", 1)
+    check("the drift fixture changed the source", drifted != src)
+    with tempfile.TemporaryDirectory() as d:
+        path = Path(d) / "LlmSpikeGui.java"
+        path.write_text(drifted, encoding="utf-8")
+        try:
+            m.PreambleBuilder(str(path))
+            refused = False
+        except SystemExit as e:
+            refused = "drifted" in str(e)
+    check("a drifted framing() is refused with SystemExit (not an assert)", refused)
+
 
 def test_preamble_reconstruction():
     """The real Java source must reconstruct to the recon's verified lengths."""

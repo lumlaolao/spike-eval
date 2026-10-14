@@ -27,8 +27,9 @@ system+prompt fully reconstruct the request. The preamble is produced by
 PlayerControllerLLM.framing(seat, plan, terse) in LlmSpikeGui.java. We extract
 its string literals PROGRAMMATICALLY from the Java source (rather than
 hand-retyping ~9 KB of text) to stay byte-exact, and self-check the result
-against known character counts (verified against the logged prompt_tokens of the
-cache-cold first smart call in both the deepseek and gemini corpora).
+against structural anchors and a framing hash (the lengths were verified against
+the logged prompt_tokens of the cache-cold first smart call in both the deepseek
+and gemini corpora).
 
 PER-BUILD PREAMBLE (authoritative source = the run DIRECTORY, per recon):
   STAGE0 (commit 339f457 == current working tree): smart tier gets
@@ -91,14 +92,11 @@ MODEL_TIERS = ("smart", "fast")  # only model-authored tiers become examples
 # ai-teacher, dagger) are only exact while these bytes match what their games
 # saw. STATIC_REFERENCE is deliberately NOT pinned here: only builds with
 # static_reference_on_smart append it, and system() checks it per build against
-# BUILDS[...]["static_reference_len"]. A global STATIC_REFERENCE pin made the
-# constructor refuse every source, terse ones included, whenever that appendix
-# grew (it went 8154 -> 8832 -> 9078 in the RULES-tool and P3 commits and this
-# whole tool, plus test_make_sft_data / test_replay_match / test_seed_policy,
-# crashed on construction). Re-pinned 2026-10-14 at 4d26ad3b3f51c217, which
-# hashes identically at eef8c9d, 38217eb and 0b90848: the framing has not moved
-# since STAGE0. A stale pin is a pin that can't fail: re-pin deliberately,
-# never delete.
+# BUILDS[...]["static_reference_len"]; a global pin on it would refuse terse
+# sources too whenever that appendix grows. Pinned 2026-10-14 at
+# 4d26ad3b3f51c217, identical at 339f457 (STAGE0), eef8c9d, 38217eb and
+# 0b90848. A stale pin is a pin that can't fail: re-pin deliberately, never
+# delete.
 EXPECT_FRAMING_SHA256 = "4d26ad3b3f51c217"
 
 
@@ -206,9 +204,10 @@ class PreambleBuilder:
             repr(self.format_verbose[:24])
         framing = hashlib.sha256((self.body + self.tail + self.format_terse
                                   + self.format_verbose).encode("utf-8"))
-        assert framing.hexdigest()[:16] == EXPECT_FRAMING_SHA256, \
-            "framing() body/tail/FORMAT drifted: sha256 %s, expected %s" % (
-                framing.hexdigest()[:16], EXPECT_FRAMING_SHA256)
+        # Not an assert: `python3 -O` would skip it and write preambles no game saw.
+        if framing.hexdigest()[:16] != EXPECT_FRAMING_SHA256:
+            raise SystemExit("framing() body/tail/FORMAT drifted: sha256 %s, expected %s"
+                             % (framing.hexdigest()[:16], EXPECT_FRAMING_SHA256))
 
     def base(self, seat, plan, terse):
         fmt = self.format_terse if terse else self.format_verbose
