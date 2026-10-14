@@ -75,14 +75,39 @@ Of the 29 `strategic` rows the ledger marks `ai-inherited`:
   yes/no and order are the seat's), and `chooseEntitiesForEffect` — a `wrapper` class in the ledger,
   i.e. `PlayerControllerAi.chooseEntitiesForEffect` delegates per entity to `chooseSingleEntityForEffect`,
   which the seat *does* own, so it is routed by delegation rather than silent.
-- **26 `rare`/`none`**, each reachable only when a card uses it: `chooseCardsPile`,
-  `choosePermanentsToDestroy`, `chooseCardsToDiscardUnlessType`, `chooseSingleSpellForEffect`,
-  `chooseSpellAbilitiesForEffect`, `chooseCardsForEffectMultiple`, `chooseColors`, `chooseCounterType`,
-  `chooseKeywordForPump`, `chooseNewTargetsFor`, `chooseSingleCardFace`/`State`,
-  `chooseSingleReplacementEffect`, `chooseSingleStaticAbility`, `chooseSaToActivateFromOpeningHand`,
-  `chooseStartingHand`, `chooseTarget`, `confirmStaticApplication`, `playSaFromPlayEffect`,
-  `willPutCardOnTop`, `exertAttackers`, `enlistAttackers`, `chooseCardsForSplice`,
-  `chooseCardsForZoneChange`, `chooseFlipResult`.
+- **26 `rare`/`none`**. Each is reachable only when a card uses it, and the engine effect that calls
+  it is the reachability key (grep the effect class under `forge-game/.../ability/effects/`):
+
+| AI-owned hook | engine effect that calls it | in the pool today? |
+|---|---|---|
+| `chooseCardsPile` | `TwoPilesEffect` (separate into two piles) | no |
+| `choosePermanentsToDestroy` | `SacrificeEffect` | no |
+| `chooseCardsToDiscardUnlessType` | `DiscardEffect` (`UnlessType`) | no |
+| `chooseSingleSpellForEffect` | `CopySpellAbilityEffect` (copy a spell) | no |
+| `chooseSpellAbilitiesForEffect` | `VillainousChoiceEffect` | no |
+| `chooseCardsForEffectMultiple` | `DigMultipleEffect` | no |
+| `chooseColors` | `ChooseColorEffect` / `GameAction` | no |
+| `chooseCounterType` | `CountersPutOrRemoveEffect` | no |
+| `chooseKeywordForPump` | `PumpEffect` | no |
+| `chooseNewTargetsFor` / `chooseTarget` | `ChangeTargetsEffect`, `SpellAbility` (redirect) | no |
+| `chooseSingleCardFace` | `VentureEffect` | no |
+| `chooseSingleCardState` | `UnlockDoorEffect` (rooms) | no |
+| `chooseSingleReplacementEffect` | `ReplacementHandler` | rare |
+| `chooseSingleStaticAbility` | `CostAdjustment` | no |
+| `chooseFlipResult` | `FlipCoinEffect` | no |
+| `willPutCardOnTop` | `ClashEffect` | no |
+| `chooseSaToActivateFromOpeningHand` | `GameAction` | no |
+| `chooseStartingHand` | `BackupPlanService` | no |
+| `confirmStaticApplication` | `Combat` | rare |
+| `playSaFromPlayEffect` | `PlayEffect` (play / exile-and-play) | no |
+| `exertAttackers` / `enlistAttackers` | `PhaseHandler` | no |
+| `chooseCardsForSplice` | `AbilityUtils` (splice) | no |
+| `chooseCardsForZoneChange` | `ChangeZoneEffect` | no |
+| `chooseEntitiesForEffect` | `DigEffect` (wrapper — routes to `chooseSingleEntityForEffect`, owned) | routed |
+
+Only **`allowRepeat`** (via `Eldrazi Confluence`, `eval/decks/painter.txt:24`) is known-reachable by
+the current 16-deck pool; the rest stay dormant until a deck adds the effect. Re-run this table when
+the pool changes: a new card is what promotes a `rare` hook to live.
 - The rest of the `ai-inherited` set is **15 `exotic`** (Un-set, dice, Attractions), **9 `payment`**,
   **7 `mechanics`** and **6 `ui`** — out of strategic scope.
 
