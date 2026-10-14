@@ -102,10 +102,11 @@ existing behavior.
 `context_call` JSONL rows contain actual augmented prompts, raw replies, seat,
 tier, call number, elapsed time and backend-reported token counts. `context_tool`
 rows contain commands and exact results, including denied calls. Game rows include
-`memory_tools` and `memory_tools_version`; aggregation now recognizes these and
-recovered `context_profile`/`context_sha` as provenance conditions. Mixed conditions
-are flagged by the existing provenance reporter. Use separate run directories:
-existing aggregation deduplicates seed/seat pairs and does not partition experiments.
+`memory_tools` and `memory_tools_version`. Aggregation partitions experiments on
+these, on `context_profile`/`context_sha`, and on the tool stamps (`native_tools*`,
+`rules_*`, `lookahead*`): every game-line key is either part of the experiment key
+or an outcome (`eval/test_experiments.py` reads the line's writer to check this).
+Separate run directories are still the clearest way to keep conditions apart.
 
 **Cost limitation:** context-call token fields describe the last transport attempt
 reported by the existing bridge. They are not complete billing for internal
