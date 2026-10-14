@@ -227,11 +227,13 @@ class TestLookahead(unittest.TestCase):
         with mock.patch.dict(os.environ, {"LOOKAHEAD": "1"}, clear=False), tempfile.TemporaryDirectory() as d:
             self.assertEqual(run_batch.build_env(make_args(), 7100, False, Path(d))["LOOKAHEAD"], "0")
             self.assertEqual(run_batch.build_env(make_args(lookahead=True), 7100, False, Path(d))["LOOKAHEAD"], "1")
-        p = subprocess.run([sys.executable, str(RUN_BATCH), "--seeds", "7100", "--exploratory",
-                            "--env", "LOOKAHEAD=1", "--forge-home", "/nonexistent"],
-                           capture_output=True, text=True)
-        self.assertNotEqual(p.returncode, 0)
-        self.assertIn("--lookahead", p.stderr)
+        for kv in ("LOOKAHEAD=1", "NATIVE_TOOLS=1"):
+            p = subprocess.run([sys.executable, str(RUN_BATCH), "--seeds", "7100", "--exploratory",
+                                "--env", kv, "--forge-home", "/nonexistent"],
+                               capture_output=True, text=True)
+            with self.subTest(env=kv):
+                self.assertNotEqual(p.returncode, 0)
+                self.assertIn("--lookahead", p.stderr)
 
     def test_game_lines_and_manifests_keep_it_apart(self):
         off = run_batch.resume_expectation(make_args())
@@ -247,11 +249,16 @@ class TestLookahead(unittest.TestCase):
         # flag is the same condition, and without the flag it is not.
         old = dict(base, env_overrides={"LOOKAHEAD": "1"})
         del old["lookahead"]
+        old_no_env = {k: v for k, v in base.items() if k != "lookahead"}
         self.assertEqual(run_batch.condition_diff(old, la), [])
-        self.assertEqual([k for k, _, _ in run_batch.condition_diff(old, base)], ["lookahead"])
+        self.assertEqual(run_batch.condition_diff(old, base), [("lookahead", True, False)])
         with tempfile.TemporaryDirectory() as d:
             write_game(d, "game-7100-1000.jsonl", game_line(7100, False, lookahead=True))
             self.assertIn("lookahead", run_batch.check_resume_condition(d, base, cited=False))
+            self.assertIsNone(run_batch.check_resume_condition(d, la, cited=False))
+            # A manifest from before the flag, of a shell that exported LOOKAHEAD=1: its lines say so.
+            run_batch.write_manifest(d, old_no_env, seeds=[7100], pairs=False, jobs=1)
+            self.assertIn("lookahead", run_batch.check_resume_condition(d, base, cited=False) or "")
             self.assertIsNone(run_batch.check_resume_condition(d, la, cited=False))
 
 
@@ -295,7 +302,7 @@ class TestResumeIdentity(unittest.TestCase):
         self.assertFalse(run_batch.game_line_matches(old_line, native))
         self.assertEqual(run_batch.condition_diff({"memory_tools": True}, {"memory_tools": True, "native_tools": False}), [])
         self.assertEqual(run_batch.condition_diff({"memory_tools": True}, {"memory_tools": True, "native_tools": True}),
-                         [("native_tools", None, True)])
+                         [("native_tools", False, True)])
 
     def test_expectation_under_memory_tools_rejects_baseline_lines(self):
         exp = run_batch.resume_expectation(make_args(context_profile="v2-memory", memory_tools=True))

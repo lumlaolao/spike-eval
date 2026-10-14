@@ -108,8 +108,9 @@ order-based attribution there may cross games.
 - `--context-profile NAME` sets `CONTEXT_PROFILE`; `--memory-tools` sets
   `MEMORY_TOOLS=1`. Both are the only route: `CONTEXT_PROFILE`,
   `MEMORY_TOOLS` and every `CTX_*` knob are scrubbed from the ambient
-  environment; `--env CONTEXT_PROFILE=…`/`MEMORY_TOOLS=…` is refused in every
-  mode before anything runs; cited mode also refuses `--env CTX_*` (a cited
+  environment; `--env` naming `CONTEXT_PROFILE`, `MEMORY_TOOLS`, `RULES_TOOL`,
+  `NATIVE_TOOLS` or `LOOKAHEAD` is refused in every mode before anything runs
+  (each has its own flag); cited mode also refuses `--env CTX_*` (a cited
   condition is a named profile only). Unset flags leave the JVM defaults
   (`v1-compat`, tools off): the historical baseline is byte-identical.
 - **Batch manifest.** `<out>/batch-manifest.json` (`batch-manifest.v1`)

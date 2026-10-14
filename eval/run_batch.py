@@ -64,6 +64,8 @@ CITED_FORCED_KEYS = ("MULLIGAN_HEURISTIC", "SKIP_HEURISTICS", "PLAN_A", "PLAN_B"
 # e.g. `--env DECK_A=other.txt` would silently break the mirror while the run
 # stays stamped "cited". They are also scrubbed from the ambient environment
 # in build_env so a stray exported var can't leak into any batch.
+# Set by --context-profile, --memory-tools, --rules-tool, --text-tools and --lookahead.
+CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD")
 RUN_DEFINING_KEYS = (
     "DECK_A", "DECK_B", "DECK_A_NAME", "DECK_B_NAME",
     "CONTROLLER_A", "CONTROLLER_B",
@@ -72,11 +74,10 @@ RUN_DEFINING_KEYS = (
     "GAME_SEED", "SWAP_SEATS", "EVAL_OUT", "GAME_CAP_MS",
     "ENGINE_SHA", "OVERLAY_SHA", "DECK_SHA", "RUN_DISCIPLINE",
     "CHECKPOINT_SHA", "SEED_BANK",
-    # Context shape and memory tools are experimental CONDITIONS (they change
-    # what the model can see and do); only --context-profile/--memory-tools set
-    # them, never the ambient environment or --env.
-    "CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD",
-)
+    # Context shape and the seat's tools are experimental CONDITIONS (they change
+    # what the model can see and do); only their flags set them, never the
+    # ambient environment or --env.
+) + CONDITION_ENV_KEYS
 # Per-knob context overrides (CTX_RECENT_EVENTS, ...) stamp a "+ovr" profile
 # name and a different context_sha on the game line. Cited mode refuses them;
 # exploratory mode allows them via --env and records them in the manifest.
@@ -531,7 +532,7 @@ def condition_diff(old, new):
         if k == "env_overrides":
             return {e: v for e, v in env.items() if e != "LOOKAHEAD"}
         return m.get(k)
-    return [(k, old.get(k), new.get(k)) for k in CONDITION_KEYS
+    return [(k, norm(old, k), norm(new, k)) for k in CONDITION_KEYS
             if norm(old, k) != norm(new, k)]
 
 
@@ -589,12 +590,23 @@ def check_resume_condition(out_dir, condition, cited):
     in cited mode an unverifiable legacy dir is refused outright."""
     manifest = load_manifest(out_dir)
     if manifest is not None:
-        diff = condition_diff(manifest.get("condition", {}), condition)
+        # A manifest older than a tool flag cannot say whether the tool was on (an exported
+        # LOOKAHEAD=1 used to leak in unrecorded); where its game lines carry the stamp, they decide.
+        missing = [k for k in ("native_tools", "lookahead") if k not in manifest.get("condition", {})]
+        lines = legacy_dir_condition(out_dir) if missing else None
+        by_lines = [k for k in missing if lines and k in lines["fields"]]
+        diff = [d for d in condition_diff(manifest.get("condition", {}), condition) if d[0] not in by_lines]
         if diff:
             return ("%s already holds games under a different condition; a batch "
                     "directory is one experiment. Differences:\n           - "
                     % out_dir
                     + "\n           - ".join("%s: recorded %r, requested %r" % d for d in diff)
+                    + "\n           Use a new --out for the new condition.")
+        stamped = [(k, lines["fields"][k], bool(condition.get(k))) for k in by_lines
+                   if lines["fields"][k] != [bool(condition.get(k))]]
+        if stamped:
+            return ("%s holds game lines of a different condition than requested:\n           - " % out_dir
+                    + "\n           - ".join("%s: recorded %s, requested %r" % d for d in stamped)
                     + "\n           Use a new --out for the new condition.")
         return None
     legacy = legacy_dir_condition(out_dir)
@@ -605,9 +617,7 @@ def check_resume_condition(out_dir, condition, cited):
         want = condition.get(key)
         if key == "context_profile" and want is None:
             want = "v1-compat"
-        if key == "memory_tools":
-            want = bool(want)
-        if key in ("rules_tool", "native_tools", "lookahead"):
+        if key in ("memory_tools", "rules_tool", "native_tools", "lookahead"):
             want = bool(want)
         if key in ("controller_a", "controller_b", "smart_a", "smart_b",
                    "fast_a", "fast_b") and want is None:
@@ -1024,7 +1034,7 @@ def main():
     args = ap.parse_args()
     for kv in args.env or []:
         k = kv.split("=", 1)[0]
-        if k in ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD"):
+        if k in CONDITION_ENV_KEYS:
             raise SystemExit("run_batch: --env %s is not allowed in any mode; use "
                              "--context-profile / --memory-tools / --rules-tool / --text-tools / "
                              "--lookahead so the condition is recorded and guarded." % k)
