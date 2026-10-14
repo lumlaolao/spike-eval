@@ -164,8 +164,8 @@ def _write_win_source(d, seed, winner="A"):
 
 # Sources are tagged :FIX, not :STAGE0, deliberately. These tests are about SEED
 # GOVERNANCE; the build tag is incidental. STAGE0 pins static_reference_len=7492
-# (what its runs actually saw) while the working tree's has grown past it, so make_sft_data.py rightly REFUSES to
-# reconstruct STAGE0 smart-tier system messages rather than append text those
+# (what its runs actually saw) while the working tree's STATIC_REFERENCE has grown
+# past it, so make_sft_data.py rightly REFUSES to reconstruct STAGE0 smart-tier system messages rather than append text those
 # games never saw. That refusal wrote no output, and these tests then failed
 # reading a README that was never created: a real guard breaking an unrelated
 # test, not a bug in either. FIX sets static_reference_on_smart=False, so it

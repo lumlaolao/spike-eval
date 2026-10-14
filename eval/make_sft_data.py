@@ -87,17 +87,17 @@ BUILDS = {
 
 MODEL_TIERS = ("smart", "fast")  # only model-authored tiers become examples
 
-# Pin on the framing EVERY build reconstructs: base body, tail and both FORMAT
-# branches (sha256 prefix of their concatenation). Terse sources (fast tier,
-# ai-teacher, dagger) are only exact while these bytes match what their games
-# saw. STATIC_REFERENCE is deliberately NOT pinned here: only builds with
-# static_reference_on_smart append it, and system() checks it per build against
-# BUILDS[...]["static_reference_len"]; a global pin on it would refuse terse
-# sources too whenever that appendix grows. Pinned 2026-10-14 at
-# 4d26ad3b3f51c217, identical at 339f457 (STAGE0), eef8c9d, 38217eb and
+# Pin on the framing EVERY build reconstructs: the seat and plan lines, base
+# body, tail and both FORMAT branches (sha256 prefix of their concatenation).
+# Terse sources (fast tier, ai-teacher, dagger) are only exact while these bytes
+# match what their games saw. STATIC_REFERENCE is deliberately NOT pinned here:
+# only builds with static_reference_on_smart append it, and system() checks it
+# per build against BUILDS[...]["static_reference_len"]; a global pin on it
+# would refuse terse sources too whenever that appendix grows. Pinned at
+# 0bfdf91bdd367c92, identical at 339f457 (STAGE0), eef8c9d, 38217eb and
 # 0b90848. A stale pin is a pin that can't fail: re-pin deliberately, never
 # delete.
-EXPECT_FRAMING_SHA256 = "4d26ad3b3f51c217"
+EXPECT_FRAMING_SHA256 = "0bfdf91bdd367c92"
 
 
 # ------------------------------------------------------- Java literal parsing
@@ -202,11 +202,12 @@ class PreambleBuilder:
             repr(self.format_terse[:24])
         assert self.format_verbose.startswith('FORMAT: at most two'), \
             repr(self.format_verbose[:24])
-        framing = hashlib.sha256((self.body + self.tail + self.format_terse
-                                  + self.format_verbose).encode("utf-8"))
+        framing = hashlib.sha256((self.seat_prefix + self.seat_suffix + self.plan_prefix
+                                  + self.plan_suffix + self.body + self.tail
+                                  + self.format_terse + self.format_verbose).encode("utf-8"))
         # Not an assert: `python3 -O` would skip it and write preambles no game saw.
         if framing.hexdigest()[:16] != EXPECT_FRAMING_SHA256:
-            raise SystemExit("framing() body/tail/FORMAT drifted: sha256 %s, expected %s"
+            raise SystemExit("framing() drifted: sha256 %s, expected %s"
                              % (framing.hexdigest()[:16], EXPECT_FRAMING_SHA256))
 
     def base(self, seat, plan, terse):
