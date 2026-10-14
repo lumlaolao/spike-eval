@@ -53,9 +53,19 @@ tournament pool automatically. If you want them out of the headline pool, move t
 `eval/decks/hooks/` and pass `--deck` explicitly (the coverage audit scores `eval/decks/*.txt` at the
 top level only).
 
+## Verified
+
+- Card-name resolution: all 60 names per deck resolve in Forge's card DB (the loader's own key).
+- Load test (`hook-piles`, 2026-10-14): a zero-model floor mirror, seed 42, ran to turn 108 with no
+  load error and the deck's cards in the log (`Fact or Fiction`, `Gifts Ungiven`, 26 `Island`; none
+  of the default Grixis Reanimator cards). Floor short-circuits plays, so it proves the deck **loads**,
+  not that the hook fired.
+
 ## Not done
 
-- No zero-model load test has been recorded yet on these seven decks; the check performed is
-  card-name resolution against Forge's card DB (all 60 per deck), which is the loader's own key.
-- No LLM game has been read on them, so no defect is filed from a game — the hooks' issues (#126,
-  #127, #128) come from the code inventory.
+- No model game has been read on these decks yet, so no defect is filed from a game — the hooks'
+  issues (#126, #127, #128) come from the code inventory. The floor arm cannot reach a pile/mode
+  choice; use the `random` arm (zero-model, full menu) or one LLM game to read the hook.
+- Six hooks remain uncovered by a deck (`choosePermanentsToDestroy`, `chooseColors`,
+  `chooseCounterType`, `chooseKeywordForPump`, `chooseSingleCardFace`, `playSaFromPlayEffect`; the
+  last needs a `DB$ Play` card the cardsfolder does not currently carry as a probe target).

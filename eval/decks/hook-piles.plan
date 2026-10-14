@@ -1,1 +1,1 @@
-Blue control built to reach TwoPilesEffect: Fact or Fiction, Gifts Ungiven and Sphinx of Uthuun make a player choose among piles (chooseCardsPile, AI-owned — issue #129's map). Counterspell and Force of Will buy the time to cast them.
+Blue control built to reach TwoPilesEffect: Fact or Fiction, Gifts Ungiven and Sphinx of Uthuun make a player choose among piles (chooseCardsPile, AI-owned — see docs/harness/ROOT-INTERFACES.md). Counterspell and Force of Will buy the time to cast them.
