@@ -4567,7 +4567,7 @@ public final class LlmSpikeGui {
         }
 
         /** Enumerate the play menu exactly as {@link #chooseSpellAbilityToPlay} builds it — castable,
-         *  affordable, legally-targetable non-land/non-mana spells (capped at 12), plus distinct
+         *  affordable, legally-targetable non-land/non-mana spells (every one), plus distinct
          *  playable lands by name (capped at 4, only on the player's own main phase). Factored out of
          *  the LLM seat's play method so the ai-teacher seat builds the byte-identical option list; the
          *  LLM method calls this in place, so its output is unchanged. Read-only w.r.t. real game state
@@ -4607,8 +4607,9 @@ public final class LlmSpikeGui {
                         if (tr != null && tr.getAllCandidates(sa, false).size() < Math.max(1, sa.getMinTargets())) continue;
                     } catch (Exception ignore) { /* can't evaluate -> offer it, prior behavior */ }
                 }
+                // Uncapped: a cap at 12 silently dropped every later spell (issue #106), and the
+                // alternative-cost entries made a full blue hand reach it.
                 options.add(sa);
-                if (options.size() >= 12) break;
             }
             // Distinct lands we could play this main phase (by name), each offered as its own option so the
             // model chooses WHICH land — colored sources, fetchlands, painlands all matter for sequencing.

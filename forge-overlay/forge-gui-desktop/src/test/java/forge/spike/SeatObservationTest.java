@@ -758,4 +758,20 @@ public class SeatObservationTest {
         List<String> labels = LlmSpikeGui.PlayerControllerLLM.buildPlayLabels(po.spells, po.landCards);
         Assert.assertTrue(labels.stream().anyMatch(l -> l.contains("Unmask")), labels.toString());
     }
+    /** Issue #106: the menu stopped adding spells after the twelfth, and said nothing. Thirteen
+     *  zero-cost spells in hand must give thirteen CAST lines; on the capped menu the thirteenth
+     *  (Welding Jar, last in hand order) is missing. */
+    @Test
+    public void everyCastableSpellIsOfferedPastTwelve() {
+        Game g = bareGame();
+        Player me = g.getPlayers().get(0);
+        String[] hand = {"Ornithopter", "Memnite", "Phyrexian Walker", "Shield Sphere", "Mox Pearl",
+                "Mox Sapphire", "Mox Jet", "Mox Ruby", "Mox Emerald", "Lotus Petal", "Mishra's Bauble",
+                "Urza's Bauble", "Welding Jar"};
+        for (String n : hand) card(n, me, ZoneType.Hand);
+        LlmSpikeGui.PlayerControllerLLM.PlayOptions po = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true);
+        List<String> labels = LlmSpikeGui.PlayerControllerLLM.buildPlayLabels(po.spells, po.landCards);
+        for (String n : hand)
+            Assert.assertTrue(labels.stream().anyMatch(l -> l.startsWith("CAST " + n + " ")), n + " missing from " + labels);
+    }
 }
