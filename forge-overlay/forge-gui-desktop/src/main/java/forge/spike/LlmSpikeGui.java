@@ -3043,13 +3043,7 @@ public final class LlmSpikeGui {
                 // runs/loop/g09 four Ponders each buried the card the seat meant to draw. Under the
                 // faithful profile the question is asked top-down and the answer reversed, as Forge's
                 // own human controller does; legacy profiles keep their bytes and their literal wording.
-                // Only where the cards really go on top: Dig's rest pile goes to LibraryPosition2 (default
-                // the bottom), which orderedMoveToTopOfLibrary does not read (Goblin Ringleader, Flow State).
-                ApiType api = source == null ? null : source.getApi();
-                boolean topDown = observer != null && destinationZone == ZoneType.Library
-                        && (api == ApiType.RearrangeTopOfLibrary
-                            || ((api == ApiType.ChangeZone || api == ApiType.ChangeZoneAll)
-                                && orderedMoveToTopOfLibrary(destinationZone, source)));
+                boolean topDown = observer != null && orderGoesOnTop(destinationZone, source);
                 String q = "Put these " + opts.size() + " card(s)" + srcOf(source) + " into " + destinationZone
                         + " in your preferred order. List ALL " + opts.size() + " of them "
                         + (topDown ? "from the TOP down: the first card you name will be the top card, drawn first."
@@ -3069,6 +3063,38 @@ public final class LlmSpikeGui {
                 auto("order(err)->as-is");
                 return cards;
             }
+        }
+
+        /** Whether the cards of an order end on top of the library, so the LAST one returned is the top.
+         *  orderedMoveToTopOfLibrary reads only LibraryPosition / RevealedLibraryPosition, and with neither
+         *  it says "top", which is wrong for Dig's rest pile: DigEffect places that pile at LibraryPosition2
+         *  (default -1, the bottom: Goblin Ringleader, Flow State; 0, the top: Cruel Fate, issue #107). Dig
+         *  asks for its chosen pile and its rest pile with the same SpellAbility, so when both go to the
+         *  library the pile cannot be told apart, and the literal wording is kept: even both at 0 puts the
+         *  rest pile above the chosen one, so "the top card, drawn first" would be false for the chosen pile.
+         *  Only position 0 is the top card; a deeper position keeps the literal wording too. */
+        private boolean orderGoesOnTop(ZoneType destinationZone, SpellAbility sa) {
+            if (destinationZone != ZoneType.Library || sa == null) return false;
+            ApiType api = sa.getApi();
+            if (api == ApiType.RearrangeTopOfLibrary) return true;
+            if (api == ApiType.ChangeZone || api == ApiType.ChangeZoneAll) return orderedMoveToTopOfLibrary(destinationZone, sa);
+            if (api == ApiType.Dig) {
+                boolean chosenHere = ZoneType.smartValueOf(sa.getParamOrDefault("DestinationZone", "Hand")) == ZoneType.Library;
+                boolean restHere = ZoneType.smartValueOf(sa.getParamOrDefault("DestinationZone2", "Library")) == ZoneType.Library;
+                if (chosenHere == restHere) return false;
+                return Integer.parseInt(sa.getParamOrDefault(restHere ? "LibraryPosition2" : "LibraryPosition", "-1")) == 0;
+            }
+            if (api == ApiType.DigUntil) {
+                // DigUntilEffect: the revealed pile goes to RevealedLibraryPosition (absent = 0, the top), or,
+                // when nothing was found, to NoneFoundDestination at NoneFoundLibraryPosition.
+                boolean revealedHere = ZoneType.smartValueOf(sa.getParam("RevealedDestination")) == ZoneType.Library;
+                boolean noneHere = ZoneType.smartValueOf(sa.getParam("NoneFoundDestination")) == ZoneType.Library;
+                boolean revealedTop = forge.game.ability.AbilityUtils.calculateAmount(sa.getHostCard(), sa.getParam("RevealedLibraryPosition"), sa) == 0;
+                boolean noneTop = forge.game.ability.AbilityUtils.calculateAmount(sa.getHostCard(), sa.getParam("NoneFoundLibraryPosition"), sa) == 0;
+                if (revealedHere && noneHere) return revealedTop && noneTop;
+                return noneHere ? noneTop : revealedTop;
+            }
+            return false;
         }
 
         /** Optional decisions are model choices; engine execution and target selection happen later. */
@@ -4254,7 +4280,7 @@ public final class LlmSpikeGui {
             // removeSVar/setSVar (which touch the private map alone).
             //
             // KNOWN RESIDUAL COVERAGE GAPS (accepted; the delta below is surgical, not total):
-            //   * `chain` covers the MENU (po.spells + po.landPlays, capped 12+4) and their sub-chains. The
+            //   * `chain` covers the MENU (po.spells, every castable entry, + po.landPlays capped at 4) and their sub-chains. The
             //     AI additionally walks getAvailableCards()/getPossibleETBCounters() over graveyard, exile
             //     and library-top, so SVar writes to SAs OUTSIDE the menu are not rolled back. The menu is
             //     what the student can actually cast, so those are the SAs that matter for the cast itself.
@@ -4304,8 +4330,8 @@ public final class LlmSpikeGui {
                         return -1; // genuine PASS — same as the student's play-PASS (-1)
                     }
                     int idx = PlayerControllerAiLogging.indexOfPlay(r.get(0), po);
-                    // AI picked an ability OUTSIDE our capped play menu (activated/mana ability the 12-spell
-                    // menu excludes): this is NOT a pass. Return null so build_dagger_examples drops the row
+                    // AI picked an ability OUTSIDE our play menu (an activated/mana ability the menu
+                    // excludes, or a land past the 4-land cap): this is NOT a pass. Return null so build_dagger_examples drops the row
                     // instead of minting a false CHOICE:PASS target — mirroring the ai-log seat's
                     // "ai-choice-not-in-menu" fallback (which build_ai_teacher_examples drops via drop_fallback).
                     // Only a genuine empty AI reply maps to -1/PASS.
@@ -4624,7 +4650,7 @@ public final class LlmSpikeGui {
         }
 
         /** Enumerate the play menu exactly as {@link #chooseSpellAbilityToPlay} builds it — castable,
-         *  affordable, legally-targetable non-land/non-mana spells (capped at 12), plus distinct
+         *  affordable, legally-targetable non-land/non-mana spells (every one), plus distinct
          *  playable lands by name (capped at 4, only on the player's own main phase). Factored out of
          *  the LLM seat's play method so the ai-teacher seat builds the byte-identical option list; the
          *  LLM method calls this in place, so its output is unchanged. Read-only w.r.t. real game state
@@ -4664,8 +4690,9 @@ public final class LlmSpikeGui {
                         if (tr != null && tr.getAllCandidates(sa, false).size() < Math.max(1, sa.getMinTargets())) continue;
                     } catch (Exception ignore) { /* can't evaluate -> offer it, prior behavior */ }
                 }
+                // Every castable entry is offered: a cap here hides spells from the seat without a log
+                // line (issue #106).
                 options.add(sa);
-                if (options.size() >= 12) break;
             }
             // Distinct lands we could play this main phase (by name), each offered as its own option so the
             // model chooses WHICH land — colored sources, fetchlands, painlands all matter for sequencing.
