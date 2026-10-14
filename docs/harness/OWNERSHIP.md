@@ -108,7 +108,7 @@ option (never Forge AI):
 | `payCostToPreventEffect` | whether to pay an "unless" cost (Daze / Force Spike / Spell Pierce / Mana Tithe); payment mechanics stay the engine's | decline |
 | `chooseOptionalCosts` | which optional additional costs to pay (kicker / buyback / entwine), over the affordable ones | decline all |
 | `orderSimultaneousSa` | the order simultaneous triggers resolve in (targeting stays the engine's) | as-triggered order |
-| `getCostDecisionMaker` | which permanent to sacrifice for a NON-mana cost (e.g. Cabal Therapy flashback), via `LlmCostDecision`; the candidate filter is copied from `ComputerUtil.chooseSacrificeType` so legality matches the engine | the engine's `AiCostDecision` |
+| `getCostDecisionMaker` | which card a NON-mana cost sacrifices (Cabal Therapy flashback), exiles (Unmask), returns to hand (Daze) or taps (Glare of Subdual), via `LlmCostDecision`; each candidate filter is copied from the engine's `ComputerUtil.choose*Type` routine so legality matches the engine | the engine's `AiCostDecision` |
 
 Inventory after these overrides: **47 LLM / 72 AI / 14 BASE** (48 / 71 / 14 after the 2026-10-13 `playChosenSpellAbility` override below); **3 silent core strategic/payment
 hooks remain** (down from 13). (The 2026-10-13 engine pin added three sticker-mechanic hooks, all
@@ -134,8 +134,8 @@ against the engine: Goblin Bombardment sacrificed Memnite with zero model asks; 
 flashback with Ajani, Nacatl Pariah and another Cat in play sacrificed **Ajani**.
 
 `PlayerControllerLLM.playChosenSpellAbility` now runs the same steps as the engine routine for every
-cast and activation and pays with `LlmCostDecision`, which routes a choosable sacrifice to the model
-and hands every other cost part to the engine's own decision. The cost is read after optional
+cast and activation and pays with `LlmCostDecision`, which routes a choosable sacrifice, exile, return
+or tap to the model and hands every other cost part to the engine's own decision. The cost is read after optional
 keyword costs are added, so a Casualty sacrifice is covered. If the model route fails and the engine
 chooses, it is counted as a `[FALLBACK->AI]` delegation. Tests: `LineFindingProbeTest`. Still not
 routed: an ability with a `TargetingPlayer` parameter stays on the inherited path, and

@@ -54,7 +54,8 @@ Commit subject: `type(scope): what is now true`, at most 100 characters, no trai
 - The body says why, what was measured, and what would have caught it. Wrap at 100.
 - Merge and revert commits are exempt from the subject form. Any commit that is not trivial has a body.
 
-Branch: `type/short-name` (`fix/own-trigger-window`).
+Branch: `type/short-name` (`fix/own-trigger-window`). A branch the runtime assigns (`claude/...`) may
+be used as it is; the PR title then carries the type.
 
 PR title: the same form as a commit subject. PR body, in this order:
 

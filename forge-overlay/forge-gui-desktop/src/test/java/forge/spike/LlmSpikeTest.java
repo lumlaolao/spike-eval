@@ -1723,6 +1723,79 @@ public class LlmSpikeTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** A tap-type cost (Glare of Subdual: "Tap an untapped creature you control") was paid by Forge's AI,
+     *  lowest power first, with no row, so the AI chose which creature stayed up to attack or block.
+     *  The real play path pays with LlmCostDecision (playChosenSpellAbility), so the pick must be the
+     *  seat's, among the untapped creatures. A mana source reserved by some OTHER ability's test payment
+     *  (the menu test-pays many) must not hide a creature from a cost that pays no mana. */
+    @Test
+    public void aTapTypeCostIsTheSeatsChoice() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        Card glare = addBattlefieldCard("Glare of Subdual", me);
+        addBattlefieldCard("Savannah Lions", me).setTapped(true);
+        Card elves = addBattlefieldCard("Llanowar Elves", me);
+        addBattlefieldCard("Grizzly Bears", me);
+        addBattlefieldCard("Serra Angel", me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+        me.dangerouslySetController(ctrl);
+        forge.ai.AiCardMemory.rememberCard(me, elves, forge.ai.AiCardMemory.MemorySet.PAYS_TAP_COST); // stale
+        forge.game.spellability.SpellAbility ab = activated(glare, me);
+
+        forge.game.cost.PaymentDecision d = new LlmCostDecision(me, ab, false).visit(tapPart(ab));
+        Assert.assertNotNull(d);
+        Assert.assertEquals(bridge.prompts.size(), 1, "the tap was not asked");
+        Assert.assertTrue(bridge.prompts.get(0).contains("TAP 1"), bridge.prompts.get(0));
+        // Candidates: Elves, Bears, Angel. Offering the tapped Lions, or hiding the Elves, moves pick 1.
+        Assert.assertEquals(d.cards.size(), 1);
+        Assert.assertEquals(d.cards.get(0).getName(), "Llanowar Elves", "the seat's pick (1) was not used");
+        tapPart(ab).payAsDecided(me, d, ab, false);
+        Assert.assertTrue(elves.isTapped(), "paying the decision did not tap the Elves");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** Volrath's Gardens costs {2} AND a tapped creature. The mana part is paid first, by the engine,
+     *  and taps Llanowar Elves along with the Forest; a tap of the Elves for the second part would then
+     *  be a silent no-op and the cost would go unpaid. So the Elves this ability's own mana payment
+     *  will use are not offered. */
+    @Test
+    public void aTapTypeCostDoesNotOfferWhatItsOwnManaPaymentTaps() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        Card gardens = addBattlefieldCard("Volrath's Gardens", me);
+        addBattlefieldCard("Forest", me);
+        addBattlefieldCard("Llanowar Elves", me).setSickness(false); // a mana source, not just a creature
+        addBattlefieldCard("Grizzly Bears", me);
+        addBattlefieldCard("Serra Angel", me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 2");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+        me.dangerouslySetController(ctrl);
+        forge.game.spellability.SpellAbility ab = activated(gardens, me);
+
+        forge.game.cost.PaymentDecision d = new LlmCostDecision(me, ab, false).visit(tapPart(ab));
+        Assert.assertNotNull(d);
+        Assert.assertEquals(bridge.prompts.size(), 1, "the tap was not asked");
+        // Candidates: Bears, Angel. If the Elves were offered, pick 2 would be the Bears.
+        Assert.assertEquals(d.cards.get(0).getName(), "Serra Angel", "the Elves the {2} needs were offered");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    private static forge.game.spellability.SpellAbility activated(Card host, Player me) {
+        forge.game.spellability.SpellAbility ab = null;
+        for (forge.game.spellability.SpellAbility s : host.getSpellAbilities()) if (!s.isSpell()) ab = s;
+        ab.setActivatingPlayer(me);
+        return ab;
+    }
+
+    private static forge.game.cost.CostTapType tapPart(forge.game.spellability.SpellAbility ab) {
+        for (forge.game.cost.CostPart part : ab.getPayCosts().getCostParts())
+            if (part instanceof forge.game.cost.CostTapType) return (forge.game.cost.CostTapType) part;
+        throw new AssertionError("fixture: " + ab + " has no tap-type cost");
+    }
+
     /** runs/loop/g09 (seed 62, UR Delver on haiku): Daze by its alternative cost, and the seat's plan
      *  said "returning my tapped Volcanic Island" -- but which Island a return cost bounces was Forge
      *  AI's (lowest power first, no row). With a tapped and an untapped Island that is the decision. */

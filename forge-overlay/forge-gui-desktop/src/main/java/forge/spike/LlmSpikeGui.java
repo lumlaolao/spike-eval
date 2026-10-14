@@ -3989,7 +3989,7 @@ public final class LlmSpikeGui {
          *  often the engine brain — not the LLM — actually made a call. Goal: keep this near zero. */
         /** A cost decision the model should have made fell through to the engine's AI. Counted and
          *  logged like every other delegation, so the ai=0 invariant sees it. */
-        void costDecisionFellBack(String why) { noteAi("sacrifice-cost(" + why + ")"); }
+        void costDecisionFellBack(String kind, String why) { noteAi(kind + "(" + why + ")"); }
 
         private void noteAi(String where) {
             aiDelegations++;
