@@ -344,6 +344,21 @@ class TestPlanExecuteAndTierFastTypes(unittest.TestCase):
                          [("plan_execute", True, False),
                           ("tier_fast_types", "target,targets", "")])
 
+    def test_unstamped_lines_of_a_pre_flag_batch_count_as_done(self):
+        # A batch run with `--env PLAN_EXECUTE=1 TIER_FAST_TYPES=...` before the flags: its unstamped
+        # lines ran with them on, so resuming under the flags must not replay its finished games.
+        manifest = {"condition": {"env_overrides": {"PLAN_EXECUTE": "1", "TIER_FAST_TYPES": "targets"}}}
+        args = make_args(plan_execute=True, tier_fast_types="targets")
+        args.unstamped_plan_execute = run_batch.unstamped_play_switch(manifest, "plan_execute",
+                                                                      "PLAN_EXECUTE")
+        args.unstamped_tier_fast_types = run_batch.unstamped_play_switch(manifest, "tier_fast_types",
+                                                                         "TIER_FAST_TYPES")
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False), run_batch.resume_expectation(args)))
+        # Without a pre-flag manifest that proves the value, an unstamped line is not this batch's.
+        self.assertFalse(run_batch.game_line_matches(
+            game_line(1, False), run_batch.resume_expectation(
+                make_args(plan_execute=True, tier_fast_types="targets"))))
+
     def test_tier_fast_types_is_normalized(self):
         self.assertEqual(run_batch.normalize_tier_fast_types("Targets, target ,targets"), "target,targets")
         self.assertEqual(run_batch.normalize_tier_fast_types(None), "")

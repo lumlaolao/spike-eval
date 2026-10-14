@@ -31,6 +31,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import aggregate  # noqa: E402
 
 AGG = Path(__file__).resolve().parent / "aggregate.py"
+GUI = (Path(__file__).resolve().parent.parent / "forge-overlay" / "forge-gui-desktop" / "src"
+       / "main" / "java" / "forge" / "spike" / "LlmSpikeGui.java")
+
+
+def game_line_keys():
+    """The game-line field names, in order, read from the writer's single statement. One parser, so
+    the two tests that read it (the key-coverage and the env-coverage checks) move together when the
+    writer changes."""
+    java = GUI.read_text(encoding="utf-8")
+    start = java.index('EvalLog.write("{\\"t\\":\\"game\\"')
+    return re.findall(r'\\"([a-z_0-9]+)\\":', java[start:java.index(");", start)])
 
 
 def modern_line(seed, swap, winner, **kw):
@@ -307,10 +318,7 @@ class GroupingTest(unittest.TestCase):
         """The game line's single writer, read from the Java source. A stamp left out of
         PROVENANCE_FIELDS pools the runs it was written to separate; that happened to memory_tools,
         claude_effort_* and the nine tool fields, each found only after the fact."""
-        java = (Path(__file__).resolve().parent.parent / "forge-overlay" / "forge-gui-desktop" / "src" / "main"
-                / "java" / "forge" / "spike" / "LlmSpikeGui.java").read_text(encoding="utf-8")
-        start = java.index('EvalLog.write("{\\"t\\":\\"game\\"')
-        keys = re.findall(r'\\"([a-z_0-9]+)\\":', java[start:java.index(");", start)])
+        keys = game_line_keys()
         self.assertIn("native_tools", keys)          # the extraction found the statement
         self.assertEqual(keys[-1], "claude_effort_fast")  # ... and read it to its end
         outcome = {"t", "seed", "swap", "winner", "turns", "win_condition", "duration_ms"}
@@ -343,6 +351,8 @@ class GameLineStampCoverageTest(unittest.TestCase):
         "FAST_MODEL": "fast_a", "FAST_MODEL_A": "fast_a", "FAST_MODEL_B": "fast_b",
         "DECKLIST": "deck_a", "DECK_A_NAME": "deck_a", "DECK_B_NAME": "deck_b",
         "CLAUDE_BRIDGE_EFFORT": "claude_effort_smart",
+        "CLAUDE_BRIDGE_EFFORT_FAST": "claude_effort_fast",
+        "CLAUDE_BRIDGE_EFFORT_SMART": "claude_effort_smart",
         "OPENROUTER_BASE_URL": "openrouter_base_url", "OPENROUTER_MODEL_CFG": "model_cfg_sha",
     }
     # Read by the harness, but not a condition: transport, credentials, recording and process
@@ -353,18 +363,26 @@ class GameLineStampCoverageTest(unittest.TestCase):
         "OPENROUTER_HTTP_TITLE", "OPENROUTER_TIMEOUT_MS", "RECORD", "RECORD_FPS", "RECORD_OUT",
         "RULES_FILE", "SHADOW_AI",
     }
+    # The CTX_* knobs change what the model sees, but are recorded through context_sha and the
+    # "+ovr" profile name rather than a field of their own (ContextProfile.fromEnv), so they are not
+    # required to have a stamp -- the sha is what partitions those experiments.
+    CONTEXT_PREFIX = "CTX_"
 
     def test_every_env_read_is_stamped_or_allowlisted(self):
-        java = (Path(__file__).resolve().parent.parent / "forge-overlay" / "forge-gui-desktop" / "src"
-                / "main" / "java" / "forge" / "spike" / "LlmSpikeGui.java").read_text(encoding="utf-8")
-        start = java.index('EvalLog.write("{\\"t\\":\\"game\\"')
-        keys = set(re.findall(r'\\"([a-z_0-9]+)\\":', java[start:java.index(");", start)]))
+        java = GUI.read_text(encoding="utf-8")
+        keys = set(game_line_keys())
         self.assertIn("native_tools", keys)          # the extraction found the game-line statement
-        names = set(re.findall(r'System\.getenv\("([A-Z_0-9]+)"\)', java))
+        # Every env-reading form in this file: System.getenv("X"), the getOrDefault fallbacks, the
+        # envInt helper (which reads a name its caller passes), and the effort ternary. A read
+        # through a NEW helper must be added here with the helper.
+        names = set(re.findall(r'(?:System\.getenv|envInt)\((?:fastTier \? )?"([A-Z_0-9]+)"', java))
+        names |= set(re.findall(r'System\.getenv\(fastTier \? "[A-Z_0-9]+" : "([A-Z_0-9]+)"\)', java))
         names |= set(re.findall(r'System\.getenv\(\)\.getOrDefault\("([A-Z_0-9]+)"', java))
-        self.assertIn("TIER_FAST_TYPES", names)      # ... and the reads of the writer itself
+        for probe in ("TIER_FAST_TYPES", "CTX_RECENT_EVENTS", "CLAUDE_BRIDGE_EFFORT_SMART"):
+            self.assertIn(probe, names)              # each form was actually read
         stray = sorted(n for n in names
-                       if n not in self.NON_CONDITION_ENV
+                       if not n.startswith(self.CONTEXT_PREFIX)
+                       and n not in self.NON_CONDITION_ENV
                        and self.STAMPED_ALIASES.get(n, n.lower()) not in keys)
         self.assertEqual(stray, [],
                          "stamp these on the game line (aggregate.PROVENANCE_FIELDS) so their "

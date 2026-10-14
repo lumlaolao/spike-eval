@@ -60,8 +60,7 @@ SPIKE_REL = "forge-gui-desktop/src/main/java/forge/spike"
 SPIKE_FILES = ("LlmSpikeGui.java", "LlmSpikeHeadless.java")
 # Env keys cited mode owns; a user --env override of these is refused.
 CITED_FORCED_KEYS = ("MULLIGAN_HEURISTIC", "SKIP_HEURISTICS", "PLAN_A", "PLAN_B")
-# Set by --context-profile, --memory-tools, --rules-tool, --text-tools, --lookahead,
-# --plan-execute and --tier-fast-types.
+# Set only by their dedicated flags (listed in the module docstring).
 CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD",
                       "PLAN_EXECUTE", "TIER_FAST_TYPES")
 # Condition env keys that a pre-flag manifest could only have recorded as an --env override. The
@@ -431,12 +430,15 @@ def resume_expectation(args):
         expect["rules_tool"] = [False, ABSENT]
     on = getattr(args, "lookahead", False)
     expect["lookahead"] = [on] if on != getattr(args, "unstamped_lookahead", False) else [on, ABSENT]
-    # The two opt-in play switches (issue #117). Off accepts a pre-stamp line (when the harness did
-    # not yet stamp them, it could only have run with the default off); on demands the stamp, so a
-    # line from a batch that never turned it on is replayed rather than counted as this batch's.
-    expect["plan_execute"] = [True] if getattr(args, "plan_execute", False) else [False, ABSENT]
+    # The two opt-in play switches (issue #117). A line with no stamp is read as what a pre-flag
+    # manifest recorded (an --env override), else off, so a batch run with `--env TIER_FAST_TYPES=...`
+    # before the flag resumes instead of replaying its finished games as "a DIFFERENT condition".
+    pe = bool(getattr(args, "plan_execute", False))
+    up = bool(getattr(args, "unstamped_plan_execute", None))
+    expect["plan_execute"] = [pe] if pe != up else [pe, ABSENT]
     tft = normalize_tier_fast_types(getattr(args, "tier_fast_types", None))
-    expect["tier_fast_types"] = [tft] if tft else ["", ABSENT]
+    utft = normalize_tier_fast_types(getattr(args, "unstamped_tier_fast_types", None))
+    expect["tier_fast_types"] = [tft] if tft != utft else [tft, ABSENT]
     for field, val in (("controller_a", args.controller_a), ("controller_b", args.controller_b),
                        ("smart_a", args.smart_a), ("smart_b", args.smart_b),
                        ("fast_a", args.fast_a), ("fast_b", args.fast_b)):
@@ -624,6 +626,16 @@ def unstamped_lookahead(manifest):
     if manifest is None or "lookahead" in manifest.get("condition", {}):
         return False
     return condition_diff_norm(manifest.get("condition", {}), "lookahead")
+
+
+def unstamped_play_switch(manifest, key, env_key):
+    """The value a game line with no `<key>` stamp ran with, when a manifest from before that flag
+    recorded it as an --env override (`--env PLAN_EXECUTE=1`, `--env TIER_FAST_TYPES=...`); None when
+    the manifest already has the key (every line was written by a JVM that stamps it) or cannot say.
+    Mirrors unstamped_lookahead: these two switches were settable by --env before they got flags."""
+    if manifest is None or key in manifest.get("condition", {}):
+        return None
+    return condition_diff_norm(manifest.get("condition", {}), key)
 
 
 def lookahead_problem(out_dir, unstamped, condition):
@@ -1178,7 +1190,11 @@ def main():
     # different condition; then record this invocation.
     condition = batch_condition(args, cited)
     try:
-        args.unstamped_lookahead = unstamped_lookahead(load_manifest(out_dir))
+        manifest = load_manifest(out_dir)
+        args.unstamped_lookahead = unstamped_lookahead(manifest)
+        args.unstamped_plan_execute = unstamped_play_switch(manifest, "plan_execute", "PLAN_EXECUTE")
+        args.unstamped_tier_fast_types = unstamped_play_switch(manifest, "tier_fast_types",
+                                                               "TIER_FAST_TYPES")
         problem = check_resume_condition(out_dir, condition, cited)
     except ManifestError as e:
         problem = str(e)
