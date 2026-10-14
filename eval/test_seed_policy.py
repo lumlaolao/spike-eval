@@ -164,14 +164,14 @@ def _write_win_source(d, seed, winner="A"):
 
 # Sources are tagged :FIX, not :STAGE0, deliberately. These tests are about SEED
 # GOVERNANCE; the build tag is incidental. STAGE0 pins static_reference_len=7492
-# (what its runs actually saw) while the working tree is now 8154 — task #8 added
-# the two OPP CAST/LANDS lines — so make_sft_data.py rightly REFUSES to
-# reconstruct STAGE0 smart-tier system messages rather than append text those
-# games never saw. That refusal wrote no output, and these tests then failed
-# reading a README that was never created: a real guard breaking an unrelated
-# test, not a bug in either. FIX sets static_reference_on_smart=False, so it
-# never needs the appendix and is stable across that drift. Do not "fix" this
-# back to STAGE0 — re-pin BUILDS["STAGE0"] only from a checkout at its commit.
+# (what its runs actually saw) while the working tree's STATIC_REFERENCE has grown
+# past it, so make_sft_data.py rightly REFUSES to reconstruct STAGE0 smart-tier
+# system messages rather than append text those games never saw. That refusal
+# wrote no output, and these tests then failed reading a README that was never
+# created: a real guard breaking an unrelated test, not a bug in either. FIX
+# sets static_reference_on_smart=False, so it never needs the appendix and is
+# stable across that drift. Do not "fix" this back to STAGE0 — re-pin
+# BUILDS["STAGE0"] only from a checkout at its commit.
 def run_make_sft(*args):
     proc = subprocess.run(
         [sys.executable, str(HERE / "make_sft_data.py")] + list(args),

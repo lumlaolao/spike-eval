@@ -12,7 +12,8 @@
 #   javatests  every *Test.java in the overlay via TestNG, MEMORY_TOOLS=1; fails on any failure OR skip, and
 #              when the number of tests RUN differs from the number DECLARED (a runner that matches no tests
 #              reports a green nothing -- that happened once with `make jtest`)
-#   pytests    python3 -m unittest discover -s eval  +  eval/test_aggregate.py
+#   pytests    python3 -m unittest discover -s eval; eval/test_script_suites.py runs the script-style files
+#              (module-level test_ functions, no TestCase: test_aggregate, test_make_sft_data, ...) in it
 #   canary     seed-42 floor/floor and random/random games on the freshly compiled classes; asserts the JVM
 #              actually loaded THIS build (class-load log), the pinned winner/turns/decision counts, and the
 #              unchanged eval/defect_analyzer.py hard gates (ai=0, silent drops=0)
@@ -210,11 +211,10 @@ fi
 
 # ---------------------------------------------------------------- pytests
 if has_stage pytests; then
-  ( cd "$REPO" && python3 -m unittest discover -s eval -p 'test_*.py' ) >"$OUT/pytests.log" 2>&1; RC1=$?
-  ( cd "$REPO" && python3 eval/test_aggregate.py ) >"$OUT/test_aggregate.log" 2>&1; RC2=$?
+  ( cd "$REPO" && python3 -m unittest discover -s eval -p 'test_*.py' ) >"$OUT/pytests.log" 2>&1; RC=$?
   RAN="$(grep -o 'Ran [0-9]* tests' "$OUT/pytests.log" | tail -1)"
-  if [ $RC1 -eq 0 ] && [ $RC2 -eq 0 ] && [ -n "$RAN" ]; then pass pytests "$RAN OK; test_aggregate.py: $(tail -1 "$OUT/test_aggregate.log")"
-  else fail pytests "unittest rc=$RC1 ($RAN), test_aggregate rc=$RC2"; fi
+  if [ $RC -eq 0 ] && [ -n "$RAN" ]; then pass pytests "$RAN OK (script-style files included)"
+  else fail pytests "unittest rc=$RC ($RAN)"; fi
 fi
 
 # ---------------------------------------------------------------- game runner

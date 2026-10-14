@@ -27,8 +27,9 @@ system+prompt fully reconstruct the request. The preamble is produced by
 PlayerControllerLLM.framing(seat, plan, terse) in LlmSpikeGui.java. We extract
 its string literals PROGRAMMATICALLY from the Java source (rather than
 hand-retyping ~9 KB of text) to stay byte-exact, and self-check the result
-against known character counts (verified against the logged prompt_tokens of the
-cache-cold first smart call in both the deepseek and gemini corpora).
+against structural anchors and a framing hash (the lengths were verified against
+the logged prompt_tokens of the cache-cold first smart call in both the deepseek
+and gemini corpora).
 
 PER-BUILD PREAMBLE (authoritative source = the run DIRECTORY, per recon):
   STAGE0 (commit 339f457 == current working tree): smart tier gets
@@ -86,14 +87,17 @@ BUILDS = {
 
 MODEL_TIERS = ("smart", "fast")  # only model-authored tiers become examples
 
-# Expected character lengths — a guard against silent drift in the Java source.
-# Re-pinned 2026-07-26 (7492 -> 8154): task #8 added the two `OPP CAST THIS
-# GAME` / `OPP LANDS PLAYED` description lines to STATIC_REFERENCE. Verified
-# component-by-component against origin/main that NOTHING else moved — the base
-# body, tail, and both FORMAT branches are byte-identical — so terse framing
-# (fast tier, ai-teacher, dagger) reconstructs exactly as before. A stale pin is
-# a pin that can't fail: re-pin deliberately, never delete.
-EXPECT_STATIC_REFERENCE_LEN = 8154
+# Pin on the framing EVERY build reconstructs: the seat and plan lines, base
+# body, tail and both FORMAT branches (sha256 prefix of their concatenation).
+# Terse sources (fast tier, ai-teacher, dagger) are only exact while these bytes
+# match what their games saw. STATIC_REFERENCE is deliberately NOT pinned here:
+# only builds with static_reference_on_smart append it, and system() checks it
+# per build against BUILDS[...]["static_reference_len"]; a global pin on it
+# would refuse terse sources too whenever that appendix grows. Pinned at
+# 0bfdf91bdd367c92, identical at 339f457 (STAGE0), eef8c9d, 38217eb and
+# 0b90848. A stale pin is a pin that can't fail: re-pin deliberately, never
+# delete.
+EXPECT_FRAMING_SHA256 = "0bfdf91bdd367c92"
 
 
 # ------------------------------------------------------- Java literal parsing
@@ -151,7 +155,7 @@ class PreambleBuilder:
 
     Extracts three pieces from framing()/STATIC_REFERENCE and reassembles them
     the way framing() does, interpolating only the two dynamic parts (seat,
-    plan). Self-checks the pieces against structural anchors + a length guard so
+    plan). Self-checks the pieces against structural anchors + a framing hash so
     a future edit to the Java source can never silently corrupt the preamble.
     """
 
@@ -198,9 +202,13 @@ class PreambleBuilder:
             repr(self.format_terse[:24])
         assert self.format_verbose.startswith('FORMAT: at most two'), \
             repr(self.format_verbose[:24])
-        assert len(self.static_reference) == EXPECT_STATIC_REFERENCE_LEN, \
-            "STATIC_REFERENCE is %d chars, expected %d" % (
-                len(self.static_reference), EXPECT_STATIC_REFERENCE_LEN)
+        framing = hashlib.sha256((self.seat_prefix + self.seat_suffix + self.plan_prefix
+                                  + self.plan_suffix + self.body + self.tail
+                                  + self.format_terse + self.format_verbose).encode("utf-8"))
+        # Not an assert: `python3 -O` would skip it and write preambles no game saw.
+        if framing.hexdigest()[:16] != EXPECT_FRAMING_SHA256:
+            raise SystemExit("framing() drifted: sha256 %s, expected %s"
+                             % (framing.hexdigest()[:16], EXPECT_FRAMING_SHA256))
 
     def base(self, seat, plan, terse):
         fmt = self.format_terse if terse else self.format_verbose
