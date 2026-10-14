@@ -4197,7 +4197,7 @@ public final class LlmSpikeGui {
             // removeSVar/setSVar (which touch the private map alone).
             //
             // KNOWN RESIDUAL COVERAGE GAPS (accepted; the delta below is surgical, not total):
-            //   * `chain` covers the MENU (po.spells + po.landPlays, capped 12+4) and their sub-chains. The
+            //   * `chain` covers the MENU (po.spells, every castable entry, + po.landPlays capped at 4) and their sub-chains. The
             //     AI additionally walks getAvailableCards()/getPossibleETBCounters() over graveyard, exile
             //     and library-top, so SVar writes to SAs OUTSIDE the menu are not rolled back. The menu is
             //     what the student can actually cast, so those are the SAs that matter for the cast itself.
@@ -4247,8 +4247,8 @@ public final class LlmSpikeGui {
                         return -1; // genuine PASS — same as the student's play-PASS (-1)
                     }
                     int idx = PlayerControllerAiLogging.indexOfPlay(r.get(0), po);
-                    // AI picked an ability OUTSIDE our capped play menu (activated/mana ability the 12-spell
-                    // menu excludes): this is NOT a pass. Return null so build_dagger_examples drops the row
+                    // AI picked an ability OUTSIDE our play menu (an activated/mana ability the menu
+                    // excludes, or a land past the 4-land cap): this is NOT a pass. Return null so build_dagger_examples drops the row
                     // instead of minting a false CHOICE:PASS target — mirroring the ai-log seat's
                     // "ai-choice-not-in-menu" fallback (which build_ai_teacher_examples drops via drop_fallback).
                     // Only a genuine empty AI reply maps to -1/PASS.
@@ -4567,7 +4567,7 @@ public final class LlmSpikeGui {
         }
 
         /** Enumerate the play menu exactly as {@link #chooseSpellAbilityToPlay} builds it — castable,
-         *  affordable, legally-targetable non-land/non-mana spells (capped at 12), plus distinct
+         *  affordable, legally-targetable non-land/non-mana spells (every one), plus distinct
          *  playable lands by name (capped at 4, only on the player's own main phase). Factored out of
          *  the LLM seat's play method so the ai-teacher seat builds the byte-identical option list; the
          *  LLM method calls this in place, so its output is unchanged. Read-only w.r.t. real game state
@@ -4607,8 +4607,9 @@ public final class LlmSpikeGui {
                         if (tr != null && tr.getAllCandidates(sa, false).size() < Math.max(1, sa.getMinTargets())) continue;
                     } catch (Exception ignore) { /* can't evaluate -> offer it, prior behavior */ }
                 }
+                // Every castable entry is offered: a cap here hides spells from the seat without a log
+                // line (issue #106).
                 options.add(sa);
-                if (options.size() >= 12) break;
             }
             // Distinct lands we could play this main phase (by name), each offered as its own option so the
             // model chooses WHICH land — colored sources, fetchlands, painlands all matter for sequencing.
