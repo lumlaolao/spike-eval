@@ -273,3 +273,60 @@ Sheet: TAKEN 0, LOST 0, TOOL 1 (9 of 10 served), SLOW 0; 1 truncation. 938 s.
   max/high/low, kimi max/high/low, grok xhigh/high/medium/low), so an explicit, uniform
   reasoning.effort is feasible -- that would STATE the thinking budget instead of leaving it an
   emergent product of the cap.
+
+### g08  2026-10-14  seed 61  Grixis Reanimator (seat) vs Mardu Energy (Forge AI)  lost T5  claude -p haiku  build b425298+
+
+First games in a cloud container (Linux, JDK 17, Xvfb) and on the Claude CLI lane (`--smart-a haiku`).
+Sheet: TAKEN 0, LOST 0, TOOL 0, SLOW 0; analyzer PASS. Everything below came from reading the rows.
+
+- FIXED  alternative costs never reached the play menu. Unmask sat in hand beside four black cards
+  from T1 ("Unmask isn't offered as an option", jsonl:17). getSpellAbilities drops alternative costs
+  when the spell is also castable normally; the menu never re-expanded them. Hid Force of Will,
+  Force of Negation, Daze, Fireblast in seven pool decks. Test: aSpellCastableOnlyByItsAlternativeCostIsOffered.
+- FIXED  the card an exile cost takes (Unmask, Force of Will, Food Chain) was Forge AI's, no row.
+  Test: anExileFromHandCostIsTheSeatsChoice.
+- FIXED  Cabal Therapy targeted the seat itself to bin Griselbrand (jsonl:25, :37); the separate name
+  ask never said who the target was and named Ajani, then Amped Raptor, cards in the opponent's hand
+  (jsonl:28, :41). Test: aNameAskStatesWhoTheSpellTargets. observation-faithful-v13.
+- FIXED  a claude -p seat recorded prompt_tokens=-1 on every row and served_*=unknown; the CLI's
+  result line carries both. Test: theCliResultLineGivesTheServedModelAndTokens.
+- FIXED  infra: a startup error (missing DECK_A) left the JVM idle for 5 minutes; md5 (macOS-only) made
+  the acceptance classpath guard pass on anything on Linux; a pytest needed an uncommitted corpus.
+- OPEN   fast and smart tiers are separate CLI conversations: the fast tier chose the Cabal Therapy
+  flashback and the smart tier, asked for its sacrifice, said "which I didn't choose" (jsonl:39).
+  The prompt carried the cost and source; the answer was right. Watch for it on other cost asks.
+- OPEN   the seat-42 canaries read floor decisions=1081 (pinned 1068) and random 16 turns (pinned 19)
+  in this container on untouched main and on a955cd8, the commit that pinned them, under JDK 17 and
+  21. The pin is environment-specific, not stale; the cause (OS, locale, preferences) is not found.
+- NOTE   the B seat (Forge AI) is stamped smart_b=opus on the game line though no model plays it.
+- clean  mulligan (asked), targets, blocks, the auto rows (one forced colour, one forced entity).
+
+### g09  2026-10-14  seed 62  UR Delver (seat) vs Burn (Forge AI)  lost T5  claude -p haiku
+
+Sheet: TAKEN 0, LOST 0, TOOL 0, SLOW 0; analyzer PASS. served_smart_a=claude-haiku-5-5, 2.15M prompt
+tokens over 28 calls (the persistent CLI conversation is re-sent each ask).
+
+- FIXED  Ponder's order was reversed. Four Ponders: each time the seat said "put Chain Lightning on
+  top so I draw it now", named it first, and drew something else; it was still in the next Ponder's
+  top three (jsonl:26, :37, :45, :51). The engine moves the list to the top one card at a time, so
+  the last card ends on top; "(first = goes in/on top first)" read as first = top. Faithful prompt now
+  asks top-down and the router reverses, as Forge's human controller does.
+  Test: aLibraryOrderIsAskedTopDownAndTheFirstPickEndsOnTop.
+- FIXED  Daze cast by its alternative cost (the g08 fix working, jsonl:7), but which Island the
+  return cost bounced was Forge AI's. Test: aReturnToHandCostIsTheSeatsChoice.
+- OPEN   CostTapType (Heritage Druid taps three Elves) is still paid by Forge AI: AiCostDecision keeps
+  its "already tapped for this payment" set private, so a subclass cannot copy its legality safely.
+- clean  mulligan, Bolt target (Eidolon), blocks, the shuffle confirms.
+
+### g10  2026-10-14  seed 63  Sneak and Show (seat) vs UR Delver (Forge AI)  won T8  claude -p haiku
+
+Sheet: TAKEN 0, LOST 0, TOOL 0, SLOW 0; analyzer PASS. 20 calls, 1.25M prompt tokens.
+
+- CONFIRMED the Ponder order fix: "order [Ponder] -> Library (top first): Brainstorm, Spell Pierce,
+  Volcanic Island" (log:57), i.e. the seat's named-first card on top.
+- FIXED  ...and then the fast tier said YES to Ponder's shuffle (jsonl:11, "CHOICE: 1", no reasoning),
+  undoing the order the smart tier had chosen two calls earlier; it is a separate conversation and
+  never saw the order. The shuffle ask now states the order it would undo.
+  Test: theShuffleAskAfterAnOrderSaysWhatTheShuffleWouldUndo.
+- clean  mulligan, Show and Tell's put-in (Emrakul, asked), both scries, attacks.
+
