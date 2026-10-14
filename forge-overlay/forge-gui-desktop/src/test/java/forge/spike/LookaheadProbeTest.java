@@ -396,4 +396,31 @@ public class LookaheadProbeTest {
         Assert.assertTrue(report.contains("assuming target: Elite Vanguard"), report);
         Assert.assertTrue(report.contains("board 2 -> 1"), "the named creature should die: " + report);
     }
+
+    /** The hint the seat actually sends is the label the board printed for the target -- name, P/T,
+     *  tags, handle -- not the bare name. `pickTarget` asked only whether the candidate's NAME
+     *  contained the hint, and the label is longer than the name, so it never matched and the pick
+     *  fell silently back to the default. runs/loop/g05 T5 (jsonl:57): the seat asked to preview
+     *  Nomads en-Kor targeting "Cephalid Illusionist 1/1 [untapped] [sick] @75", and the report came
+     *  back "[assuming target: Nomads en-Kor]: you no change" -- a no-op preview of the ability the
+     *  whole game turned on; it then spent its one allowed retry on the same request and was refused. */
+    @Test
+    public void previewCastHonoursATargetHintThatQuotesThePrintedLabel() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+        for (int i = 0; i < 3; i++) SeatObservationTest.card("Mountain", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.card.Card bolt = SeatObservationTest.card("Lightning Bolt", me, forge.game.zone.ZoneType.Hand);
+        SeatObservationTest.card("Goblin Guide", opp, forge.game.zone.ZoneType.Battlefield);
+        forge.game.card.Card vanguard = SeatObservationTest.card("Elite Vanguard", opp, forge.game.zone.ZoneType.Battlefield);
+        forge.game.spellability.SpellAbility sa = spellOn(bolt);
+        Assert.assertNotNull(sa);
+        sa.setActivatingPlayer(me);
+
+        String label = vanguard.getName() + " " + vanguard.getNetPower() + "/" + vanguard.getNetToughness()
+                + " [untapped] @" + vanguard.getId();      // the board's own rendering, minus "(was @k)"
+        String report = PlayerLookahead.previewCast(g, me, sa, 5L, label);
+        System.out.println("[LOOKAHEAD] " + report);
+        Assert.assertTrue(report.contains("assuming target: Elite Vanguard"), report);
+        Assert.assertTrue(report.contains("board 2 -> 1"), "the named creature should die: " + report);
+    }
 }

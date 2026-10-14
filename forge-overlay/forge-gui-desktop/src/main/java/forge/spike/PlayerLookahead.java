@@ -40,7 +40,7 @@ final class PlayerLookahead {
      *  v3 (2026-10-13): a previewed line may start with (or include) a land drop, so "play the land,
      *  then the spell it pays for" can be asked; the tool's option numbers are the decision's own
      *  menu numbers (see LlmSpikeGui's simulate handler). */
-    static final String VERSION = "lookahead-preview-v3";
+    static final String VERSION = "lookahead-preview-v4";
 
     private PlayerLookahead() { }
 
@@ -316,15 +316,25 @@ final class PlayerLookahead {
         return assumed.toString();
     }
 
-    /** A candidate whose name matches {@code hint} (case-insensitive substring), else the default. */
+    /** A candidate whose name matches {@code hint}, else the default. The hint is whatever the seat
+     *  sent: a bare name, or the label the board printed for the target ("Cephalid Illusionist 1/1
+     *  [untapped] [sick] @75"), which CONTAINS the name. Matching only name-contains-hint missed the
+     *  label -- it is longer than the name -- so the pick fell silently to the default and the preview
+     *  reported a target the seat had not asked about (runs/loop/g05 T5). When several names match,
+     *  the longest wins, so a name that is a prefix of another cannot take the pick. */
     private static forge.game.GameEntity pickTarget(forge.game.spellability.SpellAbility s,
             java.util.List<forge.game.GameEntity> cands, String hint) {
         if (hint != null && !hint.trim().isEmpty()) {
             String h = hint.trim().toLowerCase(Locale.ROOT);
+            forge.game.GameEntity best = null;
+            int bestLen = 0;
             for (forge.game.GameEntity ge : cands) {
                 String nm = ge instanceof forge.game.card.Card ? ((forge.game.card.Card) ge).getName() : String.valueOf(ge);
-                if (nm != null && nm.toLowerCase(Locale.ROOT).contains(h)) return ge;
+                if (nm == null || nm.isEmpty()) continue;
+                String n = nm.toLowerCase(Locale.ROOT);
+                if ((n.contains(h) || h.contains(n)) && n.length() > bestLen) { best = ge; bestLen = n.length(); }
             }
+            if (best != null) return best;
         }
         return defaultTarget(s, cands);
     }
