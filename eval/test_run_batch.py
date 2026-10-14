@@ -268,6 +268,10 @@ class TestLookahead(unittest.TestCase):
             write_game(d, "game-7100-1000.jsonl", game_line(7100, False, lookahead=True))
             write_game(d, "game-7101-1000.jsonl", game_line(7101, False))
             self.assertIn("stamped on 1 of 2", run_batch.check_resume_condition(d, la, cited=False) or "")
+        with tempfile.TemporaryDirectory() as d:   # no manifest, no stamps: off may resume, on may not
+            write_game(d, "game-7100-1000.jsonl", game_line(7100, False))
+            self.assertIn("stamped on 0 of 1", run_batch.check_resume_condition(d, la, cited=False) or "")
+            self.assertNotIn("lookahead", run_batch.check_resume_condition(d, base, cited=False) or "")
 
 
 class TestResumeIdentity(unittest.TestCase):

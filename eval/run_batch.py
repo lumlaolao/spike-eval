@@ -628,9 +628,12 @@ def check_resume_condition(out_dir, condition, cited):
             continue  # runner left it to the JVM default; cannot compare
         if len(vals) > 1 or vals[0] != want:
             problems.append("%s: recorded %s, requested %r" % (key, vals, want))
-        elif key == "lookahead" and legacy["stamped"][key] < legacy["n_game_lines"]:
-            problems.append("lookahead: stamped on %d of %d game lines, requested %r"
-                            % (legacy["stamped"][key], legacy["n_game_lines"], want))
+    # An unstamped line counts as lookahead off (it predates the flag being stamped): it can share
+    # a directory with off games, never with on games, and a mix of the two cannot be told apart.
+    la_stamped, n = legacy["stamped"].get("lookahead", 0), legacy["n_game_lines"]
+    if la_stamped < n and (la_stamped or bool(condition.get("lookahead"))):
+        problems.append("lookahead: stamped on %d of %d game lines, requested %r"
+                        % (la_stamped, n, bool(condition.get("lookahead"))))
     unverifiable = [k for k in ("context_profile", "memory_tools", "rules_tool", "checkpoint_sha")
                     if k not in legacy["fields"]]
     if problems:
