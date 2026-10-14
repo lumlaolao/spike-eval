@@ -45,6 +45,10 @@ set -u
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 FORGE="${FORGE_HOME:-$HOME/code/forge}"
 JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home}"
+# Off the Mac the Homebrew default does not exist: take the JDK that javac on PATH belongs to.
+if [ ! -x "$JAVA_HOME/bin/javac" ] && command -v javac >/dev/null 2>&1; then
+  JAVA_HOME="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")"
+fi
 JAVA="$JAVA_HOME/bin/java"; JAVAC="$JAVA_HOME/bin/javac"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="${OUT:-$REPO/runs/harness-acceptance/$STAMP}"
@@ -68,6 +72,13 @@ pass() { echo "PASS $1: $2" | tee -a "$SUMMARY"; }
 fail() { echo "FAIL $1: $2" | tee -a "$SUMMARY"; FAILED=1; }
 want() { # $1 key -> value from the expectations file
   awk -F= -v k="$1" '$1==k {print $2}' "$EXPECTED"
+}
+# md5 is macOS, md5sum is Linux. With neither, both sides of a comparison hash to "" and the gate
+# passes on anything, so refuse instead.
+digest() {
+  if command -v md5 >/dev/null 2>&1; then md5
+  elif command -v md5sum >/dev/null 2>&1; then md5sum | cut -d" " -f1
+  else echo "no md5 or md5sum on PATH" >&2; exit 1; fi
 }
 has_stage() { case " $STAGES " in *" $1 "*) return 0;; *) return 1;; esac; }
 
@@ -111,10 +122,10 @@ if has_stage classpath; then
     # Two guards, because target/ is gitignored in the checkout: git status catches source edits,
     # and a mtime marker catches ANY file Maven writes under the engine's target/ trees (a rebuild
     # of the pinned classes would be invisible to git and must fail this stage).
-    BEFORE="$(git -C "$FORGE" status --porcelain 2>/dev/null | md5)"
+    BEFORE="$(git -C "$FORGE" status --porcelain 2>/dev/null | digest)"
     MARK="$OUT/.mvn-marker"; touch "$MARK"; sleep 1
     ( cd "$FORGE" && mvn -o -q -pl forge-gui-desktop -am dependency:build-classpath -Dmdep.outputFile="$DEPS" -Dmdep.includeScope=test ) >"$OUT/mvn-classpath.log" 2>&1
-    AFTER="$(git -C "$FORGE" status --porcelain 2>/dev/null | md5)"
+    AFTER="$(git -C "$FORGE" status --porcelain 2>/dev/null | digest)"
     [ "$BEFORE" = "$AFTER" ] || fail classpath "mvn dependency:build-classpath changed the Forge working tree"
     TOUCHED="$(find "$FORGE"/forge-*/target -type f -newer "$MARK" 2>/dev/null | head -3)"
     [ -z "$TOUCHED" ] || fail classpath "Maven wrote into the engine's target/ trees (pinned classes may have been rebuilt): $TOUCHED"

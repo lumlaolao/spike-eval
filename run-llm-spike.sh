@@ -4,9 +4,11 @@
 set -e
 # Repo root, captured BEFORE the cd below: the rules tool needs an absolute CR path.
 REPO="$(cd "$(dirname "$0")" && pwd)"
-export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
+# The Homebrew JDK on the owner's Mac; anywhere else (Linux, CI) the java already on PATH is used.
+BREW_JDK=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
+[ -d "$BREW_JDK" ] && export JAVA_HOME="$BREW_JDK"
 # Ensure the `claude` CLI (used by HaikuDecider) is on PATH for the launched JVM.
-PATH="$JAVA_HOME/bin:$HOME/.local/bin:$PATH"
+PATH="${JAVA_HOME:+$JAVA_HOME/bin:}$HOME/.local/bin:$PATH"
 export PATH
 
 cd "$(dirname "$0")/forge-gui-desktop"

@@ -134,8 +134,11 @@ class TestSeedGuardWiring(unittest.TestCase):
 
     def test_dagger_territory_is_refused(self):
         registry = run_batch.seed_registry.load_registry()
+        # The DAgger corpus that harvested these seeds is not committed, so on a fresh clone the
+        # live scan finds nothing; hand the corpus in so the corpus check is tested everywhere.
         problems = run_batch.seed_registry.cited_seed_violations(
-            registry, [9100, 9101, 9102])
+            registry, [9100, 9101, 9102],
+            seeds_by_corpus={"dagger-r1": {9100, 9101, 9102}})
         self.assertTrue(any("not eval-only" in p for p in problems))
         self.assertTrue(any("training corpus" in p for p in problems))
 
