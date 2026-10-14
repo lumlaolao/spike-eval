@@ -81,16 +81,16 @@ Of the 29 `strategic` rows the ledger marks `ai-inherited`:
 | AI-owned hook | engine effect that calls it | in the pool today? |
 |---|---|---|
 | `chooseCardsPile` | `TwoPilesEffect` (separate into two piles) | **yes — `hook-piles`** |
-| `choosePermanentsToDestroy` | `SacrificeEffect` | no |
+| `choosePermanentsToDestroy` | `SacrificeEffect` (`Destroy$ True`) | **yes — `hook-destroy-choice`** |
 | `chooseCardsToDiscardUnlessType` | `DiscardEffect` (`UnlessType`) | **yes — `hook-discard-unless`** |
 | `chooseSingleSpellForEffect` | `CopySpellAbilityEffect` (copy a spell) | **yes — `hook-redirect-copy`** |
 | `chooseSpellAbilitiesForEffect` | `VillainousChoiceEffect` | no |
-| `chooseCardsForEffectMultiple` | `DigMultipleEffect` | no |
-| `chooseColors` | `ChooseColorEffect` / `GameAction` | no |
-| `chooseCounterType` | `CountersPutOrRemoveEffect` | no |
-| `chooseKeywordForPump` | `PumpEffect` | no |
+| `chooseCardsForEffectMultiple` | `DigMultipleEffect` | **yes — `hook-dig-multiple`** |
+| `chooseColors` | `ChooseColorEffect` (`TwoColors$ True`) / `GameAction` | **yes — `hook-two-colors`** |
+| `chooseCounterType` | `CountersPutOrRemoveEffect` / `CountersMoveEffect` | **yes — `hook-counter-type`** |
+| `chooseKeywordForPump` | `PumpEffect` (`KWChoice`) | no — no card uses `KWChoice`, so it is unreachable |
 | `chooseNewTargetsFor` / `chooseTarget` | `ChangeTargetsEffect`, `SpellAbility` (redirect) | **yes — `hook-redirect-copy`** |
-| `chooseSingleCardFace` | `VentureEffect` | no |
+| `chooseSingleCardFace` | `VentureEffect` | **yes — `hook-venture`** |
 | `chooseSingleCardState` | `UnlockDoorEffect` (rooms) | no |
 | `chooseSingleReplacementEffect` | `ReplacementHandler` | rare |
 | `chooseSingleStaticAbility` | `CostAdjustment` | no |
@@ -99,7 +99,7 @@ Of the 29 `strategic` rows the ledger marks `ai-inherited`:
 | `chooseSaToActivateFromOpeningHand` | `GameAction` | no |
 | `chooseStartingHand` | `BackupPlanService` | no |
 | `confirmStaticApplication` | `Combat` | rare |
-| `playSaFromPlayEffect` | `PlayEffect` (play / exile-and-play) | no |
+| `playSaFromPlayEffect` | `PlayEffect` (`DB$ Play`, 281 cards) | **yes — `hook-play-exile`** |
 | `exertAttackers` / `enlistAttackers` | `PhaseHandler` | **yes — `hook-exert`** |
 | `chooseCardsForSplice` | `AbilityUtils` (splice) | no |
 | `chooseCardsForZoneChange` | `ChangeZoneEffect` | no |
@@ -109,7 +109,7 @@ Of the 29 `strategic` rows the ledger marks `ai-inherited`:
 `hook-*` decks (`docs/harness/HOOK-DECKS.md`) now make six more of these hooks reachable on purpose —
 `chooseCardsPile`, `chooseSingleSpellForEffect`, `chooseNewTargetsFor`/`chooseTarget`,
 `chooseCardsToDiscardUnlessType`, `chooseFlipResult`, `willPutCardOnTop`, and
-`exertAttackers`/`enlistAttackers`. The rest stay dormant until a deck adds the effect. Re-run this
+`exertAttackers`/`enlistAttackers`, and—with the `hook-destroy-choice`, `hook-play-exile`, `hook-venture`, `hook-counter-type`, `hook-two-colors` and `hook-dig-multiple` decks—`choosePermanentsToDestroy`, `playSaFromPlayEffect`, `chooseSingleCardFace`, `chooseCounterType`, `chooseColors` and `chooseCardsForEffectMultiple`. The rest stay dormant until a deck adds the effect. Re-run this
 table when the pool changes: a new card is what promotes a `rare` hook to live.
 - The rest of the `ai-inherited` set is **15 `exotic`** (Un-set, dice, Attractions), **9 `payment`**,
   **7 `mechanics`** and **6 `ui`** — out of strategic scope.

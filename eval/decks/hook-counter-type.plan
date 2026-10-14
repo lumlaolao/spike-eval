@@ -1,0 +1,1 @@
+GW counters built to reach chooseCounterType: Nesting Grounds (move a counter) and Resourceful Defense (move counters on a permanent's death) call chooseCounterType (AI-owned) when the type is a choice, and Walking Ballista gives real counters to move.

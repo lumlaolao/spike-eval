@@ -1,0 +1,1 @@
+GW midrange built to reach chooseColors: Seal of the Guildpact, Tablet of the Guilds and Desert Cenote each choose two colors (DB$ ChooseColor with TwoColors$ True), which calls chooseColors (AI-owned) rather than the single-color chooseColor the seat owns.

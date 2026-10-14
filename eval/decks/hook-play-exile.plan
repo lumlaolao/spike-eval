@@ -1,0 +1,1 @@
+Red aggro built to reach playSaFromPlayEffect: Light Up the Stage and Outpost Siege use DB$ Play ("you may play that card" from exile), and Conspicuous Snoop and Bomat Courier exile-and-play — PlayEffect calls playSaFromPlayEffect, AI-owned.
