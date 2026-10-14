@@ -170,7 +170,8 @@ def _write_win_source(d, seed, winner="A"):
 # wrote no output, and these tests then failed reading a README that was never
 # created: a real guard breaking an unrelated test, not a bug in either. FIX
 # sets static_reference_on_smart=False, so it never needs the appendix and is
-# stable across that drift. Do not "fix" this back to STAGE0 — re-pin BUILDS["STAGE0"] only from a checkout at its commit.
+# stable across that drift. Do not "fix" this back to STAGE0 — re-pin
+# BUILDS["STAGE0"] only from a checkout at its commit.
 def run_make_sft(*args):
     proc = subprocess.run(
         [sys.executable, str(HERE / "make_sft_data.py")] + list(args),
