@@ -35,11 +35,12 @@ def model_id(spec):
 
 
 def game_usage(path):
-    """{'game': the game row or None, 'tiers': {tier: [calls, prompt_tokens, completion_tokens]}} for one file."""
+    """{'game': the game row or None, 'tiers': {(seat, tier): [calls, prompt_tokens, completion_tokens]}} for one
+    file. `seat` is the row's player name (None on a row that has none)."""
     ctx, dec, game = {}, {}, None
 
     def add(bucket, tier, r):
-        b = bucket.setdefault(tier, [0, 0, 0])
+        b = bucket.setdefault((r.get("seat"), tier), [0, 0, 0])
         b[0] += 1
         b[1] += max(0, r.get("prompt_tokens") or 0)
         b[2] += max(0, r.get("completion_tokens") or 0)
@@ -63,6 +64,15 @@ def price_of(prices, spec):
     return prices.get(model_id(spec) or "")
 
 
+def identities_of(g, seat):
+    """The deck identities ('a', 'b') a row's seat (player name) may belong to. The game row names them
+    deck_a/deck_b, a batch manifest name_a/name_b. Both, when both identities carry that name (an
+    exploratory batch may give them one); only 'a' for a row with no seat or one matching neither."""
+    a = seat is not None and seat in (g.get("deck_a"), g.get("name_a"))
+    b = seat is not None and seat in (g.get("deck_b"), g.get("name_b"))
+    return ("a", "b") if a and b else ("b",) if b else ("a",)
+
+
 def report_dir(run_dir, prices):
     out = {"dir": run_dir, "games": 0, "calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "usd": 0.0, "unfinished": 0,
            "unpriced": set(), "models": set(), "checked": set()}
@@ -79,21 +89,22 @@ def report_dir(run_dir, prices):
         g = u["game"] or manifest
         out["games"] += 1 if u["game"] else 0
         out["unfinished"] += 0 if u["game"] or not u["tiers"] else 1
-        for tier, (calls, pin, pout) in u["tiers"].items():
+        for (seat, tier), (calls, pin, pout) in u["tiers"].items():
             out["calls"] += calls
             out["prompt_tokens"] += pin
             out["completion_tokens"] += pout
-            # Only seat A is a model in these arms unless B is one too; a tier is priced by seat A's spec
-            # for that tier, which is what every batch here uses for both seats when both are models.
-            spec = g.get("smart_a" if tier == "smart" else "fast_a")
-            p = price_of(prices, spec)
-            if p is None:
-                if model_id(spec):
-                    out["unpriced"].add(model_id(spec))
+            # Priced by the calling seat's own spec: under seat A's, a model-B-vs-ai batch reads as $0 and
+            # --budget-usd never stops it. A name both seats share is priced at the dearer spec (an upper bound).
+            specs = [g.get("%s_%s" % ("smart" if tier == "smart" else "fast", i)) for i in identities_of(g, seat)]
+            priced = {s: p for s, p in ((s, price_of(prices, s)) for s in specs) if p is not None}
+            out["unpriced"].update(model_id(s) for s in specs if s not in priced and model_id(s))
+            if not priced:
                 continue
+            usd = {s: pin * p["prompt"] + pout * p["completion"] for s, p in priced.items()}
+            spec = max(usd, key=usd.get)
             out["models"].add(model_id(spec))
-            out["checked"].add(p.get("checked", "?"))
-            out["usd"] += pin * p["prompt"] + pout * p["completion"]
+            out["checked"].add(priced[spec].get("checked", "?"))
+            out["usd"] += usd[spec]
     return out
 
 
