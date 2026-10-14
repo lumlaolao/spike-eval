@@ -1845,6 +1845,34 @@ public class LlmSpikeTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** Mana the Druid made for an earlier spell and left floating is spent by the next one without a
+     *  new activation: that is not the engine choosing Elves, and must not be said as a fallback. */
+    @Test
+    public void floatingDruidManaFromAnEarlierPaymentIsNotAFallback() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        addBattlefieldCard("Heritage Druid", me);
+        addBattlefieldCard("Elvish Visionary", me);
+        addBattlefieldCard("Nettle Sentinel", me);
+        addBattlefieldCard("Elvish Warrior", me);
+        Card visionary = addHandCard("Elvish Visionary", me);
+        Card sentinel = addHandCard("Nettle Sentinel", me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 1,2,4");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+        me.dangerouslySetController(ctrl);
+        forge.game.spellability.SpellAbility first = visionary.getFirstSpellAbility();
+        first.setActivatingPlayer(me);
+        forge.game.spellability.SpellAbility second = sentinel.getFirstSpellAbility();
+        second.setActivatingPlayer(me);
+
+        Assert.assertTrue(ctrl.payManaCost(first.getPayCosts().getCostMana(), first, null, null, false), "{1}{G} was not paid");
+        Assert.assertEquals(me.getManaPool().totalMana(), 1, "fixture: one G of the Druid's GGG floats");
+        Assert.assertTrue(ctrl.payManaCost(second.getPayCosts().getCostMana(), second, null, null, false), "{G} was not paid");
+        Assert.assertEquals(bridge.prompts.size(), 1, "the Druid's tap was not asked once");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "spending floating Druid mana was said as a fallback");
+    }
+
     /** The engine's real payment does not raise toPay again (CostPayment already did), so the plan
      *  must not either: under Thalia, Regrowth costs {2}{G}, exactly the Druid's GGG. A plan raised
      *  twice ({3}{G}) is unpayable, and the engine then tapped the Elves itself. */

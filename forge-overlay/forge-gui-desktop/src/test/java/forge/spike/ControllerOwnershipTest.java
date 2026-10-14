@@ -151,15 +151,17 @@ public class ControllerOwnershipTest {
                 default:     ok = false;
             }
             if (!ok) problems.add("ownership '" + own + "' impossible for impl " + impl + ": " + sig);
-            if (impl.equals("AI") && own.equals("ai-inherited") && reach.equals("core")
-                    && (kind.equals("strategic") || kind.equals("payment"))) aiStrategicCore++;
+            // An override that routes only part of a hook (notes "PARTLY OWNED") still leaves the rest
+            // silent, so it stays in the count.
+            boolean silent = (impl.equals("AI") && own.equals("ai-inherited")) || notes.startsWith("PARTLY OWNED");
+            if (silent && reach.equals("core") && (kind.equals("strategic") || kind.equals("payment"))) aiStrategicCore++;
         }
         Assert.assertTrue(problems.isEmpty(), String.join("\n  ", problems));
         // Reported, not hidden: this number is the open G7 backlog. It may only go DOWN; raising it
         // means a strategic decision moved from the model to Forge AI and needs an explicit review.
         System.out.println("[OWNERSHIP] silent Forge-AI strategic/payment hooks reachable in Legacy play: " + aiStrategicCore);
-        Assert.assertTrue(aiStrategicCore <= 2,
-                "silent AI strategic hooks grew to " + aiStrategicCore + " (baseline 2 since payManaCost, #105) -- a decision left the model");
+        Assert.assertTrue(aiStrategicCore <= 3,
+                "silent AI strategic hooks grew to " + aiStrategicCore + " (baseline 3) -- a decision left the model");
     }
 
     @Test

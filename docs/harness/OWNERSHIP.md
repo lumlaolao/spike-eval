@@ -110,8 +110,9 @@ option (never Forge AI):
 | `orderSimultaneousSa` | the order simultaneous triggers resolve in (targeting stays the engine's) | as-triggered order |
 | `getCostDecisionMaker` | which card a NON-mana cost sacrifices (Cabal Therapy flashback), exiles (Unmask), returns to hand (Daze) or taps (Glare of Subdual), via `LlmCostDecision`; each candidate filter is copied from the engine's `ComputerUtil.choose*Type` routine so legality matches the engine | the engine's `AiCostDecision` |
 
-Inventory now: **49 LLM / 70 AI / 14 BASE**; **2 silent core strategic/payment
-hooks remain** (down from 13; `ControllerOwnershipTest` holds the bound). (The 2026-10-13 engine pin added three sticker-mechanic hooks, all
+Inventory now: **49 LLM / 70 AI / 14 BASE**; **3 silent core strategic/payment
+hooks remain** (down from 13; `ControllerOwnershipTest` holds the bound and counts the partly owned
+`payManaCost` among them). (The 2026-10-13 engine pin added three sticker-mechanic hooks, all
 resolved to Forge AI — `chooseSticker`, `chooseStickerNamePosition`, `chooseCardToKeepStickers` —
 taking the hook count 130 → 133; see `ENGINE-PIN.md`.) Still Forge AI and **not routeable without re-deriving engine
 mechanics** (established by reading the engine source, not assumed):
