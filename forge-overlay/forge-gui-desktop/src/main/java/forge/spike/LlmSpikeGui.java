@@ -2546,7 +2546,7 @@ public final class LlmSpikeGui {
         public boolean chooseTargetsFor(SpellAbility sa) {
             clearLast();
             try {
-                if (sa == null || !sa.usesTargeting() || sa.getMaxTargets() != 1)
+                if (sa == null || !sa.usesTargeting() || sa.getMaxTargets() < 1)
                     return super.chooseTargetsFor(sa);
                 for (SpellAbility sub = sa.getSubAbility(); sub != null; sub = sub.getSubAbility())
                     if (sub.usesTargeting()) return super.chooseTargetsFor(sa);
@@ -2558,6 +2558,36 @@ public final class LlmSpikeGui {
                 int pick = 0; // default: the (only, or first) legal candidate — beats an AI decline
                 List<String> labels = new ArrayList<>();
                 for (GameEntity ge : cands) labels.add(labelOf(ge));
+                // Multi-target abilities ("up to two target creatures") used to bail to the Forge AI
+                // for the whole target set. Pick a distinct subset through the same menu; when the
+                // candidates are no more than the minimum the subSET is forced (#124).
+                int max = sa.getMaxTargets();
+                if (max > 1) {
+                    int lo = Math.max(0, min), hi = Math.min(max, cands.size());
+                    List<Integer> tp;
+                    if (cands.size() <= Math.max(1, min)) {         // forced: all candidates are needed
+                        tp = new ArrayList<>();
+                        for (int i = 0; i < cands.size(); i++) tp.add(i);
+                        evalDec("targets", cands.size(), tp.size(), "auto", 0, "forced(multi)", labels);
+                    } else if (okFor("targets")) {
+                        tp = decideMany(bridgeFor("targets"), "targets", "Choose TARGETS for " + labelOf(sa)
+                                + " (pick " + lo + " to " + hi + " from the list).", labels, lo, hi);
+                        if (tp == null || tp.size() < lo) {
+                            tp = new ArrayList<>();
+                            for (int i = 0; i < lo && i < cands.size(); i++) tp.add(i);
+                            evalDec("targets", cands.size(), tp.size(), tierOf(smartTierFor("targets")), 0, "targets(multi,unparsed)->first", labels);
+                        }
+                    } else {
+                        tp = new ArrayList<>();
+                        for (int i = 0; i < lo && i < cands.size(); i++) tp.add(i);
+                        evalDec("targets", cands.size(), tp.size(), "auto", 0, "targets(no-model)->first", labels);
+                    }
+                    sa.resetTargets();
+                    for (int i : tp) sa.getTargets().add(cands.get(i));
+                    if (min > 0 && sa.getTargets().size() < min) return super.chooseTargetsFor(sa); // safety net
+                    p("[ROUTER] targets: " + tp.size() + " -> " + labelOf(sa));
+                    return true;
+                }
                 if (cands.size() > 1 && okFor("targets")) {
                     String q = "Choose the TARGET for " + labelOf(sa) + " (the spell/ability resolves against whatever you pick).";
                     int c = decideOne(bridgeFor("targets"), "targets", q, labels, min == 0 ? "No target (decline)" : null);
