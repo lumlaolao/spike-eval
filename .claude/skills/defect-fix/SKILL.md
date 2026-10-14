@@ -28,8 +28,14 @@ take_lock() {
 }
 take_lock || { echo "Forge lock held: $(cat "$LOCK/owner" 2>/dev/null)" >&2; exit 1; }
 printf '%s %s %s\n' "$$" "$(date -u +%FT%TZ)" "$(id -un)" > "$LOCK/owner"
-trap 'rm -rf "$LOCK"' EXIT INT TERM
+```
 
+No `trap` releases it: each step is its own shell, so a trap would drop the lock before the rebuild
+it exists to cover. Hold it until step 9. The lock is a convention between `defect-hunt` and
+`defect-fix` — `run_batch.py`, `install.sh` and `eval/harness_acceptance.sh` read no lock file — so
+the checks below are not optional:
+
+```bash
 git status --short          # clean tree, on main
 git fetch -q origin && git checkout -q main && git pull -q
 pgrep -f LlmSpikeHeadless | wc -l    # must be 0: never rebuild while a game runs
@@ -80,16 +86,24 @@ Then write the test, in the overlay's test tree, named as the behaviour it prote
 (`docs/STANDARDS.md` §5), grounded in the recorded row (cite the run and the turn). Java tests live
 in `forge-overlay/forge-gui-desktop/src/test/java/forge/spike/`; `LineFindingProbeTest`,
 `NativeToolsTest`, `LookaheadProbeTest` and `SeatObservationTest` are where routing and observation
-defects belong.
+defects belong. The file must be named `*Test.java` — the acceptance `javatests` stage runs only
+that pattern, so a differently named file compiles and then never runs. The sentence-shaped name is
+the test method's.
 
 ```bash
-STAGES="compile javatests" OUT=$PWD/runs/fix/fail-$N bash eval/harness_acceptance.sh
+STAGES="classpath compile javatests" OUT=$PWD/runs/fix/fail-$N bash eval/harness_acceptance.sh
 # it must be RED here, on main, before the fix. Save the failing output.
 ```
 
-Record that output; it goes in the PR's `## Why` and it is the proof the test can fail. A probe test
-that was easier to write as a Python check goes in `eval/test_<name>.py` instead
-(`docs/STANDARDS.md` §3), and is run with `python3 -m unittest eval.test_<name>`.
+`classpath` is not optional: `compile` refuses without `$OUT/classpath.txt`, which only the
+`classpath` stage writes. Record the failing output; it goes in the PR's `## Why` and it is the proof
+the test can fail. A probe that is easier to write as a Python check goes in `eval/test_<name>.py`
+instead (`docs/STANDARDS.md` §3) and is run the way its neighbours are, because the tests import
+their siblings from `eval/`:
+
+```bash
+cd eval && python3 -m unittest test_<name>
+```
 
 ## 4. Fix it in `forge-overlay/` only
 
@@ -105,7 +119,7 @@ through `docs/STANDARDS.md` §4. If a script should have caught the defect, teac
 ## 5. Show the test green, then run acceptance
 
 ```bash
-STAGES="compile javatests" OUT=$PWD/runs/fix/pass-$N bash eval/harness_acceptance.sh
+STAGES="classpath compile javatests" OUT=$PWD/runs/fix/pass-$N bash eval/harness_acceptance.sh
 FORGE_HOME=~/code/forge bash install.sh
 cd ~/code/forge && mvn -q -pl forge-gui-desktop -am install -o -DskipTests   # check its exit code
 cd - && bash eval/harness_acceptance.sh                                     # every stage, OUT kept
@@ -162,10 +176,15 @@ stale the moment a new commit lands.
 
 ## 9. Close out
 
-The merge closes the issue through `Closes #<N>`; confirm it, then release the lock (the `trap`
-does it on exit). If the PR was abandoned instead, comment `RELEASE` and drop the `claimed` label
-and the assignee so the issue returns to the queue. If a game was played to reproduce the defect,
-its `cost_report.py` spend is part of what the fix cost: say it in the PR's `## Why`.
+The merge closes the issue through `Closes #<N>`; confirm it, then release the lock:
+
+```bash
+rm -rf "$LOCK"
+```
+
+If the PR was abandoned instead, comment `RELEASE` and drop the `claimed` label and the assignee so
+the issue returns to the queue. If a game was played to reproduce the defect, its `cost_report.py`
+spend is part of what the fix cost: say it in the PR's `## Why`.
 
 ## What not to do
 

@@ -34,10 +34,16 @@ take_lock() {
 }
 take_lock || { echo "Forge lock held: $(cat "$LOCK/owner" 2>/dev/null)" >&2; exit 1; }
 printf '%s %s %s\n' "$$" "$(date -u +%FT%TZ)" "$(id -un)" > "$LOCK/owner"
-trap 'rm -rf "$LOCK"' EXIT INT TERM
 ```
 
-Then the `game-loop` step 0 preconditions, because the lock makes the load worse, not better:
+No `trap` releases it. Each step of a hunt is its own shell, so a trap on `EXIT` would drop the lock
+the moment the step that took it returned — before the game, the sheet and the rebuild it exists to
+cover. It is held until step 7 releases it explicitly, and the dead-owner test reclaims it if the
+session dies without doing so.
+
+The lock is a convention between `defect-hunt` and `defect-fix`. `run_batch.py`, `install.sh` and
+`eval/harness_acceptance.sh` read no lock file, so a hunter who ignores the convention is not
+blocked by it. That is why the preconditions below are not optional even holding the lock:
 
 ```bash
 uptime                                   # above 4 load per core: wait, and say so
@@ -59,8 +65,10 @@ tail -60 docs/harness/GAME-LOOP-LOG.md               # the older games, newest l
 
 Choose a seed not already in `runs/hunt/` or `runs/loop/`, and not in a reserved block
 (`eval/seed_policy.py` is the source of truth; 501-525, 20000-29999, 30000-30099 are never playable
-targets). Vary the deck and the seating from the last game: a defect usually belongs to a card type,
-and one deck shows few.
+targets). Vary the deck and the seating from the last game — a defect usually belongs to a card
+type, and one deck shows few — with `--deck-a/--deck-b` in place of `--deck`, and `--pairs` only
+when you want both seatings of one seed. `--deck` alone is a mirror match and `run_batch.py` refuses
+it alongside `--deck-a/--deck-b`.
 
 ## 2. Play exactly one game
 
@@ -177,8 +185,13 @@ that file nothing and leave no fixable issue open is the loop's stop condition.
 
 ## 7. Release the lock, exactly
 
-The `trap` above removes the lock on exit, including on error. If you took the lock in a session that
-died, remove it by hand once the owner pid is gone:
+Release explicitly — nothing else will — and do it even when the hunt failed:
+
+```bash
+rm -rf "$LOCK"
+```
+
+If a session died holding the lock, reclaim it once its owner pid is gone:
 
 ```bash
 p=$(awk '{print $1}' "$LOCK/owner"); kill -0 "$p" 2>/dev/null || rm -rf "$LOCK"
@@ -194,8 +207,10 @@ Never leave a fresh-game rebuild queued behind a hunt you abandoned.
   candidate (`harness-audit` step 5), not an issue.
 - Do not play a batch to "get more data" first: one game read properly beats six skimmed, and a
   number from a harness that is taking decisions measures the harness.
-- Do not pool arms, and never compare runs whose `context_sha`, `memory_tools_version` or
-  `native_tools` differ.
+- Do not pool arms, and never compare runs whose `context_sha`, `memory_tools_version`,
+  `native_tools` or `TIER_FAST_TYPES` differ: the env-backed knobs this skill sets are not all
+  stamped on the game line yet (open issue #117), so two runs a stamp-comparison calls identical can
+  still differ in the fast-tier list.
 - Do not rebuild, install or run acceptance while any game is running, and never on a lock you hold
   for someone else.
 - Do not set `OPENROUTER_ALLOW_EGRESS`, and do not play a model with no entry in
