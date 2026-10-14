@@ -1787,6 +1787,60 @@ public class LlmSpikeTest {
         }
     }
 
+    /** Review of the top-down order fix: Flow State (and Goblin Ringleader) Dig the rest of their cards
+     *  to the BOTTOM, which orderedMoveToTopOfLibrary does not see. Such an order must not be called
+     *  "the top card, drawn first", nor reversed. */
+    @Test
+    public void aDigRestPileToTheBottomIsNotAskedAsTheTop() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        Card flow = addHandCard("Flow State", me);
+        forge.game.card.CardCollection rest = new forge.game.card.CardCollection();
+        for (String n : new String[] {"Island", "Brainstorm"})
+            rest.add(SeatObservationTest.card(n, me, ZoneType.Library));
+        forge.game.spellability.SpellAbility sa = null;
+        for (forge.game.spellability.SpellAbility s : flow.getSpellAbilities()) if (s.isSpell()) sa = s;
+        sa.setActivatingPlayer(me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 2,1");
+        LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = LlmSpikeGui.ContextProfile.V4_FAITHFUL;
+        try {
+            LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                    new LobbyPlayerAi("order-test", null), "order-test", "", bridge, bridge, "llm");
+            forge.game.card.CardCollectionView out = ctrl.orderMoveToZoneList(rest, ZoneType.Library, sa);
+            Assert.assertFalse(bridge.prompts.get(0).contains("TOP"), bridge.prompts.get(0));
+            Assert.assertEquals(out.get(0).getName(), "Brainstorm", "a bottom pile must come back in the order named");
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null;
+        }
+    }
+
+    /** The g08 fix is the target note IN the name ask, not just the helper: drive chooseCardName. */
+    @Test
+    public void theNameAskItselfCarriesTheTargetUnderTheFaithfulProfileOnly() {
+        for (boolean faithful : new boolean[] {true, false}) {
+            Game game = buildBareGame();
+            Player me = game.getPlayers().get(0);
+            Card therapy = addHandCard("Cabal Therapy", me);
+            forge.game.spellability.SpellAbility sa = null;
+            for (forge.game.spellability.SpellAbility s : therapy.getSpellAbilities()) if (s.isSpell()) sa = s;
+            sa.setActivatingPlayer(me);
+            sa.getSubAbility().getTargets().add(me);
+            List<forge.card.ICardFace> faces = new java.util.ArrayList<>();
+            for (String n : new String[] {"Griselbrand", "Thoughtseize"})
+                faces.add(FModel.getMagicDb().getCommonCards().getCard(n).getRules().getMainPart());
+            FixedReplyBridge bridge = new FixedReplyBridge("CHOICE: 1");
+            LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = faithful ? LlmSpikeGui.ContextProfile.V4_FAITHFUL : LlmSpikeGui.ContextProfile.V1_COMPAT;
+            try {
+                LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                        new LobbyPlayerAi("name-test", null), "name-test", "", bridge, bridge, "llm");
+                Assert.assertEquals(ctrl.chooseCardName(sa, faces, "Choose a nonland card name."), "Griselbrand");
+                Assert.assertEquals(bridge.prompts.get(0).contains("This spell targets: YOU"), faithful, bridge.prompts.get(0));
+            } finally {
+                LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null;
+            }
+        }
+    }
+
     /** runs/loop/g10 (seed 63): the smart tier ordered Ponder's three cards with Brainstorm on top, then
      *  the shuffle question went to the fast tier -- a separate conversation that never saw the order
      *  -- which answered YES with no reasoning (jsonl:11) and threw the order away. The shuffle ask

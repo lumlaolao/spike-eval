@@ -2959,6 +2959,11 @@ public final class LlmSpikeGui {
             }
         }
 
+        /** The top-of-library order this seat just chose (names, top first) and the ability that asked,
+         *  for the shuffle question that can follow it; see confirmAction. */
+        private String lastTopOrder;
+        private SpellAbility lastTopOrderSa;
+
         /** Generic "choose the ORDER" hook — Ponder, Brainstorm/Dig put-backs, Sensei's Divining Top,
          *  and any other effect that hands the engine a fixed set of cards and asks for a permutation
          *  before they move to `destinationZone` — ROUTED (report C2). This ran unconditionally on
@@ -2967,11 +2972,6 @@ public final class LlmSpikeGui {
          *  trace. Reuses decideMany's PICKS plumbing with min=max=size: ALL n cards must be named, in
          *  the order they should move (first pick = whatever "first" means for that destination, e.g.
          *  new top-of-library). Deterministic fallback keeps the engine-given order, never Forge AI. */
-        /** The top-of-library order this seat just chose (names, top first) and the ability that asked,
-         *  for the shuffle question that can follow it; see confirmAction. */
-        private String lastTopOrder;
-        private SpellAbility lastTopOrderSa;
-
         @Override
         public CardCollectionView orderMoveToZoneList(CardCollectionView cards, ZoneType destinationZone, SpellAbility source) {
             clearLast();
@@ -2986,7 +2986,13 @@ public final class LlmSpikeGui {
                 // runs/loop/g09 four Ponders each buried the card the seat meant to draw. Under the
                 // faithful profile the question is asked top-down and the answer reversed, as Forge's
                 // own human controller does; legacy profiles keep their bytes and their literal wording.
-                boolean topDown = observer != null && orderedMoveToTopOfLibrary(destinationZone, source);
+                // Only where the cards really go on top: Dig's rest pile goes to LibraryPosition2 (default
+                // the bottom), which orderedMoveToTopOfLibrary does not read (Goblin Ringleader, Flow State).
+                ApiType api = source == null ? null : source.getApi();
+                boolean topDown = observer != null && destinationZone == ZoneType.Library
+                        && (api == ApiType.RearrangeTopOfLibrary
+                            || ((api == ApiType.ChangeZone || api == ApiType.ChangeZoneAll)
+                                && orderedMoveToTopOfLibrary(destinationZone, source)));
                 String q = "Put these " + opts.size() + " card(s)" + srcOf(source) + " into " + destinationZone
                         + " in your preferred order. List ALL " + opts.size() + " of them "
                         + (topDown ? "from the TOP down: the first card you name will be the top card, drawn first."
@@ -3085,7 +3091,7 @@ public final class LlmSpikeGui {
             // smart tier had just chosen. State the order it would undo; consumed by this ask either way.
             String undoes = "";
             if (lastTopOrderSa != null && lastTopOrderSa == sa && message != null && message.toLowerCase().contains("shuffle"))
-                undoes = " You just put these on top of your library, top first: " + lastTopOrder
+                undoes = " You just put these on top of that library, top first: " + lastTopOrder
                         + ". Shuffling randomizes the whole library, those cards included.";
             lastTopOrderSa = null;
             if (!fastOk()) { auto("confirm(no-model)->NO"); return false; } // deterministic decline, not the AI
@@ -4581,7 +4587,7 @@ public final class LlmSpikeGui {
                 if (!sa.isSpell() || sa.getAlternativeCost() != null) continue;
                 try {
                     for (SpellAbility alt : GameActionUtil.getAlternativeCosts(sa, me, false)) {
-                        if (!candidates.contains(alt)) { candidates.add(alt); altCosts.add(alt); }
+                        candidates.add(alt); altCosts.add(alt);
                     }
                 } catch (Exception ignore) { /* the base spell is still offered */ }
             }
@@ -5860,7 +5866,7 @@ public final class LlmSpikeGui {
         static int usageInt(String resultLine, String key) {
             int u = resultLine == null ? -1 : resultLine.indexOf("\"usage\":{");
             if (u < 0) return -1;
-            java.util.regex.Matcher m = java.util.regex.Pattern.compile("\"" + key + "\":(\\d+)").matcher(resultLine);
+            Matcher m = Pattern.compile("\"" + key + "\":(\\d+)").matcher(resultLine);
             return m.find(u) ? Integer.parseInt(m.group(1)) : -1;
         }
         static int promptTokens(String resultLine) {

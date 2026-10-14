@@ -73,12 +73,11 @@ fail() { echo "FAIL $1: $2" | tee -a "$SUMMARY"; FAILED=1; }
 want() { # $1 key -> value from the expectations file
   awk -F= -v k="$1" '$1==k {print $2}' "$EXPECTED"
 }
-# md5 is macOS, md5sum is Linux. With neither, both sides of a comparison hash to "" and the gate
-# passes on anything, so refuse instead.
+# md5 is macOS, md5sum is Linux. With neither, both sides of a comparison would hash to "" and the
+# gate would pass on anything; an exit inside $( ) does not stop this script, so the caller checks.
 digest() {
   if command -v md5 >/dev/null 2>&1; then md5
-  elif command -v md5sum >/dev/null 2>&1; then md5sum | cut -d" " -f1
-  else echo "no md5 or md5sum on PATH" >&2; exit 1; fi
+  elif command -v md5sum >/dev/null 2>&1; then md5sum | cut -d" " -f1; fi
 }
 has_stage() { case " $STAGES " in *" $1 "*) return 0;; *) return 1;; esac; }
 
@@ -126,7 +125,8 @@ if has_stage classpath; then
     MARK="$OUT/.mvn-marker"; touch "$MARK"; sleep 1
     ( cd "$FORGE" && mvn -o -q -pl forge-gui-desktop -am dependency:build-classpath -Dmdep.outputFile="$DEPS" -Dmdep.includeScope=test ) >"$OUT/mvn-classpath.log" 2>&1
     AFTER="$(git -C "$FORGE" status --porcelain 2>/dev/null | digest)"
-    [ "$BEFORE" = "$AFTER" ] || fail classpath "mvn dependency:build-classpath changed the Forge working tree"
+    if [ -z "$BEFORE" ]; then fail classpath "no md5 or md5sum on PATH: cannot check the Forge working tree"
+    elif [ "$BEFORE" != "$AFTER" ]; then fail classpath "mvn dependency:build-classpath changed the Forge working tree"; fi
     TOUCHED="$(find "$FORGE"/forge-*/target -type f -newer "$MARK" 2>/dev/null | head -3)"
     [ -z "$TOUCHED" ] || fail classpath "Maven wrote into the engine's target/ trees (pinned classes may have been rebuilt): $TOUCHED"
   fi

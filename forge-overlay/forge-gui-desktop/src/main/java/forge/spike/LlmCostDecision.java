@@ -70,7 +70,7 @@ final class LlmCostDecision extends AiCostDecision {
             }
             if (typeList.size() < amount) return null; // engine handles the impossible case
 
-            forge.game.card.CardCollectionView pick = player.getController().choosePermanentsToSacrifice(ability, amount, amount,
+            CardCollectionView pick = player.getController().choosePermanentsToSacrifice(ability, amount, amount,
                     typeList, COST_MESSAGE);
             if (pick != null && !pick.isEmpty()) return PaymentDecision.card(pick);
             if (amount <= 0) return super.visit(cost); // nothing to choose (X=0): the engine's bookkeeping
@@ -104,9 +104,10 @@ final class LlmCostDecision extends AiCostDecision {
             typeList = ComputerUtilCost.paymentChoicesWithoutTargets(typeList, ability, player);
             if (amount <= 0 || typeList.size() <= amount) return super.visit(cost); // nothing to choose
 
-            String from = cost.getFrom().size() == 1 ? cost.getFrom().get(0).name().toLowerCase() : "zones";
+            String from = (cost.zoneRestriction == 1 ? "your " : "any player's ") + (cost.getFrom().size() == 1
+                    ? cost.getFrom().get(0).name().toLowerCase() : String.valueOf(cost.getFrom()).toLowerCase());
             CardCollectionView pick = player.getController().chooseCardsForEffect(typeList, ability,
-                    "COST: to pay for " + source.getName() + " you must EXILE " + amount + " of these cards from your "
+                    "COST: to pay for " + source.getName() + " you must EXILE " + amount + " of these cards from "
                     + from + ". They leave now, as the cost is paid. Choose which", amount, amount, false, null);
             if (pick != null && pick.size() == amount) return PaymentDecision.card(pick);
             fellBack("exile pick of " + (pick == null ? 0 : pick.size()));

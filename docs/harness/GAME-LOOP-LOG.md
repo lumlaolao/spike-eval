@@ -274,7 +274,7 @@ Sheet: TAKEN 0, LOST 0, TOOL 1 (9 of 10 served), SLOW 0; 1 truncation. 938 s.
   reasoning.effort is feasible -- that would STATE the thinking budget instead of leaving it an
   emergent product of the cap.
 
-### g08  2026-10-14  seed 61  Grixis Reanimator (seat) vs Mardu Energy (Forge AI)  lost T5  claude -p haiku  build b425298+
+### g08  2026-10-14  seed 61  Grixis Reanimator (seat) vs Mardu Energy (Forge AI)  lost T5  claude -p haiku  build b425298 + uncommitted 69aa75e  runs/loop/g08
 
 First games in a cloud container (Linux, JDK 17, Xvfb) and on the Claude CLI lane (`--smart-a haiku`).
 Sheet: TAKEN 0, LOST 0, TOOL 0, SLOW 0; analyzer PASS. Everything below came from reading the rows.
@@ -301,10 +301,10 @@ Sheet: TAKEN 0, LOST 0, TOOL 0, SLOW 0; analyzer PASS. Everything below came fro
 - NOTE   the B seat (Forge AI) is stamped smart_b=opus on the game line though no model plays it.
 - clean  mulligan (asked), targets, blocks, the auto rows (one forced colour, one forced entity).
 
-### g09  2026-10-14  seed 62  UR Delver (seat) vs Burn (Forge AI)  lost T5  claude -p haiku
+### g09  2026-10-14  seed 62  UR Delver (seat) vs Burn (Forge AI)  lost T5  claude -p haiku  build a33efdc (uncommitted at play time)  runs/loop/g09
 
 Sheet: TAKEN 0, LOST 0, TOOL 0, SLOW 0; analyzer PASS. served_smart_a=claude-haiku-5-5, 2.15M prompt
-tokens over 28 calls (the persistent CLI conversation is re-sent each ask).
+tokens over 28 calls (`python3 eval/cost_report.py runs/loop/g09`; the persistent CLI conversation is re-sent each ask).
 
 - FIXED  Ponder's order was reversed. Four Ponders: each time the seat said "put Chain Lightning on
   top so I draw it now", named it first, and drew something else; it was still in the next Ponder's
@@ -318,7 +318,7 @@ tokens over 28 calls (the persistent CLI conversation is re-sent each ask).
   its "already tapped for this payment" set private, so a subclass cannot copy its legality safely.
 - clean  mulligan, Bolt target (Eidolon), blocks, the shuffle confirms.
 
-### g10  2026-10-14  seed 63  Sneak and Show (seat) vs UR Delver (Forge AI)  won T8  claude -p haiku
+### g10  2026-10-14  seed 63  Sneak and Show (seat) vs UR Delver (Forge AI)  won T8  claude -p haiku  build 6b7b261  runs/loop/g10
 
 Sheet: TAKEN 0, LOST 0, TOOL 0, SLOW 0; analyzer PASS. 20 calls, 1.25M prompt tokens.
 

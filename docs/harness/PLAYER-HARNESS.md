@@ -295,6 +295,16 @@ Tests: `opponentCardsTheSeatHasSeenAreShownWithTheirRulesText`,
 `opponentCardTextPersistsIsNotDuplicatedAndIgnoresHiddenZones` (the second also re-asserts that two
 worlds differing only in the opponent's hidden cards render identically).
 
+**2026-10-14 — what follows a choice says what the choice was (`observation-faithful-v13`).**
+Three asks lost the context of the decision they follow (runs/loop/g08-g10, `GAME-LOOP-LOG.md`):
+a card-name ask (Cabal Therapy) now states the spell's targets, so naming for a self-targeted
+Therapy is not read as naming for the opponent's hand; a top-of-library order (Ponder, Brainstorm)
+is asked from the top down and reversed before the engine places it, since the engine puts the
+LAST card returned on top; and the "may shuffle" that follows such an order states the order it
+would undo. Legacy profiles keep their bytes. Tests: `aNameAskStatesWhoTheSpellTargets`,
+`aLibraryOrderIsAskedTopDownAndTheFirstPickEndsOnTop`,
+`theShuffleAskAfterAnOrderSaysWhatTheShuffleWouldUndo`.
+
 ### Tool protocol: `evidence-tools-v2` and native function calling (2026-10-13)
 
 `eval/tool_audit.py` over the three controlled arms (`runs/lines/ctl`, 48 games, 2,994 model calls)
