@@ -249,7 +249,6 @@ class TestLookahead(unittest.TestCase):
         # flag is the same condition, and without the flag it is not.
         old = dict(base, env_overrides={"LOOKAHEAD": "1"})
         del old["lookahead"]
-        old_no_env = {k: v for k, v in base.items() if k != "lookahead"}
         self.assertEqual(run_batch.condition_diff(old, la), [])
         self.assertEqual(run_batch.condition_diff(old, base), [("lookahead", True, False)])
 
