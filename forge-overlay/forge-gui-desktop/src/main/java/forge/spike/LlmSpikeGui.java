@@ -51,6 +51,7 @@ import forge.deck.Deck;
 import forge.deck.DeckSection;
 import forge.deck.DeckgenUtil;
 import forge.game.Game;
+import forge.game.GameActionUtil;
 import forge.game.GameEntity;
 import forge.game.GameLogEntry;
 import forge.game.GameLogEntryType;
@@ -115,7 +116,7 @@ interface LLMBridge {
      *  truncation without re-deriving it from raw_reply. */
     default String getLastFinishReason() { return null; }
     /** Prompt (input) token count reported by the backend's response `usage` object for the most
-     *  recently completed ask(), or -1 when the backend reports no usage (Claude CLI) or nothing has
+     *  recently completed ask(), or -1 when the backend reports no usage or nothing has
      *  completed yet. Persisted per-decision in the eval JSONL so Stage-0 calibration can sum true
      *  input/output token cost without re-deriving it. Same last-value single-threaded-per-seat
      *  contract as getLastFinishReason(). */
@@ -2958,6 +2959,11 @@ public final class LlmSpikeGui {
             }
         }
 
+        /** The top-of-library order this seat just chose (names, top first) and the ability that asked,
+         *  for the shuffle question that can follow it; see confirmAction. */
+        private String lastTopOrder;
+        private SpellAbility lastTopOrderSa;
+
         /** Generic "choose the ORDER" hook — Ponder, Brainstorm/Dig put-backs, Sensei's Divining Top,
          *  and any other effect that hands the engine a fixed set of cards and asks for a permutation
          *  before they move to `destinationZone` — ROUTED (report C2). This ran unconditionally on
@@ -2975,14 +2981,32 @@ public final class LlmSpikeGui {
                 List<Card> opts = new ArrayList<>(cards);
                 List<String> labels = new ArrayList<>();
                 for (Card c : opts) labels.add(cardLabel(c));
+                // The engine moves the returned list to the top of a deck one card at a time, so the LAST
+                // card ends on top; "first = goes in/on top first" was read as "first = top", and in
+                // runs/loop/g09 four Ponders each buried the card the seat meant to draw. Under the
+                // faithful profile the question is asked top-down and the answer reversed, as Forge's
+                // own human controller does; legacy profiles keep their bytes and their literal wording.
+                // Only where the cards really go on top: Dig's rest pile goes to LibraryPosition2 (default
+                // the bottom), which orderedMoveToTopOfLibrary does not read (Goblin Ringleader, Flow State).
+                ApiType api = source == null ? null : source.getApi();
+                boolean topDown = observer != null && destinationZone == ZoneType.Library
+                        && (api == ApiType.RearrangeTopOfLibrary
+                            || ((api == ApiType.ChangeZone || api == ApiType.ChangeZoneAll)
+                                && orderedMoveToTopOfLibrary(destinationZone, source)));
                 String q = "Put these " + opts.size() + " card(s)" + srcOf(source) + " into " + destinationZone
-                        + " in your preferred order. List ALL " + opts.size() + " of them (first = goes in/on top first).";
+                        + " in your preferred order. List ALL " + opts.size() + " of them "
+                        + (topDown ? "from the TOP down: the first card you name will be the top card, drawn first."
+                                   : "(first = goes in/on top first).");
                 List<Integer> picks = decideMany(smart, "order", q, labels, opts.size(), opts.size());
                 if (picks == null || picks.size() != opts.size()) { auto("order(unparsed)->as-is"); return cards; }
                 CardCollection out = new CardCollection();
                 StringBuilder log = new StringBuilder();
                 for (int i : picks) { out.add(opts.get(i)); if (log.length() > 0) log.append(", "); log.append(opts.get(i).getName()); }
-                p("[ROUTER] order" + srcOf(source) + " -> " + destinationZone + ": " + log);
+                p("[ROUTER] order" + srcOf(source) + " -> " + destinationZone + (topDown ? " (top first)" : "") + ": " + log);
+                if (topDown) {
+                    lastTopOrder = log.toString(); lastTopOrderSa = source;
+                    java.util.Collections.reverse(out);
+                }
                 return out;
             } catch (Exception e) {
                 auto("order(err)->as-is");
@@ -3062,9 +3086,17 @@ public final class LlmSpikeGui {
         public boolean confirmAction(SpellAbility sa, PlayerActionConfirmMode mode, String message,
                 List<String> options, Card cardToShow, Map<String, Object> params) {
             clearLast();
+            // The "may shuffle" after an ordering goes to the fast tier, a separate conversation that never
+            // saw the order: in runs/loop/g10 it answered YES to Ponder's shuffle and undid the order the
+            // smart tier had just chosen. State the order it would undo; consumed by this ask either way.
+            String undoes = "";
+            if (lastTopOrderSa != null && lastTopOrderSa == sa && message != null && message.toLowerCase().contains("shuffle"))
+                undoes = " You just put these on top of that library, top first: " + lastTopOrder
+                        + ". Shuffling randomizes the whole library, those cards included.";
+            lastTopOrderSa = null;
             if (!fastOk()) { auto("confirm(no-model)->NO"); return false; } // deterministic decline, not the AI
             try {
-                String q = "Yes/No decision" + srcOf(sa) + ": " + (message == null ? String.valueOf(mode) : message);
+                String q = "Yes/No decision" + srcOf(sa) + ": " + (message == null ? String.valueOf(mode) : message) + undoes;
                 List<String> yn = Lists.newArrayList("YES (do it)", "NO (decline)");
                 int c = decideOne(fast, "confirm", q, yn, null);
                 // UNPARSED and BRIDGE-DOWN both take the same deterministic decline default — a dead
@@ -3316,7 +3348,8 @@ public final class LlmSpikeGui {
                 if (faces.size() <= 20) {
                     List<String> labels = new ArrayList<>();
                     for (ICardFace f : faces) labels.add(f.getName());
-                    int c = decideOne(smart, "card-name", "NAME A CARD" + srcOf(sa) + ": " + oneLine(message), labels, null);
+                    int c = decideOne(smart, "card-name", "NAME A CARD" + srcOf(sa) + ": " + oneLine(message)
+                            + (observer != null ? targetNote(sa, getPlayer()) : ""), labels, null);
                     if (c >= 0) { p("[ROUTER] card-name: " + labels.get(c) + srcOf(sa)); return labels.get(c); }
                     // Bridge-down (c==-2) or still-unparseable-after-retry (c==-1): same deterministic
                     // first-face default the no-model branch above uses, never Forge AI.
@@ -3399,8 +3432,11 @@ public final class LlmSpikeGui {
         private String askCardName(SpellAbility sa, String message, String valid) {
             String q = snapshot() + "\nDECISION: NAME A CARD" + srcOf(sa) + ": " + oneLine(message)
                     + (valid != null && !valid.isEmpty() ? " (must match: " + oneLine(valid) + ")" : "")
-                    + ". Use everything you've seen this game — revealed hands, their deck's archetype — to name "
-                    + "the card most likely there / most dangerous to your plan. "
+                    + (observer != null
+                        ? "." + targetNote(sa, getPlayer())
+                            + " Use everything you've seen this game (revealed hands, the target's deck) to choose the name. "
+                        : ". Use everything you've seen this game — revealed hands, their deck's archetype — to name "
+                            + "the card most likely there / most dangerous to your plan. ")
                     + "End with EXACTLY: CARD: <exact English card name>";
             for (int attempt = 0; attempt < 2; attempt++) {
                 String reply = ask(smart, attempt == 0 ? q
@@ -4315,6 +4351,22 @@ public final class LlmSpikeGui {
             for (ZoneType z : zones) { if (b.length() > 0) b.append('/'); b.append(z); }
             return b.toString();
         }
+        /** Who the spell's targets are, for a decision asked after targeting (a name, a number). A
+         *  name ask that does not say whose hand it reaches is answered as if it were the opponent's:
+         *  runs/loop/g08 targeted itself with Cabal Therapy to bin Griselbrand and then named Ajani. */
+        static String targetNote(SpellAbility sa, Player me) {
+            try {
+                List<String> who = new ArrayList<>();
+                for (forge.game.spellability.TargetChoices tc : sa.getAllTargetChoices()) {
+                    for (forge.game.GameObject o : tc) {
+                        String n = o == me ? "YOU (" + me.getName() + ")"
+                                : o instanceof Card ? ((Card) o).getName() : o.toString();
+                        if (!who.contains(n)) who.add(n);
+                    }
+                }
+                return who.isEmpty() ? "" : " This spell targets: " + String.join(", ", who) + ".";
+            } catch (Exception e) { return ""; }
+        }
         private static String srcOf(SpellAbility sa) {
             try { return sa != null && sa.getHostCard() != null ? " [" + sa.getHostCard().getName() + "]" : ""; }
             catch (Exception e) { return ""; }
@@ -4523,11 +4575,29 @@ public final class LlmSpikeGui {
          *  original inline code). */
         static PlayOptions enumeratePlayOptions(Player me, boolean ownMain) {
             List<SpellAbility> options = new ArrayList<>();
+            // getSpellAbilities drops a spell's alternative costs whenever the spell is also castable
+            // normally, leaving the AI to re-expand them later; this menu never did, so Unmask, Force of
+            // Will and every other "rather than pay this spell's mana cost" spell went unoffered
+            // (runs/loop/g08: Unmask in hand beside four black cards, never on the menu). Expand here.
+            List<SpellAbility> candidates = new ArrayList<>();
+            java.util.Set<SpellAbility> altCosts = new java.util.HashSet<>();
             for (SpellAbility sa : ComputerUtilAbility.getSpellAbilities(
                     ComputerUtilAbility.getAvailableCards(me.getGame(), me), me)) {
+                candidates.add(sa);
+                if (!sa.isSpell() || sa.getAlternativeCost() != null) continue;
+                try {
+                    for (SpellAbility alt : GameActionUtil.getAlternativeCosts(sa, me, false)) {
+                        candidates.add(alt); altCosts.add(alt);
+                    }
+                } catch (Exception ignore) { /* the base spell is still offered */ }
+            }
+            for (SpellAbility sa : candidates) {
                 if (sa.isLandAbility() || sa.isManaAbility()) continue;
                 if (!sa.canPlay()) continue;
-                if (!ComputerUtilMana.canPayManaCost(sa, me, 0, false)) continue;
+                // An alternative cost is rarely mana alone (exile a card, pay life, return an Island),
+                // so it is checked as a whole cost; the normal cast keeps its historical mana check.
+                if (altCosts.contains(sa) ? !ComputerUtilCost.canPayCost(sa, me, false)
+                        : !ComputerUtilMana.canPayManaCost(sa, me, 0, false)) continue;
                 // Skip a targeted spell that currently has NO legal target — casting it just fizzles
                 // ("Couldn't add to stack, failed to target"), e.g. Animate Dead with an empty graveyard.
                 if (sa.usesTargeting()) {
@@ -5690,6 +5760,7 @@ public final class LlmSpikeGui {
         private BufferedWriter in;
         private int asksSinceStart = 0;
         private long totalMs = 0; private int calls = 0; // latency accounting, read by [TALLY]
+        private volatile int lastPromptTokens = -1, lastCompletionTokens = -1;
 
         ClaudeBridge(String label, String model, String preamble) {
             this.label = label;
@@ -5728,6 +5799,7 @@ public final class LlmSpikeGui {
 
         @Override public synchronized String ask(String prompt) {
             long t0 = System.currentTimeMillis();
+            lastPromptTokens = -1; lastCompletionTokens = -1;
             try {
                 if (RESET_EVERY > 0 && asksSinceStart >= RESET_EVERY) {
                     System.out.println("[CLAUDE " + label + "] refreshing session after " + asksSinceStart + " asks (bounds context growth)");
@@ -5750,6 +5822,10 @@ public final class LlmSpikeGui {
                     if (line == null) { reset(); return null; }
                     if (line.contains("\"type\":\"result\"")) {
                         String r = extractJsonString(line, "\"result\":\"");
+                        lastPromptTokens = promptTokens(line);
+                        lastCompletionTokens = usageInt(line, "output_tokens");
+                        String served = servedModel(line);
+                        if (served != null) servedModels.put(label, served);
                         if (isNonAnswer(r)) {
                             System.out.println("[CLAUDE " + label + "] non-answer result -> treating as bridge-down");
                             return null; // caller's retry/fallback path will log an honest bridge-down reason
@@ -5776,6 +5852,29 @@ public final class LlmSpikeGui {
         @Override public String getModel() { return model; }
         @Override public long getTotalMs() { return totalMs; }
         @Override public int getCalls() { return calls; }
+        @Override public int getLastPromptTokens() { return lastPromptTokens; }
+        @Override public int getLastCompletionTokens() { return lastCompletionTokens; }
+
+        // The CLI's result line carries what the spec does not: `haiku` is an alias, and the model that
+        // answered is the key of its "modelUsage" object; the prompt is input + both cache counts.
+        static String servedModel(String resultLine) {
+            int k = resultLine == null ? -1 : resultLine.indexOf("\"modelUsage\":{\"");
+            if (k < 0) return null;
+            int a = k + "\"modelUsage\":{\"".length(), b = resultLine.indexOf('"', a);
+            return b > a ? resultLine.substring(a, b) : null;
+        }
+        static int usageInt(String resultLine, String key) {
+            int u = resultLine == null ? -1 : resultLine.indexOf("\"usage\":{");
+            if (u < 0) return -1;
+            Matcher m = Pattern.compile("\"" + key + "\":(\\d+)").matcher(resultLine);
+            return m.find(u) ? Integer.parseInt(m.group(1)) : -1;
+        }
+        static int promptTokens(String resultLine) {
+            int in = usageInt(resultLine, "input_tokens");
+            if (in < 0) return -1;
+            return in + Math.max(0, usageInt(resultLine, "cache_creation_input_tokens"))
+                    + Math.max(0, usageInt(resultLine, "cache_read_input_tokens"));
+        }
 
         private void reset() {
             try { if (proc != null) proc.destroyForcibly(); } catch (Exception ignore) { }
