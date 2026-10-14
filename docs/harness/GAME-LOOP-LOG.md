@@ -222,3 +222,44 @@ Sheet: TAKEN 0, LOST 0, TOOL 0 (8 of 8 served), SLOW 0; 3 truncations. 921 s.
   done this pass; only the sheet, the truncations, the colour autos and the two plan clauses were
   examined. The next session on this deck should start there.
 - clean  mulligan (asked, twice), the tool sheet (8 requests, all served), attackers/blockers.
+
+### g07  2026-10-13  seed 59  Elves (seat) vs Food Chain (Forge AI)  won T14  $0.10  build 4eca84d4
+
+Sheet: TAKEN 0, LOST 0, TOOL 1 (9 of 10 served), SLOW 0; 1 truncation. 938 s.
+
+- FINDING the cap IS the model's thinking budget, and the evidence is that the observed completion
+  maximum tracks the cap across three datasets and three decks: the cross-run sample at a 4000 cap,
+  max 4000 (clipped); g06 at 8000, max 7615 (0.95 of it); g07 at 16000, max 14989 (0.94). OpenRouter
+  derives the reasoning budget from max_tokens through the effort fraction, deepseek's default effort
+  is "high", and the harness sends NO effort at all (the unsupported "medium" was removed rather than
+  replaced), so the cap sets how hard the model thinks. Raising the cap bought thinking rather than
+  headroom: g07 cost $0.10 against g05's $0.05 over a comparable 101 model calls. And the 8000 value
+  was circular -- it came from a cross-run p99 of 3811 measured against a 4000 cap, i.e. 0.95 of that
+  cap. This is the eval-validity problem in its sharpest form: two models run at different caps were
+  never thinking equally hard.
+- CONFIRMED the cap IS the thinking budget, and the experiment settled it. The same deck at two caps,
+  one seed pair, only OPENROUTER_MODEL_CFG changed (`runs/loop/cap6000`, seed 60, Elves/Food Chain;
+  `model_cfg_sha` 4a33b2fd against g07's 23c942bc):
+
+  | | median | p90 | max | over 4000 |
+  |---|---|---|---|---|
+  | cap 16000 (g07) | 1382 | 4876 | 14989 | 7 of 41 |
+  | cap 6000 (cap6000) | 1203 | 3978 | 4600 | 3 of 35 |
+
+  The maximum tracks the cap and the median barely moves: the cap clips the TAIL, which is exactly the
+  hard decisions. OpenRouter derives the reasoning budget from max_tokens through the effort fraction,
+  deepseek's default effort is "high", and the harness sends no effort hint (the unsupported "medium"
+  was removed rather than replaced). So two models run at different caps were never thinking equally
+  hard, and the earlier sizing was circular -- 8000 came from a cross-run p99 of 3811 measured against
+  a 4000 cap, i.e. 0.95 of that cap. 16000 stands because it does not clip; the real fix is an
+  explicit, supported `reasoning.effort` that separates the thinking budget from the answer budget,
+  and that needs the per-model supported_efforts from OpenRouter's models endpoint.
+- OPEN   the one-preview budget bit again: `simulate {"option": 2, "then": [5]}` refused with "one
+  preview per decision" (jsonl:6). Second game running, so it stops being marginal.
+- NOTE   the new unasked-choice TAKEN rule was NOT exercised here: g07's only auto rows were three
+  `damage-assign | forced(only-legal)`, correctly counted as forced. Elves and Food Chain raise no
+  colour or type decisions, so the rule still rests on its unit test alone.
+- NOTE   as in g06, the turn-by-turn read of the attacker/blocker steps was not done; the sheet, the
+  auto rows, the truncations and the token distribution were.
+- clean  the tool sheet (9 of 10 served, nothing REFUSED/FAILED/empty/exhausted), mulligan, the one
+  target.

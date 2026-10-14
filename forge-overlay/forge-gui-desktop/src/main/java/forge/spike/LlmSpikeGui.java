@@ -5494,10 +5494,14 @@ public final class LlmSpikeGui {
             // reasoning separately: OpenRouter's `reasoning.max_tokens` is Anthropic-style and the
             // authorised model does not accept it (its model entry has no supports_max_tokens, and
             // supported_efforts is max/high/low, so the "medium" this table used to send was not a
-            // value the model has). So the cap covers reasoning and answer together, at 16000: 8000
-            // (2x the CROSS-RUN p99) still truncated 3 of 33 smart calls on g06, whose completions run
-            // median 2042 and max 7615 -- a deck that reasons longer than the cross-run sample, so the
-            // cross-run p99 was the wrong sample to size on. A model that still overruns is
+            // value the model has). max_tokens IS the thinking budget, not just the answer budget:
+            // OpenRouter derives reasoning from it through the effort fraction and no effort hint is
+            // sent, so the cap decides how long the model may think. Measured on ONE deck (Elves, the
+            // same seed pair) at 16000 vs 6000 via OPENROUTER_MODEL_CFG, no rebuild: max completion
+            // 14989 vs 4600, p90 4876 vs 3978, median 1382 vs 1203. The cap clips the TAIL -- exactly
+            // the hard decisions -- which is why raising it bought thinking rather than headroom. 16000
+            // is chosen so it does not clip; separating the two budgets properly needs an explicit,
+            // supported reasoning.effort, which is the next step. A model that still overruns is
             // truncated once and retried with reasoning off, which the game log and match_review
             // already report per game, so the tail is visible rather than silent.
             ModelCfg uniform = new ModelCfg(16000, 150000, null, null, 1024, 45000, "none");
