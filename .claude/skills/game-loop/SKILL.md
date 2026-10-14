@@ -37,7 +37,7 @@ python3 eval/run_batch.py --seeds $SEED --exploratory --jobs 1 --budget-usd 0.15
   --controller-a llm --controller-b ai \
   --smart-a openrouter:deepseek/deepseek-v4.1-flash --fast-a openrouter:deepseek/deepseek-v4.1-flash \
   --context-profile v4-faithful --memory-tools --lookahead --env MULLIGAN_HEURISTIC=0 \
-  --env "TIER_FAST_TYPES=targets,target,zone-change,prevent-effect,ability-to-play,play-single,order" \
+  --tier-fast-types "targets,target,zone-change,prevent-effect,ability-to-play,play-single,order" \
   --out $PWD/runs/loop/g$N --cap-minutes 20
 ```
 

@@ -10,9 +10,9 @@ context profile, memory tools, checkpoint, shas, cap, plans, env overrides) is
 written to <out>/batch-manifest.json on first launch; a later invocation with a
 different condition against the same --out is refused, so one directory is
 always one experiment. --context-profile, --memory-tools, --rules-tool,
---text-tools and --lookahead are the only way to set CONDITION_ENV_KEYS (ambient
-values are scrubbed, --env is refused for them); unset means the JVM's
-historical baseline.
+--text-tools, --lookahead, --plan-execute and --tier-fast-types are the only way
+to set CONDITION_ENV_KEYS (ambient values are scrubbed, --env is refused for
+them); unset means the JVM's historical baseline.
 
 Two modes:
   CITED (default) — the only mode whose numbers may be quoted. Enforces a
@@ -60,8 +60,14 @@ SPIKE_REL = "forge-gui-desktop/src/main/java/forge/spike"
 SPIKE_FILES = ("LlmSpikeGui.java", "LlmSpikeHeadless.java")
 # Env keys cited mode owns; a user --env override of these is refused.
 CITED_FORCED_KEYS = ("MULLIGAN_HEURISTIC", "SKIP_HEURISTICS", "PLAN_A", "PLAN_B")
-# Set by --context-profile, --memory-tools, --rules-tool, --text-tools and --lookahead.
-CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD")
+# Set by --context-profile, --memory-tools, --rules-tool, --text-tools, --lookahead,
+# --plan-execute and --tier-fast-types.
+CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD",
+                      "PLAN_EXECUTE", "TIER_FAST_TYPES")
+# Condition env keys that a pre-flag manifest could only have recorded as an --env override. The
+# resume comparison folds them out of `env_overrides` and back into their own condition field, so a
+# directory made with `--env LOOKAHEAD=1` (or PLAN_EXECUTE / TIER_FAST_TYPES) resumes under the flag.
+PROMOTED_ENV_KEYS = ("LOOKAHEAD", "PLAN_EXECUTE", "TIER_FAST_TYPES")
 # Env keys that DEFINE the run (decks, identities, arms, models, seeding,
 # caps, provenance). Cited mode refuses --env overrides of these — otherwise
 # e.g. `--env DECK_A=other.txt` would silently break the mirror while the run
@@ -95,6 +101,7 @@ CONDITION_KEYS = (
     "discipline", "deck_a", "deck_b", "name_a", "name_b",
     "controller_a", "controller_b", "smart_a", "smart_b", "fast_a", "fast_b",
     "plan_a", "plan_b", "context_profile", "memory_tools", "rules_tool", "native_tools", "lookahead", "ctx_overrides",
+    "plan_execute", "tier_fast_types",
     "checkpoint_sha", "engine_sha", "overlay_sha", "deck_sha",
     "cap_minutes", "shadow_ai", "env_overrides",
 )
@@ -239,6 +246,8 @@ def build_env(args, seed, swap, out_dir):
     env["RULES_TOOL"] = "1" if getattr(args, "rules_tool", False) else "0"
     env["NATIVE_TOOLS"] = "1" if getattr(args, "native_tools", False) else "0"
     env["LOOKAHEAD"] = "1" if getattr(args, "lookahead", False) else "0"
+    env["PLAN_EXECUTE"] = "1" if getattr(args, "plan_execute", False) else "0"
+    env["TIER_FAST_TYPES"] = normalize_tier_fast_types(getattr(args, "tier_fast_types", None))
     # Explicitly clear SWAP_SEATS when not swapping so an inherited value
     # can't silently flip seats.
     if swap:
@@ -422,6 +431,12 @@ def resume_expectation(args):
         expect["rules_tool"] = [False, ABSENT]
     on = getattr(args, "lookahead", False)
     expect["lookahead"] = [on] if on != getattr(args, "unstamped_lookahead", False) else [on, ABSENT]
+    # The two opt-in play switches (issue #117). Off accepts a pre-stamp line (when the harness did
+    # not yet stamp them, it could only have run with the default off); on demands the stamp, so a
+    # line from a batch that never turned it on is replayed rather than counted as this batch's.
+    expect["plan_execute"] = [True] if getattr(args, "plan_execute", False) else [False, ABSENT]
+    tft = normalize_tier_fast_types(getattr(args, "tier_fast_types", None))
+    expect["tier_fast_types"] = [tft] if tft else ["", ABSENT]
     for field, val in (("controller_a", args.controller_a), ("controller_b", args.controller_b),
                        ("smart_a", args.smart_a), ("smart_b", args.smart_b),
                        ("fast_a", args.fast_a), ("fast_b", args.fast_b)):
@@ -491,6 +506,8 @@ def batch_condition(args, cited):
         "rules_tool": bool(getattr(args, "rules_tool", False)),
         "native_tools": bool(getattr(args, "native_tools", False)),
         "lookahead": bool(getattr(args, "lookahead", False)),
+        "plan_execute": bool(getattr(args, "plan_execute", False)),
+        "tier_fast_types": normalize_tier_fast_types(getattr(args, "tier_fast_types", None)),
         "ctx_overrides": ctx,
         "checkpoint_sha": forced.get("CHECKPOINT_SHA"),
         "engine_sha": forced.get("ENGINE_SHA"),
@@ -521,16 +538,29 @@ def spent_usd(out_dir):
     return cost_report.report_dir(str(out_dir), cost_report.load_prices())["usd"]
 
 
+def normalize_tier_fast_types(v):
+    """TIER_FAST_TYPES as it is compared, stamped and passed: lowercased, de-duplicated, sorted,
+    comma-joined; empty string when unset. Matches PlayerControllerLLM.tierFastTypesLabel so the
+    --tier-fast-types value, the manifest and the game line all name the same condition."""
+    if not v:
+        return ""
+    return ",".join(sorted({p.strip().lower() for p in str(v).split(",") if p.strip()}))
+
+
 def condition_diff_norm(m, k):
     """A condition field as compared on resume. A manifest written before native_tools existed ran
-    without it; one written before --lookahead recorded LOOKAHEAD, if at all, as an --env override."""
+    without it; one written before a flag recorded its env key, if at all, as an --env override."""
     env = m.get("env_overrides") or {}
     if k == "native_tools":
         return bool(m.get(k))
     if k == "lookahead":
         return bool(m.get(k)) or env.get("LOOKAHEAD") == "1"
+    if k == "plan_execute":
+        return bool(m.get(k)) or env.get("PLAN_EXECUTE") == "1"
+    if k == "tier_fast_types":
+        return normalize_tier_fast_types(m.get(k)) or normalize_tier_fast_types(env.get("TIER_FAST_TYPES"))
     if k == "env_overrides":
-        return {e: v for e, v in env.items() if e != "LOOKAHEAD"}
+        return {e: v for e, v in env.items() if e not in PROMOTED_ENV_KEYS}
     return m.get(k)
 
 
@@ -1053,6 +1083,16 @@ def main():
                     help="LOOKAHEAD=1: LLM seats may preview a play option (`simulate`) before "
                          "choosing. Default off; a separate condition from unassisted play and must "
                          "live in its own --out.")
+    ap.add_argument("--plan-execute", action="store_true",
+                    help="PLAN_EXECUTE=1: the harness itself plays steps of the model's own stated "
+                         "turn plan (one smart call per turn rather than one per priority window). "
+                         "Default off; a separate condition from unassisted play and must live in "
+                         "its own --out.")
+    ap.add_argument("--tier-fast-types", metavar="TYPES", default=None,
+                    help="TIER_FAST_TYPES=<comma list>: route those decision types to the fast "
+                         "(non-reasoning) tier instead of the smart one. Default empty (all smart); "
+                         "a separate condition from the default routing and must live in its own "
+                         "--out.")
     ap.add_argument("--rules-tool", action="store_true",
                     help="RULES_TOOL=1: give LLM seats the Comprehensive Rules lookup "
                          "(RULES SEARCH/READ/SECTION/TERM/TOC). Default off; a separate "
@@ -1065,7 +1105,8 @@ def main():
         if k in CONDITION_ENV_KEYS:
             raise SystemExit("run_batch: --env %s is not allowed in any mode; use "
                              "--context-profile / --memory-tools / --rules-tool / --text-tools / "
-                             "--lookahead so the condition is recorded and guarded." % k)
+                             "--lookahead / --plan-execute / --tier-fast-types so the condition is "
+                             "recorded and guarded." % k)
 
     warn_reserved_seeds(args.seeds)
     load_secrets()

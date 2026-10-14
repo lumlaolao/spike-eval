@@ -4196,6 +4196,14 @@ public final class LlmSpikeGui {
             return type == null || !FAST_TIER_TYPES.contains(type.toLowerCase(java.util.Locale.ROOT));
         }
 
+        /** The opt-in fast-tier type list exactly as the routing table holds it, for the game line:
+         *  lowercased, de-duplicated, sorted, comma-joined; empty when the switch is off. TIER_FAST_TYPES
+         *  moves which decisions get the reasoning tier, so games played with it on and off are different
+         *  conditions and must never pool (docs/STANDARDS.md section 4). */
+        static String tierFastTypesLabel() {
+            return String.join(",", new java.util.TreeSet<>(FAST_TIER_TYPES));
+        }
+
         /** The bridge that handles a decision type, and its budget gate -- one source of truth, so the
          *  routing table cannot drift from the tier actually used. */
         private LLMBridge bridgeFor(String type) { return smartTierFor(type) ? smart : fast; }
@@ -6868,6 +6876,12 @@ public final class LlmSpikeGui {
                 + ",\"native_tools_version\":\"" + NativeTools.VERSION + "\""
                 + ",\"lookahead\":" + PlayerControllerLLM.lookaheadEnabled()
                 + ",\"lookahead_version\":\"" + PlayerLookahead.VERSION + "\""
+                // Opt-in switches that change how the seat plays (issue #117). PLAN_EXECUTE makes the
+                // harness play steps of the model's own stated plan; TIER_FAST_TYPES moves decision
+                // types off the reasoning tier. Both stamp what is on, so a batch cannot pool an
+                // on-game with an off-game, and a legacy line that carries neither reads MISSING.
+                + ",\"plan_execute\":" + PlayerControllerLLM.PLAN_EXECUTE
+                + ",\"tier_fast_types\":\"" + jsonEscape(PlayerControllerLLM.tierFastTypesLabel()) + "\""
                 + ",\"rules_tool\":" + PlayerControllerLLM.RULES_TOOL
                 + ",\"rules_tool_version\":\"" + RulesTool.VERSION + "\""
                 + ",\"rules_effective\":\"" + jsonEscape(PlayerControllerLLM.rulesEffective()) + "\""

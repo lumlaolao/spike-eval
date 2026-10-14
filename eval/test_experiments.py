@@ -56,7 +56,8 @@ def modern_line(seed, swap, winner, **kw):
          "claude_effort_smart": "n/a", "claude_effort_fast": "n/a",
          "native_tools": False, "native_tools_seats": "", "native_tools_version": "seat-tools-v4",
          "native_tools_downgraded": "", "rules_tool": False, "rules_tool_version": "rules-tool-v1",
-         "rules_effective": "n/a", "lookahead": False, "lookahead_version": "lookahead-preview-v4"}
+         "rules_effective": "n/a", "lookahead": False, "lookahead_version": "lookahead-preview-v4",
+         "plan_execute": False, "tier_fast_types": ""}
     g.update(kw)
     return g
 
@@ -122,7 +123,10 @@ class GroupingTest(unittest.TestCase):
                              ("native_tools_downgraded", "Identity-A/smart"),
                              ("rules_tool", True), ("lookahead", True),
                              ("native_tools_seats", "A/smart"), ("rules_tool_version", "rules-tool-v2"),
-                             ("rules_effective", "unavailable"), ("lookahead_version", "lookahead-preview-v5")):
+                             ("rules_effective", "unavailable"), ("lookahead_version", "lookahead-preview-v5"),
+                             # The two opt-in play switches (issue #117): on-games and off-games
+                             # are different measurements and never pool.
+                             ("plan_execute", True), ("tier_fast_types", "target,targets")):
             with self.subTest(field=field), tempfile.TemporaryDirectory() as d:
                 write(d, "game-1-1000.jsonl", [modern_line(1, False, "A")])
                 write(d, "game-1-2000.jsonl", [modern_line(1, False, "B", **{field: other})])
@@ -321,6 +325,51 @@ class GroupingTest(unittest.TestCase):
                   "claude_effort_smart", "claude_effort_fast"):
             self.assertIn(f, names)
             self.assertIn(f, aggregate.CONDITION_FIELDS)
+
+
+class GameLineStampCoverageTest(unittest.TestCase):
+    """Every environment variable LlmSpikeGui reads is either stamped on the game line or is on a
+    named allowlist of settings that do not change what the seat decides (issue #117's detector
+    gap). The game-line-key test can only see keys already written; a condition switch that is read
+    but never stamped -- exactly PLAN_EXECUTE and TIER_FAST_TYPES before this fix -- slips past it
+    and pools its on- and off-games. Read the writer's own reads and demand each one is accounted
+    for."""
+
+    # Env name -> game-line key, where the key is not simply the lowercased env name.
+    STAMPED_ALIASES = {
+        "GAME_SEED": "seed", "SWAP_SEATS": "swap",
+        "RUN_DISCIPLINE": "discipline",
+        "SMART_MODEL": "smart_a", "SMART_MODEL_A": "smart_a", "SMART_MODEL_B": "smart_b",
+        "FAST_MODEL": "fast_a", "FAST_MODEL_A": "fast_a", "FAST_MODEL_B": "fast_b",
+        "DECKLIST": "deck_a", "DECK_A_NAME": "deck_a", "DECK_B_NAME": "deck_b",
+        "CLAUDE_BRIDGE_EFFORT": "claude_effort_smart",
+        "OPENROUTER_BASE_URL": "openrouter_base_url", "OPENROUTER_MODEL_CFG": "model_cfg_sha",
+    }
+    # Read by the harness, but not a condition: transport, credentials, recording and process
+    # control, none of which change the seat's decisions (each would need a stamp if it ever did).
+    NON_CONDITION_ENV = {
+        "AUTO_EXIT", "CLAUDE_BIN", "CLAUDE_RESET_EVERY", "EVAL_OUT", "MATCH_GAMES",
+        "OPENROUTER_ALLOW_EGRESS", "OPENROUTER_API_KEY", "OPENROUTER_HTTP_REFERER",
+        "OPENROUTER_HTTP_TITLE", "OPENROUTER_TIMEOUT_MS", "RECORD", "RECORD_FPS", "RECORD_OUT",
+        "RULES_FILE", "SHADOW_AI",
+    }
+
+    def test_every_env_read_is_stamped_or_allowlisted(self):
+        java = (Path(__file__).resolve().parent.parent / "forge-overlay" / "forge-gui-desktop" / "src"
+                / "main" / "java" / "forge" / "spike" / "LlmSpikeGui.java").read_text(encoding="utf-8")
+        start = java.index('EvalLog.write("{\\"t\\":\\"game\\"')
+        keys = set(re.findall(r'\\"([a-z_0-9]+)\\":', java[start:java.index(");", start)]))
+        self.assertIn("native_tools", keys)          # the extraction found the game-line statement
+        names = set(re.findall(r'System\.getenv\("([A-Z_0-9]+)"\)', java))
+        names |= set(re.findall(r'System\.getenv\(\)\.getOrDefault\("([A-Z_0-9]+)"', java))
+        self.assertIn("TIER_FAST_TYPES", names)      # ... and the reads of the writer itself
+        stray = sorted(n for n in names
+                       if n not in self.NON_CONDITION_ENV
+                       and self.STAMPED_ALIASES.get(n, n.lower()) not in keys)
+        self.assertEqual(stray, [],
+                         "stamp these on the game line (aggregate.PROVENANCE_FIELDS) so their "
+                         "on/off games never pool, or add them to NON_CONDITION_ENV with the reason "
+                         "they do not change play")
 
 
 def unresolved(seed, swap, winner, **kw):
