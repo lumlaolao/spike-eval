@@ -96,19 +96,15 @@ def report_dir(run_dir, prices):
             # Priced by the calling seat's own spec: under seat A's, a model-B-vs-ai batch reads as $0 and
             # --budget-usd never stops it. A name both seats share is priced at the dearer spec (an upper bound).
             specs = [g.get("%s_%s" % ("smart" if tier == "smart" else "fast", i)) for i in identities_of(g, seat)]
-            priced = []
-            for s in specs:
-                if price_of(prices, s) is not None:
-                    priced.append(s)
-                elif model_id(s):
-                    out["unpriced"].add(model_id(s))
+            priced = {s: price_of(prices, s) for s in specs if price_of(prices, s) is not None}
+            out["unpriced"].update(model_id(s) for s in specs if s not in priced and model_id(s))
             if not priced:
                 continue
-            spec = max(priced, key=lambda s: pin * price_of(prices, s)["prompt"] + pout * price_of(prices, s)["completion"])
-            p = price_of(prices, spec)
+            usd = {s: pin * p["prompt"] + pout * p["completion"] for s, p in priced.items()}
+            spec = max(usd, key=usd.get)
             out["models"].add(model_id(spec))
-            out["checked"].add(p.get("checked", "?"))
-            out["usd"] += pin * p["prompt"] + pout * p["completion"]
+            out["checked"].add(priced[spec].get("checked", "?"))
+            out["usd"] += usd[spec]
     return out
 
 
