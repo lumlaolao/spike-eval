@@ -46,7 +46,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from run_batch import (  # noqa: E402  provenance helpers, reused verbatim
-    REPO_ROOT, SPIKE_REL, _engine_sha, _overlay_sha, _deck_sha, _spike_drift,
+    REPO_ROOT, SPIKE_REL, _engine_sha, _overlay_sha, _spike_drift,
 )
 
 DECKS_DIR = REPO_ROOT / "eval" / "decks"

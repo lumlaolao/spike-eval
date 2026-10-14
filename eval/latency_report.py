@@ -69,8 +69,8 @@ def report(tag, run_dir, compact=False):
     winner = "%d games" % n_games if n_games > 1 else (games[0].get("winner") if games else None)
     calls = tiers.get("smart", 0) + tiers.get("fast", 0) + tiers.get("plan", 0)
 
-    line = ("%-10s games=%-2d capped=%-2d turns=%-5s decisions=%-4d smart=%-3d fast=%-3d plan=%-3d auto=%-3d" % (
-        tag, n_games, capped, turns, len(dec), tiers.get("smart", 0), tiers.get("fast", 0),
+    line = ("%-10s games=%-2d capped=%-2d winner=%-8s turns=%-5s decisions=%-4d smart=%-3d fast=%-3d plan=%-3d auto=%-3d" % (
+        tag, n_games, capped, winner, turns, len(dec), tiers.get("smart", 0), tiers.get("fast", 0),
         tiers.get("plan", 0), tiers.get("auto", 0)))
     if ct:
         line += "  comp med=%s max=%s" % (pct(ct, 0.5), max(ct))

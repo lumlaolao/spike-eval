@@ -8,7 +8,6 @@ egress-safety property a verifier flagged as the tool's highest-risk contract.
 Run: python3 eval/test_tournament.py   (must exit 0)
 """
 
-import json
 import sys
 import tempfile
 import types

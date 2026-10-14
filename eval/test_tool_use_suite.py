@@ -1,6 +1,5 @@
 """tool_use_suite: the text arm must be the grammar the harness ships, every scenario must be
 solvable through every protocol, and the deciding fact must really be behind a tool."""
-import json
 import re
 import unittest
 from pathlib import Path
