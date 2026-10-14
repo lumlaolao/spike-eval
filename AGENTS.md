@@ -14,7 +14,7 @@ only points at them and repeats what is never optional.
   - `pr-format` before every commit, PR title/body and merge;
   - `pr-review`, then `simplify`, then `standards` on **every** PR before it is merged;
   - `game-loop` whenever a game is played: one match, read it, fix the harness, then the next;
-  - `harness-audit` whenever game logs from many games are reviewed.
+  - `harness-audit` whenever game logs are reviewed;
   - `defect-hunt` when a game is played to fill the defect backlog: the same reading, but each
     harness defect is filed as its own labelled issue and nothing is fixed;
   - `defect-fix` when one filed harness defect is fixed: claim it, prove it on `main`, fix in
