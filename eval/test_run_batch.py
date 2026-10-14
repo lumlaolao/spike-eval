@@ -218,6 +218,43 @@ class TestConditionEnv(unittest.TestCase):
         self.assertNotIn("[out]", p.stdout)
 
 
+class TestLookahead(unittest.TestCase):
+    """LOOKAHEAD changes what the seat can do (the `simulate` preview), so it is a condition like
+    --rules-tool: set only by --lookahead, scrubbed from the ambient environment, recorded in the
+    manifest and checked against each game line's `lookahead` stamp."""
+
+    def test_only_the_flag_sets_it(self):
+        with mock.patch.dict(os.environ, {"LOOKAHEAD": "1"}, clear=False), tempfile.TemporaryDirectory() as d:
+            self.assertEqual(run_batch.build_env(make_args(), 7100, False, Path(d))["LOOKAHEAD"], "0")
+            self.assertEqual(run_batch.build_env(make_args(lookahead=True), 7100, False, Path(d))["LOOKAHEAD"], "1")
+        p = subprocess.run([sys.executable, str(RUN_BATCH), "--seeds", "7100", "--exploratory",
+                            "--env", "LOOKAHEAD=1", "--forge-home", "/nonexistent"],
+                           capture_output=True, text=True)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--lookahead", p.stderr)
+
+    def test_game_lines_and_manifests_keep_it_apart(self):
+        off = run_batch.resume_expectation(make_args())
+        on = run_batch.resume_expectation(make_args(lookahead=True))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False), off))       # predates the stamp
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False, lookahead=True), off))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False, lookahead=True), on))
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False), on))
+        base = run_batch.batch_condition(make_args(), cited=False)
+        la = run_batch.batch_condition(make_args(lookahead=True), cited=False)
+        self.assertEqual(run_batch.condition_diff(base, la), [("lookahead", False, True)])
+        # A manifest from before the flag recorded it as `--env LOOKAHEAD=1`; resuming it with the
+        # flag is the same condition, and without the flag it is not.
+        old = dict(base, env_overrides={"LOOKAHEAD": "1"})
+        del old["lookahead"]
+        self.assertEqual(run_batch.condition_diff(old, la), [])
+        self.assertEqual([k for k, _, _ in run_batch.condition_diff(old, base)], ["lookahead"])
+        with tempfile.TemporaryDirectory() as d:
+            write_game(d, "game-7100-1000.jsonl", game_line(7100, False, lookahead=True))
+            self.assertIn("lookahead", run_batch.check_resume_condition(d, base, cited=False))
+            self.assertIsNone(run_batch.check_resume_condition(d, la, cited=False))
+
+
 class TestResumeIdentity(unittest.TestCase):
     """A game line counts as 'already done' only under this batch's condition."""
 

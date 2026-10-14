@@ -75,7 +75,7 @@ RUN_DEFINING_KEYS = (
     # Context shape and memory tools are experimental CONDITIONS (they change
     # what the model can see and do); only --context-profile/--memory-tools set
     # them, never the ambient environment or --env.
-    "CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS",
+    "CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD",
 )
 # Per-knob context overrides (CTX_RECENT_EVENTS, ...) stamp a "+ovr" profile
 # name and a different context_sha on the game line. Cited mode refuses them;
@@ -92,7 +92,7 @@ MANIFEST_SCHEMA = "batch-manifest.v1"
 CONDITION_KEYS = (
     "discipline", "deck_a", "deck_b", "name_a", "name_b",
     "controller_a", "controller_b", "smart_a", "smart_b", "fast_a", "fast_b",
-    "plan_a", "plan_b", "context_profile", "memory_tools", "rules_tool", "native_tools", "ctx_overrides",
+    "plan_a", "plan_b", "context_profile", "memory_tools", "rules_tool", "native_tools", "lookahead", "ctx_overrides",
     "checkpoint_sha", "engine_sha", "overlay_sha", "deck_sha",
     "cap_minutes", "shadow_ai", "env_overrides",
 )
@@ -236,6 +236,7 @@ def build_env(args, seed, swap, out_dir):
     env["MEMORY_TOOLS"] = "1" if getattr(args, "memory_tools", False) else "0"
     env["RULES_TOOL"] = "1" if getattr(args, "rules_tool", False) else "0"
     env["NATIVE_TOOLS"] = "1" if getattr(args, "native_tools", False) else "0"
+    env["LOOKAHEAD"] = "1" if getattr(args, "lookahead", False) else "0"
     # Explicitly clear SWAP_SEATS when not swapping so an inherited value
     # can't silently flip seats.
     if swap:
@@ -417,6 +418,7 @@ def resume_expectation(args):
         expect["rules_tool"] = [True]
     else:
         expect["rules_tool"] = [False, ABSENT]
+    expect["lookahead"] = [True] if getattr(args, "lookahead", False) else [False, ABSENT]
     for field, val in (("controller_a", args.controller_a), ("controller_b", args.controller_b),
                        ("smart_a", args.smart_a), ("smart_b", args.smart_b),
                        ("fast_a", args.fast_a), ("fast_b", args.fast_b)):
@@ -485,6 +487,7 @@ def batch_condition(args, cited):
         "memory_tools": bool(getattr(args, "memory_tools", False)),
         "rules_tool": bool(getattr(args, "rules_tool", False)),
         "native_tools": bool(getattr(args, "native_tools", False)),
+        "lookahead": bool(getattr(args, "lookahead", False)),
         "ctx_overrides": ctx,
         "checkpoint_sha": forced.get("CHECKPOINT_SHA"),
         "engine_sha": forced.get("ENGINE_SHA"),
@@ -518,8 +521,16 @@ def spent_usd(out_dir):
 def condition_diff(old, new):
     """[(key, old_value, new_value)] over CONDITION_KEYS that differ."""
     def norm(m, k):
-        # A manifest written before native_tools existed ran without it.
-        return bool(m.get(k)) if k == "native_tools" else m.get(k)
+        # A manifest written before native_tools existed ran without it. One written before
+        # --lookahead recorded LOOKAHEAD, if at all, as an --env override.
+        env = m.get("env_overrides") or {}
+        if k == "native_tools":
+            return bool(m.get(k))
+        if k == "lookahead":
+            return bool(m.get(k)) or env.get("LOOKAHEAD") == "1"
+        if k == "env_overrides":
+            return {e: v for e, v in env.items() if e != "LOOKAHEAD"}
+        return m.get(k)
     return [(k, old.get(k), new.get(k)) for k in CONDITION_KEYS
             if norm(old, k) != norm(new, k)]
 
@@ -547,7 +558,7 @@ def legacy_dir_condition(out_dir):
     lines do not carry are omitted (unknowable, not 'matches')."""
     field_map = {
         "context_profile": "context_profile", "memory_tools": "memory_tools",
-        "rules_tool": "rules_tool", "native_tools": "native_tools",
+        "rules_tool": "rules_tool", "native_tools": "native_tools", "lookahead": "lookahead",
         "controller_a": "controller_a", "controller_b": "controller_b",
         "smart_a": "smart_a", "smart_b": "smart_b", "fast_a": "fast_a", "fast_b": "fast_b",
         "name_a": "deck_a", "name_b": "deck_b", "discipline": "discipline",
@@ -596,7 +607,7 @@ def check_resume_condition(out_dir, condition, cited):
             want = "v1-compat"
         if key == "memory_tools":
             want = bool(want)
-        if key in ("rules_tool", "native_tools"):
+        if key in ("rules_tool", "native_tools", "lookahead"):
             want = bool(want)
         if key in ("controller_a", "controller_b", "smart_a", "smart_b",
                    "fast_a", "fast_b") and want is None:
@@ -1000,6 +1011,10 @@ def main():
                          "--memory-tools means on openrouter: seats; this flag is the opt-out, for "
                          "reproducing pre-2026-10-13 runs or measuring the protocol. A separate "
                          "condition: its own --out.")
+    ap.add_argument("--lookahead", action="store_true",
+                    help="LOOKAHEAD=1: LLM seats may preview a play option (`simulate`) before "
+                         "choosing. Default off; a separate condition from unassisted play and must "
+                         "live in its own --out.")
     ap.add_argument("--rules-tool", action="store_true",
                     help="RULES_TOOL=1: give LLM seats the Comprehensive Rules lookup "
                          "(RULES SEARCH/READ/SECTION/TERM/TOC). Default off; a separate "
@@ -1009,10 +1024,10 @@ def main():
     args = ap.parse_args()
     for kv in args.env or []:
         k = kv.split("=", 1)[0]
-        if k in ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL"):
+        if k in ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD"):
             raise SystemExit("run_batch: --env %s is not allowed in any mode; use "
-                             "--context-profile / --memory-tools so the condition is "
-                             "recorded and guarded." % k)
+                             "--context-profile / --memory-tools / --rules-tool / --text-tools / "
+                             "--lookahead so the condition is recorded and guarded." % k)
 
     warn_reserved_seeds(args.seeds)
     load_secrets()
