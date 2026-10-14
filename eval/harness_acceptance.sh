@@ -74,7 +74,13 @@ fail() { echo "FAIL $1: $2" | tee -a "$SUMMARY"; FAILED=1; }
 # the reference Mac (see the expectations file). A "<os>.<key>" line wins over the plain "<key>".
 PLATFORM="$(uname -s | tr '[:upper:]' '[:lower:]')"
 want() { # $1 key -> value from the expectations file
-  awk -F= -v k="$1" -v pk="$PLATFORM.$1" '$1==pk {print $2; found=1; exit} $1==k && v=="" {v=$2} END {if (!found) print v}' "$EXPECTED"
+  # A key written twice prints DUPLICATE, which matches no outcome: a re-pin appended under the old
+  # line must fail the run, not be silently ignored.
+  awk -F= -v k="$1" -v pk="$PLATFORM.$1" '$1==pk {p=$2; np++} $1==k {v=$2; n++}
+    END {if (np) print (np>1 ? "DUPLICATE" : p); else print (n>1 ? "DUPLICATE" : v)}' "$EXPECTED"
+}
+pinset() { # $1 arm -> which pins the canary is checked against
+  if grep -q "^$PLATFORM\.$1\." "$EXPECTED"; then echo "$PLATFORM pins"; else echo "plain (Mac) pins"; fi
 }
 # md5 is macOS, md5sum is Linux. With neither, both sides of a comparison would hash to "" and the
 # gate would pass on anything; an exit inside $( ) does not stop this script, so the caller checks.
@@ -258,8 +264,8 @@ if has_stage canary; then
       EW="$(want $arm.winner)"; ET="$(want $arm.turns)"; ED="$(want $arm.decisions)"
       if [ $ARC -ne 0 ]; then fail "canary-$arm" "defect_analyzer rc=$ARC ($AI, $DROP; see $dir/defects.txt)"
       elif [ "$W" != "$EW" ] || [ "$T" != "$ET" ] || [ "$D" != "$ED" ]; then
-        fail "canary-$arm" "outcome winner=$W turns=$T decisions=$D differs from pinned winner=$EW turns=$ET decisions=$ED (re-pin deliberately if an auto/floor path changed)"
-      else pass "canary-$arm" "seed $seed: winner=$W turns=$T decisions=$D as pinned; $AI $DROP; build verified via class-load log"; fi
+        fail "canary-$arm" "outcome winner=$W turns=$T decisions=$D differs from pinned winner=$EW turns=$ET decisions=$ED, $(pinset $arm) (re-pin deliberately if an auto/floor path changed)"
+      else pass "canary-$arm" "seed $seed: winner=$W turns=$T decisions=$D as pinned ($(pinset $arm)); $AI $DROP; build verified via class-load log"; fi
     done
   fi
 fi
