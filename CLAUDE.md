@@ -250,6 +250,8 @@ The skills in `.claude/skills/` are not optional helpers. They are how work is d
 | on every PR, and whenever you ask "what is the rule for this?" | `standards` | checks the change against `docs/STANDARDS.md` and keeps that file true |
 | **whenever a game is played** | `game-loop` | one match at a time: play it, read it, fix what the harness got wrong, then the next. A batch of many games is not how this repository tests the harness |
 | whenever game logs are reviewed | `harness-audit` | separates harness defects from model mistakes; produces puzzle candidates |
+| when games are played to fill the defect backlog | `defect-hunt` | `game-loop` with "fix it" replaced by "file it": each harness defect becomes a GitHub issue (`harness-defect`) a fresh agent can verify without the game, so many agents can work at once |
+| when taking an issue from that backlog | `defect-fix` | one claimed issue, reproduced by a test that fails on main, fixed, and closed by its PR |
 
 Run the three review skills as fresh subagents where the runtime has them, so the reviewer is
 not the author. Recording verdicts and the merge gate: `docs/STANDARDS.md` section 1. Once per
