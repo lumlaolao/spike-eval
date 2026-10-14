@@ -49,7 +49,7 @@ import argparse
 import hashlib
 import json
 import sys
-from collections import Counter, defaultdict
+from collections import defaultdict
 from pathlib import Path
 
 # Repo root = parent of eval/. Default decks dir lives here.

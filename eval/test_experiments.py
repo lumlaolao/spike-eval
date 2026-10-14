@@ -20,6 +20,7 @@ Run: python3 -m unittest eval.test_experiments   (or discover from eval/)
 All fixtures are synthetic; no real run directory is read.
 """
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -52,7 +53,10 @@ def modern_line(seed, swap, winner, **kw):
          "memory_tools": False, "memory_tools_version": "evidence-tools-v1",
          "seed_bank": "stage3-holdout",
          "context_profile": "v1-compat", "context_sha": "1111",
-         "claude_effort_smart": "n/a", "claude_effort_fast": "n/a"}
+         "claude_effort_smart": "n/a", "claude_effort_fast": "n/a",
+         "native_tools": False, "native_tools_seats": "", "native_tools_version": "seat-tools-v4",
+         "native_tools_downgraded": "", "rules_tool": False, "rules_tool_version": "rules-tool-v1",
+         "rules_effective": "n/a", "lookahead": False, "lookahead_version": "lookahead-preview-v4"}
     g.update(kw)
     return g
 
@@ -111,7 +115,14 @@ class GroupingTest(unittest.TestCase):
     def test_two_models_and_memory_toggle_partition(self):
         for field, other in (("smart_a", "openrouter:teacher"), ("memory_tools", True),
                              ("checkpoint_sha", "f" * 12), ("context_sha", "9999"),
-                             ("game_cap_ms", 60000), ("claude_effort_smart", "max")):
+                             ("game_cap_ms", 60000), ("claude_effort_smart", "max"),
+                             # The tool protocol and the opt-in tools are conditions (CLAUDE.md:
+                             # "Native and text runs are different conditions. Never pool them").
+                             ("native_tools", True), ("native_tools_version", "seat-tools-v5"),
+                             ("native_tools_downgraded", "Identity-A/smart"),
+                             ("rules_tool", True), ("lookahead", True),
+                             ("native_tools_seats", "A/smart"), ("rules_tool_version", "rules-tool-v2"),
+                             ("rules_effective", "unavailable"), ("lookahead_version", "lookahead-preview-v5")):
             with self.subTest(field=field), tempfile.TemporaryDirectory() as d:
                 write(d, "game-1-1000.jsonl", [modern_line(1, False, "A")])
                 write(d, "game-1-2000.jsonl", [modern_line(1, False, "B", **{field: other})])
@@ -287,6 +298,22 @@ class GroupingTest(unittest.TestCase):
             self.assertEqual(len(games), 2)
             self.assertEqual(len({g["_experiment"] for g in games}), 2)
             self.assertEqual(decisions, [])
+
+    def test_every_game_line_key_is_in_the_experiment_key_or_is_an_outcome(self):
+        """The game line's single writer, read from the Java source. A stamp left out of
+        PROVENANCE_FIELDS pools the runs it was written to separate; that happened to memory_tools,
+        claude_effort_* and the nine tool fields, each found only after the fact."""
+        java = (Path(__file__).resolve().parent.parent / "forge-overlay" / "forge-gui-desktop" / "src" / "main"
+                / "java" / "forge" / "spike" / "LlmSpikeGui.java").read_text(encoding="utf-8")
+        start = java.index('EvalLog.write("{\\"t\\":\\"game\\"')
+        keys = re.findall(r'\\"([a-z_0-9]+)\\":', java[start:java.index(");", start)])
+        self.assertIn("native_tools", keys)          # the extraction found the statement
+        self.assertEqual(keys[-1], "claude_effort_fast")  # ... and read it to its end
+        outcome = {"t", "seed", "swap", "winner", "turns", "win_condition", "duration_ms"}
+        known = set(aggregate.CONDITION_FIELDS) | set(aggregate.NON_BEHAVIORAL_PROVENANCE) | outcome
+        self.assertEqual([k for k in keys if k not in known], [],
+                         "add the new game-line key to aggregate.PROVENANCE_FIELDS (or, if it is an "
+                         "outcome, to this test's outcome set)")
 
     def test_provenance_fields_include_effort(self):
         names = [n for n, _ in aggregate.PROVENANCE_FIELDS]

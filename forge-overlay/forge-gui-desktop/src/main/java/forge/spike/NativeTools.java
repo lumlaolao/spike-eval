@@ -26,8 +26,12 @@ final class NativeTools {
 
     /** v2 (2026-10-13): `simulate` covers activated abilities and says what it reports.
      *  v3 (2026-10-13): `simulate`'s option numbers are the decision's own menu numbers, so a
-     *  PLAY LAND option can be previewed and the land can pay for a later step of the line. */
-    static final String VERSION = "seat-tools-v4";
+     *  PLAY LAND option can be previewed and the land can pay for a later step of the line.
+     *  v4 (2026-10-13): `simulate` accepts the PASS option and says nothing resolves.
+     *  v5 (2026-10-14): a call made on a round that offered no tools (a provider ignoring
+     *  tool_choice "none") is refused with the budget error, the seat is told once to answer, and a
+     *  second such call ends the ask; it used to run and be answered. */
+    static final String VERSION = "seat-tools-v5";
     static final String SIMULATE = "simulate";
     private static final List<String> RULES_ACTIONS = List.of("search", "read", "section", "term", "toc");
 

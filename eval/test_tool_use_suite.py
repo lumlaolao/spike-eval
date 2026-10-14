@@ -1,6 +1,5 @@
 """tool_use_suite: the text arm must be the grammar the harness ships, every scenario must be
 solvable through every protocol, and the deciding fact must really be behind a tool."""
-import json
 import re
 import unittest
 from pathlib import Path
@@ -130,7 +129,8 @@ class ToolUseSuiteTest(unittest.TestCase):
             return {"content": None, "tool_calls": [{"id": "x", "type": "function",
                                                      "function": {"name": "inspect", "arguments": "{oops"}}]}
         tu.run_native(s, "need", "smart", model, self.tools, {"tier": "smart"})
-        self.assertEqual(seen, ["auto", "auto", "none"])
+        # A call on the forbidden third round is refused and the model is told once; a second ends the ask.
+        self.assertEqual(seen, ["auto", "auto", "none", "none"])
         markup = {"content": '<x invoke name="inspect">'}
         res = tu.run_native(s, "need", "smart", scripted([markup, markup]), self.tools, {"tier": "smart"})
         self.assertIsNone(res["choice"])
@@ -138,6 +138,16 @@ class ToolUseSuiteTest(unittest.TestCase):
         # Told once that its tools are spent, a model that then answers is heard (as ContextMemory.askNative).
         res = tu.run_native(s, "need", "smart", scripted([markup, {"content": "CHOICE: 2"}]), self.tools, {"tier": "smart"})
         self.assertEqual(res["choice"], 2)
+        # As ContextMemory.askNative: a call made on a round that forbids one does not run, and the
+        # answer after the reminder is heard.
+        call = {"content": None, "tool_calls": [{"id": "c", "type": "function",
+                                                 "function": {"name": "inspect", "arguments": "{\"target\": \"@1\"}"}}]}
+        bad = {"content": None, "tool_calls": [{"id": "b", "type": "function",
+                                                "function": {"name": "inspect", "arguments": "{oops"}}]}
+        res = tu.run_native(s, "need", "smart", scripted([bad, call, call, {"content": "CHOICE: 2"}]),
+                            self.tools, {"tier": "smart"})
+        self.assertEqual(res["choice"], 2)
+        self.assertEqual(res["calls"][-1]["rejected"], "budget")
         self.assertIn(tu.PRESS, java_literals("ContextMemory.java"))
 
     def test_text_tool_request_at_zero_budget_yields_no_answer(self):

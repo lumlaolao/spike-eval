@@ -12,7 +12,8 @@
 #   javatests  every *Test.java in the overlay via TestNG, MEMORY_TOOLS=1; fails on any failure OR skip, and
 #              when the number of tests RUN differs from the number DECLARED (a runner that matches no tests
 #              reports a green nothing -- that happened once with `make jtest`)
-#   pytests    python3 -m unittest discover -s eval  +  eval/test_aggregate.py
+#   pytests    python3 -m unittest discover -s eval; eval/test_script_suites.py runs the script-style files
+#              (module-level test_ functions, no TestCase: test_aggregate, test_make_sft_data, ...) in it
 #   canary     seed-42 floor/floor and random/random games on the freshly compiled classes; asserts the JVM
 #              actually loaded THIS build (class-load log), the pinned winner/turns/decision counts, and the
 #              unchanged eval/defect_analyzer.py hard gates (ai=0, silent drops=0)
@@ -210,11 +211,10 @@ fi
 
 # ---------------------------------------------------------------- pytests
 if has_stage pytests; then
-  ( cd "$REPO" && python3 -m unittest discover -s eval -p 'test_*.py' ) >"$OUT/pytests.log" 2>&1; RC1=$?
-  ( cd "$REPO" && python3 eval/test_aggregate.py ) >"$OUT/test_aggregate.log" 2>&1; RC2=$?
+  ( cd "$REPO" && python3 -m unittest discover -s eval -p 'test_*.py' ) >"$OUT/pytests.log" 2>&1; RC=$?
   RAN="$(grep -o 'Ran [0-9]* tests' "$OUT/pytests.log" | tail -1)"
-  if [ $RC1 -eq 0 ] && [ $RC2 -eq 0 ] && [ -n "$RAN" ]; then pass pytests "$RAN OK; test_aggregate.py: $(tail -1 "$OUT/test_aggregate.log")"
-  else fail pytests "unittest rc=$RC1 ($RAN), test_aggregate rc=$RC2"; fi
+  if [ $RC -eq 0 ] && [ -n "$RAN" ]; then pass pytests "$RAN OK (script-style files included)"
+  else fail pytests "unittest rc=$RC ($RAN)"; fi
 fi
 
 # ---------------------------------------------------------------- game runner
@@ -396,7 +396,9 @@ if has_stage nativetool; then
       # option numbers the model reads off the prompt are the numbers it passes; a preview aims at the
       # target the seat names, not the label-vs-name mismatch that ignored it; and PASS is a previewable
       # menu option now, answered without a copy). The game this stage plays is unchanged; only the
-      # literals the stamps are compared to moved.
+      # literals the stamps are compared to moved. 2026-10-14: seat-tools-v5 (a call on a round that
+      # offered no tools is refused, not run); the fake model honours tool_choice, so again only the
+      # literal moved.
       say "nativetool: LLM seat A on loopback fake model, native tools by default (NATIVE_TOOLS unset), MEMORY_TOOLS=1 LOOKAHEAD=1 under v4-faithful (Mardu mirror)"
       play nativetool 42 CONTROLLER_A=llm CONTROLLER_B=floor SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
           OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" MEMORY_TOOLS=1 LOOKAHEAD=1 CONTEXT_PROFILE=v4-faithful GAME_CAP_MS=120000 \
@@ -417,7 +419,7 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 else:
     if game.get("native_tools") is not True: problems.append("native_tools=%r not stamped"%game.get("native_tools"))
-    if game.get("native_tools_version")!="seat-tools-v4": problems.append("native_tools_version=%r (expected seat-tools-v4; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
+    if game.get("native_tools_version")!="seat-tools-v5": problems.append("native_tools_version=%r (expected seat-tools-v5; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
     if game.get("memory_tools_version")!="evidence-tools-v2": problems.append("memory_tools_version=%r (expected evidence-tools-v2; move this pin WITH ContextMemory.VERSION)"%game.get("memory_tools_version"))
     if game.get("lookahead_version")!="lookahead-preview-v4" or game.get("lookahead") is not True: problems.append("lookahead=%r lookahead_version=%r (expected True, lookahead-preview-v4; move this pin WITH PlayerLookahead.VERSION)"%(game.get("lookahead"),game.get("lookahead_version")))
     if game.get("native_tools_seats")!="A/smart,A/fast": problems.append("native_tools_seats=%r"%game.get("native_tools_seats"))

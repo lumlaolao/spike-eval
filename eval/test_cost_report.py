@@ -56,6 +56,34 @@ class CostReportTest(unittest.TestCase):
         self.assertIn("NOT PRICED: acme/unknown", cr.fmt(dict(r, dir=d)))
         self.assertIsNone(cr.model_id("haiku"))
 
+    def test_each_seat_is_priced_by_its_own_model(self):
+        # Each call is priced by its own seat's model: two different models first, then a killed game
+        # where only B is a model.
+        dear = "openrouter:acme/dear"
+        prices = dict(PRICES, **{"acme/dear": {"prompt": 0.000001, "completion": 0.000002, "checked": "2026-10-14"}})
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "game-1.jsonl", [
+                {"t": "context_call", "seat": "Burn", "tier": "smart", "prompt_tokens": 1000000, "completion_tokens": 0},
+                {"t": "context_call", "seat": "Delver", "tier": "fast", "prompt_tokens": 0, "completion_tokens": 1000},
+                {"t": "game", "deck_a": "Delver", "deck_b": "Burn", "controller_a": "llm", "controller_b": "llm",
+                 "smart_a": dear, "fast_a": dear, "smart_b": OR, "fast_b": OR}])
+            r = cr.report_dir(d, prices)
+            self.assertAlmostEqual(r["usd"], 0.0441 + 1000 * 0.000002, places=9)
+            self.assertEqual(r["models"], {"acme/dear", "deepseek/deepseek-v4.1-flash"})
+            # A killed game names its seats through the manifest.
+            write(d, "game-1.jsonl", [{"t": "context_call", "seat": "Burn", "tier": "smart",
+                                       "prompt_tokens": 1000000, "completion_tokens": 0}])
+            write(d, "batch-manifest.json", [{"condition": {"name_a": "Delver", "name_b": "Burn",
+                                                            "smart_a": "ai", "smart_b": OR}}])
+            self.assertAlmostEqual(cr.report_dir(d, prices)["usd"], 0.0441, places=9)
+            # Both identities under one name (an exploratory batch allows it): the dearer spec, never $0.
+            write(d, "batch-manifest.json", [{"condition": {"name_a": "Burn", "name_b": "Burn",
+                                                            "smart_a": "ai", "smart_b": OR}}])
+            self.assertAlmostEqual(cr.report_dir(d, prices)["usd"], 0.0441, places=9)
+            write(d, "batch-manifest.json", [{"condition": {"name_a": "Burn", "name_b": "Burn",
+                                                            "smart_a": dear, "smart_b": OR}}])
+            self.assertAlmostEqual(cr.report_dir(d, prices)["usd"], 1.0, places=9)
+
     def test_the_price_file_has_the_authorised_model(self):
         p = cr.load_prices()["deepseek/deepseek-v4.1-flash"]
         self.assertTrue(0 < p["prompt"] < p["completion"] < 0.001)

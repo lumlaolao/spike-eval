@@ -252,7 +252,8 @@ public class NativeToolsTest {
             return turn(null, call("c" + round, "inspect", "{\"target\":\"@1\"}"));
         }, null, (a, b) -> { });
         Assert.assertNull(reply);
-        Assert.assertEquals(rounds[0], ContextMemory.TOOLS_PER_ASK + 1, "the same round bound as the text loop");
+        // The text loop's bound plus the one round in which it is told its tools are spent.
+        Assert.assertEquals(rounds[0], ContextMemory.TOOLS_PER_ASK + 2);
     }
 
     @Test
@@ -321,6 +322,57 @@ public class NativeToolsTest {
         Assert.assertEquals(reply, "CHOICE: 1");
         Assert.assertEquals(allowed, List.of(true, true, false));
         Assert.assertEquals(inspected, List.of("@1"));
+    }
+
+    /** tool_choice "none" is a request, and a provider may ignore it. A call on a forbidden round is
+     *  answered with an error and never runs (it would spend the budget on a result the last round can
+     *  never read); the seat is told once that its answer is due, and that answer is taken. Before,
+     *  the call ran and the ask returned nothing, so the decision fell to the deterministic fallback. */
+    @Test
+    public void aCallMadeOnAForbiddenRoundDoesNotRunAndTheAnswerIsStillTaken() {
+        ContextMemory memory = new ContextMemory();
+        List<String> inspected = new ArrayList<>();
+        memory.setInspector(arg -> { inspected.add(arg); return "text"; });
+        List<Boolean> allowed = new ArrayList<>();
+        List<String> results = new ArrayList<>();
+        List<String> last = new ArrayList<>();
+        String reply = memory.askNative("DECISION", (user, messages, tools, allow, round) -> {
+            allowed.add(allow);
+            last.add(messages);
+            if (round == 0) return turn(null, call("a", "inspect", "{oops"));
+            if (round == 1) return turn(null, call("b", "inspect", "{\"target\":\"@1\"}"));
+            if (round == 2) return turn(null, call("c", "inspect", "{\"target\":\"@2\"}"));   // ignored "none"
+            return turn("CHOICE: 1");
+        }, null, (request, result) -> results.add(result));
+        Assert.assertEquals(reply, "CHOICE: 1");
+        Assert.assertEquals(allowed, List.of(true, true, false, false));
+        Assert.assertEquals(inspected, List.of("@1"), "the forbidden call did not run");
+        Assert.assertTrue(results.get(2).startsWith("ERROR: tool budget exhausted"), results.get(2));
+        Assert.assertTrue(memory.brief().contains("MEMORY tools remaining this game: " + (ContextMemory.TOOLS_PER_GAME - 1) + "."),
+                memory.brief());
+        // Every call id is answered before the reminder, as chat-completions requires.
+        JsonArray sent = JsonParser.parseString(last.get(3)).getAsJsonArray();
+        JsonObject tail = sent.get(sent.size() - 1).getAsJsonObject();
+        Assert.assertEquals(tail.get("role").getAsString(), "user");
+        Assert.assertTrue(tail.get("content").getAsString().startsWith("No tool calls are available"));
+        Assert.assertEquals(sent.get(sent.size() - 2).getAsJsonObject().get("tool_call_id").getAsString(), "c");
+    }
+
+    /** Told once that its tools are spent (here for call markup written as text), a seat that then
+     *  makes a real call has been told already: the ask ends instead of being told a second time. */
+    @Test
+    public void aForbiddenCallAfterTheReminderEndsTheAsk() {
+        ContextMemory memory = new ContextMemory();
+        memory.setInspector(arg -> "text");
+        int[] rounds = {0};
+        String reply = memory.askNative("DECISION", (user, messages, tools, allow, round) -> {
+            rounds[0]++;
+            if (round == 0) return turn("<tool_call>inspect @1</tool_call>");
+            if (round == 1) return turn(null, call("b", "inspect", "{\"target\":\"@1\"}"));
+            return turn("CHOICE: 1");
+        }, null, (a, b) -> { });
+        Assert.assertNull(reply);
+        Assert.assertEquals(rounds[0], 2);
     }
 
     /** Recorded (runs/tooluse/deepseek-v3, native/smart/search-old-hand): with calls forbidden the
