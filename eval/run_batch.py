@@ -9,9 +9,10 @@ CONDITION are skipped. The condition (decks, identities, controllers, models,
 context profile, memory tools, checkpoint, shas, cap, plans, env overrides) is
 written to <out>/batch-manifest.json on first launch; a later invocation with a
 different condition against the same --out is refused, so one directory is
-always one experiment. --context-profile and --memory-tools are the only way to
-set CONTEXT_PROFILE / MEMORY_TOOLS (ambient values are scrubbed, --env is
-refused for them); unset means the JVM's historical baseline.
+always one experiment. --context-profile, --memory-tools, --rules-tool,
+--text-tools and --lookahead are the only way to set CONDITION_ENV_KEYS (ambient
+values are scrubbed, --env is refused for them); unset means the JVM's
+historical baseline.
 
 Two modes:
   CITED (default) — the only mode whose numbers may be quoted. Enforces a
@@ -59,6 +60,8 @@ SPIKE_REL = "forge-gui-desktop/src/main/java/forge/spike"
 SPIKE_FILES = ("LlmSpikeGui.java", "LlmSpikeHeadless.java")
 # Env keys cited mode owns; a user --env override of these is refused.
 CITED_FORCED_KEYS = ("MULLIGAN_HEURISTIC", "SKIP_HEURISTICS", "PLAN_A", "PLAN_B")
+# Set by --context-profile, --memory-tools, --rules-tool, --text-tools and --lookahead.
+CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD")
 # Env keys that DEFINE the run (decks, identities, arms, models, seeding,
 # caps, provenance). Cited mode refuses --env overrides of these — otherwise
 # e.g. `--env DECK_A=other.txt` would silently break the mirror while the run
@@ -72,11 +75,10 @@ RUN_DEFINING_KEYS = (
     "GAME_SEED", "SWAP_SEATS", "EVAL_OUT", "GAME_CAP_MS",
     "ENGINE_SHA", "OVERLAY_SHA", "DECK_SHA", "RUN_DISCIPLINE",
     "CHECKPOINT_SHA", "SEED_BANK",
-    # Context shape and memory tools are experimental CONDITIONS (they change
-    # what the model can see and do); only --context-profile/--memory-tools set
-    # them, never the ambient environment or --env.
-    "CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS",
-)
+    # Context shape and the seat's tools are experimental CONDITIONS (they change
+    # what the model can see and do); only their flags set them, never the
+    # ambient environment or --env.
+) + CONDITION_ENV_KEYS
 # Per-knob context overrides (CTX_RECENT_EVENTS, ...) stamp a "+ovr" profile
 # name and a different context_sha on the game line. Cited mode refuses them;
 # exploratory mode allows them via --env and records them in the manifest.
@@ -92,7 +94,7 @@ MANIFEST_SCHEMA = "batch-manifest.v1"
 CONDITION_KEYS = (
     "discipline", "deck_a", "deck_b", "name_a", "name_b",
     "controller_a", "controller_b", "smart_a", "smart_b", "fast_a", "fast_b",
-    "plan_a", "plan_b", "context_profile", "memory_tools", "rules_tool", "native_tools", "ctx_overrides",
+    "plan_a", "plan_b", "context_profile", "memory_tools", "rules_tool", "native_tools", "lookahead", "ctx_overrides",
     "checkpoint_sha", "engine_sha", "overlay_sha", "deck_sha",
     "cap_minutes", "shadow_ai", "env_overrides",
 )
@@ -236,6 +238,7 @@ def build_env(args, seed, swap, out_dir):
     env["MEMORY_TOOLS"] = "1" if getattr(args, "memory_tools", False) else "0"
     env["RULES_TOOL"] = "1" if getattr(args, "rules_tool", False) else "0"
     env["NATIVE_TOOLS"] = "1" if getattr(args, "native_tools", False) else "0"
+    env["LOOKAHEAD"] = "1" if getattr(args, "lookahead", False) else "0"
     # Explicitly clear SWAP_SEATS when not swapping so an inherited value
     # can't silently flip seats.
     if swap:
@@ -417,6 +420,8 @@ def resume_expectation(args):
         expect["rules_tool"] = [True]
     else:
         expect["rules_tool"] = [False, ABSENT]
+    on = getattr(args, "lookahead", False)
+    expect["lookahead"] = [on] if on != getattr(args, "unstamped_lookahead", False) else [on, ABSENT]
     for field, val in (("controller_a", args.controller_a), ("controller_b", args.controller_b),
                        ("smart_a", args.smart_a), ("smart_b", args.smart_b),
                        ("fast_a", args.fast_a), ("fast_b", args.fast_b)):
@@ -485,6 +490,7 @@ def batch_condition(args, cited):
         "memory_tools": bool(getattr(args, "memory_tools", False)),
         "rules_tool": bool(getattr(args, "rules_tool", False)),
         "native_tools": bool(getattr(args, "native_tools", False)),
+        "lookahead": bool(getattr(args, "lookahead", False)),
         "ctx_overrides": ctx,
         "checkpoint_sha": forced.get("CHECKPOINT_SHA"),
         "engine_sha": forced.get("ENGINE_SHA"),
@@ -515,13 +521,23 @@ def spent_usd(out_dir):
     return cost_report.report_dir(str(out_dir), cost_report.load_prices())["usd"]
 
 
+def condition_diff_norm(m, k):
+    """A condition field as compared on resume. A manifest written before native_tools existed ran
+    without it; one written before --lookahead recorded LOOKAHEAD, if at all, as an --env override."""
+    env = m.get("env_overrides") or {}
+    if k == "native_tools":
+        return bool(m.get(k))
+    if k == "lookahead":
+        return bool(m.get(k)) or env.get("LOOKAHEAD") == "1"
+    if k == "env_overrides":
+        return {e: v for e, v in env.items() if e != "LOOKAHEAD"}
+    return m.get(k)
+
+
 def condition_diff(old, new):
     """[(key, old_value, new_value)] over CONDITION_KEYS that differ."""
-    def norm(m, k):
-        # A manifest written before native_tools existed ran without it.
-        return bool(m.get(k)) if k == "native_tools" else m.get(k)
-    return [(k, old.get(k), new.get(k)) for k in CONDITION_KEYS
-            if norm(old, k) != norm(new, k)]
+    return [(k, condition_diff_norm(old, k), condition_diff_norm(new, k)) for k in CONDITION_KEYS
+            if condition_diff_norm(old, k) != condition_diff_norm(new, k)]
 
 
 def load_manifest(out_dir):
@@ -558,17 +574,34 @@ def legacy_dir_condition(out_dir):
     n = 0
     for rec in iter_game_lines(out_dir):
         n += 1
+        # A game line written before native_tools existed ran the text grammar (or no tools).
+        # Without this a legacy directory of text-grammar games would accept native-tools games.
+        rec = dict({"native_tools": False}, **rec)
         for key, field in field_map.items():
             if field in rec:
                 seen.setdefault(key, set()).add(json.dumps(rec[field], sort_keys=True))
     if not n:
         return None
-    # A game line written before native_tools existed ran the text grammar. Without this a legacy
-    # directory of text-grammar games would accept native-tools games on resume.
-    if "memory_tools" in seen:
-        seen.setdefault("native_tools", {json.dumps(False)})
     return {"n_game_lines": n,
             "fields": {k: [json.loads(v) for v in sorted(vals)] for k, vals in seen.items()}}
+
+
+def unstamped_lookahead(manifest):
+    """Whether a game line with no `lookahead` stamp ran with it on. Lines from before the stamp
+    (2026-10-13) cannot say for themselves; a manifest from before --lookahead can (its
+    --env LOOKAHEAD=1). Under a manifest that has the key, every line was written by a JVM that
+    stamps it, so an unstamped one is off, as run_one judged it when it was written."""
+    if manifest is None or "lookahead" in manifest.get("condition", {}):
+        return False
+    return condition_diff_norm(manifest.get("condition", {}), "lookahead")
+
+
+def lookahead_problem(out_dir, unstamped, condition):
+    """(key, recorded, requested) when the directory's games did not all run with the requested
+    lookahead value, each line read by its own stamp or, unstamped, as `unstamped`; else None."""
+    want = bool(condition.get("lookahead"))
+    seen = {bool(rec.get("lookahead", unstamped)) for rec in iter_game_lines(out_dir)}
+    return ("lookahead", sorted(seen), want) if seen and seen != {want} else None
 
 
 def check_resume_condition(out_dir, condition, cited):
@@ -578,7 +611,22 @@ def check_resume_condition(out_dir, condition, cited):
     in cited mode an unverifiable legacy dir is refused outright."""
     manifest = load_manifest(out_dir)
     if manifest is not None:
-        diff = condition_diff(manifest.get("condition", {}), condition)
+        # A manifest older than --text-tools cannot say which protocol ran; its game lines can.
+        recorded = manifest.get("condition", {})
+        lines = legacy_dir_condition(out_dir) if "native_tools" not in recorded else None
+        # A manifest from before --lookahead that recorded nothing reads as off; every game line
+        # stamped with the requested value proves otherwise.
+        want_la = bool(condition.get("lookahead"))
+        stamps = [rec.get("lookahead") for rec in iter_game_lines(out_dir)]
+        proven = ("lookahead" not in recorded and not condition_diff_norm(recorded, "lookahead")
+                  and stamps and all(s == want_la for s in stamps))
+        diff = [d for d in condition_diff(recorded, condition)
+                if not ((proven and d[0] == "lookahead") or (lines and d[0] == "native_tools"))]
+        if lines and lines["fields"]["native_tools"] != [bool(condition.get("native_tools"))]:
+            diff.append(("native_tools", lines["fields"]["native_tools"], bool(condition.get("native_tools"))))
+        la = lookahead_problem(out_dir, unstamped_lookahead(manifest), condition)
+        if la and not any(d[0] == "lookahead" for d in diff):
+            diff.append(la)
         if diff:
             return ("%s already holds games under a different condition; a batch "
                     "directory is one experiment. Differences:\n           - "
@@ -594,15 +642,16 @@ def check_resume_condition(out_dir, condition, cited):
         want = condition.get(key)
         if key == "context_profile" and want is None:
             want = "v1-compat"
-        if key == "memory_tools":
-            want = bool(want)
-        if key in ("rules_tool", "native_tools"):
+        if key in ("memory_tools", "rules_tool", "native_tools"):
             want = bool(want)
         if key in ("controller_a", "controller_b", "smart_a", "smart_b",
                    "fast_a", "fast_b") and want is None:
             continue  # runner left it to the JVM default; cannot compare
         if len(vals) > 1 or vals[0] != want:
             problems.append("%s: recorded %s, requested %r" % (key, vals, want))
+    la = lookahead_problem(out_dir, False, condition)
+    if la:
+        problems.append("%s: recorded %s, requested %r" % la)
     unverifiable = [k for k in ("context_profile", "memory_tools", "rules_tool", "checkpoint_sha")
                     if k not in legacy["fields"]]
     if problems:
@@ -1000,6 +1049,10 @@ def main():
                          "--memory-tools means on openrouter: seats; this flag is the opt-out, for "
                          "reproducing pre-2026-10-13 runs or measuring the protocol. A separate "
                          "condition: its own --out.")
+    ap.add_argument("--lookahead", action="store_true",
+                    help="LOOKAHEAD=1: LLM seats may preview a play option (`simulate`) before "
+                         "choosing. Default off; a separate condition from unassisted play and must "
+                         "live in its own --out.")
     ap.add_argument("--rules-tool", action="store_true",
                     help="RULES_TOOL=1: give LLM seats the Comprehensive Rules lookup "
                          "(RULES SEARCH/READ/SECTION/TERM/TOC). Default off; a separate "
@@ -1009,10 +1062,10 @@ def main():
     args = ap.parse_args()
     for kv in args.env or []:
         k = kv.split("=", 1)[0]
-        if k in ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL"):
+        if k in CONDITION_ENV_KEYS:
             raise SystemExit("run_batch: --env %s is not allowed in any mode; use "
-                             "--context-profile / --memory-tools so the condition is "
-                             "recorded and guarded." % k)
+                             "--context-profile / --memory-tools / --rules-tool / --text-tools / "
+                             "--lookahead so the condition is recorded and guarded." % k)
 
     warn_reserved_seeds(args.seeds)
     load_secrets()
@@ -1084,6 +1137,7 @@ def main():
     # different condition; then record this invocation.
     condition = batch_condition(args, cited)
     try:
+        args.unstamped_lookahead = unstamped_lookahead(load_manifest(out_dir))
         problem = check_resume_condition(out_dir, condition, cited)
     except ManifestError as e:
         problem = str(e)
