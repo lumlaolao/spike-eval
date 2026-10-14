@@ -976,9 +976,10 @@ public class LlmSpikeTest {
                     + "of which ~800 were hidden reasoning for a ~50-token answer, and \"low\"/\"minimal\" "
                     + "do not reliably reduce it -- only disabling does (65 tokens, 1.3s vs ~7s)");
         }
-        Assert.assertTrue(deepseek.maxTokens >= 8000,
-                "the smart cap covers reasoning AND the answer now, so it must clear the measured p99 "
-                + "(3811 of 5346 smart completions) with room to spare");
+        Assert.assertTrue(deepseek.maxTokens >= 16000,
+                "the smart cap covers reasoning AND the answer now. 8000 (2x the cross-run p99, 3811 of "
+                + "5346) still truncated 3 of 33 smart calls on g06, whose completions run median 2042 "
+                + "and max 7615, so the cap must clear that tail");
         Assert.assertTrue(deepseek.maxTokens > deepseek.fastMaxTokens);
     }
 

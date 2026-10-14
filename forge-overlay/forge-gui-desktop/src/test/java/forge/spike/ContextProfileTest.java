@@ -286,9 +286,9 @@ public class ContextProfileTest {
         // Every row renders field-for-field. Since 2026-10-13 there is ONE uniform row, so the check
         // is that all seven fields reach the hash on a row that has a value in every slot (deepseek),
         // and that the row the run_batch.py grace budget is pinned against renders identically (opus).
-        Assert.assertTrue(c.contains("deepseek:8000,150000,null,null,1024,45000,none|"),
+        Assert.assertTrue(c.contains("deepseek:16000,150000,null,null,1024,45000,none|"),
                 "deepseek row not rendered field-for-field: " + c);
-        Assert.assertTrue(c.contains("opus:8000,150000,null,null,1024,45000,none|"),
+        Assert.assertTrue(c.contains("opus:16000,150000,null,null,1024,45000,none|"),
                 "claude row not rendered field-for-field: " + c);
     }
 

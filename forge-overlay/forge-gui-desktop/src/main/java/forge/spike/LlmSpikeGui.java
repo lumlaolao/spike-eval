@@ -5487,12 +5487,13 @@ public final class LlmSpikeGui {
             // reasoning separately: OpenRouter's `reasoning.max_tokens` is Anthropic-style and the
             // authorised model does not accept it (its model entry has no supports_max_tokens, and
             // supported_efforts is max/high/low, so the "medium" this table used to send was not a
-            // value the model has). So the cap covers reasoning and answer together, at 8000: twice
-            // the p99 of the measured smart completions (n=5346 over runs/lines and runs/loop:
-            // median 710, p99 3811) and twice what deepseek had. A model that still overruns is
+            // value the model has). So the cap covers reasoning and answer together, at 16000: 8000
+            // (2x the CROSS-RUN p99) still truncated 3 of 33 smart calls on g06, whose completions run
+            // median 2042 and max 7615 -- a deck that reasons longer than the cross-run sample, so the
+            // cross-run p99 was the wrong sample to size on. A model that still overruns is
             // truncated once and retried with reasoning off, which the game log and match_review
             // already report per game, so the tail is visible rather than silent.
-            ModelCfg uniform = new ModelCfg(8000, 150000, null, null, 1024, 45000, "none");
+            ModelCfg uniform = new ModelCfg(16000, 150000, null, null, 1024, 45000, "none");
             // THE 150s CEILING IS LOAD-BEARING: LlmSpikeHeadless sizes its post-cap shutdown grace as
             // maxConfiguredTimeoutMs() + 10s, and run_batch.py's backstop budgets for that with a
             // hardcoded GRACE_S = 200 (it cannot call the Java side). 150s keeps the grace at 160s,
