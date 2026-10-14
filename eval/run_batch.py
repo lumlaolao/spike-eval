@@ -593,7 +593,8 @@ def check_resume_condition(out_dir, condition, cited):
     if manifest is not None:
         # A manifest older than a tool flag cannot say whether the tool was on (an exported
         # LOOKAHEAD=1 used to leak in unrecorded). Where every game line carries the stamp, the
-        # lines decide; where only some do, the others are unknowable, and the directory is refused.
+        # lines decide; where only some do, the others are unknowable, and the directory is refused;
+        # where none do, the manifest decides (lines before the stamp, 2026-10-13, cannot say).
         missing = [k for k in ("native_tools", "lookahead") if k not in manifest.get("condition", {})]
         lines = legacy_dir_condition(out_dir) if missing else None
         counts = {k: (lines or {}).get("stamped", {}).get(k, 0) for k in missing}
@@ -627,6 +628,9 @@ def check_resume_condition(out_dir, condition, cited):
             continue  # runner left it to the JVM default; cannot compare
         if len(vals) > 1 or vals[0] != want:
             problems.append("%s: recorded %s, requested %r" % (key, vals, want))
+        elif key == "lookahead" and legacy["stamped"][key] < legacy["n_game_lines"]:
+            problems.append("lookahead: stamped on %d of %d game lines, requested %r"
+                            % (legacy["stamped"][key], legacy["n_game_lines"], want))
     unverifiable = [k for k in ("context_profile", "memory_tools", "rules_tool", "checkpoint_sha")
                     if k not in legacy["fields"]]
     if problems:
