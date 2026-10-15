@@ -263,9 +263,15 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
    - It never touches the Forge checkout.
 2. **Golden checks:** every decision type the seat owns, through the live controller, in both the text
    and the tool protocol.
-3. **`eval/tool_use_suite.py`:** tool reach, correctness and restraint, each beside its trivial
+3. **Optional live-model checks (`eval/test_live_answer_tool.py`, `LIVE_MODEL_TESTS=1`, about a cent):**
+   - short real chats with the game model on fixed decisions, using the real `answer` function and the
+     per-model `tool_choice`;
+   - every reply must be a call with a legal option, a cast must not fill in a yield, forcing must keep the
+     reasoning, and a free spell (Force of Will, no land) must be answerable;
+   - skipped in every ordinary run, so the suite stays free.
+4. **`eval/tool_use_suite.py`:** tool reach, correctness and restraint, each beside its trivial
    baseline, before any game is played.
-4. **One game at a time** (the `game-loop` skill): play it, read it decision by decision, fix what the
+5. **One game at a time** (the `game-loop` skill): play it, read it decision by decision, fix what the
    harness did wrong, then play the next. A batch is not how the harness is tested.
 
 - *Why this order:* cheapest first. The rule the canary history earned: before trusting a green gate,
