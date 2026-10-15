@@ -132,6 +132,23 @@ Done on 2026-10-15:
   plays an empty-reply and a garbage-reply seat against the Forge AI next to the floor seat on the
   same seed, and fails if either does better or the harness acts for them.
 
+Built (the scoring machinery; how to use it is [SCORING.md](SCORING.md)):
+
+- **The two STR panels** (`suites/panels-v1.json`): the 16-cell mirror panel and the cross panel
+  (Latin square *d* vs *d+5*, each cell with its AI-vs-AI control), with published seeds
+  7800-7849 (control 7800-7999) from the stage3-holdout bank. `run_batch.py --panel` launches one
+  under a single required `--budget-usd`; `panel_score.py` scores it: per-cell win rates, the
+  equal-weight pool with a stratified and a bootstrap CI, worst and best cell, the cross margin over
+  the control, and STR_norm (uncapped).
+- **Sanity arms beside every scored block** (`run_batch.py --sanity-arms`, `sanity_arms.py`): floor,
+  random and the empty- and garbage-reply fake model on the same seeds, checked to never beat the
+  floor (proposal 2 below).
+- **Bradley-Terry rating** (`rating.py`): Forge AI pinned at 1500, a first-player term, a weak prior
+  so floor and random stay finite, cluster-bootstrap rating and rank CIs, the floor ≤ random < Forge
+  AI check in every replicate, goodness of fit and 3-cycles; it refuses to mix conditions.
+- **Benchmark version id** (`benchmark_version.py`, proposal 7 without the puzzle audit): stamped
+  into panel and rating reports; reports from different versions refuse to pool.
+
 Proposed, in order:
 
 1. Make the strict score the headline (and decide how a cap hit is charged: to the seat whose

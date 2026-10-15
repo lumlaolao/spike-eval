@@ -1,0 +1,296 @@
+{
+  "suite": "panels-v1",
+  "version": 1,
+  "description": "The two STR-AI panels of eval/research/2026-10-15-scoring-design.md section 1.1, frozen. Identity A is the pilot under test (an llm seat, or a sanity arm); identity B is the Forge AI. Every pilot plays the same published seeds in every cell, so pilot-vs-pilot differences are seed-paired. eval/run_batch.py --panel launches a panel, eval/panel_score.py scores one, eval/SCORING.md documents both.",
+  "deck_pool": [
+    {
+      "name": "ant-storm",
+      "path": "eval/decks/ant-storm.txt",
+      "sha12": "5136e6bc8199"
+    },
+    {
+      "name": "burn",
+      "path": "eval/decks/burn.txt",
+      "sha12": "b7e67db6d342"
+    },
+    {
+      "name": "cephalid-breakfast",
+      "path": "eval/decks/cephalid-breakfast.txt",
+      "sha12": "850b8158039d"
+    },
+    {
+      "name": "death-and-taxes",
+      "path": "eval/decks/death-and-taxes.txt",
+      "sha12": "400a034641cf"
+    },
+    {
+      "name": "doomsday",
+      "path": "eval/decks/doomsday.txt",
+      "sha12": "1fdf0549a044"
+    },
+    {
+      "name": "elves",
+      "path": "eval/decks/elves.txt",
+      "sha12": "299e50800b83"
+    },
+    {
+      "name": "food-chain",
+      "path": "eval/decks/food-chain.txt",
+      "sha12": "c2af2fcae479"
+    },
+    {
+      "name": "goblins",
+      "path": "eval/decks/goblins.txt",
+      "sha12": "2deef600a7cb"
+    },
+    {
+      "name": "grixis-reanimator",
+      "path": "eval/decks/grixis-reanimator.txt",
+      "sha12": "f706f2832195"
+    },
+    {
+      "name": "infect",
+      "path": "eval/decks/infect.txt",
+      "sha12": "40b47fe9ce84"
+    },
+    {
+      "name": "lands",
+      "path": "eval/decks/lands.txt",
+      "sha12": "d2e18e2d3b26"
+    },
+    {
+      "name": "mardu-energy",
+      "path": "eval/decks/mardu-energy.txt",
+      "sha12": "4e7be5785b40"
+    },
+    {
+      "name": "miracles",
+      "path": "eval/decks/miracles.txt",
+      "sha12": "f0df6ca90275"
+    },
+    {
+      "name": "painter",
+      "path": "eval/decks/painter.txt",
+      "sha12": "e63cd4991433"
+    },
+    {
+      "name": "sneak-and-show",
+      "path": "eval/decks/sneak-and-show.txt",
+      "sha12": "803898570070"
+    },
+    {
+      "name": "ur-delver",
+      "path": "eval/decks/ur-delver.txt",
+      "sha12": "8b2254558a4c"
+    }
+  ],
+  "deck_pool_note": "The 16 archetype lists in eval/decks/ (hook-* lists are mechanics probes, not archetypes, and stay out). sha12 is sha256[:12] of the decklist file, the hash run_batch.py stamps as deck_sha. run_batch.py refuses a panel whose deck file no longer matches its pin, and panel_score.py refuses a cell whose game lines carry a different deck_sha.",
+  "seed_policy": {
+    "bank": "stage3-holdout",
+    "seeds": "7800..7849",
+    "control_seeds": "7800..7999",
+    "note": "Claimed from the stage3-holdout eval-only bank (eval/seed_registry.json), above the 7000..7799 that eval/suites/stage3-v1.json uses. Not a seed_policy.py reserved block, so seed_registry.py check is what keeps it out of training corpora. 50 seeds x 2 seat orders = 100 games per cell (per-cell 95% CI about +-10 points, pooled about +-2.5). The AI-vs-AI control plays 4x the seeds (control_seeds, a superset of seeds) because it costs only CPU and its variance enters every cross-panel margin. A smaller block uses a prefix of the seeds (run_batch.py --seeds must be a subset)."
+  },
+  "panels": {
+    "mirror": {
+      "headline": true,
+      "opponent": "ai",
+      "pairs": true,
+      "seeds": "7800..7849",
+      "cells": [
+        {
+          "id": "ant-storm",
+          "deck_a": "ant-storm",
+          "deck_b": "ant-storm"
+        },
+        {
+          "id": "burn",
+          "deck_a": "burn",
+          "deck_b": "burn"
+        },
+        {
+          "id": "cephalid-breakfast",
+          "deck_a": "cephalid-breakfast",
+          "deck_b": "cephalid-breakfast"
+        },
+        {
+          "id": "death-and-taxes",
+          "deck_a": "death-and-taxes",
+          "deck_b": "death-and-taxes"
+        },
+        {
+          "id": "doomsday",
+          "deck_a": "doomsday",
+          "deck_b": "doomsday"
+        },
+        {
+          "id": "elves",
+          "deck_a": "elves",
+          "deck_b": "elves"
+        },
+        {
+          "id": "food-chain",
+          "deck_a": "food-chain",
+          "deck_b": "food-chain"
+        },
+        {
+          "id": "goblins",
+          "deck_a": "goblins",
+          "deck_b": "goblins"
+        },
+        {
+          "id": "grixis-reanimator",
+          "deck_a": "grixis-reanimator",
+          "deck_b": "grixis-reanimator"
+        },
+        {
+          "id": "infect",
+          "deck_a": "infect",
+          "deck_b": "infect"
+        },
+        {
+          "id": "lands",
+          "deck_a": "lands",
+          "deck_b": "lands"
+        },
+        {
+          "id": "mardu-energy",
+          "deck_a": "mardu-energy",
+          "deck_b": "mardu-energy"
+        },
+        {
+          "id": "miracles",
+          "deck_a": "miracles",
+          "deck_b": "miracles"
+        },
+        {
+          "id": "painter",
+          "deck_a": "painter",
+          "deck_b": "painter"
+        },
+        {
+          "id": "sneak-and-show",
+          "deck_a": "sneak-and-show",
+          "deck_b": "sneak-and-show"
+        },
+        {
+          "id": "ur-delver",
+          "deck_a": "ur-delver",
+          "deck_b": "ur-delver"
+        }
+      ],
+      "note": "Deck d against the Forge AI on deck d. Deck strength cancels, and the Forge-AI mirror is 50% by symmetry: that is the anchor WR_AImirror."
+    },
+    "cross": {
+      "headline": false,
+      "opponent": "ai",
+      "pairs": true,
+      "k": 5,
+      "latin_square": "cell i pilots deck_pool[i] against the Forge AI on deck_pool[(i + k) mod 16], deck_pool sorted by name; every deck appears once on each side",
+      "seeds": "7800..7849",
+      "control": {
+        "controller_a": "ai",
+        "controller_b": "ai",
+        "seeds": "7800..7999"
+      },
+      "cells": [
+        {
+          "id": "ant-storm__vs__elves",
+          "deck_a": "ant-storm",
+          "deck_b": "elves"
+        },
+        {
+          "id": "burn__vs__food-chain",
+          "deck_a": "burn",
+          "deck_b": "food-chain"
+        },
+        {
+          "id": "cephalid-breakfast__vs__goblins",
+          "deck_a": "cephalid-breakfast",
+          "deck_b": "goblins"
+        },
+        {
+          "id": "death-and-taxes__vs__grixis-reanimator",
+          "deck_a": "death-and-taxes",
+          "deck_b": "grixis-reanimator"
+        },
+        {
+          "id": "doomsday__vs__infect",
+          "deck_a": "doomsday",
+          "deck_b": "infect"
+        },
+        {
+          "id": "elves__vs__lands",
+          "deck_a": "elves",
+          "deck_b": "lands"
+        },
+        {
+          "id": "food-chain__vs__mardu-energy",
+          "deck_a": "food-chain",
+          "deck_b": "mardu-energy"
+        },
+        {
+          "id": "goblins__vs__miracles",
+          "deck_a": "goblins",
+          "deck_b": "miracles"
+        },
+        {
+          "id": "grixis-reanimator__vs__painter",
+          "deck_a": "grixis-reanimator",
+          "deck_b": "painter"
+        },
+        {
+          "id": "infect__vs__sneak-and-show",
+          "deck_a": "infect",
+          "deck_b": "sneak-and-show"
+        },
+        {
+          "id": "lands__vs__ur-delver",
+          "deck_a": "lands",
+          "deck_b": "ur-delver"
+        },
+        {
+          "id": "mardu-energy__vs__ant-storm",
+          "deck_a": "mardu-energy",
+          "deck_b": "ant-storm"
+        },
+        {
+          "id": "miracles__vs__burn",
+          "deck_a": "miracles",
+          "deck_b": "burn"
+        },
+        {
+          "id": "painter__vs__cephalid-breakfast",
+          "deck_a": "painter",
+          "deck_b": "cephalid-breakfast"
+        },
+        {
+          "id": "sneak-and-show__vs__death-and-taxes",
+          "deck_a": "sneak-and-show",
+          "deck_b": "death-and-taxes"
+        },
+        {
+          "id": "ur-delver__vs__doomsday",
+          "deck_a": "ur-delver",
+          "deck_b": "doomsday"
+        }
+      ],
+      "note": "Scored as a margin over the AI-vs-AI control on the same deck pair: margin = WR(pilot on d vs AI on d') - WR(AI on d vs AI on d'). The control removes matchup asymmetry."
+    }
+  },
+  "anchors": {
+    "forge_ai_player": "ai",
+    "forge_ai_elo": 1500,
+    "elo_per_logit": "400/ln(10)",
+    "rating_prior_sd_elo": 400,
+    "first_player_prior_sd_logit": 1.0,
+    "ai_mirror_win_rate": 0.5,
+    "sanity_order": [
+      "floor",
+      "random",
+      "ai"
+    ],
+    "random_max_margin_over_floor": 0.05,
+    "note": "The Forge AI is pinned at 1500. Every other rating has the weak prior N(1500, 400^2) on the Elo scale, so floor and random (which win almost nothing) stay finite; the first-player term has N(0, 1) in logits. floor (always pass) and random (uniform legal option) are sanity anchors: floor <= random < Forge AI must hold in every bootstrap replicate. STR_norm = (WR - WR_random) / (WR_AImirror - WR_random), uncapped."
+  }
+}

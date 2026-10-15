@@ -193,6 +193,18 @@ class TestSuiteReconciliation(unittest.TestCase):
         out = sr.check_suites(self.reg, self.suites)
         self.assertTrue(any("not in an eval-only band" in p for p in out[0][2]))
 
+    def test_panel_and_control_seeds_are_reconciled_like_arms(self):
+        (self.suites / "panels.json").write_text(json.dumps({"panels": {
+            "mirror": {"seeds": "9010..9012"},
+            "cross": {"seeds": "9010..9012", "control": {"seeds": "100..101"}}}}), encoding="utf-8")
+        out = sr.check_suites(self.reg, self.suites)
+        self.assertEqual([arm for _, arm, _ in out], ["panel cross control"])
+
+    def test_the_frozen_panels_file_draws_only_on_eval_only_seeds(self):
+        reg = sr.load_registry()
+        out = [x for x in sr.check_suites(reg) if x[0] == "panels-v1.json"]
+        self.assertEqual(out, [])
+
     def test_missing_suites_dir_is_not_an_error(self):
         self.assertEqual(sr.check_suites(self.reg, Path(self.tmp.name) / "absent"), [])
 
