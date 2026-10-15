@@ -216,12 +216,17 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   - `cache_control` for Anthropic models (OpenAI and DeepSeek models cache on their own);
   - reasoning passed back unchanged across tool rounds;
   - per-model settings (`ModelCfg`): token caps and timeouts;
-  - readable reasoning, kept on the call row where the provider returns it.
+  - readable reasoning, kept on the call row where the provider returns it;
+  - routing by latency (`provider.sort`, `OPENROUTER_PROVIDER_SORT`, default `latency`), and the provider
+    that served each call on its row.
+  - *Why latency routing:* Luna calls stalled for up to 6 minutes while answering in ordinary length (646
+    output tokens in 352 s, against a median of 253 in 9 s). The time was the endpoint's, not the model's
+    thinking. OpenRouter's default routing weighs price; the model is the same on every endpoint.
 - **`ClaudeBridge`** (the Claude CLI lane): text only, kept for the CLI.
 - **Egress boundary:** an `openrouter:` model receives the game state. Nothing starts unless
   `OPENROUTER_ALLOW_EGRESS=1` is set by the owner, and no tool sets it.
 - **The game model:** GPT-6 Luna (`openrouter:openai/gpt-6-luna`) for every game unless the owner names
-  another, at about $0.01–0.02 a game.
+  another, at about $0.06–0.07 a game (one tier, every decision reasoning).
 - *Why OpenRouter:* one API for many providers, so a model comparison changes one string.
 - *Why the cache matters:* nearly all input is the same system prompt, tools and history. Recorded Luna
   asks read 54% of their prompt tokens from the cache on an ask's first round, and 92% on later rounds.

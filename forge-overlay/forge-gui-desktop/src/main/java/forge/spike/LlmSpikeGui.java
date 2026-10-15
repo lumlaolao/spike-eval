@@ -132,6 +132,8 @@ interface LLMBridge {
     /** Prompt tokens the provider wrote to its cache on the most recent ask()
      *  (`usage.prompt_tokens_details.cache_write_tokens`, Anthropic models), -1 when unreported. */
     default int getLastCacheWriteTokens() { return -1; }
+    /** The provider that served the most recent ask (OpenRouter's response `provider`), or null. */
+    default String getLastProvider() { return null; }
 }
 
 /**
@@ -737,6 +739,7 @@ public final class LlmSpikeGui {
         private int lastCompletionTokens = -1;
         // Of lastPromptTokens: read from / written to the provider's prompt cache; -1 when unreported.
         private int lastCachedTokens = -1;
+        private String lastProvider = null;
         private int lastCacheWriteTokens = -1;
         // ADDITIVE (Group-2): latency split — the SUCCESSFUL final attempt's own wall time (this is what
         // jsonl latency_ms now reports) vs. everything else (failed bridge sub-attempts, backoff waits,
@@ -5975,6 +5978,7 @@ public final class LlmSpikeGui {
                         + ",\"tier\":\"" + (b == smart ? "smart" : "fast")
                         + "\",\"elapsed_ms\":" + (System.currentTimeMillis() - start)
                         + ",\"prompt_tokens\":" + lastPromptTokens + ",\"completion_tokens\":" + lastCompletionTokens + cacheFields(lastCachedTokens, lastCacheWriteTokens)
+                        + (lastProvider == null ? "" : ",\"provider\":\"" + jsonEscape(lastProvider) + "\"")
                         + ",\"prompt\":\"" + jsonEscape(user) + "\""
                         // Later rounds carry the tool exchanges; the first is just the prompt above.
                         + (round == 0 ? "" : ",\"messages\":" + messages)
@@ -6009,6 +6013,7 @@ public final class LlmSpikeGui {
                         + ",\"call\":" + (++contextCallSeq) + ",\"tier\":\"" + (b == smart ? "smart" : "fast")
                         + "\",\"elapsed_ms\":" + (System.currentTimeMillis() - start)
                         + ",\"prompt_tokens\":" + lastPromptTokens + ",\"completion_tokens\":" + lastCompletionTokens + cacheFields(lastCachedTokens, lastCacheWriteTokens)
+                        + (lastProvider == null ? "" : ",\"provider\":\"" + jsonEscape(lastProvider) + "\"")
                         + ",\"prompt\":\"" + jsonEscape(request) + "\",\"raw_reply\":"
                         + (response == null ? "null" : "\"" + jsonEscape(response) + "\"") + "}");
                 if (ContextMemory.toolLine(response) != null) lastReply = null; // a tool round, not a failed answer
@@ -6082,6 +6087,7 @@ public final class LlmSpikeGui {
             lastCompletionTokens = b.getLastCompletionTokens();
             lastCachedTokens = b.getLastCachedTokens();
             lastCacheWriteTokens = b.getLastCacheWriteTokens();
+            lastProvider = b.getLastProvider();
             lastAskMs += System.currentTimeMillis() - tAsk; // summed over every attempt; retained for the
                                                              // ms<=0 legacy substitution guard in evalDec
             return reply;
@@ -8467,6 +8473,12 @@ public final class LlmSpikeGui {
         // default from ModelCfg instead of one flat number — Infra-1/Infra-2.
         private static final Long TIMEOUT_MS_ENV = parseLongOrNull(System.getenv("OPENROUTER_TIMEOUT_MS"));
         private static final String HTTP_REFERER = System.getenv("OPENROUTER_HTTP_REFERER");
+        /** OpenRouter provider sort ("latency", "throughput", "price"); empty = OpenRouter's default routing. */
+        static final String PROVIDER_SORT = providerSort(System.getenv("OPENROUTER_PROVIDER_SORT"));
+        static String providerSort(String env) {
+            if (env == null || env.isBlank()) return "latency";
+            return "default".equalsIgnoreCase(env.trim()) ? "" : env.trim().toLowerCase(java.util.Locale.ROOT);
+        }
         private static final String HTTP_TITLE = System.getenv("OPENROUTER_HTTP_TITLE");
         private static Long parseLongOrNull(String v) {
             try { return v == null ? null : Long.parseLong(v.trim()); } catch (Exception e) { return null; }
@@ -8486,6 +8498,7 @@ public final class LlmSpikeGui {
         private volatile int lastPromptTokens = -1;
         private volatile int lastCompletionTokens = -1;
         private volatile int lastCachedTokens = -1, lastCacheWriteTokens = -1;
+        private volatile String lastProvider = null;
         // Test-only instrumentation (see lastSendCount()). A bridge belongs to one seat/tier and
         // ask() is never called concurrently on it, so the non-atomic ++ is safe; volatile is only
         // so a test thread reads what the calling thread wrote.
@@ -8688,6 +8701,10 @@ public final class LlmSpikeGui {
             }
             body.append(messages);
             body.append("],\"max_tokens\":").append(maxTokens);
+            // Route by latency, not price (OpenRouter's default weighs price): the same model on every
+            // endpoint, but Luna calls stalled for 5 minutes with ordinary-sized answers (runs/luna-v8/g3,
+            // runs/luna-v9). OPENROUTER_PROVIDER_SORT=default sends no preference.
+            if (!PROVIDER_SORT.isEmpty()) body.append(",\"provider\":{\"sort\":\"").append(jsonEscape(PROVIDER_SORT)).append("\"}");
             // Every ask resends the same preamble, tools and chat history, and nothing marked it
             // cacheable, so Anthropic models billed all of it at the full input rate (a Haiku 5.5 game
             // averaged 10K prompt tokens a call). Top-level cache_control is automatic caching: the
@@ -8754,6 +8771,7 @@ public final class LlmSpikeGui {
             }
             String served = extractServedModel(resp.body());
             if (served != null) servedModels.put(label, served);
+            lastProvider = extractServedProvider(resp.body());
 
             String content = extractJsonString(resp.body(), "\"content\":\"");
             String finishReason = extractJsonString(resp.body(), "\"finish_reason\":\"");
@@ -8816,6 +8834,7 @@ public final class LlmSpikeGui {
         @Override public int getLastPromptTokens() { return lastPromptTokens; }
         @Override public int getLastCompletionTokens() { return lastCompletionTokens; }
         @Override public int getLastCachedTokens() { return lastCachedTokens; }
+        @Override public String getLastProvider() { return lastProvider; }
         @Override public int getLastCacheWriteTokens() { return lastCacheWriteTokens; }
     }
 
@@ -8979,6 +8998,15 @@ public final class LlmSpikeGui {
      *  inside the completion text can never win the substring match and mislabel the whole run. A
      *  server that omits the field yields null, and the game line records "unknown": the honest
      *  reading, not a confident wrong answer. Package-private for LlmSpikeTest. */
+    /** The provider OpenRouter routed a response to (its top-level `provider`), or null. Head only, as for the model. */
+    static String extractServedProvider(String responseBody) {
+        if (responseBody == null) return null;
+        int choicesAt = responseBody.indexOf("\"choices\"");
+        String head = choicesAt >= 0 ? responseBody.substring(0, choicesAt) : responseBody;
+        String p = extractJsonString(head, "\"provider\":\"");
+        return (p == null || p.isEmpty()) ? null : p;
+    }
+
     static String extractServedModel(String responseBody) {
         if (responseBody == null) return null;
         int choicesAt = responseBody.indexOf("\"choices\"");
@@ -9082,6 +9110,7 @@ public final class LlmSpikeGui {
                 + ",\"fast_budget\":" + PlayerControllerLLM.fastBudget()
                 + ",\"claude_deadline_ms\":" + ClaudeBridge.deadlineMs()
                 + ",\"game_cap_ms\":" + capMs
+                + ",\"openrouter_provider_sort\":\"" + (anyOpenRouter ? (OpenRouterBridge.PROVIDER_SORT.isEmpty() ? "default" : OpenRouterBridge.PROVIDER_SORT) : "n/a") + "\""
                 + (gameError == null ? "" : ",\"game_error\":\"" + jsonEscape(gameError) + "\"")
                 + ",\"engine_sha\":\"" + jsonEscape(System.getenv().getOrDefault("ENGINE_SHA", "unknown")) + "\""
                 + ",\"overlay_sha\":\"" + jsonEscape(System.getenv().getOrDefault("OVERLAY_SHA", "unknown")) + "\""
