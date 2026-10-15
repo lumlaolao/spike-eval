@@ -204,7 +204,7 @@ public final class LlmSpikeGui {
      *  Epoch 15: a model's filled-in defaults do nothing (answer-tool-v8): `yield` "none" first, an empty
      *  `keep_untapped` is not said, and handles that name no source ask the mana question.
      *  Epoch 16: convoke/improvise, single-target retargeting, redirection and mana from the pool are the seat's. */
-    static final String HARNESS_EPOCH = "harness-epoch-17";
+    static final String HARNESS_EPOCH = "harness-epoch-18";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -352,6 +352,14 @@ public final class LlmSpikeGui {
     // stashed by buildPlayers so the game-summary provenance records what the model really saw — not a
     // re-derivation that would miss the sidecar. See loadPlanSidecar / writeGameSummary.
     static volatile String lastPlanA = DEFAULT_PLAN_A;
+    /** Set when the game thread died on an exception: the game did not finish, so it has no winner. */
+    static volatile String gameError = null;
+
+    /** The winner a game line records: none for a capped game or one whose thread crashed (runs/luna-v8/g2
+     *  recorded a StackOverflowError as a draw). */
+    static String finalWinner(String winner, boolean capped, String error) {
+        return capped || error != null ? "invalid" : winner;
+    }
     static volatile String lastPlanB = DEFAULT_PLAN_B;
 
     // What ACTUALLY answered, keyed by bridge label ("<deck-identity>/smart" | "<deck-identity>/fast").
@@ -3606,30 +3614,45 @@ public final class LlmSpikeGui {
             }
         }
 
-        /** Delve: which graveyard cards to exile to pay {N} (Murktide Regent in UR Delver). Real
-         *  decision for graveyard/reanimator matchups. Deterministic fallback: the first N. */
+        /** Delve: which graveyard cards, and how many, are exiled to pay generic mana. Delve exiles any number up
+         *  to the generic part, so fewer is a real choice (Murktide Regent counts the instants and sorceries it
+         *  exiles; a card left behind feeds Tarmogoyf). An affordability test is answered with every card that
+         *  could pay, without asking; the seat's real payment asks, with at least what its mana cannot cover. */
         @Override
         public CardCollectionView chooseCardsToDelve(int genericAmount, CardCollection grave) {
             clearLast();
-            if (grave == null || grave.isEmpty() || genericAmount <= 0) return super.chooseCardsToDelve(genericAmount, grave);
+            if (grave == null || grave.isEmpty() || genericAmount <= 0) return new CardCollection();
             List<Card> opts = new ArrayList<>(grave);
-            if (opts.size() <= genericAmount) return firstN(opts, genericAmount, "delve(all)");
+            int max = Math.min(opts.size(), genericAmount);
+            if (!payingForReal || askingConvoke) return new CardCollection(opts.subList(0, max));
+            int min = Math.max(0, Math.min(max, genericAmount + nonGenericOfCurrentPayment() - availableMana()));
+            if (min == opts.size()) { auto("delve(forced-all " + min + ")"); return new CardCollection(opts); }
+            List<Integer> picks;
+            askingConvoke = true;   // the ask's own snapshot tests affordability, which calls this again
             try {
-                if (!smartOk()) return firstN(opts, genericAmount, "delve(no-budget)");
-                List<String> labels = new ArrayList<>();
-                for (Card c : opts) labels.add(cardLabel(c));
-                String q = "Delve: exile " + genericAmount + " card(s) from your graveyard to pay"
-                        + (observer != null ? "." : ". Exile what you can least use — spare your recursion/reanimation targets and anything your plan needs.");
-                List<Integer> picks = decideMany(smart, "delve", q, labels, genericAmount, genericAmount);
-                if (picks == null) return firstN(opts, genericAmount, "delve(unparsed)");
-                CardCollection out = new CardCollection();
-                StringBuilder log = new StringBuilder();
-                for (int i : picks) { out.add(opts.get(i)); if (log.length() > 0) log.append(", "); log.append(opts.get(i).getName()); }
-                p("[ROUTER] delve: " + log);
-                return out;
-            } catch (Exception e) {
-                return firstN(opts, genericAmount, "delve(err)");
+                picks = askMany("delve", "DELVE: you may exile up to " + max + " card(s) from your graveyard, each paying {1} of the"
+                        + " generic cost; the rest is paid with mana" + (min > 0 ? " (your mana leaves at least " + min + " to exile)" : "")
+                        + ". Choose which.", cardLabels(opts), min, max);
+            } finally {
+                askingConvoke = false;
             }
+            CardCollection out = new CardCollection();
+            for (int i : picks) out.add(opts.get(i));
+            p("[ROUTER] delve: " + out.size() + " exiled " + out);
+            return out;
+        }
+
+        /** The coloured part of the spell being paid (set by payManaCost); 0 when unknown. */
+        private int nonGenericOfCurrentPayment() {
+            try {
+                forge.card.mana.ManaCost c = payingCost;
+                return c == null ? 0 : c.getCMC() - c.getGenericCost();
+            } catch (Exception e) { return 0; }
+        }
+
+        private int availableMana() {
+            try { return forge.ai.ComputerUtilMana.getAvailableManaEstimate(getPlayer(), false); }
+            catch (Exception e) { return 0; }
         }
 
         /** "Unless" costs — whether to pay for Daze / Force Spike / Spell Pierce / Mana Tithe. The
@@ -3844,11 +3867,14 @@ public final class LlmSpikeGui {
             }
             boolean paid;
             boolean wasPaying = payingForReal;
+            forge.card.mana.ManaCost wasCost = payingCost;
             payingForReal = true;
+            payingCost = toPay;
             try {
                 paid = super.payManaCost(toPay, costPartMana, sa, prompt, matrix, effect);
             } finally {
                 payingForReal = wasPaying;
+                payingCost = wasCost;
                 for (Card c : held) forge.ai.AiCardMemory.forgetCard(getPlayer(), c, forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
             }
             try {
@@ -5302,6 +5328,8 @@ public final class LlmSpikeGui {
         /** True while this seat's real mana payment runs (payManaCost). The engine also calls the convoke chooser
          *  from affordability tests (CostAdjustment, test=true) without telling the controller which. */
         private boolean payingForReal = false;
+        /** The mana cost the seat's real payment is paying, while it runs. */
+        private forge.card.mana.ManaCost payingCost = null;
         private boolean askingConvoke = false;
 
         /** Test seam: runs {@code f} as inside this seat's real mana payment. */
@@ -8937,7 +8965,7 @@ public final class LlmSpikeGui {
                 if (w != null) winner = nameA.equals(w.getName()) ? "A" : (nameB.equals(w.getName()) ? "B" : "invalid");
             }
         } catch (Exception ignore) { }
-        if (capped) winner = "invalid";
+        winner = finalWinner(winner, capped, gameError);
 
         System.out.println("========== GAME OVER ==========");
         System.out.println("outcome: " + winner + " after " + turns + " turns (" + winCond + ") in " + (durMs / 1000) + "s");
@@ -8991,6 +9019,7 @@ public final class LlmSpikeGui {
                 + ",\"fast_budget\":" + PlayerControllerLLM.fastBudget()
                 + ",\"claude_deadline_ms\":" + ClaudeBridge.deadlineMs()
                 + ",\"game_cap_ms\":" + capMs
+                + (gameError == null ? "" : ",\"game_error\":\"" + jsonEscape(gameError) + "\"")
                 + ",\"engine_sha\":\"" + jsonEscape(System.getenv().getOrDefault("ENGINE_SHA", "unknown")) + "\""
                 + ",\"overlay_sha\":\"" + jsonEscape(System.getenv().getOrDefault("OVERLAY_SHA", "unknown")) + "\""
                 + ",\"deck_sha\":\"" + jsonEscape(System.getenv().getOrDefault("DECK_SHA", "unknown")) + "\""

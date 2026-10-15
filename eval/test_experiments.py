@@ -326,7 +326,7 @@ class GroupingTest(unittest.TestCase):
         keys = game_line_keys()
         self.assertIn("native_tools", keys)          # the extraction found the statement
         self.assertEqual(keys[-1], "claude_effort_fast")  # ... and read it to its end
-        outcome = {"t", "seed", "swap", "winner", "turns", "win_condition", "duration_ms"}
+        outcome = {"t", "seed", "swap", "winner", "turns", "win_condition", "duration_ms", "game_error"}
         known = set(aggregate.CONDITION_FIELDS) | set(aggregate.NON_BEHAVIORAL_PROVENANCE) | outcome
         self.assertEqual([k for k in keys if k not in known], [],
                          "add the new game-line key to aggregate.PROVENANCE_FIELDS (or, if it is an "
