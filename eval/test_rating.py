@@ -188,5 +188,48 @@ class TestRecordedGames(unittest.TestCase):
             rating.rate([FIX / "compare-baseline-floor", FIX / "frontier-opus"], resamples=0)
 
 
+class TestMatchupTerm(unittest.TestCase):
+    """logit P(A beats B) gains m(d_A, d_B): a favoured deck must not inflate its pilot's rating."""
+
+    def cross(self, a, b, da, db, diff_logit, m, n, seed0, rng):
+        out = []
+        for i in range(n):
+            for swap in (False, True):
+                p = rating._sigmoid(diff_logit + m)
+                out.append(game(seed0 + i, swap, a, b, "A" if rng.random() < p else "B", _deck_a=da, _deck_b=db))
+        return out
+
+    def test_a_pilot_on_the_favoured_deck_is_rated_on_its_play_not_its_deck(self):
+        rng = random.Random(7)
+        m_true, llm = 1.0, "llm:" + LLM
+        # The controls: Forge AI against itself, burn against delver, pin the matchup down.
+        games = self.cross("ai", "ai", "burn", "delver", 0.0, m_true, 400, 1, rng)
+        # The pilot is exactly as strong as the AI but only ever plays the favoured deck.
+        games += self.cross(llm, "ai", "burn", "delver", 0.0, m_true, 300, 5000, rng)
+        rep = rating.rate([], resamples=0, games=games)
+        self.assertIn("burn vs delver", rep["matchups"])
+        self.assertAlmostEqual(rep["matchups"]["burn vs delver"]["logit"], m_true, delta=0.2)
+        self.assertLess(abs(rep["players"][llm]["elo"] - 1500), 50, rep["players"][llm])
+        # Without the deck information, the deck's edge lands in the pilot's rating.
+        blind = rating.rate([], resamples=0, games=[dict(g, _deck_a=None, _deck_b=None) for g in games])
+        self.assertEqual(blind["matchups"], {})
+        self.assertGreater(blind["players"][llm]["elo"] - 1500, 100)
+
+    def test_the_term_is_antisymmetric_and_absent_in_a_mirror(self):
+        self.assertEqual(rating.matchup_of("burn", "delver"), (("burn", "delver"), 1))
+        self.assertEqual(rating.matchup_of("delver", "burn"), (("burn", "delver"), -1))
+        self.assertIsNone(rating.matchup_of("burn", "burn"))
+        self.assertIsNone(rating.matchup_of(None, "burn"))
+
+    def test_the_decks_come_from_the_run_directorys_manifest(self):
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(rating.manifest_decks(d), (None, None))
+            Path(d, "batch-manifest.json").write_text(json.dumps(
+                {"condition": {"deck_a": "/x/eval/decks/burn.txt", "deck_b": "/x/eval/decks/ur-delver.txt"}}))
+            self.assertEqual(rating.manifest_decks(d), ("burn", "ur-delver"))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
