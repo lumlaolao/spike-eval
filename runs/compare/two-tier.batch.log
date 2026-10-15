@@ -1,0 +1,29 @@
+========================================================================
+  EXPLORATORY MODE — numbers from this run are NOT citable.
+  Mirror-deck / forced-heuristics-off / jobs=1 guards are DISABLED.
+  Re-run without --exploratory (and a mirror deck) for a citable batch.
+========================================================================
+[provenance] engine=34a8662b7966a6ee757411feae2ae8ff38cce436 overlay=de989e586546 deck=400a034641cf discipline=exploratory
+[provenance] checkpoint=unknown seed_bank=unregistered
+[condition] context_profile=v4-faithful memory_tools=1
+[warn] no --checkpoint given: the game line will not say which weights played. The endpoint's served_* fields are then the only identity, and an alias spec (e.g. openrouter:default_model) may not resolve to one.
+[out] /home/user/mtg-forge-llm-agent/runs/compare/two-tier
+Running 6 games (jobs=3, out=/home/user/mtg-forge-llm-agent/runs/compare/two-tier, forge_home=/root/forge)
+[budget] this directory may spend up to $0.90 (already $0.00); a game is not started past that, so the overshoot is at most the 3 games in flight
+[start] seed=81 swap=0 -> game-81-0.log
+[start] seed=81 swap=1 -> game-81-1.log
+[start] seed=82 swap=0 -> game-82-0.log
+[done] seed=82 swap=0
+[start] seed=82 swap=1 -> game-82-1.log
+[done] seed=82 swap=1
+[start] seed=83 swap=0 -> game-83-0.log
+[done] seed=81 swap=1
+[start] seed=83 swap=1 -> game-83-1.log
+[done] seed=83 swap=1
+[done] seed=81 swap=0
+[done] seed=83 swap=0
+
+=== batch summary ===
+completed: 6  skipped(resume): 0  problems: 0
+[cost] /home/user/mtg-forge-llm-agent/runs/compare/two-tier: 6 games, 449 model calls, 3.19M prompt + 0.62M completion tokens -> $0.61 ($0.102 per game started)
+Aggregate with: python3 /home/user/mtg-forge-llm-agent/eval/aggregate.py /home/user/mtg-forge-llm-agent/runs/compare/two-tier
