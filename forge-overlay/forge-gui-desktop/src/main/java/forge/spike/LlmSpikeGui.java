@@ -184,7 +184,10 @@ public final class LlmSpikeGui {
      *  question or shows an engine id or CARDNAME; the mulligan and a wide number carry the observation and
      *  a DECISION; retries re-send the whole ask; a divided spell's split is asked from the target hook; a
      *  "(castable)" hand tag means the menu can cast it; discard/delve asks no longer coach.
-     *  Epoch 10: a multi-zone exile cost names its zones in words ("graveyard or hand", #109); a tap-cost menu leaves out what a RAISED mana cost's payment taps (#110); under PLAN_EXECUTE a plan-executed step's follow-up asks carry that step (#108); PLAN_EXECUTE and TIER_FAST_TYPES are stamped on the game line (#117). */
+     *  Epoch 10: a multi-zone exile cost names its zones in words ("graveyard or hand", #109); a tap-cost
+     *  menu leaves out what a RAISED mana cost's payment taps (#110); under PLAN_EXECUTE a plan-executed
+     *  step's follow-up asks carry that step (#108); PLAN_EXECUTE and TIER_FAST_TYPES are stamped on the
+     *  game line (#117). */
     static final String HARNESS_EPOCH = "harness-epoch-10";
 
     static final class EvalLog {
