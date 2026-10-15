@@ -1,0 +1,339 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=46665 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 34086 files in 1 ms (25 parts) using thread pool
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 857 files in 0 ms (8 parts) using thread pool
+[SEED] 83
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/death-and-taxes.plan
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/ur-delver.plan
+[DECK] loaded 'Seat': 60 main, 0 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/death-and-taxes.txt)
+[DECK] loaded 'ForgeAI': 60 main, 0 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/ur-delver.txt)
+[SEATS] A=Seat(llm,openrouter:deepseek/deepseek-v4.1-flash) B=ForgeAI(ai,opus) [SWAPPED]
+[Seat] [OBSERVATION] observation-faithful-v20 (profile v4-faithful/d6b1fc3edeca)
+[HEADLESS] game starting (cap=45min)
+[Seat] [ROUTER] mulligan: 3/7 lands -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Seat/smart] replied in 1850 ms
+[Seat] [ROUTER] mulligan: KEEP
+[Seat] [TALLY] smart=1 fast=0 auto=0 ai=0 avgSmart=1850ms avgFast=1850ms
+[Seat] [ROUTER] play(main): 0 castable + 1 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Seat/smart] replied in 3753 ms
+[Seat] [ROUTER] lines: Stoneforge Mystic + Batterskull -> search Batterskull, then Mystic's ability cheats it in for a 4/4 lifelink vigilance Germ | Mother of Runes + Mirran Crusader -> grant protection to the double-striker so it races safely | Aether Vial + Flickerwisp -> Vial in Flickerwisp to blink a key opposing permanent.
+[Seat] [ROUTER] play: land Plains
+[Seat] [TALLY] smart=2 fast=0 auto=0 ai=0 avgSmart=2801ms avgFast=2801ms
+[Seat] [ROUTER] play(main): 0 castable + 2 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Seat/smart] replied in 6625 ms
+[Seat] [ROUTER] play: land Plains
+[Seat] [TALLY] smart=3 fast=0 auto=0 ai=0 avgSmart=4076ms avgFast=4076ms
+[Seat] [ROUTER] play(main): 2 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Seat/smart] replied in 7560 ms
+[Seat] [ROUTER] plan: Cast Stoneforge Mystic, fetch Batterskull, hold the rest for their turn.
+[Seat] [ROUTER] profile: UR Delver tempo (Ragavan/DRC + burn/counters); respect Lightning Bolt and Daze.
+[Seat] [ROUTER] play: casts Stoneforge Mystic 1/2 @3 1{W} [Stoneforge Mystic - Creature 1 / 2]
+[OPENROUTER Seat/smart] replied in 696 ms
+[Seat] [ROUTER] confirm-trigger [Stoneforge Mystic]: YES
+[OPENROUTER Seat/smart] replied in 1148 ms
+[Seat] [ROUTER] zone-change: Batterskull {5} @24 [Library, yours] -> Hand [Stoneforge Mystic]
+[OPENROUTER Seat/smart] replied in 1457 ms
+[Seat] [AUTO-LEGAL] prevent-effect(model)->decline
+[Seat] [TALLY] smart=7 fast=0 auto=1 ai=0 avgSmart=3298ms avgFast=3298ms
+[Seat] [ROUTER] play(main): 1 castable + 3 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Seat/smart] replied in 13441 ms
+[Seat] [ROUTER] plan: Play Plains, cast Stoneforge Mystic (fetch Umezawa's Jitte), hold Batterskull + removal for their turn.
+[Seat] [ROUTER] play: land Plains
+[Seat] [TALLY] smart=8 fast=0 auto=1 ai=0 avgSmart=4566ms avgFast=4566ms
+[Seat] [ROUTER] play(main): 3 castable -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Seat/smart] replied in 8604 ms
+[Seat] [ROUTER] play: casts Stoneforge Mystic 1/2 @4 1{W} [Stoneforge Mystic - Creature 1 / 2]
+[OPENROUTER Seat/smart] replied in 878 ms
+[Seat] [ROUTER] confirm-trigger [Stoneforge Mystic]: YES
+[OPENROUTER Seat/smart] replied in 1096 ms
+[Seat] [ROUTER] zone-change: Umezawa's Jitte {2} @35 [Library, yours] -> Hand [Stoneforge Mystic]
+[Seat] [TALLY] smart=11 fast=0 auto=1 ai=0 avgSmart=4282ms avgFast=4282ms
+[Seat] [ROUTER] play(main): 4 castable + 3 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Seat/smart] replied in 52164 ms
+[Seat] [ROUTER] plan: Cast Flickerwisp, exile their Murktide Regent (it returns as a 3/3 without counters), then play my land drop and hold Flickerwisp to block their attackers.
+[Seat] [ROUTER] play: casts Flickerwisp 3/1 @6 1{W}{W} [Flickerwisp - Creature 3 / 1]
+[OPENROUTER Seat/smart] replied in 4279 ms
+[Seat] [ROUTER] target: Murktide Regent 4/4 [tapped] [+1/+1 x1] [flying, delve] @80 [Battlefield, opponent's] <- Flickerwisp 3/1 @95 [When Flickerwisp enters, exile another target permanent. Return that card to the battlefield under its owner's control at the beginning of the next end step.]
+[Seat] [TALLY] smart=13 fast=0 auto=1 ai=0 avgSmart=7965ms avgFast=7965ms
+[Seat] [ROUTER] play(main): 0 castable + 3 land -> asking deepseek/deepseek-v4.1-flash...
+[OPENROUTER Seat/smart] replied in 6255 ms
+[Seat] [ROUTER] play: land Rishadan Port
+[OPENROUTER Seat/smart] replied in 1693 ms
+[Seat] [AUTO-LEGAL] prevent-effect(model)->decline
+========== GAME OVER ==========
+outcome: B after 9 turns (AllOpponentsLost) in 115s
+--- full game log ---
+  MULLIGAN: ForgeAI has kept a hand of 7 cards
+  MULLIGAN: Seat has kept a hand of 7 cards
+  TURN: Turn 1 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Flooded Strand (7)
+  LIFE: Life: ForgeAI 20 > 19
+  ZONE_CHANGE: Flooded Strand (7) was put into Graveyard from Battlefield.
+  STACK_ADD: ForgeAI activated Flooded Strand
+  STACK_RESOLVE: Flooded Strand (7) - ForgeAI searches their library for a Plains or Island card, puts it onto the battlefield, then shuffles.
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Volcanic Island (17) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Ragavan, Nimble Pilferer
+  STACK_RESOLVE: Ragavan, Nimble Pilferer - Creature 2 / 1
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 2 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Plains (111)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 3 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Wasteland (45)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Ragavan, Nimble Pilferer (35) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Ragavan, Nimble Pilferer (35).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Ragavan, Nimble Pilferer (35) deals 2 combat damage to Seat.
+  LIFE: Life: Seat 20 > 18
+  STACK_ADD: ForgeAI triggered Ragavan, Nimble Pilferer
+  STACK_RESOLVE: Whenever Ragavan, Nimble Pilferer deals combat damage to a player, create a Treasure token and exile the top card of that player's library. Until end of turn, you may cast that card. [Damage Source: Ragavan, Nimble Pilferer (35), Damaged: Seat, Amount: 2]
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Volcanic Island (17) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Dragon's Rage Channeler
+  STACK_RESOLVE: Dragon's Rage Channeler - Creature 1 / 1
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 4 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Plains (106)
+  MANA: Plains (111) - {T}: Add {W}.
+  MANA: Plains (106) - {T}: Add {W}.
+  STACK_ADD: Seat cast Stoneforge Mystic
+  STACK_RESOLVE: Stoneforge Mystic - Creature 1 / 2
+  STACK_ADD: Seat triggered Stoneforge Mystic
+  STACK_RESOLVE: When Stoneforge Mystic enters, you may search your library for an Equipment card, reveal it, put it into your hand, then shuffle. [Zone Changer: Stoneforge Mystic (91)]
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 5 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Scalding Tarn (28)
+  LIFE: Life: ForgeAI 19 > 18
+  ZONE_CHANGE: Scalding Tarn (28) was put into Graveyard from Battlefield.
+  STACK_ADD: ForgeAI activated Scalding Tarn
+  STACK_RESOLVE: Scalding Tarn (28) - ForgeAI searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  MANA: Volcanic Island (17) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Chain Lightning targeting [Stoneforge Mystic (91)]
+  STACK_ADD: ForgeAI triggered Dragon's Rage Channeler
+  STACK_RESOLVE: ForgeAI surveiled 1 card(s) to the graveyard
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Chain Lightning (49), Activator: ForgeAI, SpellAbility: Chain Lightning deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may choose a new target for that copy. ]
+  DAMAGE: Chain Lightning (49) deals 3 damage to Stoneforge Mystic (91).
+  STACK_RESOLVE: Chain Lightning (49) - Chain Lightning (49) deals 3 damage to Stoneforge Mystic (91). 
+  ZONE_CHANGE: Stoneforge Mystic (91) was put into Graveyard from Battlefield.
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Ragavan, Nimble Pilferer (35) and Dragon's Rage Channeler (32) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Ragavan, Nimble Pilferer (35).
+Seat didn't block Dragon's Rage Channeler (32).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Ragavan, Nimble Pilferer (35) deals 2 combat damage to Seat.
+  DAMAGE: Dragon's Rage Channeler (32) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 18 > 15
+  STACK_ADD: ForgeAI triggered Ragavan, Nimble Pilferer
+  STACK_RESOLVE: Whenever Ragavan, Nimble Pilferer deals combat damage to a player, create a Treasure token and exile the top card of that player's library. Until end of turn, you may cast that card. [Damage Source: Ragavan, Nimble Pilferer (35), Damaged: Seat, Amount: 2]
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Volcanic Island (18) - {T}: Add {U}.
+  ZONE_CHANGE: Treasure Token (127) was put into Graveyard from Battlefield.
+  MANA: Treasure Token (127) - {T}, Sacrifice this token: Add one mana of any color.
+  MANA: Wasteland (45) - {T}: Add {C}.
+  STACK_ADD: ForgeAI cast Murktide Regent
+  EFFECT_REPLACED: Murktide Regent enters with a +1/+1 counter on it for each instant and sorcery card exiled with it.
+  STACK_RESOLVE: Murktide Regent - Creature 3 / 3
+  ZONE_CHANGE: Treasure Token (123) was put into Graveyard from Battlefield.
+  MANA: Treasure Token (123) - {T}, Sacrifice this token: Add one mana of any color.
+  STACK_ADD: ForgeAI cast Brainstorm
+  STACK_ADD: ForgeAI triggered Dragon's Rage Channeler
+  STACK_RESOLVE: ForgeAI surveiled 1 card(s) to the graveyard
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Brainstorm (14), Activator: ForgeAI, SpellAbility: Draw three cards, then put two cards from your hand on top of your library in any order. ]
+  STACK_RESOLVE: Brainstorm (14) - ForgeAI draws three cards, then puts two cards from their hand on top of their library in any order.
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 6 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Plains (118)
+  MANA: Plains (111) - {T}: Add {W}.
+  MANA: Plains (106) - {T}: Add {W}.
+  STACK_ADD: Seat cast Stoneforge Mystic
+  STACK_RESOLVE: Stoneforge Mystic - Creature 1 / 2
+  STACK_ADD: Seat triggered Stoneforge Mystic
+  STACK_RESOLVE: When Stoneforge Mystic enters, you may search your library for an Equipment card, reveal it, put it into your hand, then shuffle. [Zone Changer: Stoneforge Mystic (90)]
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 7 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Flooded Strand (8)
+  LIFE: Life: ForgeAI 18 > 17
+  ZONE_CHANGE: Flooded Strand (8) was put into Graveyard from Battlefield.
+  STACK_ADD: ForgeAI activated Flooded Strand
+  STACK_RESOLVE: Flooded Strand (8) - ForgeAI searches their library for a Plains or Island card, puts it onto the battlefield, then shuffles.
+  MANA: Volcanic Island (17) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Lightning Bolt targeting [Stoneforge Mystic (90)]
+  STACK_ADD: ForgeAI triggered Dragon's Rage Channeler
+  STACK_RESOLVE: ForgeAI surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Lightning Bolt (3), Activator: ForgeAI, SpellAbility: Lightning Bolt deals 3 damage to any target.]
+  DAMAGE: Lightning Bolt (3) deals 3 damage to Stoneforge Mystic (90).
+  STACK_RESOLVE: Lightning Bolt (3) - Lightning Bolt (3) deals 3 damage to Stoneforge Mystic (90).
+  ZONE_CHANGE: Stoneforge Mystic (90) was put into Graveyard from Battlefield.
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Murktide Regent (59), Ragavan, Nimble Pilferer (35) and Dragon's Rage Channeler (32) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Murktide Regent (59).
+Seat didn't block Ragavan, Nimble Pilferer (35).
+Seat didn't block Dragon's Rage Channeler (32).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Murktide Regent (59) deals 4 combat damage to Seat.
+  DAMAGE: Ragavan, Nimble Pilferer (35) deals 2 combat damage to Seat.
+  DAMAGE: Dragon's Rage Channeler (32) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 15 > 8
+  STACK_ADD: ForgeAI triggered Ragavan, Nimble Pilferer
+  STACK_RESOLVE: Whenever Ragavan, Nimble Pilferer deals combat damage to a player, create a Treasure token and exile the top card of that player's library. Until end of turn, you may cast that card. [Damage Source: Ragavan, Nimble Pilferer (35), Damaged: Seat, Amount: 2]
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 8 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  MANA: Plains (111) - {T}: Add {W}.
+  MANA: Plains (106) - {T}: Add {W}.
+  MANA: Plains (118) - {T}: Add {W}.
+  STACK_ADD: Seat cast Flickerwisp
+  STACK_RESOLVE: Flickerwisp - Creature 3 / 1
+  STACK_ADD: Seat triggered Flickerwisp targeting [Murktide Regent (59)]
+  ZONE_CHANGE: Murktide Regent (59) was put into Exile from Battlefield.
+  STACK_RESOLVE: When Flickerwisp enters, exile another target permanent. Return that card to the battlefield under its owner's control at the beginning of the next end step. (Targeting: [[Murktide Regent (59)]]) [Zone Changer: Flickerwisp (89)]
+  LAND: Seat played Rishadan Port (98)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  STACK_ADD: Seat triggered Flickerwisp
+  EFFECT_REPLACED: Murktide Regent enters with a +1/+1 counter on it for each instant and sorcery card exiled with it.
+  STACK_RESOLVE: Return exiled permanent to the battlefield. ([Murktide Regent (59)]) [Phase: Seat]
+  PHASE: Seat's Cleanup step
+  TURN: Turn 9 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  MANA: Volcanic Island (17) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Chain Lightning targeting [Flickerwisp (89)]
+  STACK_ADD: ForgeAI triggered Dragon's Rage Channeler
+  STACK_RESOLVE: ForgeAI surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Chain Lightning (50), Activator: ForgeAI, SpellAbility: Chain Lightning deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may choose a new target for that copy. ]
+  DAMAGE: Chain Lightning (50) deals 3 damage to Flickerwisp (89).
+  STACK_RESOLVE: Chain Lightning (50) - Chain Lightning (50) deals 3 damage to Flickerwisp (89). 
+  ZONE_CHANGE: Flickerwisp (89) was put into Graveyard from Battlefield.
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Dragon's Rage Channeler (32), Murktide Regent (59) and Ragavan, Nimble Pilferer (35) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Dragon's Rage Channeler (32).
+Seat didn't block Murktide Regent (59).
+Seat didn't block Ragavan, Nimble Pilferer (35).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Dragon's Rage Channeler (32) deals 3 combat damage to Seat.
+  DAMAGE: Murktide Regent (59) deals 3 combat damage to Seat.
+  DAMAGE: Ragavan, Nimble Pilferer (35) deals 2 combat damage to Seat.
+  LIFE: Life: Seat 8 > 0
+  PLAYER_CONTROL: ForgeAI has restored control over themself
+  PLAYER_CONTROL: Seat has restored control over themself
+  GAME_OUTCOME: Match Duration 1m : 52s
+  GAME_OUTCOME: Turn 5
+  GAME_OUTCOME: ForgeAI has won because all opponents have lost
+  GAME_OUTCOME: Seat has lost because life total reached 0
+  MATCH_RESULTS: ForgeAI: 1 Seat: 0 
+===============================

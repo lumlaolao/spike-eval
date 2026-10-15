@@ -1,0 +1,87 @@
+package forge.spike;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import forge.ai.LobbyPlayerAi;
+import forge.game.Game;
+import forge.game.phase.PhaseType;
+import forge.game.player.Player;
+import forge.game.zone.ZoneType;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+
+import static forge.spike.LineFindingProbeTest.bareGame;
+import static forge.spike.LineFindingProbeTest.card;
+
+/** ONE_CHAT: one conversation per seat ({@link ChatSessionBridge}). */
+public class ChatSessionTest {
+    @BeforeClass
+    public void init() { new LineFindingProbeTest().initializeModel(); }
+
+    @BeforeMethod
+    public void faithful() { LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = LlmSpikeGui.ContextProfile.V4_FAITHFUL; }
+
+    @AfterMethod(alwaysRun = true)
+    public void legacy() { LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null; }
+
+    /** Records the message list of every ask and answers with {@code reply}. */
+    static final class Messages implements ChatSessionBridge.MessagesBridge {
+        final List<String> sent = new ArrayList<>();
+        final String reply;
+        Messages(String reply) { this.reply = reply; }
+        @Override public String askMessages(String messages) { sent.add(messages); return reply; }
+        @Override public String ask(String prompt) { return askMessages(prompt); }
+        @Override public String getLabel() { return "chat"; }
+        @Override public String getModel() { return "fake"; }
+        @Override public long getTotalMs() { return 0; }
+        @Override public int getCalls() { return sent.size(); }
+    }
+
+    @Test
+    public void anEarlierQuestionKeepsItsDecisionAndDropsItsState() {
+        String p = "== Turn 3 MAIN1 (active: Seat) ==\nYOU [Seat] life 20\nBATTLEFIELD: Mountain\nDECISION: Choose X for CAST Fireball\n  1) 0\n  2) 1";
+        String s = ChatSessionBridge.stub(p);
+        Assert.assertTrue(s.startsWith("[earlier decision (turn 3, MAIN1); that state is no longer current]"), s);
+        Assert.assertTrue(s.contains("DECISION: Choose X for CAST Fireball") && s.contains("2) 1"), s);
+        Assert.assertFalse(s.contains("BATTLEFIELD"), "the old state is not kept: " + s);
+    }
+
+    @Test
+    public void theConversationKeepsTheLastDecisionsOnly() {
+        ChatSessionBridge c = new ChatSessionBridge(new Messages("CHOICE: 1"));
+        for (int i = 0; i < ChatSessionBridge.MAX_PAIRS + 5; i++) c.remember("DECISION: q" + i, "CHOICE: 1");
+        Assert.assertEquals(c.size(), ChatSessionBridge.MAX_PAIRS);
+        Assert.assertFalse(c.history().contains("DECISION: q0\""), "the oldest decision was dropped");
+        Assert.assertTrue(c.history().endsWith("\"content\":\"" + LlmSpikeGui.jsonEscape(ChatSessionBridge.NOTE) + "\"}"));
+    }
+
+    /** Through the live controller: the target ask after a play is in the same conversation as the
+     *  play, with the model's own reply to it, and the first ask has no history. */
+    @Test
+    public void theTargetAskFollowsThePlayInOneConversation() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        card("Savannah Lions", rival, ZoneType.Battlefield);
+        Messages backend = new Messages("Bolt the Lions before they attack.\nCHOICE: 1");
+        ChatSessionBridge chat = new ChatSessionBridge(backend);
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(g, me,
+                new LobbyPlayerAi("Seat", null), "Seat", "", chat, chat, "llm");
+        me.dangerouslySetController(ctrl);
+        ctrl.chooseSpellAbilityToPlay();
+        Assert.assertTrue(backend.sent.size() >= 2, "play and target were asked: " + backend.sent.size());
+        Assert.assertFalse(backend.sent.get(0).contains("earlier decision"), "the first ask has no history");
+        String second = backend.sent.get(1);
+        Assert.assertTrue(second.contains("\"role\":\"assistant\""), second);
+        Assert.assertTrue(second.contains("Bolt the Lions before they attack."), "the model's own reply is in the chat");
+        Assert.assertTrue(second.contains("DECISION: You have priority"), "the play question is in the chat");
+        Assert.assertTrue(second.lastIndexOf("DECISION: Choose the TARGET") > second.lastIndexOf("\"role\":\"assistant\""),
+                "the target ask comes after the play in the conversation");
+    }
+}

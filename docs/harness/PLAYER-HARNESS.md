@@ -497,6 +497,46 @@ Random-arm route logs now say `random baseline (no model call)`. They previously
 claimed `asking opus/haiku` despite never consulting a model, producing 58 false
 missing-call reports in the random canary. The defect analyzer was not modified.
 
+### Memory across decisions: who compacts what (2026-10-15)
+
+The seat is asked one decision at a time, but a turn is one line of thought: the creature it means
+to kill in main phase one is still the point at the block and at the end step. Three layers keep
+that line without mixing past and present:
+
+- **Facts are compacted by code, never by the model.** Each ask carries the current state rendered
+  fresh, the game history compacted deterministically (`GameHistory` TIERED, every entry citing
+  `[E<n>]`), and the full log stays searchable (`memory_search` / `memory_read`). A model-written
+  summary of what happened can be wrong and then reads as fact; a rendered one cannot.
+- **The model compacts only its own thinking.** The plan (`YOUR PLAN`), the notebook (`memory_note`)
+  and the opponent profile are the model's, labelled as its own, unverified.
+- **The plan changes whenever the model wants (observation v22).** It is a goal and the steps toward
+  it, not a script: when the opponent casts an instant in their main phase or a card is drawn, the
+  model writes a new `PLAN: GOAL: ... NEXT: ...` line at that decision, whatever the decision is. The
+  plan line says when it was stated, so the model can read what happened since and judge it. A
+  changed plan drops the old `STEPS:` cast list. The harness never judges a play against the plan;
+  whether a play made sense (the Dark Ritual cast and then passed) is for the blunder judge to read
+  afterwards, not for the harness to block.
+
+`ONE_CHAT=1` (`one-chat-v1`, stamped `one_chat`) is the other answer, kept as a **condition**, not
+the default: one conversation per seat, earlier questions kept as their DECISION part and the
+model's answer, the state only in the newest message (`ChatSessionBridge`). It keeps the steps of
+one action in one conversation, at the price of more prompt tokens and the risk the model reads an
+old state as current, which is why the default stays a fresh state per ask with the model's own
+plan carried forward.
+
+**The seat can say a question is broken** (`report_unclear_decision`, seat-tools v6). If the harness
+is right, a model reading a question after its own play can tell when the options do not fit (a
+"use the ability?" that does not follow from the spell it cast, a garbled option). It records the
+complaint, changes nothing, and the decision is still answered. `match_review.py` lists each one as
+`REPORT`; reading them is part of the game loop. Not offered in the tool-use suite (it is not a
+lookup), so suite results stay comparable.
+
+**No MCP server for now.** The seat's tools are native function calls inside one process
+(`NativeTools`); an MCP server would put a protocol boundary between the controller and the engine
+it reads, for the benefit of clients we do not have. It becomes worth it when an outside agent
+(Claude Code, another lab's harness) is to play a seat directly; then it wraps the same executor
+and the same per-decision budget, and the controller stays the one place a decision is asked.
+
 ## Next implementation gates
 
 | Priority | Work | Evidence required before claiming complete | Status 2026-09-07 |

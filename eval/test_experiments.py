@@ -57,7 +57,7 @@ def modern_line(seed, swap, winner, **kw):
          "native_tools": False, "native_tools_seats": "", "native_tools_version": "seat-tools-v4",
          "native_tools_downgraded": "", "rules_tool": False, "rules_tool_version": "rules-tool-v1",
          "rules_effective": "n/a", "lookahead": False, "lookahead_version": "lookahead-preview-v4",
-         "one_tier": False, "no_coaching": False, "harness_epoch": "harness-epoch-2"}
+         "one_tier": False, "no_coaching": False, "one_chat": False, "one_chat_version": "one-chat-v1", "harness_epoch": "harness-epoch-2"}
     g.update(kw)
     return g
 
@@ -119,7 +119,7 @@ class GroupingTest(unittest.TestCase):
                              ("game_cap_ms", 60000), ("claude_effort_smart", "max"),
                              # The tool protocol and the opt-in tools are conditions (CLAUDE.md:
                              # "Native and text runs are different conditions. Never pool them").
-                             ("native_tools", True), ("native_tools_version", "seat-tools-v5"),
+                             ("native_tools", True), ("native_tools_version", "seat-tools-v6"),
                              ("native_tools_downgraded", "Identity-A/smart"),
                              ("rules_tool", True), ("lookahead", True),
                              ("native_tools_seats", "A/smart"), ("rules_tool_version", "rules-tool-v2"),

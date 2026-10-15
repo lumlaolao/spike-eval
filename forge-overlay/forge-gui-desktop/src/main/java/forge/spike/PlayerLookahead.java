@@ -75,7 +75,8 @@ final class PlayerLookahead {
             MyRandom.setRandom(new Random(seed));
             Game copy;
             UncopiedEffects parked = UncopiedEffects.park(live);
-            try { copy = new GameCopier(live).makeCopy(); } finally { parked.restore(); }
+            StaleEffectCards stale = StaleEffectCards.park(live);
+            try { copy = new GameCopier(live).makeCopy(); } finally { stale.restore(); parked.restore(); }
             for (Player p : copy.getPlayers()) {
                 Zone lib = p.getZone(ZoneType.Library);
                 if (lib != null && lib.size() >= 2) lib.shuffle();
@@ -206,9 +207,10 @@ final class PlayerLookahead {
             MyRandom.setRandom(new Random(seed));
             GameSimulator sim;
             UncopiedEffects parked = UncopiedEffects.park(live);   // the constructor is where the copy is made
+            StaleEffectCards stale = StaleEffectCards.park(live);
             try {
                 sim = new GameSimulator(new SimulationController(new GameStateEvaluator.Score(0)), live, seat, null);
-            } finally { parked.restore(); }
+            } finally { stale.restore(); parked.restore(); }
             Game simGame = sim.getSimulatedGameState();
             if (simGame == null) return "(preview unavailable)";
             // Determinize BEFORE anything resolves so the preview cannot depend on the real hidden order.
@@ -387,6 +389,46 @@ final class PlayerLookahead {
      * reflection: an engine bump that renames it makes {@link #park} report, not fail silently
      * (LookaheadProbeTest pins the field; docs/harness/ENGINE-PIN.md lists it).
      */
+    /**
+     * Works around a second engine defect the same way. {@code Player.removeMonarchEffect} takes "The
+     * Monarch" out of the command zone but leaves the card's zone pointer, so once the monarchy changes
+     * hands the old monarch's effect card looks in play, {@code Player.copyEffectCardsToSnapshot} maps
+     * it, and the copier throws "Couldn't map The Monarch": every preview after Palace Jailer's
+     * monarchy moved failed (runs/compare one-tier and two-tier, 14 previews). While the copy is made,
+     * each player's effect card that is not in the zone it points at has that pointer cleared, and it
+     * is put back afterwards, so the live game is exactly as it was.
+     */
+    static final class StaleEffectCards {
+        static final String[] FIELDS = {"keywordEffect", "monarchEffect", "initiativeEffect", "blessingEffect",
+                "enduringStoryEffect", "contraptionSprocketEffect", "radiationEffect", "speedEffect"};
+        private final java.util.List<forge.game.card.Card> cards = new java.util.ArrayList<>();
+        private final java.util.List<Zone> zones = new java.util.ArrayList<>();
+
+        static StaleEffectCards park(Game live) {
+            StaleEffectCards s = new StaleEffectCards();
+            for (Player p : live.getPlayers()) {
+                for (String name : FIELDS) {
+                    try {
+                        java.lang.reflect.Field f = Player.class.getDeclaredField(name);
+                        f.setAccessible(true);
+                        forge.game.card.Card c = (forge.game.card.Card) f.get(p);
+                        Zone z = c == null ? null : c.getZone();
+                        if (z != null && !z.contains(c)) { s.cards.add(c); s.zones.add(z); c.setZone(null); }
+                    } catch (ReflectiveOperationException | RuntimeException e) {
+                        System.out.println("[LOOKAHEAD] cannot check effect card " + name + " (engine changed?): " + e);
+                    }
+                }
+            }
+            return s;
+        }
+
+        int size() { return cards.size(); }
+
+        void restore() {
+            for (int i = 0; i < cards.size(); i++) cards.get(i).setZone(zones.get(i));
+        }
+    }
+
     static final class UncopiedEffects {
         static final java.util.Set<ZoneType> COPIED = java.util.EnumSet.of(ZoneType.Battlefield, ZoneType.Hand,
                 ZoneType.Graveyard, ZoneType.Library, ZoneType.Exile, ZoneType.Stack, ZoneType.Command);

@@ -159,8 +159,11 @@ public final class LlmSpikeGui {
      *  work (window rows, intent carry and cancel, X/modes/targets, trigger targets, attack targets,
      *  votes and effect casts, mana sources, model yields, ONE_TIER, neutral asks). Epoch 3: a cost ask
      *  (sacrifice, exile, discard, return, tap) can cancel a play that is not committed yet. Epoch 4:
-     *  how a Phyrexian symbol is paid (life or mana) is asked. */
-    static final String HARNESS_EPOCH = "harness-epoch-4";
+     *  how a Phyrexian symbol is paid (life or mana) is asked. Epoch 5: engine notices (a named card, a
+     *  chosen colour) are shown; an unparsed play or block is said, not read as PASS / NONE; block pairs
+     *  keep names with commas; the per-turn play cap is 80 under the faithful profile; a PLAN line at any
+     *  decision replaces the plan (a goal and steps); the seat can report a broken question. */
+    static final String HARNESS_EPOCH = "harness-epoch-5";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -597,6 +600,9 @@ public final class LlmSpikeGui {
 
     static class PlayerControllerLLM extends PlayerControllerAi {
         private static final int MAX_PLAY_DECISIONS_PER_TURN = 25;
+        /** The same loop guard under the faithful profile. It counts both players' windows in a turn, so
+         *  25 stopped Storm, Doomsday and Elves turns partway through; 80 still ends a real loop. */
+        private static final int MAX_PLAY_DECISIONS_PER_TURN_FAITHFUL = 80;
         private static final int SMART_BUDGET = envInt("SMART_BUDGET", 320); // per-game load-bearing LLM calls
         private static final int FAST_BUDGET  = envInt("FAST_BUDGET", 900);  // per-game cheap LLM calls
         // Eval confound switches: MULLIGAN_HEURISTIC=0 -> the model decides ALL mulligans (no 2-4 land
@@ -749,6 +755,48 @@ public final class LlmSpikeGui {
          *  deck plan (docs/STANDARDS.md section 8): stamped `no_coaching` on the game line. */
         static final boolean NO_COACHING = "1".equals(System.getenv("NO_COACHING"));
         private String planSig;      // opponent-side signature when the plan was stated
+        /** When the plan was stated, "T5 MAIN1" (faithful plan line). */
+        private String planWhen = "";
+        /** The tags that end a PLAN line written on the same line as an answer. */
+        private static final String[] PLAN_ENDS = {"CHOICE:", "PICKS:", "BLOCKS:", "ATTACKS:", "ATTACKERS:", "STEPS:",
+                "LINES:", "PROFILE:", "ANSWER:"};
+        private static final Pattern PLAN_LINE = Pattern.compile("(?i)^[\\s*_>#`-]*PLAN\\s*:(.*)$");
+
+        /** The text of the reply's last line that STARTS with PLAN: (markdown allowed), cut at an
+         *  answer tag on the same line; null when there is none. A line merely mentioning a plan
+         *  ("my game plan: race") is not a plan statement. */
+        static String planStatement(String reply) {
+            if (reply == null) return null;
+            String found = null;
+            for (String ln : reply.split("\\R")) {
+                Matcher m = PLAN_LINE.matcher(ln);
+                if (m.find()) found = m.group(1);
+            }
+            if (found == null) return null;
+            found = cutAtTags(found, PLAN_ENDS).replaceAll("^[\\s*_`]+|[\\s*_`]+$", "").replaceAll("\\s+", " ").trim();
+            return found.isEmpty() ? null : found;
+        }
+
+        /** Faithful seats: a PLAN line in any reply replaces the plan, whatever the decision was (the
+         *  opponent cast something in their main phase, a card was drawn, a block went badly). A
+         *  changed plan drops the old cast list, which belonged to the old plan. Returns true when it
+         *  changed. Whitespace-collapsed, never truncated (the C4 defect cut a stated finisher). */
+        boolean adoptPlan(String reply) {
+            String pl = planStatement(reply);
+            if (pl == null) return false;
+            String ph = "";
+            try { ph = " " + getGame().getPhaseHandler().getPhase(); } catch (Exception ignore) { }
+            planTurn = safeTurn();
+            planWhen = "T" + planTurn + ph;           // restated unchanged: still the plan, stated now
+            if (pl.equals(turnPlan)) return false;
+            boolean revised = !turnPlan.isEmpty();
+            turnPlan = pl;
+            planSig = oppPlanSig();
+            planStepIdx = 0;
+            planSteps.clear();
+            p("[ROUTER] plan" + (revised ? "(revised)" : "") + ": " + turnPlan);
+            return true;
+        }
         private int planStepIdx;     // how many plan steps have been executed this turn
         /** The model's EXPLICIT cast list (`STEPS: A, B`), in order. Only this is auto-executed.
          *  Free-text matching was a real bug (2026-10-13): a plan reading "Hold Shallow Grave
@@ -888,6 +936,7 @@ public final class LlmSpikeGui {
         /** The smart and fast bridges: one shared smart bridge under ONE_TIER, else one per tier. */
         private static LLMBridge[] oneTierPair(String seat, String deckPlan, String smartModel, String fastModel) {
             LLMBridge smartB = LLMBridgeFactory.create(seat + "/smart", smartModel, framing(seat, deckPlan, false, NativeTools.usedBy(smartModel)));
+            if (ChatSessionBridge.ON && smartB instanceof OpenRouterBridge) smartB = new ChatSessionBridge((OpenRouterBridge) smartB);
             if (ONE_TIER) return new LLMBridge[] {smartB, smartB};
             return new LLMBridge[] {smartB,
                     LLMBridgeFactory.create(seat + "/fast", fastModel, framing(seat, deckPlan, true, NativeTools.usedBy(fastModel)))};
@@ -913,6 +962,7 @@ public final class LlmSpikeGui {
             // their game behaviour and prompt bytes are untouched.
             this.observer = ctx.faithfulObservation ? new SeatObservation(game, p) : null;
             if (observer != null && MEMORY_TOOLS) contextMemory.setInspector(observer::inspect);
+            contextMemory.setReporter(problem -> p("[REPORT] " + seat + " T" + safeTurn() + ": " + problem));
             if (MEMORY_TOOLS && RULES_TOOL) {
                 RulesTool rt = rulesTool();
                 if (rt.available()) {
@@ -1054,6 +1104,33 @@ public final class LlmSpikeGui {
         }
         /** BLOCKS parsing: a handle reference ("@7") beats a name match when the observer is live, so
          *  duplicate-named creatures are unambiguous; the legacy name match is the fallback. */
+        /** The blocker->attacker pairs of a BLOCKS line. A card name may hold a comma ("Ragavan, Nimble
+         *  Pilferer"), so splitting on every comma broke such names and the pair was dropped. Between two
+         *  arrows the cut is the first comma or semicolon whose left side names an attacker and right
+         *  side a blocker (else the last one). Each pair is {blocker text, attacker text}. */
+        List<String[]> blockPairs(String line, Iterable<Card> blockers, Iterable<Card> attackers) {
+            List<String[]> out = new ArrayList<>();
+            String[] segs = line.split("->");
+            if (segs.length < 2) return out;
+            String blk = segs[0];
+            for (int i = 1; i < segs.length; i++) {
+                String seg = segs[i];
+                if (i == segs.length - 1) { out.add(new String[] {blk, seg}); break; }
+                int cut = -1, last = -1;
+                for (int k = 0; k < seg.length() && cut < 0; k++) {
+                    char ch = seg.charAt(k);
+                    if (ch != ',' && ch != ';') continue;
+                    last = k;
+                    if (matchCard(attackers, seg.substring(0, k)) != null && matchCard(blockers, seg.substring(k + 1)) != null) cut = k;
+                }
+                if (cut < 0) cut = last;
+                if (cut < 0) { out.add(new String[] {blk, seg}); blk = ""; continue; }
+                out.add(new String[] {blk, seg.substring(0, cut)});
+                blk = seg.substring(cut + 1);
+            }
+            return out;
+        }
+
         private Card matchCard(Iterable<Card> cards, String seg) {
             if (observer != null) {
                 Matcher m = Pattern.compile("@(\\d+)").matcher(seg);
@@ -1071,6 +1148,21 @@ public final class LlmSpikeGui {
         // appended to the seat stream (so it gets an E-id, turn attribution, search and archive) as a
         // historical, seat-local fact. Legacy profiles keep the inherited behaviour so their prompt bytes
         // are unchanged; super is always called so any inherited fallback still sees what the AI saw.
+        /** What the engine tells the player was chosen (Meddling Mage's or Cabal Therapy's named card, a
+         *  chosen colour, a number). The inherited AI ignores it; a human is shown it, so the seat records
+         *  it in its stream under the faithful profile (human_decisions.py found the gap). */
+        @Override
+        public void notifyOfValue(SpellAbility sa, forge.game.GameObject relatedTarget, String value) {
+            super.notifyOfValue(sa, relatedTarget, value);
+            if (observer == null || value == null || value.isEmpty()) return;
+            try {
+                observer.recordNotice(forge.util.MessageUtil.formatNotificationMessage(sa, getPlayer(), relatedTarget, value));
+            } catch (Exception e) {
+                try { observer.recordNotice((sa == null || sa.getHostCard() == null ? "" : sa.getHostCard().getName() + ": ") + value); }
+                catch (Exception ignore) { }
+            }
+        }
+
         @Override
         public void reveal(CardCollectionView cards, ZoneType zone, Player owner, String messagePrefix, boolean addSuffix) {
             super.reveal(cards, zone, owner, messagePrefix, addSuffix);
@@ -1540,6 +1632,7 @@ public final class LlmSpikeGui {
                 observer.setProfile(oppProfile);
                 observer.setOwnDeckText(deckPlan);
                 observer.setDeckLines(deckLines);
+                observer.setPlanWhen(planWhen);
                 String s = observer.render(seat, ctx, hist.text, turnPlan, planTurn);
                 if (hist.watermark != GameHistory.Rendered.KEEP_WATERMARK) eventWatermark = hist.watermark;
                 return s;
@@ -1570,6 +1663,19 @@ public final class LlmSpikeGui {
                     : "a previous turn; the board may have changed — re-state it or consciously continue");
             b.append("): ").append(turnPlan).append('\n');
             return b.toString();
+        }
+
+        /** The faithful profile's plan line (observation v22). The plan is the seat's own and can be
+         *  replaced at ANY decision with a new PLAN line ({@link #adoptPlan}): a goal and the steps
+         *  toward it, which change when the opponent acts or a card is drawn. It says when it was
+         *  stated, so the model can read what happened since in RECENT EVENTS and judge it. */
+        static String revisablePlanText(String turnPlan, String planWhen, int planTurn, int nowTurn) {
+            if (turnPlan == null || turnPlan.isEmpty()) return "";
+            return "YOUR PLAN (yours, stated " + (planWhen == null || planWhen.isEmpty() ? "at T" + planTurn : "at " + planWhen)
+                    + (planTurn == nowTurn ? ", this turn" : ", an earlier turn")
+                    + "; events after that happened since. It stands until you change it: at any decision, write a new "
+                    + "`PLAN: GOAL: <what you are working toward> NEXT: <the steps>` line before your answer): "
+                    + turnPlan + "\n";
         }
 
         static String buildSnapshot(Player me, String seat, java.util.Collection<String> intel, String turnPlan, int planTurn) {
@@ -2270,11 +2376,21 @@ public final class LlmSpikeGui {
                 }
                 // Shared template (single source; the ai-teacher seat rebuilds byte-identically via the same builder).
                 String prompt = buildBlockersPrompt(snapshot(), atk.toString(), blk.toString(), blockersCeiling(combat, defender));
+                // Every other ask names its DECISION; the one-chat history keeps an earlier ask from that
+                // line on, so without it a block kept its whole stale state (PromptFidelityTest contract).
+                if (observer != null) prompt = prompt.replace("\nCOMBAT — declare blockers.", "\nDECISION: COMBAT — declare blockers.");
                 p("[ROUTER] blockers: " + attackers.size() + " atk / " + blockers.size() + " blk -> " + routeLabel(smart.getModel(), rnd != null));
                 String reply = ask(smart, prompt);
                 if (reply == null) { auto("blockers(bridge-down)->none"); return; }
                 String line = lastSegment(reply, "BLOCKS:");
-                if (line == null || line.toUpperCase().contains("NONE")) {
+                if (line == null) { // one retry with the whole decision, as decideOne does
+                    reply = ask(smart, prompt + "\n\n(Your previous reply had no BLOCKS line. End with EXACTLY: BLOCKS: blocker->attacker, ...   or BLOCKS: NONE)");
+                    if (reply == null) { auto("blockers(bridge-down)->none"); return; }
+                    line = lastSegment(reply, "BLOCKS:");
+                    if (line == null) { auto("blockers(unparsed)->none"); return; }
+                }
+                line = line.split("\\R", 2)[0];
+                if (line.trim().replaceAll("[^A-Za-z]", "").equalsIgnoreCase("NONE")) {
                     // A genuine model-consulted decision (the reply came back fine) — must log exactly
                     // one jsonl row like every other ask path, even though it declines to block. This was
                     // the silent-drop gap (report iter-1 D2): the ask() succeeded and counted in the log's
@@ -2286,17 +2402,19 @@ public final class LlmSpikeGui {
                     return;
                 }
                 int assigned = 0;
-                for (String pair : line.split(",")) {
-                    int arrow = pair.indexOf("->"); if (arrow < 0) continue;
-                    Card b = matchCard(blockers, pair.substring(0, arrow));
-                    Card a = matchCard(attackers, pair.substring(arrow + 2));
+                List<String> dropped = new ArrayList<>();
+                for (String[] pair : blockPairs(line, blockers, attackers)) {
+                    Card b = matchCard(blockers, pair[0]);
+                    Card a = matchCard(attackers, pair[1]);
                     if (a != null && b != null && CombatUtil.canBlock(a, b, combat)) {
                         combat.addBlocker(a, b); assigned++; blockers.remove(b);
-                    }
+                    } else dropped.add(flat(pair[0]) + "->" + flat(pair[1]));
                 }
                 lastShadowChoice = shadowBlk; // genuine model-consulted decision -> label it
-                evalDec("blockers", blockers.size() + assigned, assigned, "smart", 0, null, blkLabels); // choice = # blocks
-                p("[ROUTER] blockers: assigned " + assigned);
+                // A pair that named no legal block used to vanish; the row says how many were not used.
+                evalDec("blockers", blockers.size() + assigned, assigned, "smart", 0,
+                        dropped.isEmpty() ? null : "blockers(unparsed-pairs:" + dropped.size() + ")", blkLabels); // choice = # blocks
+                p("[ROUTER] blockers: assigned " + assigned + (dropped.isEmpty() ? "" : ", not used: " + String.join("; ", dropped)));
             } catch (Exception e) {
                 // Same rule as declareAttackers (#126): a deterministic LEGAL default, never the AI.
                 // Declaring no blockers is legal.
@@ -2409,10 +2527,12 @@ public final class LlmSpikeGui {
 
                 int turn = phh.getTurn();
                 if (turn != lastPlayTurn) { lastPlayTurn = turn; playDecisionsThisTurn = 0; passedReactSigs.clear(); }
-                boolean overCap = playDecisionsThisTurn >= MAX_PLAY_DECISIONS_PER_TURN;
+                boolean overCap = playDecisionsThisTurn >= (observer != null ? MAX_PLAY_DECISIONS_PER_TURN_FAITHFUL : MAX_PLAY_DECISIONS_PER_TURN);
                 if (!haveBudget || overCap) { // exhausted -> develop mana if possible, else pass. Not the AI.
-                    if (haveLand) { auto("play(no-budget): land " + landCards.get(0).getName()); return Lists.newArrayList(landPlays.get(0)); }
-                    auto("play(no-budget)->PASS");
+                    // The cap and the budget are different causes and say so (the cap used to read "no-budget").
+                    String why = !haveBudget || observer == null ? "no-budget" : "turn-cap";
+                    if (haveLand) { auto("play(" + why + "): land " + landCards.get(0).getName()); return Lists.newArrayList(landPlays.get(0)); }
+                    auto("play(" + why + ")->PASS");
                     return PASS;
                 }
 
@@ -2465,9 +2585,13 @@ public final class LlmSpikeGui {
                 // so it never costs an extra model call.
                 boolean askProfile = askPlan && (oppProfile.isEmpty() || turn - profileTurn >= PROFILE_REFRESH_TURNS);
                 String asks = askPlan
-                        ? "First state your plan for THIS TURN as `PLAN: <one short line>` (the sequence you intend, e.g. "
-                          // The example named one eval deck's line (Grixis Reanimator) in every deck's prompt.
-                          + (observer != null ? "'<land>, cast <card>, hold <card> for their turn'). " : "'ritual into Reanimate on Griselbrand, hold Petal'). ")
+                        ? (observer != null
+                           // Faithful (v22): a goal and the steps toward it, replaceable at any decision.
+                           ? "First state your plan as `PLAN: GOAL: <what you are working toward> NEXT: <the steps you intend, in order, "
+                             + "e.g. <land>, cast <card>, hold <card> for their turn>`; you can replace it at any later decision. "
+                           // The example named one eval deck's line (Grixis Reanimator) in every deck's prompt.
+                           : "First state your plan for THIS TURN as `PLAN: <one short line>` (the sequence you intend, e.g. "
+                             + "'ritual into Reanimate on Griselbrand, hold Petal'). ")
                           + "If (and only if) you want the harness to execute steps of that plan for you without asking again this turn, add `STEPS: <card name>, <card name>` listing ONLY cards you intend to CAST, in the order you will cast them; omit anything you are holding. "
                         : "";
                 // Ask at most DECK_LINES_MAX_ASKS times, on the model's first real decisions: name the
@@ -2566,7 +2690,14 @@ public final class LlmSpikeGui {
                                ? "\nYou may instead reply `SIMULATE: <number>` (optionally `SIMULATE: <number> <target name>`) to see what a CAST or ACTIVATE option (1.." + options.size()
                                  + ") resolves to; you will then be asked again with the result." : "");
                     String reply = ask(b, prompt, nativeSim && attempt == 0 ? simulateTool : null);
-                    if (reply != null && askPlan && attempt == 0) {
+                    if (reply != null && askPlan && attempt == 0 && observer != null) {
+                        // ask() already adopted a PLAN line (adoptPlan); the cast list rides this ask only.
+                        String st = planStatement(reply) == null ? null : lastSegment(reply, "STEPS:");
+                        if (st != null) {
+                            st = cutAtTags(st, "CHOICE:");
+                            for (String one : st.split(",")) if (!one.trim().isEmpty()) planSteps.add(one.trim());
+                        }
+                    } else if (reply != null && askPlan && attempt == 0) {
                         String pl = lastSegment(reply, "PLAN:");
                         if (pl != null) { // models sometimes co-mingle "PLAN: ... CHOICE: 3" — cut at the tag
                             int cut = pl.toUpperCase().indexOf("CHOICE:");
@@ -2650,11 +2781,15 @@ public final class LlmSpikeGui {
                 // below erases any target it set, and the engine re-announces X at cast time.
                 lastShadowChoice = shadowPlay(po);
                 // ms=0 -> evalDec substitutes lastSuccessMs (successful-attempt-only time); see decideOne.
+                // A reply with no usable CHOICE becomes a PASS; the row says so rather than reading as a real
+                // PASS (it used to be identical to one: choice -1, no fallback).
+                boolean unparsed = rnd == null && (choice < 1 || choice > passIdx);
                 evalDec("play", passIdx, (choice >= 1 && choice < passIdx) ? choice - 1 : -1,
-                        tierOf(b == smart), 0, null, playLabels);
+                        tierOf(b == smart), 0, unparsed ? "play(unparsed)->PASS" : null, playLabels);
                 if (choice == passIdx || choice < 1 || choice > passIdx) {
-                    lastWasPass = true;
-                    if (reactSig != null) passedReactSigs.add(reactSig); // don't re-ask this situation this turn
+                    lastWasPass = !unparsed;
+                    if (unparsed) p("[ROUTER] play: no usable CHOICE in the reply -> PASS (unparsed)");
+                    else if (reactSig != null) passedReactSigs.add(reactSig); // don't re-ask this situation this turn
                     if (!SKIP_HEUR && observer != null && rnd == null) {
                         String y = lastSegment(lastReply, "YIELD:");
                         if (y != null) {
@@ -4618,8 +4753,21 @@ public final class LlmSpikeGui {
 
         /** `simulate`: when non-null and native tools are on, the decision also offers a lookahead
          *  preview as a tool; it maps the call's JSON arguments to the preview text. */
+        /** Test seam: sees every prompt the seat asks (PromptFidelityTest's per-type contract). Null in play. */
+        static volatile java.util.function.Consumer<String> TEST_ASK_TAP = null;
+
         private String ask(LLMBridge b, String prompt, java.util.function.Function<String, String> simulate) {
             prompt = withIntent(prompt);
+            java.util.function.Consumer<String> tap = TEST_ASK_TAP;
+            if (tap != null) tap.accept(prompt);
+            String reply = askOnce(b, prompt, simulate);
+            if (observer != null && b == smart && reply != null) adoptPlan(reply);
+            // ONE_CHAT: the conversation keeps each answered decision (a tool round or a dead bridge is not one).
+            if (b instanceof ChatSessionBridge) ((ChatSessionBridge) b).remember(prompt, reply);
+            return reply;
+        }
+
+        private String askOnce(LLMBridge b, String prompt, java.util.function.Function<String, String> simulate) {
             if (!MEMORY_TOOLS || !"llm".equals(mode)) return askModel(b, prompt);
             // Archive the existing player-narration stream before its lossy prompt compaction.
             // Never attach raw engine objects or omniscient evaluation records to this archive.
@@ -5321,15 +5469,27 @@ public final class LlmSpikeGui {
         static String lastSegment(String reply, String key) {
             return lastSegmentAny(reply, key);
         }
-        /** Last CHOICE/ANSWER number in the reply, tolerant of markdown wrapping, missing colons, and
-         *  trailing prose after the number (the first digit run in the matched segment wins — a
-         *  reasoning aside after the number, e.g. "CHOICE: 3 (final answer)", must not confuse it). */
+        /** Tolerant of markdown wrapping, missing colons and trailing prose after the number
+         *  ("CHOICE: 3 (final answer)"). The number after the reply's last {@code key} (CHOICE:) or ANSWER: that is
+         *  followed closely by a number: a degenerate reply (runs/compare one-tier seed 82, T11) said
+         *  "CHOICE: 4" and then, in 8,000 characters of repetition, "Final Answer: ..." with a 3
+         *  somewhere after it, and the 3 was played. */
         static int parseTagNumber(String reply, String key) {
-            String seg = lastSegmentAny(reply, key, "ANSWER:");
-            if (seg == null) return -1;
-            Matcher m = Pattern.compile("\\d+").matcher(seg);
-            return m.find() ? Integer.parseInt(m.group()) : -1;
+            if (reply == null) return -1;
+            int found = -1;
+            // The last line whose tag is followed closely by the number wins ("CHOICE: 2 ... Answer: 5"
+            // is 5). A tag followed by words is not an answer, so degenerate text after the real one
+            // ("Final Answer: \"NCAA: 3") cannot override it.
+            for (String ln : stripMarkdown(reply).split("\\R")) {
+                String seg = lastSegmentAny(ln, key, "ANSWER:");
+                if (seg == null) continue;
+                Matcher m = TAG_NUMBER.matcher(seg);
+                if (m.find()) found = Integer.parseInt(m.group(1));
+            }
+            return found;
         }
+        /** A number right after an answer tag: punctuation, and the word "option", may come between. */
+        private static final Pattern TAG_NUMBER = Pattern.compile("(?i)^[^\\p{L}\\d\\n]{0,6}?(?:option\\s*#?\\s*)?(\\d+)");
         private static Card matchByName(Iterable<Card> cards, String upperSeg) {
             for (Card c : cards) if (upperSeg.contains(c.getName().toUpperCase())) return c;
             return null;
@@ -7013,7 +7173,7 @@ public final class LlmSpikeGui {
      *  as a system message and the full snapshot as a user message — no conversation
      *  history is maintained because the controller's prompt already contains the
      *  entire game state. */
-    static final class OpenRouterBridge implements LLMBridge {
+    static final class OpenRouterBridge implements ChatSessionBridge.MessagesBridge {
         private static final String API_KEY = System.getenv("OPENROUTER_API_KEY");
         private static final String BASE_URL = System.getenv().getOrDefault("OPENROUTER_BASE_URL",
                 "https://openrouter.ai/api/v1");
@@ -7104,7 +7264,13 @@ public final class LlmSpikeGui {
         int lastSendCount() { return lastSendCount; }
 
         @Override public String ask(String prompt) {
-            OrResult r = complete("{\"role\":\"user\",\"content\":\"" + jsonEscape(prompt) + "\"}", null, false);
+            return askMessages("{\"role\":\"user\",\"content\":\"" + jsonEscape(prompt) + "\"}");
+        }
+
+        /** A plain-text ask over a whole message list (comma-separated objects after the system
+         *  preamble): the one-chat conversation ({@link ChatSessionBridge}). */
+        @Override public String askMessages(String messages) {
+            OrResult r = complete(messages, null, false);
             return r == null ? null : r.content;
         }
 
@@ -7617,6 +7783,8 @@ public final class LlmSpikeGui {
                 + ",\"native_tools_version\":\"" + NativeTools.VERSION + "\""
                 + ",\"one_tier\":" + PlayerControllerLLM.ONE_TIER
                 + ",\"no_coaching\":" + PlayerControllerLLM.NO_COACHING
+                + ",\"one_chat\":" + ChatSessionBridge.ON
+                + ",\"one_chat_version\":\"" + ChatSessionBridge.VERSION + "\""
                 + ",\"harness_epoch\":\"" + HARNESS_EPOCH + "\""
                 + ",\"lookahead\":" + PlayerControllerLLM.lookaheadEnabled()
                 + ",\"lookahead_version\":\"" + PlayerLookahead.VERSION + "\""

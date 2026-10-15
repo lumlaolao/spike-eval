@@ -23,6 +23,12 @@ final class ContextMemory {
     private final List<Entry> entries = new ArrayList<>();
     private final List<String> notes = new ArrayList<>();
     private int toolsUsed;
+    /** The seat's reports that a question was broken (report_unclear_decision). */
+    static final int REPORTS_PER_GAME = 10;
+    private final List<String> reports = new ArrayList<>();
+    private java.util.function.Consumer<String> reporter = r -> { };
+    void setReporter(java.util.function.Consumer<String> reporter) { this.reporter = reporter; }
+    List<String> reports() { return reports; }
     /** 1-based id of the decision being asked now. A search skips it: the model has that text on
      *  screen, and a query quoting the decision would otherwise match the decision itself and hide
      *  the older entry it was looking for (tool-use suite, scenario search-old-hand). */
@@ -185,7 +191,7 @@ final class ContextMemory {
         JsonArray messages = new JsonArray();
         messages.add(NativeTools.message("user", user));
         int used = 0;
-        boolean simulated = false, pressed = false;
+        boolean simulated = false, pressed = false, reported = false;
         // The same bound as the text loop, TOOLS_PER_ASK + 1 model rounds, plus at most one more when
         // the model has to be told its tools are spent.
         for (int round = 0; round <= TOOLS_PER_ASK + 1; round++) {
@@ -215,6 +221,21 @@ final class ContextMemory {
                 // forbidden round must not run: on the last round its result could never be read.
                 if (!allow || used >= TOOLS_PER_ASK || toolsUsed >= TOOLS_PER_GAME) {
                     result = "ERROR: tool budget exhausted; no tool executed. Answer the original decision.";
+                } else if (NativeTools.REPORT.equals(c.name)) {
+                    // Not a lookup: it spends one of the ask's calls but none of the game's archive budget.
+                    String command = NativeTools.command(c.name, c.arguments);
+                    if (command.startsWith("ERROR:")) result = command;
+                    else if (reported) result = "ERROR: one report per decision.";
+                    else if (reports.size() >= REPORTS_PER_GAME) result = "ERROR: no reports left this game. Answer the decision.";
+                    else {
+                        String problem = command.substring("REPORT ".length());
+                        reports.add(problem);
+                        reporter.accept(problem);
+                        used++;
+                        reported = true;
+                        result = "Recorded for the harness maintainers. Nothing in the game changed: answer the decision "
+                                + "with the options as given; if none fits, pick the one closest to what you intended.";
+                    }
                 } else if (NativeTools.SIMULATE.equals(c.name)) {
                     if (simulate == null) result = "ERROR: unknown tool `" + c.name + "`.";
                     else if (simulated) result = "ERROR: one preview per decision.";

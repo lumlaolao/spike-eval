@@ -264,6 +264,29 @@ class TestNoCoaching(unittest.TestCase):
         self.assertEqual(run_batch.condition_diff(base, bare), [("no_coaching", False, True)])
 
 
+class TestOneChat(unittest.TestCase):
+    """ONE_CHAT (one conversation per seat) changes what each ask carries, so it is a condition:
+    set only by --one-chat, recorded, checked against `one_chat`."""
+
+    def test_only_the_flag_sets_it_and_lines_keep_it_apart(self):
+        with mock.patch.dict(os.environ, {"ONE_CHAT": "1"}, clear=False), tempfile.TemporaryDirectory() as d:
+            self.assertEqual(run_batch.build_env(make_args(), 7100, False, Path(d))["ONE_CHAT"], "0")
+            self.assertEqual(run_batch.build_env(make_args(one_chat=True), 7100, False, Path(d))["ONE_CHAT"], "1")
+        p = subprocess.run([sys.executable, str(RUN_BATCH), "--seeds", "7100", "--exploratory",
+                            "--env", "ONE_CHAT=1", "--forge-home", "/nonexistent"], capture_output=True, text=True)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--one-chat", p.stderr)
+        off = run_batch.resume_expectation(make_args())
+        on = run_batch.resume_expectation(make_args(one_chat=True))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False), off))        # predates the stamp
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False, one_chat=True), off))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False, one_chat=True), on))
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False), on))
+        base = run_batch.batch_condition(make_args(), cited=False)
+        bare = run_batch.batch_condition(make_args(one_chat=True), cited=False)
+        self.assertEqual(run_batch.condition_diff(base, bare), [("one_chat", False, True)])
+
+
 class TestLookahead(unittest.TestCase):
     """LOOKAHEAD changes what the seat can do (the `simulate` preview), so it is a condition like
     --rules-tool: set only by --lookahead, scrubbed from the ambient environment, recorded in the

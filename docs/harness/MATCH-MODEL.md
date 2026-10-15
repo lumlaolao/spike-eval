@@ -1,6 +1,6 @@
 # The match model — persistent state, continuity, and memory for the LLM seat
 
-**Status:** built and acceptance-gated (PRs #46–#58, #77). Observation version `observation-faithful-v20`.
+**Status:** built and acceptance-gated (PRs #46–#58, #77). Observation version `observation-faithful-v22`.
 
 ## Why
 
@@ -19,7 +19,7 @@ harness-side answer.
 | `SPENT THIS TURN` | land drop AVAILABLE/USED, spells cast, attackers declared | `Player.getLandsPlayedThisTurn` etc. |
 | `FACTS` | both next-combat clocks + their instant-speed mana | `ComputerUtilCombat` / `ComputerUtilMana` |
 | `RECURRING (cast 2+ times)` | what the opponent keeps doing | the seat's cast stream |
-| `YOUR PLAN` | the model's own plan, kept across the turn boundary, flagged stale | model-authored |
+| `YOUR PLAN` | the model's own goal and next steps, kept across the turn boundary; a `PLAN:` line at ANY decision replaces it (v22); says when it was stated, so what happened since is readable | model-authored |
 | `YOUR OPPONENT PROFILE` | the model's own read of them (labelled unverified) | model-authored |
 | `GAME HISTORY (compacted)` | verbatim recent + per-turn digests, each citing `[E<n>]` | `GameHistory.Mode.TIERED` |
 | `INSPECT @N` → `history:` | where an object has been | the per-object trail |
