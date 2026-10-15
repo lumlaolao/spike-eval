@@ -228,6 +228,9 @@ python3 eval/model_sweep.py                               # per-model certificat
 
 ## Cost of paid runs (owner rule, 2026-10-13)
 
+**Game model (owner, 2026-10-15): use GPT-6 Luna (`openrouter:openai/gpt-6-luna`) for every game model,
+both tiers and both seats, unless the owner names another. Never Opus.**
+
 A game on `deepseek-v4.1-flash` costs about **$0.04** (roughly 60 model calls, 370K prompt and 40K
 completion tokens; output is about 60% of the bill). Small, but it adds up unseen: 204 games in one
 day came to about $8. So:

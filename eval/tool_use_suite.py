@@ -41,7 +41,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DATA = Path(__file__).resolve().parent / "tooluse"
-DEFAULT_MODEL = "deepseek/deepseek-v4.1-flash"
+DEFAULT_MODEL = "openai/gpt-6-luna"   # owner 2026-10-15: Luna for every game model
 ARMS = ("text-strict", "text-lenient", "native", "native-answer")
 TOOLS_PER_ASK = 2          # ContextMemory.TOOLS_PER_ASK
 PAGE_CHARS = 2000          # ContextMemory.PAGE_CHARS

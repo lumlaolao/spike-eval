@@ -21,7 +21,8 @@ when an item is finished or a new one is agreed, so the next session can pick up
   - this exact spot (turn, phase, stack, board, menu) was already passed: pass again;
   - anything new asks again: an opponent's spell or ability, combat (attacks and blocks are always
     asked), a trigger, or a new option.
-- **No Opus** for games; Haiku 5.5 for Anthropic models. Paid games always carry `--budget-usd`.
+- **Every game model is GPT-6 Luna** (`openrouter:openai/gpt-6-luna`, owner 2026-10-15: cheap and good), for both
+  tiers and both seats unless the owner names another. No Opus. Paid games always carry `--budget-usd`.
 - **No subagents** for this work stream (for now); work happens in the main session.
 - **The headline score** (strict vs other) is decided later.
 
@@ -56,11 +57,13 @@ when an item is finished or a new one is agreed, so the next session can pick up
    - `set_plan` and `simulate` declared on every ask, so the tool list never breaks the cache;
    - documented in `CLAUDE.md` (standard) and `PLAYER-HARNESS.md` ("Answer tool").
 
-   Left before it is done:
-   - acceptance green;
-   - the tool-use suite run on a cheap model, `native` against `native-answer` (and the per-decision
-     arm), with cost stated first;
-   - one cheap Haiku 5.5 game read end to end.
+   **Merged 2026-10-15** (PR #168, acceptance green). Tool-use suite, Haiku 5.5, 3 trials, smart tier
+   (`runs/tooluse/answer-v2-haiku`, about $0.20):
+   - text answers: reach 57%, correct 67%;
+   - answer tool: reach 60%, correct 67%, 69 of 69 answers through the tool, none lost;
+   - restraint and ceiling were 100% in both arms.
+
+   Left: one cheap Luna game read end to end.
 4. **Rewrite the prompts from the audit:** fixed parts first and the current state last (cache
    order); clearer questions; coaching (the PRINCIPLES list and the static guide) cut down to
    information, with opinion removed.
