@@ -78,7 +78,7 @@ final class SeatObservation {
      *  the menu), merged with v24.
      *  v26: nothing the observation shows is cut (docs/harness/MODEL-LIMITS.md): whole event, stack and card
      *  text, every seen opponent card and every reveal, and uncapped known-in-hidden-zones and zone trails. */
-    static final String VERSION = "observation-faithful-v27";
+    static final String VERSION = "observation-faithful-v28";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
      *  Every section named here is one {@link #render} prints. */
@@ -822,7 +822,8 @@ final class SeatObservation {
      *  not, so a named card or chosen colour reached the model only if the game log happened to say it. */
     int recordNotice(String text) {
         int turn = safeTurn();
-        stream.add(new GameHistory.Ev(stream.size() + 1, turn, GameLogEntryType.INFORMATION, "[notice to you] " + LlmSpikeGui.flat(text)));
+        // Redacted: the engine's own text carries ids ("Lotus Petal (111) picked {U}", runs/luna-v9/g4).
+        stream.add(new GameHistory.Ev(stream.size() + 1, turn, GameLogEntryType.INFORMATION, "[notice to you] " + redactIds(LlmSpikeGui.flat(text))));
         return stream.size();
     }
 
@@ -1101,7 +1102,9 @@ final class SeatObservation {
                 Player who = si.getActivatingPlayer();
                 b.append(" (").append(who == null ? "?" : (who == viewer ? "you" : who.getName())).append(')');
                 if (known) {
-                    String d = LlmSpikeGui.flat(si.getStackDescription());
+                    // Redacted like every engine message: "Aether Vial (4) - ..." carried the engine id 4, and
+                    // the seat read it as four charge counters (runs/luna-v9/g5, T7).
+                    String d = redactIds(LlmSpikeGui.flat(si.getStackDescription()));
                     if (d != null && !d.isEmpty()) b.append(": ").append(d);
                 }
                 String t = targets(si);

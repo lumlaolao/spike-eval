@@ -155,6 +155,7 @@ public class GoldenChecksTest {
         Assert.assertNotNull(r, "the seat cast Sol Ring");
         ctrl.playChosenSpellAbility(r.get(0));
         String ask = PromptFidelityTest.promptWith(model, "Choose a color");
+        Assert.assertTrue(ask.contains("you are paying {1} for Sol Ring"), "the ask says what the colour pays for:\n" + ask);
         for (String c : new String[] {"white", "blue", "black", "red", "green"})
             Assert.assertTrue(ask.contains(") " + c), "the colour ask offers " + c + ":\n" + ask);
         boolean black = false;

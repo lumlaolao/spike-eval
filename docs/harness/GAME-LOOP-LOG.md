@@ -416,3 +416,17 @@ LOST 0, SKIP 0; 0 Forge-AI decisions; analyzer PASS.
   something usable had a main-phase ask (turn 12 had no land and nothing castable).
 - OPEN   one Luna ask took 3 attempts (T8 play, 31 s lost).
 - clean  mulligan, plays, targets, attacks.
+
+### game of 2026-10-15  seed 85  Death and Taxes (GPT-6 Luna) vs Grixis Reanimator (Forge AI)  WON T13  $0.06  harness-epoch-21
+
+`runs/luna-v9/g5`, the build of #195. 80 model decisions by `answer` call; TAKEN 0, LOST 0, SKIP 0; 0 Forge-AI
+decisions; analyzer PASS. The first Luna win in these games (Thalia, Stoneforge into Batterskull, Vial).
+- FIXED  engine ids in the state: the stack read "Aether Vial (4) - You may put a creature card ...", and on
+  T7 the seat answered "Vial is at four counters" with three on it. Also "[Zone Changer: Stoneforge Mystic
+  (30)]" in trigger lines and "[notice to you] Lotus Petal (111) picked {U}" in events (g4). The stack and
+  the notices are now redacted like every other engine message. Test
+  `theStackShowsNoEngineIdAndCardTextNoEscapes`; the ask contract checks the whole prompt; the sheet
+  reports LEAK (19 here).
+- FIXED  card text showed the oracle's literal "\n" ("...on Aether Vial.\n{T}: ...", 34 prompts).
+- clean  mulligan, Vial counters (asked every upkeep), Stoneforge and Recruiter searches, Wasteland target,
+  attacks.

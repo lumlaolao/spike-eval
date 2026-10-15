@@ -209,8 +209,9 @@ public final class LlmSpikeGui {
      *  Epoch 17: every retargeting and effects played without the stack. Epoch 18: delve is the seat's; a
      *  crashed game has no winner. Epoch 19: a yield never passes the seat's own main phase (answer-tool-v9).
      *  Epoch 20: the seat sees the known top of its own library (observation-faithful-v27).
-     *  Epoch 21: the first engine patch: the colour an any-colour source makes for generic is the seat's. */
-    static final String HARNESS_EPOCH = "harness-epoch-21";
+     *  Epoch 21: the first engine patch: the colour an any-colour source makes for generic is the seat's.
+     *  Epoch 22: stack text redacted of engine ids, card text without literal \\n (observation-faithful-v28). */
+    static final String HARNESS_EPOCH = "harness-epoch-22";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -3887,13 +3888,16 @@ public final class LlmSpikeGui {
             boolean paid;
             boolean wasPaying = payingForReal;
             forge.card.mana.ManaCost wasCost = payingCost;
+            SpellAbility wasFor = payingFor;
             payingForReal = true;
             payingCost = toPay;
+            payingFor = sa;
             try {
                 paid = super.payManaCost(toPay, costPartMana, sa, prompt, matrix, effect);
             } finally {
                 payingForReal = wasPaying;
                 payingCost = wasCost;
+                payingFor = wasFor;
                 for (Card c : held) forge.ai.AiCardMemory.forgetCard(getPlayer(), c, forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
             }
             try {
@@ -4704,8 +4708,11 @@ public final class LlmSpikeGui {
                     if (present.size() >= 2) {
                         List<String> labels = new ArrayList<>();
                         for (MagicColor.Color c : present) labels.add(c.getName());
+                        // Inside a payment the colour is for that cost: say which (a mana ability's own text does not).
+                        String paying = payingForReal && payingCost != null && payingFor != null && payingFor != sa
+                                ? " (you are paying " + payingCost + " for " + labelOf(payingFor) + ")" : "";
                         int pick = decideOne(smart, "color",
-                                "Choose a color" + (message == null || message.isEmpty() ? "" : ": " + fit(message)) + srcAsk(sa),
+                                "Choose a color" + (message == null || message.isEmpty() ? "" : ": " + fit(message)) + srcAsk(sa) + paying,
                                 labels, null);
                         if (pick >= 0 && pick < present.size()) return present.get(pick).getColorMask();
                     }
@@ -5367,6 +5374,8 @@ public final class LlmSpikeGui {
         private boolean payingForReal = false;
         /** The mana cost the seat's real payment is paying, while it runs. */
         private forge.card.mana.ManaCost payingCost = null;
+        /** The spell or ability the seat's real payment is paying for, while it runs. */
+        private SpellAbility payingFor = null;
         private boolean askingConvoke = false;
 
         /** Test seam: runs {@code f} as inside this seat's real mana payment. */
@@ -8201,7 +8210,8 @@ public final class LlmSpikeGui {
      *  removed what a decision turns on: Sneak Attack's INSPECT text lost "sacrifice the creature at
      *  the beginning of the next end step", and a ten-card reveal kept three names (runs/loop/g04). */
     static String flat(String s) {
-        return s == null ? "" : s.replaceAll("\\s+", " ").trim();
+        // Oracle text keeps its line breaks as a literal backslash-n; shown raw, the seat read "\n{T}: ...".
+        return s == null ? "" : s.replace("\\n", " ").replaceAll("\\s+", " ").trim();
     }
 
     /** The additive prompt-cache fields of a jsonl row; empty when the provider reported neither. */
