@@ -32,6 +32,13 @@
       "checked": "2026-10-15",
       "source": "https://openrouter.ai/api/v1/models"
     },
+    "fake/harness-model": {
+      "prompt": 0.0,
+      "completion": 0.0,
+      "input_cache_read": 0.0,
+      "checked": "2026-10-15",
+      "source": "eval/fake_model_server.py: the loopback stub the sanity arms and acceptance play against; no provider, no bill"
+    },
     "openai/gpt-6-luna": {
       "prompt": 0.0000001,
       "completion": 0.0000005,
