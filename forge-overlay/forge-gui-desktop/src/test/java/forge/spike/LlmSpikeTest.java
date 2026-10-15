@@ -1864,6 +1864,72 @@ public class LlmSpikeTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** Issue #111: the reserve comes from a TEST payment, which never prepays a filter's own cost, and
+     *  the engine's own tap pick reads a reserve copied when it was built. Glare of Subdual costs {2}
+     *  more under Suppression Field; Azorius Signet makes it, fed by Llanowar Elves. With the Elves
+     *  reserved, Grizzly Bears is the only candidate, but the engine's pick took the Elves, which the
+     *  payment then tapped for the Signet: one creature tapped, the cost reported paid. The pick with
+     *  no choice is now the candidate itself, and whatever the tap part names is held while this
+     *  ability's mana is paid, so the payment never taps it. */
+    @Test
+    public void theRealManaPaymentNeverTapsTheCreatureTheTapPartNamed() {
+        for (boolean asked : new boolean[] {false, true}) {
+            Game game = buildBareGame();
+            Player me = game.getPlayers().get(0);
+            Card glare = addBattlefieldCard("Glare of Subdual", me);
+            addBattlefieldCard("Suppression Field", me);              // Glare costs {2} more
+            addBattlefieldCard("Azorius Signet", me);                 // {1},{T}: {W}{U}
+            addBattlefieldCard("Llanowar Elves", me).setSickness(false);
+            addBattlefieldCard("Grizzly Bears", me);
+            if (asked) addBattlefieldCard("Serra Angel", me);       // two candidates: the seat is asked
+            Card target = addBattlefieldCard("Serra Angel", game.getPlayers().get(1));
+            FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 1");
+            LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                    new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+            me.dangerouslySetController(ctrl);
+            forge.game.spellability.SpellAbility ab = activated(glare, me);
+            ab.getTargets().add(target);
+
+            boolean paid = new forge.game.cost.CostPayment(ab.getPayCosts(), ab).payComputerCosts(new LlmCostDecision(me, ab, false));
+            Assert.assertEquals(bridge.prompts.size(), asked ? 1 : 0, "asked=" + asked);
+            List<String> tapped = new java.util.ArrayList<>();
+            for (Card c : me.getCreaturesInPlay()) if (c.isTapped()) tapped.add(c.getName());
+            Assert.assertTrue(paid, "asked=" + asked + ": Glare could be paid (Elves feed the Signet, another creature taps)");
+            Assert.assertEquals(tapped.size(), 2, "asked=" + asked + ": one creature tapped for two jobs: " + tapped);
+            Assert.assertTrue(tapped.contains("Llanowar Elves"), "the Signet was fed by the Elves: " + tapped);
+        }
+    }
+
+    /** Issue #111, the hold itself: a permanent the tap part named is not tapped by the same ability's
+     *  mana payment. The hold lasts for that one payment, and a new payment of the ability starts
+     *  without it. */
+    @Test
+    public void whatATapPartNamedIsHeldWhileThatAbilitysManaIsPaid() {
+        for (boolean newPayment : new boolean[] {false, true}) {
+            Game game = buildBareGame();
+            Player me = game.getPlayers().get(0);
+            Card glare = addBattlefieldCard("Glare of Subdual", me);
+            addBattlefieldCard("Forest", me);
+            addBattlefieldCard("Plains", me);
+            Card elves = addBattlefieldCard("Llanowar Elves", me);
+            elves.setSickness(false);
+            FixedReplyBridge bridge = new FixedReplyBridge("PICKS: NONE");
+            LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                    new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+            me.dangerouslySetController(ctrl);
+            forge.game.spellability.SpellAbility ab = activated(glare, me);
+
+            ctrl.holdForTapPart(ab, List.of(elves));
+            if (newPayment) new LlmCostDecision(me, ab, false);  // a new payment of the ability: the old hold goes
+            boolean paid = ctrl.payManaCost(new forge.card.mana.ManaCost(new forge.card.mana.ManaCostParser("3")), null, ab, null, null, false);
+            // Only the Elves can make the third mana.
+            Assert.assertEquals(paid, newPayment, "newPayment=" + newPayment);
+            Assert.assertEquals(elves.isTapped(), newPayment, "newPayment=" + newPayment + ": the held Elves were tapped");
+            Assert.assertFalse(forge.ai.AiCardMemory.isRememberedCard(me, elves,
+                    forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL), "the hold outlived its payment");
+        }
+    }
+
     /** Issue #105: Heritage Druid ("Tap three untapped Elves you control: Add {G}{G}{G}") is a MANA
      *  ability, activated inside the engine's mana payment, which pays its cost with a hard-coded
      *  AiCostDecision: Forge's AI tapped the three lowest-power Elves and no row said so. Paying a
