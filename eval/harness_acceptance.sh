@@ -58,7 +58,8 @@ fi
 JAVA="$JAVA_HOME/bin/java"; JAVAC="$JAVA_HOME/bin/javac"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="${OUT:-$REPO/runs/harness-acceptance/$STAMP}"
-STAGES="${STAGES:-preflight classpath compile javatests pytests canary gaming faketool faithful lookahead nativetool nativerefuse answertool rules}"
+ALL_STAGES="preflight classpath compile javatests pytests canary gaming faketool faithful lookahead nativetool nativerefuse answertool rules"
+STAGES="${STAGES:-$ALL_STAGES}"
 EXPECTED="$REPO/eval/harness_acceptance.expected"
 OVERLAY="$REPO/forge-overlay/forge-gui-desktop/src"
 LEDGER="$REPO/docs/harness/controller-ownership.tsv"
@@ -98,7 +99,7 @@ has_stage() { case " $STAGES " in *" $1 "*) return 0;; *) return 1;; esac; }
 # A stage list that names no real stage ran nothing and still printed PASS (`STAGES=compile,javatests`
 # is one unknown name). Every name must be a stage this script runs.
 for _s in $STAGES; do
-  case " preflight classpath compile javatests pytests canary gaming faketool faithful lookahead nativetool nativerefuse rules " in
+  case " $ALL_STAGES " in
     *" $_s "*) ;;
     *) echo "unknown stage '$_s' (STAGES is space-separated: STAGES=\"compile javatests\")" >&2; exit 2;;
   esac
@@ -534,7 +535,9 @@ if not any("if you cast" in r.get("result","") for r in previews): problems.appe
 if not any("if you pass" in r.get("result","") for r in previews): problems.append("no PASS preview was served (the fake model asks for one every third preview)")
 lines=[r for r in previews if "then" in r.get("request","")]
 if not any(", then " in r.get("result","") for r in lines): problems.append("no line preview played two options (%d asked)"%len(lines))
-if all("simulate" in r.get("tools_offered",[]) for r in reqs): problems.append("simulate was offered outside play decisions")
+# simulate is declared on every request of a lookahead seat, so the tool list (the start of the
+# prompt-cache prefix) never changes between requests; a preview outside a play decision is refused.
+if len({tuple(r.get("tools_offered",[])) for r in reqs})!=1: problems.append("the tool list changed between requests: %s"%sorted({tuple(r.get("tools_offered",[])) for r in reqs}))
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
 facts="context_calls=%d (later rounds %d) tool_rows=%d served: search=%d inspect=%d simulate=%d refused_malformed=%d fake_requests=%d"%(
     len(calls),len(later),len(tools),len(served("memory_search")),len(served("inspect")),len(served("simulate")),len(refused),len(reqs))
@@ -642,7 +645,7 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 else:
     if game.get("answer_tool") is not True: problems.append("answer_tool=%r not stamped"%game.get("answer_tool"))
-    if game.get("answer_tool_version")!="answer-tool-v1": problems.append("answer_tool_version=%r (move this pin WITH AnswerTool.VERSION)"%game.get("answer_tool_version"))
+    if game.get("answer_tool_version")!="answer-tool-v2": problems.append("answer_tool_version=%r (move this pin WITH AnswerTool.VERSION)"%game.get("answer_tool_version"))
     if game.get("answer_tool_seats")!="A/smart,A/fast": problems.append("answer_tool_seats=%r"%game.get("answer_tool_seats"))
     if game.get("harness_epoch")!="harness-epoch-7": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
 dec=[r for r in rows if r.get("t")=="decision"]
@@ -727,7 +730,7 @@ if game is None: problems.append("no game row")
 else:
     if game.get("context_profile")!="v4-faithful": problems.append("context_profile=%s"%game.get("context_profile"))
     if game.get("memory_tools") is not True: problems.append("memory_tools not stamped")
-    if game.get("harness_epoch")!="harness-epoch-6": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-7": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
     facts.append("winner=%s turns=%s context_sha=%s"%(game.get("winner"),game.get("turns"),game.get("context_sha")))
 if ai_rows: problems.append("%d tier=ai rows"%ai_rows)
 if model_rows<5: problems.append("only %d model-tier rows"%model_rows)

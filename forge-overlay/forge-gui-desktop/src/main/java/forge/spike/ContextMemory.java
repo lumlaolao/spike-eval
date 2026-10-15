@@ -28,6 +28,11 @@ final class ContextMemory {
     private final List<String> reports = new ArrayList<>();
     private java.util.function.Consumer<String> reporter = r -> { };
     void setReporter(java.util.function.Consumer<String> reporter) { this.reporter = reporter; }
+    /** True on a seat with the lookahead preview: `simulate` is then declared on EVERY ask, so the tool
+     *  list (the start of the prompt-cache prefix) is the same on every call, and a call on a decision
+     *  with no play menu is refused with the reason. */
+    private boolean previews;
+    void offerPreviews(boolean on) { this.previews = on; }
     List<String> reports() { return reports; }
     /** 1-based id of the decision being asked now. A search skips it: the model has that text on
      *  screen, and a query quoting the decision would otherwise match the decision itself and hide
@@ -183,7 +188,7 @@ final class ContextMemory {
      */
     String askNative(String decision, NativeModel model, Function<String, String> simulate,
                      BiConsumer<String, String> audit) {
-        String toolsJson = NativeTools.definitions(inspector != null, rulesLookup != null, simulate != null).toString();
+        String toolsJson = NativeTools.definitions(inspector != null, rulesLookup != null, previews || simulate != null).toString();
         String user = beginNative(decision);
         JsonArray messages = new JsonArray();
         messages.add(NativeTools.message("user", user));
@@ -256,7 +261,7 @@ final class ContextMemory {
     AnswerTool.Lookups lookups(Function<String, String> simulate) {
         NativeAsk st = new NativeAsk(simulate);
         return new AnswerTool.Lookups() {
-            public JsonArray definitions() { return NativeTools.definitions(inspector != null, rulesLookup != null, simulate != null); }
+            public JsonArray definitions() { return NativeTools.definitions(inspector != null, rulesLookup != null, previews || simulate != null); }
             public boolean open(int round) { return st.open(round); }
             public String serve(NativeTools.Call c, boolean open) { return ContextMemory.this.serve(c, st, open); }
         };
@@ -284,7 +289,7 @@ final class ContextMemory {
                     + "with the options as given; if none fits, pick the one closest to what you intended.";
         }
         if (NativeTools.SIMULATE.equals(c.name)) {
-            if (st.simulate == null) return "ERROR: unknown tool `" + c.name + "`.";
+            if (st.simulate == null) return previews ? NativeTools.NO_PREVIEW : "ERROR: unknown tool `" + c.name + "`.";
             if (st.simulated) return "ERROR: one preview per decision.";
             String result;
             try { result = st.simulate.apply(c.arguments); } catch (RuntimeException e) { result = "ERROR: preview failed: " + e; }

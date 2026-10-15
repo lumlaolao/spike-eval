@@ -93,13 +93,12 @@ FORMAT = {
 }
 # AnswerTool.instructions() and the answer-tool FORMAT lines of LlmSpikeGui.framing() (native-answer arm).
 ANSWER_INSTRUCTIONS = (
-    "ANSWERS: you answer every decision by CALLING the `answer` function. Its parameters are the legal "
-    "values of THAT decision (option numbers from its list, a number in its range, KEEP or not, block "
-    "pairs by number); where a message says to end with a line such as CHOICE:, PICKS:, BLOCKS:, ALLOC:, "
-    "NUMBER: or CARD:, call `answer` with those values instead. Think first (in your reasoning or a "
-    "short text), then call it once; the call ends the decision. If a call is not legal you are told why "
-    "and may call again once. Your plan is set with `set_plan` (a goal and the next steps) whenever "
-    "it is offered, at any decision, alongside the answer.\n")
+    "ANSWERS: you answer every decision by calling the `answer` function, giving the field that decision "
+    "asks for: `option` (one number from its list), `options` (several numbers), `blocks`, `amounts`, "
+    "`keep`, `number` or `card`. Each decision ends by saying which field it takes and what is legal. Think "
+    "first, then call it once; the call ends the decision. If the values are not legal you are told why and "
+    "may call again once. Set or replace your plan with `set_plan` (a goal and the next steps) at any "
+    "decision, alongside the answer.\n")
 ANSWER_FORMAT = {
     "smart": "FORMAT: at most two short sentences of reasoning, then call `answer` with your choice.",
     "fast": "FORMAT: call `answer` at once; no reasoning text — every extra token slows the game down.",
@@ -425,15 +424,14 @@ def run_native(scenario, kind, tier, model, tools, meta):
     return {"reply": None, "choice": None, "calls": calls, "usage": usage}
 
 
-def answer_tool(n):
-    """AnswerTool.definition for a single pick of n options: the `answer` function the seat is offered."""
-    return {"type": "function", "function": {
-        "name": "answer",
-        "description": "Answer THIS decision with your choice: one option number. The values are this decision's legal "
-                       "ones; the call ends the decision. Reason before calling, not in the arguments.",
-        "parameters": {"type": "object", "properties": {"option": {
-            "type": "integer", "description": "The number of your choice from the decision's numbered list (1-%d)." % n,
-            "enum": list(range(1, n + 1))}}, "required": ["option"], "additionalProperties": False}}}
+ANSWER_TOOLS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tooluse", "answer_tools.json")
+
+
+def answer_tool(n=None):
+    """AnswerTool's fixed functions, `answer` and `set_plan`, exactly as the seat is offered them on every
+    decision (AnswerToolTest pins the file to the Java). `n` is unused: the legal values are in the question."""
+    with open(ANSWER_TOOLS) as f:
+        return json.load(f)
 
 
 # AnswerTool.instruction(ONE) and its rephrase of the decision's format line.
@@ -451,7 +449,7 @@ def run_native_answer(scenario, kind, tier, model, tools, meta):
     seat = Seat(scenario, decision)
     n = scenario["n_options"]
     offered = [{"type": "function", "function": t["function"]} for t in tools["tools"]
-               if t["function"]["name"] not in ENGINE_ONLY] + [answer_tool(n)]
+               if t["function"]["name"] not in ENGINE_ONLY] + answer_tool()
     user = decision + "\n" + seat.brief() + "\nTool calls available this ask: %d.\n" % TOOLS_PER_ASK + ANSWER_LINE
     messages = [{"role": "system", "content": system_text(tier, native=True, answer=True)}, {"role": "user", "content": user}]
     calls, usage, used, invalid, pressed = [], [], 0, 0, False
@@ -477,6 +475,9 @@ def run_native_answer(scenario, kind, tier, model, tools, meta):
         for tc in tcs:
             fn = tc.get("function") or {}
             name, raw = fn.get("name"), fn.get("arguments")
+            if name == "set_plan":                      # AnswerTool.Ask.note: a note, not a lookup or the answer
+                results.append((tc, "Plan recorded. It does not answer the decision: call `answer`."))
+                continue
             if name == "answer":
                 if answered:
                     results.append((tc, "ERROR: one answer per decision."))
@@ -494,8 +495,9 @@ def run_native_answer(scenario, kind, tier, model, tools, meta):
                 if invalid >= 2:
                     return {"reply": None, "choice": None, "calls": calls, "usage": usage,
                             "answer_via": "lost", "answer_invalid": invalid}
-                results.append((tc, "ERROR: option %r is not on the list; the options are 1-%d. Nothing was done. "
-                                    "Call `answer` again with a legal value." % (opt, n)))
+                why = ("this decision is answered with `option`" if opt is None
+                       else "option %r is not on the list; the options are 1-%d" % (opt, n))
+                results.append((tc, "ERROR: %s. Nothing was done. Call `answer` again with a legal value." % why))
                 continue
             command, rejected = None, None
             if not allow or used >= TOOLS_PER_ASK:

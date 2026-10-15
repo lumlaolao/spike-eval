@@ -998,6 +998,7 @@ public final class LlmSpikeGui {
             this.observer = ctx.faithfulObservation ? new SeatObservation(game, p) : null;
             if (observer != null && MEMORY_TOOLS) contextMemory.setInspector(observer::inspect);
             contextMemory.setReporter(problem -> p("[REPORT] " + seat + " T" + safeTurn() + ": " + problem));
+            contextMemory.offerPreviews(lookaheadEnabled());
             if (MEMORY_TOOLS && RULES_TOOL) {
                 RulesTool rt = rulesTool();
                 if (rt.available()) {
@@ -5011,7 +5012,7 @@ public final class LlmSpikeGui {
                 archiveEvents();
                 user = contextMemory.beginNative(prompt);
                 lookups = contextMemory.lookups(simulate);
-            } else if (simulate != null) {
+            } else if (simulate != null || lookaheadEnabled()) {
                 lookups = AnswerTool.previewOnly(simulate);
             }
             String reply = AnswerTool.converse(user, answer, nativeModel(b), lookups, contextAudit());

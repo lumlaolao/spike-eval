@@ -35,8 +35,11 @@ import com.google.gson.JsonParser;
 final class AnswerTool {
     private AnswerTool() { }
 
-    /** v1 (2026-10-15): per-decision `answer` schema, `set_plan` note, same-conversation correction. */
-    static final String VERSION = "answer-tool-v1";
+    /** v1 (2026-10-15): per-decision `answer` schema, `set_plan` note, same-conversation correction.
+     *  v2: one fixed `answer` schema for every decision, validated against the decision; `set_plan`
+     *  always offered. Tool definitions open the prompt-cache prefix, so a schema that changed every
+     *  decision discarded the cache on every call (docs/harness/PROMPT-CRAFT.md rule 19). */
+    static final String VERSION = "answer-tool-v2";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -51,11 +54,15 @@ final class AnswerTool {
      *  (a per-decision schema is new almost every time). The harness validates every call either way. */
     static boolean strict() { return "1".equals(System.getenv("ANSWER_TOOL_STRICT")); }
 
+    /** ANSWER_SCHEMA=per-decision: the v1 arm, a schema built from each decision's legal values. Off by
+     *  default; it is kept so the two can be measured against each other. */
+    static boolean perDecision() { return "per-decision".equals(System.getenv("ANSWER_SCHEMA")); }
+
     /** True when a seat on this model spec answers through the tool. */
     static boolean usedBy(String modelSpec) { return enabled() && NativeTools.usedBy(modelSpec); }
 
     /** The version stamped on the game line: what a tool-answer game was played under. */
-    static String protocolVersion() { return VERSION + (strict() ? "+strict" : ""); }
+    static String protocolVersion() { return VERSION + (perDecision() ? "+per-decision" : "") + (strict() ? "+strict" : ""); }
 
     /** Which tiers of which model-driven seats answer through the tool, e.g. "A/smart,B/fast". */
     static String seats(String controllerA, String smartA, String fastA, String controllerB, String smartB, String fastB) {
@@ -67,13 +74,12 @@ final class AnswerTool {
 
     /** What the system preamble says about answering, in place of the text format rules. */
     static String instructions() {
-        return "ANSWERS: you answer every decision by CALLING the `answer` function. Its parameters are the legal "
-                + "values of THAT decision (option numbers from its list, a number in its range, KEEP or not, block "
-                + "pairs by number); where a message says to end with a line such as CHOICE:, PICKS:, BLOCKS:, ALLOC:, "
-                + "NUMBER: or CARD:, call `answer` with those values instead. Think first (in your reasoning or a "
-                + "short text), then call it once; the call ends the decision. If a call is not legal you are told why "
-                + "and may call again once. Your plan is set with `set_plan` (a goal and the next steps) whenever "
-                + "it is offered, at any decision, alongside the answer.\n";
+        return "ANSWERS: you answer every decision by calling the `answer` function, giving the field that decision "
+                + "asks for: `option` (one number from its list), `options` (several numbers), `blocks`, `amounts`, "
+                + "`keep`, `number` or `card`. Each decision ends by saying which field it takes and what is legal. Think "
+                + "first, then call it once; the call ends the decision. If the values are not legal you are told why and "
+                + "may call again once. Set or replace your plan with `set_plan` (a goal and the next steps) at any "
+                + "decision, alongside the answer.\n";
     }
 
     enum Kind { ONE, MANY, MANY_REPEAT, ALLOC, KEEP, BLOCKS, NUMBER, CARD }
@@ -161,7 +167,90 @@ final class AnswerTool {
         return b.toString();
     }
 
-    /** The `answer` function for one decision. */
+    /** The one `answer` function every decision is answered with. Every field is optional in the
+     *  schema; which one a decision needs is said in the decision itself, and {@link #validate} checks
+     *  the call against that decision and explains any mistake. */
+    static JsonObject fixedDefinition() {
+        JsonObject props = new JsonObject();
+        props.add("option", obj("type", "integer", "description", "For a decision that asks for ONE option from a numbered "
+                + "list: that option's number. A decline/none/PASS option, when listed, is just another number."));
+        JsonObject many = obj("type", "array", "description", "For a decision that asks you to choose several options (or none) "
+                + "from a numbered list (discard, reveal, sacrifice, scry/surveil, attackers): the numbers, in the order you want "
+                + "them, within the minimum and maximum the decision states. An empty list chooses none.");
+        many.add("items", obj("type", "integer"));
+        props.add("options", many);
+        JsonObject pair = obj("type", "object");
+        JsonObject pp = new JsonObject();
+        pp.add("blocker", obj("type", "integer", "description", "The number of your blocking creature, from the decision's blocker list."));
+        pp.add("attacker", obj("type", "integer", "description", "The number of the attacker it blocks, from the decision's attacker list."));
+        pair.add("properties", pp);
+        JsonArray req = new JsonArray();
+        req.add("blocker"); req.add("attacker");
+        pair.add("required", req);
+        pair.addProperty("additionalProperties", false);
+        JsonObject blocks = obj("type", "array", "description", "For a declare-blockers decision: each block as a blocker number "
+                + "and an attacker number; each blocker at most once. An empty list declares no blocks.");
+        blocks.add("items", pair);
+        props.add("blocks", blocks);
+        JsonObject amounts = obj("type", "array", "description", "For a decision that divides an amount (damage, counters) among "
+                + "listed targets: one number per target, in the order listed, adding up to the stated total.");
+        amounts.add("items", obj("type", "integer"));
+        props.add("amounts", amounts);
+        props.add("keep", obj("type", "boolean", "description", "For a mulligan decision: true to keep this hand, false to mulligan."));
+        props.add("number", obj("type", "integer", "description", "For a decision that asks for a number (X, a count): an integer in "
+                + "the range the decision states."));
+        props.add("card", obj("type", "string", "description", "For a decision that asks you to name a card: its exact English name."));
+        JsonObject steps = obj("type", "array", "description", "Optional, on a play decision only, if you want the harness to cast "
+                + "steps of your plan for you without asking again this turn: the CAST/ACTIVATE option numbers you intend to use, "
+                + "in order. Omit anything you are holding.");
+        steps.add("items", obj("type", "integer"));
+        props.add("steps", steps);
+        JsonObject y = obj("type", "string", "description", "Optional, only with PASS on a play decision: until then you are not "
+                + "asked in windows where nothing of your opponent's is on the stack (anything they cast or activate always asks you).");
+        JsonArray e = new JsonArray();
+        e.add("end-of-turn"); e.add("my-next-turn");
+        y.add("enum", e);
+        props.add("yield", y);
+        props.add("profile", obj("type", "string", "description", "Optional, when the decision asks for it: your read of the "
+                + "OPPONENT in one short line (their deck and plan, and the cards to respect)."));
+        props.add("lines", obj("type", "string", "description", "Optional, when the decision asks for it: how cards in YOUR OWN "
+                + "deck combine, in one or two short lines."));
+        JsonObject params = new JsonObject();
+        params.addProperty("type", "object");
+        params.add("properties", props);
+        params.add("required", new JsonArray());
+        params.addProperty("additionalProperties", false);
+        if (strict()) params = strictify(params);
+        JsonObject f = new JsonObject();
+        if (strict()) f.addProperty("strict", true);
+        f.addProperty("name", NAME);
+        f.addProperty("description", "Answer the current decision. Every decision is answered with this one call: give the field "
+                + "the decision asks for (one option number, a list of option numbers, blocks, amounts, keep, a number or a card "
+                + "name) and the optional notes it invites. The call ends the decision and the engine carries it out. If the "
+                + "values are not legal for this decision you are told why, nothing happens, and you may call once more. Think "
+                + "before calling; the arguments hold only the answer. Lookups made before it do not count against it.");
+        f.add("parameters", params);
+        JsonObject tool = new JsonObject();
+        tool.addProperty("type", "function");
+        tool.add("function", f);
+        return tool;
+    }
+
+    /** The field each kind of decision is answered with. */
+    static String fieldOf(Kind k) {
+        switch (k) {
+            case ONE: return "option";
+            case MANY: case MANY_REPEAT: return "options";
+            case ALLOC: return "amounts";
+            case KEEP: return "keep";
+            case BLOCKS: return "blocks";
+            case NUMBER: return "number";
+            case CARD: return "card";
+            default: return null;
+        }
+    }
+
+    /** The `answer` function for one decision (the ANSWER_SCHEMA=per-decision arm). */
     static JsonObject definition(Spec s) {
         JsonObject props = new JsonObject();
         List<String> required = new ArrayList<>();
@@ -398,6 +487,10 @@ final class AnswerTool {
     static Result validate(Spec s, String argumentsJson) {
         JsonObject a = NativeTools.arguments(argumentsJson);
         if (a == null) return Result.bad("the arguments are not a JSON object.");
+        String field = fieldOf(s.kind);
+        if (field != null && absent(a, field))
+            return Result.bad("this decision is answered with `" + field + "`" + (a.keySet().isEmpty() ? "" : "; you gave "
+                    + String.join(", ", a.keySet())) + ".");
         Answer out = new Answer();
         switch (s.kind) {
             case ONE: {
@@ -482,7 +575,9 @@ final class AnswerTool {
         }
         if (s.profile) out.profile = str(a, "profile");
         if (s.lines) out.lines = str(a, "lines");
-        JsonObject known = definition(s).getAsJsonObject("function").getAsJsonObject("parameters").getAsJsonObject("properties");
+        // The fixed schema names every field; another decision kind's field beside the right one is ignored.
+        JsonObject known = (perDecision() ? definition(s) : fixedDefinition())
+                .getAsJsonObject("function").getAsJsonObject("parameters").getAsJsonObject("properties");
         for (String k : a.keySet()) if (!known.has(k)) return Result.bad("unknown field `" + k + "`.");
         if (s.check != null) {
             String err;
@@ -532,6 +627,9 @@ final class AnswerTool {
     }
 
     // ------------------------------------------------------------------ the ask
+
+    private static final JsonObject FIXED = fixedDefinition();
+    private static final JsonObject SET_PLAN_FIXED = setPlanDefinition();
 
     /** The per-ask line that tells the model how to answer. */
     static String instruction(Spec s, boolean plan) {
@@ -596,8 +694,14 @@ final class AnswerTool {
 
         Ask(Spec spec, boolean plan) { this.spec = spec; this.plan = plan; }
 
+        /** The same two functions on every ask (fixed schema), so the tool list never breaks the cache. */
         JsonArray definitions() {
             JsonArray a = new JsonArray();
+            if (!perDecision()) {
+                a.add(FIXED);
+                a.add(SET_PLAN_FIXED);
+                return a;
+            }
             a.add(definition(spec));
             if (plan) a.add(setPlanDefinition());
             return a;
@@ -613,7 +717,7 @@ final class AnswerTool {
         /** A note call: the result text for the model. */
         String note(NativeTools.Call c) {
             if (!SET_PLAN.equals(c.name)) return "ERROR: unknown tool `" + c.name + "`.";
-            if (!plan) return "ERROR: set_plan is not offered at this decision.";
+            if (!plan && perDecision()) return "ERROR: set_plan is not offered at this decision.";
             JsonObject a = NativeTools.arguments(c.arguments);
             String goal = a == null ? null : str(a, "goal"), next = a == null ? null : str(a, "next");
             if (goal == null || next == null) return "ERROR: set_plan needs `goal` and `next`.";
@@ -632,7 +736,9 @@ final class AnswerTool {
     }
 
     /** The lookahead preview alone, for an answer ask on a seat without MEMORY_TOOLS (LOOKAHEAD=1):
-     *  one preview per decision, on a round whose result can still be read. */
+     *  one preview per decision, on a round whose result can still be read. Offered on EVERY ask of such
+     *  a seat, so the tool list (the start of the cache prefix) never changes; `simulate` is null on a
+     *  decision with no play menu, and a call there is refused with the reason. */
     static Lookups previewOnly(Function<String, String> simulate) {
         boolean[] used = {false};
         return new Lookups() {
@@ -642,9 +748,10 @@ final class AnswerTool {
                     if (NativeTools.SIMULATE.equals(t.getAsJsonObject().getAsJsonObject("function").get("name").getAsString())) out.add(t);
                 return out;
             }
-            public boolean open(int round) { return !used[0] && round < ContextMemory.TOOLS_PER_ASK; }
+            public boolean open(int round) { return simulate != null && !used[0] && round < ContextMemory.TOOLS_PER_ASK; }
             public String serve(NativeTools.Call c, boolean open) {
                 if (!NativeTools.SIMULATE.equals(c.name)) return "ERROR: unknown tool `" + c.name + "`. Call `answer`.";
+                if (simulate == null) return NativeTools.NO_PREVIEW + " Call `answer`.";
                 if (!open) return "ERROR: one preview per decision. Call `answer`.";
                 String r;
                 try { r = simulate.apply(c.arguments); } catch (RuntimeException e) { r = "ERROR: preview failed: " + e; }

@@ -38,6 +38,9 @@ final class NativeTools {
      *  native-answer arm builds it from each scenario's options, as the seat does. */
     static final String VERSION = "seat-tools-v7";
     static final String SIMULATE = "simulate";
+    /** The refusal of a preview on a decision with no play menu (the tool is declared on every ask). */
+    static final String NO_PREVIEW = "ERROR: `simulate` previews an option of a play decision (your priority menu); "
+            + "this decision has none, so nothing was previewed. Answer the decision.";
     /** Not a lookup: it records the seat's complaint about the question and spends no archive budget
      *  (one per ask, {@link ContextMemory#REPORTS_PER_GAME} per game). */
     static final String REPORT = "report_unclear_decision";

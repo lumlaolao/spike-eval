@@ -94,7 +94,7 @@ class Policy:
             return {"id": "call_%s_%d" % (name, self.calls), "type": "function",
                     "function": {"name": name, "arguments": arguments if isinstance(arguments, str) else json.dumps(arguments)}}
         msgs = body.get("messages") or []
-        if self.args.answer_tool and "answer" in offered:
+        if getattr(self.args, "answer_tool", False) and "answer" in offered:
             # A lookup first while the ask still has none (as below), then the decision as a call.
             looked = any(m.get("role") == "tool" for m in msgs)
             if not looked:
@@ -113,6 +113,8 @@ class Policy:
         fn = next(t["function"] for t in body["tools"] if t.get("function", {}).get("name") == "answer")
         props = fn["parameters"]["properties"]
         props = {k: (v["anyOf"][0] if "anyOf" in v else v) for k, v in props.items()}   # strict: nullable optionals
+        if {"option", "options", "keep"} <= set(props):   # the fixed schema names every field
+            props = self.decision_props(msgs)              # so the legal values come off the question
         first = self.args.policy in ("first", "simulate")
         correcting = any(m.get("role") == "tool" and str(m.get("content", "")).startswith("ERROR:") for m in msgs[-3:])
         with self.lock:
@@ -158,8 +160,44 @@ class Policy:
             out.insert(0, call("set_plan", {"goal": "fake goal %d" % n, "next": "play a land, then pass"}))
         return out
 
+    @staticmethod
+    def decision_props(msgs):
+        """Under the fixed `answer` schema the legal values are in the question, as for a real model: the
+        newest user message that says which field answers it, its numbered options and its bounds. Returned
+        in the per-decision schema's shape so one picker serves both."""
+        text = ""
+        for m in reversed(msgs):
+            c = str(m.get("content", "")) if m.get("role") == "user" else ""
+            if "call `answer` with `" in c:
+                text = c
+                break
+        field = re.search(r"call `answer` with `(\w+)`", text)
+        field = field.group(1) if field else "option"
+        nums = [int(x) for x in re.findall(r"(?m)^\s*(\d+)\) ", text)] or [1]
+        e = sorted(set(nums))
+        if field == "option":
+            return {"option": {"enum": e}}
+        if field == "options":
+            b = re.search(r"`options`: the numbers you pick, (?:exactly (\d+)|between (\d+) and (\d+))", text)
+            lo = int(b.group(1) or b.group(2)) if b else 0
+            hi = int(b.group(1) or b.group(3)) if b else len(e)
+            return {"options": {"items": {"enum": e}, "minItems": lo, "maxItems": hi}}
+        if field == "amounts":
+            b = re.search(r"`amounts`: (\d+) numbers in the order listed, summing to (-?\d+)", text)
+            k, total = (int(b.group(1)), b.group(2)) if b else (1, "0")
+            return {"amounts": {"minItems": k, "description": "summing to %s" % total}}
+        if field == "number":
+            b = re.search(r"`number`: an integer from (-?\d+)", text)
+            return {"number": {"minimum": int(b.group(1)) if b else 0}}
+        return {field: {}}
+
     def lookup_calls(self, body, prompt, offered, call):
-        if self.args.policy == "simulate" and "simulate" in offered:
+        # `simulate` is declared on every ask of a lookahead seat (the tool list is the cache prefix), so
+        # preview only what a model would: an option of a play decision, whose menu ends with PASS.
+        last_user = next((str(m.get("content", "")) for m in reversed(body.get("messages") or [])
+                          if m.get("role") == "user"), "")
+        play_menu = re.search(r"(?m)^\s*\d+\) PASS\b", last_user) is not None
+        if self.args.policy == "simulate" and "simulate" in offered and play_menu:
             with self.lock:
                 self.previews = getattr(self, "previews", 0) + 1
                 n = self.previews
