@@ -594,7 +594,8 @@ public final class LlmSpikeGui {
         // auto-keep); SKIP_HEURISTICS=0 -> no free-pass shortcuts (every priority window with options
         // reaches the model). Defaults preserve the fast demo behavior.
         private static final boolean MULL_HEURISTIC = !"0".equals(System.getenv("MULLIGAN_HEURISTIC"));
-        private static final boolean SKIP_HEUR = !"0".equals(System.getenv("SKIP_HEURISTICS"));
+        // Not final: tests turn it off in-process (an env var cannot be set there).
+        static boolean SKIP_HEUR = !"0".equals(System.getenv("SKIP_HEURISTICS"));
         // D4 DAgger shadow-labeling: when SHADOW_AI=1, four overrides also compute the Forge-AI's choice
         // over the SAME option menu the student sees and stash it in lastShadowChoice, which emitDecisionRow
         // writes as an additive `shadow_choice` field on the STUDENT'S existing decision row (never a
@@ -690,6 +691,16 @@ public final class LlmSpikeGui {
         private String cancelKey = "";
         private int cancels = 0;
         private String cancelNote = null;
+        /** A pass the MODEL asked for (`YIELD:` on a PASS, offered when SKIP_HEURISTICS=0 under the
+         *  faithful profile): until it ends, windows with nothing of the opponent's on the stack are
+         *  passed for the seat and logged as `yield:` window rows. This replaces the harness's own
+         *  guesses about which windows matter (the upkeep/draw/end-step gate, the own-stack pass, the
+         *  interaction filter) with the seat's. Anything the opponent casts or activates still asks. */
+        private String yieldUntil = null;
+        private int yieldTurn = -1;
+        static final String YIELD_HINT = "If you PASS, you may also add a line `YIELD: end-of-turn` or `YIELD: my-next-turn`: "
+                + "until then you are not asked in windows where nothing of your opponent's is on the stack "
+                + "(anything they cast or activate always asks you). ";
         /** A Charm spell whose modes the play loop already chose, so the cast does not ask again. */
         private SpellAbility modesChosenFor = null;
         /** Priority windows the play loop passed without a model call, by reason (see skipWindow). */
@@ -2271,8 +2282,8 @@ public final class LlmSpikeGui {
                 List<Card> landCards = po.landCards;
                 boolean haveLand = !landPlays.isEmpty();
                 // Nothing to do -> pass (deterministic; never Forge's AI).
-                if (options.isEmpty() && !haveLand) return PASS;
-                if (!ownMain && options.isEmpty()) return PASS;
+                if (options.isEmpty() && !haveLand) return skipWindow("nothing-usable", 0);
+                if (!ownMain && options.isEmpty()) return skipWindow("nothing-usable", 0);
 
                 // SPEED (interaction filter): on a mid-turn reactive window (not opp EOT, not combat),
                 // only think if we hold something that can actually INTERACT with what's happening —
@@ -2291,6 +2302,12 @@ public final class LlmSpikeGui {
                     SpellAbility top = me.getGame().getStack().isEmpty() ? null : me.getGame().getStack().peekAbility();
                     oppOnStack = top != null && top.getActivatingPlayer() != null && top.getActivatingPlayer() != me;
                 } catch (Exception ignore) { }
+                if (yieldUntil != null) {
+                    boolean over = "end-of-turn".equals(yieldUntil) ? phh.getTurn() != yieldTurn
+                            : phh.isPlayerTurn(me) && phh.getTurn() != yieldTurn;
+                    if (over) yieldUntil = null;
+                    else if (!oppOnStack) return skipWindow("yield:" + yieldUntil, options.size());
+                }
                 if (SKIP_HEUR && rnd == null && !ownMain && !oppEot && !phh.inCombat()) {
                     boolean anyInteractive = false;
                     for (SpellAbility sa : options) {
@@ -2346,7 +2363,7 @@ public final class LlmSpikeGui {
                 // The stack is part of the spot: without it, passing on the opponent's Ponder also passed
                 // on their Show and Tell in the same phase (same menu), and Force of Will was never
                 // offered. The random arm is a uniform baseline over every window, so it is never deduped.
-                String sig = turn + "|" + phh.getPhase() + "|" + safeStackTop(me.getGame()) + "|" + menuStr;
+                String sig = turn + "|" + phh.getPhase() + "|" + safeStackTop(me.getGame()) + "|" + boardDigest(me.getGame()) + "|" + menuStr;
                 if (rnd == null && sig.equals(lastAskSig) && lastWasPass) return skipWindow("last-sig", options.size()); // identical spot we already passed on
                 lastAskSig = sig;
 
@@ -2463,6 +2480,7 @@ public final class LlmSpikeGui {
                     String prompt = (attempt == 0
                             ? playPromptPrefix(snapshot(), phh.getPhase(), ownMain, menuStr)
                               + (cancelNote != null && attempt == 0 ? "NOTE: " + cancelNote + "\n" : "")
+                              + (!SKIP_HEUR && observer != null && attempt == 0 ? YIELD_HINT : "")
                               + (asks.isEmpty() ? PLAY_PROMPT_TAIL : asks + "Then end with EXACTLY: CHOICE: <number>")
                             // The retry carries the WHOLE decision again. It used to be this one sentence
                             // alone ("...from the list above") sent to a stateless backend with no list
@@ -2564,6 +2582,17 @@ public final class LlmSpikeGui {
                 if (choice == passIdx || choice < 1 || choice > passIdx) {
                     lastWasPass = true;
                     if (reactSig != null) passedReactSigs.add(reactSig); // don't re-ask this situation this turn
+                    if (!SKIP_HEUR && observer != null && rnd == null) {
+                        String y = lastSegment(lastReply, "YIELD:");
+                        if (y != null) {
+                            y = y.trim().toLowerCase(java.util.Locale.ROOT);
+                            if (y.startsWith("end-of-turn") || y.startsWith("my-next-turn")) {
+                                yieldUntil = y.startsWith("end") ? "end-of-turn" : "my-next-turn";
+                                yieldTurn = turn;
+                                p("[ROUTER] play: PASS, yield until " + yieldUntil);
+                            }
+                        }
+                    }
                     p("[ROUTER] play: PASS");
                     return PASS;
                 }
@@ -4623,6 +4652,19 @@ public final class LlmSpikeGui {
             int at = prompt.lastIndexOf("\nPRIORITY: you\nDECISION:");
             if (at < 0) at = prompt.lastIndexOf("\nDECISION:");
             return at < 0 ? prompt + block : prompt.substring(0, at) + block + prompt.substring(at);
+        }
+
+        /** Life, hand, battlefield and graveyard sizes of every player: a creature that resolved in the
+         *  same phase makes a new spot even when the stack and the menu look the same again. */
+        static String boardDigest(Game g) {
+            StringBuilder b = new StringBuilder();
+            try {
+                for (Player pl : g.getPlayers())
+                    b.append(pl.getLife()).append(',').append(pl.getCardsIn(ZoneType.Hand).size()).append(',')
+                     .append(pl.getCardsIn(ZoneType.Battlefield).size()).append(',')
+                     .append(pl.getCardsIn(ZoneType.Graveyard).size()).append(';');
+            } catch (Exception ignore) { }
+            return b.toString();
         }
 
         /** The model's reply without its answer and tag lines: what it said about why. */
