@@ -42,6 +42,16 @@ final class LlmCostDecision extends AiCostDecision {
         super(ai0, sa, effect);
     }
 
+    /** The play this cost pays for is not committed yet (the seat's playChosenSpellAbility: CostPayment
+     *  decides every part before paying any), so each cost ask may be answered "cancel". */
+    private boolean cancellable;
+    private boolean cancelled;
+
+    LlmCostDecision offerCancel() { cancellable = true; return this; }
+
+    /** The seat answered a cost ask with "cancel": the payment returns null and nothing is paid. */
+    boolean cancelled() { return cancelled; }
+
     /** What the mana this ability makes is for, when it is activated during another payment. */
     private String manaFor;
 
@@ -89,8 +99,10 @@ final class LlmCostDecision extends AiCostDecision {
             }
             if (typeList.size() < amount) return null; // engine handles the impossible case
 
+            offer();
             CardCollectionView pick = player.getController().choosePermanentsToSacrifice(ability, amount, amount,
                     typeList, COST_MESSAGE);
+            if (tookCancel()) return null;
             if (pick != null && !pick.isEmpty()) return PaymentDecision.card(pick);
             if (amount <= 0) return super.visit(cost); // nothing to choose (X=0): the engine's bookkeeping
             fellBack("sacrifice-cost", "empty pick");
@@ -129,6 +141,7 @@ final class LlmCostDecision extends AiCostDecision {
                     + " you must EXILE " + amount + " of these cards from " + from
                     + ". They leave now, as the cost is paid. Choose which");
             if (pick != null) return PaymentDecision.card(pick);
+            if (cancelled) return null;
         } catch (Exception e) {
             fellBack("exile-cost", e.getClass().getSimpleName());
         }
@@ -153,6 +166,7 @@ final class LlmCostDecision extends AiCostDecision {
             CardCollectionView pick = ask(typeList, amount, "discard", "COST: to pay for " + source.getName()
                     + " you must DISCARD " + amount + " of these cards from your hand. Choose which");
             if (pick != null) return PaymentDecision.card(pick);
+            if (cancelled) return null;
         } catch (Exception e) {
             fellBack("discard-cost", e.getClass().getSimpleName());
         }
@@ -177,6 +191,7 @@ final class LlmCostDecision extends AiCostDecision {
                     + " you must RETURN " + amount
                     + " of these permanents to your hand. They leave the battlefield now, as the cost is paid. Choose which");
             if (pick != null) return PaymentDecision.card(pick);
+            if (cancelled) return null;
         } catch (Exception e) {
             fellBack("return-cost", e.getClass().getSimpleName());
         }
@@ -204,6 +219,7 @@ final class LlmCostDecision extends AiCostDecision {
                 tapped.addAll(pick);
                 return PaymentDecision.card(pick);
             }
+            if (cancelled) return null;
         } catch (Exception e) {
             fellBack("tap-cost", e.getClass().getSimpleName());
         }
@@ -254,11 +270,34 @@ final class LlmCostDecision extends AiCostDecision {
     /** Asks the seat for exactly {@code amount} of {@code typeList}; null (logged as a fallback) when
      *  the pick is short, so the caller lets the engine choose. */
     private CardCollectionView ask(CardCollection typeList, int amount, String kind, String question) {
+        offer();
         CardCollectionView pick = player.getController().chooseCardsForEffect(typeList, ability, question,
                 amount, amount, false, null);
+        if (tookCancel()) return null;
         if (pick != null && pick.size() == amount) return pick;
         fellBack(kind + "-cost", kind + " pick of " + (pick == null ? 0 : pick.size()));
         return null;
+    }
+
+    /** Offers "cancel" on the ask about to be made, when this payment may still be cancelled. A mana
+     *  ability's tap part ({@link #forPayment}) is paid while the parent payment is under way, so it
+     *  never offers it. */
+    private void offer() {
+        LlmSpikeGui.PlayerControllerLLM seat = seat();
+        if (seat != null) { seat.offerCostCancel = cancellable && manaFor == null && !isEffect(); seat.costCancelled = false; }
+    }
+
+    /** Whether the ask just made was answered "cancel"; it stays recorded on this decision. */
+    private boolean tookCancel() {
+        LlmSpikeGui.PlayerControllerLLM seat = seat();
+        if (seat != null) seat.offerCostCancel = false;
+        if (seat != null && seat.costCancelled) cancelled = true;
+        return cancelled;
+    }
+
+    private LlmSpikeGui.PlayerControllerLLM seat() {
+        return player.getController() instanceof LlmSpikeGui.PlayerControllerLLM
+                ? (LlmSpikeGui.PlayerControllerLLM) player.getController() : null;
     }
 
     /** The model-owned route failed and the engine's AI is about to choose. Never silent. */

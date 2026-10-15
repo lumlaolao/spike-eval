@@ -157,8 +157,9 @@ public final class LlmSpikeGui {
      *  whenever what the seat is asked, when it is asked, or what its answer does changes, beside the
      *  per-layer versions. Games across an epoch are not compared. Epoch 2 = the 2026-10-15 bottleneck
      *  work (window rows, intent carry and cancel, X/modes/targets, trigger targets, attack targets,
-     *  votes and effect casts, mana sources, model yields, ONE_TIER, neutral asks). */
-    static final String HARNESS_EPOCH = "harness-epoch-2";
+     *  votes and effect casts, mana sources, model yields, ONE_TIER, neutral asks). Epoch 3: a cost ask
+     *  (sacrifice, exile, discard, return, tap) can cancel a play that is not committed yet. */
+    static final String HARNESS_EPOCH = "harness-epoch-3";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -698,6 +699,11 @@ public final class LlmSpikeGui {
         private String cancelKey = "";
         private int cancels = 0;
         private String cancelNote = null;
+        /** Set by {@link LlmCostDecision} for the one cost ask it is making when that ask may be answered
+         *  "cancel" (a play not committed yet: CostPayment decides every part before paying any); the ask
+         *  clears it, and a cancel answer sets {@link #costCancelled} for the cost decision to read. */
+        boolean offerCostCancel = false;
+        boolean costCancelled = false;
         /** A pass the MODEL asked for (`YIELD:` on a PASS, offered when SKIP_HEURISTICS=0 under the
          *  faithful profile): until it ends, windows with nothing of the opponent's on the stack are
          *  passed for the seat and logged as `yield:` window rows. This replaces the harness's own
@@ -1310,6 +1316,26 @@ public final class LlmSpikeGui {
 
         /** Ask a bridge to pick BETWEEN min..max options; returns 0-based indices, or null on failure. */
         private List<Integer> decideMany(LLMBridge b, String type, String question, List<String> options, int min, int max) {
+            return decideMany(b, type, question, options, min, max, -1);
+        }
+
+        /** Label of the cancel option a cost ask offers before its play is committed. */
+        static final String COST_CANCEL_LABEL = "CANCEL this play: pick this number alone to pay nothing; go back to the action menu";
+
+        /** A cost ask with {@link #COST_CANCEL_LABEL} as its last option when {@code canCancel}: a reply
+         *  naming it returns that index alone. Null is the caller's legal default, as in decideMany. */
+        private List<Integer> decideCost(String type, String question, List<String> labels, int min, int max, boolean canCancel) {
+            if (!canCancel) return decideMany(smart, type, question, labels, min, max);
+            List<String> withCancel = new ArrayList<>(labels);
+            withCancel.add(COST_CANCEL_LABEL);
+            List<Integer> picks = decideMany(smart, type, question, withCancel, min, max, labels.size());
+            if (picks != null && picks.contains(labels.size())) costCancelled = true;
+            return picks;
+        }
+
+        /** {@code cancelIdx} >= 0: that option cancels, and a reply naming it is that index alone,
+         *  whatever the count. */
+        private List<Integer> decideMany(LLMBridge b, String type, String question, List<String> options, int min, int max, int cancelIdx) {
             clearLast();
             // Same repeat-label disambiguation as decideOne (two blockers sharing a name).
             options = disambiguate(options);
@@ -1343,6 +1369,11 @@ public final class LlmSpikeGui {
                 while (m.find()) {
                     int idx = Integer.parseInt(m.group());
                     if (idx >= 1 && idx <= options.size()) picks.add(idx - 1);
+                }
+                if (cancelIdx >= 0 && picks.contains(cancelIdx)) {
+                    lastPicks = java.util.Collections.singletonList(cancelIdx);
+                    if (type != null) evalDec(type, options.size(), cancelIdx, tierOf(b == smart), 0, null, options);
+                    return lastPicks;
                 }
                 List<Integer> out = new ArrayList<>(picks);
                 if (out.size() > max) out = out.subList(0, max);
@@ -3191,7 +3222,12 @@ public final class LlmSpikeGui {
 
             game.getStack().freezeStack(sa);
             final CostPayment pay = new CostPayment(sa.getPayCosts(), sa);
-            if (pay.payComputerCosts(new LlmCostDecision(ai, sa, false))) {
+            // Every cost part is decided before any is paid, so a cost ask can still cancel the play,
+            // as a target ask can (runs/loop/g06, g07); the menu is asked again, at most twice per window.
+            final LlmCostDecision decision = new LlmCostDecision(ai, sa, false);
+            if (observer != null && rnd == null && cancels < 2) decision.offerCancel();
+            costCancelled = false;
+            if (pay.payComputerCosts(decision)) {
                 game.getStack().addAndUnfreeze(sa);
                 if (sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty())
                     game.getAction().reveal(sa.getSplicedCards(), ai, true, "Computer reveals spliced cards from ");
@@ -3199,7 +3235,13 @@ public final class LlmSpikeGui {
             }
             // Same recovery as the engine routine, but SAID: a play that did not happen must never read
             // as "casts X" in the log (the audited game recorded a failed activation as a cast).
-            p("[ROUTER] play: FAILED to pay for " + labelOf(sa) + " -> nothing was played");
+            if (decision.cancelled()) {
+                cancels++;
+                cancelNote = "you chose " + verbOf(sa) + " " + labelOf(sa) + " and then cancelled it when asked to pay its cost. Choose again.";
+                actionIntent = null;
+                p("[ROUTER] play: cancelled " + labelOf(sa) + " at its cost -> re-ask");
+            } else p("[ROUTER] play: FAILED to pay for " + labelOf(sa) + " -> nothing was played");
+            costCancelled = false;
             sa.setSkip(true);
             if (hz != null && hz.is(ZoneType.Stack)) {
                 Card c = game.getAction().moveTo(hz.getZoneType(), source, null, null);
@@ -3470,7 +3512,10 @@ public final class LlmSpikeGui {
                 List<String> labels = new ArrayList<>();
                 for (Card c : opts) labels.add(cardLabel(c));
                 String q = (title == null || title.isEmpty() ? "Choose cards" : title) + srcAsk(sa);
-                List<Integer> picks = decideMany(smart, "cards-for-effect", q, labels, isOptional ? 0 : min, max);
+                boolean canCancel = offerCostCancel;
+                offerCostCancel = false;
+                List<Integer> picks = decideCost("cards-for-effect", q, labels, isOptional ? 0 : min, max, canCancel);
+                if (canCancel && picks != null && costCancelled) { p("[ROUTER] cost" + srcOf(sa) + ": CANCEL (the play is not paid for)"); return new CardCollection(); }
                 // decideMany's null covers BOTH bridge-down AND still-unparseable-after-retry, and never logs
                 // itself either way — the isOptional branch must not silently vanish (the C5 double-failure shape).
                 if (picks == null) {
@@ -4468,8 +4513,11 @@ public final class LlmSpikeGui {
                         + " permanent(s)" + srcOf(sa)
                         + (message == null || message.isEmpty() ? "" : ": " + oneLine(message))
                         + ". Choose what to give up — keep your best remaining threats/blockers/mana sources.";
-                List<Integer> picks = decideMany(smart, "sacrifice", q, labels, min, max);
+                boolean canCancel = asCost && offerCostCancel;
+                offerCostCancel = false;
+                List<Integer> picks = decideCost("sacrifice", q, labels, min, max, canCancel);
                 if (picks == null) return firstN(opts, min, "sacrifice(unparsed)");
+                if (canCancel && costCancelled) { p("[ROUTER] sacrifice" + srcOf(sa) + ": CANCEL (the play is not paid for)"); return new CardCollection(); }
                 CardCollection out = new CardCollection();
                 StringBuilder log = new StringBuilder();
                 for (int i : picks) { out.add(opts.get(i)); if (log.length() > 0) log.append(", "); log.append(opts.get(i).getName()); }
