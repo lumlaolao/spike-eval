@@ -311,6 +311,35 @@ public class LineFindingProbeTest {
         Assert.assertEquals(only(menu, "Lightning Bolt"), "CAST Lightning Bolt @N {R} [Lightning Bolt deals 3 damage to any target.]");
     }
 
+    /** The upkeep shortcut passes for the seat without a model call. It must leave a `window` row
+     *  saying so and counting what the seat could have used (both of Sensei's Divining Top's abilities), because the
+     *  decision rows never see these windows: before this, the review sheet called such games clean. */
+    @Test
+    public void aWindowThePlayLoopPassesWithoutAskingIsRecorded() throws Exception {
+        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.skipHeuristics(), "the shortcut under test is on by default");
+        java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("window-rows");
+        LlmSpikeGui.EvalLog.closeForTest();
+        LlmSpikeGui.EvalLog.initToDir(dir.toString(), 7);
+        try {
+            Game g = bareGame(PhaseType.UPKEEP);
+            Player me = g.getPlayers().get(0);
+            card("Island", me, ZoneType.Battlefield);
+            card("Sensei's Divining Top", me, ZoneType.Battlefield);
+            Recorder smart = new Recorder(PLAY), fast = new Recorder(PLAY);
+            LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, smart, fast);
+
+            Assert.assertNull(ctrl.chooseSpellAbilityToPlay(), "the shortcut passes priority");
+            Assert.assertEquals(smart.prompts.size() + fast.prompts.size(), 0, "no model was asked");
+            Assert.assertEquals(ctrl.windowSkips.get("window-gate"), Integer.valueOf(1));
+            String rows = new String(java.nio.file.Files.readAllBytes(LlmSpikeGui.EvalLog.currentFile().toPath()));
+            Assert.assertTrue(rows.contains("\"t\":\"window\""), rows);
+            Assert.assertTrue(rows.contains("\"phase\":\"UPKEEP\""), rows);
+            Assert.assertTrue(rows.contains("\"reason\":\"window-gate\",\"castable\":2"), rows);
+        } finally {
+            LlmSpikeGui.EvalLog.closeForTest();
+        }
+    }
+
     /** Sacrifices `victim` through the engine's zone-change table, so "dies" triggers fire. */
     static void sacrificeForReal(Game g, Card victim) {
         forge.game.card.CardZoneTable table = new forge.game.card.CardZoneTable(

@@ -679,6 +679,8 @@ public final class LlmSpikeGui {
         private int playDecisionsThisTurn = 0;
         private String lastAskSig = "";
         private boolean lastWasPass = false;
+        /** Priority windows the play loop passed without a model call, by reason (see skipWindow). */
+        final java.util.Map<String, Integer> windowSkips = new java.util.TreeMap<>();
         // (stack, options) situations we already declined this turn — identical recurrences pass free.
         private final java.util.HashSet<String> passedReactSigs = new java.util.HashSet<>();
         // Turn plan: stated by the model at its first main-phase decision of the turn, injected into
@@ -2144,7 +2146,8 @@ public final class LlmSpikeGui {
                 // opponent's end step (the classic instant-speed action window for flash/instant decks).
                 // Otherwise passing priority is virtually always correct, so pass WITHOUT an LLM call.
                 boolean oppEot = phh.is(PhaseType.END_OF_TURN) && !phh.isPlayerTurn(me);
-                if (SKIP_HEUR && rnd == null && !ownMain && me.getGame().getStack().isEmpty() && !phh.inCombat() && !oppEot) return PASS;
+                if (SKIP_HEUR && rnd == null && !ownMain && me.getGame().getStack().isEmpty() && !phh.inCombat() && !oppEot)
+                    return skipWindow("window-gate", castableNow(me, ownMain));
 
                 // SPEED: the top of the stack is OUR OWN spell/ability — we just cast it. Don't burn a
                 // model call asking "respond to yourself?"; let it resolve. The engine gives us priority
@@ -2159,7 +2162,8 @@ public final class LlmSpikeGui {
                         // asked (ARCHITECTURE-REVIEW.md problem 3). The windows below still apply: no
                         // instant-speed option -> pass; nothing that interacts -> pass; and an identical
                         // situation already declined this turn is not asked twice (passedReactSigs).
-                        if (top != null && top.getActivatingPlayer() == me && !top.isTrigger()) return PASS;
+                        if (top != null && top.getActivatingPlayer() == me && !top.isTrigger())
+                            return skipWindow("own-stack", castableNow(me, ownMain));
                     } catch (Exception ignore) { }
                 }
 
@@ -2202,7 +2206,7 @@ public final class LlmSpikeGui {
                         } catch (Exception e) { anyInteractive = true; } // can't classify -> keep asking
                         if (anyInteractive) break;
                     }
-                    if (!anyInteractive) return PASS;
+                    if (!anyInteractive) return skipWindow("interaction-filter", options.size());
                 }
 
                 // pick tier: own main phase = smart sequencing; reactive instant-speed window = fast.
@@ -2244,7 +2248,7 @@ public final class LlmSpikeGui {
                 if (passIdx == 1 && rnd == null && smartOk()) { auto("play(no-options)->PASS"); return PASS; }
 
                 String sig = turn + "|" + phh.getPhase() + "|" + menuStr;
-                if (sig.equals(lastAskSig) && lastWasPass) return PASS; // identical spot we already passed on
+                if (sig.equals(lastAskSig) && lastWasPass) return skipWindow("last-sig", options.size()); // identical spot we already passed on
                 lastAskSig = sig;
 
                 // SPEED: reactive windows recur across phases with the SAME stack and SAME options
@@ -2257,7 +2261,7 @@ public final class LlmSpikeGui {
                 String reactSig = null;
                 if (SKIP_HEUR && rnd == null && !ownMain) {
                     reactSig = phh.getPhase() + "|" + safeStackTop(me.getGame()) + "|" + me.getGame().getStack().size() + "|" + menuStr;
-                    if (passedReactSigs.contains(reactSig)) return PASS;
+                    if (passedReactSigs.contains(reactSig)) return skipWindow("react-sig", options.size());
                 }
 
                 if (ownMain) p("[TALLY] smart=" + smartCalls + " fast=" + fastCalls + " auto=" + autoPicks + " ai=" + aiDelegations
@@ -4333,6 +4337,35 @@ public final class LlmSpikeGui {
         }
         private <T> T aiDelegate(String where, T result) { noteAi(where); return result; }
         private void auto(String what) { autoPicks++; p("[AUTO-LEGAL] " + what); evalDec(firstWord(what), -1, -1, "auto", 0, what); }
+
+        /** Passes priority for the seat without a model call and records it as a `t:"window"` row
+         *  (not a decision row, so decision counts and the canaries do not move). These shortcuts
+         *  wrote nothing before, so no tool could say how many windows the harness took for the
+         *  model. `castable` is how many spells or abilities the seat could have used (-1 when not
+         *  counted); a skip with castable > 0 is the harness deciding to do nothing. */
+        private List<SpellAbility> skipWindow(String reason, int castable) {
+            windowSkips.merge(reason, 1, Integer::sum);
+            if (EvalLog.on()) {
+                try {
+                    Game g = getGame();
+                    PhaseHandler ph = g.getPhaseHandler();
+                    EvalLog.write("{\"t\":\"window\",\"seat\":\"" + jsonEscape(seat) + "\",\"turn\":" + ph.getTurn()
+                            + ",\"phase\":\"" + ph.getPhase() + "\",\"active\":" + ph.isPlayerTurn(getPlayer())
+                            + ",\"reason\":\"" + reason + "\",\"castable\":" + castable
+                            + ",\"stack\":" + g.getStack().size()
+                            + ",\"stack_top\":\"" + jsonEscape(safeStackTop(g)) + "\"}");
+                } catch (Exception ignore) { }
+            }
+            return null; // PASS: the engine passes priority only on null
+        }
+
+        /** Spells and abilities the seat could use right now, for a skipped window's row. Counted
+         *  only for a model seat with EVAL_OUT set: the floor arm never builds a menu, and its canary
+         *  must keep exercising exactly the code it pins. */
+        private int castableNow(Player me, boolean ownMain) {
+            if (!EvalLog.on() || rnd != null || !smartOk()) return -1;
+            try { return enumeratePlayOptions(me, ownMain).spells.size(); } catch (Exception e) { return -1; }
+        }
         private static String firstWord(String s) {
             if (s == null || s.isEmpty()) return "?";
             int i = 0;

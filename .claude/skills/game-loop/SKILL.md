@@ -64,6 +64,7 @@ python3 eval/cost_report.py  runs/loop/g$N
 |---|---|---|
 | `TAKEN` | the harness decided without asking | always, unless the choice really was forced: say why in the log |
 | `LOST` | the model was asked and its answer was not used | always: open the row, read `raw_reply` and the rounds before it |
+| `SKIP` | a priority window the play loop passed without asking while the seat had something usable (`t:"window"` rows; `reason` names the shortcut) | always, until the shortcut is replaced by a pass the model asked for |
 | `TOOL REFUSED` / `FAILED` | the model asked for a lookup and the harness refused or broke | always |
 | `TOOL empty` / `bad-args` | the lookup found nothing or named something not there | when what it asked for exists under other words, or it is something the model reasonably wants (a land drop previewed, a token inspected) |
 | `SLOW`, `truncated reply` | retries, cut-off replies | when it repeats: it costs time and money and often precedes a `LOST` |
