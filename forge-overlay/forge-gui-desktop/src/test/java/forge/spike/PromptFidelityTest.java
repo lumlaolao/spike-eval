@@ -625,6 +625,9 @@ public class PromptFidelityTest {
         Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.buildMulliganPrompt(7, 1, "x", true, true).contains("combo deck"));
         Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.buildMulliganPrompt(7, 1, "x", true, true).contains("workable hand"),
                 "the faithful mulligan states the facts, not advice (PROMPT-AUDIT.md C3)");
+        String neutral = LlmSpikeGui.PlayerControllerLLM.buildMulliganPrompt(7, 1, "Island, Brainstorm, Ponder", false, true);
+        Assert.assertTrue(neutral.contains("on the draw") && neutral.contains("new hand of 6 cards") && neutral.endsWith("KEEP or MULLIGAN."),
+                "plain sentences, the facts, and the answer words (PROMPT-AUDIT.md D1): " + neutral);
         Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.buildMulliganPrompt(7, 1, "x", true).contains("combo deck"),
                 "legacy profiles keep their bytes");
     }

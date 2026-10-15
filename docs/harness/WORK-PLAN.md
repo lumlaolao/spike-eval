@@ -77,12 +77,10 @@ when an item is finished or a new one is agreed, so the next session can pick up
    - G1: the four short tool descriptions are rewritten;
    - H1 (#166): the attack outlook names who could block each attacker.
 
-   Still open:
-   - D1: capitals and "EXACTLY" in individual decision texts (the answer tool already replaces their
-     answer lines);
-   - C3: advice in the card-naming text;
-   - record the model's reasoning (Luna writes no visible text beside its calls, so a row holds only
-     the answer): store `message.reasoning` where the provider returns it.
+   Second pass done 2026-10-15 (harness-epoch-11): the faithful mulligan and card-naming asks state
+   facts in plain sentences (D1, C3). Still open: capitals in a few legacy-profile decision texts, which
+   the faithful profile does not send.
+
 5. **Measure the new prompts and tools.** First block done 2026-10-15 (`runs/prompt-ab/REPORT.md`): 4 Luna
    games per arm, the prompt the only difference.
    - The new prompt is about 30% smaller per call (6.6K against 9.4K tokens).

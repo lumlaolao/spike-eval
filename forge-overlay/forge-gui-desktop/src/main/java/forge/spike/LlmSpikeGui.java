@@ -189,8 +189,10 @@ public final class LlmSpikeGui {
      *  step's follow-up asks carry that step (#108); PLAN_EXECUTE and TIER_FAST_TYPES are stamped on the
      *  game line (#117). The harness no longer limits the model (docs/harness/MODEL-LIMITS.md): uncut
      *  history, reveals and card text, 16 tool calls an ask, any number of previews, budgets as loop guards
-     *  only. */
-    static final String HARNESS_EPOCH = "harness-epoch-10";
+     *  only.
+     *  Epoch 11: the answer tool nudges once for a missing call and takes `keep_untapped` on a play; the
+     *  faithful mulligan and card-naming asks state facts in plain sentences. */
+    static final String HARNESS_EPOCH = "harness-epoch-11";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -4698,7 +4700,7 @@ public final class LlmSpikeGui {
                     + (valid != null && !valid.isEmpty() ? " (must match: " + fit(valid) + ")" : "")
                     + (observer != null
                         ? "." + targetNote(sa, getPlayer())
-                            + " Use everything you've seen this game (revealed hands, the target's deck) to choose the name. "
+                            + " "   // facts only under the faithful profile (PROMPT-AUDIT.md C3): no advice on how to choose
                         : ". Use everything you've seen this game — revealed hands, their deck's archetype — to name "
                             + "the card most likely there / most dangerous to your plan. ")
                     + "End with EXACTLY: CARD: <exact English card name>";
@@ -6281,6 +6283,12 @@ public final class LlmSpikeGui {
         /** {@code neutral}: without the combo-deck advice, which was shown to Burn and Death & Taxes too
          *  (the faithful profile). */
         static String buildMulliganPrompt(int size, int lands, String handNames, boolean onThePlay, boolean neutral) {
+            // The faithful (neutral) ask: the facts in plain sentences (PROMPT-AUDIT.md C3, D1).
+            if (neutral)
+                return "MULLIGAN: you are " + (onThePlay ? "on the play (you go first)" : "on the draw (the opponent goes first, and you "
+                        + "draw on your first turn)") + ". This hand has " + size + " cards, " + lands + " of them lands: " + handNames
+                        + ". A mulligan gives you a new hand of " + Math.max(0, size - 1) + " cards (each mulligan costs one card, and "
+                        + "you cannot go below 5); keeping plays this hand. Keep or mulligan? End with exactly one word: KEEP or MULLIGAN.";
             return "MULLIGAN DECISION. You are " + (onThePlay ? "ON THE PLAY (you go first)" : "ON THE DRAW (opponent goes first; you draw an extra card turn 1)")
                     + ". This is a " + size + "-card hand with " + lands + " land(s): " + handNames
                     + ". If you MULLIGAN you will look at a NEW hand of only " + Math.max(0, size - 1)
