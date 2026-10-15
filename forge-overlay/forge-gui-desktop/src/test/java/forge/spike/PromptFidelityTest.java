@@ -143,6 +143,75 @@ public class PromptFidelityTest {
         Assert.assertTrue(me.getCardsIn(ZoneType.Hand).size() == 1, "nothing was cast");
     }
 
+    /** A model answering a cost ask with cancel: nothing is paid, the play is not made, and the menu
+     *  is asked again with a note saying so. */
+    private static void cancelsAtTheCost(Game g, String costAsk, String play) {
+        Recorder model = new Recorder("CHOICE: 1") {
+            @Override public String ask(String prompt) {
+                prompts.add(prompt);
+                if (prompt.contains(costAsk)) {
+                    java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?m)^\\s*(\\d+)\\) CANCEL this play").matcher(prompt);
+                    Assert.assertTrue(m.find(), "the cost ask offers cancel: " + prompt);
+                    return "Not worth it after all.\nPICKS: " + m.group(1);
+                }
+                if (prompt.contains("DECISION: You have priority"))
+                    return prompt.contains("NOTE: you chose") ? "CHOICE: " + passIndex(prompt) : "CHOICE: " + optionIndex(prompt, play);
+                return "CHOICE: 1";
+            }
+        };
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        java.util.List<forge.game.spellability.SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, decisions(model));
+        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)));
+        Assert.assertTrue(model.asked(costAsk), decisions(model));
+        Assert.assertTrue(g.getStack().isEmpty(), "nothing was put on the stack");
+        Assert.assertNull(ctrl.chooseSpellAbilityToPlay(), "after cancelling, the model passed");
+        Assert.assertTrue(model.asked("NOTE: you chose " + play), decisions(model));
+        Assert.assertTrue(promptWith(model, "NOTE: you chose " + play).contains("when asked to pay its cost"), decisions(model));
+    }
+
+    private static int optionIndex(String prompt, String label) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?m)^\\s*(\\d+)\\) " + java.util.regex.Pattern.quote(label)).matcher(prompt);
+        Assert.assertTrue(m.find(), "the menu offers " + label + ": " + prompt);
+        return Integer.parseInt(m.group(1));
+    }
+
+    private static int passIndex(String prompt) {
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?m)^\\s*(\\d+)\\) PASS").matcher(prompt);
+        Assert.assertTrue(m.find(), "the menu offers PASS: " + prompt);
+        return Integer.parseInt(m.group(1));
+    }
+
+    /** CostPayment decides every cost part before paying any, so the sacrifice a cost takes is asked
+     *  while the play can still be cancelled, as its target is. */
+    @Test
+    public void cancellingAtTheSacrificeCostAsksTheMenuAgain() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card bombardment = card("Goblin Bombardment", me, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Savannah Lions", rival, ZoneType.Battlefield);
+        cancelsAtTheCost(g, "you must SACRIFICE", "ACTIVATE Goblin Bombardment");
+        Assert.assertTrue(lions.isInPlay() && bears.isInPlay() && bombardment.isInPlay(), "nothing was sacrificed");
+    }
+
+    /** The same for a discard cost, asked through LlmCostDecision's card-choosing route. */
+    @Test
+    public void cancellingAtTheDiscardCostAsksTheMenuAgain() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Forest", me, ZoneType.Battlefield);
+        card("Survival of the Fittest", me, ZoneType.Battlefield);
+        card("Llanowar Elves", me, ZoneType.Hand);
+        card("Grizzly Bears", me, ZoneType.Hand);
+        card("Elvish Mystic", me, ZoneType.Library);
+        cancelsAtTheCost(g, "you must DISCARD", "ACTIVATE Survival of the Fittest");
+        Assert.assertEquals(me.getCardsIn(ZoneType.Hand).size(), 2, "nothing was discarded");
+        Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).anyMatch(c -> c.getName().equals("Forest") && !c.isTapped()),
+                "the Forest was not tapped");
+    }
+
     /** Green Sun's Zenith resolved at X=1..3 in recorded games with no question: the AI cast path
      *  never announces X. The seat now asks it, up to what it can pay, before targets. */
     @Test
