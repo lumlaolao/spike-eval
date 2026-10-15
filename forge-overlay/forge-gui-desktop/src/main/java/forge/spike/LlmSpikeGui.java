@@ -3903,14 +3903,12 @@ public final class LlmSpikeGui {
                     }
                     // The seat's own choice ("the engine chooses"), not a harness decision: logged, no row.
                     if (held.isEmpty()) { p("[ROUTER] mana: the engine chooses the sources (said with the play)"); return none; }
-                    for (Card c : held) forge.ai.AiCardMemory.rememberCard(me, c, forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
-                    if (ComputerUtilMana.getManaSourcesToPayCost(neededMana(toPay, sa, effect), sa, me, effect) == null) {
-                        for (Card c : held) forge.ai.AiCardMemory.forgetCard(me, c, forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
-                        auto("mana-sources(said-with-play, cannot-pay-keeping-them)->engine plan");
-                        return none;
+                    if (holdIfPayable(held, toPay, sa, effect)) {
+                        p("[ROUTER] mana: keep untapped " + held.size() + " (said with the play) for " + verbOf(sa) + " " + labelOf(sa));
+                        return held;
                     }
-                    p("[ROUTER] mana: keep untapped " + held.size() + " (said with the play) for " + verbOf(sa) + " " + labelOf(sa));
-                    return held;
+                    // What was said with the play cannot pay: ask the question itself, with the reason.
+                    retryNote = "You said to keep " + names(held) + " untapped, but then the rest cannot pay " + toPay + ".";
                 }
                 List<String> labels = new ArrayList<>();
                 for (Card c : sources) {
@@ -3919,27 +3917,59 @@ public final class LlmSpikeGui {
                     labels.add(labelOf(c) + " — " + m);
                 }
                 String what = sa.getHostCard() == null ? "this" : verbOf(sa) + " " + labelOf(sa);
-                List<Integer> picks = decideMany(smartOk() ? smart : fast, "mana-sources", "MANA: you are paying "
-                        + toPay + " for " + what + ". It needs " + plan.size() + " of your " + sources.size()
-                        + " untapped mana sources. Which should stay UNTAPPED after this payment (at most " + spare
-                        + ")? Pick none to let the engine choose", labels, 0, spare);
-                if (picks == null || picks.isEmpty()) return none;
+                String question = "MANA: you are paying " + toPay + " for " + what + ". It needs " + plan.size() + " of your "
+                        + sources.size() + " untapped mana sources. Which should stay untapped after this payment (at most "
+                        + spare + ")? Pick none if it does not matter to you which ones are tapped";
                 List<Card> held = new ArrayList<>();
-                for (int i : picks) {
-                    held.add(sources.get(i));
-                    forge.ai.AiCardMemory.rememberCard(me, sources.get(i), forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
+                // A keep set the rest cannot pay is explained and asked once more (the model's own choice,
+                // corrected); the engine's own plan never replaces it.
+                for (int attempt = 0; attempt < 2; attempt++) {
+                    String note = retryNote;
+                    retryNote = null;
+                    List<Integer> picks = decideMany(smartOk() ? smart : fast, "mana-sources",
+                            (note == null ? "" : note + " ") + question, labels, 0, spare);
+                    if (picks == null || picks.isEmpty()) return none;
+                    held = new ArrayList<>();
+                    for (int i : picks) held.add(sources.get(i));
+                    if (holdIfPayable(held, toPay, sa, effect)) {
+                        p("[ROUTER] mana: keep untapped " + held.size() + " for " + what);
+                        return held;
+                    }
+                    if (rnd != null) break;  // the random arm draws again from nothing it learns
+                    retryNote = "Keeping " + names(held) + " untapped leaves the other sources unable to pay " + toPay
+                            + ". Choose again.";
                 }
-                if (ComputerUtilMana.getManaSourcesToPayCost(neededMana(toPay, sa, effect), sa, me, effect) == null) {
-                    for (Card c : held) forge.ai.AiCardMemory.forgetCard(me, c, forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
-                    auto("mana-sources(cannot-pay-keeping-them)->engine plan");
-                    return none;
+                retryNote = null;
+                // Still unpayable: keep the longest prefix of the seat's own picks that the rest can pay.
+                while (!held.isEmpty()) {
+                    held.remove(held.size() - 1);
+                    if (!held.isEmpty() && holdIfPayable(held, toPay, sa, effect)) break;
                 }
-                p("[ROUTER] mana: keep untapped " + held.size() + " for " + what);
+                auto("mana-sources(cannot-pay-keeping-them)->kept " + held.size() + " of the picks");
                 return held;
             } catch (Exception e) {
                 p("[ROUTER] mana: " + e + " -> engine plan");
                 return none;
             }
+        }
+
+        /** A correction for the next mana-sources ask (the previous keep set could not pay). */
+        private String retryNote;
+
+        /** Holds {@code held} for this payment if the remaining sources can still pay {@code toPay};
+         *  otherwise holds nothing and returns false. */
+        private boolean holdIfPayable(List<Card> held, forge.card.mana.ManaCost toPay, SpellAbility sa, boolean effect) {
+            final Player me = getPlayer();
+            for (Card c : held) forge.ai.AiCardMemory.rememberCard(me, c, forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
+            if (ComputerUtilMana.getManaSourcesToPayCost(neededMana(toPay, sa, effect), sa, me, effect) != null) return true;
+            for (Card c : held) forge.ai.AiCardMemory.forgetCard(me, c, forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
+            return false;
+        }
+
+        private static String names(List<Card> cards) {
+            List<String> n = new ArrayList<>();
+            for (Card c : cards) n.add(c.getName());
+            return String.join(", ", n);
         }
 
         /** Activates each tap-type mana ability the engine's plan for {@code toPay} uses; adds to
@@ -4874,40 +4904,59 @@ public final class LlmSpikeGui {
             }
         }
 
-        /** Damage-assignment order among multiple blockers of one attacker. choice = 0 by convention
-         *  (no menu index exists — the AI's chosen ORDER is summarized in the fallback field). Input
-         *  labels snapshotted pre-super: AiBlockController may reorder into a new list. */
+        /** Damage-assignment order among multiple blockers of one attacker: the seat's choice. It was
+         *  Forge's AiBlockController's, only logged (tier=ai); a damage order decides which blocker dies. */
         @Override
         public CardCollection orderBlockers(Card attacker, CardCollection blockers) {
-            List<String> labels = cardLabels(blockers);
-            long t0 = System.currentTimeMillis();
-            CardCollection r = super.orderBlockers(attacker, blockers);
-            observeAiDec("damage-order", labels.size(), 0, t0,
-                    "damage-order(ai) blockers of " + safeName(attacker) + " -> " + orderSummary(r), labels);
-            return r;
+            return orderByModel(blockers, "COMBAT DAMAGE ORDER: " + safeName(attacker) + " is blocked by "
+                    + (blockers == null ? 0 : blockers.size()) + " creatures. List all of them in the order "
+                    + safeName(attacker) + " assigns its combat damage: each must be dealt lethal damage before the next "
+                    + "in your order can be dealt any", "blockers of " + safeName(attacker));
         }
 
-        /** A blocker added mid-combat gets inserted into an existing damage order. */
+        /** A blocker added mid-combat joins the damage order: the seat orders the whole list again. */
         @Override
         public CardCollection orderBlocker(Card attacker, Card blocker, CardCollection oldBlockers) {
-            List<String> labels = cardLabels(oldBlockers);
-            try { labels.add(0, "(new blocker) " + safeName(blocker)); } catch (Exception ignore) { }
-            long t0 = System.currentTimeMillis();
-            CardCollection r = super.orderBlocker(attacker, blocker, oldBlockers);
-            observeAiDec("damage-order", labels.size(), 0, t0,
-                    "damage-order(ai) insert " + safeName(blocker) + " vs " + safeName(attacker) + " -> " + orderSummary(r), labels);
-            return r;
+            CardCollection all = new CardCollection(oldBlockers);
+            if (blocker != null && !all.contains(blocker)) all.add(blocker);
+            return orderByModel(all, "COMBAT DAMAGE ORDER: " + safeName(blocker) + " now also blocks "
+                    + safeName(attacker) + ". List all " + all.size() + " blockers in the order " + safeName(attacker)
+                    + " assigns its combat damage: each must be dealt lethal damage before the next in your order can be "
+                    + "dealt any", "insert " + safeName(blocker) + " vs " + safeName(attacker));
         }
 
-        /** Damage-assignment order when one blocker blocks multiple attackers. */
+        /** Damage-assignment order when one blocker blocks multiple attackers: the seat's choice. */
         @Override
         public CardCollection orderAttackers(Card blocker, CardCollection attackers) {
-            List<String> labels = cardLabels(attackers);
-            long t0 = System.currentTimeMillis();
-            CardCollection r = super.orderAttackers(blocker, attackers);
-            observeAiDec("damage-order", labels.size(), 0, t0,
-                    "damage-order(ai) attackers on " + safeName(blocker) + " -> " + orderSummary(r), labels);
-            return r;
+            return orderByModel(attackers, "COMBAT DAMAGE ORDER: " + safeName(blocker) + " blocks "
+                    + (attackers == null ? 0 : attackers.size()) + " attackers. List all of them in the order "
+                    + safeName(blocker) + " assigns its combat damage: each must be dealt lethal damage before the next "
+                    + "in your order can be dealt any", "attackers on " + safeName(blocker));
+        }
+
+        /** A full ordering of {@code cards} chosen by the seat. One card, or no model, keeps the order
+         *  given (tier=auto, logged); never Forge's AI. */
+        private CardCollection orderByModel(CardCollection cards, String question, String what) {
+            clearLast();
+            if (cards == null || cards.size() <= 1) return cards;
+            List<Card> opts = new ArrayList<>(cards);
+            List<String> labels = cardLabels(opts);
+            try {
+                if (smartOk() || fastOk()) {
+                    List<Integer> picks = decideMany(smartOk() ? smart : fast, "damage-order", question, labels,
+                            opts.size(), opts.size());
+                    if (picks != null && picks.size() == opts.size() && new java.util.HashSet<>(picks).size() == opts.size()) {
+                        CardCollection r = new CardCollection();
+                        for (int i : picks) r.add(opts.get(i));
+                        p("[ROUTER] damage-order " + what + " -> " + orderSummary(r));
+                        return r;
+                    }
+                }
+            } catch (Exception e) {
+                p("[ROUTER] damage-order: " + e);
+            }
+            auto("damage-order(no-answer)->as-given " + what);
+            return cards;
         }
 
         // ---------------- report C1: the two hardest "Goal A" surfaces are now ROUTED, not observed --
