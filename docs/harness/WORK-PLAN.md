@@ -85,10 +85,18 @@ when an item is finished or a new one is agreed, so the next session can pick up
      the answer): store `message.reasoning` where the provider returns it.
 5. **Measure the new prompts and tools:** `eval/tool_use_suite.py`, the golden checks, then a few
    cheap Haiku 5.5 and deepseek games comparing old and new, with cost stated first.
-6. **Mana payment: auto-tap vs manual (#111).** Today Forge picks which lands pay, and the model is
-   asked only which sources to keep untapped. Design it properly: auto-pay by default, the model able
-   to name the sources when it matters (offered as a tool), and fix the filter-land payment defect
-   through that design (`ROOT-INTERFACES.md` R2).
+6. **Mana payment: auto-tap vs manual (#111).**
+   - Today: before a payment where the untapped sources outnumber what is needed and are not all
+     alike, the seat is asked a separate `mana-sources` question (which sources stay untapped);
+     Forge's payment taps the rest. So the model already owns the choice when it matters, at the
+     cost of an extra call per such spell (3 of 20 decisions in the first Luna game).
+   - Design (2026-10-15):
+     - the play decision's `answer` takes an optional `keep_untapped` (source handles);
+     - when the model gives it while choosing the spell, the follow-up question is skipped;
+     - when it does not and there is a real choice, the follow-up is asked as today. The model owns
+       the choice either way, and a model that plans ahead saves a round trip.
+   - #111 (no card in the pool triggers it): the tap part of a cost is checked after the mana part,
+     against what is actually still untapped, instead of against the test payment.
 7. ~~Heuristic skips off by default.~~ **Done 2026-10-15** (`harness-epoch-8`):
    - the mulligan heuristic, the skip heuristics and the fast tier are off unless `MULLIGAN_HEURISTIC=1`,
      `SKIP_HEURISTICS=1` or `ONE_TIER=0` (`run_batch.py --two-tier`);
