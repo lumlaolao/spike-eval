@@ -241,4 +241,49 @@ public class PromptFidelityTest {
         Assert.assertEquals(combat.getAttackers().size(), 1, decisions(model));
         Assert.assertEquals(combat.getDefenderByAttacker(combat.getAttackers().get(0)), jace, decisions(model));
     }
+
+    /** Survival of the Fittest's "discard a creature card" was chosen by Forge AI's getCardsToDiscard. */
+    @Test
+    public void aDiscardCostIsTheSeatsChoice() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Forest", me, ZoneType.Battlefield);
+        card("Survival of the Fittest", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Hand);
+        card("Savannah Lions", me, ZoneType.Hand);
+        card("Llanowar Elves", me, ZoneType.Library);
+        Recorder model = new Recorder("CHOICE: 1") {
+            @Override public String ask(String prompt) {
+                prompts.add(prompt);
+                if (prompt.contains("you must DISCARD")) {
+                    java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?m)^\\s*(\\d+)\\) Grizzly Bears").matcher(prompt);
+                    return m.find() ? "PICKS: " + m.group(1) : "PICKS: 1";
+                }
+                return "CHOICE: 1";
+            }
+        };
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        java.util.List<forge.game.spellability.SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, decisions(model));
+        ctrl.playChosenSpellAbility(r.get(0));
+        Assert.assertTrue(model.asked("you must DISCARD 1"), decisions(model));
+        Assert.assertTrue(me.getCardsIn(ZoneType.Graveyard).contains(bears), "the seat's pick was discarded");
+    }
+
+    /** Council's Judgment's vote was ComputerUtil.vote's. */
+    @Test
+    public void aVoteIsTheSeatsChoice() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card cj = card("Council's Judgment", me, ZoneType.Hand);
+        Card a = card("Savannah Lions", rival, ZoneType.Battlefield);
+        Card b = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Recorder model = new Recorder("CHOICE: 2");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        java.util.List<Object> opts = new java.util.ArrayList<>(java.util.Arrays.asList(a, b));
+        Object v = ctrl.vote(cj.getFirstSpellAbility(), "Vote for a nonland permanent", opts,
+                com.google.common.collect.ArrayListMultimap.create(), me, false);
+        Assert.assertEquals(v, b);
+        Assert.assertTrue(model.asked("DECISION: VOTE [Council's Judgment"), decisions(model));
+    }
 }

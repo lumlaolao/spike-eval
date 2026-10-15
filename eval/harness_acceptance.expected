@@ -51,9 +51,13 @@ random.seed=42
 # 2026-10-15 (later): trigger targets are the seat's (orderAndPlaySimultaneousSa, playTrigger), so the
 # random arm now picks them instead of Forge AI's doTrigger and its walk re-rolls: winner B, 26 turns /
 # 144 decisions. Reproduced twice (/tmp/acc-tr2, /tmp/acc-tr3). Floor unchanged. linux.* random STALE.
+# 2026-10-15 (later): a spell cast by an effect is the seat's (playSaFromPlayEffect: cast-or-not, X,
+# modes, targets), as are discard costs, "unless" payments and votes. The random walk's first new
+# decisions are two play-from-effect rows (first divergence), and it re-rolls: winner B, 30 turns / 164
+# decisions. Reproduced twice (/tmp/acc-lk2, /tmp/acc-lk3). Floor unchanged. linux.* random STALE.
 random.winner=B
-random.turns=26
-random.decisions=144
+random.turns=30
+random.decisions=164
 # Silent Forge-AI strategic/payment hooks reachable in Legacy play (ControllerOwnershipTest baseline).
 # 2026-10-15: trigger targets and modes are the seat's (orderAndPlaySimultaneousSa, playTrigger
 # overridden; Forge AI's doTrigger chose every trigger target before). 3 -> 1.

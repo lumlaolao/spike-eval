@@ -14,6 +14,7 @@ import forge.game.card.Card;
 import forge.game.card.CardCollection;
 import forge.game.card.CardLists;
 import forge.game.card.CardPredicates;
+import forge.game.cost.CostDiscard;
 import forge.game.cost.CostExile;
 import forge.game.cost.CostReturn;
 import forge.game.cost.CostSacrifice;
@@ -130,6 +131,30 @@ final class LlmCostDecision extends AiCostDecision {
             if (pick != null) return PaymentDecision.card(pick);
         } catch (Exception e) {
             fellBack("exile-cost", e.getClass().getSimpleName());
+        }
+        return super.visit(cost);
+    }
+
+    /** Which cards a discard cost discards (Survival of the Fittest: "Discard a creature card").
+     *  Forge's AI picks with getCardsToDiscard. Shapes with no choice in them (the last drawn card, the
+     *  source itself, the whole hand, at random, same or different names) stay the engine's. */
+    @Override
+    public PaymentDecision visit(CostDiscard cost) {
+        String type = cost.getType();
+        if (cost.payCostFromSource() || "LastDrawn".equals(type) || "Hand".equals(type) || "Random".equals(type)
+                || type.contains("WithSameName") || type.contains("+WithDifferentNames")) {
+            return super.visit(cost);
+        }
+        try {
+            final int amount = cost.getAbilityAmount(ability);
+            CardCollection typeList = CardLists.getValidCards(player.getCardsIn(ZoneType.Hand),
+                    type.split(";"), source.getController(), source, ability);
+            if (amount <= 0 || typeList.size() <= amount) return super.visit(cost); // nothing to choose
+            CardCollectionView pick = ask(typeList, amount, "discard", "COST: to pay for " + source.getName()
+                    + " you must DISCARD " + amount + " of these cards from your hand. Choose which");
+            if (pick != null) return PaymentDecision.card(pick);
+        } catch (Exception e) {
+            fellBack("discard-cost", e.getClass().getSimpleName());
         }
         return super.visit(cost);
     }
