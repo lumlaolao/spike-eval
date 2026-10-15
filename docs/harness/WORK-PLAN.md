@@ -1,4 +1,4 @@
-# Work plan: what is left (updated 2026-10-15)
+# Work plan: what is left (updated 2026-10-15, evening)
 
 The living to-do list for the "the model is the only bottleneck" work. Only open work is listed here;
 what is done is in git history, `docs/harness/GAME-LOOP-LOG.md` and the run reports. Update this file
@@ -25,6 +25,52 @@ when an item is finished or a new one is agreed, so the next session can pick up
   tiers and both seats unless the owner names another. No Opus. Paid games always carry `--budget-usd`.
 - **No subagents** for this work stream (for now); work happens in the main session.
 - **The headline score** (strict vs other) is decided later.
+
+## Priority 0 (owner, 2026-10-15 evening): do these first, in this order
+
+**0. Every decision goes through a tool call: no text alternative anywhere.** "Everything goes through
+the tool calls" (owner). If a prompt offers another way, a model will use it. Today, on the default
+protocol (an `openrouter:` model), the decision prompts already offer only `answer`; 0 text formats in
+the recorded Luna prompts. What still lets text in:
+- a reply that calls nothing gets one reminder, and a second such reply is still read as text
+  (`answer_via: "text"`). That last resort goes: no answer is read out of prose on a tool ask. A reply
+  that calls nothing is reminded (bounded), and only then is the decision lost, which is counted as a
+  defect on the row;
+- every decision site must offer `answer` (audit each `ask(` for a missing `offerAnswer`), including
+  the new damage-order and mana-keep corrections, and no site may add a text instruction to a tool ask
+  (`SIMULATE:` lines, `End with`, `CARD:`, `STEPS:`);
+- an acceptance check: in a default-protocol game, no prompt holds a text answer format and no row has
+  `answer_via` other than `tool`/`nudged`;
+- left as is, and stated: the text grammar for a backend with no function calling (the Claude CLI
+  lane), and the `ANSWER_TOOL=0` / `NATIVE_TOOLS=0` measurement arms.
+
+**A. No engine fallback.** "I would like no engine fallback if able" (owner). Forge's AI must not decide
+anything for the seat. From `docs/harness/controller-ownership.tsv` and the recorded games:
+- in progress (`fix/no-engine-fallback`):
+  - blocker and attacker damage order (`orderBlockers`, `orderBlocker`, `orderAttackers`) was Forge's
+    `AiBlockController`, only logged: now asked of the seat;
+  - the mana-keep question: a keep set the rest cannot pay went back to the engine's plan (fired 729
+    times, 5 on model seats): now the reason is given and the seat asked once more, then the longest
+    payable prefix of its own picks is kept;
+- next: `aiDelegate` sites (card naming with no pool or an error, modes with an error);
+  `chooseTargetsFor`'s `super` safety nets; the cost decisions' `fellBack` paths (`LlmCostDecision`);
+  `playChosenSpellAbility` for an ability that is not the seat's;
+- then the never-overridden choices Forge's AI makes outright (rare in the pool): Fact or Fiction piles
+  (`chooseCardsPile`), opening-hand Leylines (`chooseSaToActivateFromOpeningHand`), colours, counter
+  types, replacement-effect order, edict-style destroy, multiple-category picks, keyword for a pump,
+  spell for an effect, clash, optional statics, discard-unless, retargeting, redirect target, card face
+  and state, static ability, keyword-cost count, attack and block taxes (`payCombatCost`), convoke and
+  improvise, cost-reduction count, cost order, mana combination, mana from pool;
+- last: mechanics no deck in the pool can reach (dice, stickers, contraptions, attractions), each left
+  documented in the ledger;
+- every change updates `controller-ownership.tsv`, so the acceptance `[OWNERSHIP]` count can only fall.
+
+Not engine fallback, and kept: a choice with exactly one legal option is taken without asking (forced),
+and a seat that has no model (floor, random arms) takes a fixed legal option. A model that fails to
+answer twice loses the decision to a fixed legal option (the first, or decline), never to Forge's AI.
+
+**B. `docs/harness/ARCHITECTURE.md`:** the whole harness in one document, each part with the reason it is
+built that way.
 
 ## Priority 1: tool calls and prompts
 
