@@ -79,6 +79,13 @@ decision row with why. Never Forge's AI.
   - the opponent's hand count, plus cards revealed to it;
   - what was cast and happened since its last decision;
   - mana available, and what each hand card needs.
+- **What a player keeps track of** (as MTGA shows it): the opponent's cards cast and lands played this
+  game, the rules text of every opponent card seen, hidden cards revealed to the seat, cards seen going
+  into an opponent's hidden zone (KNOWN IN HIDDEN ZONES), and the top of the seat's own library that it
+  put or saw there (scry, surveil, Ponder, Brainstorm), top first.
+  - *Why the library top is checked on every render:* it is the seat's knowledge, not engine truth, so
+    it may never claim more than the seat knows. Drawn cards drop off, a shuffle (the controller's
+    `cheatShuffle` hook, delegated unchanged) forgets it, and anything that stops matching is forgotten.
 - Objects are named by handles (`@12`), never by engine ids.
 - *Why faithful:* hidden information must stay hidden, or the benchmark measures something else.
   `SeatObservationTest` renders two games that differ only in hidden state and requires identical

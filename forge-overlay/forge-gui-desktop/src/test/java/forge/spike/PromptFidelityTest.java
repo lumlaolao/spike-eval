@@ -580,6 +580,44 @@ public class PromptFidelityTest {
         Assert.assertTrue(mountain.isTapped(), "the other source paid");
     }
 
+    /** runs/luna-v8/g2: the seat kept Chain Lightning on top with a surveil, and the next prompt said nothing about
+     *  its library; only a history of 53 "engine presented ... for a choice" lines. A player knows what it put on
+     *  top: the state shows it, drops a drawn card, follows a Ponder's new order and forgets it all on a shuffle. */
+    @Test
+    public void theSeatKnowsWhatItPutOnTopOfItsLibrary() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Chain Lightning", me, ZoneType.Library);   // index 0 is the top
+        card("Island", me, ZoneType.Library);
+        card("Lightning Bolt", me, ZoneType.Library);
+        card("Mountain", me, ZoneType.Library);
+        Card ponder = card("Ponder", me, ZoneType.Hand);
+        Recorder model = new Recorder("PICKS: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        SeatObservation obs = ctrl.observer();
+        Assert.assertEquals(obs.ownTopText(), "", "nothing is known before the seat looks");
+
+        forge.game.card.CardCollection top1 = new forge.game.card.CardCollection(me.getCardsIn(ZoneType.Library).get(0));
+        ctrl.arrangeForSurveil(top1);
+        Assert.assertEquals(obs.ownTopText(), "  library top (known to you, top first): 1) Chain Lightning\n");
+
+        // Ponder: the seat orders the top three, top first: Bolt, Island, Chain Lightning.
+        Recorder order = new Recorder("PICKS: 3,2,1");
+        LlmSpikeGui.PlayerControllerLLM ctrl2 = seat(g, order, order);
+        forge.game.card.CardCollection three = new forge.game.card.CardCollection(me.getCardsIn(ZoneType.Library).subList(0, 3));
+        forge.game.card.CardCollectionView placed = ctrl2.orderMoveToZoneList(three, ZoneType.Library, ponder.getFirstSpellAbility());
+        for (Card c : three) me.getZone(ZoneType.Library).remove(c);
+        for (Card c : placed) me.getZone(ZoneType.Library).add(c, 0);   // what the engine does with the reply
+        Assert.assertEquals(ctrl2.observer().ownTopText(),
+                "  library top (known to you, top first): 1) Lightning Bolt, 2) Island, 3) Chain Lightning\n");
+
+        me.drawCard();
+        Assert.assertEquals(ctrl2.observer().ownTopText(),
+                "  library top (known to you, top first): 1) Island, 2) Chain Lightning\n", "the drawn Bolt is gone");
+        me.shuffle(null);
+        Assert.assertEquals(ctrl2.observer().ownTopText(), "", "a shuffle forgets the order");
+    }
+
     /** With the harness's shortcuts off, the seat says when it does not want to be asked: a PASS with
      *  YIELD: end-of-turn passes later empty-stack windows that turn, and an opponent's spell still asks. */
     @Test

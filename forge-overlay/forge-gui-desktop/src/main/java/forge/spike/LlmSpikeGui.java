@@ -205,8 +205,9 @@ public final class LlmSpikeGui {
      *  `keep_untapped` is not said, and handles that name no source ask the mana question.
      *  Epoch 16: convoke/improvise, single-target retargeting, redirection and mana from the pool are the seat's.
      *  Epoch 17: every retargeting and effects played without the stack. Epoch 18: delve is the seat's; a
-     *  crashed game has no winner. Epoch 19: a yield never passes the seat's own main phase (answer-tool-v9). */
-    static final String HARNESS_EPOCH = "harness-epoch-19";
+     *  crashed game has no winner. Epoch 19: a yield never passes the seat's own main phase (answer-tool-v9).
+     *  Epoch 20: the seat sees the known top of its own library (observation-faithful-v27). */
+    static final String HARNESS_EPOCH = "harness-epoch-20";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -4341,12 +4342,27 @@ public final class LlmSpikeGui {
                 StringBuilder log = new StringBuilder();
                 for (Card c : toTop) { if (log.length() > 0) log.append(", "); log.append(c.getName()); }
                 remember(verb + " revealed [" + names(opts, false, 10) + "], kept on top: " + (toTop.isEmpty() ? "(none)" : log.toString()));
+                if (observer != null) observer.learnOwnTop(namesOf(toTop), true, opts.size());
                 p("[ROUTER] " + verb + ": keep-on-top " + (toTop.isEmpty() ? "(none)" : log) + "; -> " + destName + " x" + toOther.size());
                 return ImmutablePair.of(toTop, toOther);
             } catch (Exception e) {
                 auto(verb + "(err)->keep-all-top");
                 return ImmutablePair.of(new CardCollection(opts), new CardCollection());
             }
+        }
+
+        private static List<String> namesOf(List<Card> cards) {
+            List<String> n = new ArrayList<>();
+            for (Card c : cards) n.add(c.getName());
+            return n;
+        }
+
+        /** Every shuffle of this seat's library asks its controller (Player.shuffle); what the seat knew of the
+         *  order is gone. The shuffle itself is the inherited one, unchanged. */
+        @Override
+        public CardCollectionView cheatShuffle(CardCollectionView list) {
+            if (observer != null) observer.forgetOwnTop();
+            return super.cheatShuffle(list);
         }
 
         /** The top-of-library order this seat just chose (names, top first) and the ability that asked,
@@ -4389,6 +4405,9 @@ public final class LlmSpikeGui {
                 p("[ROUTER] order" + srcOf(source) + " -> " + destinationZone + (topDown ? " (top first)" : "") + ": " + log);
                 if (topDown) {
                     lastTopOrder = log.toString(); lastTopOrderSa = source;
+                    // Rearranging the top (Ponder) replaces those cards; a put-back (Brainstorm) goes above them.
+                    observer.learnOwnTop(namesOf(out), true,
+                            source != null && source.getApi() == ApiType.RearrangeTopOfLibrary ? opts.size() : 0);
                     java.util.Collections.reverse(out);
                 }
                 return out;
