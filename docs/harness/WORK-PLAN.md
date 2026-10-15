@@ -48,16 +48,17 @@ the recorded Luna prompts. What still lets text in:
   lane), and the `ANSWER_TOOL=0` / `NATIVE_TOOLS=0` measurement arms.
 
 **A. No engine fallback.** "I would like no engine fallback if able" (owner). **Done 2026-10-15
-(#184, #185, harness-epoch-14).** Left:
-- (retargeting of every kind, divided spells included, redirection, convoke and improvise, and mana from
-  the pool are the seat's since #187 and `fix/multi-target-retarget`);
+(#184, #185, #187, #188, harness-epoch-17).** Since #187 and #188 the seat also owns retargeting of
+every kind (divided spells keep their portions), redirection, convoke and improvise, mana from the
+pool, effects played without the stack (their targets and their cost decision), and since #189 how
+many cards delve exiles. Left:
 - no hook in the pinned engine: the colour an any-colour source makes for a generic shard during payment
   (Lotus Petal, LED; matters only to converge, sunburst and spent-colour checks);
 - the mechanics-only rows (dice, stickers, contraptions, attractions: no deck in the pool reaches them).
 
 First Luna game on answer-tool-v8 (`runs/luna-v8/g1`, $0.018): 24 of 24 decisions by call, 0 Forge-AI
 decisions. It found an unless cost the seat could not pay offered as a choice, and each such answer
-recorded twice; both fixed on `fix/no-engine-fallback-last`.
+recorded twice; both fixed in #187.
 
 **0b. Force the call where it keeps the reasoning (2026-10-15, owner: "the tool call should be the only way
 of interacting").** Researched and measured (`PROMPT-CRAFT.md` rule 2): `tool_choice` "required" for OpenAI

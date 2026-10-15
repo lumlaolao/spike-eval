@@ -376,3 +376,20 @@ First game with no text alternative (`answer-tool-v8`, `tool_choice` "required" 
 - FIXED  an unless cost the seat could not pay ("Pay {2}", "Pay {R}{R}") was offered as a choice; it is
   now a forced decline, not asked.
 - FIXED  each answer to an unless cost was recorded twice (the answer row and an auto row).
+
+### game of 2026-10-15  seed 82  UR Delver (GPT-6 Luna) vs Sneak and Show (Forge AI)  CRASHED T6  $0.03  harness-epoch-17
+
+`runs/luna-v8/g2`, the build of #188. 43 model decisions, all by `answer` call; 0 taken, lost or skipped;
+0 Forge-AI decisions. The seat was ahead (opponent at 12, two Dragon's Rage Channelers) when the game
+thread died.
+- FIXED  StackOverflowError on turn 6: six cards in the graveyard, more than Murktide Regent's generic
+  5, so delve asked the seat inside an affordability test, and the ask's snapshot tested Murktide
+  again. Test `delveWithMurktideInHandDoesNotRecurse` fails on main with the same error.
+- FIXED  delve was not the seat's: every affordability test wrote an auto row exiling the whole
+  graveyard (17 by turn 4), a real payment exiled all of it unasked, and a larger graveyard forced
+  exactly the generic amount. The seat now chooses how many and which, in the real payment only.
+- FIXED  the crash was one log line, a game line with winner "draw" and exit 0, and the sheet passed.
+  Now: 80 stack frames, `game_error` with winner "invalid", exit 3 (run_batch replays it), and
+  `defect_analyzer.py` fails on `game_crash_count`.
+- OPEN   one Luna call hit the 300 s deadline and was retried twice (T4 play, 300 s lost).
+- clean  mulligan, plays, targets, surveil (each answer took effect), the fetch, attacks.
