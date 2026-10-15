@@ -119,6 +119,24 @@ public class AnswerToolTest {
         Assert.assertEquals(ask.via, "lost");
     }
 
+    /** `steps` asks the harness to cast the plan's steps without asking again, which only PLAN_EXECUTE
+     *  does. Without it the play ask must not offer steps: the offer would be a promise the harness breaks. */
+    @Test
+    public void stepsAreOfferedOnlyWhereTheyAreCarriedOut() {
+        boolean was = LlmSpikeGui.PlayerControllerLLM.PLAN_EXECUTE;
+        try {
+            LlmSpikeGui.PlayerControllerLLM.PLAN_EXECUTE = false;
+            String off = LlmSpikeGui.PlayerControllerLLM.playToolAsks(true, false, false);
+            Assert.assertTrue(off.contains("set_plan") && !off.contains("`steps`"), off);
+            LlmSpikeGui.PlayerControllerLLM.PLAN_EXECUTE = true;
+            Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.playToolAsks(true, false, false).contains("`steps`"));
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.PLAN_EXECUTE = was;
+        }
+        // A play decision that does not offer steps ignores them rather than losing the answer.
+        Assert.assertEquals(AnswerTool.validate(AnswerTool.Spec.one(3), "{\"option\":1,\"steps\":[1]}").answer.steps, null);
+    }
+
     /** A seat with the lookahead preview declares `simulate` on every ask, so a decision without a play
      *  menu has the same tools as one with; a preview there is refused with the reason. */
     @Test

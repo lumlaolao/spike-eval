@@ -61,7 +61,7 @@
           },
           "steps": {
             "type": "array",
-            "description": "Optional, on a play decision only, if you want the harness to cast steps of your plan for you without asking again this turn: the CAST/ACTIVATE option numbers you intend to use, in order. Omit anything you are holding.",
+            "description": "Optional, only on a play decision that says it takes `steps`: the CAST/ACTIVATE option numbers of your plan, in order, for the harness to cast without asking again this turn. Omit anything you are holding. Elsewhere it is ignored.",
             "items": {
               "type": "integer"
             }
