@@ -97,10 +97,24 @@ public class LineFindingProbeTest {
         return c;
     }
 
+    /** Seats answer by function call (ToolAnswerBridge) instead of text: GoldenChecksToolTest runs the golden
+     *  checks on the default protocol this way. Each wrapped bridge is kept, so its leaks can be read. */
+    static volatile boolean TOOL_MODE = false;
+    static final List<ToolAnswerBridge> TOOL_BRIDGES = java.util.Collections.synchronizedList(new ArrayList<>());
+
+    private static LLMBridge maybeTool(Recorder r) {
+        if (!TOOL_MODE || r == null) return r;
+        ToolAnswerBridge t = new ToolAnswerBridge(r);
+        TOOL_BRIDGES.add(t);
+        return t;
+    }
+
     static LlmSpikeGui.PlayerControllerLLM seat(Game g, Recorder smart, Recorder fast) {
         Player me = g.getPlayers().get(0);
+        LLMBridge s = maybeTool(smart);
+        LLMBridge f = fast == smart ? s : maybeTool(fast);
         LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(g, me,
-                new LobbyPlayerAi("Seat", null), "Seat", "", smart, fast, "llm");
+                new LobbyPlayerAi("Seat", null), "Seat", "", s, f, "llm");
         me.dangerouslySetController(ctrl);
         return ctrl;
     }

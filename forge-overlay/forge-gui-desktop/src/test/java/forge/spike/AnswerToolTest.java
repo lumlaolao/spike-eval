@@ -166,8 +166,8 @@ public class AnswerToolTest {
                 + "[{\"type\":\"reasoning.encrypted\",\"data\":\"gAAAA\"}]}"));
     }
 
-    /** A reply that explains its choice in text but calls nothing is asked once, in the same conversation,
-     *  for the call; the caller's full re-ask is no longer needed. */
+    /** A reply that explains its choice in text but calls nothing is asked, in the same conversation, for the
+     *  call; its prose is never parsed as the answer. */
     @Test
     public void aReplyThatCallsNothingIsAskedForTheCallInTheSameConversation() {
         AnswerTool.Ask ask = new AnswerTool.Ask(AnswerTool.Spec.one(5), false);
@@ -184,13 +184,18 @@ public class AnswerToolTest {
         Assert.assertEquals(second.get(1).getAsJsonObject().get("content").getAsString(), "I choose option 5.");
         Assert.assertEquals(second.get(2).getAsJsonObject().get("content").getAsString(), AnswerTool.ANSWER_BY_CALL);
 
-        // A second reply that calls nothing goes to the text parser, as before.
-        AnswerTool.Ask twice = new AnswerTool.Ask(AnswerTool.Spec.one(5), false);
-        String text = AnswerTool.converse("DECISION", twice, (user, messages, tools, allow, r) ->
-                new NativeTools.Turn("CHOICE: 2", "{\"role\":\"assistant\",\"content\":\"CHOICE: 2\"}", new ArrayList<>()),
-                null, (req, res) -> { });
-        Assert.assertEquals(text, "CHOICE: 2");
-        Assert.assertEquals(twice.via, "text");
+        // Text is never read as the answer: replies that keep calling nothing are reminded MAX_NUDGES times,
+        // then the decision is lost (the caller's fixed legal option), even when the prose looks like one.
+        AnswerTool.Ask never = new AnswerTool.Ask(AnswerTool.Spec.one(5), false);
+        int[] rounds = {0};
+        String text = AnswerTool.converse("DECISION", never, (user, messages, tools, allow, r) -> {
+            rounds[0]++;
+            return new NativeTools.Turn("CHOICE: 2", "{\"role\":\"assistant\",\"content\":\"CHOICE: 2\"}", new ArrayList<>());
+        }, null, (req, res) -> { });
+        Assert.assertNull(text);
+        Assert.assertTrue(never.lost);
+        Assert.assertEquals(never.via, "lost");
+        Assert.assertEquals(rounds[0], 1 + AnswerTool.MAX_NUDGES);
     }
 
     /** A play can say which mana sources stay untapped when it is paid, by handle; an empty list leaves it

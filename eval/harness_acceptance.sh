@@ -656,9 +656,9 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 else:
     if game.get("answer_tool") is not True: problems.append("answer_tool=%r not stamped"%game.get("answer_tool"))
-    if game.get("answer_tool_version")!="answer-tool-v6": problems.append("answer_tool_version=%r (move this pin WITH AnswerTool.VERSION)"%game.get("answer_tool_version"))
+    if game.get("answer_tool_version")!="answer-tool-v7": problems.append("answer_tool_version=%r (move this pin WITH AnswerTool.VERSION)"%game.get("answer_tool_version"))
     if game.get("answer_tool_seats")!="A/smart,A/fast": problems.append("answer_tool_seats=%r"%game.get("answer_tool_seats"))
-    if game.get("harness_epoch")!="harness-epoch-12": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-13": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
 dec=[r for r in rows if r.get("t")=="decision"]
 model=[r for r in dec if r.get("tier") in ("smart","fast")]
 via=collections.Counter(r.get("answer_via") for r in model)
@@ -689,9 +689,18 @@ if any(r.get("reply") for r in reqs): problems.append("the fake model answered i
 if any(r.get("has_authorization") for r in reqs): problems.append("authorization header sent to loopback")
 log=open(d+"/game.log",errors="replace").read()
 if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] in log")
+# Every decision goes through the call (owner, 2026-10-15): no tool ask may offer a text answer.
+import re
+TEXT_FORMAT=re.compile(r"\b(?:CHOICE|PICKS|BLOCKS|ALLOC|ATTACKS|ATTACKERS|SIMULATE|STEPS|YIELD|PROFILE|LINES|NUMBER|CARD):\s*<"
+    r"|`(?:PLAN|STEPS|YIELD|PROFILE|LINES|SIMULATE|CHOICE|PICKS|CARD|NUMBER):|(?:[Ee]nd|[Rr]eply|[Aa]nswer) with (?:EXACTLY|exactly)"
+    r"|KEEP or MULLIGAN|instead of an action, you may reply")
+asks=[r for r in rows if r.get("t")=="context_call" and not r.get("round")]
+leaks=[m.group() for r in asks for m in [TEXT_FORMAT.search(r.get("prompt") or "")] if m]
+if leaks: problems.append("%d tool asks offer a text answer, e.g. %r"%(len(leaks),leaks[0]))
+if "[TEXT-FORMAT-LEAK]" in log: problems.append("[TEXT-FORMAT-LEAK] in log")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
-facts="model_decisions=%d via=%s types=%s answer_calls=%d invalid=%d corrected_rows=%d fake_requests=%d"%(
-    len(model),dict(via),",".join(types),len(answers),len(bad),len(corrected),len(reqs))
+facts="model_decisions=%d via=%s types=%s answer_calls=%d invalid=%d corrected_rows=%d fake_requests=%d asks_checked=%d text_formats=0"%(
+    len(model),dict(via),",".join(types),len(answers),len(bad),len(corrected),len(reqs),len(asks))
 print(("FAIL "+"; ".join(problems)+" | "+facts) if problems else "PASS "+facts)
 EOF
 )"
@@ -741,7 +750,7 @@ if game is None: problems.append("no game row")
 else:
     if game.get("context_profile")!="v4-faithful": problems.append("context_profile=%s"%game.get("context_profile"))
     if game.get("memory_tools") is not True: problems.append("memory_tools not stamped")
-    if game.get("harness_epoch")!="harness-epoch-12": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-13": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
     facts.append("winner=%s turns=%s context_sha=%s"%(game.get("winner"),game.get("turns"),game.get("context_sha")))
 if ai_rows: problems.append("%d tier=ai rows"%ai_rows)
 if model_rows<5: problems.append("only %d model-tier rows"%model_rows)
