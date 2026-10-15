@@ -55,9 +55,13 @@ random.seed=42
 # modes, targets), as are discard costs, "unless" payments and votes. The random walk's first new
 # decisions are two play-from-effect rows (first divergence), and it re-rolls: winner B, 30 turns / 164
 # decisions. Reproduced twice (/tmp/acc-lk2, /tmp/acc-lk3). Floor unchanged. linux.* random STALE.
+# 2026-10-15 (later): which mana sources stay untapped is the seat's (holdManaSources); the random arm
+# now holds a random subset 26 times in the game ("mana: keep untapped" lines), so its walk re-rolls:
+# winner B, 70 turns / 438 decisions. Reproduced twice (/tmp/acc-mana2, /tmp/acc-mana3). Floor
+# unchanged (never asked). linux.* random STALE.
 random.winner=B
-random.turns=30
-random.decisions=164
+random.turns=70
+random.decisions=438
 # Silent Forge-AI strategic/payment hooks reachable in Legacy play (ControllerOwnershipTest baseline).
 # 2026-10-15: trigger targets and modes are the seat's (orderAndPlaySimultaneousSa, playTrigger
 # overridden; Forge AI's doTrigger chose every trigger target before). 3 -> 1.

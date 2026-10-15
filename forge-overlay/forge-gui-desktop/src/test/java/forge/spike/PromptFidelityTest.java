@@ -286,4 +286,35 @@ public class PromptFidelityTest {
         Assert.assertEquals(v, b);
         Assert.assertTrue(model.asked("DECISION: VOTE [Council's Judgment"), decisions(model));
     }
+
+    /** Forge's payment chose the lands. Keeping Volcanic Island up (blue for Daze) taps the Mountain. */
+    @Test
+    public void theSeatChoosesWhichManaSourcesStayUntapped() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card volc = card("Volcanic Island", me, ZoneType.Battlefield);
+        Card mountain = card("Mountain", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        Recorder model = new Recorder("CHOICE: 1") {
+            @Override public String ask(String prompt) {
+                prompts.add(prompt);
+                if (prompt.contains("DECISION: MANA:")) {
+                    java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?m)^\\s*(\\d+)\\) Volcanic Island").matcher(prompt);
+                    return m.find() ? "PICKS: " + m.group(1) : "PICKS: NONE";
+                }
+                if (prompt.contains("DECISION: Choose the TARGET")) {
+                    java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?m)^\\s*(\\d+)\\) opponent").matcher(prompt);
+                    return m.find() ? "CHOICE: " + m.group(1) : "CHOICE: 1";
+                }
+                return "CHOICE: 1";
+            }
+        };
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        java.util.List<forge.game.spellability.SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, decisions(model));
+        ctrl.playChosenSpellAbility(r.get(0));
+        Assert.assertTrue(model.asked("DECISION: MANA: you are paying"), decisions(model));
+        Assert.assertFalse(volc.isTapped(), "the source the seat kept is untapped");
+        Assert.assertTrue(mountain.isTapped(), "the other source paid");
+    }
 }
