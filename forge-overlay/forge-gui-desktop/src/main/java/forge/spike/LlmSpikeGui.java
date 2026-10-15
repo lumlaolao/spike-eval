@@ -3181,7 +3181,13 @@ public final class LlmSpikeGui {
             // choice already accounted for; only mana the engine's payment makes is new.
             Set<forge.game.mana.Mana> floating = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
             for (forge.game.mana.Mana m : getPlayer().getManaPool()) floating.add(m);
-            boolean paid = super.payManaCost(toPay, costPartMana, sa, prompt, matrix, effect);
+            List<Card> held = sa.isManaAbility() ? java.util.Collections.emptyList() : holdManaSources(toPay, sa, effect);
+            boolean paid;
+            try {
+                paid = super.payManaCost(toPay, costPartMana, sa, prompt, matrix, effect);
+            } finally {
+                for (Card c : held) forge.ai.AiCardMemory.forgetCard(getPlayer(), c, forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
+            }
             try {
                 for (forge.game.mana.Mana m : sa.getPayingMana()) {
                     Card host = m.getSourceCard();
@@ -3194,6 +3200,58 @@ public final class LlmSpikeGui {
                 costDecisionFellBack("mana-tap-cost", e.getClass().getSimpleName());
             }
             return paid;
+        }
+
+        /** Which mana sources stay untapped is the seat's choice: Forge's payment picked the lands, so
+         *  it decided whether a Volcanic Island or a Mountain paid for a red spell, and with it whether
+         *  blue stayed up for Daze. Asked only when the untapped sources outnumber what the payment needs
+         *  and are not all alike. The picks are held (HELD_MANA_SOURCES_FOR_NEXT_SPELL, which the engine's
+         *  payment always respects) for this payment only; if the engine cannot pay around them, they are
+         *  released and that is logged. Returns the cards held, to be released after the payment. */
+        private List<Card> holdManaSources(forge.card.mana.ManaCost toPay, SpellAbility sa, boolean effect) {
+            List<Card> none = java.util.Collections.emptyList();
+            try {
+                if (sa == null || "floor".equals(mode) || (!smartOk() && !fastOk())) return none;
+                final Player me = getPlayer();
+                CardCollection plan = ComputerUtilMana.getManaSourcesToPayCost(neededMana(toPay, sa, effect), sa, me, effect);
+                if (plan == null || plan.isEmpty()) return none;
+                List<Card> sources = new ArrayList<>();
+                for (Card c : me.getCardsIn(ZoneType.Battlefield)) {
+                    if (c.isTapped() || c == sa.getHostCard()) continue;
+                    if (c.getManaAbilities().anyMatch(ma -> ma.getPayCosts() != null && ma.getPayCosts().hasTapCost())) sources.add(c);
+                }
+                int spare = sources.size() - plan.size();
+                java.util.Set<String> kinds = new java.util.HashSet<>();
+                for (Card c : sources) kinds.add(c.getName());
+                if (spare <= 0 || kinds.size() < 2) return none;
+                List<String> labels = new ArrayList<>();
+                for (Card c : sources) {
+                    StringBuilder m = new StringBuilder();
+                    c.getManaAbilities().forEach(ma -> { if (m.length() > 0) m.append("; "); m.append(flat(ma.getDescription())); });
+                    labels.add(labelOf(c) + " — " + m);
+                }
+                String what = sa.getHostCard() == null ? "this" : verbOf(sa) + " " + labelOf(sa);
+                List<Integer> picks = decideMany(smartOk() ? smart : fast, "mana-sources", "MANA: you are paying "
+                        + toPay + " for " + what + ". It needs " + plan.size() + " of your " + sources.size()
+                        + " untapped mana sources. Which should stay UNTAPPED after this payment (at most " + spare
+                        + ")? Pick none to let the engine choose", labels, 0, spare);
+                if (picks == null || picks.isEmpty()) return none;
+                List<Card> held = new ArrayList<>();
+                for (int i : picks) {
+                    held.add(sources.get(i));
+                    forge.ai.AiCardMemory.rememberCard(me, sources.get(i), forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
+                }
+                if (ComputerUtilMana.getManaSourcesToPayCost(neededMana(toPay, sa, effect), sa, me, effect) == null) {
+                    for (Card c : held) forge.ai.AiCardMemory.forgetCard(me, c, forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
+                    auto("mana-sources(cannot-pay-keeping-them)->engine plan");
+                    return none;
+                }
+                p("[ROUTER] mana: keep untapped " + held.size() + " for " + what);
+                return held;
+            } catch (Exception e) {
+                p("[ROUTER] mana: " + e + " -> engine plan");
+                return none;
+            }
         }
 
         /** Activates each tap-type mana ability the engine's plan for {@code toPay} uses; adds to
