@@ -9,6 +9,9 @@
   python3 scripts/pr_format.py record-review <number> <sha reviewed> <skill> <verdict> [note]
   python3 scripts/pr_format.py record-acceptance <number> <sha tested> <OUT dir> <passed> <total> [note]
   python3 scripts/pr_format.py head <number>                      # the head sha the gate would check
+  python3 scripts/pr_format.py state <number>                     # "OPEN false": state and draft
+
+Every GitHub call is a REST `gh api` call (GraphQL is refused in Claude cloud sessions).
 
 `check-pr --gate` also requires what a merge needs: all three review verdicts for the PR's current
 head commit, none BLOCKER or HIGH, and an acceptance run named in Evidence when code changed.
@@ -146,8 +149,8 @@ def pr_problems(title, body, head=None, files=(), gate=False, commits=()):
     return out
 
 
-def run(*cmd):
-    return subprocess.run(cmd, check=True, stdout=subprocess.PIPE, universal_newlines=True).stdout
+def run(*cmd, input=None):
+    return subprocess.run(cmd, check=True, stdout=subprocess.PIPE, universal_newlines=True, input=input).stdout
 
 
 def base_ref(arg=None):
@@ -159,8 +162,33 @@ def branch_commits(base):
     return [tuple(c.strip("\n").split("\x1f", 1)) for c in out.split("\x1e") if c.strip()]
 
 
+# GitHub is read and written over REST (`gh api`) only: `gh pr view/edit/merge` use GraphQL, which
+# Claude cloud sessions are refused (issue #118). `{owner}/{repo}` is filled in by gh from the remote.
+PULLS = "repos/{owner}/{repo}/pulls/%s"
+
+
+def gh_pages(path):
+    """Every item of a paginated REST list (100 per page)."""
+    out, page = [], 1
+    while True:
+        got = json.loads(run("gh", "api", "%s?per_page=100&page=%d" % (path, page)))
+        out += got
+        if len(got) < 100:
+            return out
+        page += 1
+
+
 def gh_pr(number):
-    return json.loads(run("gh", "pr", "view", str(number), "--json", "title,body,headRefOid,files,commits"))
+    """The PR as the gate reads it: title, body, head sha, state, draft, changed paths, commits."""
+    path = PULLS % number
+    pull = json.loads(run("gh", "api", path))
+    commits = []
+    for c in gh_pages(path + "/commits"):
+        headline, _, rest = c["commit"]["message"].partition("\n")
+        commits.append({"oid": c["sha"], "messageHeadline": headline, "messageBody": rest.strip("\n")})
+    return {"title": pull["title"], "body": pull.get("body") or "", "headRefOid": pull["head"]["sha"],
+            "state": pull["state"].upper(), "isDraft": bool(pull.get("draft")),
+            "files": [{"path": f["filename"]} for f in gh_pages(path + "/files")], "commits": commits}
 
 
 def pr_commits(pr):
@@ -224,7 +252,7 @@ def record_line(number, reviewed, section, prefix, template):
     body = updated_body(pr["body"] or "", section, prefix, line)
     if body is None:
         sys.exit("PR #%s has no `## %s` section" % (number, section))
-    subprocess.run(["gh", "pr", "edit", str(number), "--body", body], check=True, stdout=subprocess.DEVNULL)
+    run("gh", "api", "-X", "PATCH", PULLS % number, "--input", "-", input=json.dumps({"body": body}))
     print(line)
 
 
@@ -250,6 +278,10 @@ def main(argv):
         return 0
     elif cmd == "head" and args:
         print(gh_pr(args[0])["headRefOid"])
+        return 0
+    elif cmd == "state" and args:
+        pr = gh_pr(args[0])
+        print("%s %s" % (pr["state"], str(pr["isDraft"]).lower()))
         return 0
     elif cmd == "record-acceptance" and len(args) >= 5:
         record_line(args[0], args[1], "Evidence", "- acceptance @",
