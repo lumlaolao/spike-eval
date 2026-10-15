@@ -31,6 +31,15 @@ public class PromptFidelityTest {
     @AfterMethod(alwaysRun = true)
     public void legacy() { LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null; }
 
+    static String decisions(Recorder r) {
+        StringBuilder b = new StringBuilder();
+        for (String p : r.prompts) {
+            int i = p.lastIndexOf("DECISION:");
+            b.append(i < 0 ? "(no DECISION)" : p.substring(i, Math.min(p.length(), i + 300))).append("\n---\n");
+        }
+        return b.toString();
+    }
+
     static String promptWith(Recorder r, String needle) {
         for (String p : r.prompts) if (p.contains(needle)) return p;
         Assert.fail("no prompt contains " + needle + ": " + r.prompts);
@@ -48,8 +57,8 @@ public class PromptFidelityTest {
         card("Savannah Lions", rival, ZoneType.Battlefield);
         Recorder smart = new Recorder("CHOICE: 1"), fast = new Recorder("CHOICE: 1");
         seat(g, smart, fast).chooseSpellAbilityToPlay();
-        Recorder asked = smart.asked("Choose the TARGET") ? smart : fast;
-        String p = promptWith(asked, "Choose the TARGET");
+        Recorder asked = smart.asked("DECISION: Choose the TARGET") ? smart : fast;
+        String p = promptWith(asked, "DECISION: Choose the TARGET");
         Assert.assertTrue(p.matches("(?s).*Grizzly Bears[^\\n]*\\[Battlefield, yours\\].*"), p);
         Assert.assertTrue(p.matches("(?s).*Savannah Lions[^\\n]*\\[Battlefield, opponent's\\].*"), p);
         Assert.assertTrue(p.contains("you (Seat)") && p.contains("opponent (Rival)"), p);
@@ -87,5 +96,50 @@ public class PromptFidelityTest {
         Assert.assertEquals(v, 1);
         String p = promptWith(fast, "amount of energy to pay");
         Assert.assertTrue(p.contains("[Galvanic Discharge: Choose target creature or planeswalker."), p);
+    }
+
+    /** runs/loop/g07: the reason for a play did not reach the ask for its target. */
+    @Test
+    public void theTargetAskCarriesTheReasonForThePlay() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        card("Savannah Lions", rival, ZoneType.Battlefield);
+        Recorder smart = new Recorder("Bolt the Lions before they attack.\nCHOICE: 1"), fast = new Recorder("CHOICE: 1");
+        seat(g, smart, fast).chooseSpellAbilityToPlay();
+        Recorder asked = smart.asked("DECISION: Choose the TARGET") ? smart : fast;
+        String p = promptWith(asked, "DECISION: Choose the TARGET");
+        Assert.assertTrue(p.contains("THE PLAY YOU CHOSE MOST RECENTLY (T"), p);
+        Assert.assertTrue(p.contains("Bolt the Lions before they attack."), p);
+        Assert.assertTrue(p.indexOf("THE PLAY YOU CHOSE") < p.indexOf("DECISION: Choose the TARGET"), "shown before the decision");
+        Assert.assertFalse(promptWith(asked, "DECISION: You have priority").contains("THE PLAY YOU CHOSE"),
+                "the play menu is where a new play is chosen, so it does not carry the old one");
+    }
+
+    /** runs/loop/g06 and g07: at the target step the model no longer wanted the play and had no way
+     *  back ("there's no 'don't activate' option"). Cancelling re-asks the menu, which says so. */
+    @Test
+    public void cancellingAtTheTargetStepAsksTheMenuAgain() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        card("Savannah Lions", rival, ZoneType.Battlefield);
+        Recorder model = new Recorder("CHOICE: 1") {
+            @Override public String ask(String prompt) {
+                prompts.add(prompt);
+                if (prompt.contains("DECISION: Choose the TARGET")) {
+                    java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?m)^\\s*(\\d+)\\) CANCEL:").matcher(prompt);
+                    Assert.assertTrue(m.find(), "the target ask offers cancel: " + prompt);
+                    return "I no longer want this.\nCHOICE: " + m.group(1);
+                }
+                return prompt.contains("NOTE: you chose") ? "CHOICE: 2" : "CHOICE: 1"; // then PASS
+            }
+        };
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Assert.assertNull(ctrl.chooseSpellAbilityToPlay(), "after cancelling, the model passed");
+        Assert.assertTrue(model.asked("NOTE: you chose CAST Lightning Bolt"), decisions(model));
+        Assert.assertTrue(me.getCardsIn(ZoneType.Hand).size() == 1, "nothing was cast");
     }
 }
