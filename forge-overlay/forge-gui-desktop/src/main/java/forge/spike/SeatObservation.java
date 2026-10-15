@@ -666,9 +666,13 @@ final class SeatObservation {
             if ((n == null || n.isEmpty()) && c.isFaceDown()) {
                 try { n = c.getState(CardStateName.Original).getName(); } catch (Exception ignore) { }
             }
-            // An effect is named after its source with the source's engine id in the name ("The Wondrous Wasp
-            // (53)'s Effect", runs/luna-std/g6); no card name contains one, so it is dropped.
-            return n == null ? "" : ENGINE_ID.matcher(n).replaceAll("");
+            if (n == null) return "";
+            // Forge names an effect `hostCard + "'s Effect"`, and a card prints as "Name (id)" ("The Wondrous Wasp
+            // (53)'s Effect", runs/luna-std/g6). The name is rebuilt from the source card itself; the id filter is
+            // only the fallback for a name whose source is gone (no card name holds "(digits)": test_deck_legality).
+            Card src = c.getEffectSource();
+            if (src != null && n.startsWith(src.toString())) return src.getName() + n.substring(src.toString().length());
+            return ENGINE_ID.matcher(n).replaceAll("");
         } catch (Exception e) { return "?"; }
     }
 
