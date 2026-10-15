@@ -212,6 +212,54 @@ public class PromptFidelityTest {
                 "the Forest was not tapped");
     }
 
+    /** Forge's payment paid a Phyrexian symbol with mana whenever it could; how it is paid is the
+     *  seat's, and only splits it can pay are offered. */
+    private static Player castsProbePaying(String answer) {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Island", me, ZoneType.Battlefield);
+        card("Gitaxian Probe", me, ZoneType.Hand);
+        Recorder model = new Recorder("CHOICE: 1") {
+            @Override public String ask(String prompt) {
+                prompts.add(prompt);
+                if (prompt.contains("Each Phyrexian symbol")) {
+                    Assert.assertTrue(prompt.contains("with mana (no life)") && prompt.contains("with 2 life"), prompt);
+                    return "CHOICE: " + optionIndex(prompt, answer);
+                }
+                return "CHOICE: 1";
+            }
+        };
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        java.util.List<forge.game.spellability.SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, decisions(model));
+        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)));
+        Assert.assertTrue(model.asked("Each Phyrexian symbol"), decisions(model));
+        Assert.assertFalse(g.getStack().isEmpty(), "Gitaxian Probe was cast");
+        return me;
+    }
+
+    @Test
+    public void phyrexianManaPaidWithLifeIsTheSeatsChoice() {
+        Player me = castsProbePaying("pay 1 Phyrexian symbol with 2 life");
+        Assert.assertEquals(me.getLife(), 18);
+        Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).anyMatch(c -> c.getName().equals("Island") && !c.isTapped()), "the Island stayed untapped");
+    }
+
+    @Test
+    public void phyrexianManaPaidWithManaIsTheSeatsChoice() {
+        Player me = castsProbePaying("pay every Phyrexian symbol with mana");
+        Assert.assertEquals(me.getLife(), 20);
+        Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).anyMatch(c -> c.getName().equals("Island") && c.isTapped()), "the Island paid");
+    }
+
+    @Test
+    public void withPhyrexianDropsTheSymbolsPaidWithLife() {
+        forge.card.mana.ManaCost c = new forge.card.mana.ManaCost("1 B/P B/P");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.withPhyrexian(c, 1, false).getShortString(), new forge.card.mana.ManaCost("1 B/P").getShortString());
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.withPhyrexian(c, 0, true).getShortString(), new forge.card.mana.ManaCost("1 B B").getShortString());
+        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.withPhyrexian(new forge.card.mana.ManaCost("U/P"), 1, false).isZero());
+    }
+
     /** Green Sun's Zenith resolved at X=1..3 in recorded games with no question: the AI cast path
      *  never announces X. The seat now asks it, up to what it can pay, before targets. */
     @Test

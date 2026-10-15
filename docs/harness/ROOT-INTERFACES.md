@@ -20,8 +20,9 @@ What changed against the map below, and the contract that keeps it: `docs/STANDA
   "already passed" key is fixed (#144); with `SKIP_HEURISTICS=0` the model asks for its own passes
   (`YIELD:`, #152). Trigger targets/modes (#148), X (#147), attack targets (#149), votes, spells cast
   by effects, discard and "unless" costs (#150) and which mana sources stay untapped (#151) are the
-  seat's. Silent Forge-AI strategic hooks: 3 -> 1 (`payManaCost`: colour of any-colour sources and
-  Phyrexian life-or-mana).
+  seat's. Silent Forge-AI strategic hooks: 3 -> 1 (`payManaCost`: the colour an any-colour source
+  makes during a payment, which has no hook; see OWNERSHIP.md). Since #157 a cost ask can cancel the
+  play, and Phyrexian life-or-mana is the seat's (#158).
 - **Asked blind**: options say whose they are, nothing is cut at 90/160 characters, number/yes-no
   asks carry the source's text (#145); every ask after a play carries the play and the model's reason
   for it, and a target ask can cancel the play (#146, R4 / #108 at the root); modes are chosen before
