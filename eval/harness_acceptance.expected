@@ -81,6 +81,11 @@ ownership.silent_ai_strategic_max=1
 linux.floor.winner=A
 linux.floor.turns=108
 linux.floor.decisions=1081
+# 2026-10-15: Linux random re-measured at the head of the #143-#156 stack (fix/engine-id-leak) in a
+# Debian cloud container (JDK 17, engine 34a8662b), where the stack's Mac-only re-pins had left it STALE:
+# A/45/368, reproduced three times with the same class-load build. Floor unchanged on Linux (A/108/1081).
+# Both OS pin sets are kept so one checkout passes on the Mac laptop and on a Linux server; a change
+# that moves the random walk re-pins the OS it was measured on and marks the other STALE until measured.
 linux.random.winner=A
-linux.random.turns=56
-linux.random.decisions=290
+linux.random.turns=45
+linux.random.decisions=368
