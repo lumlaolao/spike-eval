@@ -1,0 +1,20 @@
+========================================================================
+  EXPLORATORY MODE — numbers from this run are NOT citable.
+  Mirror-deck / forced-heuristics-off / jobs=1 guards are DISABLED.
+  Re-run without --exploratory (and a mirror deck) for a citable batch.
+========================================================================
+[provenance] engine=34a8662b7966a6ee757411feae2ae8ff38cce436 overlay=2a3436c51547 deck=803898570070 discipline=exploratory
+[provenance] checkpoint=unknown seed_bank=unregistered
+[condition] context_profile=v4-faithful memory_tools=off
+[warn] no --checkpoint given: the game line will not say which weights played. The endpoint's served_* fields are then the only identity, and an alias spec (e.g. openrouter:default_model) may not resolve to one.
+[out] /home/user/mtg-forge-llm-agent/runs/prompt-ab/new
+Resuming: skipping 3/4 combos already complete: 81/swap0, 81/swap1, 82/swap0
+Running 1 games (jobs=2, out=/home/user/mtg-forge-llm-agent/runs/prompt-ab/new, forge_home=/root/forge)
+[budget] this directory may spend up to $0.25 (already $0.06); a game is not started past that, so the overshoot is at most the 2 games in flight
+[start] seed=82 swap=1 -> game-82-1.log
+[done] seed=82 swap=1
+
+=== batch summary ===
+completed: 1  skipped(resume): 3  problems: 0
+[cost] /home/user/mtg-forge-llm-agent/runs/prompt-ab/new: 4 games, 201 model calls, 1.12M prompt + 0.07M completion tokens -> $0.09 ($0.022 per game started)  (60% of prompt tokens read from cache)
+Aggregate with: python3 /tmp/claude-0/new-prompt/eval/aggregate.py /home/user/mtg-forge-llm-agent/runs/prompt-ab/new

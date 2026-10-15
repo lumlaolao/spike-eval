@@ -1,0 +1,405 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=46665 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 34086 files in 2 ms (25 parts) using thread pool
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 857 files in 0 ms (8 parts) using thread pool
+[SEED] 81
+[PLAN] sidecar -> /tmp/claude-0/old-prompt/eval/decks/sneak-and-show.plan
+[PLAN] sidecar -> /tmp/claude-0/old-prompt/eval/decks/ur-delver.plan
+[DECK] loaded 'Seat': 60 main, 0 sideboard  (/tmp/claude-0/old-prompt/eval/decks/sneak-and-show.txt)
+[DECK] loaded 'ForgeAI': 60 main, 0 sideboard  (/tmp/claude-0/old-prompt/eval/decks/ur-delver.txt)
+[SEATS] A=Seat(llm,openrouter:openai/gpt-6-luna) B=ForgeAI(ai,opus)
+[Seat] [OBSERVATION] observation-faithful-v23 (profile v4-faithful/0c84768f2258)
+[HEADLESS] game starting (cap=45min)
+[Seat] [ROUTER] mulligan: 4/7 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 45138 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: KEEP
+[Seat] [TALLY] smart=1 fast=0 auto=0 ai=0 avgSmart=45138ms avgFast=45138ms
+[Seat] [ROUTER] play(main): 0 castable + 3 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 22250 ms with 1 tool call(s)
+[Seat] [ROUTER] plan: GOAL: Assemble Sneak and Show with protection while digging for a creature payoff. NEXT: Play Ancient Tomb now; on the next turn add Volcanic Island to access blue and red, then use cantrips or cast an enabler when a fatty is found.
+[OPENROUTER Seat/smart] replied in 2530 ms with 1 tool call(s)
+[Seat] [ROUTER] lines: Show and Tell + Emrakul, the Aeons Torn -> put Emrakul directly onto the battlefield. Sneak Attack + Griselbrand -> cheat it in with haste, attack, then draw seven cards. Brainstorm + Ponder -> dig and arrange cards to find an enabler and payoff.
+[Seat] [ROUTER] play: land Ancient Tomb
+[Seat] [TALLY] smart=3 fast=0 auto=0 ai=0 avgSmart=23306ms avgFast=23306ms
+[Seat] [ROUTER] play(main): 0 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 26795 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Resolve Show and Tell with Emrakul, ideally after finding protection against Delver's open blue mana. NEXT: Play Volcanic Island now; next turn use Tomb plus Volcanic for cantrips or Show and Tell, while assessing open counters.
+[OPENROUTER Seat/smart] replied in 2374 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Volcanic Island
+[Seat] [TALLY] smart=5 fast=0 auto=0 ai=0 avgSmart=19817ms avgFast=19817ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7799 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Resolve Show and Tell with Emrakul, finding protection against the Delver player's open blue mana. NEXT: Cast Ponder now to dig for Force of Will or Spell Pierce; then reassess whether to commit Show and Tell or wait.
+[OPENROUTER Seat/smart] replied in 4465 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Ponder @6 {U} [Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card.]
+[OPENROUTER Seat/smart] replied in 31716 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 1 for CAST Ponder @17 {U} [Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card.]
+[OPENROUTER Seat/smart] replied in 5159 ms with 1 tool call(s)
+[Seat] [ROUTER] order [Ponder] -> Library (top first): Preordain, Flooded Strand, City of Traitors
+[OPENROUTER Seat/smart] replied in 41085 ms with 1 tool call(s)
+[Seat] [ROUTER] confirm(Do you want to shuffle the library?): NO
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 45054 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Assemble a protected Show and Tell–Emrakul line before Delver's clock and burn become lethal. NEXT: Cast Brainstorm now to find Force of Will or Spell Pierce; then use available mana and land drop to assess whether Show and Tell can be protected.
+[OPENROUTER Seat/smart] replied in 19808 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: UR Delver: Delver clock backed by burn and likely counters; respect open blue mana and Lightning Bolt.
+[Seat] [ROUTER] play: casts Brainstorm @8 {U} [Draw three cards, then put two cards from your hand on top of your library in any order.]
+[OPENROUTER Seat/smart] replied in 21680 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 1 for CAST Brainstorm @25 {U} [Draw three cards, then put two cards from your hand on top of your library in any order.]
+[OPENROUTER Seat/smart] replied in 92039 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: City of Traitors @5 [Hand, yours] -> Library [Brainstorm]
+[OPENROUTER Seat/smart] replied in 26136 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: City of Traitors @2 [Hand, yours] -> Library [Brainstorm]
+[OPENROUTER Seat/smart] replied in 7325 ms with 1 tool call(s)
+[Seat] [ROUTER] order [Brainstorm] -> Library (top first): City of Traitors, City of Traitors
+[Seat] [TALLY] smart=16 fast=0 auto=0 ai=0 avgSmart=25084ms avgFast=25084ms
+[Seat] [ROUTER] play(main): 0 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 34074 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Use the available turn to attempt Show and Tell into Emrakul before Delver's clock and burn finish me. NEXT: Play Flooded Strand, fetch Island, then cast Show and Tell using Island plus Ancient Tomb; accept that it is unprotected unless a response window allows protection.
+[OPENROUTER Seat/smart] replied in 1622 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Flooded Strand
+[Seat] [TALLY] smart=18 fast=0 auto=0 ai=0 avgSmart=24280ms avgFast=24280ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5579 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Flooded Strand @31 [{T}, Pay 1 life, Sacrifice Flooded Strand: Search your library for a Plains or Island card, put it onto the battlefield, then shuffle.]
+[OPENROUTER Seat/smart] replied in 166031 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: Island @78 [Library, yours] -> Battlefield [Flooded Strand]
+[Seat] [TALLY] smart=20 fast=0 auto=0 ai=0 avgSmart=30432ms avgFast=30432ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3913 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Show and Tell @9 2{U} [Each player may put an artifact, creature, enchantment, or land card from their hand onto the battlefield.]
+[OPENROUTER Seat/smart] replied in 5518 ms with 1 tool call(s)
+[Seat] [AUTO-LEGAL] prevent-effect(model)->decline
+[Seat] [TALLY] smart=22 fast=0 auto=1 ai=0 avgSmart=28095ms avgFast=28095ms
+[Seat] [ROUTER] play(main): 2 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 27518 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Resolve Sneak Attack and put Emrakul in for a lethal attack before Delver's next combat. NEXT: Cast Preordain to dig for Force of Will/protection, then play City of Traitors, cast Lotus Petal, cast Sneak Attack, and activate it for Emrakul if the line remains viable.
+[OPENROUTER Seat/smart] replied in 2239 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Preordain @24 {U} [Scry 2, then draw a card. (To scry 2, look at the top two cards of your library, then put any number of them on the bottom and the rest on top in any order.)]
+[OPENROUTER Seat/smart] replied in 182840 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 2 for CAST Preordain @93 {U} [Scry 2, then draw a card. (To scry 2, look at the top two cards of your library, then put any number of them on the bottom and the rest on top in any order.)]
+[Seat] [TALLY] smart=25 fast=0 auto=1 ai=0 avgSmart=33227ms avgFast=33227ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10312 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[OPENROUTER Seat/smart] replied in 20856 ms with 1 tool call(s)
+[Seat] [ROUTER] scry: keep-on-top Brainstorm, Ponder; -> BOTTOM of your library x0
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 22756 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Win this turn with Sneak Attack into Emrakul, while using Brainstorm to find protection against UR Delver's open mana. NEXT: Cast Brainstorm in response to the Delver trigger; then play City of Traitors, deploy Petal, and attempt Sneak Attack plus an Emrakul activation, protecting the line if possible.
+[OPENROUTER Seat/smart] replied in 1604 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Brainstorm @94 {U} [Draw three cards, then put two cards from your hand on top of your library in any order.]
+[OPENROUTER Seat/smart] replied in 13649 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 1 for CAST Brainstorm @96 {U} [Draw three cards, then put two cards from your hand on top of your library in any order.]
+[OPENROUTER Seat/smart] replied in 39550 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: Brainstorm {U} @97 [Hand, yours] -> Library [Brainstorm]
+[OPENROUTER Seat/smart] replied in 13227 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: City of Traitors @30 [Hand, yours] -> Library [Brainstorm]
+[OPENROUTER Seat/smart] replied in 13788 ms with 1 tool call(s)
+[Seat] [ROUTER] order [Brainstorm] -> Library (top first): Brainstorm, City of Traitors
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 32719 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Win immediately with Sneak Attack into Emrakul and protect the decisive spell from UR Delver. NEXT: Cast Brainstorm now to improve protection; play City of Traitors and Lotus Petal, cast Sneak Attack, then activate it for Emrakul while keeping Force of Will and a blue pitch card available.
+[OPENROUTER Seat/smart] replied in 4562 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Brainstorm @100 {U} [Draw three cards, then put two cards from your hand on top of your library in any order.]
+[OPENROUTER Seat/smart] replied in 42171 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 2 for CAST Brainstorm @103 {U} [Draw three cards, then put two cards from your hand on top of your library in any order.]
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 28738 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[OPENROUTER Seat/smart] replied in 30954 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: City of Traitors @104 [Hand, yours] -> Library [Brainstorm]
+[OPENROUTER Seat/smart] replied in 22362 ms
+[OPENROUTER Seat/smart] replied in 102469 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: Spell Pierce {U} @105 [Hand, yours] -> Library [Brainstorm]
+[OPENROUTER Seat/smart] replied in 33317 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Win this turn with Sneak Attack and Emrakul; at 1 life, Force of Will's life payment is unavailable, so rely on timing and Spell Pierce if possible. NEXT: Put Spell Pierce above City on the library, then play City of Traitors, cast Sneak Attack using Ancient Tomb, Volcanic Island, and Lotus Petal, and activate Sneak Attack for Emrakul.
+[OPENROUTER Seat/smart] replied in 3790 ms with 1 tool call(s)
+[Seat] [ROUTER] order [Brainstorm] -> Library (top first): Spell Pierce, City of Traitors
+[OPENROUTER Seat/smart] replied in 55732 ms
+[OPENROUTER Seat/smart] replied in 36242 ms with 1 tool call(s)
+[Seat] [ROUTER] cleanup-discard: Force of Will
+========== GAME OVER ==========
+outcome: B after 11 turns (AllOpponentsLost) in 1364s
+--- full game log ---
+  MULLIGAN: ForgeAI has kept a hand of 7 cards
+  MULLIGAN: Seat has kept a hand of 7 cards
+  TURN: Turn 1 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Island (117)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Island (117) - {T}: Add {U}.
+  STACK_ADD: ForgeAI cast Delver of Secrets
+  STACK_RESOLVE: Delver of Secrets - Creature 1 / 1
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 2 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Ancient Tomb (47)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 3 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  STACK_ADD: ForgeAI triggered Delver of Secrets
+  STACK_RESOLVE: At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets. [Phase: ForgeAI]
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Flooded Strand (68)
+  LIFE: Life: ForgeAI 20 > 19
+  ZONE_CHANGE: Flooded Strand (68) was put into Graveyard from Battlefield.
+  STACK_ADD: ForgeAI activated Flooded Strand
+  STACK_RESOLVE: Flooded Strand (68) - ForgeAI searches their library for a Plains or Island card, puts it onto the battlefield, then shuffles.
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Insectile Aberration (71) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Insectile Aberration (71).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Insectile Aberration (71) deals 3 combat damage to Seat.
+  LIFE: Life: Seat 20 > 17
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 4 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Volcanic Island (21)
+  MANA: Volcanic Island (21) - {T}: Add {U}.
+  STACK_ADD: Seat cast Ponder
+  STACK_RESOLVE: Ponder (39) - Look at the top 3 cards of Seat's library. Then put them back in any order.You may have that player shuffle their library. Seat draws a card.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  MANA: Volcanic Island (79) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Lightning Bolt targeting [Seat]
+  DAMAGE: Lightning Bolt (61) deals 3 non-combat damage to Seat.
+  LIFE: Life: Seat 17 > 14
+  STACK_RESOLVE: Lightning Bolt (61) - Lightning Bolt (61) deals 3 damage to Seat.
+  PHASE: Seat's Cleanup step
+  TURN: Turn 5 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Island (112)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Insectile Aberration (71) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Insectile Aberration (71).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Insectile Aberration (71) deals 3 combat damage to Seat.
+  LIFE: Life: Seat 14 > 11
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 6 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  MANA: Volcanic Island (21) - {T}: Add {U}.
+  STACK_ADD: Seat cast Brainstorm
+  STACK_RESOLVE: Brainstorm (17) - Seat draws three cards, then puts two cards from their hand on top of their library in any order.
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Flooded Strand (13)
+  LIFE: Life: Seat 11 > 10
+  ZONE_CHANGE: Flooded Strand (13) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat activated Flooded Strand
+  STACK_RESOLVE: Flooded Strand (13) - Seat searches their library for a Plains or Island card, puts it onto the battlefield, then shuffles.
+  MANA: Island (55) - {T}: Add {U}.
+  DAMAGE: Ancient Tomb (47) deals 2 non-combat damage to Seat.
+  LIFE: Life: Seat 10 > 8
+  MANA: Ancient Tomb (47) - {T}: Add {C}{C}. Ancient Tomb deals 2 damage to you. 
+  STACK_ADD: Seat cast Show and Tell
+  MANA: Island (117) - {T}: Add {U}.
+  STACK_ADD: ForgeAI cast Spell Pierce targeting [Each player may put an artifact, creature, enchantment, or land card from their hand onto the battlefield.]
+  ZONE_CHANGE: Send countered spell to Graveyard
+  STACK_RESOLVE: Spell Pierce (93) - Counter Show and Tell (44) unless its controller pays {2}.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 7 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Scalding Tarn (88)
+  LIFE: Life: ForgeAI 19 > 18
+  ZONE_CHANGE: Scalding Tarn (88) was put into Graveyard from Battlefield.
+  STACK_ADD: ForgeAI activated Scalding Tarn
+  STACK_RESOLVE: Scalding Tarn (88) - ForgeAI searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  MANA: Island (117) - {T}: Add {U}.
+  STACK_ADD: ForgeAI cast Ponder
+  STACK_RESOLVE: Ponder (99) - Look at the top 3 cards of ForgeAI's library. Then put them back in any order.You may have that player shuffle their library. ForgeAI draws a card.
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Insectile Aberration (71) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Insectile Aberration (71).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Insectile Aberration (71) deals 3 combat damage to Seat.
+  LIFE: Life: Seat 8 > 5
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Island (112) - {T}: Add {U}.
+  STACK_ADD: ForgeAI cast Delver of Secrets
+  STACK_RESOLVE: Delver of Secrets - Creature 1 / 1
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 8 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  MANA: Island (55) - {T}: Add {U}.
+  STACK_ADD: Seat cast Preordain
+  STACK_RESOLVE: Seat scried 2 card(s) to the top of the library
+  STACK_RESOLVE: Preordain (36) - Seat scries 2. Seat draws a card.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 9 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  STACK_ADD: ForgeAI triggered Delver of Secrets
+  MANA: Volcanic Island (21) - {T}: Add {U}.
+  STACK_ADD: Seat cast Brainstorm
+  STACK_RESOLVE: Brainstorm (14) - Seat draws three cards, then puts two cards from their hand on top of their library in any order.
+  STACK_RESOLVE: At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets. [Phase: ForgeAI]
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Insectile Aberration (71) and Delver of Secrets (70) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Insectile Aberration (71).
+Seat didn't block Delver of Secrets (70).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Insectile Aberration (71) deals 3 combat damage to Seat.
+  DAMAGE: Delver of Secrets (70) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 5 > 1
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Island (117) - {T}: Add {U}.
+  STACK_ADD: ForgeAI cast Delver of Secrets
+  STACK_RESOLVE: Delver of Secrets - Creature 1 / 1
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 10 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  MANA: Island (55) - {T}: Add {U}.
+  STACK_ADD: Seat cast Brainstorm
+  STACK_RESOLVE: Brainstorm (16) - Seat draws three cards, then puts two cards from their hand on top of their library in any order.
+  PHASE: Seat's Main phase, precombat
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  DISCARD: Seat discards Force of Will (27).
+  TURN: Turn 11 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  STACK_ADD: ForgeAI triggered Delver of Secrets
+  STACK_ADD: ForgeAI triggered Delver of Secrets
+  STACK_RESOLVE: At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets. [Phase: ForgeAI]
+  STACK_RESOLVE: At the beginning of your upkeep, look at the top card of your library. You may reveal that card. If an instant or sorcery card is revealed this way, transform Delver of Secrets. [Phase: ForgeAI]
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Insectile Aberration (71), Delver of Secrets (70) and Delver of Secrets (72) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Insectile Aberration (71).
+Seat didn't block Delver of Secrets (70).
+Seat didn't block Delver of Secrets (72).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Insectile Aberration (71) deals 3 combat damage to Seat.
+  DAMAGE: Delver of Secrets (70) deals 1 combat damage to Seat.
+  DAMAGE: Delver of Secrets (72) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 1 > -4
+  PLAYER_CONTROL: Seat has restored control over themself
+  PLAYER_CONTROL: ForgeAI has restored control over themself
+  GAME_OUTCOME: Match Duration 21m : 57s
+  GAME_OUTCOME: Turn 6
+  GAME_OUTCOME: Seat has lost because life total reached 0
+  GAME_OUTCOME: ForgeAI has won because all opponents have lost
+  MATCH_RESULTS: Seat: 0 ForgeAI: 1 
+===============================
