@@ -116,11 +116,16 @@ exits 5 and 6 for the same, after its own gates (2, 3, 4).
 python3 eval/rating.py ROOT/burn ROOT/burn__sanity-floor ROOT/burn__sanity-random [more dirs] [--json]
 ```
 
-- Model: logit P(A beats B) = r_A − r_B + h·s over decisive games, s = +1 when identity A sat in seat
-  1 (`swap` false). σ(h) is the first player's win chance between equals.
+- Model: logit P(A beats B) = r_A − r_B + h·s + m(d_A, d_B) over decisive games, s = +1 when identity
+  A sat in seat 1 (`swap` false). σ(h) is the first player's win chance between equals.
 - Players: `llm:<smart>` (or `llm:<smart>/<fast>` when they differ), `ai`, `ai-log`, `random`, `floor`.
   A sanity arm on the fake model is `llm:openrouter:fake/harness-model[empty]` or `[garbage]`: the
   policy comes from the arm's manifest, and a loopback endpoint's port is not a setting.
+- Matchups: m(d, d′), how much deck d favours its pilot against deck d′, one term per pair of
+  different decks (antisymmetric, 0 in a mirror), with the weak prior N(0, 1) in logits. A game's decks
+  are its run directory's `batch-manifest.json` `deck_a`/`deck_b`; a game without a manifest has no
+  term. The AI-vs-AI controls of a cross panel pin each term down, so a pilot that only ever plays the
+  favoured side is rated on its play, not its deck. Each term is reported with its CI.
 - Scale: `ai` pinned at 1500 (400/ln 10 Elo per logit). Every other rating has the weak prior
   N(1500, 400²); h has N(0, 1). Floor and random, which win almost nothing, therefore stay finite.
   The prior is printed with every report.
@@ -154,8 +159,6 @@ version.
 
 - **Decisive vs strict as the headline.** Both are printed; the decisive score stays the default
   until the owner decides how a wall-clock cap is charged (BENCHMARK-RESEARCH.md, proposal 1).
-- **Matchup term in the rating.** `rating.py` has no deck-matchup effect, so rate mirror games; read
-  the cross panel through `panel_score.py`'s margin.
 - **Crash re-runs.** A crashed game counts 0 in the strict score and is absent from the decisive one.
   `run_batch.py` now plays it once more on the same seed (`--retries`, default 1), setting the failed
   attempt aside under `crashed/`. Dropping the seed for every pilot when it crashes again is still

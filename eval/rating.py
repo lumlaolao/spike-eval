@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Bradley-Terry rating of every player in one or more run directories, with the Forge AI pinned.
 
-Fits logit P(A beats B) = r_A - r_B + h*s over every DECISIVE game, where s = +1 when identity A sat
-in seat 1 (swap false; aggregate.py's first-player convention) and -1 otherwise, so h is the logit of
-the first player's win chance between equals. Players are identified by controller and model:
+Fits logit P(A beats B) = r_A - r_B + h*s + m(d_A, d_B) over every DECISIVE game, where s = +1 when
+identity A sat in seat 1 (swap false; aggregate.py's first-player convention) and -1 otherwise, so h is
+the logit of the first player's win chance between equals, and m is the deck matchup: how much deck d_A
+favours its pilot against deck d_B, antisymmetric (m(d, d') = -m(d', d)) and 0 in a mirror. Players are identified by controller and model:
 "llm:openrouter:anthropic/claude-haiku-5.5" (smart/fast when they differ), "ai", "random", "floor".
 The winner field is identity-keyed (aggregate.py), so a seat swap never flips attribution.
 
@@ -31,9 +32,12 @@ player's own settings (tools, tiers, budgets, served model) must agree across it
 else is refused unless --allow-mixed-conditions is passed. Games of different benchmark versions
 (eval/benchmark_version.py) never pool.
 
-What it cannot do: there is no deck-matchup term, so a cross-panel game (deck d vs deck d') enters
-as if the decks were equal; rate mirror games, or read the cross panel through panel_score.py's
-margin. Draws and unfinished games are left out (a rating is over decisive games).
+Decks: a game's decks are its run directory's batch-manifest deck_a/deck_b files (identity-keyed, like
+the winner). Each pair of different decks that appears gets one matchup term with the weak prior
+N(0, 1) in logits; the AI-vs-AI control games of a cross panel are what pin it down. A game whose decks
+are unknown (no manifest) or the same (a mirror) has no matchup term, so mirror-only data fit exactly as
+before the term existed. The matchup terms are reported with their CIs. Draws and unfinished games are
+left out (a rating is over decisive games).
 
 Usage:
   python3 eval/rating.py DIR [DIR...] [--json] [--resamples 1000] [--bootstrap-seed N]
@@ -57,6 +61,7 @@ ELO_PER_LOGIT = 400.0 / math.log(10.0)
 DEFAULT_RESAMPLES = 1000
 DEFAULT_BOOTSTRAP_SEED = 20261015
 ANCHOR = "ai"
+MATCHUP_PRIOR_SD = 1.0       # logits: the weak prior on each deck-matchup term
 SANITY_TIE_TOL = 1e-6        # logits: two players with identical data fit to the same rating
 GOF_FLAG_Z = 2.0
 
@@ -162,20 +167,44 @@ def check_conditions(games):
     return problems
 
 
+def manifest_decks(run_dir):
+    """(deck of identity A, deck of identity B) named by the run directory's batch manifest, as deck file
+    stems ("burn" for eval/decks/burn.txt), or (None, None) when there is no manifest."""
+    try:
+        cond = json.loads((Path(run_dir) / "batch-manifest.json").read_text()).get("condition") or {}
+    except (OSError, ValueError):
+        return None, None
+    stem = lambda p: Path(p).stem if p else None  # noqa: E731
+    return stem(cond.get("deck_a")), stem(cond.get("deck_b"))
+
+
 def load_games(dirs):
-    """Kept (deduplicated) game lines of every experiment in each directory, tagged with `_dir`."""
+    """Kept (deduplicated) game lines of every experiment in each directory, tagged with `_dir` and the
+    manifest's decks (`_deck_a`, `_deck_b`)."""
     out = []
     for d in dirs:
+        da, db = manifest_decks(d)
         for e in aggregate.parse_dir_full(d)["experiments"]:
             for g in tag_fake_policy(e["games"], d):
                 g["_dir"] = str(d)
+                g["_deck_a"], g["_deck_b"] = da, db
                 out.append(g)
     return out
 
 
+def matchup_of(da, db):
+    """(pair, sign) for decks da (identity A) and db, where pair is the sorted deck pair and sign is +1
+    when da is its first deck; None for a mirror or an unknown deck."""
+    if not da or not db or da == db:
+        return None
+    pair = tuple(sorted((da, db)))
+    return pair, (1 if da == pair[0] else -1)
+
+
 def decisive_records(games):
-    """[(player_a, player_b, s, y, cluster)] for decisive games. s = +1 when A was first, y = 1 when A
-    won. cluster = (stratum, dir, deck_sha, seed): both seat orders of a seed share it."""
+    """[(player_a, player_b, s, y, cluster, matchup)] for decisive games. s = +1 when A was first, y = 1
+    when A won. cluster = (stratum, dir, deck_sha, seed): both seat orders of a seed share it. matchup is
+    matchup_of(A's deck, B's deck)."""
     recs = []
     for g in games:
         w = g.get("winner")
@@ -186,7 +215,7 @@ def decisive_records(games):
         stratum = tuple(sorted((pa, pb)))
         seed = g.get("seed")
         cluster = (stratum, g.get("_dir"), g.get("deck_sha"), seed if seed is not None else id(g))
-        recs.append((pa, pb, s, 1 if w == "A" else 0, cluster))
+        recs.append((pa, pb, s, 1 if w == "A" else 0, cluster, matchup_of(g.get("_deck_a"), g.get("_deck_b"))))
     return recs
 
 
@@ -220,56 +249,69 @@ def _solve(a, b):
 
 
 def cells_of(recs):
-    """{(player_a, player_b, s): [wins_a, games]}: the sufficient statistics of a fit."""
+    """{(player_a, player_b, s, matchup): [wins_a, games]}: the sufficient statistics of a fit."""
     cells = defaultdict(lambda: [0, 0])
-    for pa, pb, s, y, _ in recs:
-        c = cells[(pa, pb, s)]
+    for pa, pb, s, y, _, m in recs:
+        c = cells[(pa, pb, s, m)]
         c[0] += y
         c[1] += 1
     return cells
 
 
-def fit(cells, players, prior_sd, h_prior_sd, anchor=ANCHOR, start=None, max_iter=100):
-    """MAP fit by Newton's method. Returns ({player: rating in logits, anchor 0}, h).
+def matchups_in(cells):
+    return sorted({m[0] for (_pa, _pb, _s, m) in cells if m is not None})
+
+
+def fit(cells, players, prior_sd, h_prior_sd, anchor=ANCHOR, start=None, max_iter=100,
+        matchup_prior_sd=MATCHUP_PRIOR_SD):
+    """MAP fit by Newton's method. Returns ({player: rating in logits, anchor 0}, h, {deck pair: m}).
 
     The log posterior is strictly concave (the Gaussian priors make it so), so Newton with step
     halving converges from any start."""
     free = [p for p in players if p != anchor]
+    pairs = matchups_in(cells)
     idx = {p: i for i, p in enumerate(free)}
-    n = len(free) + 1                     # + h
+    hi = len(free)                        # h
+    midx = {pair: hi + 1 + j for j, pair in enumerate(pairs)}
+    n = hi + 1 + len(pairs)
     theta = [0.0] * n
     if start:
-        r0, h0 = start
-        theta = [r0.get(p, 0.0) for p in free] + [h0]
-    pr = 1.0 / (prior_sd * prior_sd)
-    ph = 1.0 / (h_prior_sd * h_prior_sd)
+        r0, h0, m0 = start
+        theta = [r0.get(p, 0.0) for p in free] + [h0] + [m0.get(pair, 0.0) for pair in pairs]
+    prec = [1.0 / (prior_sd * prior_sd)] * len(free) + [1.0 / (h_prior_sd * h_prior_sd)] \
+        + [1.0 / (matchup_prior_sd * matchup_prior_sd)] * len(pairs)
+
+    def design(pa, pb, s, m):
+        xs = []
+        if pa in idx:
+            xs.append((idx[pa], 1.0))
+        if pb in idx:
+            xs.append((idx[pb], -1.0))
+        xs.append((hi, float(s)))
+        if m is not None:
+            xs.append((midx[m[0]], float(m[1])))
+        return xs
 
     def logpost(t):
-        lp = -0.5 * pr * sum(x * x for x in t[:-1]) - 0.5 * ph * t[-1] * t[-1]
-        for (pa, pb, s), (w, k) in cells.items():
-            eta = (t[idx[pa]] if pa in idx else 0.0) - (t[idx[pb]] if pb in idx else 0.0) + t[-1] * s
+        lp = -0.5 * sum(q * x * x for q, x in zip(prec, t))
+        for key, (w, k) in cells.items():
+            eta = sum(t[i] * xi for i, xi in design(*key))
             # log sigma(eta) and log(1 - sigma(eta)), stably
             lp += w * -_log1pexp(-eta) + (k - w) * -_log1pexp(eta)
         return lp
 
     cur = logpost(theta)
     for _ in range(max_iter):
-        grad = [-pr * x for x in theta[:-1]] + [-ph * theta[-1]]
+        grad = [-q * x for q, x in zip(prec, theta)]
         hess = [[0.0] * n for _ in range(n)]
-        for i in range(n - 1):
-            hess[i][i] = pr
-        hess[-1][-1] = ph
-        for (pa, pb, s), (w, k) in cells.items():
-            eta = (theta[idx[pa]] if pa in idx else 0.0) - (theta[idx[pb]] if pb in idx else 0.0) + theta[-1] * s
+        for i in range(n):
+            hess[i][i] = prec[i]
+        for key, (w, k) in cells.items():
+            xs = design(*key)
+            eta = sum(theta[i] * xi for i, xi in xs)
             p = _sigmoid(eta)
             resid = w - k * p
             v = k * p * (1.0 - p)
-            xs = []
-            if pa in idx:
-                xs.append((idx[pa], 1.0))
-            if pb in idx:
-                xs.append((idx[pb], -1.0))
-            xs.append((n - 1, float(s)))
             for i, xi in xs:
                 grad[i] += resid * xi
                 for j, xj in xs:
@@ -287,7 +329,12 @@ def fit(cells, players, prior_sd, h_prior_sd, anchor=ANCHOR, start=None, max_ite
             break
     ratings = {p: theta[idx[p]] for p in free}
     ratings[anchor] = 0.0
-    return ratings, theta[-1]
+    return ratings, theta[hi], {pair: theta[midx[pair]] for pair in pairs}
+
+
+def matchup_value(matchups, m):
+    """The fitted matchup term for a record's matchup (pair, sign), 0 for a mirror or unknown deck."""
+    return 0.0 if m is None else m[1] * matchups.get(m[0], 0.0)
 
 
 def _log1pexp(x):
@@ -321,13 +368,13 @@ def sanity_violations(ratings):
     return v
 
 
-def goodness_of_fit(recs, ratings, h):
+def goodness_of_fit(recs, ratings, h, matchups=None):
     """Observed vs predicted wins per unordered pair of distinct players."""
     pairs = defaultdict(lambda: {"games": 0, "obs": 0.0, "exp": 0.0, "var": 0.0})
-    for pa, pb, s, y, _ in recs:
+    for pa, pb, s, y, _, m in recs:
         if pa == pb:
             continue
-        p = _sigmoid(ratings[pa] - ratings[pb] + h * s)
+        p = _sigmoid(ratings[pa] - ratings[pb] + h * s + matchup_value(matchups or {}, m))
         lo, hi = sorted((pa, pb))
         q = pairs[(lo, hi)]
         q["games"] += 1
@@ -393,7 +440,7 @@ def chi2_sf(x, k):
 def intransitivity(recs):
     """Directed 3-cycles among head-to-head results whose Wilson 95% CI excludes 50%."""
     h2h = defaultdict(lambda: [0, 0])
-    for pa, pb, _s, y, _ in recs:
+    for pa, pb, _s, y, *_ in recs:
         if pa == pb:
             continue
         lo, hi = sorted((pa, pb))
@@ -424,7 +471,7 @@ def intransitivity(recs):
 # ------------------------------------------------------------ bootstrap
 
 def bootstrap(recs, players, prior_sd, h_prior_sd, point, resamples, seed):
-    """Cluster bootstrap within each pair of players. Returns per-replicate (ratings, h) list."""
+    """Cluster bootstrap within each pair of players. Returns per-replicate (ratings, h, matchups) list."""
     by_stratum = defaultdict(lambda: defaultdict(list))
     for rec in recs:
         by_stratum[rec[4][0]][rec[4]].append(rec)
@@ -436,12 +483,29 @@ def bootstrap(recs, players, prior_sd, h_prior_sd, point, resamples, seed):
         for clusters in strata:
             k = len(clusters)
             for _ in range(k):
-                for pa, pb, s, y, _c in clusters[rng.randrange(k)]:
-                    c = cells[(pa, pb, s)]
+                for pa, pb, s, y, _c, m in clusters[rng.randrange(k)]:
+                    c = cells[(pa, pb, s, m)]
                     c[0] += y
                     c[1] += 1
         reps.append(fit(cells, players, prior_sd, h_prior_sd, start=point))
     return reps
+
+
+def matchup_report(recs, matchups, reps):
+    """{"d1 vs d2": {...}}: how much the first deck favours its pilot against the second, in logits and as
+    a win chance between equal players, with its bootstrap CI and the decisive games behind it."""
+    games = defaultdict(int)
+    for *_x, m in recs:
+        if m is not None:
+            games[m[0]] += 1
+    out = {}
+    for pair, v in sorted(matchups.items()):
+        row = {"logit": v, "first_deck_win_prob_between_equals": _sigmoid(v), "decisive_games": games[pair]}
+        if reps:
+            vals = [x[2].get(pair, 0.0) for x in reps]
+            row["ci95_logit"] = [_pct(vals, 0.025), _pct(vals, 0.975)]
+        out["%s vs %s" % pair] = row
+    return out
 
 
 def _pct(vals, q):
@@ -479,13 +543,13 @@ def rate(dirs, resamples=DEFAULT_RESAMPLES, bootstrap_seed=DEFAULT_BOOTSTRAP_SEE
                                   % ANCHOR)
     prior_sd = anchors["prior_sd_elo"] / ELO_PER_LOGIT
     cells = cells_of(recs)
-    ratings, h = fit(cells, players, prior_sd, anchors["h_prior_sd"])
-    reps = bootstrap(recs, players, prior_sd, anchors["h_prior_sd"], (ratings, h), resamples,
+    ratings, h, matchups = fit(cells, players, prior_sd, anchors["h_prior_sd"])
+    reps = bootstrap(recs, players, prior_sd, anchors["h_prior_sd"], (ratings, h, matchups), resamples,
                      bootstrap_seed) if resamples > 0 else []
     point_ranks = ranks(ratings)
-    rep_ranks = [ranks(r) for r, _ in reps]
+    rep_ranks = [ranks(r) for r, *_ in reps]
     games_per = defaultdict(lambda: [0, 0])
-    for pa, pb, _s, y, _ in recs:
+    for pa, pb, _s, y, *_ in recs:
         games_per[pa][1] += 1
         games_per[pb][1] += 1
         games_per[pa][0] += y
@@ -496,17 +560,17 @@ def rate(dirs, resamples=DEFAULT_RESAMPLES, bootstrap_seed=DEFAULT_BOOTSTRAP_SEE
                "rank": point_ranks[p], "wins": games_per[p][0], "decisive_games": games_per[p][1],
                "pinned": p == ANCHOR}
         if reps:
-            el = [to_elo(r[p], anchors["anchor_elo"]) for r, _ in reps]
+            el = [to_elo(r[p], anchors["anchor_elo"]) for r, *_ in reps]
             rk = [x[p] for x in rep_ranks]
             row["elo_ci95"] = [_pct(el, 0.025), _pct(el, 0.975)]
             row["rank_ci95"] = [_pct(rk, 0.025), _pct(rk, 0.975)]
         out_players[p] = row
     point_sanity = sanity_violations(ratings)
     rep_sanity = defaultdict(int)
-    for r, _ in reps:
+    for r, *_ in reps:
         for v in sanity_violations(r):
             rep_sanity[v] += 1
-    strict = sum(1 for r, _ in reps if "floor" in r and "random" in r and r["floor"] < r["random"] - SANITY_TIE_TOL)
+    strict = sum(1 for r, *_ in reps if "floor" in r and "random" in r and r["floor"] < r["random"] - SANITY_TIE_TOL)
     present = [p for p in ("floor", "random", ANCHOR) if p in players]
     return {
         "dirs": [str(d) for d in dirs],
@@ -516,14 +580,16 @@ def rate(dirs, resamples=DEFAULT_RESAMPLES, bootstrap_seed=DEFAULT_BOOTSTRAP_SEE
         "mixed_allowed": bool(allow_mixed and (problems or version_problem)),
         "n_games": len([g for g in games if not g.get("_no_game_line")]),
         "n_decisive": len(recs),
-        "model": "logit P(A beats B) = r_A - r_B + h*s; s = +1 when A sat in seat 1",
+        "model": "logit P(A beats B) = r_A - r_B + h*s + m(d_A, d_B); s = +1 when A sat in seat 1",
         "prior": {"anchor": ANCHOR, "anchor_elo": anchors["anchor_elo"],
                   "rating_prior": "N(%g, %g^2) Elo" % (anchors["anchor_elo"], anchors["prior_sd_elo"]),
                   "first_player_prior": "N(0, %g^2) logits" % anchors["h_prior_sd"],
+                  "matchup_prior": "N(0, %g^2) logits per pair of different decks" % MATCHUP_PRIOR_SD,
                   "elo_per_logit": ELO_PER_LOGIT},
         "first_player": {"h_logit": h, "h_elo": h * ELO_PER_LOGIT, "win_prob_between_equals": _sigmoid(h),
-                         "ci95_win_prob": ([_sigmoid(_pct([x for _, x in reps], 0.025)),
-                                            _sigmoid(_pct([x for _, x in reps], 0.975))] if reps else None)},
+                         "ci95_win_prob": ([_sigmoid(_pct([x[1] for x in reps], 0.025)),
+                                            _sigmoid(_pct([x[1] for x in reps], 0.975))] if reps else None)},
+        "matchups": matchup_report(recs, matchups, reps),
         "players": out_players,
         "bootstrap": {"resamples": len(reps), "seed": bootstrap_seed,
                       "unit": "seed cluster (both seat orders) within each pair of players"},
@@ -533,7 +599,7 @@ def rate(dirs, resamples=DEFAULT_RESAMPLES, bootstrap_seed=DEFAULT_BOOTSTRAP_SEE
                    "replicates_floor_strictly_below_random": strict,
                    "valid": not point_sanity and not rep_sanity,
                    "rule": "floor <= random < ai and floor < ai in the point fit and every replicate"},
-        "goodness_of_fit": goodness_of_fit(recs, ratings, h),
+        "goodness_of_fit": goodness_of_fit(recs, ratings, h, matchups),
         "intransitivity": intransitivity(recs),
     }
 
@@ -560,6 +626,11 @@ def print_human(rep):
     print("first player: h = %+.3f logits (%+.0f Elo), P(first wins | equal) = %.3f%s"
           % (fp["h_logit"], fp["h_elo"], fp["win_prob_between_equals"],
              "  95%% CI [%.3f, %.3f]" % tuple(fp["ci95_win_prob"]) if fp["ci95_win_prob"] else ""))
+    for pair, m in rep["matchups"].items():
+        print("matchup %s: m = %+.3f logits, P(first deck's pilot wins | equal players) = %.3f%s, %d decisive games"
+              % (pair, m["logit"], m["first_deck_win_prob_between_equals"],
+                 "  95%% CI [%+.3f, %+.3f] logits" % tuple(m["ci95_logit"]) if "ci95_logit" in m else "",
+                 m["decisive_games"]))
     s = rep["sanity"]
     print("sanity (%s): %s  point=%s replicates=%s" % (s["rule"], "VALID" if s["valid"] else "INVALID",
                                                       s["point_violations"] or "ok", s["replicate_violations"] or "ok"))

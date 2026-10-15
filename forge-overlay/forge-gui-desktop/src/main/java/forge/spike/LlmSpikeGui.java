@@ -3748,6 +3748,17 @@ public final class LlmSpikeGui {
             return super.getCostDecisionMaker(player, ability, effect, prompt);
         }
 
+        /** Permanents an ability's tap part has named, held while that ability's mana is paid (#111).
+         *  Identity-keyed: the same SpellAbility object reaches both the cost decision and payManaCost. */
+        private final Map<SpellAbility, List<Card>> tapPartHolds = new java.util.IdentityHashMap<>();
+
+        void holdForTapPart(SpellAbility sa, Iterable<Card> cards) {
+            List<Card> l = tapPartHolds.computeIfAbsent(sa, k -> new ArrayList<>());
+            for (Card c : cards) l.add(c);
+        }
+
+        void clearTapPartHolds(SpellAbility sa) { tapPartHolds.remove(sa); }
+
         /** #105: a MANA ability's tap-type cost (Heritage Druid: "Tap three untapped Elves you control")
          *  is paid inside {@code ComputerUtilMana} with a hard-coded {@code AiCostDecision}, so Forge's AI
          *  chose which Elves to tap. When the engine's own test payment of this cost plans to use such an
@@ -3775,7 +3786,13 @@ public final class LlmSpikeGui {
             // choice already accounted for; only mana the engine's payment makes is new.
             Set<forge.game.mana.Mana> floating = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
             for (forge.game.mana.Mana m : getPlayer().getManaPool()) floating.add(m);
-            List<Card> held = sa.isManaAbility() ? java.util.Collections.emptyList() : holdManaSources(toPay, sa, effect);
+            List<Card> held = new ArrayList<>(sa.isManaAbility() ? java.util.Collections.emptyList() : holdManaSources(toPay, sa, effect));
+            // What this ability's tap part already named stays untapped too (LlmCostDecision.reserve, #111).
+            List<Card> tapPart = tapPartHolds.remove(sa);
+            if (tapPart != null) {
+                for (Card c : tapPart) forge.ai.AiCardMemory.rememberCard(getPlayer(), c, forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
+                held.addAll(tapPart);
+            }
             boolean paid;
             try {
                 paid = super.payManaCost(toPay, costPartMana, sa, prompt, matrix, effect);
