@@ -527,9 +527,31 @@ public class GoldenChecksTest {
         Player me = g.getPlayers().get(0);
         card("Lightning Bolt", me, ZoneType.Graveyard);
         Card cs = card("Counterspell", me, ZoneType.Graveyard);
-        Script model = new Script("PICKS: 1").on("Delve", picks("Counterspell"));
+        Script model = new Script("PICKS: 1").on("DELVE", picks("Counterspell"));
         CardCollection grave = new CardCollection(me.getCardsIn(ZoneType.Graveyard));
-        Assert.assertEquals(seat(g, model, model).chooseCardsToDelve(1, grave).getFirst(), cs);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Assert.assertEquals(ctrl.inRealPaymentForTest(() -> ctrl.chooseCardsToDelve(1, grave)).getFirst(), cs);
+    }
+
+    /** runs/luna-v8/g2: every delve exiled the whole graveyard unasked ("delve(all)"), and a larger graveyard
+     *  forced exactly the generic amount. Delve exiles any number up to it, so fewer is the seat's choice. */
+    @Test
+    public void delveMayExileFewerAndAnAffordabilityTestAsksNothing() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Island", me, ZoneType.Battlefield);
+        Card bolt = card("Lightning Bolt", me, ZoneType.Graveyard);
+        card("Ponder", me, ZoneType.Graveyard);
+        card("Flooded Strand", me, ZoneType.Graveyard);
+        Script model = new Script("PICKS: NONE").on("DELVE", picks("Lightning Bolt"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        CardCollection grave = new CardCollection(me.getCardsIn(ZoneType.Graveyard));
+        Assert.assertEquals(ctrl.chooseCardsToDelve(3, grave).size(), 3, "a test counts every card that could pay");
+        Assert.assertTrue(model.prompts.isEmpty(), "and asks nothing");
+        forge.game.card.CardCollectionView out = ctrl.inRealPaymentForTest(() -> ctrl.chooseCardsToDelve(3, grave));
+        Assert.assertEquals(out.size(), 1, "three Islands pay the rest: the seat exiled only " + out);
+        Assert.assertTrue(out.contains(bolt));
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
     /** An edict (not a cost): which permanent is sacrificed. */

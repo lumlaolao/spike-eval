@@ -1595,7 +1595,9 @@ public class LlmSpikeTest {
         addGraveCard("Forest", me);
         addGraveCard("Swamp", me);
         addGraveCard("Island", me);
-        CardCollectionView exiled = ctrl.chooseCardsToDelve(1, new CardCollection(me.getCardsIn(ZoneType.Graveyard)));
+        final LlmSpikeGui.PlayerControllerLLM dc = ctrl;
+        final CardCollection grave = new CardCollection(me.getCardsIn(ZoneType.Graveyard));
+        CardCollectionView exiled = dc.inRealPaymentForTest(() -> dc.chooseCardsToDelve(1, grave));
         Assert.assertEquals(exiled.size(), 1, "must exile exactly one card");
         Assert.assertEquals(exiled.iterator().next().getName(), "Swamp");
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
