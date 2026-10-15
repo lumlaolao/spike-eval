@@ -3205,8 +3205,7 @@ public final class LlmSpikeGui {
             clearLast();
             List<T> opts = new ArrayList<>();
             for (T t : optionList) opts.add(t);
-            if (opts.isEmpty())
-                return isOptional ? null : super.chooseSingleEntityForEffect(optionList, delayedReveal, sa, title, isOptional, relatedPlayer, params);
+            if (opts.isEmpty()) return null;   // nothing to choose from (Forge's AI was asked; it had nothing either)
             // delayedReveal carries a reveal side-effect: keep the engine's reveal semantics by
             // revealing BEFORE the pick (exactly PlayerControllerAi's order), then route the pick
             // through the model like any other entity choice (#128). The identities being revealed are
@@ -3250,11 +3249,10 @@ public final class LlmSpikeGui {
         public Card chooseSingleCardForZoneChange(ZoneType destination, List<ZoneType> origin, SpellAbility sa,
                 CardCollection fetchList, DelayedReveal delayedReveal, String selectPrompt, boolean isOptional, Player decider) {
             clearLast();
-            // decider != getPlayer() (the engine asks this controller to choose for ANOTHER player)
-            // still delegates; a delayedReveal does NOT — reveal it in the engine's order, then route
-            // the pick through the model like any other zone-change card choice (#128).
-            if (fetchList == null || fetchList.isEmpty() || decider != getPlayer())
-                return super.chooseSingleCardForZoneChange(destination, origin, sa, fetchList, delayedReveal, selectPrompt, isOptional, decider);
+            // Nothing to fetch: nothing to choose. A pick this controller is asked to make is the seat's, whoever
+            // the engine names as decider (it was Forge's AI's when decider was another player). A delayedReveal
+            // is revealed in the engine's order, then the pick is routed like any other (#128).
+            if (fetchList == null || fetchList.isEmpty()) return null;
             if (delayedReveal != null) { try { reveal(delayedReveal); } catch (Exception ignore) { } }
             List<Card> opts = new ArrayList<>(fetchList);
             if (opts.size() == 1 && !isOptional) { auto("zone-change(forced-only-legal)" + srcOf(sa)); return opts.get(0); }
@@ -3290,8 +3288,9 @@ public final class LlmSpikeGui {
         public boolean chooseTargetsFor(SpellAbility sa) {
             clearLast();
             try {
-                if (sa == null || !sa.usesTargeting() || sa.getMaxTargets() < 1)
-                    return super.chooseTargetsFor(sa);
+                // Nothing to target: nothing to choose. (Forge's AI was asked here, and every branch below that
+                // could not set targets fell back to it; no engine fallback now.)
+                if (sa == null || !sa.usesTargeting() || sa.getMaxTargets() < 1) return true;
 
                 // A targeting SUB-ABILITY chain used to bail to the Forge AI for the whole chain.
                 // Route every targeting ability in the chain through the same menu (ensureTargetsSet
@@ -3305,13 +3304,16 @@ public final class LlmSpikeGui {
                             return true;
                         }
                     } catch (Exception ignore) { }
-                    return super.chooseTargetsFor(sa);
+                    return firstLegalTargets(sa, "targets(chain,unset)");
                 }
                 TargetRestrictions tr = sa.getTargetRestrictions();
-                if (tr == null) return super.chooseTargetsFor(sa);
+                if (tr == null) return firstLegalTargets(sa, "targets(no-restrictions)");
                 List<GameEntity> cands = tr.getAllCandidates(sa, false);
                 int min = sa.getMinTargets();
-                if (cands == null || cands.isEmpty()) return super.chooseTargetsFor(sa); // truly no target -> engine cancels
+                if (cands == null || cands.isEmpty()) {           // truly no target: the ability cannot be targeted
+                    auto("targets(no-candidate)->cannot target " + labelOf(sa));
+                    return min == 0;
+                }
                 int pick = 0; // default: the (only, or first) legal candidate — beats an AI decline
                 List<String> labels = new ArrayList<>();
                 for (GameEntity ge : cands) labels.add(labelOf(ge));
@@ -3348,7 +3350,7 @@ public final class LlmSpikeGui {
                     // split was never asked and the targets had no allocation (GoldenChecksTest).
                     int divideTotal = divided && sa.getDividedValue() != null ? sa.getDividedValue() : 0;
                     for (int i : tp) sa.getTargets().add(cands.get(i));
-                    if (min > 0 && sa.getTargets().size() < min) return super.chooseTargetsFor(sa); // safety net
+                    if (min > 0 && sa.getTargets().size() < min) return firstLegalTargets(sa, "targets(multi,short)"); // safety net
                     StringBuilder split = new StringBuilder();
                     if (divided && divideTotal > 0 && !tp.isEmpty()) {
                         List<String> tl = new ArrayList<>();
@@ -3399,12 +3401,36 @@ public final class LlmSpikeGui {
                 }
                 sa.resetTargets();
                 boolean added = sa.getTargets().add(cands.get(pick));
-                if (!added || sa.getTargets().size() < Math.max(1, min)) return super.chooseTargetsFor(sa); // safety net
+                if (!added || sa.getTargets().size() < Math.max(1, min)) return firstLegalTargets(sa, "targets(not-added)"); // safety net
                 p("[ROUTER] target: " + labelOf(cands.get(pick)) + " <- " + labelOf(sa)
                         + (cands.size() == 1 ? " (only legal)" : ""));
                 return true;
             } catch (Exception e) {
-                return super.chooseTargetsFor(sa);
+                return firstLegalTargets(sa, "targets(err:" + e.getClass().getSimpleName() + ")");
+            }
+        }
+
+        /** The deterministic legal default for targets the routed path could not set: the first candidates the
+         *  engine accepts, as many as the ability needs (at least one), recorded as a fallback. Returns whether
+         *  the ability's targeting is then satisfied. Never Forge's AI. */
+        private boolean firstLegalTargets(SpellAbility sa, String why) {
+            try {
+                for (SpellAbility s = sa; s != null; s = s.getSubAbility()) {
+                    if (!s.usesTargeting() || s.getTargets().size() >= Math.max(1, s.getMinTargets())) continue;
+                    TargetRestrictions tr = s.getTargetRestrictions();
+                    List<GameEntity> cands = tr == null ? null : tr.getAllCandidates(s, false);
+                    if (cands == null) continue;
+                    for (GameEntity ge : cands) {
+                        if (s.getTargets().size() >= Math.max(1, s.getMinTargets())) break;
+                        if (!s.getTargets().contains(ge) && s.canTarget(ge)) s.getTargets().add(ge);
+                    }
+                }
+                boolean ok = sa.getTargets().size() >= sa.getMinTargets();
+                auto(why + "->" + (ok ? "first legal" : "cannot target"));
+                return ok;
+            } catch (Exception e) {
+                auto(why + "->cannot target (" + e.getClass().getSimpleName() + ")");
+                return false;
             }
         }
 
@@ -3511,8 +3537,7 @@ public final class LlmSpikeGui {
         public CardCollection chooseCardsToDiscardFrom(Player p, SpellAbility sa, CardCollection validCards,
                 int min, int max, CardCollectionView visibleToChooser) {
             clearLast();
-            if (validCards == null || validCards.isEmpty())
-                return super.chooseCardsToDiscardFrom(p, sa, validCards, min, max, visibleToChooser);
+            if (validCards == null || validCards.isEmpty()) return new CardCollection();   // nothing to discard
             // p != getPlayer() means WE choose what SOMEONE ELSE discards (Thoughtseize / Cabal Therapy
             // "RevealYouChoose") — one of the most load-bearing picks in the matchup. Route it, don't delegate.
             boolean stripping = p != getPlayer();
@@ -4119,8 +4144,7 @@ public final class LlmSpikeGui {
         public CardCollectionView chooseCardsForEffect(CardCollectionView sourceList, SpellAbility sa, String title,
                 int min, int max, boolean isOptional, Map<String, Object> params) {
             clearLast();
-            if (sourceList == null || sourceList.isEmpty())
-                return super.chooseCardsForEffect(sourceList, sa, title, min, max, isOptional, params);
+            if (sourceList == null || sourceList.isEmpty()) return new CardCollection();   // nothing to choose from
             List<Card> opts = new ArrayList<>(sourceList);
             if (opts.size() <= Math.max(1, min) && !isOptional) return firstN(opts, min, "cards-for-effect(forced)");
             try {
@@ -4646,8 +4670,8 @@ public final class LlmSpikeGui {
         public String chooseCardName(SpellAbility sa, List<ICardFace> faces, String message) {
             clearLast();
             try {
-                if (faces == null || faces.isEmpty())
-                    return aiDelegate("card-name(list:empty)", super.chooseCardName(sa, faces, message));
+                // No face to name: nothing to choose (Forge's AI was asked here before; no engine fallback).
+                if (faces == null || faces.isEmpty()) { auto("card-name(list:empty)->none"); return ""; }
                 if (rnd != null) { // random arm: uniform over the list — never the model, never the AI
                     String pick = faces.get(rnd.nextInt(faces.size())).getName();
                     auto("card-name(random)->" + pick);
@@ -4685,7 +4709,8 @@ public final class LlmSpikeGui {
                 auto("card-name(list:no-match)->" + faces.get(0).getName());
                 return faces.get(0).getName();
             } catch (Exception e) {
-                return aiDelegate("card-name(list:err)", super.chooseCardName(sa, faces, message));
+                auto("card-name(list:err)->first");
+                return faces == null || faces.isEmpty() ? "" : faces.get(0).getName();
             }
         }
 
@@ -4709,7 +4734,8 @@ public final class LlmSpikeGui {
                             return pick;
                         }
                     } catch (Exception ignore) { }
-                    return aiDelegate("card-name(no-pool)", super.chooseCardName(sa, cpp, valid, message));
+                    auto("card-name(no-pool)->none");
+                    return "";
                 }
                 String want = askCardName(sa, message, valid, name -> {
                     ICardFace f = StaticData.instance().getCommonCards().getFaceByName(name);
@@ -4740,9 +4766,22 @@ public final class LlmSpikeGui {
                         return pick;
                     }
                 } catch (Exception ignore) { }
-                return aiDelegate("card-name(no-pool)", super.chooseCardName(sa, cpp, valid, message));
+                auto("card-name(no-pool)->none");   // no card in the database matches: nothing can be named
+                return "";
             } catch (Exception e) {
-                return aiDelegate("card-name(err)", super.chooseCardName(sa, cpp, valid, message));
+                String first = firstNameMatching(cpp);
+                auto("card-name(err)->" + (first.isEmpty() ? "none" : first));
+                return first;
+            }
+        }
+
+        /** The first card name in the database that {@code cpp} accepts, or "" when none does. */
+        private static String firstNameMatching(java.util.function.Predicate<ICardFace> cpp) {
+            try {
+                return StaticData.instance().getCommonCards().streamAllFaces().filter(cpp == null ? f -> true : cpp)
+                        .findFirst().map(ICardFace::getName).orElse("");
+            } catch (Exception e) {
+                return "";
             }
         }
 
@@ -4788,8 +4827,7 @@ public final class LlmSpikeGui {
                 // choose from) and has no legal candidate to default to. allowRepeat ("choose three,
                 // you may choose the same mode more than once") IS routed: the model picks the modes,
                 // repeats included, so a repeatable Charm is no longer the Forge AI's (#127).
-                if (possible == null || possible.isEmpty())
-                    return aiDelegate("modes(empty)", super.chooseModeForAbility(sa, possible, min, num, allowRepeat));
+                if (possible == null || possible.isEmpty()) { auto("modes(empty)->none"); return new ArrayList<>(); }
                 if (possible.size() == 1 && min >= 1) { auto("modes(forced-only-legal)"); return repeated(possible.get(0), Math.max(min, Math.min(num, 1))); } // forced
                 // No budget: deterministic legal modes (distinct first, then repeats), never Forge AI.
                 if (!smartOk()) {
@@ -4830,7 +4868,9 @@ public final class LlmSpikeGui {
                 p("[ROUTER] modes: " + log);
                 return out;
             } catch (Exception e) {
-                return aiDelegate("modes(err)", super.chooseModeForAbility(sa, possible, min, num, allowRepeat));
+                List<AbilitySub> defPick = possible == null ? new ArrayList<>() : defaultModes(possible, min, num, allowRepeat);
+                auto("modes(err)->first" + defPick.size());
+                return defPick;
             }
         }
 
@@ -5481,6 +5521,8 @@ public final class LlmSpikeGui {
         /** A cost decision the model should have made fell through to the engine's AI. Counted and
          *  logged like every other delegation, so the ai=0 invariant sees it. */
         void costDecisionFellBack(String kind, String why) { noteAi(kind + "(" + why + ")"); }
+        /** A cost decision the seat did not answer, paid with a fixed legal choice (not Forge's AI). */
+        void costDecisionDefault(String what) { auto(what); }
 
         private void noteAi(String where) {
             aiDelegations++;
