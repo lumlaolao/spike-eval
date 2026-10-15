@@ -42,9 +42,15 @@ random.seed=42
 # random pin that #112 recorded as stale (B/19/65 was unreproducible on this machine).
 # The linux.* pins below are ANOTHER ENVIRONMENT's (a Linux container, #95/#112). They do not affect
 # this Mac dev checkout, where the plain keys above are used; Mac development does not maintain them.
+# 2026-10-15: the "already passed here" check no longer applies to the random arm (it is a uniform
+# baseline over every window, and the check is a model-call saving) and now keys on the stack. The
+# random arm used to skip 12 windows with something castable (t:"window" rows, reason last-sig);
+# it now rolls them, so its walk re-rolls: winner B, 32 turns / 173 decisions. Reproduced twice
+# (/tmp/acc-sig2, /tmp/acc-sig3). Floor unchanged (it never builds a menu). The linux.* random pins
+# below are STALE for this change; no Linux run was available.
 random.winner=B
-random.turns=33
-random.decisions=307
+random.turns=32
+random.decisions=173
 # Silent Forge-AI strategic/payment hooks reachable in Legacy play (ControllerOwnershipTest baseline).
 ownership.silent_ai_strategic_max=3
 # 2026-10-14: LINUX pins (PR #95). The same commit plays seed 42 differently on Linux (Debian
