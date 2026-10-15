@@ -460,7 +460,8 @@ stamped). Three changes, each from what the first arms that could ask for a prev
   there`. Each step must be an option on the menu now (a card the first play would draw or create
   cannot be named).
 
-Still one preview per decision. It is an estimate: libraries are
+Still one preview per decision (lifted in harness-epoch-7: any number, and a line of any length; see
+MODEL-LIMITS.md). It is an estimate: libraries are
 shuffled on the copy, the opponent's hand is not determinized, and the opponent is not given a turn.
 Tests: `LookaheadProbeTest` (10). Loopback Mardu mirror: 104 of 104 previews return a result.
 

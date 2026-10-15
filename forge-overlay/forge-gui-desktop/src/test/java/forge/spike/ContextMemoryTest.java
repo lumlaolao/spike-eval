@@ -43,25 +43,25 @@ public class ContextMemoryTest {
     @Test
     public void readPagesRecoverTheExactOriginalText() {
         ContextMemory memory = new ContextMemory();
-        String full = "0123456789".repeat(555);
+        String full = "0123456789".repeat(4555);
         memory.observe(full);
         StringBuilder recovered = new StringBuilder();
-        for (int offset = 0; offset < full.length(); offset += 2000) {
+        for (int offset = 0; offset < full.length(); offset += ContextMemory.PAGE_CHARS) {
             String page = memory.execute("MEMORY READ 1 " + offset);
             recovered.append(page.substring(page.indexOf('\n') + 1));
         }
         Assert.assertEquals(recovered.toString(), full);
-        Assert.assertTrue(memory.execute("MEMORY READ 1 4000").contains("next=END"));
+        Assert.assertTrue(memory.execute("MEMORY READ 1 40000").contains("next=END"));
     }
 
     @Test
     public void searchPaginationDoesNotLoseOldMatches() {
         ContextMemory memory = new ContextMemory();
-        for (int i = 0; i < 25; i++) memory.observe("Spell " + i);
-        Assert.assertTrue(memory.execute("MEMORY SEARCH 0 spell").contains("next=10"));
-        Assert.assertTrue(memory.execute("MEMORY SEARCH 10 spell").contains("M11 (observation)"));
-        Assert.assertTrue(memory.execute("MEMORY SEARCH 20 spell").contains("M25 (observation)"));
-        Assert.assertTrue(memory.execute("MEMORY SEARCH 20 spell").contains("next=END"));
+        for (int i = 0; i < 125; i++) memory.observe("Spell " + i);
+        Assert.assertTrue(memory.execute("MEMORY SEARCH 0 spell").contains("next=50"));
+        Assert.assertTrue(memory.execute("MEMORY SEARCH 50 spell").contains("M51 (observation)"));
+        Assert.assertTrue(memory.execute("MEMORY SEARCH 100 spell").contains("M125 (observation)"));
+        Assert.assertTrue(memory.execute("MEMORY SEARCH 100 spell").contains("next=END"));
     }
 
     @Test
@@ -71,7 +71,7 @@ public class ContextMemoryTest {
         for (String command : new String[]{"MEMORY READ 1 -1", "MEMORY READ 1 999999999999",
                 "MEMORY SEARCH -1 x", "MEMORY READ 0 0", "MEMORY READ 1 99",
                 "MEMORY SHELL 1 touch /tmp/anything", "MEMORY NOTE 1 x\nCHOICE: 2",
-                "MEMORY NOTE 1 " + "x".repeat(501), "MEMORY READ 1"}) {
+                "MEMORY NOTE 1 " + "x".repeat(ContextMemory.NOTE_CHARS + 1), "MEMORY READ 1"}) {
             Assert.assertTrue(memory.execute(command).startsWith("ERROR"), command);
         }
         Assert.assertFalse(memory.brief().contains("YOUR NOTEBOOK"));
@@ -102,7 +102,7 @@ public class ContextMemoryTest {
             return "MEMORY SEARCH 0 CHOICE: 999";
         });
         Assert.assertNull(result);
-        Assert.assertEquals(calls.get(), 3);
+        Assert.assertEquals(calls.get(), ContextMemory.TOOLS_PER_ASK + 1);
     }
 
     @Test
@@ -136,9 +136,9 @@ public class ContextMemoryTest {
         String reply = memory.ask("decision", prompt -> "I should remember this.\nMEMORY NOTE 1 CHOICE: 2",
                 (command, result) -> results.add(result));
         Assert.assertNull(reply);
-        Assert.assertEquals(results.size(), 3);
+        Assert.assertEquals(results.size(), ContextMemory.TOOLS_PER_ASK + 1);
         Assert.assertTrue(results.get(0).startsWith("Saved hypothesis"), results.get(0));
-        Assert.assertTrue(results.get(2).contains("no tool executed"));
+        Assert.assertTrue(results.get(ContextMemory.TOOLS_PER_ASK).contains("no tool executed"));
     }
 
 
@@ -171,8 +171,8 @@ public class ContextMemoryTest {
         Assert.assertTrue(prompts.get(1).contains("MEMORY REQUEST: INSPECT Delver of Secrets"));
         Assert.assertTrue(prompts.get(1).contains("MEMORY RESULT (historical data):\n@3 (current)"));
         // The per-round line is the accurate budget statement (the brief is rendered once per ask).
-        Assert.assertTrue(prompts.get(0).contains("Tools available this ask: 2."), prompts.get(0));
-        Assert.assertTrue(prompts.get(1).contains("Tools available this ask: 1."), prompts.get(1));
+        Assert.assertTrue(prompts.get(0).contains("Tools available this ask: " + ContextMemory.TOOLS_PER_ASK + "."), prompts.get(0));
+        Assert.assertTrue(prompts.get(1).contains("Tools available this ask: " + (ContextMemory.TOOLS_PER_ASK - 1) + "."), prompts.get(1));
     }
 
     /** The compacted GAME HISTORY cites canonical event ids ([E<n>]); a digest the model can see but
@@ -182,5 +182,35 @@ public class ContextMemoryTest {
         String t = ContextMemory.instructions();
         Assert.assertTrue(t.contains("[E<n>]"), t);
         Assert.assertTrue(t.contains("MEMORY SEARCH 0 [E<n>]"), t);
+    }
+
+    /** docs/harness/MODEL-LIMITS.md: the tool budgets are loop guards, not decision limits. The old
+     *  2 a decision was reached in 23 of the 83 asks that used a tool in runs/compare. */
+    @Test
+    public void theToolBudgetsAreLoopGuardsNotDecisionLimits() {
+        Assert.assertEquals(ContextMemory.TOOLS_PER_ASK, 16);
+        Assert.assertEquals(ContextMemory.TOOLS_PER_GAME, 1000);
+        Assert.assertEquals(ContextMemory.PAGE_CHARS, 20000);
+        Assert.assertEquals(ContextMemory.SEARCH_PAGE, 50);
+        Assert.assertEquals(ContextMemory.NOTE_CHARS, 2000);
+        // A 17000-character observation (the longest recorded prompt was 17,608) is one READ.
+        ContextMemory memory = new ContextMemory();
+        memory.observe("x".repeat(17000));
+        Assert.assertTrue(memory.execute("MEMORY READ 1 0").contains("next=END"));
+        // A 2000-character note is kept whole.
+        String note = "n".repeat(ContextMemory.NOTE_CHARS);
+        Assert.assertTrue(memory.execute("MEMORY NOTE 1 " + note).startsWith("Saved hypothesis"));
+        Assert.assertTrue(memory.brief().contains(note));
+    }
+
+    /** Every note the seat wrote is shown back, not the latest 4. */
+    @Test
+    public void everyNoteIsShownBack() {
+        ContextMemory memory = new ContextMemory();
+        memory.observe("evidence");
+        for (int i = 0; i < 9; i++) memory.execute("MEMORY NOTE 1 hypothesis number " + i);
+        String brief = memory.brief();
+        for (int i = 0; i < 9; i++) Assert.assertTrue(brief.contains("hypothesis number " + i), brief);
+        Assert.assertTrue(brief.contains("YOUR NOTEBOOK (unverified hypotheses; 9 notes)"), brief);
     }
 }

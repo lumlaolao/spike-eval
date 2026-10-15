@@ -34,14 +34,17 @@ class ToolUseSuiteTest(unittest.TestCase):
 
     def test_text_arm_is_the_shipped_grammar(self):
         memory = java_literals("ContextMemory.java")
-        self.assertIn(tu.MEMORY_INSTRUCTIONS.split("evidence-tools-v2", 1)[1], memory)
-        self.assertIn('VERSION = "evidence-tools-v2"', memory)
+        self.assertIn(tu.MEMORY_INSTRUCTIONS.split("evidence-tools-v3", 1)[1], memory)
+        self.assertIn('VERSION = "evidence-tools-v3"', memory)
         self.assertIn(tu.NATIVE_INSTRUCTIONS, java_literals("NativeTools.java"))
         self.assertIn('VERSION = "%s"' % self.tools["version"], java_literals("NativeTools.java"))
         self.assertIn(tu.INSPECT_INSTRUCTIONS, java_literals("SeatObservation.java"))
         self.assertIn(tu.ONE_LINE_ERROR, memory)
         self.assertIn("TOOLS_PER_ASK = %d;" % tu.TOOLS_PER_ASK, memory)
         self.assertIn("PAGE_CHARS = %d;" % tu.PAGE_CHARS, memory)
+        self.assertIn("SEARCH_PAGE = %d;" % tu.SEARCH_PAGE, memory)
+        self.assertIn("REQUEST_CHARS = NOTE_CHARS + 100;", memory)
+        self.assertIn("NOTE_CHARS = %d;" % (tu.REQUEST_CHARS - 100), memory)
         self.assertIn("Math.min(text.length(), %d)" % tu.SNIPPET, memory)
         self.assertIn(tu.BUDGET_ERROR, memory)
         gui = java_literals("LlmSpikeGui.java")
@@ -129,8 +132,8 @@ class ToolUseSuiteTest(unittest.TestCase):
             return {"content": None, "tool_calls": [{"id": "x", "type": "function",
                                                      "function": {"name": "inspect", "arguments": "{oops"}}]}
         tu.run_native(s, "need", "smart", model, self.tools, {"tier": "smart"})
-        # A call on the forbidden third round is refused and the model is told once; a second ends the ask.
-        self.assertEqual(seen, ["auto", "auto", "none", "none"])
+        # A call on the forbidden last round is refused and the model is told once; a second ends the ask.
+        self.assertEqual(seen, ["auto"] * tu.TOOLS_PER_ASK + ["none", "none"])
         markup = {"content": '<x invoke name="inspect">'}
         res = tu.run_native(s, "need", "smart", scripted([markup, markup]), self.tools, {"tier": "smart"})
         self.assertIsNone(res["choice"])
@@ -144,7 +147,8 @@ class ToolUseSuiteTest(unittest.TestCase):
                                                  "function": {"name": "inspect", "arguments": "{\"target\": \"@1\"}"}}]}
         bad = {"content": None, "tool_calls": [{"id": "b", "type": "function",
                                                 "function": {"name": "inspect", "arguments": "{oops"}}]}
-        res = tu.run_native(s, "need", "smart", scripted([bad, call, call, {"content": "CHOICE: 2"}]),
+        # The malformed call spends nothing, so the ask's calls run out on its last round.
+        res = tu.run_native(s, "need", "smart", scripted([bad] + [call] * tu.TOOLS_PER_ASK + [{"content": "CHOICE: 2"}]),
                             self.tools, {"tier": "smart"})
         self.assertEqual(res["choice"], 2)
         self.assertEqual(res["calls"][-1]["rejected"], "budget")
@@ -152,7 +156,8 @@ class ToolUseSuiteTest(unittest.TestCase):
 
     def test_text_tool_request_at_zero_budget_yields_no_answer(self):
         s = self.by_id["inspect-attack"]
-        res = tu.run_text(s, "need", "smart", scripted([{"content": "INSPECT @41"}] * 3), False, {"tier": "smart"})
+        res = tu.run_text(s, "need", "smart", scripted([{"content": "INSPECT @41"}] * (tu.TOOLS_PER_ASK + 1)), False,
+                          {"tier": "smart"})
         self.assertIsNone(res["choice"])
         self.assertEqual(res["calls"][-1]["rejected"], "budget")
 

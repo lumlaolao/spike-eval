@@ -746,11 +746,11 @@ final class AnswerTool {
     }
 
     /** The lookahead preview alone, for an answer ask on a seat without MEMORY_TOOLS (LOOKAHEAD=1):
-     *  one preview per decision, on a round whose result can still be read. Offered on EVERY ask of such
+     *  as many previews as the ask has calls (MODEL-LIMITS.md), on rounds whose result can still be read. Offered on EVERY ask of such
      *  a seat, so the tool list (the start of the cache prefix) never changes; `simulate` is null on a
      *  decision with no play menu, and a call there is refused with the reason. */
     static Lookups previewOnly(Function<String, String> simulate) {
-        boolean[] used = {false};
+        int[] used = {0};
         return new Lookups() {
             public JsonArray definitions() {
                 JsonArray out = new JsonArray();
@@ -758,15 +758,15 @@ final class AnswerTool {
                     if (NativeTools.SIMULATE.equals(t.getAsJsonObject().getAsJsonObject("function").get("name").getAsString())) out.add(t);
                 return out;
             }
-            public boolean open(int round) { return simulate != null && !used[0] && round < ContextMemory.TOOLS_PER_ASK; }
+            public boolean open(int round) { return simulate != null && used[0] < ContextMemory.TOOLS_PER_ASK && round < ContextMemory.TOOLS_PER_ASK; }
             public String serve(NativeTools.Call c, boolean open) {
                 if (!NativeTools.SIMULATE.equals(c.name)) return "ERROR: unknown tool `" + c.name + "`. Call `answer`.";
                 if (simulate == null) return NativeTools.NO_PREVIEW + " Call `answer`.";
-                if (!open) return "ERROR: one preview per decision. Call `answer`.";
+                if (!open) return "ERROR: no lookups left for this decision. Call `answer`.";
                 String r;
                 try { r = simulate.apply(c.arguments); } catch (RuntimeException e) { r = "ERROR: preview failed: " + e; }
                 if (r == null) r = "ERROR: preview returned nothing.";
-                if (!r.startsWith("ERROR:")) used[0] = true;
+                if (!r.startsWith("ERROR:")) used[0]++;
                 return r;
             }
         };

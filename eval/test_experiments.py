@@ -61,7 +61,7 @@ def modern_line(seed, swap, winner, **kw):
          "openrouter_base_url": "http://127.0.0.1:8080/v1",
          "checkpoint_sha": "c" * 12, "model_cfg_sha": "builtin",
          "temperature_a": "0.7", "temperature_b": "n/a",
-         "memory_tools": False, "memory_tools_version": "evidence-tools-v1",
+         "memory_tools": False, "memory_tools_version": "evidence-tools-v3",
          "seed_bank": "stage3-holdout",
          "context_profile": "v1-compat", "context_sha": "1111",
          "claude_effort_smart": "n/a", "claude_effort_fast": "n/a",

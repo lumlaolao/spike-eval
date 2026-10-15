@@ -13,11 +13,19 @@ import com.google.gson.JsonParser;
 final class ContextMemory {
     /** v2 (2026-10-13): a command line is executed wherever it sits in the reply (v1 refused any reply
      *  that was not the bare command: 30 of 43 requests across 48 recorded games), and a search with no
-     *  literal match falls back to entries holding every word of the query. */
-    static final String VERSION = "evidence-tools-v2";
-    static final int TOOLS_PER_ASK = 2;
-    static final int TOOLS_PER_GAME = 64;
-    private static final int PAGE_CHARS = 2000;
+     *  literal match falls back to entries holding every word of the query.
+     *  v3 (2026-10-15): the budgets are loop guards, not decision limits (docs/harness/MODEL-LIMITS.md):
+     *  16 calls an ask (2 was reached in 23 of the 83 asks that used a tool in runs/compare), 1000 a
+     *  game, a 20000-character READ page (one page holds any observation), 50 search results a page,
+     *  more than one preview a decision, every note shown, and a note of up to 2000 characters. */
+    static final String VERSION = "evidence-tools-v3";
+    static final int TOOLS_PER_ASK = 16;
+    static final int TOOLS_PER_GAME = 1000;
+    static final int PAGE_CHARS = 20000;
+    static final int SEARCH_PAGE = 50;
+    static final int NOTE_CHARS = 2000;
+    /** The longest command line the executor takes: a NOTE of {@link #NOTE_CHARS} plus its prefix. */
+    static final int REQUEST_CHARS = NOTE_CHARS + 100;
     private static final String TOOLS_SPENT = "No tool calls are available for this decision any more. "
             + "Do not ask for one. Answer the decision above now, ending with the exact answer line it asks for.";
     private final List<Entry> entries = new ArrayList<>();
@@ -65,10 +73,10 @@ final class ContextMemory {
 
     static String instructions() {
         return "MEMORY TOOLS " + VERSION + ": instead of an action, you may reply with exactly ONE line: "
-                + "MEMORY SEARCH <offset> <literal text> (10 matching evidence snippets per page), "
-                + "MEMORY READ <evidence id> <character offset> (2000 characters per page), or "
-                + "MEMORY NOTE <evidence id> <hypothesis or plan, max 500 characters>. "
-                + "Offsets start at 0; evidence ids start at 1. At most 2 tools per ask and 64 per game. "
+                + "MEMORY SEARCH <offset> <literal text> (50 matching evidence snippets per page), "
+                + "MEMORY READ <evidence id> <character offset> (20000 characters per page), or "
+                + "MEMORY NOTE <evidence id> <hypothesis or plan, max 2000 characters>. "
+                + "Offsets start at 0; evidence ids start at 1. At most 16 tools per ask and 1000 per game. "
                 + "GAME HISTORY / RECENT EVENTS cite canonical event ids as [E<n>] — `MEMORY SEARCH 0 [E<n>]` "
                 + "finds that event's archived text, and MEMORY READ reads the whole entry. "
                 + "Tools search only this seat's archived observations and reveals; they cannot query hidden state. "
@@ -126,8 +134,10 @@ final class ContextMemory {
             shown++;
         }
         if (!notes.isEmpty()) {
-            out.append("YOUR NOTEBOOK (unverified hypotheses; latest 4 of ").append(notes.size()).append("):\n");
-            for (int i = Math.max(0, notes.size() - 4); i < notes.size(); i++) out.append(notes.get(i)).append('\n');
+            // Every note: they are the seat's own words, and a latest-4 cut hid the rest.
+            out.append("YOUR NOTEBOOK (unverified hypotheses; ").append(notes.size())
+               .append(notes.size() == 1 ? " note" : " notes").append("):\n");
+            for (String n : notes) out.append(n).append('\n');
         }
         out.append("Brief is selective; older evidence remains searchable. Current state takes precedence.\n");
         return out.toString();
@@ -162,7 +172,7 @@ final class ContextMemory {
             // seat's historical data, and saying otherwise would be a false claim in the prompt.
             boolean rules = request.startsWith("RULES");
             String label = rules ? "RULES" : "MEMORY";
-            exchanges.append("\n").append(label).append(" REQUEST: ").append(request.substring(0, Math.min(request.length(), 1000)))
+            exchanges.append("\n").append(label).append(" REQUEST: ").append(request.substring(0, Math.min(request.length(), REQUEST_CHARS)))
                     .append("\n").append(label).append(" RESULT")
                     .append(rules ? " (public rules text):\n" : " (historical data):\n")
                     .append(result).append('\n');
@@ -180,8 +190,8 @@ final class ContextMemory {
      * {@link #ask} over native function calling. Same archive, same executor, same budget: a call is
      * turned into the canonical command line and run by {@link #execute}. A malformed call is answered
      * with an error and does not spend the budget. `simulate`, when non-null, is offered as one more
-     * tool: it may run once per ask and is one of the ask's two calls, but it is not an archive
-     * lookup and does not count against the per-game allowance (as on the text path).
+     * tool: each preview is one of the ask's calls, but it is not an archive lookup and does not
+     * count against the per-game allowance (as on the text path).
      *
      * A reply with no call that is a text-grammar command instead of an answer is refused: a tool
      * request never reaches an answer parser, on either protocol.
@@ -273,7 +283,7 @@ final class ContextMemory {
     final class NativeAsk {
         final Function<String, String> simulate;
         int used;
-        boolean simulated, reported;
+        boolean reported;
         NativeAsk(Function<String, String> simulate) { this.simulate = simulate; }
         /** A lookup may run this round: budget left for the ask and the game, and not the last round. */
         boolean open(int round) { return used < TOOLS_PER_ASK && toolsUsed < TOOLS_PER_GAME && round < TOOLS_PER_ASK; }
@@ -312,11 +322,11 @@ final class ContextMemory {
         }
         if (NativeTools.SIMULATE.equals(c.name)) {
             if (st.simulate == null) return previews ? NativeTools.NO_PREVIEW : "ERROR: unknown tool `" + c.name + "`.";
-            if (st.simulated) return "ERROR: one preview per decision.";
             String result;
             try { result = st.simulate.apply(c.arguments); } catch (RuntimeException e) { result = "ERROR: preview failed: " + e; }
             if (result == null) result = "ERROR: preview returned nothing.";
-            if (!result.startsWith("ERROR:")) { st.used++; st.simulated = true; }
+            // As many previews as the ask has calls: comparing two lines is what a preview is for.
+            if (!result.startsWith("ERROR:")) st.used++;
             return result;
         }
         String command = NativeTools.command(c.name, c.arguments);
@@ -327,8 +337,8 @@ final class ContextMemory {
     }
 
     String execute(String request) {
-        if (request == null || request.length() > 1000 || request.indexOf('\n') >= 0 || request.indexOf('\r') >= 0)
-            return "ERROR: use exactly one MEMORY/INSPECT/RULES command line, at most 1000 characters.";
+        if (request == null || request.length() > REQUEST_CHARS || request.indexOf('\n') >= 0 || request.indexOf('\r') >= 0)
+            return "ERROR: use exactly one MEMORY/INSPECT/RULES command line, at most 2100 characters.";
         if (request.trim().startsWith("RULES")) {
             if (rulesLookup == null) return "ERROR: RULES is not available under this context profile.";
             String result;
@@ -358,7 +368,7 @@ final class ContextMemory {
                         + " next=" + (end < e.text.length() ? end : "END") + "\n" + e.text.substring(offset, end);
             }
             if ("NOTE".equals(parts[1])) {
-                if (parts[3].length() > 500) return "ERROR: note exceeds 500 characters.";
+                if (parts[3].length() > NOTE_CHARS) return "ERROR: note exceeds " + NOTE_CHARS + " characters.";
                 if ("agent hypothesis".equals(e.kind)) return "ERROR: cite an observation or reveal, not a hypothesis.";
                 String note = "[source M" + value + "] " + parts[3];
                 int noteId = add("agent hypothesis", note);
@@ -390,7 +400,7 @@ final class ContextMemory {
             byWords = !matches.isEmpty();
         }
         if (offset > matches.size()) return "ERROR: offset outside search results.";
-        int end = offset + Math.min(10, matches.size() - offset);
+        int end = offset + Math.min(SEARCH_PAGE, matches.size() - offset);
         StringBuilder out = new StringBuilder("Matches=" + matches.size() + " next="
                 + (end < matches.size() ? end : "END") + (byWords ? " (no literal match; entries holding every word)" : "") + "\n");
         for (int i = offset; i < end; i++) {
