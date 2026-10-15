@@ -134,6 +134,16 @@ class MatchReviewTest(unittest.TestCase):
             self.assertEqual((r["counts"]["REPORT"], r["counts"]["TOOL"], mr.defects(r)), (1, 0, 0))
             self.assertRegex(mr.render(r), r"REPORT x1 +line 1 T4  option 2 names a Mountain")
 
+    def test_a_stray_choice_beside_the_picks_of_a_subset_question_is_not_lost(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "game-1-0.jsonl")
+            row = dec("discard", "smart", choice=1, n_options=4)
+            row.update(prompt="DECISION: discard\nReason briefly, then end with EXACTLY: PICKS: <comma-separated numbers>",
+                       raw_reply="Take Force.\nCHOICE: 1\nPICKS: 1")
+            with open(p, "w") as f:
+                f.write(json.dumps(row) + "\n" + json.dumps({"t": "game", "seed": 1, "swap": False, "winner": "A"}) + "\n")
+            self.assertEqual(mr.review(p)["counts"]["LOST"], 0)
+
     def test_a_clean_game_says_so(self):
         with tempfile.TemporaryDirectory() as d:
             p = os.path.join(d, "game-1-0.jsonl")

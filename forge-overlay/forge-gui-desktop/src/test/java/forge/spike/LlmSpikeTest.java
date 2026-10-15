@@ -504,6 +504,21 @@ public class LlmSpikeTest {
         Assert.assertTrue(LlmSpikeGui.looksLikeDecisionTag("MULLIGAN, too risky."));
     }
 
+    /** A play reply cut off mid-thought that mentions keeping mana open is not a mulligan answer: it
+     *  used to count as one, so its truncation retry never ran. */
+    @Test
+    public void looksLikeDecisionTag_aLowerCaseKeepInProseIsNotAnAnswer() {
+        Assert.assertFalse(LlmSpikeGui.looksLikeDecisionTag("I should keep mana open for Force and pass, but the"));
+        Assert.assertTrue(LlmSpikeGui.looksLikeDecisionTag("Six lands is fine.\nKEEP"));
+    }
+
+    @Test
+    public void aDiscardedReplyKeepsItsEndWhereTheAnswerLineIs() {
+        String reply = "x".repeat(2000) + "\nCHOICE: 7";
+        String kept = LlmSpikeGui.PlayerControllerLLM.headAndTail(reply, 250);
+        Assert.assertTrue(kept.endsWith("CHOICE: 7") && kept.length() < 600, kept.length() + "");
+    }
+
     @Test
     public void collapseDegenerateRepetition_collapsesQF1StyleRepeatedChoiceLines() {
         // Reproduces tournament QF-1 decision_line 87: a fast-tier gemini reply that degenerated into
