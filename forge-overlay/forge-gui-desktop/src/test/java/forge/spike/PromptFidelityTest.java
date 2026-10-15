@@ -215,6 +215,8 @@ public class PromptFidelityTest {
         g.getTriggerHandler().runWaitingTriggers();
         g.getStack().addAllTriggeredAbilitiesToStack();
         Assert.assertTrue(model.asked("DECISION: Choose the TARGET for"), decisions(model));
+        Assert.assertFalse(promptWith(model, "DECISION: Choose the TARGET for").matches("(?s).*\\(\\d+\\)\\].*"),
+                "an engine card id leaked into the trigger's label (runs/loop/g08: [Zone Changer: ... (37)])");
         forge.game.spellability.SpellAbility top = g.getStack().peekAbility();
         Assert.assertNotNull(top, "the trigger is on the stack");
         Assert.assertTrue(top.getTargets().contains(lions), "the seat's target was used: " + top.getTargets());
