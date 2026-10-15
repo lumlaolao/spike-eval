@@ -39,8 +39,10 @@ final class AnswerTool {
      *  v2: one fixed `answer` schema for every decision, validated against the decision; `set_plan`
      *  always offered. Tool definitions open the prompt-cache prefix, so a schema that changed every
      *  decision discarded the cache on every call (docs/harness/PROMPT-CRAFT.md rule 19).
-     *  v3: an optional `why` (one sentence, for the record), and readable reasoning kept on the row. */
-    static final String VERSION = "answer-tool-v3";
+     *  v3: an optional `why` (one sentence, for the record), and readable reasoning kept on the row.
+     *  v4: a reply that calls nothing is asked once, in the same conversation, for the call (`nudged`).
+     *  v5: a play's `keep_untapped` says which mana sources stay untapped when it is paid (work plan item 6). */
+    static final String VERSION = "answer-tool-v5";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -95,6 +97,8 @@ final class AnswerTool {
         /** Steps of the plan the harness may cast for the seat: the 1-based CAST/ACTIVATE options. */
         List<Integer> stepOptions;
         boolean yield, profile, lines, plan;
+        /** A play decision: `keep_untapped` (the mana sources to leave untapped when the chosen play is paid). */
+        boolean keep;
         /** Site-level legality the schema cannot express (a block a blocker cannot make, a card name
          *  that does not exist): an error message, or null when legal. */
         Function<Answer, String> check;
@@ -134,6 +138,9 @@ final class AnswerTool {
         /** Optional one-sentence explanation, for the game record (a model whose reasoning is encrypted
          *  otherwise leaves no trace of why it chose). */
         String why;
+        /** `keep_untapped`: handles of mana sources to leave untapped when the chosen play is paid; null
+         *  when not given (the seat is asked when there is a choice), empty for "the engine chooses". */
+        List<Integer> keepUntapped;
         /** 0-based picks, for the sites that index their own lists. */
         List<Integer> zeroBased() {
             List<Integer> out = new ArrayList<>();
@@ -219,6 +226,12 @@ final class AnswerTool {
                 + "OPPONENT in one short line (their deck and plan, and the cards to respect)."));
         props.add("lines", obj("type", "string", "description", "Optional, when the decision asks for it: how cards in YOUR OWN "
                 + "deck combine, in one or two short lines."));
+        JsonObject keep = obj("type", "array", "description", "Optional, on a play decision whose choice casts or activates "
+                + "something with a mana cost: the mana sources to leave UNTAPPED when it is paid, by handle (\"@12\"), for "
+                + "example to keep blue up for a counterspell. An empty list lets the engine choose the sources. Omit it "
+                + "and you are asked when the choice matters.");
+        keep.add("items", obj("type", "string"));
+        props.add("keep_untapped", keep);
         props.add("why", obj("type", "string", "description", "Optional: one sentence on why you chose this, kept in the "
                 + "game record for the people reviewing it. It does not change the answer."));
         JsonObject params = new JsonObject();
@@ -581,6 +594,16 @@ final class AnswerTool {
         }
         if (s.profile) out.profile = str(a, "profile");
         if (s.lines) out.lines = str(a, "lines");
+        if (s.keep && !absent(a, "keep_untapped")) {
+            if (!a.get("keep_untapped").isJsonArray()) return Result.bad("`keep_untapped` is a list of handles such as \"@12\".");
+            List<Integer> hs = new ArrayList<>();
+            for (JsonElement e : a.getAsJsonArray("keep_untapped")) {
+                java.util.regex.Matcher m = e.isJsonPrimitive() ? java.util.regex.Pattern.compile("@?(\\d+)").matcher(e.getAsString()) : null;
+                if (m == null || !m.find()) return Result.bad("`keep_untapped` is a list of handles such as \"@12\".");
+                hs.add(Integer.parseInt(m.group(1)));
+            }
+            out.keepUntapped = hs;
+        }
         out.why = str(a, "why");
         // The fixed schema names every field; another decision kind's field beside the right one is ignored.
         JsonObject known = (perDecision() ? definition(s) : fixedDefinition())
@@ -620,6 +643,11 @@ final class AnswerTool {
         if (a.yieldUntil != null) b.append("\nYIELD: ").append(a.yieldUntil);
         if (a.profile != null) b.append("\nPROFILE: ").append(a.profile);
         if (a.lines != null) b.append("\nLINES: ").append(a.lines);
+        if (a.keepUntapped != null) {
+            b.append("\nKEEP UNTAPPED: ");
+            if (a.keepUntapped.isEmpty()) b.append("(the engine chooses)");
+            for (int i = 0; i < a.keepUntapped.size(); i++) b.append(i == 0 ? "@" : ", @").append(a.keepUntapped.get(i));
+        }
         return b.toString();
     }
 
@@ -690,9 +718,12 @@ final class AnswerTool {
         /** Receives "GOAL: ... NEXT: ..." from `set_plan`. */
         Consumer<String> planSink = p -> { };
         Answer answer;
-        /** "tool" (answered by a valid call), "text" (a text reply, read by the text parser), "lost" (two
-         *  invalid calls). Null while unanswered or when the bridge returned nothing. */
+        /** "tool" (answered by a valid call), "nudged" (a valid call after one reminder that the reply called
+         *  nothing), "text" (a text reply after that reminder, read by the text parser), "lost" (two invalid
+         *  calls). Null while unanswered or when the bridge returned nothing. */
         String via;
+        /** The reply called nothing once and was asked, in the same conversation, for the call. */
+        boolean nudged;
         int invalid;
         boolean lost;
         /** Text the model wrote alongside its answer call: its reasoning, kept for the row and the
@@ -773,6 +804,9 @@ final class AnswerTool {
     }
 
     static final String CALL_ANSWER = "No lookups are available for this decision any more. Answer it now by calling `answer`.";
+    /** The one nudge for a reply that called nothing. */
+    static final String ANSWER_BY_CALL = "You did not call `answer`, so nothing was done. Call `answer` now with your choice; "
+            + "the decision's last line says which field it takes.";
 
     /**
      * One decision over native function calling, answered by `answer`. Notes are applied first, then the
@@ -802,6 +836,16 @@ final class AnswerTool {
                     messages.add(NativeTools.message("user", CALL_ANSWER));
                     continue;
                 }
+                // A reply that explains its choice but calls nothing ("I choose option 5") used to go to the text
+                // parser, which found no answer line, and the caller asked the whole decision again (9 of 151
+                // asks in runs/prompt-ab/old). Ask once, in this conversation, for the call instead.
+                if (!ask.nudged) {
+                    ask.nudged = true;
+                    messages.add(JsonParser.parseString(turn.messageJson));
+                    messages.add(NativeTools.message("user", ANSWER_BY_CALL));
+                    audit.accept(turn.content, "NUDGE: no `answer` call; asked for one in the same conversation.");
+                    continue;
+                }
                 ask.via = "text";
                 return turn.content;
             }
@@ -820,7 +864,7 @@ final class AnswerTool {
                 Result r = validate(ask.spec, c.arguments);
                 if (r.answer != null) {
                     ask.answer = r.answer;
-                    ask.via = "tool";
+                    ask.via = ask.nudged ? "nudged" : "tool";
                     ask.content = turn.content;
                     audit.accept(c.render(), "ANSWER ACCEPTED");
                     return ask.render();

@@ -1,0 +1,579 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=46665 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 34086 files in 1 ms (25 parts) using thread pool
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 857 files in 0 ms (8 parts) using thread pool
+[SEED] 82
+[PLAN] sidecar -> /tmp/claude-0/old-prompt/eval/decks/sneak-and-show.plan
+[PLAN] sidecar -> /tmp/claude-0/old-prompt/eval/decks/ur-delver.plan
+[DECK] loaded 'Seat': 60 main, 0 sideboard  (/tmp/claude-0/old-prompt/eval/decks/sneak-and-show.txt)
+[DECK] loaded 'ForgeAI': 60 main, 0 sideboard  (/tmp/claude-0/old-prompt/eval/decks/ur-delver.txt)
+[SEATS] A=Seat(llm,openrouter:openai/gpt-6-luna) B=ForgeAI(ai,opus)
+[Seat] [OBSERVATION] observation-faithful-v23 (profile v4-faithful/0c84768f2258)
+[HEADLESS] game starting (cap=45min)
+[Seat] [ROUTER] mulligan: 6/7 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5321 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: MULLIGAN
+[OPENROUTER Seat/smart] replied in 11477 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan-bottom: Atraxa, Grand Unifier
+[Seat] [ROUTER] mulligan: 2/6 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 23119 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: KEEP
+[Seat] [TALLY] smart=3 fast=0 auto=0 ai=0 avgSmart=13305ms avgFast=13305ms
+[Seat] [ROUTER] play(main): 0 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 11532 ms with 1 tool call(s)
+[Seat] [ROUTER] lines: Show and Tell + Emrakul -> put Emrakul in and take an extra turn. Sneak Attack + Griselbrand -> haste attack, then draw seven cards. Brainstorm + fetchland -> hide key cards on top, then shuffle away unwanted cards.
+[Seat] [ROUTER] play: land Ancient Tomb
+[Seat] [TALLY] smart=4 fast=0 auto=0 ai=0 avgSmart=12862ms avgFast=12862ms
+[Seat] [ROUTER] play(main): 0 castable + 3 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9296 ms with 1 tool call(s)
+[Seat] [ROUTER] plan: GOAL: Develop blue access and dig toward a protected Sneak Attack/Show and Tell combo while respecting the Delver clock. NEXT: Play Scalding Tarn, fetch Volcanic Island, and use available mana to cantrip toward a fatty/enabler; preserve Spell Pierce when possible.
+[OPENROUTER Seat/smart] replied in 1778 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Scalding Tarn
+[Seat] [TALLY] smart=6 fast=0 auto=0 ai=0 avgSmart=10420ms avgFast=10420ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5415 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Scalding Tarn @16 [{T}, Pay 1 life, Sacrifice Scalding Tarn: Search your library for a Island or Mountain card, put it onto the battlefield, then shuffle.]
+[OPENROUTER Seat/smart] replied in 3960 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: Volcanic Island @33 [Library, yours] -> Battlefield [Scalding Tarn]
+[Seat] [TALLY] smart=8 fast=0 auto=0 ai=0 avgSmart=8987ms avgFast=8987ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 29609 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Ponder @7 {U} [Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card.]
+[OPENROUTER Seat/smart] replied in 7163 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 1 for CAST Ponder @73 {U} [Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card.]
+[OPENROUTER Seat/smart] replied in 30756 ms with 1 tool call(s)
+[Seat] [ROUTER] order [Ponder] -> Library (top first): Ponder, Scalding Tarn, Sneak Attack
+[OPENROUTER Seat/smart] replied in 77340 ms with 1 tool call(s)
+[Seat] [ROUTER] confirm(Do you want to shuffle the library?): NO
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] unparseable native turn: {"id":"gen-1792055446-MkKyTprbfK5TTt3Wvl5p","error":{"message":"Network connection...
+[Seat] [BRIDGE Seat/smart] no reply (attempt 2/3) -> restarting session, retrying in 500ms
+[OPENROUTER Seat/smart] replied in 7799 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Assemble a protected Sneak Attack/Show and Tell combo while digging for a fatty before the DRC clock becomes dangerous. NEXT: Pass upkeep; play Island in main, then use blue mana for Ponder/Brainstorm to find a fatty or Show and Tell, preserving Spell Pierce if possible.
+[OPENROUTER Seat/smart] replied in 2597 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: UR Delver/tempo: DRC plus cantrips and likely counters/burn; respect open blue mana and removal.
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] HTTP 502: {"error":{"message":"Provider returned error","code":502,"metadata":{"raw":"{...
+[Seat] [BRIDGE Seat/smart] no reply (attempt 2/3) -> restarting session, retrying in 500ms
+[OPENROUTER Seat/smart] replied in 19421 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Assemble a protected Sneak Attack/Show and Tell combo while finding a fatty; use the fetchland to improve Brainstorm and respect UR Delver's open mana. NEXT: Pass this fetch window. On my turn play Scalding Tarn, crack it before Brainstorm if useful, then dig for a fatty/enabler while preserving Spell Pierce where possible.
+[OPENROUTER Seat/smart] replied in 2252 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 87342 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Assemble a protected Show and Tell or Sneak Attack line while finding a fatty; use the fetchland to make Brainstorm stronger and respect UR Delver's open mana. NEXT: In main phase, play Scalding Tarn and crack it for an Island/Volcanic as appropriate, then cast Brainstorm with shuffle access; preserve Spell Pierce if the line permits.
+[OPENROUTER Seat/smart] replied in 2863 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[OPENROUTER Seat/smart] replied in 20083 ms with 1 tool call(s)
+[Seat] [ROUTER] cleanup-discard: Sneak Attack
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8152 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Assemble a protected Sneak/Show line while digging for a fatty; respect UR Delver's open mana. NEXT: Hold Spell Pierce during the opponent's turn. On my turn, cast Brainstorm before cracking Scalding Tarn, then shuffle away unwanted cards; use Ponder if mana allows.
+[OPENROUTER Seat/smart] replied in 10583 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9754 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8588 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Assemble a protected Sneak/Show line while digging for a fatty against UR Delver. NEXT: Cast Brainstorm now before the draw step; keep Spell Pierce available when feasible, then use the land drop/fetch to fix and shuffle unwanted cards.
+[OPENROUTER Seat/smart] replied in 2140 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Brainstorm @1 {U} [Draw three cards, then put two cards from your hand on top of your library in any order.]
+[OPENROUTER Seat/smart] replied in 15895 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 1 for CAST Brainstorm @90 {U} [Draw three cards, then put two cards from your hand on top of your library in any order.]
+[Seat] [TALLY] smart=25 fast=0 auto=0 ai=0 avgSmart=16569ms avgFast=16569ms
+[Seat] [ROUTER] play(main): 0 castable + 3 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8042 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Scalding Tarn
+[Seat] [TALLY] smart=26 fast=0 auto=0 ai=0 avgSmart=16241ms avgFast=16241ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 13922 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Scalding Tarn @95 [{T}, Pay 1 life, Sacrifice Scalding Tarn: Search your library for a Island or Mountain card, put it onto the battlefield, then shuffle.]
+[OPENROUTER Seat/smart] replied in 19881 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: Volcanic Island @39 [Library, yours] -> Battlefield [Scalding Tarn]
+[Seat] [TALLY] smart=28 fast=0 auto=0 ai=0 avgSmart=16288ms avgFast=16288ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6549 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Ponder @76 {U} [Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card.]
+[OPENROUTER Seat/smart] replied in 8028 ms with 1 tool call(s)
+[Seat] [AUTO-LEGAL] mana-sources(cannot-pay-keeping-them)->engine plan
+[OPENROUTER Seat/smart] replied in 19469 ms with 1 tool call(s)
+[Seat] [ROUTER] order [Ponder] -> Library (top first): City of Traitors, Lotus Petal, Lotus Petal
+[OPENROUTER Seat/smart] replied in 8967 ms with 1 tool call(s)
+[Seat] [ROUTER] confirm(Do you want to shuffle the library?): YES
+[Seat] [TALLY] smart=32 fast=0 auto=1 ai=0 avgSmart=15596ms avgFast=15596ms
+[Seat] [ROUTER] play(main): 3 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8958 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Dig for a fatty and assemble a protected Sneak Attack line while managing life against UR Delver. NEXT: Cast Preordain, use the second Preordain to find a creature, and make Island the land drop if possible; preserve Spell Pierce where feasible.
+[OPENROUTER Seat/smart] replied in 2128 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: UR Delver with Dragon's Rage Channelers and likely counter/burn; respect open mana and counters.
+[Seat] [ROUTER] play: casts Preordain @92 {U} [Scry 2, then draw a card. (To scry 2, look at the top two cards of your library, then put any number of them on the bottom and the rest on top in any order.)]
+[OPENROUTER Seat/smart] replied in 3435 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 2 for CAST Preordain @105 {U} [Scry 2, then draw a card. (To scry 2, look at the top two cards of your library, then put any number of them on the bottom and the rest on top in any order.)]
+[Seat] [TALLY] smart=35 fast=0 auto=1 ai=0 avgSmart=14674ms avgFast=14674ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 12804 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[OPENROUTER Seat/smart] replied in 9465 ms with 1 tool call(s)
+[Seat] [ROUTER] scry: keep-on-top (none); -> BOTTOM of your library x2
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 12017 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Keep life and resources for a combo while digging for a fatty; do not waste protection on a low-impact Brainstorm. NEXT: Let Brainstorm resolve, play Island, cast Preordain to find a creature, and preserve Spell Pierce if possible.
+[OPENROUTER Seat/smart] replied in 2415 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 16222 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6369 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 15903 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 19396 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 13423 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=44 fast=0 auto=1 ai=0 avgSmart=14127ms avgFast=14127ms
+[Seat] [ROUTER] play(main): 2 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9682 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Dig into a creature for Sneak Attack while surviving the next combat, then combo immediately. NEXT: Play Island, cast Preordain to find a fatty; preserve Ancient Tomb life and prepare to deploy Sneak Attack next turn.
+[OPENROUTER Seat/smart] replied in 8600 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Island
+[Seat] [TALLY] smart=46 fast=0 auto=1 ai=0 avgSmart=13911ms avgFast=13911ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8154 ms
+[OPENROUTER Seat/smart] replied in 6699 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Preordain @101 {U} [Scry 2, then draw a card. (To scry 2, look at the top two cards of your library, then put any number of them on the bottom and the rest on top in any order.)]
+[OPENROUTER Seat/smart] replied in 8379 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 3 for CAST Preordain @122 {U} [Scry 2, then draw a card. (To scry 2, look at the top two cards of your library, then put any number of them on the bottom and the rest on top in any order.)]
+[Seat] [TALLY] smart=49 fast=0 auto=1 ai=0 avgSmart=13533ms avgFast=13533ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] HTTP 502: upstream request failed
+[Seat] [BRIDGE Seat/smart] no reply (attempt 2/3) -> restarting session, retrying in 500ms
+[OPENROUTER Seat/smart] replied in 15905 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[OPENROUTER Seat/smart] replied in 11213 ms with 1 tool call(s)
+[Seat] [ROUTER] scry: keep-on-top (none); -> BOTTOM of your library x2
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 77359 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Stop the immediate burn spell and find the fastest possible combo line before the opponent's board kills me. NEXT: Force of Will the Chain Lightning using Spell Pierce as the blue card; on my turn dig for a fatty and attempt to deploy Sneak Attack without tapping Ancient Tomb if life remains critical.
+[OPENROUTER Seat/smart] replied in 5360 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Chain Lightning {R} @130 [Stack, opponent's] <- Force of Will @104 3{U}{U} [Counter target spell. (You may pay 1 life and exile a blue card from your hand rather than pay this spell's mana cost.)] (only legal)
+[Seat] [ROUTER] play: casts Force of Will @104 3{U}{U} [Counter target spell. (You may pay 1 life and exile a blue card from your hand rather than pay this spell's mana cost.)]
+[OPENROUTER Seat/smart] replied in 16533 ms with 1 tool call(s)
+[Seat] [AUTO-LEGAL] prevent-effect(model)->decline
+========== GAME OVER ==========
+outcome: B after 15 turns (AllOpponentsLost) in 860s
+--- full game log ---
+  MULLIGAN: Seat has mulliganed down to 6 cards.
+  MULLIGAN: ForgeAI has kept a hand of 7 cards
+  MULLIGAN: Seat has kept a hand of 6 cards
+  TURN: Turn 1 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Volcanic Island (77)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Volcanic Island (77) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Dragon's Rage Channeler
+  STACK_RESOLVE: Dragon's Rage Channeler - Creature 1 / 1
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 2 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Ancient Tomb (45)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 3 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Volcanic Island (79)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Dragon's Rage Channeler (90) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Dragon's Rage Channeler (90).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Dragon's Rage Channeler (90) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 20 > 19
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Volcanic Island (77) - {T}: Add {U}.
+  STACK_ADD: ForgeAI cast Brainstorm
+  STACK_ADD: ForgeAI triggered Dragon's Rage Channeler
+  STACK_RESOLVE: ForgeAI surveiled 1 card(s) to the graveyard
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Brainstorm (74), Activator: ForgeAI, SpellAbility: Draw three cards, then put two cards from your hand on top of your library in any order. ]
+  STACK_RESOLVE: Brainstorm (74) - ForgeAI draws three cards, then puts two cards from their hand on top of their library in any order.
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 4 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Scalding Tarn (30)
+  LIFE: Life: Seat 19 > 18
+  ZONE_CHANGE: Scalding Tarn (30) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat activated Scalding Tarn
+  STACK_RESOLVE: Scalding Tarn (30) - Seat searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  MANA: Volcanic Island (18) - {T}: Add {U}.
+  STACK_ADD: Seat cast Ponder
+  STACK_RESOLVE: Ponder (38) - Look at the top 3 cards of Seat's library. Then put them back in any order.You may have that player shuffle their library. Seat draws a card.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 5 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Island (113)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Dragon's Rage Channeler (90) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Dragon's Rage Channeler (90).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Dragon's Rage Channeler (90) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 18 > 17
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 6 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 7 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Flooded Strand (68)
+  LIFE: Life: ForgeAI 20 > 19
+  ZONE_CHANGE: Flooded Strand (68) was put into Graveyard from Battlefield.
+  STACK_ADD: ForgeAI activated Flooded Strand
+  STACK_RESOLVE: Flooded Strand (68) - ForgeAI searches their library for a Plains or Island card, puts it onto the battlefield, then shuffles.
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Dragon's Rage Channeler (90) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Dragon's Rage Channeler (90).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Dragon's Rage Channeler (90) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 17 > 16
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 8 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  DISCARD: Seat discards Sneak Attack (8).
+  TURN: Turn 9 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Scalding Tarn (86)
+  LIFE: Life: ForgeAI 19 > 18
+  ZONE_CHANGE: Scalding Tarn (86) was put into Graveyard from Battlefield.
+  STACK_ADD: ForgeAI activated Scalding Tarn
+  STACK_RESOLVE: Scalding Tarn (86) - ForgeAI searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Dragon's Rage Channeler (90) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Dragon's Rage Channeler (90).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Dragon's Rage Channeler (90) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 16 > 15
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Volcanic Island (77) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Dragon's Rage Channeler
+  STACK_RESOLVE: Dragon's Rage Channeler - Creature 1 / 1
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 10 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  MANA: Volcanic Island (18) - {T}: Add {U}.
+  STACK_ADD: Seat cast Brainstorm
+  STACK_ADD: ForgeAI cast Force of Negation targeting [Draw three cards, then put two cards from your hand on top of your library in any order. ]
+  STACK_ADD: ForgeAI triggered Dragon's Rage Channeler
+  STACK_ADD: ForgeAI triggered Dragon's Rage Channeler
+  STACK_RESOLVE: ForgeAI surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Force of Negation (100), Activator: ForgeAI, SpellAbility: Counter target noncreature spell. If that spell is countered this way, exile it instead of putting it into its owner's graveyard. (If it's not your turn, you may exile a blue card from your hand rather than pay this spell's mana cost.) ]
+  STACK_RESOLVE: ForgeAI surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Force of Negation (100), Activator: ForgeAI, SpellAbility: Counter target noncreature spell. If that spell is countered this way, exile it instead of putting it into its owner's graveyard. (If it's not your turn, you may exile a blue card from your hand rather than pay this spell's mana cost.) ]
+  ZONE_CHANGE: Send countered spell to Exile
+  STACK_RESOLVE: Force of Negation (100) - Counter target noncreature spell. If that spell is countered this way, exile it instead of putting it into its owner's graveyard. (Targeting: Draw three cards, then put two cards from your hand on top of your library in any order. )
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Scalding Tarn (28)
+  LIFE: Life: Seat 15 > 14
+  ZONE_CHANGE: Scalding Tarn (28) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat activated Scalding Tarn
+  STACK_RESOLVE: Scalding Tarn (28) - Seat searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  MANA: Volcanic Island (19) - {T}: Add {U}.
+  STACK_ADD: Seat cast Ponder
+  STACK_RESOLVE: Ponder (39) - Look at the top 3 cards of Seat's library. Then put them back in any order.You may have that player shuffle their library. Seat draws a card.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 11 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Island (116)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Dragon's Rage Channeler (90) and Dragon's Rage Channeler (91) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Dragon's Rage Channeler (90).
+Seat didn't block Dragon's Rage Channeler (91).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Dragon's Rage Channeler (90) deals 1 combat damage to Seat.
+  DAMAGE: Dragon's Rage Channeler (91) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 14 > 12
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 12 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  MANA: Volcanic Island (19) - {T}: Add {U}.
+  STACK_ADD: Seat cast Preordain
+  STACK_RESOLVE: Seat scried 2 card(s) to the bottom of the library
+  STACK_RESOLVE: Preordain (35) - Seat scries 2. Seat draws a card.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 13 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Scalding Tarn (85)
+  LIFE: Life: ForgeAI 18 > 17
+  ZONE_CHANGE: Scalding Tarn (85) was put into Graveyard from Battlefield.
+  STACK_ADD: ForgeAI activated Scalding Tarn
+  STACK_RESOLVE: Scalding Tarn (85) - ForgeAI searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Dragon's Rage Channeler (90) and Dragon's Rage Channeler (91) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Dragon's Rage Channeler (90).
+Seat didn't block Dragon's Rage Channeler (91).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Dragon's Rage Channeler (90) deals 1 combat damage to Seat.
+  DAMAGE: Dragon's Rage Channeler (91) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 12 > 10
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Island (113) - {T}: Add {U}.
+  STACK_ADD: ForgeAI cast Brainstorm
+  STACK_ADD: ForgeAI triggered Dragon's Rage Channeler
+  STACK_ADD: ForgeAI triggered Dragon's Rage Channeler
+  STACK_RESOLVE: ForgeAI surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Brainstorm (75), Activator: ForgeAI, SpellAbility: Draw three cards, then put two cards from your hand on top of your library in any order. ]
+  STACK_RESOLVE: ForgeAI surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Brainstorm (75), Activator: ForgeAI, SpellAbility: Draw three cards, then put two cards from your hand on top of your library in any order. ]
+  STACK_RESOLVE: Brainstorm (75) - ForgeAI draws three cards, then puts two cards from their hand on top of their library in any order.
+  MANA: Island (116) - {T}: Add {U}.
+  STACK_ADD: ForgeAI cast Ponder
+  STACK_ADD: ForgeAI triggered Dragon's Rage Channeler
+  STACK_ADD: ForgeAI triggered Dragon's Rage Channeler
+  STACK_RESOLVE: ForgeAI surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Ponder (98), Activator: ForgeAI, SpellAbility: Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card. ]
+  STACK_RESOLVE: ForgeAI surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Ponder (98), Activator: ForgeAI, SpellAbility: Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card. ]
+  STACK_RESOLVE: Ponder (98) - Look at the top 3 cards of ForgeAI's library. Then put them back in any order.You may have that player shuffle their library. ForgeAI draws a card.
+  MANA: Island (114) - {T}: Add {U}.
+  MANA: Volcanic Island (77) - {T}: Add {U}.
+  STACK_ADD: ForgeAI cast Murktide Regent
+  EFFECT_REPLACED: Murktide Regent enters with a +1/+1 counter on it for each instant and sorcery card exiled with it.
+  STACK_RESOLVE: Murktide Regent - Creature 3 / 3
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 14 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Island (57)
+  MANA: Island (57) - {T}: Add {U}.
+  STACK_ADD: Seat cast Preordain
+  STACK_RESOLVE: Seat scried 2 card(s) to the bottom of the library
+  STACK_RESOLVE: Preordain (36) - Seat scries 2. Seat draws a card.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 15 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Murktide Regent (118), Dragon's Rage Channeler (90) and Dragon's Rage Channeler (91) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Murktide Regent (118).
+Seat didn't block Dragon's Rage Channeler (90).
+Seat didn't block Dragon's Rage Channeler (91).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Murktide Regent (118) deals 6 combat damage to Seat.
+  DAMAGE: Dragon's Rage Channeler (90) deals 1 combat damage to Seat.
+  DAMAGE: Dragon's Rage Channeler (91) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 10 > 2
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Island (113) - {T}: Add {U}.
+  MANA: Island (116) - {T}: Add {U}.
+  MANA: Island (114) - {T}: Add {U}.
+  MANA: Volcanic Island (77) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Murktide Regent
+  STACK_ADD: ForgeAI triggered Murktide Regent
+  STACK_ADD: ForgeAI triggered Murktide Regent
+  STACK_RESOLVE: Whenever an instant or sorcery card leaves your graveyard, put a +1/+1 counter on Murktide Regent. [Zone Changer: Ponder (98)]
+  STACK_RESOLVE: Whenever an instant or sorcery card leaves your graveyard, put a +1/+1 counter on Murktide Regent. [Zone Changer: Brainstorm (75)]
+  EFFECT_REPLACED: Murktide Regent enters with a +1/+1 counter on it for each instant and sorcery card exiled with it.
+  STACK_RESOLVE: Murktide Regent - Creature 3 / 3
+  MANA: Volcanic Island (79) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Chain Lightning targeting [Seat]
+  STACK_ADD: ForgeAI triggered Dragon's Rage Channeler
+  STACK_ADD: ForgeAI triggered Dragon's Rage Channeler
+  LIFE: Life: Seat 2 > 1
+  STACK_ADD: Seat cast Force of Will targeting [Chain Lightning (110)]
+  STACK_RESOLVE: Force of Will (26) - Counter.
+  STACK_RESOLVE: ForgeAI surveiled 1 card(s) to the graveyard
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Chain Lightning (110), Activator: ForgeAI, SpellAbility: Chain Lightning deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may choose a new target for that copy. ]
+  STACK_RESOLVE: ForgeAI surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Chain Lightning (110), Activator: ForgeAI, SpellAbility: Chain Lightning deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may choose a new target for that copy. ]
+  DAMAGE: Chain Lightning (110) deals 3 non-combat damage to Seat.
+  LIFE: Life: Seat 1 > -2
+  STACK_RESOLVE: Chain Lightning (110) - Chain Lightning (110) deals 3 damage to Seat. 
+  PLAYER_CONTROL: Seat has restored control over themself
+  PLAYER_CONTROL: ForgeAI has restored control over themself
+  GAME_OUTCOME: Match Duration 13m : 39s
+  GAME_OUTCOME: Turn 8
+  GAME_OUTCOME: Seat has lost because life total reached 0
+  GAME_OUTCOME: ForgeAI has won because all opponents have lost
+  MATCH_RESULTS: Seat: 0 ForgeAI: 1 
+===============================
