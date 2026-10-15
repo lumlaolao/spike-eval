@@ -38,7 +38,7 @@ random, ai) have no model to name and are reported not-applicable.
 
 Usage:
   python3 eval/aggregate.py <dir> [--json] [--bootstrap-seed N] [--resamples N]
-                                   [--experiment ID]
+                                   [--experiment ID] [--sanity-arms]
 """
 
 import argparse
@@ -1583,6 +1583,10 @@ def main():
                          "prefix) when the dir holds several conditions. Without "
                          "it, a multi-condition dir reports per experiment and "
                          "refuses pooled win rates.")
+    ap.add_argument("--sanity-arms", action="store_true",
+                    help="also check this block's sanity arms (<dir>__sanity-<arm>, written by "
+                         "run_batch.py --sanity-arms): none may beat the floor. A violation exits 5, "
+                         "a missing arm 6 (eval/sanity_arms.py)")
     args = ap.parse_args()
 
     path = Path(args.dir).expanduser()
@@ -1594,11 +1598,19 @@ def main():
                                 args.max_fallback_rate, experiment=args.experiment)
     except ValueError as e:
         raise SystemExit("--experiment: %s" % e)
+    sanity = None
+    if args.sanity_arms:
+        import sanity_arms                  # lazy: sanity_arms imports this module
+        sanity = sanity_arms.check(path)
+        summary["sanity_arms"] = sanity
     if args.json:
         json.dump(summary, sys.stdout, indent=2)
         print()
     else:
         print_human(summary)
+        if sanity is not None:
+            print()
+            sanity_arms.print_human(sanity)
 
     # Gates are enforced AFTER the full report is printed.
     mi = summary["model_identity"]
@@ -1634,6 +1646,10 @@ def main():
         sys.exit(3)
     if fg.get("harness_failed"):
         sys.exit(4)
+    if sanity is not None and sanity["violations"]:
+        sys.exit(5)
+    if sanity is not None and sanity["missing"]:
+        sys.exit(6)
 
 
 if __name__ == "__main__":
