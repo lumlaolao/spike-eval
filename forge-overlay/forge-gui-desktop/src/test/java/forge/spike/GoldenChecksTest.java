@@ -204,6 +204,30 @@ public class GoldenChecksTest {
         Assert.assertTrue(p.matches("(?s).*Lightning Bolt[^,\\n]*\\(castable\\).*"), p);
     }
 
+    /** Free spells are kept up with no mana: Force of Will (exile a blue card, 1 life), Surgical Extraction
+     *  (its Phyrexian mana paid with life) and Endurance (flash; evoke by exiling a green card). With no land at
+     *  all and the opponent's spell on the stack, the seat is asked, and each is on the menu: no skip may pass
+     *  a window in which the seat can cast them. */
+    @Test
+    public void freeSpellsAreOfferedWithNoManaUp() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Force of Will", me, ZoneType.Hand);
+        card("Brainstorm", me, ZoneType.Hand);
+        card("Surgical Extraction", me, ZoneType.Hand);
+        card("Endurance", me, ZoneType.Hand);
+        card("Llanowar Elves", me, ZoneType.Hand);
+        card("Griselbrand", rival, ZoneType.Graveyard);
+        LineFindingProbeTest.rivalCasts(g, "Ponder", null);
+        Script model = new Script("CHOICE: 1").on("You have priority", choice("PASS"));
+        Assert.assertNull(seat(g, model, model).chooseSpellAbilityToPlay(), "the model passed");
+        String p = PromptFidelityTest.promptWith(model, "DECISION: You have priority");
+        Assert.assertNotNull(p, "the seat was not asked: a window with free spells was skipped");
+        String menu = p.substring(p.lastIndexOf("DECISION:"));
+        for (String free : new String[] {"Force of Will", "Surgical Extraction", "Endurance"})
+            Assert.assertTrue(menu.contains("CAST " + free), free + " is not on the menu with no mana up: " + menu);
+    }
+
     /** Phyrexian mana: the split the model picks is the one paid. */
     @Test
     public void howAPhyrexianSymbolIsPaidIsTheModels() {

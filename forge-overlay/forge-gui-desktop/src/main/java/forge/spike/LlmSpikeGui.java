@@ -6575,8 +6575,11 @@ public final class LlmSpikeGui {
             boolean normal = false, alt = false;
             try {
                 for (SpellAbility sa : ComputerUtilAbility.getSpellAbilities(new CardCollection(c), pl)) {
-                    if (!sa.isSpell() || sa.getAlternativeCost() != null) continue;
+                    if (!sa.isSpell()) continue;
                     if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(pl);
+                    // An alternative cost the engine lists as its own spell (Endurance's evoke): the menu offers
+                    // it with the same check (enumeratePlayOptions), so the tag must count it too.
+                    if (sa.getAlternativeCost() != null) { if (offerable(sa, pl, false)) alt = true; continue; }
                     if (offerable(sa, pl, false)) { normal = true; break; }
                     for (SpellAbility a : GameActionUtil.getAlternativeCosts(sa, pl, false))
                         if (offerable(a, pl, true)) alt = true;
