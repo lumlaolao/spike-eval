@@ -28,7 +28,10 @@ when an item is finished or a new one is agreed, so the next session can pick up
 
 ## Priority 0 (owner, 2026-10-15 evening): do these first, in this order
 
-**0. Every decision goes through a tool call: no text alternative anywhere.** "Everything goes through
+**0. Every decision goes through a tool call: no text alternative anywhere.** **Done 2026-10-15 (#182,
+answer-tool-v7, harness-epoch-13).** A reply that calls nothing is reminded twice, then lost; prose is never
+read. `[TEXT-FORMAT-LEAK]` counts any text format left in a tool ask; `GoldenChecksToolTest` runs every golden
+check on the tool protocol. What follows is the plan as written. "Everything goes through
 the tool calls" (owner). If a prompt offers another way, a model will use it. Today, on the default
 protocol (an `openrouter:` model), the decision prompts already offer only `answer`; 0 text formats in
 the recorded Luna prompts. What still lets text in:
@@ -44,7 +47,11 @@ the recorded Luna prompts. What still lets text in:
 - left as is, and stated: the text grammar for a backend with no function calling (the Claude CLI
   lane), and the `ANSWER_TOOL=0` / `NATIVE_TOOLS=0` measurement arms.
 
-**A. No engine fallback.** "I would like no engine fallback if able" (owner). Forge's AI must not decide
+**A. No engine fallback.** "I would like no engine fallback if able" (owner). **Done 2026-10-15
+(`fix/no-engine-fallback`, `fix/no-engine-fallback-rare`, harness-epoch-14),** except what the pinned engine
+gives no hook for: the colour an any-colour source makes for a generic shard during payment (Lotus Petal,
+LED; matters only to converge, sunburst and spent-colour checks), and the mechanics-only rows (dice,
+stickers, contraptions, attractions: no deck in the pool reaches them). The plan as written: Forge's AI must not decide
 anything for the seat. From `docs/harness/controller-ownership.tsv` and the recorded games:
 - in progress (`fix/no-engine-fallback`):
   - blocker and attacker damage order (`orderBlockers`, `orderBlocker`, `orderAttackers`) was Forge's
@@ -69,7 +76,7 @@ Not engine fallback, and kept: a choice with exactly one legal option is taken w
 and a seat that has no model (floor, random arms) takes a fixed legal option. A model that fails to
 answer twice loses the decision to a fixed legal option (the first, or decline), never to Forge's AI.
 
-**B. `docs/harness/ARCHITECTURE.md`:** the whole harness in one document, each part with the reason it is
+**B. `docs/harness/ARCHITECTURE.md`:** **Done 2026-10-15 (#183).** the whole harness in one document, each part with the reason it is
 built that way.
 
 ## Priority 1: tool calls and prompts
