@@ -1951,7 +1951,7 @@ public final class LlmSpikeGui {
             // Shared template (single source; the ai-teacher seat rebuilds byte-identically via the same
             // builder). afterKeep == size: this Forge deals a shrinking hand each mulligan; you keep what you see.
             String basePrompt = buildMulliganPrompt(size, lands, n.toString(),
-                    getPlayer() == firstPlayer);
+                    getPlayer() == firstPlayer, observer != null);
             p("[ROUTER] mulligan: " + lands + "/" + size + " lands -> " + routeLabel(smart.getModel(), rnd != null));
             List<String> mullOpts = java.util.Arrays.asList("KEEP", "MULLIGAN");
             // Retry once on an unparseable reply (matching every decideOne/decideMany site). Read the
@@ -2410,7 +2410,9 @@ public final class LlmSpikeGui {
                 // so it never costs an extra model call.
                 boolean askProfile = askPlan && (oppProfile.isEmpty() || turn - profileTurn >= PROFILE_REFRESH_TURNS);
                 String asks = askPlan
-                        ? "First state your plan for THIS TURN as `PLAN: <one short line>` (the sequence you intend, e.g. 'ritual into Reanimate on Griselbrand, hold Petal'). "
+                        ? "First state your plan for THIS TURN as `PLAN: <one short line>` (the sequence you intend, e.g. "
+                          // The example named one eval deck's line (Grixis Reanimator) in every deck's prompt.
+                          + (observer != null ? "'<land>, cast <card>, hold <card> for their turn'). " : "'ritual into Reanimate on Griselbrand, hold Petal'). ")
                           + "If (and only if) you want the harness to execute steps of that plan for you without asking again this turn, add `STEPS: <card name>, <card name>` listing ONLY cards you intend to CAST, in the order you will cast them; omit anything you are holding. "
                         : "";
                 // Ask at most DECK_LINES_MAX_ASKS times, on the model's first real decisions: name the
@@ -2419,7 +2421,8 @@ public final class LlmSpikeGui {
                 boolean askLines = !deckLinesAsked && deckLinesAsks < DECK_LINES_MAX_ASKS && b == smart && rnd == null && observer != null;
                 if (askLines) asks += DECK_LINES_ASK;
                 if (askProfile) asks += "Also state your read of the OPPONENT as `PROFILE: <one short line>` "
-                        + "(their deck/plan and the cards to respect, e.g. 'Grixis Reanimator: Entomb+Reanimate, respect Force of Will'). ";
+                        + "(their deck/plan and the cards to respect, e.g. "
+                        + (observer != null ? "'<archetype>: <their key cards>, respect <card>'). " : "'Grixis Reanimator: Entomb+Reanimate, respect Force of Will'). ");
                 boolean lookaheadOn = lookaheadEnabled();
                 // PLAN-THEN-EXECUTE: run a step of the model's own plan without asking again.
                 if (PLAN_EXECUTE && rnd == null && ownMain && !landOnly && planTurn == turn
@@ -2730,7 +2733,9 @@ public final class LlmSpikeGui {
                 for (Card c : opts) labels.add(labelOf(c));
                 String q = (selectPrompt == null || selectPrompt.isEmpty() ? "Choose a card" : selectPrompt)
                         + " -> " + destination + srcAsk(sa)
-                        + " (pick the card that best advances your game plan — e.g. reanimate your biggest threat).";
+                        // "reanimate your biggest threat" was appended to Brainstorm, Aether Vial and
+                        // Stoneforge picks alike; the faithful profile states the choice and nothing else.
+                        + (observer != null ? "." : " (pick the card that best advances your game plan — e.g. reanimate your biggest threat).");
                 int c = decideOne(bridgeFor("zone-change"), "zone-change", q, labels, isOptional ? "Decline / none" : null);
                 if (c == -2) { auto("zone-change(bridge-down)->first" + srcOf(sa)); return isOptional ? null : opts.get(0); }
                 if (c < 0) { // decideOne's -1 also covers "still unparseable after retry", which (unlike an
@@ -5456,13 +5461,19 @@ public final class LlmSpikeGui {
          *  way. Shared so the ai-teacher seat's reconstruction can never drift from the LLM seat's wire
          *  format. See {@link #mulliganKeepHand} (LLM seat) and PlayerControllerAiLogging.mulliganKeepHand. */
         static String buildMulliganPrompt(int size, int lands, String handNames, boolean onThePlay) {
+            return buildMulliganPrompt(size, lands, handNames, onThePlay, false);
+        }
+
+        /** {@code neutral}: without the combo-deck advice, which was shown to Burn and Death & Taxes too
+         *  (the faithful profile). */
+        static String buildMulliganPrompt(int size, int lands, String handNames, boolean onThePlay, boolean neutral) {
             return "MULLIGAN DECISION. You are " + (onThePlay ? "ON THE PLAY (you go first)" : "ON THE DRAW (opponent goes first; you draw an extra card turn 1)")
                     + ". This is a " + size + "-card hand with " + lands + " land(s): " + handNames
                     + ". If you MULLIGAN you will look at a NEW hand of only " + Math.max(0, size - 1)
                     + " cards (each mulligan costs you a card), and you can never go below 5. If you KEEP you play this "
                     + size + "-card hand as-is. Keeping a workable hand almost always beats shrinking it. "
-                    + "For a combo deck, a hand with your enablers + a payoff is a KEEP even on few lands; only ship a hand "
-                    + "that genuinely cannot function. Keep or mulligan? End with EXACTLY one word: KEEP or MULLIGAN.";
+                    + (neutral ? "" : "For a combo deck, a hand with your enablers + a payoff is a KEEP even on few lands; only ship a hand "
+                    + "that genuinely cannot function. ") + "Keep or mulligan? End with EXACTLY one word: KEEP or MULLIGAN.";
         }
 
         /** The attackers decideMany QUESTION (the {@code question} arg to {@link #buildDecideManyPrompt},

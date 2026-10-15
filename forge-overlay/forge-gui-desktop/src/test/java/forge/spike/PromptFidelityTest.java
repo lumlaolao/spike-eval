@@ -346,4 +346,22 @@ public class PromptFidelityTest {
             LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR = was;
         }
     }
+
+    /** The plan and profile asks named Grixis Reanimator's line in every deck's prompt, and the
+     *  mulligan ask gave combo advice to Burn. Under the faithful profile no ask names a deck's line. */
+    @Test
+    public void noAskCoachesOneDecksLine() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        Recorder model = new Recorder("CHOICE: 2");
+        seat(g, model, model).chooseSpellAbilityToPlay();
+        String p = promptWith(model, "DECISION: You have priority");
+        for (String banned : new String[] {"Griselbrand", "Reanimate", "Petal", "Grixis", "Entomb", "Force of Will"})
+            Assert.assertFalse(p.contains(banned), "the play ask names " + banned);
+        Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.buildMulliganPrompt(7, 1, "x", true, true).contains("combo deck"));
+        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.buildMulliganPrompt(7, 1, "x", true).contains("combo deck"),
+                "legacy profiles keep their bytes");
+    }
 }
