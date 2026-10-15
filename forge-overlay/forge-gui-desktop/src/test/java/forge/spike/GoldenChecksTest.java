@@ -265,7 +265,7 @@ public class GoldenChecksTest {
         Script model = new Script("CHOICE: 1") {
             @Override public String ask(String prompt) {
                 prompts.add(prompt);
-                if (prompt.contains("MULLIGAN DECISION")) return prompts.size() == 1 ? "Hmm, no lands at all." : "MULLIGAN";
+                if (prompt.contains("MULLIGAN")) return prompts.size() == 1 ? "Hmm, no lands at all." : "MULLIGAN";
                 return "PICKS: " + opt(prompt, "Counterspell");
             }
         };
