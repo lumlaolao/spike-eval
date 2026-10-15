@@ -392,6 +392,23 @@ public class SeatObservationTest {
         Assert.assertEquals(ref, ob.inspect("Daze"));
     }
 
+    /** A puzzle solver is told the author's goal in place of "win the game", and gets no eval-pool
+     *  archetype reference; outside puzzle mode the framing is unchanged. */
+    @Test
+    public void aPuzzleSolverIsToldTheGoalAsTheAuthorWroteIt() {
+        String game = LlmSpikeGui.PlayerControllerLLM.seatFraming("Seat", "", true, true, true);
+        try {
+            LlmSpikeGui.puzzleBrief = "Goal: Play the Specified Permanent\nTurns Limit: 1\nYou know the top card is Channel.";
+            String pz = LlmSpikeGui.PlayerControllerLLM.seatFraming("Solver", "", true, true, true);
+            Assert.assertTrue(pz.contains("<puzzle>\nGoal: Play the Specified Permanent") && pz.contains("top card is Channel"), pz);
+            Assert.assertFalse(pz.contains("Your goal is to win the game") || pz.contains("<legacy_reference>"), pz);
+        } finally {
+            LlmSpikeGui.puzzleBrief = null;
+        }
+        Assert.assertTrue(game.contains("Your goal is to win the game") && game.contains("<legacy_reference>"));
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.seatFraming("Seat", "", true, true, true), game);
+    }
+
     static String eventsText(SeatObservation o) {
         StringBuilder b = new StringBuilder();
         for (GameHistory.Ev e : o.events()) b.append('[').append(e.id).append("] T").append(e.turn).append(' ').append(e.type).append(": ").append(e.msg).append('\n');
