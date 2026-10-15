@@ -27,11 +27,13 @@ public class GoldenChecksToolTest extends GoldenChecksTest {
     public void textMode() {
         LineFindingProbeTest.TOOL_MODE = false;
         LineFindingProbeTest.TOOL_BRIDGES.clear();
+        LineFindingProbeTest.TOOL_SEATS.clear();
     }
 
     @BeforeMethod
     public void freshBridges() {
         LineFindingProbeTest.TOOL_BRIDGES.clear();
+        LineFindingProbeTest.TOOL_SEATS.clear();
     }
 
     /** Leaks per test, asserted once at the end: a failing @AfterMethod would skip every later test. */
@@ -46,6 +48,10 @@ public class GoldenChecksToolTest extends GoldenChecksTest {
             texts += b.texts;
             if (b.texts > 0) LEAKS.add(result.getName() + ": " + b.texts + " ask(s) went out as text, not as a tool ask");
         }
+        // Zero text parsing (owner, 2026-10-15): a decision on a tool ask reads the typed answer, never the reply.
+        for (LlmSpikeGui.PlayerControllerLLM c : new ArrayList<>(LineFindingProbeTest.TOOL_SEATS))
+            if (c.textParsesOnToolAsks > 0)
+                LEAKS.add(result.getName() + ": " + c.textParsesOnToolAsks + " decision(s) read text on a tool ask");
     }
 
     @Test(priority = 2000)

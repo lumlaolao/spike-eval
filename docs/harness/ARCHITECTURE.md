@@ -150,6 +150,10 @@ round in the same conversation; a second illegal call loses the decision.
   Prose is never parsed as an answer.
 - A tool ask that still carries a text answer format is a `[TEXT-FORMAT-LEAK]`.
 - `GoldenChecksToolTest` runs every golden check with the seat answering by call, and fails on a leak.
+- **Zero text parsing on a tool ask:** a decision reads the typed `AnswerTool.Answer`, never the reply.
+  The text parsers are reached through a guard that refuses on any ask that offered `answer`, logs
+  `[TEXT-PARSE]` and counts it (`textParses=` on `[TALLY]`); the answertool acceptance stage and
+  `GoldenChecksToolTest` fail on one. The row's `raw_reply` is the answer rendered for the record only.
 - *Why:* if a prompt offers another way to answer, a model will use it. The text grammar remains only
   for a backend with no function calling (the Claude CLI lane) and for the `ANSWER_TOOL=0` measurement
   arm.

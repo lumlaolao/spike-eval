@@ -101,6 +101,8 @@ public class LineFindingProbeTest {
      *  checks on the default protocol this way. Each wrapped bridge is kept, so its leaks can be read. */
     static volatile boolean TOOL_MODE = false;
     static final List<ToolAnswerBridge> TOOL_BRIDGES = java.util.Collections.synchronizedList(new ArrayList<>());
+    /** The seats built in tool mode, so GoldenChecksToolTest can check none read a decision from text. */
+    static final List<LlmSpikeGui.PlayerControllerLLM> TOOL_SEATS = java.util.Collections.synchronizedList(new ArrayList<>());
 
     private static LLMBridge maybeTool(Recorder r) {
         if (!TOOL_MODE || r == null) return r;
@@ -116,6 +118,7 @@ public class LineFindingProbeTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(g, me,
                 new LobbyPlayerAi("Seat", null), "Seat", "", s, f, "llm");
         me.dangerouslySetController(ctrl);
+        if (TOOL_MODE) TOOL_SEATS.add(ctrl);
         return ctrl;
     }
 
