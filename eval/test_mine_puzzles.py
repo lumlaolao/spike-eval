@@ -468,6 +468,12 @@ def test_schema_file_cross_check():
               not unknown, "unknown: %r" % unknown)
 
 
+def test_the_v23_mana_line_still_parses():
+    line = ("  mana available: {W:3 U:1 C:1} (3 untapped sources; each is counted under every colour it can make, "
+            "so the colours add up to more than can be spent)")
+    check("v23 mana line gives 3 sources", mp._first_int(mp._MANA_SOURCES_RE, line) == 3, line)
+
+
 def main():
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for t in tests:

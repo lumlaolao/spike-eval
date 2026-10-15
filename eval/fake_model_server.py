@@ -18,6 +18,11 @@ Policies (--policy):
          pass; on a play prompt that advertises `SIMULATE: <n>` (LOOKAHEAD=1), or offers the
          `simulate` tool, it first asks for a lookahead preview, so the real preview round-trip is
          exercised end to end.
+  empty  answers every request with an empty message.
+  garbage
+         answers every request with text that holds no answer line in any format the harness asks
+         for. With `empty`, the harness-gaming check: a seat that never answers must not score
+         above the floor seat (eval/BENCHMARK-RESEARCH.md, point 10).
 
 Fault injection:
   --stall-call N --stall-ms M   request number N (1-based, across all calls) is answered only
@@ -108,8 +113,14 @@ class Policy:
             return [call("inspect", {"target": handle.group(0) if handle else "Mountain"})]
         return [call("memory_read", "{not json")]                # refused by the harness, costs no budget
 
+    GARBAGE = "Purple elephants dance at dawn; the answer is banana. CHOICE: banana\nPICKS: everything\nBLOCKS: the moon"
+
     def reply_for(self, prompt, call):
         a = self.args
+        if a.policy == "empty":
+            return ""
+        if a.policy == "garbage":
+            return self.GARBAGE
         # LOOKAHEAD validation: on a play prompt that advertises SIMULATE and has not yet been given a
         # preview, request one. The re-ask carries "LOOKAHEAD (option ...", so this fires once per
         # decision and then falls through to a normal CHOICE.
@@ -243,7 +254,7 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--port", type=int, default=0, help="0 = pick a free port (printed as LISTENING <port>)")
-    ap.add_argument("--policy", choices=["pass", "first", "simulate"], default="pass")
+    ap.add_argument("--policy", choices=["pass", "first", "simulate", "empty", "garbage"], default="pass")
     ap.add_argument("--log", help="JSONL request log")
     ap.add_argument("--stall-call", type=int, default=0)
     ap.add_argument("--stall-ms", type=int, default=0)

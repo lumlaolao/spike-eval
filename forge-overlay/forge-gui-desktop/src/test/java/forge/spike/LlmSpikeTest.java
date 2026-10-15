@@ -855,7 +855,7 @@ public class LlmSpikeTest {
     }
 
     @Test
-    public void declareAttackers_singleLegalAttacker_forcedOnlyLegalNeverAsksModel() throws Exception {
+    public void declareAttackers_singleLegalAttacker_deadBridgeDoesNotAttack() throws Exception {
         Game game = buildBareGame();
         Player attackerOwner = game.getPlayers().get(1);
         Player defenderPlayer = game.getPlayers().get(0);
@@ -874,10 +874,11 @@ public class LlmSpikeTest {
         Combat combat = new Combat(attackerOwner);
         ctrl.declareAttackers(attackerOwner, combat);
 
-        Assert.assertEquals(combat.getAttackers().size(), 1, "the sole legal attacker should be declared");
-        Assert.assertTrue(combat.getAttackers().contains(onlyAttacker));
-        Assert.assertEquals(ctrl.autoPicksCount(), 1,
-                "n_options==1 must be a deterministic auto-pick, never a model call (the forced-pick mislabel)");
+        // Not attacking is always legal, so one creature is the model's choice; with no answer the
+        // harness takes the do-nothing option (it used to attack all-in, which this test then read
+        // as "forced").
+        Assert.assertEquals(combat.getAttackers().size(), 0, "no answer is no attack");
+        Assert.assertEquals(ctrl.autoPicksCount(), 1, "the no-answer pick is recorded as the harness's");
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "must never hand off to Forge's AI");
     }
 

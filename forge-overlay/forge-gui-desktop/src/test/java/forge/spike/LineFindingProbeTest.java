@@ -626,6 +626,30 @@ public class LineFindingProbeTest {
         }
     }
 
+    /** A seat whose model never answers must not do better than one that passes (acceptance
+     *  `gaming`): no answer used to be a land drop and an all-in attack. Now it is a pass and no attack. */
+    @Test
+    public void aSeatThatNeverAnswersNeitherPlaysALandNorAttacks() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Hand);
+        Recorder dead = new Recorder(null);
+        LlmSpikeGui.PlayerControllerLLM seat = seat(g, dead, new Recorder(null));
+        String log = logOf(() -> Assert.assertNull(seat.chooseSpellAbilityToPlay(), "no answer is a pass"));
+        Assert.assertTrue(log.contains("-> asking"), "the model was asked: " + log);
+        Assert.assertTrue(log.contains("play(bridge-down)->PASS"), log);
+
+        Game g2 = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        Player me2 = g2.getPlayers().get(0);
+        card("Elite Vanguard", me2, ZoneType.Battlefield).setSickness(false);
+        card("Savannah Lions", me2, ZoneType.Battlefield).setSickness(false);
+        LlmSpikeGui.PlayerControllerLLM seat2 = seat(g2, new Recorder(null), new Recorder(null));
+        forge.game.combat.Combat combat = new forge.game.combat.Combat(me2);
+        String log2 = logOf(() -> seat2.declareAttackers(me2, combat));
+        Assert.assertEquals(combat.getAttackers().size(), 0, "no answer is no attack: " + log2);
+        Assert.assertTrue(log2.contains("attackers(bridge-down)->none"), log2);
+    }
+
     /** Scry 1 / surveil 1: keeping the card or sending it away is the model's call. It was kept on
      *  top without asking (`surveil(forced-only-legal)->keep-all-top`). */
     @Test

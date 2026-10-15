@@ -162,8 +162,9 @@ public final class LlmSpikeGui {
      *  how a Phyrexian symbol is paid (life or mana) is asked. Epoch 5: engine notices (a named card, a
      *  chosen colour) are shown; an unparsed play or block is said, not read as PASS / NONE; block pairs
      *  keep names with commas; the per-turn play cap is 80 under the faithful profile; a PLAN line at any
-     *  decision replaces the plan (a goal and steps); the seat can report a broken question. */
-    static final String HARNESS_EPOCH = "harness-epoch-5";
+     *  decision replaces the plan (a goal and steps); the seat can report a broken question. Epoch 6:
+     *  the mana line says its colours over-count; call markup past the budget is recorded as exhausted. */
+    static final String HARNESS_EPOCH = "harness-epoch-6";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -730,11 +731,6 @@ public final class LlmSpikeGui {
         // Turn plan: stated by the model at its first main-phase decision of the turn, injected into
         // every later prompt that turn — so targets/discards/follow-ups execute ONE line, not myopic picks.
         private String turnPlan = "";
-        // Names of the attackers the model actually declared last time declareAttackers got a real
-        // model answer (empty until then). Consulted by the bridge-down fallback below (report C3) so a
-        // dead bridge mid-combat degrades toward the prior, model-chosen attack plan instead of a blind
-        // all-in that can undo an explicitly-stated single-attacker (Exalted etc.) line.
-        private final java.util.Set<String> lastDeclaredAttackerNames = new java.util.HashSet<>();
         private int planTurn = -1;
         /** The model's own one-line read of the opponent (deck/plan, cards to respect). Refreshed when
          *  empty or >= PROFILE_REFRESH_TURNS old, piggybacked on the plan ask so it costs no extra call. */
@@ -2237,34 +2233,22 @@ public final class LlmSpikeGui {
                                 attackersCeiling(legal, defender, combat)),
                         labels, 0, legal.size());
                 if (picks == null) {
-                    // Bridge dead -> intent-aware fallback (report C3), still fully deterministic, never
-                    // the AI: prefer creatures the model's OWN stated turn plan already named (e.g. "attack
-                    // with Blighted Agent alone") over a blind all-in that can silently undo an exalted/
-                    // alpha-strike-avoidance line the model just committed to; failing that, prefer the
-                    // attacker set it actually declared last time it got a real answer; only default to
-                    // all-in if neither signal exists.
+                    // Bridge dead -> the creatures the model's OWN stated turn plan named (e.g. "attack
+                    // with Blighted Agent alone"), deterministic and never the AI.
                     List<Integer> named = planNamedIndices(legal);
                     if (!named.isEmpty()) {
                         for (int i : named) combat.addAttacker(legal.get(i), defender);
                         auto("attackers(bridge-down)->plan-named x" + named.size());
                         return;
                     }
-                    List<Card> prior = new ArrayList<>();
-                    for (Card c : legal) if (lastDeclaredAttackerNames.contains(c.getName())) prior.add(c);
-                    if (!prior.isEmpty()) {
-                        for (Card c : prior) combat.addAttacker(c, defender);
-                        auto("attackers(bridge-down)->prior-turn x" + prior.size());
-                        return;
-                    }
-                    for (Card c : legal) combat.addAttacker(c, defender);
-                    auto("attackers(bridge-down)->all-in x" + legal.size());
+                    // Otherwise no attack. The prior-turn set and the all-in default were the harness
+                    // attacking for a seat that did not answer (acceptance `gaming`).
+                    auto("attackers(bridge-down)->none");
                     return;
                 }
                 StringBuilder chosen = new StringBuilder();
-                lastDeclaredAttackerNames.clear();
                 for (int i : picks) {
                     combat.addAttacker(legal.get(i), attackTarget(legal.get(i), defender, combat));
-                    lastDeclaredAttackerNames.add(legal.get(i).getName());
                     if (chosen.length() > 0) chosen.append(", ");
                     chosen.append(legal.get(i).getName());
                 }
@@ -2748,8 +2732,10 @@ public final class LlmSpikeGui {
                             }
                         }
                     }
-                    if (reply == null) { // bridge dead -> develop or pass, not the AI
-                        if (haveLand) { auto("play(bridge-down): land " + landCards.get(0).getName()); return Lists.newArrayList(landPlays.get(0)); }
+                    if (reply == null) { // bridge dead -> pass: no answer is not a land drop
+                        // It used to play a land. A seat whose model never answers then out-developed the
+                        // floor seat (acceptance `gaming`): with no answer the harness takes the do-nothing
+                        // option, so a broken model cannot score above one that passes.
                         auto("play(bridge-down)->PASS");
                         return PASS;
                     }
@@ -3026,9 +3012,8 @@ public final class LlmSpikeGui {
                 if (cands.size() > 1 && okFor("targets")) {
                     String q = "Choose the TARGET for " + labelOf(sa) + " (the spell/ability resolves against whatever you pick).";
                     int c = decideOne(bridgeFor("targets"), "targets", q, labels, min == 0 ? "No target (decline)" : null);
-                    // bridge dead -> AI targeting is an intentional, DOCUMENTED exception to "never Forge AI"
-                    // for this one site (see class comment above); still log it so it's never silent.
-                    if (c == -2) return aiDelegate("targets(bridge-down)->ai" + srcOf(sa), super.chooseTargetsFor(sa));
+                    // bridge dead -> the same deterministic path as an unparsed reply (decline when
+                    // optional, else the plan-named or first candidate). It used to be Forge's AI.
                     if (c < 0) {
                         // decideOne's -1 also covers "still unparseable after retry", which decideOne does NOT
                         // log itself (only an explicit decline does, flagged via lastDeclineLogged) — never drop it silently.
