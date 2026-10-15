@@ -531,6 +531,28 @@ public class LineFindingProbeTest {
         Assert.assertEquals(s2.prompts.size() + f2.prompts.size(), before, "asked to respond to its own activation");
     }
 
+    /** The seat passes on the rival's Ponder, then the rival casts Show and Tell in the same phase.
+     *  The menu is identical (Counterspell, PASS), so the "already passed here" check, which keyed on
+     *  turn, phase and menu only, passed again without asking: the counter was never offered. */
+    @Test
+    public void aNewOpponentSpellInTheSamePhaseIsAskedAgain() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Island", me, ZoneType.Battlefield);
+        card("Island", me, ZoneType.Battlefield);
+        card("Counterspell", me, ZoneType.Hand);
+        rivalCasts(g, "Ponder", null);
+        Recorder smart = new Recorder("CHOICE: 2"), fast = new Recorder("CHOICE: 2");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, smart, fast);
+        Assert.assertNull(ctrl.chooseSpellAbilityToPlay(), "the seat passes on Ponder");
+        int asked = smart.prompts.size() + fast.prompts.size();
+        Assert.assertEquals(asked, 1);
+        rivalCasts(g, "Show and Tell", null);
+        ctrl.chooseSpellAbilityToPlay();
+        Assert.assertEquals(smart.prompts.size() + fast.prompts.size(), 2, "Show and Tell on the stack was not asked about");
+        Assert.assertTrue(smart.asked("Show and Tell") || fast.asked("Show and Tell"));
+    }
+
     /** Puts the rival's {@code spell} on the stack aimed at {@code target}, on the rival's main phase. */
     static void rivalCasts(Game g, String spell, Card target) {
         Player rival = g.getPlayers().get(1);

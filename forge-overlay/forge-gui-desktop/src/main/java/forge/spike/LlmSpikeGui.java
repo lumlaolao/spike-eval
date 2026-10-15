@@ -2247,8 +2247,11 @@ public final class LlmSpikeGui {
                 // such windows. Scoped to the model arm so the floor/random canary arms are untouched.
                 if (passIdx == 1 && rnd == null && smartOk()) { auto("play(no-options)->PASS"); return PASS; }
 
-                String sig = turn + "|" + phh.getPhase() + "|" + menuStr;
-                if (sig.equals(lastAskSig) && lastWasPass) return skipWindow("last-sig", options.size()); // identical spot we already passed on
+                // The stack is part of the spot: without it, passing on the opponent's Ponder also passed
+                // on their Show and Tell in the same phase (same menu), and Force of Will was never
+                // offered. The random arm is a uniform baseline over every window, so it is never deduped.
+                String sig = turn + "|" + phh.getPhase() + "|" + safeStackTop(me.getGame()) + "|" + menuStr;
+                if (rnd == null && sig.equals(lastAskSig) && lastWasPass) return skipWindow("last-sig", options.size()); // identical spot we already passed on
                 lastAskSig = sig;
 
                 // SPEED: reactive windows recur across phases with the SAME stack and SAME options
