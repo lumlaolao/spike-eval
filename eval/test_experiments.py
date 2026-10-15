@@ -31,6 +31,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import aggregate  # noqa: E402
 
 AGG = Path(__file__).resolve().parent / "aggregate.py"
+GUI = (Path(__file__).resolve().parent.parent / "forge-overlay" / "forge-gui-desktop" / "src"
+       / "main" / "java" / "forge" / "spike" / "LlmSpikeGui.java")
+
+
+def game_line_keys():
+    """The game-line field names, in order, read from the writer's single statement. One parser, so
+    the two tests that read it (the key-coverage and the env-coverage checks) move together when the
+    writer changes."""
+    java = GUI.read_text(encoding="utf-8")
+    start = java.index('EvalLog.write("{\\"t\\":\\"game\\"')
+    return re.findall(r'\\"([a-z_0-9]+)\\":', java[start:java.index(");", start)])
 
 
 def modern_line(seed, swap, winner, **kw):
@@ -58,7 +69,8 @@ def modern_line(seed, swap, winner, **kw):
          "native_tools_downgraded": "", "answer_tool": False, "answer_tool_seats": "",
          "answer_tool_version": "answer-tool-v1", "rules_tool": False, "rules_tool_version": "rules-tool-v1",
          "rules_effective": "n/a", "lookahead": False, "lookahead_version": "lookahead-preview-v4",
-         "one_tier": False, "no_coaching": False, "one_chat": False, "one_chat_version": "one-chat-v1", "harness_epoch": "harness-epoch-2"}
+         "one_tier": False, "no_coaching": False, "one_chat": False, "one_chat_version": "one-chat-v1", "harness_epoch": "harness-epoch-2",
+         "plan_execute": False, "tier_fast_types": ""}
     g.update(kw)
     return g
 
@@ -127,7 +139,10 @@ class GroupingTest(unittest.TestCase):
                              ("native_tools_downgraded", "Identity-A/smart"),
                              ("rules_tool", True), ("lookahead", True),
                              ("native_tools_seats", "A/smart"), ("rules_tool_version", "rules-tool-v2"),
-                             ("rules_effective", "unavailable"), ("lookahead_version", "lookahead-preview-v5")):
+                             ("rules_effective", "unavailable"), ("lookahead_version", "lookahead-preview-v5"),
+                             # The two opt-in play switches (issue #117): on-games and off-games
+                             # are different measurements and never pool.
+                             ("plan_execute", True), ("tier_fast_types", "target,targets")):
             with self.subTest(field=field), tempfile.TemporaryDirectory() as d:
                 write(d, "game-1-1000.jsonl", [modern_line(1, False, "A")])
                 write(d, "game-1-2000.jsonl", [modern_line(1, False, "B", **{field: other})])
@@ -308,10 +323,7 @@ class GroupingTest(unittest.TestCase):
         """The game line's single writer, read from the Java source. A stamp left out of
         PROVENANCE_FIELDS pools the runs it was written to separate; that happened to memory_tools,
         claude_effort_* and the nine tool fields, each found only after the fact."""
-        java = (Path(__file__).resolve().parent.parent / "forge-overlay" / "forge-gui-desktop" / "src" / "main"
-                / "java" / "forge" / "spike" / "LlmSpikeGui.java").read_text(encoding="utf-8")
-        start = java.index('EvalLog.write("{\\"t\\":\\"game\\"')
-        keys = re.findall(r'\\"([a-z_0-9]+)\\":', java[start:java.index(");", start)])
+        keys = game_line_keys()
         self.assertIn("native_tools", keys)          # the extraction found the statement
         self.assertEqual(keys[-1], "claude_effort_fast")  # ... and read it to its end
         outcome = {"t", "seed", "swap", "winner", "turns", "win_condition", "duration_ms"}
@@ -326,6 +338,61 @@ class GroupingTest(unittest.TestCase):
                   "claude_effort_smart", "claude_effort_fast"):
             self.assertIn(f, names)
             self.assertIn(f, aggregate.CONDITION_FIELDS)
+
+
+class GameLineStampCoverageTest(unittest.TestCase):
+    """Every environment variable LlmSpikeGui reads is either stamped on the game line or is on a
+    named allowlist of settings that do not change what the seat decides (issue #117's detector
+    gap). The game-line-key test can only see keys already written; a condition switch that is read
+    but never stamped -- exactly PLAN_EXECUTE and TIER_FAST_TYPES before this fix -- slips past it
+    and pools its on- and off-games. Read the writer's own reads and demand each one is accounted
+    for."""
+
+    # Env name -> game-line key, where the key is not simply the lowercased env name.
+    STAMPED_ALIASES = {
+        "GAME_SEED": "seed", "SWAP_SEATS": "swap",
+        "RUN_DISCIPLINE": "discipline",
+        "SMART_MODEL": "smart_a", "SMART_MODEL_A": "smart_a", "SMART_MODEL_B": "smart_b",
+        "FAST_MODEL": "fast_a", "FAST_MODEL_A": "fast_a", "FAST_MODEL_B": "fast_b",
+        "DECKLIST": "deck_a", "DECK_A_NAME": "deck_a", "DECK_B_NAME": "deck_b",
+        "CLAUDE_BRIDGE_EFFORT": "claude_effort_smart",
+        "CLAUDE_BRIDGE_EFFORT_FAST": "claude_effort_fast",
+        "CLAUDE_BRIDGE_EFFORT_SMART": "claude_effort_smart",
+        "OPENROUTER_BASE_URL": "openrouter_base_url", "OPENROUTER_MODEL_CFG": "model_cfg_sha",
+    }
+    # Read by the harness, but not a condition: transport, credentials, recording and process
+    # control, none of which change the seat's decisions (each would need a stamp if it ever did).
+    NON_CONDITION_ENV = {
+        "AUTO_EXIT", "CLAUDE_BIN", "CLAUDE_RESET_EVERY", "EVAL_OUT", "MATCH_GAMES",
+        "OPENROUTER_ALLOW_EGRESS", "OPENROUTER_API_KEY", "OPENROUTER_HTTP_REFERER",
+        "OPENROUTER_HTTP_TITLE", "OPENROUTER_TIMEOUT_MS", "RECORD", "RECORD_FPS", "RECORD_OUT",
+        "RULES_FILE", "SHADOW_AI",
+    }
+    # The CTX_* knobs change what the model sees, but are recorded through context_sha and the
+    # "+ovr" profile name rather than a field of their own (ContextProfile.fromEnv), so they are not
+    # required to have a stamp -- the sha is what partitions those experiments.
+    CONTEXT_PREFIX = "CTX_"
+
+    def test_every_env_read_is_stamped_or_allowlisted(self):
+        java = GUI.read_text(encoding="utf-8")
+        keys = set(game_line_keys())
+        self.assertIn("native_tools", keys)          # the extraction found the game-line statement
+        # Every env-reading form in this file: System.getenv("X"), the getOrDefault fallbacks, the
+        # envInt helper (which reads a name its caller passes), and the effort ternary. A read
+        # through a NEW helper must be added here with the helper.
+        names = set(re.findall(r'(?:System\.getenv|envInt)\((?:fastTier \? )?"([A-Z_0-9]+)"', java))
+        names |= set(re.findall(r'System\.getenv\(fastTier \? "[A-Z_0-9]+" : "([A-Z_0-9]+)"\)', java))
+        names |= set(re.findall(r'System\.getenv\(\)\.getOrDefault\("([A-Z_0-9]+)"', java))
+        for probe in ("TIER_FAST_TYPES", "CTX_RECENT_EVENTS", "CLAUDE_BRIDGE_EFFORT_SMART"):
+            self.assertIn(probe, names)              # each form was actually read
+        stray = sorted(n for n in names
+                       if not n.startswith(self.CONTEXT_PREFIX)
+                       and n not in self.NON_CONDITION_ENV
+                       and self.STAMPED_ALIASES.get(n, n.lower()) not in keys)
+        self.assertEqual(stray, [],
+                         "stamp these on the game line (aggregate.PROVENANCE_FIELDS) so their "
+                         "on/off games never pool, or add them to NON_CONDITION_ENV with the reason "
+                         "they do not change play")
 
 
 def unresolved(seed, swap, winner, **kw):

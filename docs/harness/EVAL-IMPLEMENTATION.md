@@ -109,13 +109,15 @@ order-based attribution there may cross games.
   `MEMORY_TOOLS=1`. Both are the only route: `CONTEXT_PROFILE`,
   `MEMORY_TOOLS` and every `CTX_*` knob are scrubbed from the ambient
   environment; `--env` naming `CONTEXT_PROFILE`, `MEMORY_TOOLS`, `RULES_TOOL`,
-  `NATIVE_TOOLS` or `LOOKAHEAD` is refused in every mode before anything runs
-  (each has its own flag); cited mode also refuses `--env CTX_*` (a cited
+  `NATIVE_TOOLS`, `LOOKAHEAD`, `PLAN_EXECUTE` or `TIER_FAST_TYPES` is refused in
+  every mode before anything runs (each has its own flag); cited mode also
+  refuses `--env CTX_*` (a cited
   condition is a named profile only). Unset flags leave the JVM defaults
   (`v1-compat`, tools off): the historical baseline is byte-identical.
 - **Batch manifest.** `<out>/batch-manifest.json` (`batch-manifest.v1`)
   records the condition (discipline, decks and identity names, controllers,
-  models, plans, context profile, memory tools, CTX overrides, checkpoint,
+  models, plans, context profile, memory tools, CTX overrides, the lookahead /
+  plan-execute / tier-fast-types switches, checkpoint,
   engine/overlay/deck shas, cap, shadow-AI, non-secret `--env` overrides;
   values whose key looks like a credential are written as `<redacted>`) and
   appends one entry per invocation (seeds, pairs, jobs, argv). Resuming with

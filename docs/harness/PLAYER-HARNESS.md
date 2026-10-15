@@ -103,8 +103,9 @@ existing behavior.
 tier, call number, elapsed time and backend-reported token counts. `context_tool`
 rows contain commands and exact results, including denied calls. Game rows include
 `memory_tools` and `memory_tools_version`. Aggregation partitions experiments on
-these, on `context_profile`/`context_sha`, and on the tool stamps (`native_tools*`,
-`rules_*`, `lookahead*`): every game-line key is either part of the experiment key
+these, on `context_profile`/`context_sha`, on the tool stamps (`native_tools*`,
+`rules_*`, `lookahead*`) and on the two opt-in play switches (`plan_execute`,
+`tier_fast_types`): every game-line key is either part of the experiment key
 or an outcome (`eval/test_experiments.py` reads the line's writer to check this).
 Separate run directories are still the clearest way to keep conditions apart.
 
