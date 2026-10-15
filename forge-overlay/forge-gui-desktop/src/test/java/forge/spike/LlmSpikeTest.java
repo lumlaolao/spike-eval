@@ -392,6 +392,20 @@ public class LlmSpikeTest {
         Assert.assertEquals(LlmSpikeGui.extractServedModel(spaced), "mlx-community/adapter-v2");
     }
 
+    /** Luna calls stalled for minutes with ordinary-sized answers; which provider served each call was not
+     *  recorded, and OpenRouter's default routing weighs price. Requests now ask for the lowest-latency
+     *  endpoint unless OPENROUTER_PROVIDER_SORT says otherwise, and each row names the provider. */
+    @Test
+    public void openRouterRoutesByLatencyAndRecordsTheProvider() {
+        Assert.assertEquals(LlmSpikeGui.OpenRouterBridge.providerSort(null), "latency");
+        Assert.assertEquals(LlmSpikeGui.OpenRouterBridge.providerSort(" Throughput "), "throughput");
+        Assert.assertEquals(LlmSpikeGui.OpenRouterBridge.providerSort("default"), "", "default sends no preference");
+        String body = "{\"id\":\"gen-1\",\"provider\":\"Azure\",\"model\":\"openai/gpt-6-luna\","
+                + "\"choices\":[{\"message\":{\"content\":\"\\\"provider\\\":\\\"Fake\\\"\"}}]}";
+        Assert.assertEquals(LlmSpikeGui.extractServedProvider(body), "Azure");
+        Assert.assertNull(LlmSpikeGui.extractServedProvider("{\"choices\":[]}"));
+    }
+
     @Test
     public void extractServedModel_completionTextCannotMasqueradeAsTheModelId() {
         // The failure this guard exists for: a reply that happens to contain the literal

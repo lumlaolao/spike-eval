@@ -161,7 +161,7 @@ CONDITION_ARM_FIELDS = ("deck_a", "deck_b", "controller_a", "controller_b",
                         "smart_a", "smart_b", "fast_a", "fast_b")
 # prompt_cache is recorded but does not split experiments: the provider returns the same output
 # with or without its cache, so caching on and off are one measurement at two prices.
-NON_BEHAVIORAL_PROVENANCE = ("discipline", "seed_bank", "prompt_cache")
+NON_BEHAVIORAL_PROVENANCE = ("discipline", "seed_bank", "prompt_cache", "openrouter_provider_sort")
 # What the endpoint said answered, keyed by deck identity and tier. These are
 # OBSERVATIONS and partition experiments exactly as recorded (2026-09-07): a
 # game whose endpoint named nothing ("unknown") is a different measurement from
