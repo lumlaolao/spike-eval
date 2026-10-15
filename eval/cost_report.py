@@ -5,9 +5,11 @@ Counts every model round in a run directory. A MEMORY_TOOLS=1 game writes one `c
 round (tool rounds included), and those are counted; a game without them is counted from its
 `decision` rows. The two are never added together (they describe the same calls).
 
-It is an ESTIMATE of spend, an upper bound on the input side: it prices every prompt token at the
-full rate, and the provider bills cached prompt tokens at a lower one that the JSONL does not
-record. It cannot see calls that left no row (a request that timed out is still billed).
+It is an ESTIMATE of spend. Prompt tokens a row reports as read from the provider's cache
+(`cached_tokens`) are priced at the model's `input_cache_read` rate, and tokens written to it
+(`cache_write_tokens`) at `input_cache_write`; both default to the full prompt rate when the price file
+has no such rate. Rows from before 2026-10-15 carry neither, so their input is an upper bound. It
+cannot see calls that left no row (a request that timed out is still billed).
 
   python3 eval/cost_report.py runs/lines/ctl2/native runs/lines/ctl2/native-lookahead
   python3 eval/cost_report.py --plan 16 runs/lines/ctl2/native     # what 16 more games like these would cost
@@ -35,15 +37,17 @@ def model_id(spec):
 
 
 def game_usage(path):
-    """{'game': the game row or None, 'tiers': {(seat, tier): [calls, prompt_tokens, completion_tokens]}} for one
+    """{'game': the game row or None, 'tiers': {(seat, tier): [calls, prompt, completion, cached, cache_write]}} for one
     file. `seat` is the row's player name (None on a row that has none)."""
     ctx, dec, game = {}, {}, None
 
     def add(bucket, tier, r):
-        b = bucket.setdefault((r.get("seat"), tier), [0, 0, 0])
+        b = bucket.setdefault((r.get("seat"), tier), [0, 0, 0, 0, 0])
         b[0] += 1
         b[1] += max(0, r.get("prompt_tokens") or 0)
         b[2] += max(0, r.get("completion_tokens") or 0)
+        b[3] += max(0, r.get("cached_tokens") or 0)
+        b[4] += max(0, r.get("cache_write_tokens") or 0)
     with open(path, errors="replace") as f:
         for line in f:
             try:
@@ -60,6 +64,13 @@ def game_usage(path):
     return {"game": game, "tiers": ctx or dec}
 
 
+def usd_of(p, pin, pout, cached=0, written=0):
+    """Dollars for one bucket of tokens. `cached` and `written` are counted inside `pin`."""
+    full = max(0, pin - cached - written)
+    return (full * p["prompt"] + cached * p.get("input_cache_read", p["prompt"])
+            + written * p.get("input_cache_write", p["prompt"]) + pout * p["completion"])
+
+
 def price_of(prices, spec):
     return prices.get(model_id(spec) or "")
 
@@ -74,7 +85,7 @@ def identities_of(g, seat):
 
 
 def report_dir(run_dir, prices):
-    out = {"dir": run_dir, "games": 0, "calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "usd": 0.0, "unfinished": 0,
+    out = {"dir": run_dir, "games": 0, "calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "cached_tokens": 0, "usd": 0.0, "unfinished": 0,
            "unpriced": set(), "models": set(), "checked": set()}
     # A game that was killed or capped has no game row but was billed all the same: its tiers are
     # priced from the batch manifest, and it is counted as unfinished.
@@ -89,9 +100,10 @@ def report_dir(run_dir, prices):
         g = u["game"] or manifest
         out["games"] += 1 if u["game"] else 0
         out["unfinished"] += 0 if u["game"] or not u["tiers"] else 1
-        for (seat, tier), (calls, pin, pout) in u["tiers"].items():
+        for (seat, tier), (calls, pin, pout, cached, written) in u["tiers"].items():
             out["calls"] += calls
             out["prompt_tokens"] += pin
+            out["cached_tokens"] += cached
             out["completion_tokens"] += pout
             # Priced by the calling seat's own spec: under seat A's, a model-B-vs-ai batch reads as $0 and
             # --budget-usd never stops it. A name both seats share is priced at the dearer spec (an upper bound).
@@ -100,7 +112,7 @@ def report_dir(run_dir, prices):
             out["unpriced"].update(model_id(s) for s in specs if s not in priced and model_id(s))
             if not priced:
                 continue
-            usd = {s: pin * p["prompt"] + pout * p["completion"] for s, p in priced.items()}
+            usd = {s: usd_of(p, pin, pout, cached, written) for s, p in priced.items()}
             spec = max(usd, key=usd.get)
             out["models"].add(model_id(spec))
             out["checked"].add(priced[spec].get("checked", "?"))
@@ -115,6 +127,8 @@ def fmt(r):
         r["dir"].rstrip("/"), r["games"], (" + %d unfinished" % r["unfinished"]) if r["unfinished"] else "", r["calls"], r["prompt_tokens"] / 1e6, r["completion_tokens"] / 1e6, r["usd"], per)
     if r["unpriced"]:
         line += "  [NOT PRICED: %s -- add to eval/pricing/prices.json]" % ", ".join(sorted(r["unpriced"]))
+    if r.get("cached_tokens"):
+        line += "  (%.0f%% of prompt tokens read from cache)" % (100.0 * r["cached_tokens"] / max(1, r["prompt_tokens"]))
     return line
 
 
@@ -139,7 +153,7 @@ def main(argv=None):
         print("TOTAL: %d games + %d unfinished, $%.2f" % (sum(r["games"] for r in rows), sum(r["unfinished"] for r in rows),
                                                           sum(r["usd"] for r in rows)))
     checked = sorted(set(c for r in rows for c in r["checked"]))
-    print("prices checked %s; an upper bound on input (cached prompt tokens are billed lower); "
+    print("prices checked %s; cached prompt tokens priced at the cache rate where rows record them; "
           "calls with no row are not counted" % (", ".join(checked) or "n/a"))
     return 0
 

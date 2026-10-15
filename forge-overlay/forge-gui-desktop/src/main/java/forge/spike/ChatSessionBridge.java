@@ -102,4 +102,6 @@ final class ChatSessionBridge implements LLMBridge {
     @Override public String getLastFinishReason() { return inner.getLastFinishReason(); }
     @Override public int getLastPromptTokens() { return inner.getLastPromptTokens(); }
     @Override public int getLastCompletionTokens() { return inner.getLastCompletionTokens(); }
+    @Override public int getLastCachedTokens() { return inner.getLastCachedTokens(); }
+    @Override public int getLastCacheWriteTokens() { return inner.getLastCacheWriteTokens(); }
 }
