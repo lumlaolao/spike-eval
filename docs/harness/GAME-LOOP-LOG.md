@@ -430,3 +430,12 @@ decisions; analyzer PASS. The first Luna win in these games (Thalia, Stoneforge 
 - FIXED  card text showed the oracle's literal "\n" ("...on Aether Vial.\n{T}: ...", 34 prompts).
 - clean  mulligan, Vial counters (asked every upkeep), Stoneforge and Recruiter searches, Wasteland target,
   attacks.
+
+### game of 2026-10-15  seed 86  Standard Dimir Aggro (GPT-6 Luna) vs Standard UW Control (Forge AI)  WON T25  $0.09  harness-epoch-22
+
+`runs/luna-std/g6`: the first Standard game (MTGO Challenge top-8 lists, #198), on the build with latency routing
+(#197). 120 model decisions by `answer` call; TAKEN 0, LOST 0, SKIP 0; 0 Forge-AI decisions; analyzer PASS.
+- WORKS  latency routing: 153 calls, p50 6.7 s, p99 26 s, max 28 s, all served by Azure (before: p50 8.6 s, max 352 s).
+- FIXED  "The Wondrous Wasp (53)'s Effect" in the command zone (22 prompts): an effect named after its source with
+  the engine id inside the name. Names drop it. Test `anEffectsNameCarriesNoEngineId`.
+- clean  mulligan, plays, Kaito emblems, attacks; format named in the system prompt; decks loaded 60+15.
