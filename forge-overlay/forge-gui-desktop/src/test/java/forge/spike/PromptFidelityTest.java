@@ -580,6 +580,20 @@ public class PromptFidelityTest {
         Assert.assertTrue(mountain.isTapped(), "the other source paid");
     }
 
+    /** runs/luna-std/g6, T15: the command zone listed "The Wondrous Wasp (53)'s Effect": Forge names an effect
+     *  object after its source with the source's engine id inside the name. */
+    @Test
+    public void anEffectsNameCarriesNoEngineId() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card effect = card("Lightning Bolt", me, ZoneType.Command);
+        effect.setName("The Wondrous Wasp (53)'s Effect");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        String ref = ctrl.observer().shortRef(effect);
+        Assert.assertFalse(ref.contains("(53)"), "an engine id in a name: " + ref);
+        Assert.assertTrue(ref.contains("The Wondrous Wasp's Effect"), ref);
+    }
+
     /** runs/luna-v9/g5, T7: the stack read "Aether Vial (4) - You may put a creature card ...", the engine id 4
      *  unredacted, and the seat answered "Vial is at four counters" with three on it. Card text also showed a
      *  literal "\n" ("...on Aether Vial.\n{T}: ..."). */

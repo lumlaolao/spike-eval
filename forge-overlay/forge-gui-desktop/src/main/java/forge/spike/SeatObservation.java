@@ -78,7 +78,7 @@ final class SeatObservation {
      *  the menu), merged with v24.
      *  v26: nothing the observation shows is cut (docs/harness/MODEL-LIMITS.md): whole event, stack and card
      *  text, every seen opponent card and every reveal, and uncapped known-in-hidden-zones and zone trails. */
-    static final String VERSION = "observation-faithful-v28";
+    static final String VERSION = "observation-faithful-v29";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
      *  Every section named here is one {@link #render} prints. */
@@ -666,7 +666,9 @@ final class SeatObservation {
             if ((n == null || n.isEmpty()) && c.isFaceDown()) {
                 try { n = c.getState(CardStateName.Original).getName(); } catch (Exception ignore) { }
             }
-            return n == null ? "" : n;
+            // An effect is named after its source with the source's engine id in the name ("The Wondrous Wasp
+            // (53)'s Effect", runs/luna-std/g6); no card name contains one, so it is dropped.
+            return n == null ? "" : ENGINE_ID.matcher(n).replaceAll("");
         } catch (Exception e) { return "?"; }
     }
 
