@@ -56,7 +56,8 @@ def modern_line(seed, swap, winner, **kw):
          "claude_effort_smart": "n/a", "claude_effort_fast": "n/a",
          "native_tools": False, "native_tools_seats": "", "native_tools_version": "seat-tools-v4",
          "native_tools_downgraded": "", "rules_tool": False, "rules_tool_version": "rules-tool-v1",
-         "rules_effective": "n/a", "lookahead": False, "lookahead_version": "lookahead-preview-v4"}
+         "rules_effective": "n/a", "lookahead": False, "lookahead_version": "lookahead-preview-v4",
+         "one_tier": False}
     g.update(kw)
     return g
 

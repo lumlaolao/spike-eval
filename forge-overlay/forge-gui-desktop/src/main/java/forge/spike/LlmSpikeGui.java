@@ -725,6 +725,11 @@ public final class LlmSpikeGui {
          *  rather than one per priority window. Any interruption (their spell, a life change, a new
          *  permanent) invalidates the plan and forces a re-ask. Off by default. */
         static final boolean PLAN_EXECUTE = "1".equals(System.getenv("PLAN_EXECUTE"));
+        /** ONE_TIER=1: one bridge answers every decision, with the smart tier's model, system prompt and
+         *  reasoning. The two-tier split sends 58% of real decisions in runs/loop g01-g07 (every target,
+         *  most instant-speed plays) to a tier with reasoning disabled, which is the harness deciding how
+         *  hard the model may think per decision type. A condition: stamped `one_tier` on the game line. */
+        static final boolean ONE_TIER = "1".equals(System.getenv("ONE_TIER"));
         private String planSig;      // opponent-side signature when the plan was stated
         private int planStepIdx;     // how many plan steps have been executed this turn
         /** The model's EXPLICIT cast list (`STEPS: A, B`), in order. Only this is auto-executed.
@@ -854,10 +859,20 @@ public final class LlmSpikeGui {
 
         PlayerControllerLLM(Game game, Player p, LobbyPlayer lp, String seat, String deckPlan,
                             String smartModel, String fastModel, String mode) {
-            this(game, p, lp, seat, deckPlan,
-                    LLMBridgeFactory.create(seat + "/smart", smartModel, framing(seat, deckPlan, false, NativeTools.usedBy(smartModel))),
-                    LLMBridgeFactory.create(seat + "/fast",  fastModel,  framing(seat, deckPlan, true, NativeTools.usedBy(fastModel))),
-                    mode);
+            this(game, p, lp, seat, deckPlan, oneTierPair(seat, deckPlan, smartModel, fastModel), mode);
+        }
+
+        private PlayerControllerLLM(Game game, Player p, LobbyPlayer lp, String seat, String deckPlan,
+                                    LLMBridge[] pair, String mode) {
+            this(game, p, lp, seat, deckPlan, pair[0], pair[1], mode);
+        }
+
+        /** The smart and fast bridges: one shared smart bridge under ONE_TIER, else one per tier. */
+        private static LLMBridge[] oneTierPair(String seat, String deckPlan, String smartModel, String fastModel) {
+            LLMBridge smartB = LLMBridgeFactory.create(seat + "/smart", smartModel, framing(seat, deckPlan, false, NativeTools.usedBy(smartModel)));
+            if (ONE_TIER) return new LLMBridge[] {smartB, smartB};
+            return new LLMBridge[] {smartB,
+                    LLMBridgeFactory.create(seat + "/fast", fastModel, framing(seat, deckPlan, true, NativeTools.usedBy(fastModel)))};
         }
 
         /** Package-private test seam: inject bridges directly instead of building them via
@@ -7458,6 +7473,7 @@ public final class LlmSpikeGui {
                 + ",\"native_tools_seats\":\"" + jsonEscape(nativeSeats) + "\""
                 + ",\"native_tools_downgraded\":\"" + jsonEscape(String.join(",", new java.util.TreeSet<>(NativeTools.DOWNGRADED))) + "\""
                 + ",\"native_tools_version\":\"" + NativeTools.VERSION + "\""
+                + ",\"one_tier\":" + PlayerControllerLLM.ONE_TIER
                 + ",\"lookahead\":" + PlayerControllerLLM.lookaheadEnabled()
                 + ",\"lookahead_version\":\"" + PlayerLookahead.VERSION + "\""
                 + ",\"rules_tool\":" + PlayerControllerLLM.RULES_TOOL
