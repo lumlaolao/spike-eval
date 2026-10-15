@@ -49,7 +49,7 @@ them and refuses to pool what is not comparable.
   `docs/harness/controller-ownership.tsv` lists every controller method, who decides it (model,
   deterministic, Forge AI) and how often the pool reaches it. The acceptance run prints the count of AI
   decisions still reachable in Legacy play, and `[TALLY] ... ai=0` in each game log is the invariant.
-  Removing the remaining Forge-AI paths is work plan priority 0 (A).
+  Since harness-epoch-14 no reachable decision falls back to it (section 15).
 
 **What the harness may decide without asking (owner rule):**
 - a choice with exactly one legal option (forced);
@@ -274,10 +274,14 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 
 ## 15. Known gaps (see `docs/harness/WORK-PLAN.md`)
 
-- **Remaining Forge-AI decision paths** (priority 0, A), listed in the ownership ledger:
-  - blocker damage order and the mana-keep fallback are being moved to the seat;
-  - after them come card naming and modes on error, the targeting safety nets, cost-decision fallbacks,
-    and a set of rare choices.
+- **Forge's AI decides nothing the seat can decide** (priority 0, A, harness-epoch-14):
+  - damage order, the mana keep, card naming, modes, targets, cost picks and empty choices no longer
+    fall back to it;
+  - nor do the twenty choices it used to make outright: Fact or Fiction piles, opening-hand abilities,
+    colours, counter kinds, replacement order, edicts, clash, combat taxes and others.
+  - What is left has no hook in the pinned engine. That is the colour an any-colour source makes for a
+    generic shard during payment, which matters only to converge, sunburst and spent-colour checks. Also
+    left are the mechanics no deck in the pool reaches (dice, stickers, contraptions).
 - **Mana payment:** the engine maps the chosen sources to the cost. The seat decides which sources stay
   untapped when it matters (`keep_untapped`, or the mana-sources ask).
 - **The Claude CLI lane** answers in text, because it has no function calling.
