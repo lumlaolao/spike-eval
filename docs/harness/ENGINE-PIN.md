@@ -45,7 +45,8 @@ The only API-visible changes that touched the overlay's surface:
 - **The floor canary did not move**: A/108/**1068**, unchanged. The random canary re-rolled, as it
   does on any engine change: B/19/65 -> **B/33/307**, reproduced twice. Re-pinned in
   `eval/harness_acceptance.expected` (2026-10-14 note), which also refreshes the Mac random pin #112
-  recorded as stale. The `linux.*` pins are the old engine's and are named STALE there.
+  recorded as stale. (The `linux.*` pins belong to a separate Linux runner, not this Mac dev
+  checkout; Mac development does not maintain them.)
 
 Evidence: acceptance preflight/classpath/compile/javatests/canary PASS at the new pin.
 

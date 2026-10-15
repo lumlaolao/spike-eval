@@ -30,6 +30,8 @@ to compute a win rate. Each is exactly 60 cards and every card name resolves in 
 | `hook-villainous-choice` | `chooseSpellAbilitiesForEffect` | Forge AI | `VillainousChoiceEffect` | — |
 | `hook-divided-targets` | a **divided** target set (`DividedAsYouChoose`) | the seat | `DamageDealEffect` reads the per-target split | **#124** (regression deck) |
 | `hook-multitarget` | a **multi-target** set (`Hex`, six targets) | the seat | `TargetRestrictions` | **#124** (regression deck) |
+| `hook-number-choice` | the `chooseNumber` decision (`Galvanic Discharge`: how much `{E}` to pay) | the seat (`chooseNumber` is routed) | `ChooseNumberEffect` | — |
+| `hook-if-you-do` | the reflexive "when you do" chain (`Minsc & Boo`) | the seat owns the sacrifice and the target; the chain itself is the engine's | `ImmediateTrigger` | — |
 
 ## The cards, and why each deck reaches its hook
 
@@ -72,6 +74,12 @@ to compute a win rate. Each is exactly 60 cards and every card name resolves in 
   when the engine asks (`DamageDealEffect` reads the per-target split, and a missing allocation NPEs).
 - **`hook-multitarget`** — `Hex` destroys six target creatures, so `chooseTargetsFor` sees
   `getMaxTargets() > 1` rather than bailing to the AI.
+- **`hook-number-choice`** — `Galvanic Discharge` asks how much `{E}` to pay through `DB$ ChooseNumber`
+  (prompt "amount of energy to pay"), and the answer decides whether the damage is lethal; the
+  observation renders the player's energy counters (`energy N`) and every creature's toughness. The
+  pool never ran a number-choice card before this deck.
+- **`hook-if-you-do`** — `Minsc & Boo`'s -2 is a reflexive "when you do" (`ImmediateTrigger`):
+  sacrifice a creature, then deal damage equal to its power and draw if it was a Hamster.
 
 ## Running one
 
@@ -93,7 +101,7 @@ top level only).
 
 ## Verified
 
-- Card-name resolution: all 60 names per deck (18 decks) resolve in Forge's card DB.
+- Card-name resolution: all 60 names per deck (20 decks) resolve in Forge's card DB.
 - Load test (`hook-piles`, 2026-10-14): a zero-model floor mirror, seed 42, ran to turn 108 with no
   load error and the deck's cards in the log (`Fact or Fiction`, `Gifts Ungiven`, 26 `Island`; none
   of the default Grixis Reanimator cards). Floor short-circuits plays, so it proves the deck **loads**,
