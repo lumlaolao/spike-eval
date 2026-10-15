@@ -1,6 +1,7 @@
 package forge.spike;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
@@ -135,8 +136,7 @@ final class LlmCostDecision extends AiCostDecision {
             typeList = ComputerUtilCost.paymentChoicesWithoutTargets(typeList, ability, player);
             if (amount <= 0 || typeList.size() <= amount) return super.visit(cost); // nothing to choose
 
-            String from = (cost.zoneRestriction == 1 ? "your " : "any player's ") + (cost.getFrom().size() == 1
-                    ? cost.getFrom().get(0).name().toLowerCase() : String.valueOf(cost.getFrom()).toLowerCase());
+            String from = (cost.zoneRestriction == 1 ? "your " : "any player's ") + zonesInWords(cost.getFrom());
             CardCollectionView pick = ask(typeList, amount, "exile", "COST: to pay for " + source.getName()
                     + " you must EXILE " + amount + " of these cards from " + from
                     + ". They leave now, as the cost is paid. Choose which");
@@ -146,6 +146,17 @@ final class LlmCostDecision extends AiCostDecision {
             fellBack("exile-cost", e.getClass().getSimpleName());
         }
         return super.visit(cost);
+    }
+
+    /** The zones a cost takes cards from, in words: "graveyard", "graveyard or hand", "graveyard,
+     *  hand or library" (issue #109: the Java list "[graveyard, hand]" was printed). */
+    static String zonesInWords(List<ZoneType> zones) {
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < zones.size(); i++) {
+            if (i > 0) b.append(i == zones.size() - 1 ? " or " : ", ");
+            b.append(zones.get(i).name().toLowerCase());
+        }
+        return b.toString();
     }
 
     /** Which cards a discard cost discards (Survival of the Fittest: "Discard a creature card").
@@ -251,9 +262,10 @@ final class LlmCostDecision extends AiCostDecision {
      *  part, and tapping a tapped card is a silent no-op, so offering one would let the cost go unpaid.
      *  AiCostDecision reads PAYS_TAP_COST as it stands, but the seat test-pays many other abilities
      *  while building its menu, so that set belongs to whichever was last; a test payment of THIS
-     *  ability refreshes it first. Without a mana part nothing is reserved. */
+     *  ability refreshes it first. It test-pays even when the printed cost has no mana part: a raise
+     *  (Suppression Field: {2} more) gives it one, and the test payment computes the cost with raises
+     *  (issue #110); with no mana to pay, the refreshed set is empty. */
     private Set<Card> manaSources() {
-        if (!ability.getPayCosts().hasManaCost()) return Collections.emptySet();
         ComputerUtilMana.canPayManaCost(ability, player, 0, isEffect());
         Set<Card> reserved = AiCardMemory.getMemorySet(player, AiCardMemory.MemorySet.PAYS_TAP_COST);
         return reserved == null ? Collections.emptySet() : reserved;

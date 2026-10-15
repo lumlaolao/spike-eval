@@ -7,7 +7,8 @@ Every card is invented (eval/tooluse/scenarios.json), so the deciding fact exist
 tool. Each need-scenario also runs as a TWIN with the fact printed in the state; the twin measures
 restraint and is the comprehension ceiling for the answer.
 
-Three protocol arms reach the same executor with the same budget (2 tools per ask):
+Three protocol arms reach the same executor with the same budget (16 tools per ask; 2 before
+evidence-tools-v3):
 
   text-strict   evidence-tools-v1, what every game before 2026-10-13 ran: the WHOLE reply must be one
                 command line
@@ -43,18 +44,21 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DATA = Path(__file__).resolve().parent / "tooluse"
 DEFAULT_MODEL = "openai/gpt-6-luna"   # owner 2026-10-15: Luna for every game model
 ARMS = ("text-strict", "text-lenient", "native", "native-answer")
-TOOLS_PER_ASK = 2          # ContextMemory.TOOLS_PER_ASK
-PAGE_CHARS = 2000          # ContextMemory.PAGE_CHARS
+TOOLS_PER_ASK = 16         # ContextMemory.TOOLS_PER_ASK
+PAGE_CHARS = 20000         # ContextMemory.PAGE_CHARS
+SEARCH_PAGE = 50           # ContextMemory.SEARCH_PAGE
+REQUEST_CHARS = 2100       # ContextMemory.REQUEST_CHARS
+TOOLS_PER_GAME = 1000      # ContextMemory.TOOLS_PER_GAME
 SNIPPET = 240              # ContextMemory.snippet
 
 # Verbatim from ContextMemory.instructions() and SeatObservation.inspectInstructions(); the unit
 # test compares both against the Java sources so the text arm cannot drift from the shipped grammar.
 MEMORY_INSTRUCTIONS = (
-    "MEMORY TOOLS evidence-tools-v2: instead of an action, you may reply with exactly ONE line: "
-    "MEMORY SEARCH <offset> <literal text> (10 matching evidence snippets per page), "
-    "MEMORY READ <evidence id> <character offset> (2000 characters per page), or "
-    "MEMORY NOTE <evidence id> <hypothesis or plan, max 500 characters>. "
-    "Offsets start at 0; evidence ids start at 1. At most 2 tools per ask and 64 per game. "
+    "MEMORY TOOLS evidence-tools-v3: instead of an action, you may reply with exactly ONE line: "
+    "MEMORY SEARCH <offset> <literal text> (50 matching evidence snippets per page), "
+    "MEMORY READ <evidence id> <character offset> (20000 characters per page), or "
+    "MEMORY NOTE <evidence id> <hypothesis or plan, max 2000 characters>. "
+    "Offsets start at 0; evidence ids start at 1. At most 16 tools per ask and 1000 per game. "
     "GAME HISTORY / RECENT EVENTS cite canonical event ids as [E<n>] — `MEMORY SEARCH 0 [E<n>]` "
     "finds that event's archived text, and MEMORY READ reads the whole entry. "
     "Tools search only this seat's archived observations and reveals; they cannot query hidden state. "
@@ -80,7 +84,7 @@ ENGINE_ONLY = ("rules_lookup", "simulate", "report_unclear_decision")
 # round where none is allowed.
 PRESS = ("No tool calls are available for this decision any more. Do not ask for one. Answer the decision "
          "above now, ending with the exact answer line it asks for.")
-ONE_LINE_ERROR = "ERROR: use exactly one MEMORY/INSPECT/RULES command line, at most 1000 characters."
+ONE_LINE_ERROR = "ERROR: use exactly one MEMORY/INSPECT/RULES command line, at most 2100 characters."
 BUDGET_ERROR = "ERROR: tool budget exhausted; no tool executed."
 
 # LlmSpikeGui.framing(): the smart tier asks for a little prose, the fast tier forbids it.
@@ -166,7 +170,7 @@ class Seat:
         """ContextMemory.beginNative: the archive block first, the decision last (harness-epoch-8)."""
         out = ("This decision is saved as archive entry M%d. The archive holds %d entries (earlier states, events and "
                "reveals); search it with memory_search and read an entry with memory_read. Lookups left: %d for this "
-               "decision, 64 this game.\n" % (self.observation_id, len(self.entries), TOOLS_PER_ASK))
+               "decision, %d this game.\n" % (self.observation_id, len(self.entries), TOOLS_PER_ASK, TOOLS_PER_GAME))
         shown = 0
         for i in range(len(self.entries) - 1, -1, -1):
             if shown >= 4:
@@ -179,7 +183,7 @@ class Seat:
 
     def execute(self, request):
         """One canonical command line -> result text, exactly as ContextMemory.execute decides it."""
-        if request is None or len(request) > 1000 or "\n" in request or "\r" in request:
+        if request is None or len(request) > REQUEST_CHARS or "\n" in request or "\r" in request:
             return ONE_LINE_ERROR
         req = request.strip()
         if req.startswith("RULES"):
@@ -237,7 +241,7 @@ class Seat:
             by_words = bool(matches)
         if offset > len(matches):
             return "ERROR: offset outside search results."
-        end = offset + min(10, len(matches) - offset)
+        end = offset + min(SEARCH_PAGE, len(matches) - offset)
         out = "Matches=%d next=%s%s\n" % (len(matches), end if end < len(matches) else "END",
                                          " (no literal match; entries holding every word)" if by_words else "")
         for i in matches[offset:end]:
@@ -355,7 +359,7 @@ def run_text(scenario, kind, tier, model, lenient, meta):
     seat = Seat(scenario, decision)
     base = decision + "\n" + MEMORY_INSTRUCTIONS + INSPECT_INSTRUCTIONS + seat.brief()
     exchanges, calls, usage = "", [], []
-    for rnd in range(TOOLS_PER_ASK + 1):                    # ContextMemory.ask: three model rounds at most
+    for rnd in range(TOOLS_PER_ASK + 1):                    # ContextMemory.ask: TOOLS_PER_ASK + 1 model rounds at most
         prompt = base + exchanges + "\nTools available this ask: %d. Answer the original decision if zero.\n" % (
             TOOLS_PER_ASK - rnd)
         r = model([{"role": "system", "content": system_text(tier)}, {"role": "user", "content": prompt}], None, meta)
@@ -376,7 +380,7 @@ def run_text(scenario, kind, tier, model, lenient, meta):
                       "ok": ok, "rejected": "protocol" if result == ONE_LINE_ERROR else (None if ok else "argument")})
         label = "RULES" if request.lstrip().startswith("RULES") else "MEMORY"
         exchanges += "\n%s REQUEST: %s\n%s RESULT%s%s\n" % (
-            label, (request if lenient else reply)[:1000], label, " (public rules text):\n" if label == "RULES" else " (historical data):\n", result)
+            label, (request if lenient else reply)[:REQUEST_CHARS], label, " (public rules text):\n" if label == "RULES" else " (historical data):\n", result)
     return {"reply": None, "choice": None, "calls": calls, "usage": usage}
 
 

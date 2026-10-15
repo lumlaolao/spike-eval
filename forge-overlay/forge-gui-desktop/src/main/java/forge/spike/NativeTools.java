@@ -37,8 +37,11 @@ final class NativeTools {
      *  conversation. `answer` and `set_plan` are fixed (AnswerTool v2) and mirrored in
      *  eval/tooluse/answer_tools.json; on a lookahead seat `simulate` is declared on every ask.
      *  v8 (2026-10-15): the memory and rules descriptions say what each tool is for, when to use it and
-     *  when not (docs/harness/PROMPT-AUDIT.md G1). */
-    static final String VERSION = "seat-tools-v8";
+     *  when not (docs/harness/PROMPT-AUDIT.md G1).
+     *  v9 (2026-10-15): no decision limits in the definitions (docs/harness/MODEL-LIMITS.md): `simulate` may
+     *  run more than once a decision and its line takes any number of further options; a search page holds
+     *  50 results, a read page 20000 characters, a note or report up to 2000 characters. */
+    static final String VERSION = "seat-tools-v9";
     static final String SIMULATE = "simulate";
     /** The refusal of a preview on a decision with no play menu (the tool is declared on every ask). */
     static final String NO_PREVIEW = "ERROR: `simulate` previews an option of a play decision (your priority menu); "
@@ -142,7 +145,6 @@ final class NativeTools {
         JsonObject p = new JsonObject();
         p.addProperty("type", "array");
         p.add("items", items);
-        p.addProperty("maxItems", 2);
         p.addProperty("description", description);
         return p;
     }
@@ -164,7 +166,7 @@ final class NativeTools {
                 "target"));
         a.add(fn("memory_search",
                 "Search your archive: every earlier state you were shown, the events since each, and every hidden card "
-                + "you were revealed, in this game. The search is literal and case-insensitive, and returns up to 10 "
+                + "you were revealed, in this game. The search is literal and case-insensitive, and returns up to 50 "
                 + "snippets per page, each with its evidence id [M<n>]; read one in full with memory_read. Use it when a "
                 + "decision turns on something from earlier that the current message does not show, such as a card "
                 + "you saw in their hand, what they cast on an earlier turn, or an event id. Do not use it for the "
@@ -174,7 +176,7 @@ final class NativeTools {
                       "offset", prop("integer", "Result offset for paging; 0 for the first page.", 0, null)),
                 "query"));
         a.add(fn("memory_read",
-                "Read one archive entry [M<n>] in full, 2000 characters per page. Use it after memory_search when a "
+                "Read one archive entry [M<n>] in full, 20000 characters per page. Use it after memory_search when a "
                 + "snippet ends with \"[READ for full text]\", or to see a whole earlier state you know the id of. The "
                 + "reply ends with next=<offset> when there is more; pass that offset to read on. An entry describes "
                 + "the game as it was then, not as it is now.",
@@ -187,7 +189,7 @@ final class NativeTools {
                 + "later decisions. Notes are your own unverified hypotheses, never engine facts. Use set_plan, not a "
                 + "note, for your plan for this turn.",
                 props("evidence_id", prop("integer", "The observation or reveal [M<n>] the note cites.", 1, null),
-                      "note", prop("string", "The note, at most 500 characters.", null, 500)),
+                      "note", prop("string", "The note, at most " + ContextMemory.NOTE_CHARS + " characters.", null, ContextMemory.NOTE_CHARS)),
                 "evidence_id", "note"));
         if (rules) {
             JsonObject action = prop("string", "search: find rules by words. read: one rule in full (query = its number, "
@@ -214,15 +216,15 @@ final class NativeTools {
                 + "preview is that answer and no copy is made; it does not play out the opponent's turn. Pass `then` to "
                 + "preview a LINE: further options played after it, in order, on the same copy (it tells you if a later "
                 + "one can no longer be paid for). It is an estimate, not the engine's verdict: hidden cards are guessed, "
-                + "and the engine pays the costs on the copy. At most one preview per decision.",
+                + "and the engine pays the costs on the copy. You may preview several options or lines before you answer.",
                 props("option", prop("integer", "The number of a CAST, ACTIVATE, PLAY LAND or PASS option in the "
                                 + "decision's menu.", 1, null),
                       "target", prop("string", "Optional: the name of the target to preview the first option against.", null, null),
-                      "then", intArray("Optional: up to two more menu numbers to play after it, in order.")),
+                      "then", intArray("Optional: more menu numbers to play after it, in order, each at most once.")),
                 "option"));
         a.add(fn(REPORT,
                 "Tell the harness maintainers that THIS question is broken or confusing: the options do not match the state you see, an option you expected is missing, the text is garbled, or the question makes no sense after what you just did. It changes nothing in the game and does not end the decision: answer it afterwards as best you can. Not for a hard choice; only for a problem with the question itself.",
-                props("problem", prop("string", "What is wrong with the question, in one or two sentences, naming the option numbers involved.", null, 500)),
+                props("problem", prop("string", "What is wrong with the question, in one or two sentences, naming the option numbers involved.", null, ContextMemory.NOTE_CHARS)),
                 "problem"));
         return a;
     }

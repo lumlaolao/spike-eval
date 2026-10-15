@@ -1745,6 +1745,37 @@ public class LlmSpikeTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** Issue #109: an exile cost that can take cards from more than one zone printed the Java list,
+     *  "from your [graveyard, hand]". The zones are joined in words. */
+    @Test
+    public void aMultiZoneExileCostNamesItsZonesInWords() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        Card host = addBattlefieldCard("Forest", me);
+        addGraveCard("Griselbrand", me);
+        addGraveCard("Thoughtseize", me);
+        addHandCard("Ponder", me);
+        forge.game.spellability.SpellAbility sa = forge.game.ability.AbilityFactory.getAbility(
+                "AB$ GainLife | Cost$ T | LifeAmount$ 1 | SpellDescription$ test.", host);
+        sa.setActivatingPlayer(me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+        me.dangerouslySetController(ctrl);
+        forge.game.cost.CostExile exile = new forge.game.cost.CostExile("1", "Card", null,
+                Lists.newArrayList(ZoneType.Graveyard, ZoneType.Hand));
+
+        forge.game.cost.PaymentDecision d = new LlmCostDecision(me, sa, false).visit(exile);
+        Assert.assertNotNull(d);
+        Assert.assertEquals(bridge.prompts.size(), 1, "the exile was not asked");
+        String q = bridge.prompts.get(0);
+        Assert.assertTrue(q.contains("from your graveyard or hand."), q);
+        Assert.assertFalse(q.contains("[graveyard"), q);
+        Assert.assertEquals(LlmCostDecision.zonesInWords(Lists.newArrayList(ZoneType.Graveyard, ZoneType.Hand,
+                ZoneType.Library)), "graveyard, hand or library");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
     /** A tap-type cost (Glare of Subdual: "Tap an untapped creature you control") was paid by Forge's AI,
      *  lowest power first, with no row, so the AI chose which creature stayed up to attack or block.
      *  The real play path pays with LlmCostDecision (playChosenSpellAbility), so the pick must be the
@@ -1802,6 +1833,34 @@ public class LlmSpikeTest {
         Assert.assertEquals(bridge.prompts.size(), 1, "the tap was not asked");
         // Candidates: Bears, Angel. If the Elves were offered, pick 2 would be the Bears.
         Assert.assertEquals(d.cards.get(0).getName(), "Serra Angel", "the Elves the {2} needs were offered");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** Issue #110: Glare of Subdual's printed cost has no mana part, but Suppression Field raises it by
+     *  {2}. The reserve was decided from the printed cost, so nothing was reserved and the Elves that
+     *  the {2} payment taps (with the Forest) were offered for the tap part, a silent no-op there. */
+    @Test
+    public void aTapTypeCostDoesNotOfferWhatARaisedManaPaymentTaps() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        Card glare = addBattlefieldCard("Glare of Subdual", me);
+        addBattlefieldCard("Suppression Field", me);
+        addBattlefieldCard("Forest", me);
+        addBattlefieldCard("Llanowar Elves", me).setSickness(false); // a mana source, not just a creature
+        addBattlefieldCard("Grizzly Bears", me);
+        addBattlefieldCard("Serra Angel", me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 2");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+        me.dangerouslySetController(ctrl);
+        forge.game.spellability.SpellAbility ab = activated(glare, me);
+        Assert.assertFalse(ab.getPayCosts().hasManaCost(), "fixture: Glare's printed cost has no mana part");
+
+        forge.game.cost.PaymentDecision d = new LlmCostDecision(me, ab, false).visit(tapPart(ab));
+        Assert.assertNotNull(d);
+        Assert.assertEquals(bridge.prompts.size(), 1, "the tap was not asked");
+        // Candidates: Bears, Angel. If the Elves were offered, pick 2 would be the Bears.
+        Assert.assertEquals(d.cards.get(0).getName(), "Serra Angel", "the Elves the raised {2} needs were offered");
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 

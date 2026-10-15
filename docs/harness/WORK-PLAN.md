@@ -101,22 +101,25 @@ when an item is finished or a new one is agreed, so the next session can pick up
 
 ## Priority 2: land the work already built
 
-Merge one at a time, with `eval/harness_acceptance.sh` green before each, renumbering
-`HARNESS_EPOCH` and the observation version where the branches collide.
+Done 2026-10-15:
+- 8 `fix/protocol-defects` (#165);
+- 9 golden checks (#173);
+- 10 scoring axes (#172);
+- 11 the issue fixes #117, #118, #113, #109, #110, #108 (one integration PR, harness-epoch-10);
+- 12 the model-limits audit (`docs/harness/MODEL-LIMITS.md`), merged with the issue batch. Uncut
+  history, reveals and card text; 16 tool calls an ask; any number of previews; budgets are loop
+  guards only.
 
-8. `fix/protocol-defects`: `require_parameters` on tool rounds, the case-sensitive KEEP and MULLIGAN
-   match, and the head-and-tail record of a failed reply.
-9. `test/golden-checks`: AskContract plus golden checks for 42 decision types, and 11 harness
-   defects fixed.
-10. `feat/scoring-axes`: Bradley-Terry rating, panels, sanity arms, and the benchmark version.
-11. The issue fixes: #117 (`fix/plan-execute-tier-fast-conditions-v2`), #118, #113, #109, #110,
-    #108.
-12. `feat/no-model-limits`: the limits audit (`docs/harness/MODEL-LIMITS.md`). Review it before
-    merging.
-13. `feat/puzzle-suite`: `eval/PUZZLES.md` and `puzzle_score.py`. Review it before merging.
+Left:
+
+13. `feat/puzzle-suite` is unfinished. It has `puzzle_score.py`, `puzzle_baselines.py`,
+    `puzzle_format.py`, `PuzzleArms.java` and `PuzzleArmsTest`. It still needs `eval/PUZZLES.md`,
+    Python tests, a frozen suite and a merge with main. Moved to priority 3.
 14. Commit `runs/combo/` (8 Haiku 5.5 combo games and `REPORT.md`).
 
 ## Priority 3: later
+
+- Finish the puzzle suite (see 13).
 
 15. The first real scoring-panel run (cost stated first, small block).
 16. Compound actions: the model states a sequence once and it is carried out step by step.

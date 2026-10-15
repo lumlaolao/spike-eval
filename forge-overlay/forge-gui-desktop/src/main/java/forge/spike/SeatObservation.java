@@ -75,8 +75,10 @@ final class SeatObservation {
     /** v24: the legend moved out of every message into the system prompt ({@link #GUIDE}), where it is said
      *  once and cached; the header no longer names this version (it is for the logs, not the model).
      *  v25: the golden checks (stack text redacted of engine ids; the hand's "(castable)" tag agrees with
-     *  the menu), merged with v24. */
-    static final String VERSION = "observation-faithful-v25";
+     *  the menu), merged with v24.
+     *  v26: nothing the observation shows is cut (docs/harness/MODEL-LIMITS.md): whole event, stack and card
+     *  text, every seen opponent card and every reveal, and uncapped known-in-hidden-zones and zone trails. */
+    static final String VERSION = "observation-faithful-v26";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
      *  Every section named here is one {@link #render} prints. */
@@ -192,8 +194,6 @@ final class SeatObservation {
      *  zone) and stays: the text of a card you have seen does not stop being known when it leaves.
      *  It is the printed card, read from the card database — never an interaction, never advice. */
     private final java.util.LinkedHashMap<String, String> oppCardText = new java.util.LinkedHashMap<>();
-    static final int OPP_CARD_TEXT_CAP = 30;
-    static final int OPP_CARD_TEXT_CHARS = 320;
     /** The seat's own deck text (already in its framing); a card printed there is not repeated. */
     private String ownDeckText = "";
 
@@ -240,7 +240,6 @@ final class SeatObservation {
             try { if (r.getType().isCreature()) b.append(' ').append(r.getPower()).append('/').append(r.getToughness()); } catch (Exception ignore) { }
             if (r.getType().isBasicLand()) return null;
             text = text.replace("\\n", " ").replaceAll("\\s+", " ").trim();
-            if (text.length() > OPP_CARD_TEXT_CHARS) text = text.substring(0, OPP_CARD_TEXT_CHARS - 3) + "...";
             return b.append(" — ").append(text).toString();
         } catch (Exception e) { return null; }
     }
@@ -248,14 +247,11 @@ final class SeatObservation {
     private String opponentCardText() {
         noteOpponentCards();
         if (oppCardText.isEmpty()) return "";
-        int n = oppCardText.size(), skip = Math.max(0, n - OPP_CARD_TEXT_CAP), i = 0;
+        int n = oppCardText.size();
         StringBuilder b = new StringBuilder("OPPONENT CARDS YOU HAVE SEEN (printed rules text from the card database; ")
-                .append(n).append(n == 1 ? " card" : " cards")
-                .append(skip > 0 ? ", earliest " + skip + " omitted — INSPECT <name> shows any card" : "").append("):\n");
-        for (java.util.Map.Entry<String, String> e : oppCardText.entrySet()) {
-            if (i++ < skip) continue;
+                .append(n).append(n == 1 ? " card" : " cards").append("):\n");
+        for (java.util.Map.Entry<String, String> e : oppCardText.entrySet())
             b.append("  ").append(e.getKey()).append(": ").append(e.getValue()).append('\n');
-        }
         return b.toString();
     }
 
@@ -278,12 +274,9 @@ final class SeatObservation {
         KnownLoc(String name, Player owner, ZoneType zone) { this.name = name; this.owner = owner; this.zone = zone; }
     }
     /** Keyed "ownerName|zone|name" (an object gets a new engine id across a zone change, so identity
-     *  across zones is by name — the same thing the seat itself can track). Bounded and LRU-ish:
-     *  beyond the cap the oldest fact is dropped, so a long game cannot grow this without limit. */
-    private static final int KNOWN_HIDDEN_CAP = 12;
+     *  across zones is by name — the same thing the seat itself can track). Not capped: it is bounded
+     *  by the opponents' cards, and the old 12-entry cap dropped the oldest fact without saying so. */
     private final Map<String, KnownLoc> knownHidden = new LinkedHashMap<>();
-    /** Most recent zone transitions kept per object (bounded, oldest dropped). */
-    private static final int TRAIL_CAP = 8;
 
     SeatObservation(Game game, Player viewer) {
         this(game, viewer, true);
@@ -359,7 +352,6 @@ final class SeatObservation {
             String from = ev.from() == null ? "?" : zoneWord(ev.from().zoneType());
             String to = ev.to() == null ? "?" : zoneWord(ev.to().zoneType());
             t.trail.add("T" + safeTurn() + ": " + from + " -> " + to + (t.linkAllowed ? "" : " (via a hidden zone)"));
-            while (t.trail.size() > TRAIL_CAP) t.trail.remove(0);
         } catch (Exception ignore) { }
     }
 
@@ -390,10 +382,6 @@ final class SeatObservation {
         if (k == null) { k = new KnownLoc(name, owner, zone); knownHidden.put(knownKey(name, owner, zone), k); }
         k.count++;
         k.turn = safeTurn();
-        while (knownHidden.size() > KNOWN_HIDDEN_CAP) {
-            String oldest = knownHidden.keySet().iterator().next();
-            knownHidden.remove(oldest);
-        }
     }
 
     private void removeKnown(String name, Player owner, ZoneType zone) {
@@ -704,7 +692,8 @@ final class SeatObservation {
             }
             if (!EVENT_TYPES.contains(e.type())) continue;
             if (byId == null) byId = cardsById();
-            String msg = redact(LlmSpikeGui.oneLine(e.message()), e.sourceCard(), byId);
+            // flat, not oneLine: the 90-character cut lost block assignments and search results.
+            String msg = redact(LlmSpikeGui.flat(e.message()), e.sourceCard(), byId);
             stream.add(new GameHistory.Ev(stream.size() + 1, currentTurn, e.type(), msg));
         }
         consumedLogEntries = all.size();
@@ -926,10 +915,8 @@ final class SeatObservation {
             s.append("NOT VISIBLE: ").append(notVisible()).append('\n');
             s.append(history);
             if (!reveals.isEmpty()) {
-                int shown = Math.min(6, reveals.size());
-                s.append("REVEALS TO YOU (historical evidence, seat-local; ").append(reveals.size()).append(" total, latest ")
-                 .append(shown).append(" shown; all remain searchable):\n");
-                for (int i = reveals.size() - shown; i < reveals.size(); i++) s.append("  - ").append(staleLabel(reveals.get(i))).append('\n');
+                s.append("REVEALS TO YOU (historical evidence, seat-local; ").append(reveals.size()).append(" total, oldest first):\n");
+                for (String r : reveals) s.append("  - ").append(staleLabel(r)).append('\n');
             }
             s.append(knownHiddenText());
             s.append(spentThisTurn());
@@ -1079,7 +1066,7 @@ final class SeatObservation {
                 b.append(" (").append(who == null ? "?" : (who == viewer ? "you" : who.getName())).append(')');
                 if (known) {
                     String d = LlmSpikeGui.flat(si.getStackDescription());
-                    if (d != null && !d.isEmpty()) b.append(": ").append(d.length() > 160 ? d.substring(0, 157) + "..." : d);
+                    if (d != null && !d.isEmpty()) b.append(": ").append(d);
                 }
                 String t = targets(si);
                 if (!t.isEmpty()) b.append(" -> targets: ").append(t);

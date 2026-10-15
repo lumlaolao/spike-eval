@@ -87,7 +87,15 @@ want() { # $1 key -> value from the expectations file
     END {if (np) print (np>1 ? "DUPLICATE" : p); else print (n>1 ? "DUPLICATE" : v)}' "$EXPECTED"
 }
 pinset() { # $1 arm -> which pins the canary is checked against
-  if grep -q "^$PLATFORM\.$1\." "$EXPECTED"; then echo "$PLATFORM pins"; else echo "plain (Mac) pins"; fi
+  # want() looks each key up on its own, so an OS pin set missing one outcome key would be checked
+  # against a mix of OS and plain values while the label said "<os> pins" (#113): that is PARTIAL.
+  local k have="" miss=""
+  for k in winner turns decisions; do
+    if grep -q "^$PLATFORM\.$1\.$k=" "$EXPECTED"; then have="$have $k"; else miss="$miss $k"; fi
+  done
+  if [ -z "$have" ]; then echo "plain (Mac) pins"
+  elif [ -z "$miss" ]; then echo "$PLATFORM pins"
+  else echo "PARTIAL $PLATFORM pins (has:$have; missing:$miss)"; fi
 }
 # md5 is macOS, md5sum is Linux. With neither, both sides of a comparison would hash to "" and the
 # gate would pass on anything; an exit inside $( ) does not stop this script, so the caller checks.
@@ -266,6 +274,7 @@ if has_stage canary; then
     for arm in floor random; do
       seed="$(want $arm.seed)"
       case "$seed" in ''|*[!0-9]*) fail "canary-$arm" "seed pin '$seed' is missing, duplicated or not a number in $EXPECTED"; continue;; esac
+      case "$(pinset $arm)" in PARTIAL*) fail "canary-$arm" "$(pinset $arm) in $EXPECTED: pin all three outcome keys for this OS or none"; continue;; esac
       say "canary $arm/$arm seed $seed"
       play "canary-$arm" "$seed" CONTROLLER_A=$arm CONTROLLER_B=$arm
       dir="$OUT/canary-$arm"
@@ -477,6 +486,8 @@ if has_stage nativetool; then
       # never calls it), only the literal moved. seat-tools-v7 (the decision is a call to `answer`, the
       # default protocol): the fake model answers with it (--answer-tool) after its lookup, as a model
       # on the default protocol does; the answertool stage asserts the answers themselves.
+      # 2026-10-15 (later): seat-tools-v9 / evidence-tools-v3 / lookahead-preview-v5 (docs/harness/MODEL-LIMITS.md:
+      # 16 calls an ask, any number of previews, no line-length cap); only the literals moved.
       say "nativetool: LLM seat A on loopback fake model, native tools by default (NATIVE_TOOLS unset), MEMORY_TOOLS=1 LOOKAHEAD=1 under v4-faithful (Mardu mirror)"
       play nativetool 42 CONTROLLER_A=llm CONTROLLER_B=floor SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
           OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" MEMORY_TOOLS=1 LOOKAHEAD=1 CONTEXT_PROFILE=v4-faithful GAME_CAP_MS=120000 \
@@ -497,9 +508,9 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 else:
     if game.get("native_tools") is not True: problems.append("native_tools=%r not stamped"%game.get("native_tools"))
-    if game.get("native_tools_version")!="seat-tools-v8": problems.append("native_tools_version=%r (expected seat-tools-v8; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
-    if game.get("memory_tools_version")!="evidence-tools-v2": problems.append("memory_tools_version=%r (expected evidence-tools-v2; move this pin WITH ContextMemory.VERSION)"%game.get("memory_tools_version"))
-    if game.get("lookahead_version")!="lookahead-preview-v4" or game.get("lookahead") is not True: problems.append("lookahead=%r lookahead_version=%r (expected True, lookahead-preview-v4; move this pin WITH PlayerLookahead.VERSION)"%(game.get("lookahead"),game.get("lookahead_version")))
+    if game.get("native_tools_version")!="seat-tools-v9": problems.append("native_tools_version=%r (expected seat-tools-v9; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
+    if game.get("memory_tools_version")!="evidence-tools-v3": problems.append("memory_tools_version=%r (expected evidence-tools-v3; move this pin WITH ContextMemory.VERSION)"%game.get("memory_tools_version"))
+    if game.get("lookahead_version")!="lookahead-preview-v5" or game.get("lookahead") is not True: problems.append("lookahead=%r lookahead_version=%r (expected True, lookahead-preview-v5; move this pin WITH PlayerLookahead.VERSION)"%(game.get("lookahead"),game.get("lookahead_version")))
     if game.get("native_tools_seats")!="A/smart,A/fast": problems.append("native_tools_seats=%r"%game.get("native_tools_seats"))
 calls=[r for r in rows if r.get("t")=="context_call"]
 tools=[r for r in rows if r.get("t")=="context_tool"]
@@ -647,7 +658,7 @@ else:
     if game.get("answer_tool") is not True: problems.append("answer_tool=%r not stamped"%game.get("answer_tool"))
     if game.get("answer_tool_version")!="answer-tool-v3": problems.append("answer_tool_version=%r (move this pin WITH AnswerTool.VERSION)"%game.get("answer_tool_version"))
     if game.get("answer_tool_seats")!="A/smart,A/fast": problems.append("answer_tool_seats=%r"%game.get("answer_tool_seats"))
-    if game.get("harness_epoch")!="harness-epoch-9": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-10": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
 dec=[r for r in rows if r.get("t")=="decision"]
 model=[r for r in dec if r.get("tier") in ("smart","fast")]
 via=collections.Counter(r.get("answer_via") for r in model)
@@ -730,7 +741,7 @@ if game is None: problems.append("no game row")
 else:
     if game.get("context_profile")!="v4-faithful": problems.append("context_profile=%s"%game.get("context_profile"))
     if game.get("memory_tools") is not True: problems.append("memory_tools not stamped")
-    if game.get("harness_epoch")!="harness-epoch-9": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-10": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
     facts.append("winner=%s turns=%s context_sha=%s"%(game.get("winner"),game.get("turns"),game.get("context_sha")))
 if ai_rows: problems.append("%d tier=ai rows"%ai_rows)
 if model_rows<5: problems.append("only %d model-tier rows"%model_rows)
@@ -761,7 +772,7 @@ if rules_leak: problems.append("%d faithful prompts advertised RULES TOOL withou
 ok_tools=[x for x in tools if not str(x.get("result","")).startswith("ERROR")]
 if len(ok_tools)<2: problems.append("successful tool rows %d (<2)"%len(ok_tools))
 log=open(d+"/game.log",errors="replace").read()
-if "[OBSERVATION] observation-faithful-v25" not in log: problems.append("observer never announced itself in the log")
+if "[OBSERVATION] observation-faithful-v26" not in log: problems.append("observer never announced itself in the log")
 if "state unavailable" in log or "state unavailable" in "".join((r.get("prompt") or "") for r in calls): problems.append("renderer threw (state unavailable)")
 if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] present")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)

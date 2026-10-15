@@ -105,8 +105,13 @@ most log questions).
   pooled count may be shown for description only when it is labelled, names the arms, and the
   per-arm counts are beside it.
 - **JSONL is additive-only.** New fields; never a renamed or re-typed one. Readers use `.get()`.
-- **An opt-in flag is a condition.** It is pinned by `run_batch.py`, recorded in the manifest, and
-  refused on resume into a directory made under a different value.
+- **An opt-in flag is a condition.** It is pinned by `run_batch.py`, recorded in the manifest,
+  stamped on the game line and keyed by `aggregate.PROVENANCE_FIELDS`, and refused on resume into a
+  directory made under a different value. A condition the JVM reads from the environment but never
+  stamps pools its on- and off-games (issue #117: `PLAN_EXECUTE`, `TIER_FAST_TYPES`); every
+  `System.getenv` in the game-line writer is either stamped or on a named allowlist of settings that
+  do not change the seat's decisions (the check is `eval/test_experiments.py`'s
+  `GameLineStampCoverageTest`).
 - **Python**: standard library only, Python 3.9, a module docstring that says what it measures and
   what it cannot. **Shell**: bash 3.2 (macOS); no apostrophe inside a heredoc in `$( )`.
 - **Delete what a change makes dead** in the same PR: the unused flag, the helper with no caller,
@@ -189,6 +194,7 @@ strategic choice, the engine owns every mechanism. Each rule has its check.
 | **The seat can say a question is broken.** `report_unclear_decision` records the complaint and the decision is still answered; every report is read: a true one is a harness defect, a false one a model mistake. | `aReportIsRecordedAndTheDecisionIsStillAnswered`; `match_review.py` `REPORT` |
 | **A seat that never answers scores no better than one that passes.** With no answer the harness takes the do-nothing option where one exists (pass, no attack, decline) and the first legal option only where a choice is mandatory; never a land drop, an attack or Forge's AI. | acceptance `gaming` (empty-reply and garbage-reply seats vs the floor seat); `aSeatThatNeverAnswersNeitherPlaysALandNorAttacks` |
 | **The harness decides at most 2% of the choices the model could make.** match_review's TAKEN and LOST plus any Forge-AI row, forced picks excluded, over the llm identities' decisions. | `aggregate.py` harness-decided gate (exit 4); `test_harness_decided_gate` |
+| **The harness does not limit the model.** Nothing the seat reads is cut, and what it may look up, preview, write or think is capped only by a loop guard far above any recorded game, a condition that defines an arm, or a transport retry; each kept limit is listed with its reason in `docs/harness/MODEL-LIMITS.md`. Cost is not a reason for a cap. | `SeatObservationTest.nothingTheObservationShowsIsCut`, `ContextProfileTest.theFaithfulHistoryIsWhole`, `ContextMemoryTest.theToolBudgetsAreLoopGuardsNotDecisionLimits`, `ContextProfileTest.theCallBudgetsAndTheTurnCapAreLoopGuards` |
 | **The interface has one version.** `HARNESS_EPOCH` moves with any change to what the seat is asked, when, or what its answer does, beside the per-layer versions; games across an epoch are not compared. | game line `harness_epoch`, asserted in acceptance `faithful`; `aggregate.py` experiment key |
 
 A game read by `game-loop` that finds a defect outside these checks adds the check here with its fix.

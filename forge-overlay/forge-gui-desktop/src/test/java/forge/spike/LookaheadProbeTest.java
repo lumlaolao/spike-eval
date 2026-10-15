@@ -325,7 +325,8 @@ public class LookaheadProbeTest {
         Game g = SeatObservationTest.bareGame();
         Player me = g.getPlayers().get(0);
         forge.game.spellability.SpellAbility s = spellOn(SeatObservationTest.card("Lightning Bolt", me, forge.game.zone.ZoneType.Hand));
-        Assert.assertTrue(PlayerLookahead.previewLine(g, me, java.util.Arrays.asList(s, s, s, s), 5L, null).startsWith("(a preview covers at most 3"));
+        // No length cap any more (it was 3): a long line is refused only for naming an option twice.
+        Assert.assertTrue(PlayerLookahead.previewLine(g, me, java.util.Arrays.asList(s, s, s, s), 5L, null).startsWith("(a line names each option once"));
         // Seen on loopback: the same option twice was reported as two casts with one card's worth of change.
         Assert.assertTrue(PlayerLookahead.previewLine(g, me, java.util.Arrays.asList(s, s), 5L, null).startsWith("(a line names each option once"));
     }

@@ -13,7 +13,8 @@ import java.util.regex.Pattern;
  *
  * <p>Only the newest message carries a game state. An earlier question keeps its DECISION part (the
  * question and its options) and drops its snapshot, and says it is past: a long chat of full states
- * would put stale boards next to the current one. The last {@link #MAX_PAIRS} decisions are kept.
+ * would put stale boards next to the current one. Every decision of the game is kept (up to
+ * {@link #MAX_PAIRS}, a guard no recorded game comes near: the longest asked 137 decisions).
  *
  * <p>A condition, stamped `one_chat` on the game line; off by default. Wraps the OpenRouter lane only
  * (the Claude CLI lane already keeps its own session). The controller records each final reply with
@@ -26,8 +27,9 @@ final class ChatSessionBridge implements LLMBridge {
     }
 
     static final boolean ON = "1".equals(System.getenv("ONE_CHAT"));
-    static final String VERSION = "one-chat-v1";
-    static final int MAX_PAIRS = intEnv("ONE_CHAT_TURNS", 20);
+    /** v2 (2026-10-15): the whole game's decisions, not the last 20 (docs/harness/MODEL-LIMITS.md). */
+    static final String VERSION = "one-chat-v2";
+    static final int MAX_PAIRS = intEnv("ONE_CHAT_TURNS", 10000);
     /** Said before the current question whenever there is history. Part of the one-chat prompt bytes. */
     static final String NOTE = "(The earlier messages in this conversation are your own past decisions in this game, "
             + "each shortened to its question and your answer; the states they were asked in are no longer "

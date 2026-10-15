@@ -39,8 +39,9 @@ final class PlayerLookahead {
      *  and previews that work at all when a sideboard holds a characteristic-defining card.
      *  v3 (2026-10-13): a previewed line may start with (or include) a land drop, so "play the land,
      *  then the spell it pays for" can be asked; the tool's option numbers are the decision's own
-     *  menu numbers (see LlmSpikeGui's simulate handler). */
-    static final String VERSION = "lookahead-preview-v4";
+     *  menu numbers (see LlmSpikeGui's simulate handler).
+     *  v5 (2026-10-15): a line is no longer capped at three plays (docs/harness/MODEL-LIMITS.md). */
+    static final String VERSION = "lookahead-preview-v5";
 
     private PlayerLookahead() { }
 
@@ -162,8 +163,6 @@ final class PlayerLookahead {
              + "A preview cannot play out the opponent's turn.";
     }
 
-    /** At most this many plays in one previewed line. */
-    static final int MAX_LINE = 3;
 
     /**
      * Preview a LINE: play {@code liveOptions} in order on ONE copy, resolving each before the next,
@@ -177,7 +176,8 @@ final class PlayerLookahead {
                               long seed, String targetHint) {
         if (live == null || seat == null || liveOptions == null || liveOptions.isEmpty() || liveOptions.contains(null))
             return "(no preview)";
-        if (liveOptions.size() > MAX_LINE) return "(a preview covers at most " + MAX_LINE + " plays in a row)";
+        // No length cap: each step is a distinct option of the menu, so a line is bounded by the menu
+        // (the 3-play cap was never reached in recorded games, but a storm turn wants more).
         if (new java.util.HashSet<>(liveOptions).size() != liveOptions.size())
             return "(a line names each option once: the same option cannot be played twice)";
         // v2 previews any CAST or ACTIVATE option. In the first arm that could ask, 19 of 38 requests

@@ -81,4 +81,30 @@ public class PlanAnytimeTest {
         Assert.assertFalse(next.contains("burn them out"), "the old plan is gone");
         Assert.assertFalse(next.contains("First state your plan"), "a plan stated this turn is not asked for again");
     }
+
+    /** docs/harness/MODEL-LIMITS.md: the seat's opponent profile and card interactions are its own
+     *  notes, revisable at any decision like the plan. A PROFILE line was read only on the ask that
+     *  requested one (every 5 turns) and LINES only on its first two asks, though the legend says the
+     *  profile may be revised at any time. */
+    @Test
+    public void aProfileOrLinesLineAtAnyDecisionReplacesThatNote() {
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.tagStatement("x\n**PROFILE:** Burn: bolts CHOICE: 2",
+                java.util.regex.Pattern.compile("(?i)^[\\s*_>#`-]*PROFILE\\s*:(.*)$")), "Burn: bolts");
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        Scripted b = new Scripted();
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(g, me,
+                new LobbyPlayerAi("Seat", null), "Seat", "", b, b, "llm");
+        me.dangerouslySetController(ctrl);
+        Assert.assertTrue(ctrl.adoptNotes("They block with everything.\nPROFILE: Burn: bolts and Price of Progress\n"
+                + "LINES: Bolt + Bolt -> six to the face\nCHOICE: 1"));
+        Assert.assertFalse(ctrl.adoptNotes("CHOICE: 2"), "a reply without the lines changes nothing");
+        ctrl.chooseSpellAbilityToPlay();
+        String p = b.prompts.get(0);
+        Assert.assertTrue(p.contains("YOUR OPPONENT PROFILE (you wrote this; unverified — revise it as you learn): "
+                + "Burn: bolts and Price of Progress\n"), p);
+        Assert.assertTrue(p.contains("unverified): Bolt + Bolt -> six to the face\n"), p);
+    }
 }
