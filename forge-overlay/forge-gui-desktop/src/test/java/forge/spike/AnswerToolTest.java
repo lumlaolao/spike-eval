@@ -137,6 +137,41 @@ public class AnswerToolTest {
         Assert.assertEquals(AnswerTool.validate(AnswerTool.Spec.one(3), "{\"option\":1,\"steps\":[1]}").answer.steps, null);
     }
 
+    /** Luna fills every optional field with a default (the probe of 2026-10-15, and 175 of 189 recorded answers):
+     *  "yield":"end-of-turn", "keep_untapped":[], "keep":false, "number":0. Those defaults must do nothing: no
+     *  yield (it took the seat out of its own windows), and no "the engine chooses" for the lands. */
+    @Test
+    public void aModelsFilledInDefaultsDoNothing() {
+        String filled = "{\"option\":%d,\"options\":[],\"blocks\":[],\"amounts\":[],\"keep\":false,\"number\":0,\"card\":\"\","
+                + "\"steps\":[],\"yield\":\"%s\",\"profile\":\"\",\"lines\":\"\",\"keep_untapped\":[],\"why\":\"Bolt is lethal.\"}";
+        AnswerTool.Spec play = AnswerTool.Spec.one(3);
+        play.yield = true;
+        play.keep = true;
+        AnswerTool.Answer cast = AnswerTool.validate(play, String.format(filled, 1, "none")).answer;
+        Assert.assertEquals(cast.option, Integer.valueOf(1));
+        Assert.assertNull(cast.yieldUntil);
+        Assert.assertNull(cast.keepUntapped, "an empty keep_untapped is not said: the seat is asked when it matters");
+        Assert.assertNull(cast.profile);
+        Assert.assertEquals(AnswerTool.validate(play, String.format(filled, 3, "none")).answer.yieldUntil, null, "PASS with none");
+        Assert.assertEquals(AnswerTool.validate(play, String.format(filled, 3, "end-of-turn")).answer.yieldUntil, "end-of-turn");
+        // The schema's first yield value is the neutral one a model that fills every field takes.
+        com.google.gson.JsonArray e = new AnswerTool.Ask(play, false).definitions().get(0).getAsJsonObject()
+                .getAsJsonObject("function").getAsJsonObject("parameters").getAsJsonObject("properties")
+                .getAsJsonObject("yield").getAsJsonArray("enum");
+        Assert.assertEquals(e.get(0).getAsString(), "none");
+    }
+
+    /** A call is forced (tool_choice "required") only where that is measured to keep the model's reasoning:
+     *  OpenAI models. Anthropic's 5.5 models refuse forcing with a 400, and a forced call skips thinking. */
+    @Test
+    public void aCallIsForcedOnlyWhereForcingKeepsTheReasoning() {
+        if (System.getenv("ANSWER_TOOL_CHOICE") != null) throw new org.testng.SkipException("ANSWER_TOOL_CHOICE is set");
+        Assert.assertEquals(AnswerTool.toolChoiceFor("openai/gpt-6-luna"), "required");
+        Assert.assertEquals(AnswerTool.toolChoiceFor("openrouter:openai/gpt-6-luna"), "required");
+        Assert.assertEquals(AnswerTool.toolChoiceFor("anthropic/claude-opus-5.5"), "auto");
+        Assert.assertEquals(AnswerTool.toolChoiceFor("deepseek/deepseek-v4.1-flash"), "auto");
+    }
+
     /** A seat with the lookahead preview declares `simulate` on every ask, so a decision without a play
      *  menu has the same tools as one with; a preview there is refused with the reason. */
     @Test
@@ -198,8 +233,8 @@ public class AnswerToolTest {
         Assert.assertEquals(rounds[0], 1 + AnswerTool.MAX_NUDGES);
     }
 
-    /** A play can say which mana sources stay untapped when it is paid, by handle; an empty list leaves it
-     *  to the engine; not giving it means the seat is asked when the choice matters. */
+    /** A play can say which mana sources stay untapped when it is paid, by handle; an empty list or no list
+     *  means the seat is asked when the choice matters. */
     @Test
     public void aPlaySaysWhichManaSourcesStayUntapped() {
         AnswerTool.Spec play = AnswerTool.Spec.one(3);
@@ -207,7 +242,8 @@ public class AnswerToolTest {
         AnswerTool.Answer a = AnswerTool.validate(play, "{\"option\":1,\"keep_untapped\":[\"@12\",\"Volcanic Island @16\"]}").answer;
         Assert.assertEquals(a.keepUntapped, List.of(12, 16));
         Assert.assertTrue(AnswerTool.render(play, a).endsWith("KEEP UNTAPPED: @12, @16"), AnswerTool.render(play, a));
-        Assert.assertEquals(AnswerTool.validate(play, "{\"option\":1,\"keep_untapped\":[]}").answer.keepUntapped, List.of());
+        // Empty is not said (v8): the seat is asked when the choice matters, never "the engine chooses".
+        Assert.assertNull(AnswerTool.validate(play, "{\"option\":1,\"keep_untapped\":[]}").answer.keepUntapped);
         Assert.assertNull(AnswerTool.validate(play, "{\"option\":1}").answer.keepUntapped);
         Assert.assertNotNull(AnswerTool.validate(play, "{\"option\":1,\"keep_untapped\":\"@12\"}").error);
         // Not a play: the field is ignored, as the other decision kinds' notes are.

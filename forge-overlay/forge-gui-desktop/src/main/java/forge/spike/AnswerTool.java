@@ -44,8 +44,10 @@ final class AnswerTool {
      *  v5: a play's `keep_untapped` says which mana sources stay untapped when it is paid (work plan item 6).
      *  v6: `steps` promises nothing a decision does not offer; a play offers it only under PLAN_EXECUTE.
      *  v7: no text alternative: a reply that calls nothing is reminded up to MAX_NUDGES times, then the decision
-     *  is lost; prose is never parsed as the answer. A text format left in a tool ask is logged and counted. */
-    static final String VERSION = "answer-tool-v7";
+     *  is lost; prose is never parsed as the answer. A text format left in a tool ask is logged and counted.
+     *  v8: a model's filled-in defaults do nothing: `yield` has "none" as its first value, and an empty
+     *  `keep_untapped` means not said (Luna filled every field: 175 of 189 answers yielded to end of turn). */
+    static final String VERSION = "answer-tool-v8";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -68,7 +70,32 @@ final class AnswerTool {
     static boolean usedBy(String modelSpec) { return enabled() && NativeTools.usedBy(modelSpec); }
 
     /** The version stamped on the game line: what a tool-answer game was played under. */
-    static String protocolVersion() { return VERSION + (perDecision() ? "+per-decision" : "") + (strict() ? "+strict" : ""); }
+    static String protocolVersion() {
+        String env = System.getenv("ANSWER_TOOL_CHOICE");
+        return VERSION + (perDecision() ? "+per-decision" : "") + (strict() ? "+strict" : "")
+                + (env == null || env.trim().isEmpty() ? "" : "+choice=" + env.trim());
+    }
+
+    /**
+     * The `tool_choice` an answer ask sends to {@code model} (an OpenRouter id such as "openai/gpt-6-luna"):
+     * "required" where forcing a call is measured to keep the model's reasoning, so the call is the only way
+     * to reply; "auto" elsewhere. Constant per model, so the cache prefix holds (PROMPT-CRAFT.md rule 19).
+     * <ul>
+     *   <li>OpenAI models: "required". Probe of 2026-10-15 on GPT-6 Luna, one decision, two calls each:
+     *       auto 23-24 reasoning tokens, required 18-66, a named function 0 (naming the tool skips the
+     *       reasoning, so it is never used).</li>
+     *   <li>Anthropic models: "auto". Opus 5.5, Sonnet 5.5 and Fable 5.1 reject forced tool use with a 400, and
+     *       on the models that accept it a forced call skips thinking (platform.claude.com, Define tools).</li>
+     *   <li>Others: "auto" until measured the same way.</li>
+     * </ul>
+     * ANSWER_TOOL_CHOICE=auto|required overrides it for every model (stamped in {@link #protocolVersion}).
+     */
+    static String toolChoiceFor(String model) {
+        String env = System.getenv("ANSWER_TOOL_CHOICE");
+        if ("auto".equals(env) || "required".equals(env)) return env;
+        String m = model == null ? "" : model.replaceFirst("^openrouter:", "");
+        return m.startsWith("openai/") ? "required" : "auto";
+    }
 
     /** Which tiers of which model-driven seats answer through the tool, e.g. "A/smart,B/fast". */
     static String seats(String controllerA, String smartA, String fastA, String controllerB, String smartB, String fastB) {
@@ -142,7 +169,7 @@ final class AnswerTool {
          *  otherwise leaves no trace of why it chose). */
         String why;
         /** `keep_untapped`: handles of mana sources to leave untapped when the chosen play is paid; null
-         *  when not given (the seat is asked when there is a choice), empty for "the engine chooses". */
+         *  when not given or empty (the seat is asked when there is a choice). */
         List<Integer> keepUntapped;
         /** 0-based picks, for the sites that index their own lists. */
         List<Integer> zeroBased() {
@@ -219,10 +246,12 @@ final class AnswerTool {
                 + "turn. Omit anything you are holding. Elsewhere it is ignored.");
         steps.add("items", obj("type", "integer"));
         props.add("steps", steps);
-        JsonObject y = obj("type", "string", "description", "Optional, only with PASS on a play decision: until then you are not "
-                + "asked in windows where nothing of your opponent's is on the stack (anything they cast or activate always asks you).");
+        JsonObject y = obj("type", "string", "description", "Optional, only with PASS on a play decision. \"none\" (the default): "
+                + "you are asked at every window as usual. \"end-of-turn\" or \"my-next-turn\": until then you are not asked in "
+                + "windows where nothing of your opponent's is on the stack (anything they cast or activate always asks you).");
         JsonArray e = new JsonArray();
-        e.add("end-of-turn"); e.add("my-next-turn");
+        // "none" first: a model that fills every field takes the first value (Luna did, 175 of 189 answers).
+        e.add("none"); e.add("end-of-turn"); e.add("my-next-turn");
         y.add("enum", e);
         props.add("yield", y);
         props.add("profile", obj("type", "string", "description", "Optional, when the decision asks for it: your read of the "
@@ -231,8 +260,8 @@ final class AnswerTool {
                 + "deck combine, in one or two short lines."));
         JsonObject keep = obj("type", "array", "description", "Optional, on a play decision whose choice casts or activates "
                 + "something with a mana cost: the mana sources to leave UNTAPPED when it is paid, by handle (\"@12\"), for "
-                + "example to keep blue up for a counterspell. An empty list lets the engine choose the sources. Omit it "
-                + "and you are asked when the choice matters.");
+                + "example to keep blue up for a counterspell. Omit it, or leave it empty, and you are asked when the choice "
+                + "matters.");
         keep.add("items", obj("type", "string"));
         props.add("keep_untapped", keep);
         props.add("why", obj("type", "string", "description", "Optional: one sentence on why you chose this, kept in the "
@@ -368,10 +397,11 @@ final class AnswerTool {
             props.add("steps", arr);
         }
         if (s.yield) {
-            JsonObject y = obj("type", "string", "description", "Optional, with PASS only: until then you are not asked in windows "
-                    + "where nothing of your opponent's is on the stack (anything they cast or activate always asks you).");
+            JsonObject y = obj("type", "string", "description", "Optional, with PASS only. \"none\" (the default): you are asked "
+                    + "as usual. Otherwise, until then you are not asked in windows where nothing of your opponent's is on the stack "
+                    + "(anything they cast or activate always asks you).");
             JsonArray e = new JsonArray();
-            e.add("end-of-turn"); e.add("my-next-turn");
+            e.add("none"); e.add("end-of-turn"); e.add("my-next-turn");
             y.add("enum", e);
             props.add("yield", y);
         }
@@ -592,8 +622,12 @@ final class AnswerTool {
         }
         if (s.yield && !absent(a, "yield")) {
             String y = str(a, "yield");
-            if (!"end-of-turn".equals(y) && !"my-next-turn".equals(y)) return Result.bad("the `yield` value is end-of-turn or my-next-turn.");
-            out.yieldUntil = y;
+            // "none", or a blank value, is the default a model fills in when it fills every field: no yield.
+            if (y != null && !"none".equals(y)) {
+                if (!"end-of-turn".equals(y) && !"my-next-turn".equals(y))
+                    return Result.bad("the `yield` value is none, end-of-turn or my-next-turn.");
+                out.yieldUntil = y;
+            }
         }
         if (s.profile) out.profile = str(a, "profile");
         if (s.lines) out.lines = str(a, "lines");
@@ -605,7 +639,8 @@ final class AnswerTool {
                 if (m == null || !m.find()) return Result.bad("`keep_untapped` is a list of handles such as \"@12\".");
                 hs.add(Integer.parseInt(m.group(1)));
             }
-            out.keepUntapped = hs;
+            // An empty list is what a model that fills every field sends: not said, so the seat is asked when it matters.
+            out.keepUntapped = hs.isEmpty() ? null : hs;
         }
         out.why = str(a, "why");
         // The fixed schema names every field; another decision kind's field beside the right one is ignored.
@@ -648,7 +683,6 @@ final class AnswerTool {
         if (a.lines != null) b.append("\nLINES: ").append(a.lines);
         if (a.keepUntapped != null) {
             b.append("\nKEEP UNTAPPED: ");
-            if (a.keepUntapped.isEmpty()) b.append("(the engine chooses)");
             for (int i = 0; i < a.keepUntapped.size(); i++) b.append(i == 0 ? "@" : ", @").append(a.keepUntapped.get(i));
         }
         return b.toString();

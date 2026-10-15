@@ -58,16 +58,37 @@ Sources, read 2026-10-15:
    guaranteed to match the schema by constrained sampling, where the provider supports it [S]. Then
    the ANSWER CONTRACT section, the re-ask on a malformed line, and the "decline for you" threat can
    all go.
-2. **Keep `tool_choice` "auto" and say in the user turn which tool answers.**
-   - Forcing a tool skips thinking on every model that accepts it.
-   - Opus 5.5 and Sonnet 5.5 reject forced tool use with a 400 error. Use "auto" with strict tools
-     instead, plus an instruction in the user message [T].
-   - Changing `tool_choice` between calls invalidates the cached messages (not the tools or the
-     system prompt) [C, T]. The harness sends "none" on the last round of an ask.
-     - Switching to a constant "auto" has a cost: a model that calls again on that round would lose
-       the decision.
-     - So this waits on a measurement: the per-round `cached_tokens` now recorded shows whether the
-       "none" round actually misses the cache.
+2. **Force the call where forcing keeps the reasoning; otherwise "auto" with the ask naming the tool.**
+   Researched and measured 2026-10-15.
+   - **The three levels:**
+     - "auto" lets the model answer in text;
+     - "required" (OpenAI) or "any" (Anthropic) demands some tool call;
+     - naming one function demands that function [O, T].
+   - **Anthropic** [T]:
+     - Opus 5.5, Sonnet 5.5 and Fable 5.1 reject "any" and a named tool with a 400 error.
+     - Manual extended thinking rejects them too.
+     - On the models that accept forcing, a forced call skips thinking: the response starts with the
+       tool call.
+     - Anthropic's alternative is "auto" plus strict tools, with the instruction in the user turn.
+   - **OpenAI, GPT-6 Luna** (probe of one decision, two calls per setting,
+     `scratchpad probe_tc.py`, under $0.01):
+     - "auto": called `answer`, 23–24 reasoning tokens;
+     - "required": called `answer`, 18–66 reasoning tokens, so the reasoning is kept;
+     - the function named: called `answer`, with 0 reasoning tokens, so naming the tool skips the
+       reasoning, as on Anthropic.
+   - **So the harness sends "required" to OpenAI models and "auto" elsewhere**
+     (`AnswerTool.toolChoiceFor`; `ANSWER_TOOL_CHOICE` overrides it for measurement).
+     - With "required", a text-only reply is impossible at the API.
+     - With "auto", a reply that calls nothing gets two reminders and is then lost (answer-tool-v7).
+     - It never names the function.
+   - **Constant per model:** changing `tool_choice` between calls invalidates the cached messages [C, T].
+     The lookup-only text protocol still sends "none" on its last round; answer asks never change it.
+   - **Fill-in defaults** (found by the same probe): Luna fills every optional field with a default,
+     including `"yield":"end-of-turn"` (the first enum value) and `"keep_untapped":[]`.
+     - In the four recorded Luna games, 175 of 189 answers yielded to end of turn this way, so 24 of
+       48 passes gave up the rest of the turn's windows.
+     - Rule: an optional field's first enum value and its empty value must mean "nothing"
+       (answer-tool-v8 puts "none" first; an empty list is "not said").
 3. **Tool descriptions are the main lever: at least 3–4 sentences each** [T "by far the most important
    factor"]. Say what the tool does, when to use it and when not to, what each parameter means, and
    what it does not return. Write it as if onboarding a new hire [W].

@@ -200,8 +200,10 @@ public final class LlmSpikeGui {
      *  Epoch 14: no engine fallback where the seat can decide: blocker/attacker damage order is asked; a
      *  mana keep set that cannot pay is asked again, then the payable prefix kept (never the engine's plan);
      *  card naming, modes and targets on error take fixed legal choices; a short cost pick takes the first
-     *  legal cards; empty choices return empty without asking Forge's AI. */
-    static final String HARNESS_EPOCH = "harness-epoch-14";
+     *  legal cards; empty choices return empty without asking Forge's AI.
+     *  Epoch 15: a model's filled-in defaults do nothing (answer-tool-v8): `yield` "none" first, an empty
+     *  `keep_untapped` is not said, and handles that name no source ask the mana question. */
+    static final String HARNESS_EPOCH = "harness-epoch-15";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -3936,14 +3938,16 @@ public final class LlmSpikeGui {
                         Card c = observer.currentCard(h);
                         if (c != null && sources.contains(c) && held.size() < spare) held.add(c);
                     }
-                    // The seat's own choice ("the engine chooses"), not a harness decision: logged, no row.
-                    if (held.isEmpty()) { p("[ROUTER] mana: the engine chooses the sources (said with the play)"); return none; }
-                    if (holdIfPayable(held, toPay, sa, effect)) {
+                    // Handles that name no untapped source: not a choice the seat made, so the question is asked below.
+                    if (held.isEmpty()) {
+                        retryNote = "The sources you named with the play are not among your untapped mana sources.";
+                    } else if (holdIfPayable(held, toPay, sa, effect)) {
                         p("[ROUTER] mana: keep untapped " + held.size() + " (said with the play) for " + verbOf(sa) + " " + labelOf(sa));
                         return held;
+                    } else {
+                        // What was said with the play cannot pay: ask the question itself, with the reason.
+                        retryNote = "You said to keep " + names(held) + " untapped, but then the rest cannot pay " + toPay + ".";
                     }
-                    // What was said with the play cannot pay: ask the question itself, with the reason.
-                    retryNote = "You said to keep " + names(held) + " untapped, but then the rest cannot pay " + toPay + ".";
                 }
                 List<String> labels = new ArrayList<>();
                 for (Card c : sources) {
@@ -8404,7 +8408,10 @@ public final class LlmSpikeGui {
                 body.append(",\"temperature\":").append(temperature);
             if (toolsJson != null)
                 body.append(",\"tools\":").append(toolsJson)
-                    .append(",\"tool_choice\":\"").append(allowCalls ? "auto" : "none").append("\"")
+                    // An answer ask (it offers `answer`) is forced where that keeps the model's reasoning
+                    // (AnswerTool.toolChoiceFor): then a call is the only way to reply.
+                    .append(",\"tool_choice\":\"").append(!allowCalls ? "none"
+                            : toolsJson.contains("\"name\":\"" + AnswerTool.NAME + "\"") ? AnswerTool.toolChoiceFor(model) : "auto").append("\"")
                     // Route only to endpoints that honour every parameter sent: without it OpenRouter may
                     // pick one that ignores tool_choice "none" (the seat-tools-v5 defect, a call made on a
                     // round that offered none). An endpoint that refuses is the existing 404 downgrade path.

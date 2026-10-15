@@ -1,5 +1,8 @@
 # Harness architecture: every part, and why it is built that way
 
+**Keep it true:** a change that alters how the harness works updates this document in the same PR
+(`docs/STANDARDS.md` section 7).
+
 This is the map of the harness that lets a language model play full games of Magic: The Gathering inside
 the Forge rules engine, and of the benchmark built on it. Each section says what the part does and the
 reason for the choice. Deeper records are linked; this document is the overview.
@@ -128,8 +131,15 @@ round in the same conversation; a second illegal call loses the decision.
 - *Why one fixed schema instead of one per decision:* tool definitions open the cache prefix. A schema
   that changed every decision discarded the whole cache on every call. A per-decision enum is kept as a
   measurement arm (`ANSWER_SCHEMA=per-decision`).
-- *Why `tool_choice` "auto":* forcing a tool skips thinking, and some models refuse it. The ask says which
-  field answers it.
+- *Why `tool_choice` is per model* (`AnswerTool.toolChoiceFor`, `PROMPT-CRAFT.md` rule 2):
+  - **OpenAI models get "required":** measured on Luna, it keeps the reasoning, and a text-only reply
+    becomes impossible.
+  - **Anthropic models get "auto":** Opus 5.5, Sonnet 5.5 and Fable 5.1 refuse forcing, and a forced call
+    skips thinking on the rest.
+  - **Never the function by name:** that skips the reasoning on both.
+- *Why every optional field's default means nothing:* a model may fill every field with its first or
+  empty value. Luna did, and the old first `yield` value took it out of its own windows. `yield` starts
+  with "none", and an empty `keep_untapped` is "not said" (answer-tool-v8).
 
 **No text alternative (answer-tool-v7).**
 - A reply that calls nothing is reminded up to twice in the same conversation, then the decision is lost.
@@ -265,7 +275,7 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 
 | Not done | Why |
 |---|---|
-| Forcing `tool_choice` | it skips thinking |
+| Naming the answer function in `tool_choice` | it skips the reasoning (Anthropic and OpenAI alike); "required" is used where it keeps it |
 | `strict: true` by default | not every provider supports it; `ANSWER_TOOL_STRICT=1` measures it |
 | Agent Skills or MCP inside the seat | the native tools already provide them |
 | Forge AI as a fallback | it would decide for the model |
@@ -279,9 +289,14 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     fall back to it;
   - nor do the twenty choices it used to make outright: Fact or Fiction piles, opening-hand abilities,
     colours, counter kinds, replacement order, edicts, clash, combat taxes and others.
-  - What is left has no hook in the pinned engine. That is the colour an any-colour source makes for a
-    generic shard during payment, which matters only to converge, sunburst and spent-colour checks. Also
-    left are the mechanics no deck in the pool reaches (dice, stickers, contraptions).
+  - **Still the engine's, rare in Legacy, each needing its own design:**
+    - convoke and improvise;
+    - retargeting (`chooseNewTargetsFor`) and redirection (`chooseTarget`);
+    - cost order;
+    - mana from the pool.
+  - **No hook in the pinned engine:** the colour an any-colour source makes for a generic shard during
+    payment. It matters only to converge, sunburst and spent-colour checks.
+  - **Mechanics no deck in the pool reaches:** dice, stickers, contraptions.
 - **Mana payment:** the engine maps the chosen sources to the cost. The seat decides which sources stay
   untapped when it matters (`keep_untapped`, or the mana-sources ask).
 - **The Claude CLI lane** answers in text, because it has no function calling.

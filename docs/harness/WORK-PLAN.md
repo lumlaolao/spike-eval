@@ -48,10 +48,21 @@ the recorded Luna prompts. What still lets text in:
   lane), and the `ANSWER_TOOL=0` / `NATIVE_TOOLS=0` measurement arms.
 
 **A. No engine fallback.** "I would like no engine fallback if able" (owner). **Done 2026-10-15
-(`fix/no-engine-fallback`, `fix/no-engine-fallback-rare`, harness-epoch-14),** except what the pinned engine
-gives no hook for: the colour an any-colour source makes for a generic shard during payment (Lotus Petal,
-LED; matters only to converge, sunburst and spent-colour checks), and the mechanics-only rows (dice,
-stickers, contraptions, attractions: no deck in the pool reaches them). The plan as written: Forge's AI must not decide
+(#184, #185, harness-epoch-14).** Left:
+- rare in Legacy, each needing its own design: convoke and improvise, retargeting (`chooseNewTargetsFor`),
+  redirection (`chooseTarget`), cost order, mana from the pool;
+- no hook in the pinned engine: the colour an any-colour source makes for a generic shard during payment
+  (Lotus Petal, LED; matters only to converge, sunburst and spent-colour checks);
+- the mechanics-only rows (dice, stickers, contraptions, attractions: no deck in the pool reaches them).
+
+**0b. Force the call where it keeps the reasoning (2026-10-15, owner: "the tool call should be the only way
+of interacting").** Researched and measured (`PROMPT-CRAFT.md` rule 2): `tool_choice` "required" for OpenAI
+models (Luna keeps its reasoning), "auto" with reminders elsewhere (Anthropic 5.5 refuses forcing; forcing
+skips thinking). The same probe found Luna filling every optional field with defaults, which yielded 24 of
+48 passes to end of turn in the recorded games: fixed in answer-tool-v8 ("none" first, empty means not
+said). Next: one Luna game to confirm, read end to end (about $0.02).
+
+The plan for A as written: Forge's AI must not decide
 anything for the seat. From `docs/harness/controller-ownership.tsv` and the recorded games:
 - in progress (`fix/no-engine-fallback`):
   - blocker and attacker damage order (`orderBlockers`, `orderBlocker`, `orderAttackers`) was Forge's
