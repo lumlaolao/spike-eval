@@ -85,7 +85,15 @@ public final class LlmSpikeHeadless {
         System.out.println("[HEADLESS] game starting (cap=" + (capMs / 60000) + "min)");
         Thread worker = new Thread(() -> {
             try { match.startGame(game); }
-            catch (Throwable t) { System.out.println("[HEADLESS] game thread threw: " + t); }
+            catch (Throwable t) {
+                // The game did not finish: no winner, a stack to find it by, and a non-zero exit so the batch
+                // driver plays it again (runs/luna-v8/g2 logged one line and scored the crash as a draw).
+                LlmSpikeGui.gameError = String.valueOf(t);
+                System.out.println("[HEADLESS] game thread threw: " + t);
+                StackTraceElement[] st = t.getStackTrace();
+                for (int i = 0; i < Math.min(st.length, 80); i++) System.out.println("    at " + st[i]);
+                if (st.length > 80) System.out.println("    ... " + (st.length - 80) + " more frames");
+            }
         }, "forge-game");
         worker.setDaemon(true);
         worker.start();
@@ -116,6 +124,6 @@ public final class LlmSpikeHeadless {
         // Shared with the GUI runner: identity-keyed GAME OVER block + machine-readable game-summary
         // JSONL line the eval/tournament drivers parse. See LlmSpikeGui.writeGameSummary.
         LlmSpikeGui.writeGameSummary(game, seed, durMs, capMs, capped);
-        System.exit(0); // bridges hold non-daemon subprocess pipes; exit explicitly
+        System.exit(LlmSpikeGui.gameError == null ? 0 : 3); // bridges hold non-daemon subprocess pipes; exit explicitly
     }
 }

@@ -352,6 +352,14 @@ public final class LlmSpikeGui {
     // stashed by buildPlayers so the game-summary provenance records what the model really saw — not a
     // re-derivation that would miss the sidecar. See loadPlanSidecar / writeGameSummary.
     static volatile String lastPlanA = DEFAULT_PLAN_A;
+    /** Set when the game thread died on an exception: the game did not finish, so it has no winner. */
+    static volatile String gameError = null;
+
+    /** The winner a game line records: none for a capped game or one whose thread crashed (runs/luna-v8/g2
+     *  recorded a StackOverflowError as a draw). */
+    static String finalWinner(String winner, boolean capped, String error) {
+        return capped || error != null ? "invalid" : winner;
+    }
     static volatile String lastPlanB = DEFAULT_PLAN_B;
 
     // What ACTUALLY answered, keyed by bridge label ("<deck-identity>/smart" | "<deck-identity>/fast").
@@ -8957,7 +8965,7 @@ public final class LlmSpikeGui {
                 if (w != null) winner = nameA.equals(w.getName()) ? "A" : (nameB.equals(w.getName()) ? "B" : "invalid");
             }
         } catch (Exception ignore) { }
-        if (capped) winner = "invalid";
+        winner = finalWinner(winner, capped, gameError);
 
         System.out.println("========== GAME OVER ==========");
         System.out.println("outcome: " + winner + " after " + turns + " turns (" + winCond + ") in " + (durMs / 1000) + "s");
@@ -9011,6 +9019,7 @@ public final class LlmSpikeGui {
                 + ",\"fast_budget\":" + PlayerControllerLLM.fastBudget()
                 + ",\"claude_deadline_ms\":" + ClaudeBridge.deadlineMs()
                 + ",\"game_cap_ms\":" + capMs
+                + (gameError == null ? "" : ",\"game_error\":\"" + jsonEscape(gameError) + "\"")
                 + ",\"engine_sha\":\"" + jsonEscape(System.getenv().getOrDefault("ENGINE_SHA", "unknown")) + "\""
                 + ",\"overlay_sha\":\"" + jsonEscape(System.getenv().getOrDefault("OVERLAY_SHA", "unknown")) + "\""
                 + ",\"deck_sha\":\"" + jsonEscape(System.getenv().getOrDefault("DECK_SHA", "unknown")) + "\""

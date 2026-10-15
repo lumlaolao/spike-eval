@@ -533,6 +533,33 @@ public class GoldenChecksTest {
         Assert.assertEquals(ctrl.inRealPaymentForTest(() -> ctrl.chooseCardsToDelve(1, grave)).getFirst(), cs);
     }
 
+    /** runs/luna-v8/g2 crashed on turn 6 with a StackOverflowError: six cards in the graveyard, more than Murktide
+     *  Regent's generic 5, so an affordability test asked the seat, and the ask's own snapshot tested Murktide's
+     *  affordability again, which asked again. A test now asks nothing, and the real ask cannot re-enter. */
+    @Test
+    public void delveWithMurktideInHandDoesNotRecurse() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Murktide Regent", me, ZoneType.Hand);
+        for (int i = 0; i < 2; i++) card("Island", me, ZoneType.Battlefield);
+        for (String n : new String[] {"Flooded Strand", "Lightning Bolt", "Ponder", "Brainstorm", "Lightning Bolt", "Ponder"})
+            card(n, me, ZoneType.Graveyard);
+        Script model = new Script("PICKS: 1,2,3,4,5");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        CardCollection grave = new CardCollection(me.getCardsIn(ZoneType.Graveyard));
+        Assert.assertEquals(ctrl.chooseCardsToDelve(5, grave).size(), 5);
+        Assert.assertTrue(model.prompts.isEmpty(), "an affordability test asks nothing");
+        Assert.assertEquals(ctrl.inRealPaymentForTest(() -> ctrl.chooseCardsToDelve(5, grave)).size(), 5);
+        Assert.assertEquals(model.prompts.size(), 1, "the real payment asks once");
+    }
+
+    @Test
+    public void aGameWhoseThreadCrashedHasNoWinner() {
+        Assert.assertEquals(LlmSpikeGui.finalWinner("A", false, null), "A");
+        Assert.assertEquals(LlmSpikeGui.finalWinner("draw", false, "java.lang.StackOverflowError"), "invalid");
+        Assert.assertEquals(LlmSpikeGui.finalWinner("B", true, null), "invalid");
+    }
+
     /** runs/luna-v8/g2: every delve exiled the whole graveyard unasked ("delve(all)"), and a larger graveyard
      *  forced exactly the generic amount. Delve exiles any number up to it, so fewer is the seat's choice. */
     @Test

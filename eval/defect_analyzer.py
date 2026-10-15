@@ -368,9 +368,16 @@ def summarize(pairs, label):
     mulligan_by_seat = {s: mulligan_counts.get(s, 0) for s in all_seats}
     mulligan_missing_seats = sorted(s for s in all_seats if mulligan_counts.get(s, 0) == 0)
 
+    # --- games whose thread crashed (runs/luna-v8/g2: a StackOverflowError scored as a draw)
+    crashed = [str(p["jsonl"]) for p in pairs
+               if any(g.get("game_error") for g in p.get("games") or [])
+               or "game thread threw" in (p.get("log_text") or "")]
+
     return {
         "label": label,
         "n_games": n_games,
+        "game_crash_count": len(crashed),
+        "game_crash_files": crashed,
         "n_decisions": len(decisions),
         "n_skipped_lines": n_skipped,
         "unpaired_files": unpaired_files,
@@ -414,6 +421,7 @@ def build_report(dirs):
     combined = summarize(all_pairs, "combined")
     ai_ok = combined["ai_tier_count"] == 0
     drop_ok = combined["silent_drop_total"] == 0
+    crash_ok = combined["game_crash_count"] == 0
     report = {
         "dirs": per_dir,
         "combined": combined,
@@ -422,7 +430,9 @@ def build_report(dirs):
             "ai_tier_ok": ai_ok,
             "silent_drop_total": combined["silent_drop_total"],
             "silent_drop_ok": drop_ok,
-            "pass": ai_ok and drop_ok,
+            "game_crash_count": combined["game_crash_count"],
+            "game_crash_ok": crash_ok,
+            "pass": ai_ok and drop_ok and crash_ok,
         },
     }
     return report
@@ -524,9 +534,10 @@ def render_text(report):
         lines.append("")
     hi = report["hard_invariants"]
     lines.append("=== hard invariants ===")
-    lines.append("ai_tier_count=%d (ok=%s)  silent_drop_total=%d (ok=%s)  overall=%s"
+    lines.append("ai_tier_count=%d (ok=%s)  silent_drop_total=%d (ok=%s)  game_crash_count=%d (ok=%s)  overall=%s"
                  % (hi["ai_tier_count"], hi["ai_tier_ok"], hi["silent_drop_total"],
-                    hi["silent_drop_ok"], "PASS" if hi["pass"] else "FAIL"))
+                    hi["silent_drop_ok"], hi["game_crash_count"], hi["game_crash_ok"],
+                    "PASS" if hi["pass"] else "FAIL"))
     return "\n".join(lines)
 
 
@@ -569,8 +580,8 @@ def main():
 
     hi = report["hard_invariants"]
     if not hi["pass"]:
-        print("\nHARD INVARIANT FAILURE: ai_tier_count=%d silent_drop_total=%d"
-             % (hi["ai_tier_count"], hi["silent_drop_total"]), file=sys.stderr)
+        print("\nHARD INVARIANT FAILURE: ai_tier_count=%d silent_drop_total=%d game_crash_count=%d"
+             % (hi["ai_tier_count"], hi["silent_drop_total"], hi["game_crash_count"]), file=sys.stderr)
         sys.exit(1)
     sys.exit(0)
 
