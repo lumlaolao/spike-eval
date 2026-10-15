@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Run one model on one split of a frozen PUZ suite, k attempts per puzzle (eval/PUZZLES.md).
 
-    python3 eval/puzzle_solve.py --suite eval/suites/puz-forge-builtin-v1.json --split open \\
+    python3 eval/puzzle_solve.py --suite eval/suites/puzzles-forge-builtin-v1.json --split open \\
         --model openrouter:openai/gpt-6-luna --budget-usd 1.00 --out runs/puzzles/luna-open
 
 Each active puzzle of the split gets one JVM with PZL_SEEDS = the k attempt seeds, CONTROLLER_A=llm and

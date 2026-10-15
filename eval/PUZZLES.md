@@ -21,7 +21,7 @@ Forge enforces ("Win" or "Survive" by turn N).
 | `eval/test_puzzle_suite.py` | Python tests (no JVM) |
 | `LlmSpikePuzzle.java` | runs one puzzle headless, many seeds per JVM (`PZL_SEEDS`), one result row each |
 | `PuzzleArms.java` (+ `PuzzleArmsTest`) | the zero-model arms and the draw tape that makes a random rollout replayable |
-| `eval/suites/puz-*.json` | frozen suites |
+| `eval/suites/puzzles-*.json` | frozen suites |
 
 ## A puzzle record (`puzzle.v1`)
 
@@ -59,8 +59,8 @@ Random must solve it at most 20% of the time; anything easier measures luck and 
 STAGES="preflight classpath compile" bash eval/harness_acceptance.sh   # an isolated build
 python3 eval/puzzle_format.py forge-candidates --suite forge-builtin --out runs/puzzles/candidates.json
 python3 eval/puzzle_baselines.py run --suite runs/puzzles/candidates.json --rollouts 200 -j 4 --write runs/puzzles/measured.json
-python3 eval/puzzle_format.py freeze runs/puzzles/measured.json --out eval/suites/puz-forge-builtin-v1.json
-python3 eval/puzzle_format.py check eval/suites/puz-forge-builtin-v1.json
+python3 eval/puzzle_format.py freeze runs/puzzles/measured.json --out eval/suites/puzzles-forge-builtin-v1.json
+python3 eval/puzzle_format.py check eval/suites/puzzles-forge-builtin-v1.json
 ```
 
 - Everything here is free: the baseline JVMs point the model at a closed loopback port and carry no
@@ -75,9 +75,9 @@ python3 eval/puzzle_format.py check eval/suites/puz-forge-builtin-v1.json
 ## Running a model
 
 ```bash
-python3 eval/puzzle_solve.py --suite eval/suites/puz-forge-builtin-v1.json --split open \
+python3 eval/puzzle_solve.py --suite eval/suites/puzzles-forge-builtin-v1.json --split open \
     --model openrouter:openai/gpt-6-luna --k 4 --budget-usd 1.00 --out runs/puzzles/luna-open
-python3 eval/puzzle_score.py --suite eval/suites/puz-forge-builtin-v1.json --split open runs/puzzles/luna-open
+python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json --split open runs/puzzles/luna-open
 ```
 
 - Each attempt is a fresh game on seeds 1..k: the same seeds for every solver, so attempts differ only
