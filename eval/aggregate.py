@@ -115,6 +115,8 @@ PROVENANCE_FIELDS = (
     # One bridge for every decision (ONE_TIER) vs the smart/fast split: how hard the model may
     # think per decision type is a condition.
     ("one_tier", MISSING),
+    # The interface the model plays through, as one number (docs/STANDARDS.md section 8).
+    ("harness_epoch", MISSING),
 )
 
 # Identity fields a cited run must resolve. A value in this set means the field

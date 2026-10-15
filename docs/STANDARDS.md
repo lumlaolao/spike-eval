@@ -162,3 +162,21 @@ most log questions).
 - Say what was not determined.
 - A doc does not record the acceptance run of the PR that edits it: that belongs in the PR's
   `## Evidence`, or recording it would need a commit that invalidates it.
+
+## 8. The model is the only bottleneck (the harness contract)
+
+The harness is the bottleneck when it decides for the model, asks it blind, or does not use its
+answer. It is not the bottleneck when it executes what the model chose: the model owns every
+strategic choice, the engine owns every mechanism. Each rule has its check.
+
+| Rule | Check |
+|---|---|
+| **Every engine decision is the model's, or says why not.** A decision row from the model, a `tier=auto` row naming the reason (forced, no budget, unparsed), or a `t:"window"` row for a priority window the play loop passed. A pass the harness guessed (`window-gate`, `own-stack`, `interaction-filter`) with something usable is a defect; a pass the model asked for (`yield:`) is the model's. | `match_review.py` (`SKIP`, `TAKEN`); `aWindowThePlayLoopPassesWithoutAskingIsRecorded` |
+| **Never Forge's AI for strategy.** An inherited or `super.` hook that chooses is either routed or listed in the ledger with its reason. The silent strategic count may only fall. | `ControllerOwnershipTest` (baseline 1: the colour of an any-colour mana source and Phyrexian life-or-mana); `defect_analyzer.py` `ai_tier_count=0` |
+| **Every ask carries what it turns on**: the current observation, the source's rules text, whose each option is, the resource a number spends, the play it follows and the model's own reason for that play, and a way to cancel a play that is not committed yet. Nothing the model reads to decide is cut short. | `PromptFidelityTest` (golden check `everyAskCarriesTheStateAndNoCutOption`); acceptance `faithful` (no option ending in `...`) |
+| **Every answer is the one used.** The reply's last `CHOICE` is the recorded pick; a reply that was not used is a `LOST` finding. | `match_review.py`; `test_a_reply_that_was_not_the_option_used_is_lost` |
+| **How hard the model may think is a condition, not a per-decision routing choice.** `ONE_TIER` (one model, reasoning on, for every decision) is stamped `one_tier`; a two-tier run is a different arm. | `run_batch.py --one-tier`, `TestOneTier`; `aggregate.py` experiment key |
+| **No ask coaches one deck's line.** Examples in asks are format placeholders; deck plans, PRINCIPLES and the static reference are named assistance conditions. | `noAskCoachesOneDecksLine` |
+| **The interface has one version.** `HARNESS_EPOCH` moves with any change to what the seat is asked, when, or what its answer does, beside the per-layer versions; games across an epoch are not compared. | game line `harness_epoch`, asserted in acceptance `faithful`; `aggregate.py` experiment key |
+
+A game read by `game-loop` that finds a defect outside these checks adds the check here with its fix.
