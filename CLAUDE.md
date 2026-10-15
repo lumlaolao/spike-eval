@@ -90,6 +90,32 @@ definition and comes back as a `tool_calls` turn.** Do not add a new text comman
   `python3 eval/tool_audit.py <run>` — a `REFUSED` request there is a harness defect.
 - Native and text runs are different conditions (`native_tools` on the game line). Never pool them.
 
+## Standard: decisions are answered by a tool call (2026-10-15 — user decision)
+
+**Every decision is answered by calling `answer`, and every note (the plan) by `set_plan`, wherever native
+tools are on.** No answer is scraped out of prose. "The text parsing seems to BE HOW WE GOT INTO THIS big
+mess" (owner, 2026-10-15).
+
+- `AnswerTool.java` owns it. There is **one fixed `answer` schema** for every decision, all fields
+  optional: `option`, `options`, `blocks`, `amounts`, `keep`, `number`, `card`, plus the optional `steps`,
+  `yield`, `profile` and `lines`. The decision says which field it takes, and `AnswerTool.validate`
+  checks the call against that decision. An illegal call gets the reason and one more round in the same
+  conversation; a second illegal call loses the decision to the caller's deterministic fallback.
+- **The tool list never changes within a game.** Tool definitions open the prompt-cache prefix, so a
+  schema or tool that comes and goes between decisions discards the whole cache on every call
+  (`docs/harness/PROMPT-CRAFT.md` rule 19). That is why the schema is fixed, and why `set_plan` and (on a
+  lookahead seat) `simulate` are declared on every ask. A call that does not apply to this decision
+  gets an error saying why. The `nativetool` acceptance stage fails if the tool list changes between
+  requests.
+- `tool_choice` stays "auto". Forcing a tool skips thinking, and Opus/Sonnet 5.5 refuse it.
+- The definitions are mirrored in `eval/tooluse/answer_tools.json` (pinned by
+  `AnswerToolTest.theFixedFunctionsMatchTheToolUseSuite`).
+- Opt-outs, for measurement only:
+  - `ANSWER_TOOL=0` returns to the text grammar;
+  - `ANSWER_SCHEMA=per-decision` builds a schema from each decision's legal values (the v1 arm);
+  - `ANSWER_TOOL_STRICT=1` sends `strict: true`.
+  - A text reply in a tool ask is still read, and counted as `answer_via: "text"` on the row.
+
 ## Key files
 
 - `forge-overlay/.../spike/LlmSpikeGui.java` — everything: `PlayerControllerLLM` (the
