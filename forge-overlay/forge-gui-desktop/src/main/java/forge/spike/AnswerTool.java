@@ -38,8 +38,9 @@ final class AnswerTool {
     /** v1 (2026-10-15): per-decision `answer` schema, `set_plan` note, same-conversation correction.
      *  v2: one fixed `answer` schema for every decision, validated against the decision; `set_plan`
      *  always offered. Tool definitions open the prompt-cache prefix, so a schema that changed every
-     *  decision discarded the cache on every call (docs/harness/PROMPT-CRAFT.md rule 19). */
-    static final String VERSION = "answer-tool-v2";
+     *  decision discarded the cache on every call (docs/harness/PROMPT-CRAFT.md rule 19).
+     *  v3: an optional `why` (one sentence, for the record), and readable reasoning kept on the row. */
+    static final String VERSION = "answer-tool-v3";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -130,6 +131,9 @@ final class AnswerTool {
         String card;               // CARD
         List<Integer> steps;       // play: the cast list, 1-based options
         String yieldUntil, profile, lines;
+        /** Optional one-sentence explanation, for the game record (a model whose reasoning is encrypted
+         *  otherwise leaves no trace of why it chose). */
+        String why;
         /** 0-based picks, for the sites that index their own lists. */
         List<Integer> zeroBased() {
             List<Integer> out = new ArrayList<>();
@@ -215,6 +219,8 @@ final class AnswerTool {
                 + "OPPONENT in one short line (their deck and plan, and the cards to respect)."));
         props.add("lines", obj("type", "string", "description", "Optional, when the decision asks for it: how cards in YOUR OWN "
                 + "deck combine, in one or two short lines."));
+        props.add("why", obj("type", "string", "description", "Optional: one sentence on why you chose this, kept in the "
+                + "game record for the people reviewing it. It does not change the answer."));
         JsonObject params = new JsonObject();
         params.addProperty("type", "object");
         params.add("properties", props);
@@ -575,6 +581,7 @@ final class AnswerTool {
         }
         if (s.profile) out.profile = str(a, "profile");
         if (s.lines) out.lines = str(a, "lines");
+        out.why = str(a, "why");
         // The fixed schema names every field; another decision kind's field beside the right one is ignored.
         JsonObject known = (perDecision() ? definition(s) : fixedDefinition())
                 .getAsJsonObject("function").getAsJsonObject("parameters").getAsJsonObject("properties");
@@ -709,8 +716,11 @@ final class AnswerTool {
 
         boolean answered() { return answer != null; }
 
+        /** The row's raw_reply: the model's text, its `why`, then the answer in the old line format (last, where
+         *  every existing reader looks for it). */
         String render() {
             String r = AnswerTool.render(spec, answer);
+            if (answer.why != null) r = "WHY: " + answer.why + "\n" + r;
             return content == null || content.trim().isEmpty() ? r : content.trim() + "\n" + r;
         }
 

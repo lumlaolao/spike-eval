@@ -80,7 +80,12 @@ ownership.silent_ai_strategic_max=1
 # for a Linux runner, not a Mac-dev requirement.
 linux.floor.winner=A
 linux.floor.turns=108
-linux.floor.decisions=1081
+# 2026-10-15 (feat/no-heuristics): the harness shortcuts are off by default. Floor on Linux is A/108/1824:
+# the same game (winner and turns unchanged), with 743 more rows for windows the skip heuristics used
+# to pass silently. Measured: with SKIP_HEURISTICS=1 MULLIGAN_HEURISTIC=1 ONE_TIER=0 the same build
+# plays A/108/1081, the old pin, so the default flip is the whole change. Random is unchanged (A/45/368;
+# its arm bypasses the heuristics). The Mac floor pin is STALE until measured there.
+linux.floor.decisions=1824
 # 2026-10-15: Linux random re-measured at the head of the #143-#156 stack (fix/engine-id-leak) in a
 # Debian cloud container (JDK 17, engine 34a8662b), where the stack's Mac-only re-pins had left it STALE:
 # A/45/368, reproduced three times with the same class-load build. Floor unchanged on Linux (A/108/1081).

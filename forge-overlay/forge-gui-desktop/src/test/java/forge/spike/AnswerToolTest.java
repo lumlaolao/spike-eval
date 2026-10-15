@@ -130,4 +130,21 @@ public class AnswerToolTest {
         Assert.assertTrue(none.serve(new NativeTools.Call("c", NativeTools.SIMULATE, "{\"option\":1}"), false)
                 .startsWith(NativeTools.NO_PREVIEW));
     }
+
+    /** A model whose reasoning is encrypted leaves its `why` on the row, before the answer line every
+     *  reader looks for; readable reasoning is kept, encrypted reasoning is not. */
+    @Test
+    public void theRecordKeepsWhyAndReadableReasoning() {
+        AnswerTool.Ask ask = new AnswerTool.Ask(AnswerTool.Spec.one(3), false);
+        String reply = AnswerTool.converse("DECISION", ask, (user, messages, tools, allow, r) ->
+                calls(new NativeTools.Call("c1", "answer", "{\"option\":2,\"why\":\"Bolt kills their only blocker.\"}")),
+                null, (req, res) -> { });
+        Assert.assertEquals(reply, "WHY: Bolt kills their only blocker.\nCHOICE: 2");
+        Assert.assertEquals(NativeTools.reasoningOf("{\"role\":\"assistant\",\"reasoning\":\"They have no blockers.\"}"),
+                "They have no blockers.");
+        Assert.assertEquals(NativeTools.reasoningOf("{\"role\":\"assistant\",\"reasoning\":null,\"reasoning_details\":"
+                + "[{\"type\":\"reasoning.summary\",\"summary\":\"Count lethal first.\"}]}"), "Count lethal first.");
+        Assert.assertNull(NativeTools.reasoningOf("{\"role\":\"assistant\",\"reasoning\":null,\"reasoning_details\":"
+                + "[{\"type\":\"reasoning.encrypted\",\"data\":\"gAAAA\"}]}"));
+    }
 }
