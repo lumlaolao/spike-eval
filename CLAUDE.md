@@ -109,7 +109,15 @@ mess" (owner, 2026-10-15).
   lookahead seat) `simulate` are declared on every ask. A call that does not apply to this decision
   gets an error saying why. The `nativetool` acceptance stage fails if the tool list changes between
   requests.
-- `tool_choice` stays "auto". Forcing a tool skips thinking, and Opus/Sonnet 5.5 refuse it.
+- `tool_choice` is per model (`AnswerTool.toolChoiceFor`, researched and measured 2026-10-15,
+  `docs/harness/PROMPT-CRAFT.md` rule 2):
+  - "required" for OpenAI models: Luna keeps its reasoning, and a text-only reply becomes impossible;
+  - "auto" elsewhere: Opus/Sonnet 5.5 and Fable 5.1 refuse forcing, and a forced call skips thinking on
+    the other Claude models;
+  - never the answer function by name, which skips the reasoning.
+  - `ANSWER_TOOL_CHOICE=auto|required` overrides it, for measurement only.
+- Every optional field's first enum value and its empty value mean "nothing": a model may fill every
+  field, as Luna does (answer-tool-v8).
 - The definitions are mirrored in `eval/tooluse/answer_tools.json` (pinned by
   `AnswerToolTest.theFixedFunctionsMatchTheToolUseSuite`).
 - Opt-outs, for measurement only:
@@ -295,6 +303,12 @@ The skills in `.claude/skills/` are not optional helpers. They are how work is d
 Run the three review skills as fresh subagents where the runtime has them, so the reviewer is
 not the author. Recording verdicts and the merge gate: `docs/STANDARDS.md` section 1. Once per
 clone: `bash scripts/install_hooks.sh`.
+
+## Keep the architecture document true
+
+`docs/harness/ARCHITECTURE.md` describes every part of the harness and why it is built that way. A change
+that alters how the harness works (a decision path, a tool, the prompt, a bridge, a default, an eval rule)
+updates that document in the same PR. A PR that changes behaviour and leaves it stale is not done.
 
 ## Before committing
 

@@ -585,6 +585,16 @@ public class NativeToolsTest {
         Assert.assertEquals(m2.get(2).getAsJsonObject().get("reasoning").getAsString(),
                 "kept so the provider sees its own thinking again");
         Assert.assertEquals(m2.get(3).getAsJsonObject().get("tool_call_id").getAsString(), "call_9");
+
+        // An answer ask to an OpenAI model forces a call; the same ask to another model stays "auto".
+        synchronized (requests) { requests.clear(); responses.add(textResponse("x")); responses.add(textResponse("x")); }
+        String answerTools = new AnswerTool.Ask(AnswerTool.Spec.one(2), false).definitions().toString();
+        new LlmSpikeGui.OpenRouterBridge("Seat/smart", "openai/gpt-6-luna", "P", base, 5000).chat(messages.toString(), answerTools, true);
+        bridge.chat(messages.toString(), answerTools, true);
+        if (System.getenv("ANSWER_TOOL_CHOICE") == null) {
+            Assert.assertEquals(requests.get(0).get("tool_choice").getAsString(), "required");
+            Assert.assertEquals(requests.get(1).get("tool_choice").getAsString(), "auto");
+        }
     }
 
     /** Anthropic models cache only a prefix marked cacheable; nothing was marked, so every call paid
