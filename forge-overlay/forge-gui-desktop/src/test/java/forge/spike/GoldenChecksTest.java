@@ -53,7 +53,7 @@ public class GoldenChecksTest {
     static final Set<String> OWNED = new TreeSet<>(Arrays.asList(
             "play", "target", "targets", "mana-sources", "phyrexian", "modes", "number", "number-value",
             "ability-to-play", "play-from-effect", "mulligan", "mulligan-bottom", "starting-player",
-            "attackers", "attack-target", "blockers", "damage-assign", "vote", "entity", "zone-change",
+            "attackers", "attack-target", "blockers", "damage-assign", "damage-order", "vote", "entity", "zone-change",
             "discard", "cleanup-discard", "delve", "sacrifice", "cards-for-effect", "prevent-effect",
             "optional-costs", "trigger-order", "reveal", "scry", "surveil", "order", "confirm",
             "confirm-trigger", "confirm-payment", "confirm-replacement", "binary", "color",
@@ -155,6 +155,32 @@ public class GoldenChecksTest {
         ctrl.playChosenSpellAbility(r.get(0));
         Assert.assertFalse(volc.isTapped(), "the source the model kept is untapped");
         Assert.assertTrue(mountain.isTapped());
+    }
+
+    /** A keep set the rest cannot pay is explained and asked once more; the engine's own plan never
+     *  replaces the seat's choice (it did, 729 times in recorded games, as "->engine plan"). */
+    @Test
+    public void aKeepSetThatCannotPayIsAskedAgainNotHandedToTheEngine() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card volc = card("Volcanic Island", me, ZoneType.Battlefield);
+        Card mountain = card("Mountain", me, ZoneType.Battlefield);
+        card("Island", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        card("Savannah Lions", rival, ZoneType.Battlefield);
+        int[] manaAsks = {0};
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choice("CAST Lightning Bolt"))
+                .on("Choose the TARGET", choice("Savannah Lions"))
+                .on("MANA:", p -> ++manaAsks[0] == 1 ? picks("Volcanic Island", "Mountain").apply(p) : picks("Mountain").apply(p));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        ctrl.playChosenSpellAbility(r.get(0));
+        Assert.assertEquals(manaAsks[0], 2, "the unpayable keep set was not asked again");
+        Assert.assertTrue(model.asked("unable to pay"), "the second ask did not say why");
+        Assert.assertFalse(mountain.isTapped(), "the source kept on the second answer is untapped");
+        Assert.assertTrue(volc.isTapped(), "the red came from the Volcanic Island");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
     /** On the opponent's turn the hand called a creature "(castable)" because its mana was there,
@@ -330,6 +356,37 @@ public class GoldenChecksTest {
         Assert.assertEquals(one.get(bears), Integer.valueOf(6), "all to the blocker: " + one);
         Map<Card, Integer> two = ctrl.assignCombatDamage(wurm, new CardCollection(Arrays.asList(bears, lions)), new CardCollection(), 6, rival, false);
         Assert.assertEquals(two.get(lions), Integer.valueOf(1), "lethal to the Lions first: " + two);
+    }
+
+    /** The order an attacker assigns its damage among its blockers is the seat's (it was Forge's
+     *  AiBlockController's, only logged). With no answer the order stays as given: never Forge's AI. */
+    @Test
+    public void damageOrderIsTheModels() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card wurm = card("Colossal Dreadmaw", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("COMBAT DAMAGE ORDER", picks("Grizzly Bears", "Savannah Lions"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        CardCollection order = ctrl.orderBlockers(wurm, new CardCollection(Arrays.asList(lions, bears)));
+        Assert.assertTrue(model.asked("COMBAT DAMAGE ORDER"), "the damage order was not asked");
+        Assert.assertEquals(order.get(0), bears, "the model's order: " + order);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** What no answer used to hand to Forge's AI now takes a fixed legal choice: card naming with nothing
+     *  to name, a cost pick that came back short. */
+    @Test
+    public void noAnswerIsNeverForgesAi() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card src = card("Pithing Needle", me, ZoneType.Battlefield);
+        Script model = new Script("PICKS: NONE");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Assert.assertEquals(ctrl.chooseCardName(spell(src, me), new ArrayList<>(), "Choose a card name."), "");
+        Assert.assertTrue(ctrl.chooseModeForAbility(spell(src, me), new ArrayList<>(), 1, 1, false).isEmpty());
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "a no-answer path reached Forge's AI");
     }
 
     // ------------------------------------------------------------------ choices an effect hands the seat

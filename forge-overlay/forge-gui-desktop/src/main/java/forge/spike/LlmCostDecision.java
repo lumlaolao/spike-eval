@@ -80,6 +80,8 @@ final class LlmCostDecision extends AiCostDecision {
         if (cost.payCostFromSource() || "OriginalHost".equals(cost.getType()) || "All".equals(cost.getAmount())) {
             return super.visit(cost);
         }
+        CardCollection candidates = null;
+        int need = 0;
         try {
             String type = cost.getType();
             boolean differentNames = false;
@@ -103,6 +105,8 @@ final class LlmCostDecision extends AiCostDecision {
                 typeList = new CardCollection(CardLists.filter(typeList, CardPredicates.hasSVar("AIDontSacToCasualty").negate()));
             }
             if (typeList.size() < amount) return null; // engine handles the impossible case
+            candidates = typeList;
+            need = amount;
 
             offer();
             CardCollectionView pick = player.getController().choosePermanentsToSacrifice(ability, amount, amount,
@@ -110,8 +114,9 @@ final class LlmCostDecision extends AiCostDecision {
             if (tookCancel()) return null;
             if (pick != null && !pick.isEmpty()) return PaymentDecision.card(pick);
             if (amount <= 0) return super.visit(cost); // nothing to choose (X=0): the engine's bookkeeping
-            fellBack("sacrifice-cost", "empty pick");
+            return firstLegal(candidates, need, "sacrifice", "empty pick");
         } catch (Exception e) {
+            if (candidates != null) return firstLegal(candidates, need, "sacrifice", e.getClass().getSimpleName());
             fellBack("sacrifice-cost", e.getClass().getSimpleName());
         }
         return super.visit(cost);
@@ -131,6 +136,8 @@ final class LlmCostDecision extends AiCostDecision {
                 || (cost.getFrom().size() == 1 && cost.getFrom().get(0) == ZoneType.Library)) {
             return super.visit(cost);
         }
+        CardCollection candidates = null;
+        int need = 0;
         try {
             final int amount = cost.getAbilityAmount(ability);
             CardCollection typeList = new CardCollection(cost.zoneRestriction != 1
@@ -139,6 +146,8 @@ final class LlmCostDecision extends AiCostDecision {
             typeList = CardLists.filter(typeList, CardPredicates.canExiledBy(ability, isEffect()));
             typeList = ComputerUtilCost.paymentChoicesWithoutTargets(typeList, ability, player);
             if (amount <= 0 || typeList.size() <= amount) return super.visit(cost); // nothing to choose
+            candidates = typeList;
+            need = amount;
 
             String from = (cost.zoneRestriction == 1 ? "your " : "any player's ") + zonesInWords(cost.getFrom());
             CardCollectionView pick = ask(typeList, amount, "exile", "COST: to pay for " + source.getName()
@@ -147,6 +156,7 @@ final class LlmCostDecision extends AiCostDecision {
             if (pick != null) return PaymentDecision.card(pick);
             if (cancelled) return null;
         } catch (Exception e) {
+            if (candidates != null) return firstLegal(candidates, need, "exile", e.getClass().getSimpleName());
             fellBack("exile-cost", e.getClass().getSimpleName());
         }
         return super.visit(cost);
@@ -173,16 +183,21 @@ final class LlmCostDecision extends AiCostDecision {
                 || type.contains("WithSameName") || type.contains("+WithDifferentNames")) {
             return super.visit(cost);
         }
+        CardCollection candidates = null;
+        int need = 0;
         try {
             final int amount = cost.getAbilityAmount(ability);
             CardCollection typeList = CardLists.getValidCards(player.getCardsIn(ZoneType.Hand),
                     type.split(";"), source.getController(), source, ability);
             if (amount <= 0 || typeList.size() <= amount) return super.visit(cost); // nothing to choose
+            candidates = typeList;
+            need = amount;
             CardCollectionView pick = ask(typeList, amount, "discard", "COST: to pay for " + source.getName()
                     + " you must DISCARD " + amount + " of these cards from your hand. Choose which");
             if (pick != null) return PaymentDecision.card(pick);
             if (cancelled) return null;
         } catch (Exception e) {
+            if (candidates != null) return firstLegal(candidates, need, "discard", e.getClass().getSimpleName());
             fellBack("discard-cost", e.getClass().getSimpleName());
         }
         return super.visit(cost);
@@ -195,12 +210,16 @@ final class LlmCostDecision extends AiCostDecision {
     @Override
     public PaymentDecision visit(CostReturn cost) {
         if (cost.payCostFromSource()) return super.visit(cost);
+        CardCollection candidates = null;
+        int need = 0;
         try {
             final int amount = cost.getAbilityAmount(ability);
             CardCollection typeList = CardLists.getValidCards(player.getCardsIn(ZoneType.Battlefield),
                     cost.getType().split(";"), source.getController(), source, ability);
             typeList = ComputerUtilCost.paymentChoicesWithoutTargets(typeList, ability, player);
             if (amount <= 0 || typeList.size() <= amount) return super.visit(cost); // nothing to choose
+            candidates = typeList;
+            need = amount;
 
             CardCollectionView pick = ask(typeList, amount, "return", "COST: to pay for " + source.getName()
                     + " you must RETURN " + amount
@@ -208,6 +227,7 @@ final class LlmCostDecision extends AiCostDecision {
             if (pick != null) return PaymentDecision.card(pick);
             if (cancelled) return null;
         } catch (Exception e) {
+            if (candidates != null) return firstLegal(candidates, need, "return", e.getClass().getSimpleName());
             fellBack("return-cost", e.getClass().getSimpleName());
         }
         return super.visit(cost);
@@ -222,9 +242,13 @@ final class LlmCostDecision extends AiCostDecision {
      */
     @Override
     public PaymentDecision visit(CostTapType cost) {
+        CardCollection candidates = null;
+        int need = 0;
         try {
             final int amount = cost.getAbilityAmount(ability);
             CardCollection typeList = tapCandidates(cost);
+            candidates = typeList;
+            need = amount;
             if (typeList == null || amount <= 0 || typeList.size() < amount) return engineTap(cost);
             // Exactly enough: no choice, but the pick is still this list. The engine's own pick excludes a
             // reserve read when it was built, not the one just refreshed, so it could name the mana
@@ -237,6 +261,8 @@ final class LlmCostDecision extends AiCostDecision {
             if (pick != null) return reserve(pick);
             if (cancelled) return null;
         } catch (Exception e) {
+            if (candidates != null && candidates.size() >= need && need > 0)
+                return reserve(new CardCollection(candidates.subList(0, need)));
             fellBack("tap-cost", e.getClass().getSimpleName());
         }
         return engineTap(cost);
@@ -295,16 +321,23 @@ final class LlmCostDecision extends AiCostDecision {
         return d;
     }
 
-    /** Asks the seat for exactly {@code amount} of {@code typeList}; null (logged as a fallback) when
-     *  the pick is short, so the caller lets the engine choose. */
+    /** Asks the seat for exactly {@code amount} of {@code typeList}. A short pick takes the first legal
+     *  cards, recorded as a fixed fallback; null only when the seat cancelled. */
     private CardCollectionView ask(CardCollection typeList, int amount, String kind, String question) {
         offer();
         CardCollectionView pick = player.getController().chooseCardsForEffect(typeList, ability, question,
                 amount, amount, false, null);
         if (tookCancel()) return null;
         if (pick != null && pick.size() == amount) return pick;
-        fellBack(kind + "-cost", kind + " pick of " + (pick == null ? 0 : pick.size()));
-        return null;
+        return firstLegal(typeList, amount, kind, kind + " pick of " + (pick == null ? 0 : pick.size())).cards;
+    }
+
+    /** The first {@code amount} legal candidates, recorded as a fixed fallback: never Forge's AI. */
+    private PaymentDecision firstLegal(CardCollection candidates, int amount, String kind, String why) {
+        CardCollection pick = new CardCollection(candidates.subList(0, Math.min(amount, candidates.size())));
+        LlmSpikeGui.PlayerControllerLLM seat = seat();
+        if (seat != null) seat.costDecisionDefault(kind + "-cost(" + why + ")->first " + pick.size());
+        return PaymentDecision.card(pick);
     }
 
     /** Offers "cancel" on the ask about to be made, when this payment may still be cancelled. A mana
