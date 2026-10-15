@@ -578,6 +578,20 @@ public class GoldenChecksTest {
         sourceName = "Force Spike"; sourceText = spike.getHostCard().getOracleText();
     }
 
+    /** With nothing to pay with, "Pay {2}" is not an option the seat can take: the decline is forced and
+     *  nothing is asked (runs/luna-v8/g1 asked it about Spell Pierce with no mana up). One row, not two. */
+    @Test
+    public void anUnlessCostTheSeatCannotPayIsNotAsked() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card bolt = card("Lightning Bolt", me, ZoneType.Hand);
+        LineFindingProbeTest.rivalCasts(g, "Spell Pierce", bolt);
+        SpellAbility pierce = g.getStack().peekAbility();
+        Script model = new Script("CHOICE: 1");
+        Assert.assertFalse(seat(g, model, model).payCostToPreventEffect(new forge.game.cost.Cost("2", false), pierce, false, null));
+        Assert.assertTrue(model.prompts.isEmpty(), "an unpayable cost was asked: " + model.prompts);
+    }
+
     @Test
     public void aKickerIsTheModels() {
         Game g = bareGame(PhaseType.MAIN1);

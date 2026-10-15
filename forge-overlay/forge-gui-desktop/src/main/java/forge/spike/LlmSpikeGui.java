@@ -3640,6 +3640,14 @@ public final class LlmSpikeGui {
             clearLast();
             if (cost == null) return false;
             try {
+                // An option the seat cannot take is not offered: with nothing to pay with, declining is forced
+                // (runs/luna-v8/g1 offered "Pay {2}" for Spell Pierce and "Pay {R}{R}" for Chain Lightning's copy
+                // with no mana up, and the model had to point it out).
+                if (!ComputerUtilCost.canPayCost(cost, sa, getPlayer(), true)) {
+                    evalDec("prevent-effect", 1, 0, "auto", 0, "forced(cannot-pay)->decline " + fit(cost.toSimpleString()), null);
+                    p("[ROUTER] prevent-effect: cannot pay " + fit(cost.toSimpleString()) + " -> decline (forced)");
+                    return false;
+                }
                 if (okFor("prevent-effect")) {
                     String desc = fit(cost.toSimpleString());
                     List<String> labels = Lists.newArrayList("Pay " + desc, "Decline (let it resolve)");
@@ -3649,11 +3657,10 @@ public final class LlmSpikeGui {
                         // UnlessSwitched: paying is what makes the effect happen (Chain Lightning's copy);
                         // runs/loop/g01 was asked it as "pay to prevent" and guessed it could not pay.
                         boolean pays = sa.hasParam("UnlessSwitched");
-                        boolean can = ComputerUtilCost.canPayCost(cost, sa, getPlayer(), true);
                         labels = Lists.newArrayList("Pay " + desc, pays ? "Decline (it does not happen)" : "Decline (let it resolve)");
                         q = (pays ? "Optional payment: pay " + desc + " to make this happen: "
                                   : "Pay " + desc + " to prevent this: ") + seatText(sa.getStackDescription())
-                            + srcAsk(sa) + " You " + (can ? "can" : "CANNOT") + " pay it right now.";
+                            + srcAsk(sa) + " You can pay it right now.";
                     }
                     int c = decideOne(bridgeFor("prevent-effect"), "prevent-effect", q, labels, null);
                     if (c == 0) {
@@ -3665,7 +3672,8 @@ public final class LlmSpikeGui {
                         p("[ROUTER] prevent-effect: paid " + desc + " -> " + paid);
                         return paid;
                     }
-                    if (c == 1) { auto("prevent-effect(model)->decline"); return false; }
+                    // decideOne wrote the model's row; a second (auto) row for the same answer double-counted it.
+                    if (c == 1) { p("[ROUTER] prevent-effect: declined " + desc); return false; }
                 }
             } catch (Exception e) { /* deterministic fallback below */ }
             auto("prevent-effect(default)->decline");
