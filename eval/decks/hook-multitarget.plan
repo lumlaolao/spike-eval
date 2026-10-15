@@ -1,0 +1,1 @@
+Black control built to reach a MULTI-target set without division: Hex destroys six target creatures (maxTargets 6), which chooseTargetsFor now routes as a distinct subset instead of bailing to the Forge AI (#124).

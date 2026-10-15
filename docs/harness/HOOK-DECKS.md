@@ -28,6 +28,8 @@ to compute a win rate. Each is exactly 60 cards and every card name resolves in 
 | `hook-splice` | `chooseCardsForSplice` | Forge AI | `AbilityUtils` (splice) | — |
 | `hook-opening-hand` | `chooseSaToActivateFromOpeningHand` | Forge AI | `GameAction` | — |
 | `hook-villainous-choice` | `chooseSpellAbilitiesForEffect` | Forge AI | `VillainousChoiceEffect` | — |
+| `hook-divided-targets` | a **divided** target set (`DividedAsYouChoose`) | the seat | `DamageDealEffect` reads the per-target split | **#124** (regression deck) |
+| `hook-multitarget` | a **multi-target** set (`Hex`, six targets) | the seat | `TargetRestrictions` | **#124** (regression deck) |
 
 ## The cards, and why each deck reaches its hook
 
@@ -65,6 +67,11 @@ to compute a win rate. Each is exactly 60 cards and every card name resolves in 
 - **`hook-villainous-choice`** — the Doctor Who Villainous Choice cards (`Great Intelligence's Plan`,
   `Genesis of the Daleks`, `The Dalek Emperor`, `Davros`, `Missy`) call
   `chooseSpellAbilitiesForEffect` to pick the two options offered.
+- **`hook-divided-targets`** — `Fireball`, `Rolling Thunder`, `Pyrotechnics`, `Arc Lightning` divide
+  a value among targets (`DividedAsYouChoose`): a fixed total allocates at targeting, an `{X}` total
+  when the engine asks (`DamageDealEffect` reads the per-target split, and a missing allocation NPEs).
+- **`hook-multitarget`** — `Hex` destroys six target creatures, so `chooseTargetsFor` sees
+  `getMaxTargets() > 1` rather than bailing to the AI.
 
 ## Running one
 
@@ -86,7 +93,7 @@ top level only).
 
 ## Verified
 
-- Card-name resolution: all 60 names per deck (16 decks) resolve in Forge's card DB.
+- Card-name resolution: all 60 names per deck (18 decks) resolve in Forge's card DB.
 - Load test (`hook-piles`, 2026-10-14): a zero-model floor mirror, seed 42, ran to turn 108 with no
   load error and the deck's cards in the log (`Fact or Fiction`, `Gifts Ungiven`, 26 `Island`; none
   of the default Grixis Reanimator cards). Floor short-circuits plays, so it proves the deck **loads**,
