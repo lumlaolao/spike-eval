@@ -1,6 +1,6 @@
 {
-  "version": "seat-tools-v5",
-  "comment": "The seat's read-only tools as native function definitions. Each maps 1:1 onto a command ContextMemory.execute already implements (text_command), so the native and text protocols reach the SAME executor and differ only in how the request is expressed. Descriptions carry the same epistemic caveats the text grammar states. rules_lookup and simulate are served by the engine side only (RulesTool, PlayerLookahead); the tool-use suite has no fixture for them and does not offer them.",
+  "version": "seat-tools-v6",
+  "comment": "The seat's read-only tools as native function definitions. Each maps 1:1 onto a command ContextMemory.execute already implements (text_command), so the native and text protocols reach the SAME executor and differ only in how the request is expressed. Descriptions carry the same epistemic caveats the text grammar states. rules_lookup and simulate are served by the engine side only (RulesTool, PlayerLookahead), and report_unclear_decision is a complaint about the question, not a lookup; the tool-use suite has no fixture for them and does not offer them.",
   "tools": [
     {
       "type": "function",
@@ -170,6 +170,28 @@
           },
           "required": [
             "option"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    {
+      "type": "function",
+      "text_command": "REPORT {problem}",
+      "function": {
+        "name": "report_unclear_decision",
+        "description": "Tell the harness maintainers that THIS question is broken or confusing: the options do not match the state you see, an option you expected is missing, the text is garbled, or the question makes no sense after what you just did. It changes nothing in the game and does not end the decision: answer it afterwards as best you can. Not for a hard choice; only for a problem with the question itself.",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "problem": {
+              "type": "string",
+              "maxLength": 500,
+              "description": "What is wrong with the question, in one or two sentences, naming the option numbers involved."
+            }
+          },
+          "required": [
+            "problem"
           ],
           "additionalProperties": false
         }

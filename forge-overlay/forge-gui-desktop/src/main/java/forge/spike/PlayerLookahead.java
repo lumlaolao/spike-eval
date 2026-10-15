@@ -207,9 +207,10 @@ final class PlayerLookahead {
             MyRandom.setRandom(new Random(seed));
             GameSimulator sim;
             UncopiedEffects parked = UncopiedEffects.park(live);   // the constructor is where the copy is made
+            StaleEffectCards stale = StaleEffectCards.park(live);
             try {
                 sim = new GameSimulator(new SimulationController(new GameStateEvaluator.Score(0)), live, seat, null);
-            } finally { parked.restore(); }
+            } finally { stale.restore(); parked.restore(); }
             Game simGame = sim.getSimulatedGameState();
             if (simGame == null) return "(preview unavailable)";
             // Determinize BEFORE anything resolves so the preview cannot depend on the real hidden order.

@@ -122,6 +122,18 @@ class MatchReviewTest(unittest.TestCase):
             r = mr.review(p)
             self.assertEqual((r["counts"]["LOST"], r["counts"]["TAKEN"]), (2, 1))
 
+    def test_a_report_from_the_seat_is_listed_and_is_not_a_defect(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "game-1-0.jsonl")
+            req = 'TOOL CALL report_unclear_decision {"problem":"option 2 names a Mountain I do not control"}'
+            rows = [{"t": "context_tool", "turn": 4, "request": req, "result": "Recorded for the harness maintainers."},
+                    {"t": "game", "seed": 1, "swap": False, "winner": "A"}]
+            with open(p, "w") as f:
+                f.write("".join(json.dumps(x) + "\n" for x in rows))
+            r = mr.review(p)
+            self.assertEqual((r["counts"]["REPORT"], r["counts"]["TOOL"], mr.defects(r)), (1, 0, 0))
+            self.assertRegex(mr.render(r), r"REPORT x1 +line 1 T4  option 2 names a Mountain")
+
     def test_a_clean_game_says_so(self):
         with tempfile.TemporaryDirectory() as d:
             p = os.path.join(d, "game-1-0.jsonl")

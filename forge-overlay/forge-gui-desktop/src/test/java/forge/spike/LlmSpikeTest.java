@@ -178,7 +178,7 @@ public class LlmSpikeTest {
     // ================================================================================
 
     @Test
-    public void parseTagNumber_theRequestedTagWinsOverALaterAnswer() {
+    public void parseTagNumber_aLaterTagFollowedByWordsIsNotAnAnswer() {
         // runs/compare one-tier seed 82 T11: "CHOICE: 4", then degenerate text with "Final Answer: ..." and a 3.
         String reply = "Pass and hold Swords.\nCHOICE: 4\n\nNeed one short: \"Final Answer: \"NCAA: 3 \"Saab: \"Rio:";
         Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.parseTagNumber(reply, "CHOICE:"), 4);

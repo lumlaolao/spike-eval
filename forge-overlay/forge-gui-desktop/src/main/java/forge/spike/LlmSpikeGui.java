@@ -161,7 +161,8 @@ public final class LlmSpikeGui {
      *  (sacrifice, exile, discard, return, tap) can cancel a play that is not committed yet. Epoch 4:
      *  how a Phyrexian symbol is paid (life or mana) is asked. Epoch 5: engine notices (a named card, a
      *  chosen colour) are shown; an unparsed play or block is said, not read as PASS / NONE; block pairs
-     *  keep names with commas; the per-turn play cap is 80 under the faithful profile. */
+     *  keep names with commas; the per-turn play cap is 80 under the faithful profile; a PLAN line at any
+     *  decision replaces the plan (a goal and steps); the seat can report a broken question. */
     static final String HARNESS_EPOCH = "harness-epoch-5";
 
     static final class EvalLog {
@@ -754,6 +755,48 @@ public final class LlmSpikeGui {
          *  deck plan (docs/STANDARDS.md section 8): stamped `no_coaching` on the game line. */
         static final boolean NO_COACHING = "1".equals(System.getenv("NO_COACHING"));
         private String planSig;      // opponent-side signature when the plan was stated
+        /** When the plan was stated, "T5 MAIN1" (faithful plan line). */
+        private String planWhen = "";
+        /** The tags that end a PLAN line written on the same line as an answer. */
+        private static final String[] PLAN_ENDS = {"CHOICE:", "PICKS:", "BLOCKS:", "ATTACKS:", "ATTACKERS:", "STEPS:",
+                "LINES:", "PROFILE:", "ANSWER:"};
+        private static final Pattern PLAN_LINE = Pattern.compile("(?i)^[\\s*_>#`-]*PLAN\\s*:(.*)$");
+
+        /** The text of the reply's last line that STARTS with PLAN: (markdown allowed), cut at an
+         *  answer tag on the same line; null when there is none. A line merely mentioning a plan
+         *  ("my game plan: race") is not a plan statement. */
+        static String planStatement(String reply) {
+            if (reply == null) return null;
+            String found = null;
+            for (String ln : reply.split("\\R")) {
+                Matcher m = PLAN_LINE.matcher(ln);
+                if (m.find()) found = m.group(1);
+            }
+            if (found == null) return null;
+            found = cutAtTags(found, PLAN_ENDS).replaceAll("^[\\s*_`]+|[\\s*_`]+$", "").replaceAll("\\s+", " ").trim();
+            return found.isEmpty() ? null : found;
+        }
+
+        /** Faithful seats: a PLAN line in any reply replaces the plan, whatever the decision was (the
+         *  opponent cast something in their main phase, a card was drawn, a block went badly). A
+         *  changed plan drops the old cast list, which belonged to the old plan. Returns true when it
+         *  changed. Whitespace-collapsed, never truncated (the C4 defect cut a stated finisher). */
+        boolean adoptPlan(String reply) {
+            String pl = planStatement(reply);
+            if (pl == null) return false;
+            String ph = "";
+            try { ph = " " + getGame().getPhaseHandler().getPhase(); } catch (Exception ignore) { }
+            planTurn = safeTurn();
+            planWhen = "T" + planTurn + ph;           // restated unchanged: still the plan, stated now
+            if (pl.equals(turnPlan)) return false;
+            boolean revised = !turnPlan.isEmpty();
+            turnPlan = pl;
+            planSig = oppPlanSig();
+            planStepIdx = 0;
+            planSteps.clear();
+            p("[ROUTER] plan" + (revised ? "(revised)" : "") + ": " + turnPlan);
+            return true;
+        }
         private int planStepIdx;     // how many plan steps have been executed this turn
         /** The model's EXPLICIT cast list (`STEPS: A, B`), in order. Only this is auto-executed.
          *  Free-text matching was a real bug (2026-10-13): a plan reading "Hold Shallow Grave
@@ -919,6 +962,7 @@ public final class LlmSpikeGui {
             // their game behaviour and prompt bytes are untouched.
             this.observer = ctx.faithfulObservation ? new SeatObservation(game, p) : null;
             if (observer != null && MEMORY_TOOLS) contextMemory.setInspector(observer::inspect);
+            contextMemory.setReporter(problem -> p("[REPORT] " + seat + " T" + safeTurn() + ": " + problem));
             if (MEMORY_TOOLS && RULES_TOOL) {
                 RulesTool rt = rulesTool();
                 if (rt.available()) {
@@ -1588,6 +1632,7 @@ public final class LlmSpikeGui {
                 observer.setProfile(oppProfile);
                 observer.setOwnDeckText(deckPlan);
                 observer.setDeckLines(deckLines);
+                observer.setPlanWhen(planWhen);
                 String s = observer.render(seat, ctx, hist.text, turnPlan, planTurn);
                 if (hist.watermark != GameHistory.Rendered.KEEP_WATERMARK) eventWatermark = hist.watermark;
                 return s;
@@ -1618,6 +1663,19 @@ public final class LlmSpikeGui {
                     : "a previous turn; the board may have changed — re-state it or consciously continue");
             b.append("): ").append(turnPlan).append('\n');
             return b.toString();
+        }
+
+        /** The faithful profile's plan line (observation v22). The plan is the seat's own and can be
+         *  replaced at ANY decision with a new PLAN line ({@link #adoptPlan}): a goal and the steps
+         *  toward it, which change when the opponent acts or a card is drawn. It says when it was
+         *  stated, so the model can read what happened since in RECENT EVENTS and judge it. */
+        static String revisablePlanText(String turnPlan, String planWhen, int planTurn, int nowTurn) {
+            if (turnPlan == null || turnPlan.isEmpty()) return "";
+            return "YOUR PLAN (yours, stated " + (planWhen == null || planWhen.isEmpty() ? "at T" + planTurn : "at " + planWhen)
+                    + (planTurn == nowTurn ? ", this turn" : ", an earlier turn")
+                    + "; events after that happened since. It stands until you change it: at any decision, write a new "
+                    + "`PLAN: GOAL: <what you are working toward> NEXT: <the steps>` line before your answer): "
+                    + turnPlan + "\n";
         }
 
         static String buildSnapshot(Player me, String seat, java.util.Collection<String> intel, String turnPlan, int planTurn) {
@@ -2527,9 +2585,13 @@ public final class LlmSpikeGui {
                 // so it never costs an extra model call.
                 boolean askProfile = askPlan && (oppProfile.isEmpty() || turn - profileTurn >= PROFILE_REFRESH_TURNS);
                 String asks = askPlan
-                        ? "First state your plan for THIS TURN as `PLAN: <one short line>` (the sequence you intend, e.g. "
-                          // The example named one eval deck's line (Grixis Reanimator) in every deck's prompt.
-                          + (observer != null ? "'<land>, cast <card>, hold <card> for their turn'). " : "'ritual into Reanimate on Griselbrand, hold Petal'). ")
+                        ? (observer != null
+                           // Faithful (v22): a goal and the steps toward it, replaceable at any decision.
+                           ? "First state your plan as `PLAN: GOAL: <what you are working toward> NEXT: <the steps you intend, in order, "
+                             + "e.g. <land>, cast <card>, hold <card> for their turn>`; you can replace it at any later decision. "
+                           // The example named one eval deck's line (Grixis Reanimator) in every deck's prompt.
+                           : "First state your plan for THIS TURN as `PLAN: <one short line>` (the sequence you intend, e.g. "
+                             + "'ritual into Reanimate on Griselbrand, hold Petal'). ")
                           + "If (and only if) you want the harness to execute steps of that plan for you without asking again this turn, add `STEPS: <card name>, <card name>` listing ONLY cards you intend to CAST, in the order you will cast them; omit anything you are holding. "
                         : "";
                 // Ask at most DECK_LINES_MAX_ASKS times, on the model's first real decisions: name the
@@ -2628,7 +2690,14 @@ public final class LlmSpikeGui {
                                ? "\nYou may instead reply `SIMULATE: <number>` (optionally `SIMULATE: <number> <target name>`) to see what a CAST or ACTIVATE option (1.." + options.size()
                                  + ") resolves to; you will then be asked again with the result." : "");
                     String reply = ask(b, prompt, nativeSim && attempt == 0 ? simulateTool : null);
-                    if (reply != null && askPlan && attempt == 0) {
+                    if (reply != null && askPlan && attempt == 0 && observer != null) {
+                        // ask() already adopted a PLAN line (adoptPlan); the cast list rides this ask only.
+                        String st = planStatement(reply) == null ? null : lastSegment(reply, "STEPS:");
+                        if (st != null) {
+                            st = cutAtTags(st, "CHOICE:");
+                            for (String one : st.split(",")) if (!one.trim().isEmpty()) planSteps.add(one.trim());
+                        }
+                    } else if (reply != null && askPlan && attempt == 0) {
                         String pl = lastSegment(reply, "PLAN:");
                         if (pl != null) { // models sometimes co-mingle "PLAN: ... CHOICE: 3" — cut at the tag
                             int cut = pl.toUpperCase().indexOf("CHOICE:");
@@ -4692,6 +4761,7 @@ public final class LlmSpikeGui {
             java.util.function.Consumer<String> tap = TEST_ASK_TAP;
             if (tap != null) tap.accept(prompt);
             String reply = askOnce(b, prompt, simulate);
+            if (observer != null && b == smart && reply != null) adoptPlan(reply);
             // ONE_CHAT: the conversation keeps each answered decision (a tool round or a dead bridge is not one).
             if (b instanceof ChatSessionBridge) ((ChatSessionBridge) b).remember(prompt, reply);
             return reply;
@@ -5400,17 +5470,26 @@ public final class LlmSpikeGui {
             return lastSegmentAny(reply, key);
         }
         /** Tolerant of markdown wrapping, missing colons and trailing prose after the number
-         *  ("CHOICE: 3 (final answer)"). The number after the reply's last {@code key} (CHOICE:), else after its last ANSWER:. The
-         *  requested tag always wins, and the number must follow it closely: a degenerate reply
-         *  (runs/compare one-tier seed 82, T11) said "CHOICE: 4" and then, in 8,000 characters of
-         *  repetition, "Final Answer: ..." with a 3 somewhere after it, and the 3 was played. */
+         *  ("CHOICE: 3 (final answer)"). The number after the reply's last {@code key} (CHOICE:) or ANSWER: that is
+         *  followed closely by a number: a degenerate reply (runs/compare one-tier seed 82, T11) said
+         *  "CHOICE: 4" and then, in 8,000 characters of repetition, "Final Answer: ..." with a 3
+         *  somewhere after it, and the 3 was played. */
         static int parseTagNumber(String reply, String key) {
-            String seg = lastSegment(reply, key);
-            if (seg == null) seg = lastSegment(reply, "ANSWER:");
-            if (seg == null) return -1;
-            Matcher m = Pattern.compile("^[^\\d\\n]{0,12}?(\\d+)").matcher(seg);
-            return m.find() ? Integer.parseInt(m.group(1)) : -1;
+            if (reply == null) return -1;
+            int found = -1;
+            // The last line whose tag is followed closely by the number wins ("CHOICE: 2 ... Answer: 5"
+            // is 5). A tag followed by words is not an answer, so degenerate text after the real one
+            // ("Final Answer: \"NCAA: 3") cannot override it.
+            for (String ln : stripMarkdown(reply).split("\\R")) {
+                String seg = lastSegmentAny(ln, key, "ANSWER:");
+                if (seg == null) continue;
+                Matcher m = TAG_NUMBER.matcher(seg);
+                if (m.find()) found = Integer.parseInt(m.group(1));
+            }
+            return found;
         }
+        /** A number right after an answer tag: punctuation, and the word "option", may come between. */
+        private static final Pattern TAG_NUMBER = Pattern.compile("(?i)^[^\\p{L}\\d\\n]{0,6}?(?:option\\s*#?\\s*)?(\\d+)");
         private static Card matchByName(Iterable<Card> cards, String upperSeg) {
             for (Card c : cards) if (upperSeg.contains(c.getName().toUpperCase())) return c;
             return null;

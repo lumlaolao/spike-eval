@@ -13,6 +13,8 @@ For one recorded game it lists, each with its JSONL line so the row can be opene
             deterministic default
   SKIP      a priority window the harness passed without asking while the seat had a spell or
             ability it could use (`t:"window"` rows; their `reason` names the shortcut)
+  REPORT    the seat said a question was broken (report_unclear_decision): not a defect until read,
+            but every one is read; a true one is a harness defect, a false one a model mistake
   TOOL      a tool request that was not served: REFUSED, FAILED, empty, bad-args, exhausted
   SLOW      a decision that needed more than one model attempt, or was cut off (finish_reason=length)
   LOG       anomalies in the game log: an AI fallback, an exception, a payment that failed
@@ -125,6 +127,16 @@ def review(path):
             else:
                 out["counts"]["windows with nothing usable"] += 1
         elif t == "context_tool":
+            if tool_audit.tool_name(r.get("request")) == "report_unclear_decision" \
+                    and not str(r.get("result") or "").startswith("ERROR"):
+                args = str(r.get("request")).split(" ", 3)[-1]
+                try:
+                    args = json.loads(args).get("problem", args)
+                except (ValueError, AttributeError):
+                    pass
+                add("REPORT", r, " ".join(str(args).split())[:140])
+                out["counts"]["tool requests"] += 1
+                continue
             kind = tool_audit.classify(r.get("request"), r.get("result"))
             out["counts"]["tool requests"] += 1
             if kind != "served":
@@ -166,14 +178,14 @@ def render(r):
         g.get("win_condition", "")),
         "   model decisions %d | forced picks %d | tool requests %d | TAKEN %d  LOST %d  SKIP %d  TOOL %d  SLOW %d" % (
             c["model decisions"], c["forced picks"], c["tool requests"], c["TAKEN"], c["LOST"], c["SKIP"], c["TOOL"],
-            c["SLOW"])]
+            c["SLOW"]) + ("  REPORT %d" % c["REPORT"] if c["REPORT"] else "")]
     grouped = Counter()
     first = {}
     for kind, line, turn, text in r["findings"]:
         key = (kind, re.sub(r"@?\d+", "#", text))
         grouped[key] += 1
         first.setdefault(key, (line, turn, text))
-    order = {"LOST": 0, "TAKEN": 1, "SKIP": 2, "TOOL": 3, "LOG": 4, "SLOW": 5}
+    order = {"LOST": 0, "TAKEN": 1, "SKIP": 2, "REPORT": 3, "TOOL": 4, "LOG": 5, "SLOW": 6}
     for (kind, _), n in sorted(grouped.items(), key=lambda kv: (order.get(kv[0][0], 9), -kv[1])):
         line, turn, text = first[(kind, _)]
         where = (" line %d" % line if line else "") + (" T%s" % turn if turn is not None else "")

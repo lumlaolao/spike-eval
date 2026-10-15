@@ -119,7 +119,7 @@ class GroupingTest(unittest.TestCase):
                              ("game_cap_ms", 60000), ("claude_effort_smart", "max"),
                              # The tool protocol and the opt-in tools are conditions (CLAUDE.md:
                              # "Native and text runs are different conditions. Never pool them").
-                             ("native_tools", True), ("native_tools_version", "seat-tools-v5"),
+                             ("native_tools", True), ("native_tools_version", "seat-tools-v6"),
                              ("native_tools_downgraded", "Identity-A/smart"),
                              ("rules_tool", True), ("lookahead", True),
                              ("native_tools_seats", "A/smart"), ("rules_tool_version", "rules-tool-v2"),

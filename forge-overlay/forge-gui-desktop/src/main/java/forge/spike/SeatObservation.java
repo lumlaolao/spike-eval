@@ -72,7 +72,7 @@ import forge.spike.LlmSpikeGui.ContextProfile;
  * seat are appended to the same stream, so every seat-visible fact has one E-id and one place to search.
  */
 final class SeatObservation {
-    static final String VERSION = "observation-faithful-v21";
+    static final String VERSION = "observation-faithful-v22";
     /** Printed once per observation so every prompt is self-describing. Part of the prompt bytes and
      *  therefore of this VERSION: change it and bump the version. */
     static final String LEGEND = "LEGEND: @N = your seat's handle for one object, assigned when you first see it; a zone change "
@@ -143,6 +143,9 @@ final class SeatObservation {
     private String profile = "";
 
     void setProfile(String p) { this.profile = p == null ? "" : p; }
+    /** When the seat's plan was stated ("T5 MAIN1"), for the plan line. */
+    private String planWhen = "";
+    void setPlanWhen(String w) { this.planWhen = w == null ? "" : w; }
 
     /** The model's OWN statement of how its cards combine, asked once from its own decklist and shown
      *  back at every decision. It is the model's note, labelled as such, never an engine fact. */
@@ -896,7 +899,7 @@ final class SeatObservation {
             s.append(knownHiddenText());
             s.append(spentThisTurn());
             s.append(facts());
-            s.append(LlmSpikeGui.PlayerControllerLLM.planText(turnPlan, planTurn, ph.getTurn()));
+            s.append(LlmSpikeGui.PlayerControllerLLM.revisablePlanText(turnPlan, planWhen, planTurn, ph.getTurn()));
             if (!profile.isEmpty())
                 s.append("YOUR OPPONENT PROFILE (you wrote this; unverified — revise it as you learn): ").append(profile).append('\n');
             if (!deckLines.isEmpty())

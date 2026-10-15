@@ -150,7 +150,7 @@ public class NativeToolsTest {
     @Test
     public void aToolIsOfferedOnlyWhenSomethingIsWiredBehindIt() {
         Assert.assertEquals(new ArrayList<>(functionsByName(NativeTools.definitions(false, false, false)).keySet()),
-                List.of("memory_search", "memory_read", "memory_note"));
+                List.of("memory_search", "memory_read", "memory_note", NativeTools.REPORT));
         Assert.assertTrue(functionsByName(NativeTools.definitions(true, true, true)).keySet()
                 .containsAll(List.of("inspect", "rules_lookup", "simulate")));
     }
@@ -240,6 +240,32 @@ public class NativeToolsTest {
         Assert.assertTrue(NativeTools.command("memory_read", "{\"evidence_id\":0}").startsWith("ERROR:"));
         Assert.assertTrue(results.get(0).startsWith("ERROR: tool arguments"));
         Assert.assertTrue(results.get(3).startsWith("ERROR: tool budget exhausted"));
+    }
+
+    /** The seat can say a question is broken; it is recorded and logged, the decision is still
+     *  answered, and it spends none of the game's archive budget. */
+    @Test
+    public void aReportIsRecordedAndTheDecisionIsStillAnswered() {
+        ContextMemory memory = new ContextMemory();
+        List<String> logged = new ArrayList<>();
+        memory.setReporter(logged::add);
+        String problem = "option 2 names a Mountain I do not control";
+        String reply = memory.askNative("DECISION: pay?", (user, messages, tools, allow, round) -> {
+            Assert.assertTrue(tools.contains("\"" + NativeTools.REPORT + "\""));
+            if (round == 0) return turn(null, call("r1", NativeTools.REPORT, "{\"problem\":\"" + problem + "\"}"),
+                                              call("r2", NativeTools.REPORT, "{\"problem\":\"again\"}"));
+            return turn("CHOICE: 1");
+        }, null, (a, b) -> { });
+        Assert.assertEquals(reply, "CHOICE: 1");
+        Assert.assertEquals(memory.reports(), List.of(problem), "one report per decision");
+        Assert.assertEquals(logged, List.of(problem));
+        Assert.assertTrue(NativeTools.command(NativeTools.REPORT, "{}").startsWith("ERROR:"));
+        // The next ask is unaffected.
+        String next = memory.askNative("DECISION: next", (user, messages, tools, allow, round) -> {
+            Assert.assertTrue(user.contains("Tool calls available this ask: " + ContextMemory.TOOLS_PER_ASK + "."), user);
+            return turn("CHOICE: 2");
+        }, null, (a, b) -> { });
+        Assert.assertEquals(next, "CHOICE: 2");
     }
 
     @Test
@@ -508,7 +534,7 @@ public class NativeToolsTest {
         Assert.assertTrue(second.calls.isEmpty());
 
         JsonObject r1 = requests.get(0), r2 = requests.get(1);
-        Assert.assertEquals(r1.getAsJsonArray("tools").size(), 4);
+        Assert.assertEquals(r1.getAsJsonArray("tools").size(), 5);
         Assert.assertEquals(r1.get("tool_choice").getAsString(), "auto");
         Assert.assertEquals(r1.getAsJsonArray("messages").get(0).getAsJsonObject().get("role").getAsString(), "system");
         Assert.assertEquals(r1.getAsJsonArray("messages").size(), 2);

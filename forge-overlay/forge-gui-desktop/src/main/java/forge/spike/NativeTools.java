@@ -30,9 +30,13 @@ final class NativeTools {
      *  v4 (2026-10-13): `simulate` accepts the PASS option and says nothing resolves.
      *  v5 (2026-10-14): a call made on a round that offered no tools (a provider ignoring
      *  tool_choice "none") is refused with the budget error, the seat is told once to answer, and a
-     *  second such call ends the ask; it used to run and be answered. */
-    static final String VERSION = "seat-tools-v5";
+     *  second such call ends the ask; it used to run and be answered.
+     *  v6 (2026-10-15): `report_unclear_decision`, the seat saying a question is broken. */
+    static final String VERSION = "seat-tools-v6";
     static final String SIMULATE = "simulate";
+    /** Not a lookup: it records the seat's complaint about the question and spends no archive budget
+     *  (one per ask, {@link ContextMemory#REPORTS_PER_GAME} per game). */
+    static final String REPORT = "report_unclear_decision";
     private static final List<String> RULES_ACTIONS = List.of("search", "read", "section", "term", "toc");
 
     /** Native function calling is the STANDARD protocol for the seat's tools. NATIVE_TOOLS=0 is the
@@ -196,6 +200,10 @@ final class NativeTools {
                       "target", prop("string", "Optional: the name of the target to preview the first option against.", null, null),
                       "then", intArray("Optional: up to two more menu numbers to play after it, in order.")),
                 "option"));
+        a.add(fn(REPORT,
+                "Tell the harness maintainers that THIS question is broken or confusing: the options do not match the state you see, an option you expected is missing, the text is garbled, or the question makes no sense after what you just did. It changes nothing in the game and does not end the decision: answer it afterwards as best you can. Not for a hard choice; only for a problem with the question itself.",
+                props("problem", prop("string", "What is wrong with the question, in one or two sentences, naming the option numbers involved.", null, 500)),
+                "problem"));
         return a;
     }
 
@@ -269,6 +277,10 @@ final class NativeTools {
                 if (id == null || id < 1 || note.isEmpty())
                     return "ERROR: memory_note needs an integer `evidence_id` and a `note`.";
                 return "MEMORY NOTE " + id + " " + note;
+            }
+            case REPORT: {
+                String problem = oneLine(args.get("problem"));
+                return problem.isEmpty() ? "ERROR: report_unclear_decision needs `problem`." : "REPORT " + problem;
             }
             default:
                 return "ERROR: unknown tool `" + name + "`.";

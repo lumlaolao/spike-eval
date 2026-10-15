@@ -101,8 +101,8 @@ public class MatchModelProbeTest {
         SeatObservation o = SeatObservationTest.observerFor(g, 0);
         int now = g.getPhaseHandler().getTurn();
         String r = o.render("seat", ContextProfile.V4_FAITHFUL, "", "hold up UU, counter their payoff", now - 1);
-        Assert.assertTrue(r.contains("\nYOUR PLAN (you stated this at T" + (now - 1)), r);
-        Assert.assertTrue(r.contains("a previous turn"), "a plan from an earlier turn must be flagged stale");
+        Assert.assertTrue(r.contains("\nYOUR PLAN (yours, stated at T" + (now - 1)), r);
+        Assert.assertTrue(r.contains("an earlier turn"), "a plan from an earlier turn must be flagged stale");
     }
 
     @Test

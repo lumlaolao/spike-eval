@@ -398,7 +398,8 @@ if has_stage nativetool; then
       # menu option now, answered without a copy). The game this stage plays is unchanged; only the
       # literals the stamps are compared to moved. 2026-10-14: seat-tools-v5 (a call on a round that
       # offered no tools is refused, not run); the fake model honours tool_choice, so again only the
-      # literal moved.
+      # literal moved. 2026-10-15: seat-tools-v6 (report_unclear_decision is offered; the fake model
+      # never calls it), only the literal moved.
       say "nativetool: LLM seat A on loopback fake model, native tools by default (NATIVE_TOOLS unset), MEMORY_TOOLS=1 LOOKAHEAD=1 under v4-faithful (Mardu mirror)"
       play nativetool 42 CONTROLLER_A=llm CONTROLLER_B=floor SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
           OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" MEMORY_TOOLS=1 LOOKAHEAD=1 CONTEXT_PROFILE=v4-faithful GAME_CAP_MS=120000 \
@@ -419,7 +420,7 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 else:
     if game.get("native_tools") is not True: problems.append("native_tools=%r not stamped"%game.get("native_tools"))
-    if game.get("native_tools_version")!="seat-tools-v5": problems.append("native_tools_version=%r (expected seat-tools-v5; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
+    if game.get("native_tools_version")!="seat-tools-v6": problems.append("native_tools_version=%r (expected seat-tools-v6; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
     if game.get("memory_tools_version")!="evidence-tools-v2": problems.append("memory_tools_version=%r (expected evidence-tools-v2; move this pin WITH ContextMemory.VERSION)"%game.get("memory_tools_version"))
     if game.get("lookahead_version")!="lookahead-preview-v4" or game.get("lookahead") is not True: problems.append("lookahead=%r lookahead_version=%r (expected True, lookahead-preview-v4; move this pin WITH PlayerLookahead.VERSION)"%(game.get("lookahead"),game.get("lookahead_version")))
     if game.get("native_tools_seats")!="A/smart,A/fast": problems.append("native_tools_seats=%r"%game.get("native_tools_seats"))
@@ -579,7 +580,7 @@ for r in calls:
     p=r.get("prompt") or ""
     # The mulligan ask shows only the opening hand (no board exists yet); it carries no observation.
     if "KEEP" in p and "MULLIGAN" in p and "DECISION:" not in p: mull+=1; observed+=1; legend+=1; continue
-    if "observation-faithful-v21" in p: observed+=1
+    if "observation-faithful-v22" in p: observed+=1
     if "LEGEND: @N" in p: legend+=1
     handles+=len(re.findall(r" @\d+", p))
     legacy+=len(re.findall(r"[A-Za-z\]]@\d+", p))          # the legacy candidateLabel form: Name[...]@id
@@ -599,7 +600,7 @@ if rules_leak: problems.append("%d faithful prompts advertised RULES TOOL withou
 ok_tools=[x for x in tools if not str(x.get("result","")).startswith("ERROR")]
 if len(ok_tools)<2: problems.append("successful tool rows %d (<2)"%len(ok_tools))
 log=open(d+"/game.log",errors="replace").read()
-if "[OBSERVATION] observation-faithful-v21" not in log: problems.append("observer never announced itself in the log")
+if "[OBSERVATION] observation-faithful-v22" not in log: problems.append("observer never announced itself in the log")
 if "state unavailable" in log or "state unavailable" in "".join((r.get("prompt") or "") for r in calls): problems.append("renderer threw (state unavailable)")
 if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] present")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
