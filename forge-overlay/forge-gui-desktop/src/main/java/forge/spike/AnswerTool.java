@@ -41,8 +41,9 @@ final class AnswerTool {
      *  decision discarded the cache on every call (docs/harness/PROMPT-CRAFT.md rule 19).
      *  v3: an optional `why` (one sentence, for the record), and readable reasoning kept on the row.
      *  v4: a reply that calls nothing is asked once, in the same conversation, for the call (`nudged`).
-     *  v5: a play's `keep_untapped` says which mana sources stay untapped when it is paid (work plan item 6). */
-    static final String VERSION = "answer-tool-v5";
+     *  v5: a play's `keep_untapped` says which mana sources stay untapped when it is paid (work plan item 6).
+     *  v6: `steps` promises nothing a decision does not offer; a play offers it only under PLAN_EXECUTE. */
+    static final String VERSION = "answer-tool-v6";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -211,9 +212,9 @@ final class AnswerTool {
         props.add("number", obj("type", "integer", "description", "For a decision that asks for a number (X, a count): an integer in "
                 + "the range the decision states."));
         props.add("card", obj("type", "string", "description", "For a decision that asks you to name a card: its exact English name."));
-        JsonObject steps = obj("type", "array", "description", "Optional, on a play decision only, if you want the harness to cast "
-                + "steps of your plan for you without asking again this turn: the CAST/ACTIVATE option numbers you intend to use, "
-                + "in order. Omit anything you are holding.");
+        JsonObject steps = obj("type", "array", "description", "Optional, only on a play decision that says it takes `steps`: "
+                + "the CAST/ACTIVATE option numbers of your plan, in order, for the harness to cast without asking again this "
+                + "turn. Omit anything you are holding. Elsewhere it is ignored.");
         steps.add("items", obj("type", "integer"));
         props.add("steps", steps);
         JsonObject y = obj("type", "string", "description", "Optional, only with PASS on a play decision: until then you are not "

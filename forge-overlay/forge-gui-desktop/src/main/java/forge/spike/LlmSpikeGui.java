@@ -191,8 +191,11 @@ public final class LlmSpikeGui {
      *  history, reveals and card text, 16 tool calls an ask, any number of previews, budgets as loop guards
      *  only.
      *  Epoch 11: the answer tool nudges once for a missing call and takes `keep_untapped` on a play; the
-     *  faithful mulligan and card-naming asks state facts in plain sentences. */
-    static final String HARNESS_EPOCH = "harness-epoch-11";
+     *  faithful mulligan and card-naming asks state facts in plain sentences.
+     *  Epoch 12: `steps` is offered (and the play ask mentions it) only under PLAN_EXECUTE, the only
+     *  setting that carries the steps out; a tap part with exactly as many candidates as it needs takes
+     *  them, and what a tap part names is held while that ability's mana is paid (#111). */
+    static final String HARNESS_EPOCH = "harness-epoch-12";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -782,9 +785,11 @@ public final class LlmSpikeGui {
             StringBuilder b = new StringBuilder();
             if (askPlan) b.append("First set your plan with `set_plan` (goal: what you are working toward; next: the steps you ")
                     .append("intend, in order, e.g. <land>, cast <card>, hold <card> for their turn); you can replace it at any later ")
-                    .append("decision. If (and only if) you want the harness to cast steps of that plan for you without asking again ")
-                    .append("this turn, give `steps` in your `answer`: ONLY the CAST/ACTIVATE option numbers you intend to use, in ")
-                    .append("order; omit anything you are holding. ");
+                    .append("decision. ");
+            // Steps are offered only where PLAN_EXECUTE carries them out; otherwise the offer would be false.
+            if (askPlan && PLAN_EXECUTE) b.append("If (and only if) you want the harness to cast steps of that plan for you without ")
+                    .append("asking again this turn, give `steps` in your `answer`: ONLY the CAST/ACTIVATE option numbers you intend ")
+                    .append("to use, in order; omit anything you are holding. ");
             if (askLines) b.append("Also give `lines` in your `answer`: how the cards in YOUR OWN deck combine (<card> + <card> -> ")
                     .append("<what you do and what you get>, up to 3, each naming two or more of your own cards from the decklist above). ");
             if (askProfile) b.append("Also give `profile` in your `answer`: your read of the OPPONENT in one short line (their ")
@@ -2875,7 +2880,8 @@ public final class LlmSpikeGui {
                            // The example named one eval deck's line (Grixis Reanimator) in every deck's prompt.
                            : "First state your plan for THIS TURN as `PLAN: <one short line>` (the sequence you intend, e.g. "
                              + "'ritual into Reanimate on Griselbrand, hold Petal'). ")
-                          + "If (and only if) you want the harness to execute steps of that plan for you without asking again this turn, add `STEPS: <card name>, <card name>` listing ONLY cards you intend to CAST, in the order you will cast them; omit anything you are holding. "
+                          // Only where the steps are carried out: otherwise the offer is a promise the harness breaks.
+                          + (PLAN_EXECUTE ? "If (and only if) you want the harness to execute steps of that plan for you without asking again this turn, add `STEPS: <card name>, <card name>` listing ONLY cards you intend to CAST, in the order you will cast them; omit anything you are holding. " : "")
                         : "";
                 // Ask at most DECK_LINES_MAX_ASKS times, on the model's first real decisions: name the
                 // interactions among its OWN cards. It is the model's own note (labelled as such when it
@@ -2987,7 +2993,7 @@ public final class LlmSpikeGui {
                     AnswerTool.Spec playSpec = AnswerTool.Spec.one(passIdx).labels(playLabels);
                     if (attempt == 0) {
                         playSpec.plan = askPlan;
-                        if (askPlan && !options.isEmpty()) {
+                        if (askPlan && PLAN_EXECUTE && !options.isEmpty()) {
                             playSpec.stepOptions = new ArrayList<>();
                             for (int i = 1; i <= options.size(); i++) playSpec.stepOptions.add(i);
                         }
