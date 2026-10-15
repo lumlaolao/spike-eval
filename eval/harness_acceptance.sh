@@ -196,7 +196,21 @@ fi
 if has_stage javatests; then
   if [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail javatests "no compiled classes"; else
     TCLASSES="$(ls "$OVERLAY"/test/java/forge/spike/*Test.java | xargs -n1 basename | sed 's/\.java$//;s/^/forge.spike./' | paste -sd, -)"
-    DECLARED="$(grep -h -E '^[[:space:]]+@Test' "$OVERLAY"/test/java/forge/spike/*Test.java | wc -l | tr -d ' ')"
+    # A test class that extends another runs the parent's tests too (GoldenChecksToolTest reruns every golden
+    # check on the tool protocol), so its parent's @Test methods are declared once more for it.
+    DECLARED="$(python3 - "$OVERLAY"/test/java/forge/spike/*Test.java <<'PYEOF'
+import re,sys,os
+count={}; parent={}
+for f in sys.argv[1:]:
+    t=open(f,encoding="utf-8").read(); n=os.path.basename(f)[:-5]
+    count[n]=len(re.findall(r"(?m)^[ \t]+@Test", t))
+    m=re.search(r"class "+n+r" extends (\w+Test)\b", t)
+    if m: parent[n]=m.group(1)
+def total(n, seen=()):
+    return count.get(n,0)+(total(parent[n], seen+(n,)) if n in parent and parent[n] not in seen else 0)
+print(sum(total(n) for n in count))
+PYEOF
+)"
     ( cd "$FORGE/forge-gui-desktop" && MEMORY_TOOLS=1 "$JAVA" -Dapple.awt.UIElement=true \
         -Dharness.ownership.tsv="$LEDGER" -Dharness.rules.file="$REPO/data/rules/MagicCompRules.txt" -Dharness.decks.dir="$REPO/eval/decks" -Dharness.tooluse.json="$REPO/eval/tooluse/tools.json" -cp "$CLASSES:$(cat "$CP_FILE")" \
         org.testng.TestNG -testclass "$TCLASSES" -d "$OUT/testng" ) >"$OUT/javatests.log" 2>&1
