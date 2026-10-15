@@ -48,11 +48,16 @@ random.seed=42
 # it now rolls them, so its walk re-rolls: winner B, 32 turns / 173 decisions. Reproduced twice
 # (/tmp/acc-sig2, /tmp/acc-sig3). Floor unchanged (it never builds a menu). The linux.* random pins
 # below are STALE for this change; no Linux run was available.
+# 2026-10-15 (later): trigger targets are the seat's (orderAndPlaySimultaneousSa, playTrigger), so the
+# random arm now picks them instead of Forge AI's doTrigger and its walk re-rolls: winner B, 26 turns /
+# 144 decisions. Reproduced twice (/tmp/acc-tr2, /tmp/acc-tr3). Floor unchanged. linux.* random STALE.
 random.winner=B
-random.turns=32
-random.decisions=173
+random.turns=26
+random.decisions=144
 # Silent Forge-AI strategic/payment hooks reachable in Legacy play (ControllerOwnershipTest baseline).
-ownership.silent_ai_strategic_max=3
+# 2026-10-15: trigger targets and modes are the seat's (orderAndPlaySimultaneousSa, playTrigger
+# overridden; Forge AI's doTrigger chose every trigger target before). 3 -> 1.
+ownership.silent_ai_strategic_max=1
 # 2026-10-14: LINUX pins (PR #95). The same commit plays seed 42 differently on Linux (Debian
 # container, Xvfb) than on the reference Mac, so the canaries are pinned per OS; a "linux." key wins
 # over the plain key there, and the plain keys stay the Mac's. Floor is A/108/1081 on Linux at every

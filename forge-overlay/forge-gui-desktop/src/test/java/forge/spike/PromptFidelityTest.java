@@ -193,4 +193,30 @@ public class PromptFidelityTest {
         }
         Assert.assertEquals(targeted, 2, decisions(model));
     }
+
+    /** Flametongue Kavu enters: its "4 damage to target creature" trigger is targeted by the seat.
+     *  The inherited orderAndPlaySimultaneousSa had Forge AI's doTrigger choose every trigger target. */
+    @Test
+    public void aTriggersTargetIsTheSeatsChoice() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card lions = card("Savannah Lions", rival, ZoneType.Battlefield);
+        card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Card ftk = card("Flametongue Kavu", me, ZoneType.Hand);
+        Recorder model = new Recorder("CHOICE: 1") {
+            @Override public String ask(String prompt) {
+                prompts.add(prompt);
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?m)^\\s*(\\d+)\\) Savannah Lions").matcher(prompt);
+                return prompt.contains("DECISION: Choose the TARGET") && m.find() ? "CHOICE: " + m.group(1) : "CHOICE: 1";
+            }
+        };
+        seat(g, model, model);
+        g.getAction().moveToPlay(ftk, null, null);
+        g.getTriggerHandler().runWaitingTriggers();
+        g.getStack().addAllTriggeredAbilitiesToStack();
+        Assert.assertTrue(model.asked("DECISION: Choose the TARGET for"), decisions(model));
+        forge.game.spellability.SpellAbility top = g.getStack().peekAbility();
+        Assert.assertNotNull(top, "the trigger is on the stack");
+        Assert.assertTrue(top.getTargets().contains(lions), "the seat's target was used: " + top.getTargets());
+    }
 }
