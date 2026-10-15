@@ -449,7 +449,7 @@ public class GoldenChecksTest {
         Assert.assertTrue(seat(g, model, model).chooseTargetsFor(sa));
         Assert.assertTrue(sa.getTargets().contains(lions) && sa.getTargets().contains(bears), sa.getTargets().toString());
         Assert.assertEquals(sa.getDividedValue(lions), Integer.valueOf(1));
-        Assert.assertTrue(model.asked("ALLOC:"), PromptFidelityTest.decisions(model));
+        Assert.assertTrue(model.asked("Split 2"), PromptFidelityTest.decisions(model));
     }
 
     /** Thoughtseize-style: which card the opponent discards is the model's. */
@@ -756,7 +756,8 @@ public class GoldenChecksTest {
             int free;
             @Override public String ask(String prompt) {
                 prompts.add(prompt);
-                if (prompt.contains("CARD: <exact")) return free++ == 0 ? "Something with an activated ability." : "CARD: Grim Lavamancer";
+                // The free-form ask (either protocol) names what the name must match.
+                if (prompt.contains("(must match:")) return free++ == 0 ? "Something with an activated ability." : "CARD: Grim Lavamancer";
                 return "CHOICE: " + opt(prompt, "Thoughtseize");
             }
         };

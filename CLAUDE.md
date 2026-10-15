@@ -1,6 +1,7 @@
 # mtg-forge-llm-agent — LLM agents playing Magic: The Gathering on the Forge engine
 
-> **Open work lives in [docs/harness/WORK-PLAN.md](docs/harness/WORK-PLAN.md); read it first.** September 2026 continuation: see [Player harness direction and status](docs/harness/PLAYER-HARNESS.md). Newer Java sources were recovered from the adjacent Forge checkout; older status claims below may be superseded. `MEMORY_TOOLS=1` enables experimental evidence retrieval and a seat-local strategy notebook.
+> **Open work lives in [docs/harness/WORK-PLAN.md](docs/harness/WORK-PLAN.md); read it first.** The whole harness, each part
+> with the reason it is built that way: [docs/harness/ARCHITECTURE.md](docs/harness/ARCHITECTURE.md). September 2026 continuation: see [Player harness direction and status](docs/harness/PLAYER-HARNESS.md). Newer Java sources were recovered from the adjacent Forge checkout; older status claims below may be superseded. `MEMORY_TOOLS=1` enables experimental evidence retrieval and a seat-local strategy notebook.
 
 Claude models pilot full Legacy games inside the real Forge rules engine. A custom
 `PlayerControllerLLM` routes ~15 decision types (plays, targets, combat, discards,
@@ -115,7 +116,12 @@ mess" (owner, 2026-10-15).
   - `ANSWER_TOOL=0` returns to the text grammar;
   - `ANSWER_SCHEMA=per-decision` builds a schema from each decision's legal values (the v1 arm);
   - `ANSWER_TOOL_STRICT=1` sends `strict: true`.
-  - A text reply in a tool ask is still read, and counted as `answer_via: "text"` on the row.
+- **No text alternative on a tool ask** (owner, 2026-10-15: "everything goes through the tool calls"). A reply
+  that calls nothing is reminded, in the same conversation, at most `AnswerTool.MAX_NUDGES` times; then the
+  decision is lost (`answer_via: "lost"`, the caller's fixed legal option). Its prose is never parsed. A tool ask
+  that still carries a text answer format, or a text ask on a backend that calls, logs `[TEXT-FORMAT-LEAK]` and
+  counts on `[TALLY]`; `GoldenChecksToolTest` runs every golden check with the seat answering by calls and fails
+  on either, and the `answertool` acceptance stage checks every ask of its game.
 
 ## Key files
 
@@ -240,6 +246,9 @@ day came to about $8. So:
   `eval/pricing/prices.json` (`--plan N` says what N more games would cost).
 - `run_batch.py --budget-usd X` stops starting games when the directory's spend reaches X, and every
   batch log ends with a `[cost]` line. Always pass it.
+- A game whose JVM crashes, writes no game line or hangs is played once more (`--retries N`, default 1;
+  0 turns it off). The failed attempt's files move to `<out>/crashed/`: still priced and counted against
+  the budget, never aggregated, and the batch log says `[retry]`.
 - **Start with a small block** (about six games per arm), read the result and the cost, then decide
   on the next block. Never launch hundreds of games in one go, and say the expected cost first.
 

@@ -42,8 +42,10 @@ final class AnswerTool {
      *  v3: an optional `why` (one sentence, for the record), and readable reasoning kept on the row.
      *  v4: a reply that calls nothing is asked once, in the same conversation, for the call (`nudged`).
      *  v5: a play's `keep_untapped` says which mana sources stay untapped when it is paid (work plan item 6).
-     *  v6: `steps` promises nothing a decision does not offer; a play offers it only under PLAN_EXECUTE. */
-    static final String VERSION = "answer-tool-v6";
+     *  v6: `steps` promises nothing a decision does not offer; a play offers it only under PLAN_EXECUTE.
+     *  v7: no text alternative: a reply that calls nothing is reminded up to MAX_NUDGES times, then the decision
+     *  is lost; prose is never parsed as the answer. A text format left in a tool ask is logged and counted. */
+    static final String VERSION = "answer-tool-v7";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -712,6 +714,24 @@ final class AnswerTool {
         return RETRY.matcher(out).replaceAll("(Your previous reply did not call `answer` with a legal value. Call `answer` now.)");
     }
 
+    /** A text answer format left in a tool ask: a way to answer other than `answer`, which a model will take
+     *  (owner, 2026-10-15). Tags the text grammar reads (`CHOICE: 2`, `PICKS:`, `STEPS:` ...), "end with
+     *  exactly", "KEEP or MULLIGAN", and the text tool grammar. */
+    private static final Pattern TEXT_FORMAT = Pattern.compile(
+            "\\b(?:CHOICE|PICKS|BLOCKS|ALLOC|ATTACKS|ATTACKERS|SIMULATE|STEPS|YIELD|PROFILE|LINES|NUMBER|CARD):\\s*<"
+            + "|`(?:PLAN|STEPS|YIELD|PROFILE|LINES|SIMULATE|CHOICE|PICKS|CARD|NUMBER):"
+            + "|(?:[Ee]nd|[Rr]eply|[Aa]nswer) with (?:EXACTLY|exactly)"
+            + "|KEEP or MULLIGAN|instead of an action, you may reply");
+
+    /** The first text answer format in {@code prompt}, or null when the only way to answer is a call. */
+    static String textFormatLeak(String prompt) {
+        if (prompt == null) return null;
+        java.util.regex.Matcher m = TEXT_FORMAT.matcher(prompt);
+        if (!m.find()) return null;
+        int a = Math.max(0, m.start() - 60), b = Math.min(prompt.length(), m.end() + 60);
+        return prompt.substring(a, b).replace('\n', ' ');
+    }
+
     /** One decision's answer session: what is offered, and what came back. */
     static final class Ask {
         final Spec spec;
@@ -725,6 +745,7 @@ final class AnswerTool {
         String via;
         /** The reply called nothing once and was asked, in the same conversation, for the call. */
         boolean nudged;
+        int nudges;
         int invalid;
         boolean lost;
         /** Text the model wrote alongside its answer call: its reasoning, kept for the row and the
@@ -805,15 +826,20 @@ final class AnswerTool {
     }
 
     static final String CALL_ANSWER = "No lookups are available for this decision any more. Answer it now by calling `answer`.";
-    /** The one nudge for a reply that called nothing. */
+    /** Reminders for replies that call nothing, before the decision is lost. Text is never read as an answer on
+     *  a tool ask (owner, 2026-10-15: every decision goes through the tool call). */
+    static final int MAX_NUDGES = 2;
+    /** The reminder for a reply that called nothing. */
     static final String ANSWER_BY_CALL = "You did not call `answer`, so nothing was done. Call `answer` now with your choice; "
             + "the decision's last line says which field it takes.";
 
     /**
      * One decision over native function calling, answered by `answer`. Notes are applied first, then the
      * answer (the first `answer` call in a turn; a valid one ends the ask), then lookups. Returns the
-     * answer rendered as text, the text of a reply that called nothing (for the text parser, counted as
-     * "text"), or null (no reply, two invalid calls, or no answer within {@link #MAX_ROUNDS}).
+     * answer rendered as text, or null: no reply, two invalid calls, {@link #MAX_NUDGES} reminders that
+     * still called nothing, or no answer within {@link #MAX_ROUNDS}. A reply's prose is never parsed as the
+     * answer; a decision lost for want of a call is {@code lost}, so the caller takes its fixed legal
+     * option and does not ask the whole decision again.
      */
     static String converse(String user, Ask ask, ContextMemory.NativeModel model, Lookups lookups,
                            BiConsumer<String, String> audit) {
@@ -837,18 +863,21 @@ final class AnswerTool {
                     messages.add(NativeTools.message("user", CALL_ANSWER));
                     continue;
                 }
-                // A reply that explains its choice but calls nothing ("I choose option 5") used to go to the text
-                // parser, which found no answer line, and the caller asked the whole decision again (9 of 151
-                // asks in runs/prompt-ab/old). Ask once, in this conversation, for the call instead.
-                if (!ask.nudged) {
+                // A reply that explains its choice but calls nothing ("I choose option 5") is asked, in this
+                // conversation, for the call. Its prose is never read as the answer: a text alternative is one a
+                // model will take (owner, 2026-10-15), so after the reminders the decision is lost, not parsed.
+                if (ask.nudges < MAX_NUDGES) {
+                    ask.nudges++;
                     ask.nudged = true;
                     messages.add(JsonParser.parseString(turn.messageJson));
                     messages.add(NativeTools.message("user", ANSWER_BY_CALL));
                     audit.accept(turn.content, "NUDGE: no `answer` call; asked for one in the same conversation.");
                     continue;
                 }
-                ask.via = "text";
-                return turn.content;
+                audit.accept(turn.content, "LOST: no `answer` call after " + MAX_NUDGES + " reminders.");
+                ask.lost = true;
+                ask.via = "lost";
+                return null;
             }
             messages.add(JsonParser.parseString(turn.messageJson));
             String[] results = new String[turn.calls.size()];
