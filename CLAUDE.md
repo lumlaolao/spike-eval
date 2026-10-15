@@ -120,6 +120,9 @@ mess" (owner, 2026-10-15).
   field, as Luna does (answer-tool-v8).
 - The definitions are mirrored in `eval/tooluse/answer_tools.json` (pinned by
   `AnswerToolTest.theFixedFunctionsMatchTheToolUseSuite`).
+- **Zero text parsing (owner, 2026-10-15):** on a tool ask a decision reads the typed answer only. The text
+  parsers sit behind a guard that refuses there and logs `[TEXT-PARSE]`, which fails acceptance and
+  `GoldenChecksToolTest`.
 - Opt-outs, for measurement only:
   - `ANSWER_TOOL=0` returns to the text grammar;
   - `ANSWER_SCHEMA=per-decision` builds a schema from each decision's legal values (the v1 arm);

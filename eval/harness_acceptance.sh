@@ -712,6 +712,7 @@ asks=[r for r in rows if r.get("t")=="context_call" and not r.get("round")]
 leaks=[m.group() for r in asks for m in [TEXT_FORMAT.search(r.get("prompt") or "")] if m]
 if leaks: problems.append("%d tool asks offer a text answer, e.g. %r"%(len(leaks),leaks[0]))
 if "[TEXT-FORMAT-LEAK]" in log: problems.append("[TEXT-FORMAT-LEAK] in log")
+if "[TEXT-PARSE]" in log: problems.append("[TEXT-PARSE] in log: a decision read text on a tool ask")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
 facts="model_decisions=%d via=%s types=%s answer_calls=%d invalid=%d corrected_rows=%d fake_requests=%d asks_checked=%d text_formats=0"%(
     len(model),dict(via),",".join(types),len(answers),len(bad),len(corrected),len(reqs),len(asks))
