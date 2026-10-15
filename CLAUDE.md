@@ -240,6 +240,9 @@ day came to about $8. So:
   `eval/pricing/prices.json` (`--plan N` says what N more games would cost).
 - `run_batch.py --budget-usd X` stops starting games when the directory's spend reaches X, and every
   batch log ends with a `[cost]` line. Always pass it.
+- A game whose JVM crashes, writes no game line or hangs is played once more (`--retries N`, default 1;
+  0 turns it off). The failed attempt's files move to `<out>/crashed/`: still priced and counted against
+  the budget, never aggregated, and the batch log says `[retry]`.
 - **Start with a small block** (about six games per arm), read the result and the cost, then decide
   on the next block. Never launch hundreds of games in one go, and say the expected cost first.
 

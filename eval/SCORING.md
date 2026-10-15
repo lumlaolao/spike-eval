@@ -156,9 +156,10 @@ version.
   until the owner decides how a wall-clock cap is charged (BENCHMARK-RESEARCH.md, proposal 1).
 - **Matchup term in the rating.** `rating.py` has no deck-matchup effect, so rate mirror games; read
   the cross panel through `panel_score.py`'s margin.
-- **Crash re-runs.** A crashed game counts 0 in the strict score and is absent from the decisive one;
-  re-running it on the same seed, and dropping the seed for every pilot if it crashes again, is
-  still manual.
+- **Crash re-runs.** A crashed game counts 0 in the strict score and is absent from the decisive one.
+  `run_batch.py` now plays it once more on the same seed (`--retries`, default 1), setting the failed
+  attempt aside under `crashed/`. Dropping the seed for every pilot when it crashes again is still
+  manual.
 - **What the overlay stamp covers.** `overlay_sha` hashes only `LlmSpikeGui.java` and
   `LlmSpikeHeadless.java`; another overlay class moves the version only through `harness_epoch`,
   `context_sha` or the tool definitions.
