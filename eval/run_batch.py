@@ -297,7 +297,7 @@ def build_env(args, seed, swap, out_dir):
         "CONTROLLER_B": args.controller_b,
         "DECK_A": args.deck_a,
         "DECK_B": args.deck_b,
-        "GAME_FORMAT": args.format,
+        "GAME_FORMAT": getattr(args, "format", None),
         "PLAN_A": args.plan_a,
         "PLAN_B": args.plan_b,
     }
@@ -852,7 +852,7 @@ def write_manifest(out_dir, condition, seeds, pairs, jobs, argv=None):
 
 def format_guard(args):
     """--format: every deck must be legal in it by the pinned engine's format data, or nothing launches."""
-    if not args.format:
+    if not getattr(args, "format", None):
         return
     import deck_legality
     forge = deck_legality.forge_home()
