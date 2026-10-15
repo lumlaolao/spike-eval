@@ -196,8 +196,12 @@ public final class LlmSpikeGui {
      *  setting that carries the steps out; a tap part with exactly as many candidates as it needs takes
      *  them, and what a tap part names is held while that ability's mana is paid (#111).
      *  Epoch 13: no text alternative on a tool ask (answer-tool-v7): a reply that calls nothing is reminded,
-     *  then lost; its prose is never read as the answer. */
-    static final String HARNESS_EPOCH = "harness-epoch-13";
+     *  then lost; its prose is never read as the answer.
+     *  Epoch 14: no engine fallback where the seat can decide: blocker/attacker damage order is asked; a
+     *  mana keep set that cannot pay is asked again, then the payable prefix kept (never the engine's plan);
+     *  card naming, modes and targets on error take fixed legal choices; a short cost pick takes the first
+     *  legal cards; empty choices return empty without asking Forge's AI. */
+    static final String HARNESS_EPOCH = "harness-epoch-14";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
