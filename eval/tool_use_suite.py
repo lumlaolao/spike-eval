@@ -458,6 +458,8 @@ ANSWER_LINE = "ANSWER: call `answer` with `option`: one number from the list. Lo
 ANSWER_TAIL = re.compile(r"(?:Reason briefly, then |Then |Now |[Tt]hen )?(?:end|End|reply|Reply) with (?:EXACTLY|exactly)[^\n]*")
 ANSWER_CALL = "Reason briefly, then call `answer` (`option`: one number from the list)."
 CALL_ANSWER = "No lookups are available for this decision any more. Answer it now by calling `answer`."
+ANSWER_BY_CALL = ("You did not call `answer`, so nothing was done. Call `answer` now with your choice; "
+                  "the decision's last line says which field it takes.")   # AnswerTool.ANSWER_BY_CALL
 
 
 def run_native_answer(scenario, kind, tier, model, tools, meta):
@@ -471,7 +473,7 @@ def run_native_answer(scenario, kind, tier, model, tools, meta):
                if t["function"]["name"] not in ENGINE_ONLY] + answer_tool()
     user = seat.native_brief() + decision + "\n" + ANSWER_LINE
     messages = [{"role": "system", "content": system_text(tier, native=True, answer=True)}, {"role": "user", "content": user}]
-    calls, usage, used, invalid, pressed = [], [], 0, 0, False
+    calls, usage, used, invalid, pressed, nudged = [], [], 0, 0, False, False
     for rnd in range(TOOLS_PER_ASK + 3):                    # AnswerTool.MAX_ROUNDS
         allow = used < TOOLS_PER_ASK and rnd < TOOLS_PER_ASK
         r = model(messages, offered, dict(meta, tool_choice="auto"))
@@ -486,6 +488,11 @@ def run_native_answer(scenario, kind, tier, model, tools, meta):
                     break
                 pressed = True
                 messages.append({"role": "user", "content": CALL_ANSWER})
+                continue
+            if not nudged:                      # AnswerTool.converse: one reminder, in the same conversation
+                nudged = True
+                messages.append({"role": "assistant", "content": reply})
+                messages.append({"role": "user", "content": ANSWER_BY_CALL})
                 continue
             return {"reply": reply, "choice": parse_choice(reply), "calls": calls, "usage": usage,
                     "answer_via": "text", "answer_invalid": invalid}
@@ -509,7 +516,7 @@ def run_native_answer(scenario, kind, tier, model, tools, meta):
                     opt = None
                 if isinstance(opt, int) and not isinstance(opt, bool) and 1 <= opt <= n:
                     return {"reply": r.get("content"), "choice": opt, "calls": calls, "usage": usage,
-                            "answer_via": "tool", "answer_invalid": invalid}
+                            "answer_via": "nudged" if nudged else "tool", "answer_invalid": invalid}
                 invalid += 1
                 if invalid >= 2:
                     return {"reply": None, "choice": None, "calls": calls, "usage": usage,
@@ -730,7 +737,8 @@ def summarise(rows, scen):
                  "model_calls": sum(r["model_calls"] for r in rs),
                  "completion_tokens": sum(r["completion_tokens"] for r in rs),
                  # native-answer only: how the decision came back, and the invalid answers corrected.
-                 "answered_via_tool": sum(1 for r in rs if r.get("answer_via") == "tool"),
+                 "answered_via_tool": sum(1 for r in rs if r.get("answer_via") in ("tool", "nudged")),
+                 "answered_after_nudge": sum(1 for r in rs if r.get("answer_via") == "nudged"),
                  "answer_invalid": sum(r.get("answer_invalid") or 0 for r in rs),
                  "by_class": {}}
             for cls in sorted(set(r["cls"] for r in n)):

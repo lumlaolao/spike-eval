@@ -5140,7 +5140,7 @@ public final class LlmSpikeGui {
         }
         /** The last ask offered the tool and the model spent its correction: the caller's fallback, no re-ask. */
         private boolean answerLost() { return lastAnswer != null && lastAnswer.lost; }
-        /** How the current decision was answered, for its row: "tool", "text", "reask" (a second full ask),
+        /** How the current decision was answered, for its row: "tool", "nudged", "text", "reask" (a second full ask),
          *  "lost" (two invalid calls); null when the answer tool was not offered. */
         private String answerVia = null;
         private int answerInvalid = 0;

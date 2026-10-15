@@ -39,8 +39,9 @@ final class AnswerTool {
      *  v2: one fixed `answer` schema for every decision, validated against the decision; `set_plan`
      *  always offered. Tool definitions open the prompt-cache prefix, so a schema that changed every
      *  decision discarded the cache on every call (docs/harness/PROMPT-CRAFT.md rule 19).
-     *  v3: an optional `why` (one sentence, for the record), and readable reasoning kept on the row. */
-    static final String VERSION = "answer-tool-v3";
+     *  v3: an optional `why` (one sentence, for the record), and readable reasoning kept on the row.
+     *  v4: a reply that calls nothing is asked once, in the same conversation, for the call (`nudged`). */
+    static final String VERSION = "answer-tool-v4";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -690,9 +691,12 @@ final class AnswerTool {
         /** Receives "GOAL: ... NEXT: ..." from `set_plan`. */
         Consumer<String> planSink = p -> { };
         Answer answer;
-        /** "tool" (answered by a valid call), "text" (a text reply, read by the text parser), "lost" (two
-         *  invalid calls). Null while unanswered or when the bridge returned nothing. */
+        /** "tool" (answered by a valid call), "nudged" (a valid call after one reminder that the reply called
+         *  nothing), "text" (a text reply after that reminder, read by the text parser), "lost" (two invalid
+         *  calls). Null while unanswered or when the bridge returned nothing. */
         String via;
+        /** The reply called nothing once and was asked, in the same conversation, for the call. */
+        boolean nudged;
         int invalid;
         boolean lost;
         /** Text the model wrote alongside its answer call: its reasoning, kept for the row and the
@@ -773,6 +777,9 @@ final class AnswerTool {
     }
 
     static final String CALL_ANSWER = "No lookups are available for this decision any more. Answer it now by calling `answer`.";
+    /** The one nudge for a reply that called nothing. */
+    static final String ANSWER_BY_CALL = "You did not call `answer`, so nothing was done. Call `answer` now with your choice; "
+            + "the decision's last line says which field it takes.";
 
     /**
      * One decision over native function calling, answered by `answer`. Notes are applied first, then the
@@ -802,6 +809,16 @@ final class AnswerTool {
                     messages.add(NativeTools.message("user", CALL_ANSWER));
                     continue;
                 }
+                // A reply that explains its choice but calls nothing ("I choose option 5") used to go to the text
+                // parser, which found no answer line, and the caller asked the whole decision again (9 of 151
+                // asks in runs/prompt-ab/old). Ask once, in this conversation, for the call instead.
+                if (!ask.nudged) {
+                    ask.nudged = true;
+                    messages.add(JsonParser.parseString(turn.messageJson));
+                    messages.add(NativeTools.message("user", ANSWER_BY_CALL));
+                    audit.accept(turn.content, "NUDGE: no `answer` call; asked for one in the same conversation.");
+                    continue;
+                }
                 ask.via = "text";
                 return turn.content;
             }
@@ -820,7 +837,7 @@ final class AnswerTool {
                 Result r = validate(ask.spec, c.arguments);
                 if (r.answer != null) {
                     ask.answer = r.answer;
-                    ask.via = "tool";
+                    ask.via = ask.nudged ? "nudged" : "tool";
                     ask.content = turn.content;
                     audit.accept(c.render(), "ANSWER ACCEPTED");
                     return ask.render();

@@ -147,4 +147,31 @@ public class AnswerToolTest {
         Assert.assertNull(NativeTools.reasoningOf("{\"role\":\"assistant\",\"reasoning\":null,\"reasoning_details\":"
                 + "[{\"type\":\"reasoning.encrypted\",\"data\":\"gAAAA\"}]}"));
     }
+
+    /** A reply that explains its choice in text but calls nothing is asked once, in the same conversation,
+     *  for the call; the caller's full re-ask is no longer needed. */
+    @Test
+    public void aReplyThatCallsNothingIsAskedForTheCallInTheSameConversation() {
+        AnswerTool.Ask ask = new AnswerTool.Ask(AnswerTool.Spec.one(5), false);
+        List<String> seen = new ArrayList<>();
+        int[] round = {0};
+        String reply = AnswerTool.converse("DECISION", ask, (user, messages, tools, allow, r) -> {
+            seen.add(messages);
+            return round[0]++ == 0 ? new NativeTools.Turn("I choose option 5.", "{\"role\":\"assistant\",\"content\":\"I choose option 5.\"}",
+                    new ArrayList<>()) : calls(new NativeTools.Call("c1", "answer", "{\"option\":5}"));
+        }, null, (req, res) -> { });
+        Assert.assertEquals(reply, "CHOICE: 5");
+        Assert.assertEquals(ask.via, "nudged");
+        JsonArray second = JsonParser.parseString(seen.get(1)).getAsJsonArray();
+        Assert.assertEquals(second.get(1).getAsJsonObject().get("content").getAsString(), "I choose option 5.");
+        Assert.assertEquals(second.get(2).getAsJsonObject().get("content").getAsString(), AnswerTool.ANSWER_BY_CALL);
+
+        // A second reply that calls nothing goes to the text parser, as before.
+        AnswerTool.Ask twice = new AnswerTool.Ask(AnswerTool.Spec.one(5), false);
+        String text = AnswerTool.converse("DECISION", twice, (user, messages, tools, allow, r) ->
+                new NativeTools.Turn("CHOICE: 2", "{\"role\":\"assistant\",\"content\":\"CHOICE: 2\"}", new ArrayList<>()),
+                null, (req, res) -> { });
+        Assert.assertEquals(text, "CHOICE: 2");
+        Assert.assertEquals(twice.via, "text");
+    }
 }
