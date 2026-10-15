@@ -163,8 +163,9 @@ public final class LlmSpikeGui {
      *  chosen colour) are shown; an unparsed play or block is said, not read as PASS / NONE; block pairs
      *  keep names with commas; the per-turn play cap is 80 under the faithful profile; a PLAN line at any
      *  decision replaces the plan (a goal and steps); the seat can report a broken question. Epoch 6:
-     *  the mana line says its colours over-count; call markup past the budget is recorded as exhausted. */
-    static final String HARNESS_EPOCH = "harness-epoch-6";
+     *  the mana line says its colours over-count; call markup past the budget is recorded as exhausted.
+     *  Epoch 7: a tap-cost menu leaves out what a RAISED mana cost's payment taps (#110). */
+    static final String HARNESS_EPOCH = "harness-epoch-7";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
