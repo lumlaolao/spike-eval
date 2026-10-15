@@ -44,6 +44,7 @@ import argparse
 import json
 import math
 import random
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -94,7 +95,25 @@ def player(game, ident):
         return ctrl
     smart = game.get("smart_%s" % ident) or "?"
     fast = game.get("fast_%s" % ident)
-    return "llm:%s" % smart if not fast or fast == smart else "llm:%s/%s" % (smart, fast)
+    label = "llm:%s" % smart if not fast or fast == smart else "llm:%s/%s" % (smart, fast)
+    # The loopback fake model answers by policy; the game line does not say which, its manifest does
+    # (tag_fake_policy). Empty and garbage replies are two players, not one.
+    if ident == "a" and game.get("_fake_policy"):
+        label += "[%s]" % game["_fake_policy"]
+    return label
+
+
+def tag_fake_policy(games, run_dir):
+    """Copy a sanity arm's fake_policy from <run_dir>/batch-manifest.json onto its games."""
+    try:
+        with open(Path(run_dir) / "batch-manifest.json", encoding="utf-8") as f:
+            policy = (json.load(f).get("condition") or {}).get("fake_policy")
+    except (OSError, ValueError):
+        return games
+    if policy:
+        for g in games:
+            g["_fake_policy"] = policy
+    return games
 
 
 def env_condition(game):
@@ -102,11 +121,18 @@ def env_condition(game):
     return {f: cond[f] for f in ENV_FIELDS}
 
 
+def _loopback(url):
+    return isinstance(url, str) and re.match(r"https?://(127\.0\.0\.1|localhost)(:\d+)?(/|$)", url) is not None
+
+
 def player_condition(game, ident):
     cond = aggregate.game_condition(game)
     out = {f: cond[f] for f in PLAYER_FIELDS}
     for f in PLAYER_FIELDS_BY_IDENT[ident]:
         out[f[:-2]] = cond[f]           # served_smart_a -> served_smart: comparable across seats
+    # A loopback endpoint gets a fresh port on every launch (sanity_arms.start_fake_server).
+    if _loopback(out.get("openrouter_base_url")):
+        out["openrouter_base_url"] = "loopback"
     return out
 
 
@@ -141,7 +167,7 @@ def load_games(dirs):
     out = []
     for d in dirs:
         for e in aggregate.parse_dir_full(d)["experiments"]:
-            for g in e["games"]:
+            for g in tag_fake_policy(e["games"], d):
                 g["_dir"] = str(d)
                 out.append(g)
     return out

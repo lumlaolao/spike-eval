@@ -170,6 +170,19 @@ class TestRecordedGames(unittest.TestCase):
         self.assertTrue(rep["sanity"]["valid"])
         self.assertTrue(rep["benchmark_version"]["id"].startswith("bv1-"))
 
+    def test_the_fake_model_arms_are_two_players_and_their_ports_do_not_split_them(self):
+        smoke = FIX / "panel-smoke"
+        rep = rating.rate([smoke / "burn__sanity-empty", smoke / "burn__sanity-garbage",
+                           smoke / "burn__sanity-random", smoke / "burn__sanity-floor"], resamples=20)
+        fakes = sorted(p for p in rep["players"] if "fake" in p)
+        self.assertEqual(fakes, ["llm:openrouter:fake/harness-model[empty]",
+                                 "llm:openrouter:fake/harness-model[garbage]"])
+        a = game(1, False, "llm:x", "ai", "B", openrouter_base_url="http://127.0.0.1:41000/v1")
+        b = dict(a, openrouter_base_url="http://127.0.0.1:52000/v1")
+        c = dict(a, openrouter_base_url="https://openrouter.ai/api/v1")
+        self.assertEqual(rating.player_condition(a, "a"), rating.player_condition(b, "a"))
+        self.assertNotEqual(rating.player_condition(a, "a"), rating.player_condition(c, "a"))
+
     def test_compare_and_frontier_epochs_do_not_pool(self):
         with self.assertRaises(rating.MixedConditionError):
             rating.rate([FIX / "compare-baseline-floor", FIX / "frontier-opus"], resamples=0)

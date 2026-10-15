@@ -232,6 +232,23 @@ class TestMirrorPanel(unittest.TestCase):
         self.assertTrue(any("different pilots" in p for p in r["problems"]))
 
 
+class TestRecordedPanelSmoke(unittest.TestCase):
+    """eval/testdata/scoring/panel-smoke: run_batch.py --panel mirror --panel-cells burn --seeds 7800
+    --controller-a floor --sanity-arms --exploratory against /root/forge on 2026-10-15 (game lines and
+    each arm's fake_policy kept). Its first scoring refused: the empty and garbage arms read as one
+    player whose openrouter_base_url (a fresh loopback port per launch) differed."""
+
+    def test_a_real_one_cell_panel_with_all_four_arms_scores(self):
+        r = ps.score_panel(HERE / "testdata" / "scoring" / "panel-smoke", "mirror", PANELS, resamples=50)
+        burn = r["cells"]["burn"]
+        self.assertEqual((burn["wins"], burn["decisive"]), (0, 2))
+        self.assertTrue(burn["sanity"]["ok"] and burn["sanity"]["complete"])
+        self.assertEqual(len(r["missing"]), 15)
+        self.assertFalse(r["valid"])
+        self.assertEqual(r["condition_problems"], [])
+        self.assertTrue(0.0 <= r["pooled"]["ci95"][0] <= r["pooled"]["ci95"][1] <= 1.0)
+
+
 class TestCrossPanel(unittest.TestCase):
     def test_the_margin_subtracts_the_ai_vs_ai_control(self):
         with tempfile.TemporaryDirectory() as tmp:

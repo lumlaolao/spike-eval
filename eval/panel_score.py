@@ -119,7 +119,7 @@ def read_block(run_dir, expected_deck_sha=None, expected_b=None, expected_a=None
     if len(exps) != 1:
         raise PanelError("%s holds %d experiment conditions; a panel cell is one" % (p, len(exps)))
     exp = exps[0]
-    games = exp["games"]
+    games = rating.tag_fake_policy(exp["games"], p)
     problems = []
     for g in games:
         if expected_b and g.get("controller_b") != expected_b:
@@ -197,7 +197,7 @@ def stratified(points):
         pt = (p * n + 0.5) / (n + 1.0)           # Jeffreys-smoothed: a 0/n cell is not certain
         var += pt * (1 - pt) / n
     se = math.sqrt(var) / m
-    return {"score": mean, "se": se, "ci95": [mean - Z * se, mean + Z * se], "n_cells": m}
+    return {"score": mean, "se": se, "ci95": [max(0.0, mean - Z * se), min(1.0, mean + Z * se)], "n_cells": m}
 
 
 def _pct(vals, q):
