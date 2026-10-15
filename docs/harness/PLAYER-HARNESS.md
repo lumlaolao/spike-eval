@@ -537,6 +537,31 @@ it reads, for the benefit of clients we do not have. It becomes worth it when an
 (Claude Code, another lab's harness) is to play a seat directly; then it wraps the same executor
 and the same per-decision budget, and the controller stays the one place a decision is asked.
 
+### Answer tool: `answer-tool-v2` (2026-10-15)
+
+Decisions were answered by a final text line (`CHOICE: n`, `PICKS: …`, `BLOCKS: …`, `KEEP`) scraped from
+prose. Four more line formats rode on the play ask (`PLAN:`, `LINES:`, `YIELD:`, the opponent profile).
+That grammar was the largest source of harness defects: a model writing `CHOICE` and `PICKS` together, a
+lower-case "keep" in prose read as an answer, a cut-off reply losing its last line.
+
+Now every decision is answered by calling `answer` (`AnswerTool.java`), and the plan by `set_plan`.
+
+- **One fixed schema.** v1, written first, built a new `answer` schema from each decision's legal values
+  (enums of the option numbers). Tool definitions are the first thing in the prompt-cache prefix, so
+  that discarded the cache on every call. And without `strict`, an enum in a schema is not enforced;
+  it only repeats the options the decision text lists. v2 has one schema with every field optional, and
+  validates each call against the decision it answers.
+- **Corrections in the same conversation.** An illegal call (an option off the list, a wrong count, the
+  wrong field) is answered with the reason, and the model calls again. A second illegal call ends the
+  ask (`answer_via: "lost"`) and the caller takes its deterministic fallback.
+- **A constant tool list.** `set_plan` is offered on every ask. A lookahead seat declares `simulate` on
+  every ask, and refuses it on a decision with no play menu (`NativeTools.NO_PREVIEW`).
+- **Rows.** `answer_via` is `tool`, `text`, `reask` or `lost`. `answer_invalid` counts the corrected
+  calls. `raw_reply` holds the answer rendered in the old line format, so existing readers still work.
+- **Measure** with `python3 eval/tool_use_suite.py --arms native,native-answer` before games. A
+  per-decision arm (`ANSWER_SCHEMA=per-decision`) is kept for a side-by-side measurement of
+  illegal-call rate and cost.
+
 ## Next implementation gates
 
 | Priority | Work | Evidence required before claiming complete | Status 2026-09-07 |

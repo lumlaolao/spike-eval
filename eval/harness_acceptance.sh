@@ -22,7 +22,7 @@
 #              real OpenRouter transport + parsing, memory tool round trips, one forced request timeout, no
 #              Authorization header on the wire, analyzer gates, provenance stamped as loopback
 #   faithful   the same loopback game under CONTEXT_PROFILE=v4-faithful: viewer-aware renderer in a real game,
-#              legend in every prompt, menu options and state sharing seat handles, no legacy engine-id leak
+#              no per-message legend (v24), menu options and state sharing seat handles, no legacy engine-id leak
 #   nativetool a loopback game on the STANDARD tool protocol (native function calling, on by default):
 #              tools sent as function definitions, real tool-call turns served through the same executor
 #              and budget, the text grammar never sent. faketool/faithful/rules pin NATIVE_TOOLS=0: they
@@ -30,6 +30,10 @@
 #   nativerefuse a loopback game whose provider answers 404 "no endpoints support tool use" to any request
 #              carrying tools: each bridge drops to the text grammar after ONE refusal, the game line says
 #              so, the seat keeps its lookups through the text loop, and nothing falls back to the Forge AI
+#   answertool a loopback game on the default DECISION protocol (AnswerTool): every decision is answered
+#              by calling `answer` (schema built from its legal values), lookups and `set_plan` share the
+#              conversation, one out-of-range answer is corrected in the same conversation; no decision
+#              read from text, none lost, tool_choice always auto, the game line stamps answer_tool
 #   lookahead  a loopback game with LOOKAHEAD=1 and the fake server in --policy simulate: the real
 #              PlayerLookahead.previewCast path runs (preview + re-ask), at least one targeting preview is
 #              produced, and no AI fallback occurs
@@ -54,7 +58,8 @@ fi
 JAVA="$JAVA_HOME/bin/java"; JAVAC="$JAVA_HOME/bin/javac"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="${OUT:-$REPO/runs/harness-acceptance/$STAMP}"
-STAGES="${STAGES:-preflight classpath compile javatests pytests canary gaming faketool faithful lookahead nativetool nativerefuse rules}"
+ALL_STAGES="preflight classpath compile javatests pytests canary gaming faketool faithful lookahead nativetool nativerefuse answertool rules"
+STAGES="${STAGES:-$ALL_STAGES}"
 EXPECTED="$REPO/eval/harness_acceptance.expected"
 OVERLAY="$REPO/forge-overlay/forge-gui-desktop/src"
 LEDGER="$REPO/docs/harness/controller-ownership.tsv"
@@ -91,6 +96,14 @@ digest() {
   elif command -v md5sum >/dev/null 2>&1; then md5sum | cut -d" " -f1; fi
 }
 has_stage() { case " $STAGES " in *" $1 "*) return 0;; *) return 1;; esac; }
+# A stage list that names no real stage ran nothing and still printed PASS (`STAGES=compile,javatests`
+# is one unknown name). Every name must be a stage this script runs.
+for _s in $STAGES; do
+  case " $ALL_STAGES " in
+    *" $_s "*) ;;
+    *) echo "unknown stage '$_s' (STAGES is space-separated: STAGES=\"compile javatests\")" >&2; exit 2;;
+  esac
+done
 
 ADDOPENS="--add-opens java.desktop/java.beans=ALL-UNNAMED --add-opens java.desktop/javax.swing.border=ALL-UNNAMED \
 --add-opens java.desktop/javax.swing.event=ALL-UNNAMED --add-opens java.desktop/sun.swing=ALL-UNNAMED \
@@ -403,6 +416,8 @@ if has_stage lookahead; then
     dir="$OUT/lookahead"; sdir="$OUT/lookahead-server"; mkdir -p "$dir" "$sdir"
     # --policy simulate makes the fake model ask for a preview on every play prompt that advertises
     # SIMULATE, so the real preview path (previewCast -> re-ask) is exercised without any egress.
+    # ANSWER_TOOL=0: this is the text protocol's preview (the Claude CLI lane and the opt-out); with the
+    # answer tool on, the preview is a function call (nativetool stage).
     python3 "$REPO/eval/fake_model_server.py" --port 0 --policy simulate --log "$sdir/fake_requests.jsonl" \
         >"$sdir/fake_server.out" 2>&1 &
     FAKE_PID=$!
@@ -410,7 +425,7 @@ if has_stage lookahead; then
     if [ -z "$PORT" ]; then fail lookahead "fake model server did not start"; kill $FAKE_PID 2>/dev/null; else
       say "lookahead: LLM seat A on loopback fake model (policy simulate), LOOKAHEAD=1 (burn mirror)"
       play lookahead 42 CONTROLLER_A=llm CONTROLLER_B=floor SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
-          OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" LOOKAHEAD=1 GAME_CAP_MS=120000 \
+          OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" LOOKAHEAD=1 ANSWER_TOOL=0 GAME_CAP_MS=120000 \
           DECK_A="$REPO/eval/decks/burn.txt" DECK_B="$REPO/eval/decks/burn.txt" DECK_A_NAME=Burn DECK_B_NAME=BurnB
       kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
       if ! check_build_loaded "$dir"; then fail lookahead "JVM did not load LlmSpikeGui from $CLASSES"; else
@@ -443,7 +458,7 @@ if has_stage nativetool; then
   if [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail nativetool "no compiled classes"; else
     dir="$OUT/nativetool"; sdir="$OUT/nativetool-server"; mkdir -p "$dir" "$sdir"
     : > "$sdir/fake_requests.jsonl"
-    python3 "$REPO/eval/fake_model_server.py" --port 0 --policy simulate --native-calls 9 --log "$sdir/fake_requests.jsonl" \
+    python3 "$REPO/eval/fake_model_server.py" --port 0 --policy simulate --native-calls 9 --answer-tool --log "$sdir/fake_requests.jsonl" \
         >"$sdir/fake_server.out" 2>&1 &
     FAKE_PID=$!
     PORT=""; for i in 1 2 3 4 5 6 7 8 9 10; do PORT="$(awk '/^LISTENING/{print $2}' "$sdir/fake_server.out" 2>/dev/null)"; [ -n "$PORT" ] && break; sleep 0.5; done
@@ -459,7 +474,9 @@ if has_stage nativetool; then
       # literals the stamps are compared to moved. 2026-10-14: seat-tools-v5 (a call on a round that
       # offered no tools is refused, not run); the fake model honours tool_choice, so again only the
       # literal moved. 2026-10-15: seat-tools-v6 (report_unclear_decision is offered; the fake model
-      # never calls it), only the literal moved.
+      # never calls it), only the literal moved. seat-tools-v7 (the decision is a call to `answer`, the
+      # default protocol): the fake model answers with it (--answer-tool) after its lookup, as a model
+      # on the default protocol does; the answertool stage asserts the answers themselves.
       say "nativetool: LLM seat A on loopback fake model, native tools by default (NATIVE_TOOLS unset), MEMORY_TOOLS=1 LOOKAHEAD=1 under v4-faithful (Mardu mirror)"
       play nativetool 42 CONTROLLER_A=llm CONTROLLER_B=floor SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
           OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" MEMORY_TOOLS=1 LOOKAHEAD=1 CONTEXT_PROFILE=v4-faithful GAME_CAP_MS=120000 \
@@ -480,7 +497,7 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 else:
     if game.get("native_tools") is not True: problems.append("native_tools=%r not stamped"%game.get("native_tools"))
-    if game.get("native_tools_version")!="seat-tools-v6": problems.append("native_tools_version=%r (expected seat-tools-v6; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
+    if game.get("native_tools_version")!="seat-tools-v8": problems.append("native_tools_version=%r (expected seat-tools-v8; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
     if game.get("memory_tools_version")!="evidence-tools-v2": problems.append("memory_tools_version=%r (expected evidence-tools-v2; move this pin WITH ContextMemory.VERSION)"%game.get("memory_tools_version"))
     if game.get("lookahead_version")!="lookahead-preview-v4" or game.get("lookahead") is not True: problems.append("lookahead=%r lookahead_version=%r (expected True, lookahead-preview-v4; move this pin WITH PlayerLookahead.VERSION)"%(game.get("lookahead"),game.get("lookahead_version")))
     if game.get("native_tools_seats")!="A/smart,A/fast": problems.append("native_tools_seats=%r"%game.get("native_tools_seats"))
@@ -518,7 +535,9 @@ if not any("if you cast" in r.get("result","") for r in previews): problems.appe
 if not any("if you pass" in r.get("result","") for r in previews): problems.append("no PASS preview was served (the fake model asks for one every third preview)")
 lines=[r for r in previews if "then" in r.get("request","")]
 if not any(", then " in r.get("result","") for r in lines): problems.append("no line preview played two options (%d asked)"%len(lines))
-if all("simulate" in r.get("tools_offered",[]) for r in reqs): problems.append("simulate was offered outside play decisions")
+# simulate is declared on every request of a lookahead seat, so the tool list (the start of the
+# prompt-cache prefix) never changes between requests; a preview outside a play decision is refused.
+if len({tuple(r.get("tools_offered",[])) for r in reqs})!=1: problems.append("the tool list changed between requests: %s"%sorted({tuple(r.get("tools_offered",[])) for r in reqs}))
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
 facts="context_calls=%d (later rounds %d) tool_rows=%d served: search=%d inspect=%d simulate=%d refused_malformed=%d fake_requests=%d"%(
     len(calls),len(later),len(tools),len(served("memory_search")),len(served("inspect")),len(served("simulate")),len(refused),len(reqs))
@@ -589,9 +608,91 @@ EOF
   fi
 fi
 
+# ---------------------------------------------------------------- answertool
+# The decision protocol end to end (AnswerTool, on by default wherever native tools are): every
+# decision the fake model is asked goes out with an `answer` function built from its legal values and
+# comes back as a call, lookups share the conversation, `set_plan` sets the plan, and one deliberately
+# out-of-range answer is corrected in the same conversation. It would fail if a decision were still
+# read from text (answer_via text/reask), an answer were lost, the correction re-asked the whole
+# decision or took a fallback, the game line did not stamp the protocol, or tool_choice were forced.
+if has_stage answertool; then
+  if [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail answertool "no compiled classes"; else
+    dir="$OUT/answertool"; sdir="$OUT/answertool-server"; mkdir -p "$dir" "$sdir"
+    : > "$sdir/fake_requests.jsonl"
+    python3 "$REPO/eval/fake_model_server.py" --port 0 --policy first --answer-tool --answer-invalid 4 --native-calls 3 \
+        --log "$sdir/fake_requests.jsonl" >"$sdir/fake_server.out" 2>&1 &
+    FAKE_PID=$!
+    PORT=""; for i in 1 2 3 4 5 6 7 8 9 10; do PORT="$(awk '/^LISTENING/{print $2}' "$sdir/fake_server.out" 2>/dev/null)"; [ -n "$PORT" ] && break; sleep 0.5; done
+    if [ -z "$PORT" ]; then fail answertool "fake model server did not start"; kill $FAKE_PID 2>/dev/null; else
+      say "answertool: LLM seat A on loopback fake model answering by calls (policy first), ANSWER_TOOL=1 MEMORY_TOOLS=1 under v4-faithful"
+      play answertool 42 CONTROLLER_A=llm CONTROLLER_B=floor SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
+          OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" ANSWER_TOOL=1 MEMORY_TOOLS=1 CONTEXT_PROFILE=v4-faithful \
+          MULLIGAN_HEURISTIC=0 SMART_BUDGET=150 FAST_BUDGET=150 GAME_CAP_MS=180000
+      kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
+      if ! check_build_loaded "$dir"; then fail answertool "JVM did not load LlmSpikeGui from $CLASSES"; else
+        ( cd "$REPO" && python3 eval/defect_analyzer.py "$dir" --json "$dir/defects.json" ) >"$dir/defects.txt" 2>&1; ARC=$?
+        VERDICT="$(cd "$REPO/eval" && python3 - "$dir" "$sdir" "$ARC" <<'EOF'
+import collections,glob,json,sys
+import match_review
+d,sdir,arc=sys.argv[1],sys.argv[2],int(sys.argv[3]); problems=[]
+files=glob.glob(d+"/game-*.jsonl")
+rows=[]
+for f in files:
+    for line in open(f):
+        try: rows.append(json.loads(line))
+        except Exception: pass
+game=next((r for r in rows if r.get("t")=="game"),None)
+if not game: problems.append("no game line")
+else:
+    if game.get("answer_tool") is not True: problems.append("answer_tool=%r not stamped"%game.get("answer_tool"))
+    if game.get("answer_tool_version")!="answer-tool-v3": problems.append("answer_tool_version=%r (move this pin WITH AnswerTool.VERSION)"%game.get("answer_tool_version"))
+    if game.get("answer_tool_seats")!="A/smart,A/fast": problems.append("answer_tool_seats=%r"%game.get("answer_tool_seats"))
+    if game.get("harness_epoch")!="harness-epoch-9": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
+dec=[r for r in rows if r.get("t")=="decision"]
+model=[r for r in dec if r.get("tier") in ("smart","fast")]
+via=collections.Counter(r.get("answer_via") for r in model)
+if len(model)<10: problems.append("only %d model decisions"%len(model))
+if via.get("tool",0)!=len(model): problems.append("not every model decision was answered by the tool: %s"%dict(via))
+lost=[r for r in dec if match_review.LOST.search(str(r.get("fallback") or "")) or r.get("answer_via")=="lost"]
+if lost: problems.append("%d LOST decisions, e.g. %s"%(len(lost),lost[0].get("fallback")))
+corrected=[r for r in model if r.get("answer_invalid")==1]
+if len(corrected)!=1: problems.append("%d decisions corrected an invalid answer (expected exactly 1)"%len(corrected))
+types=sorted(set(r.get("type") for r in model))
+for need in ("mulligan","play"):
+    if need not in types: problems.append("no %s decision answered by the tool"%need)
+tools=[r for r in rows if r.get("t")=="context_tool"]
+answers=[r for r in tools if r.get("request","").startswith("TOOL CALL answer ")]
+bad=[r for r in answers if r.get("result","").startswith("ERROR")]
+if len(bad)!=1: problems.append("%d invalid answer calls answered with an error (expected 1)"%len(bad))
+if not [r for r in tools if r.get("request","").startswith("TOOL CALL set_plan ") and r.get("result","").startswith("Plan recorded")]:
+    problems.append("no set_plan call recorded a plan")
+if not [r for r in tools if r.get("request","").startswith("TOOL CALL memory_search ") and not r.get("result","").startswith("ERROR")]:
+    problems.append("no lookup was served in an answer conversation")
+if any((r.get("raw_reply") or "").startswith("TOOL CALL") for r in model): problems.append("a decision row recorded the call markup, not the answer")
+if any(r.get("tier")=="ai" for r in dec): problems.append("a decision fell back to the Forge AI")
+reqs=[json.loads(l) for l in open(sdir+"/fake_requests.jsonl")]
+offered=[r for r in reqs if "answer" in (r.get("tools_offered") or [])]
+if len(offered)!=len(reqs): problems.append("%d of %d requests did not offer the answer tool"%(len(reqs)-len(offered),len(reqs)))
+if any(r.get("tool_choice")!="auto" for r in reqs): problems.append("a request did not send tool_choice auto: %s"%sorted(set(str(r.get("tool_choice")) for r in reqs)))
+if any(r.get("reply") for r in reqs): problems.append("the fake model answered in text")
+if any(r.get("has_authorization") for r in reqs): problems.append("authorization header sent to loopback")
+log=open(d+"/game.log",errors="replace").read()
+if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] in log")
+if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
+facts="model_decisions=%d via=%s types=%s answer_calls=%d invalid=%d corrected_rows=%d fake_requests=%d"%(
+    len(model),dict(via),",".join(types),len(answers),len(bad),len(corrected),len(reqs))
+print(("FAIL "+"; ".join(problems)+" | "+facts) if problems else "PASS "+facts)
+EOF
+)"
+        case "$VERDICT" in PASS*) pass answertool "${VERDICT#PASS }";; *) fail answertool "${VERDICT#FAIL }";; esac
+      fi
+    fi
+  fi
+fi
+
 # ---------------------------------------------------------------- faithful
 # The same loopback game under CONTEXT_PROFILE=v4-faithful: proves the viewer-aware renderer runs in a
-# real game (not only in fixtures), that every prompt is self-describing (legend), that menu options and
+# real game (not only in fixtures), that no prompt repeats the legend (v24: said once in the system prompt), that menu options and
 # state share seat-local handles, that no legacy engine-id reference leaks, and that provenance stamps
 # the faithful profile, all under the unchanged analyzer gates.
 if has_stage faithful; then
@@ -629,7 +730,7 @@ if game is None: problems.append("no game row")
 else:
     if game.get("context_profile")!="v4-faithful": problems.append("context_profile=%s"%game.get("context_profile"))
     if game.get("memory_tools") is not True: problems.append("memory_tools not stamped")
-    if game.get("harness_epoch")!="harness-epoch-7": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-9": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
     facts.append("winner=%s turns=%s context_sha=%s"%(game.get("winner"),game.get("turns"),game.get("context_sha")))
 if ai_rows: problems.append("%d tier=ai rows"%ai_rows)
 if model_rows<5: problems.append("only %d model-tier rows"%model_rows)
@@ -639,9 +740,9 @@ mull=0; rules_leak=0
 for r in calls:
     p=r.get("prompt") or ""
     # The mulligan ask shows only the opening hand (no board exists yet); it carries no observation.
-    if "KEEP" in p and "MULLIGAN" in p and "DECISION:" not in p: mull+=1; observed+=1; legend+=1; continue
-    if "observation-faithful-v24" in p: observed+=1
-    if "LEGEND: @N" in p: legend+=1
+    if "KEEP" in p and "MULLIGAN" in p and "DECISION:" not in p: mull+=1; observed+=1; continue
+    if "| priority: " in p: observed+=1   # the faithful header (v24 no longer prints its version)
+    if "LEGEND: @N" in p: legend+=1   # v24: the legend is said once, in the system prompt, never per message
     handles+=len(re.findall(r" @\d+", p))
     legacy+=len(re.findall(r"[A-Za-z\]]@\d+", p))          # the legacy candidateLabel form: Name[...]@id
     menu_handles+=len(re.findall(r"\n\s+\d+\) (?:CAST|PLAY LAND) [^\n]*@\d+", p))
@@ -652,7 +753,7 @@ if observed<len(calls): problems.append("%d/%d prompts lack the faithful observa
 # docs/STANDARDS.md section 8: no option a faithful ask offers is cut short.
 cut=sum(len(re.findall(r"(?m)^\s+\d+\) [^\n]*\.\.\.\]?$", r.get("prompt") or "")) for r in calls)
 if cut: problems.append("%d menu options cut short (ending in ...) in faithful prompts"%cut)
-if legend<len(calls): problems.append("%d/%d prompts lack the legend"%(len(calls)-legend,len(calls)))
+if legend: problems.append("%d/%d prompts repeat the legend (v24 says it once, in the system prompt)"%(legend,len(calls)))
 if handles<20: problems.append("only %d seat handles across all prompts"%handles)
 if legacy: problems.append("%d legacy engine-id references (Name@id) leaked into faithful prompts"%legacy)
 if menu_handles<3: problems.append("menu options carrying handles: %d (<3)"%menu_handles)
@@ -660,7 +761,7 @@ if rules_leak: problems.append("%d faithful prompts advertised RULES TOOL withou
 ok_tools=[x for x in tools if not str(x.get("result","")).startswith("ERROR")]
 if len(ok_tools)<2: problems.append("successful tool rows %d (<2)"%len(ok_tools))
 log=open(d+"/game.log",errors="replace").read()
-if "[OBSERVATION] observation-faithful-v24" not in log: problems.append("observer never announced itself in the log")
+if "[OBSERVATION] observation-faithful-v25" not in log: problems.append("observer never announced itself in the log")
 if "state unavailable" in log or "state unavailable" in "".join((r.get("prompt") or "") for r in calls): problems.append("renderer threw (state unavailable)")
 if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] present")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)

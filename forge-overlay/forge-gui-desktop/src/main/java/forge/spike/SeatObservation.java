@@ -72,18 +72,43 @@ import forge.spike.LlmSpikeGui.ContextProfile;
  * seat are appended to the same stream, so every seat-visible fact has one E-id and one place to search.
  */
 final class SeatObservation {
-    static final String VERSION = "observation-faithful-v24";
-    /** Printed once per observation so every prompt is self-describing. Part of the prompt bytes and
-     *  therefore of this VERSION: change it and bump the version. */
-    static final String LEGEND = "LEGEND: @N = your seat's handle for one object, assigned when you first see it; a zone change "
-            + "makes a NEW object with a new handle, and '(was @k)' is shown only when you could see its whole path. "
-            + "'face-down <type>' = identity hidden from you. Menu options name the same handles. "
-            + "Zones list every card unless an explicit '(+N more not shown)' omission is printed. "
-            + "'SPENT THIS TURN' states what you have already used (land drop, spells, attackers) so legality is never "
-            + "inferred from absence; 'KNOWN IN HIDDEN ZONES' is what YOU saw go into an opponent's hidden zone (your "
-            + "knowledge, dropped once you see it leave); 'YOUR PLAN' is your own plan with the turn you stated it. "
-            + "'FACTS' is the engine's own arithmetic (next-combat clocks, their instant-speed mana) as estimates, not truth. "
-            + "'YOUR OPPONENT PROFILE' is your own read of them, which you may revise at any time.\n";
+    /** v24: the legend moved out of every message into the system prompt ({@link #GUIDE}), where it is said
+     *  once and cached; the header no longer names this version (it is for the logs, not the model).
+     *  v25: the golden checks (stack text redacted of engine ids; the hand's "(castable)" tag agrees with
+     *  the menu), merged with v24. */
+    static final String VERSION = "observation-faithful-v25";
+    /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
+     *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
+     *  Every section named here is one {@link #render} prints. */
+    static final String GUIDE =
+              "Each message starts with the state of the game, then the decision.\n"
+            + "- The header gives the turn number, the phase or step, whose turn it is (active) and who has priority. If the "
+            + "active player is not you, you are acting on their turn, at instant speed.\n"
+            + "- YOU and OPP each start with a line of counts: life, poison (10 loses), any other counters, hand, library, "
+            + "graveyard, exile, lands played this turn out of the lands allowed, mana in pool, and spells cast this turn.\n"
+            + "- Your hand lists each card with its mana cost and, for a spell, whether you can pay for it now: \"(castable)\", "
+            + "what is missing, such as \"(need 1 more B)\", or \"(not castable now)\". The opponent's hand is only a count.\n"
+            + "- board lists nonland permanents; lands lists lands, with [tapped] or [untapped] for each. [sick] marks a "
+            + "creature that came under its controller's control this turn and cannot attack or use tap abilities yet.\n"
+            + "- mana available counts the untapped sources that can make each colour. A dual land is counted under both of "
+            + "its colours, so the colours add up to more mana than can actually be spent.\n"
+            + "- @N is your handle for one object, given when you first see it, and used the same way in the options. When an "
+            + "object changes zone it becomes a new object with a new handle; \"(was @k)\" links the two when you saw the whole "
+            + "move. \"face-down <type>\" is an object whose identity is hidden from you. Zones list every card unless a "
+            + "\"(+N more not shown)\" note says otherwise.\n"
+            + "- CAST THIS GAME and LANDS PLAYED record what the opponent has cast and played, even cards that have since left "
+            + "play. OPPONENT CARDS YOU HAVE SEEN gives the printed rules text of their cards you have seen.\n"
+            + "- STACK lists what is waiting to resolve, top first (the top resolves first); COMBAT describes attackers and "
+            + "blockers; NOT VISIBLE names what is hidden from you.\n"
+            + "- SINCE YOUR LAST DECISION is the engine's log of what happened since you last chose, oldest first; [E<n>] ids "
+            + "can be searched in your archive. REVEALS TO YOU are hidden cards you were shown.\n"
+            + "- KNOWN IN HIDDEN ZONES is what you saw go into an opponent's hidden zone (it is dropped once you see it leave). "
+            + "SPENT THIS TURN states what you have already used (land drop, spells, attackers), so nothing has to be inferred "
+            + "from a missing option.\n"
+            + "- FACTS is the engine's arithmetic (the next combat's damage, the mana they can make at instant speed): "
+            + "estimates, not guarantees.\n"
+            + "- YOUR PLAN, YOUR OPPONENT PROFILE and YOUR CARD INTERACTIONS are notes you wrote yourself earlier, with the turn "
+            + "you wrote them. They are not verified; replace them when they are out of date.\n";
 
     /** Log types narrated. The legacy set plus INFORMATION, which carries public reveal notices
      *  (CostReveal) the legacy filter silently dropped. PHASE and MANA remain noise. */
@@ -859,8 +884,7 @@ final class SeatObservation {
             s.append("== Turn ").append(ph.getTurn()).append(' ').append(ph.getPhase())
              .append(" (active: ").append(active == null ? "?" : active.getName())
              .append(" | priority: ").append(prio == null ? "?" : (prio == viewer ? "you" : prio.getName()))
-             .append(" | observation ").append(VERSION).append(") ==\n");
-            s.append(LEGEND);
+             .append(") ==\n");
 
             s.append("YOU [").append(seatLabel).append("] ").append(playerLine(viewer)).append('\n');
             s.append("  hand(").append(viewer.getCardsIn(ZoneType.Hand).size()).append("): ").append(handList()).append('\n');

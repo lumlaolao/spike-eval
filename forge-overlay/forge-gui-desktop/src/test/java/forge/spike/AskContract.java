@@ -47,7 +47,7 @@ final class AskContract {
     static void checkOne(String test, String p) {
         int d = p.lastIndexOf("DECISION:");
         Assert.assertTrue(d >= 0, test + ": an ask with no DECISION: " + p);
-        Assert.assertTrue(p.contains("== Turn ") && p.contains("observation-faithful-"), test + ": no observation: " + p);
+        Assert.assertTrue(p.contains("== Turn ") && p.contains("| priority: "), test + ": no observation: " + p);
         Assert.assertFalse(CUT_OPTION.matcher(p).find(), test + ": an option is cut short: " + p);
         String decision = p.substring(d);
         Matcher m = BATTLEFIELD_OPTION.matcher(decision);

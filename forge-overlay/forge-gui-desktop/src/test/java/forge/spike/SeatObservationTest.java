@@ -372,7 +372,12 @@ public class SeatObservationTest {
                 "Lightning Bolt", "Chain Lightning", "Fireblast", "Mountain");
         Assert.assertTrue(ra.contains("hand: 2 cards (hidden)"), ra);
         Assert.assertTrue(ra.contains("library 3 (hidden, order unknown)"), ra);
-        Assert.assertTrue(ra.contains(SeatObservation.LEGEND), "legend missing");
+        // v24: how to read the state is said once, in the system prompt, not in every message.
+        Assert.assertFalse(ra.contains("LEGEND:"), "the legend is back in the message");
+        String system = LlmSpikeGui.PlayerControllerLLM.seatFraming("Seat", "GAME PLAN: x", true, true, true);
+        Assert.assertTrue(system.contains(SeatObservation.GUIDE), "the system prompt lost the guide to the state");
+        Assert.assertFalse(system.contains("PRINCIPLES") || system.contains("WORKED EXAMPLES") || system.contains("at most two"),
+                "the faithful system prompt states facts, not coaching (PROMPT-AUDIT.md C1, C2, C5)");
 
         // Every handle the viewer has seen inspects identically in both worlds; no handle reaches a
         // hidden object because hidden objects are never sighted.

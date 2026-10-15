@@ -41,8 +41,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DATA = Path(__file__).resolve().parent / "tooluse"
-DEFAULT_MODEL = "deepseek/deepseek-v4.1-flash"
-ARMS = ("text-strict", "text-lenient", "native")
+DEFAULT_MODEL = "openai/gpt-6-luna"   # owner 2026-10-15: Luna for every game model
+ARMS = ("text-strict", "text-lenient", "native", "native-answer")
 TOOLS_PER_ASK = 2          # ContextMemory.TOOLS_PER_ASK
 PAGE_CHARS = 2000          # ContextMemory.PAGE_CHARS
 SNIPPET = 240              # ContextMemory.snippet
@@ -90,6 +90,18 @@ FORMAT = {
              "anything after it.",
     "fast": "FORMAT: reply with ONLY the final line in EXACTLY the format I request (e.g. `CHOICE: 3`). "
             "NO reasoning, no other text — every extra token slows the game down.",
+}
+# AnswerTool.instructions() and the answer-tool FORMAT lines of LlmSpikeGui.framing() (native-answer arm).
+ANSWER_INSTRUCTIONS = (
+    "ANSWERS: you answer every decision by calling the `answer` function, giving the field that decision "
+    "asks for: `option` (one number from its list), `options` (several numbers), `blocks`, `amounts`, "
+    "`keep`, `number` or `card`. Each decision ends by saying which field it takes and what is legal. Think "
+    "first, then call it once; the call ends the decision. If the values are not legal you are told why and "
+    "may call again once. Set or replace your plan with `set_plan` (a goal and the next steps) at any "
+    "decision, alongside the answer.\n")
+ANSWER_FORMAT = {
+    "smart": "FORMAT: at most two short sentences of reasoning, then call `answer` with your choice.",
+    "fast": "FORMAT: call `answer` at once; no reasoning text — every extra token slows the game down.",
 }
 # ModelCfg row for deepseek: smart = 4000 tokens with medium reasoning, fast = 1024 with reasoning off.
 TIER_CFG = {"smart": {"max_tokens": 4000, "reasoning": {"effort": "medium"}},
@@ -149,6 +161,21 @@ class Seat:
             out += "Historical reveal [M%d]: %s\n" % (i + 1, snippet(self.entries[i]["text"]))
             shown += 1
         return out + "Brief is selective; older evidence remains searchable. Current state takes precedence.\n"
+
+    def native_brief(self):
+        """ContextMemory.beginNative: the archive block first, the decision last (harness-epoch-8)."""
+        out = ("This decision is saved as archive entry M%d. The archive holds %d entries (earlier states, events and "
+               "reveals); search it with memory_search and read an entry with memory_read. Lookups left: %d for this "
+               "decision, 64 this game.\n" % (self.observation_id, len(self.entries), TOOLS_PER_ASK))
+        shown = 0
+        for i in range(len(self.entries) - 1, -1, -1):
+            if shown >= 4:
+                break
+            if self.entries[i]["kind"] != "historical reveal":
+                continue
+            out += "Earlier reveal [M%d]: %s\n" % (i + 1, snippet(self.entries[i]["text"]))
+            shown += 1
+        return "<archive>\n" + out + "</archive>\n\n"
 
     def execute(self, request):
         """One canonical command line -> result text, exactly as ContextMemory.execute decides it."""
@@ -315,11 +342,12 @@ def decision_text(scenario, kind):
     return state + "\n\n" + scenario["decision"]
 
 
-def system_text(tier, native=False):
+def system_text(tier, native=False, answer=False):
     """The parts of LlmSpikeGui.framing() that bear on tools: the seat line, the tool paragraph for
-    the protocol in use, and the tier's FORMAT contract."""
+    the protocol in use, the answer paragraph when decisions are calls, and the tier's FORMAT contract."""
     return ('You are a world-class Magic: The Gathering player piloting "Pilot".\n'
-            + (NATIVE_INSTRUCTIONS if native else MEMORY_INSTRUCTIONS) + FORMAT[tier])
+            + (NATIVE_INSTRUCTIONS if native else MEMORY_INSTRUCTIONS)
+            + (ANSWER_INSTRUCTIONS if answer else "") + (ANSWER_FORMAT if answer else FORMAT)[tier])
 
 
 def run_text(scenario, kind, tier, model, lenient, meta):
@@ -357,7 +385,7 @@ def run_native(scenario, kind, tier, model, tools, meta):
     seat = Seat(scenario, decision)
     offered = [{"type": "function", "function": t["function"]} for t in tools["tools"]
                if t["function"]["name"] not in ENGINE_ONLY]
-    user = decision + "\n" + seat.brief() + "\nTool calls available this ask: %d.\n" % TOOLS_PER_ASK
+    user = seat.native_brief() + decision + "\n"
     messages = [{"role": "system", "content": system_text(tier, native=True)}, {"role": "user", "content": user}]
     calls, usage, used = [], [], 0
     pressed = False
@@ -409,6 +437,109 @@ def run_native(scenario, kind, tier, model, tools, meta):
             pressed, used = True, TOOLS_PER_ASK
             messages.append({"role": "user", "content": PRESS})
     return {"reply": None, "choice": None, "calls": calls, "usage": usage}
+
+
+ANSWER_TOOLS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tooluse", "answer_tools.json")
+
+
+def answer_tool(n=None):
+    """AnswerTool's fixed functions, `answer` and `set_plan`, exactly as the seat is offered them on every
+    decision (AnswerToolTest pins the file to the Java). `n` is unused: the legal values are in the question."""
+    with open(ANSWER_TOOLS) as f:
+        return json.load(f)
+
+
+# AnswerTool.instruction(ONE) and its rephrase of the decision's format line.
+ANSWER_LINE = "ANSWER: call `answer` with `option`: one number from the list. Lookups do not count against the answer.\n"
+ANSWER_TAIL = re.compile(r"(?:Reason briefly, then |Then |Now |[Tt]hen )?(?:end|End|reply|Reply) with (?:EXACTLY|exactly)[^\n]*")
+ANSWER_CALL = "Reason briefly, then call `answer` (`option`: one number from the list)."
+CALL_ANSWER = "No lookups are available for this decision any more. Answer it now by calling `answer`."
+
+
+def run_native_answer(scenario, kind, tier, model, tools, meta):
+    """AnswerTool.converse: the lookups and the decision in one conversation, tool_choice "auto" on
+    every round, the answer a call to `answer` (one invalid call is corrected in place, a second is
+    lost), and a text reply still read, counted as answer_via "text"."""
+    decision = ANSWER_TAIL.sub(ANSWER_CALL, decision_text(scenario, kind))
+    seat = Seat(scenario, decision)
+    n = scenario["n_options"]
+    offered = [{"type": "function", "function": t["function"]} for t in tools["tools"]
+               if t["function"]["name"] not in ENGINE_ONLY] + answer_tool()
+    user = seat.native_brief() + decision + "\n" + ANSWER_LINE
+    messages = [{"role": "system", "content": system_text(tier, native=True, answer=True)}, {"role": "user", "content": user}]
+    calls, usage, used, invalid, pressed = [], [], 0, 0, False
+    for rnd in range(TOOLS_PER_ASK + 3):                    # AnswerTool.MAX_ROUNDS
+        allow = used < TOOLS_PER_ASK and rnd < TOOLS_PER_ASK
+        r = model(messages, offered, dict(meta, tool_choice="auto"))
+        usage.append(r)
+        tcs = r.get("tool_calls") or []
+        if not tcs:
+            reply = r.get("content") or ""
+            if tool_line(reply) is not None or looks_like_call_markup(reply):
+                calls.append({"request": reply, "command": None, "ok": False, "rejected": "protocol",
+                              "result": "ERROR: a tool request must be a function call; no tool executed."})
+                if pressed:
+                    break
+                pressed = True
+                messages.append({"role": "user", "content": CALL_ANSWER})
+                continue
+            return {"reply": reply, "choice": parse_choice(reply), "calls": calls, "usage": usage,
+                    "answer_via": "text", "answer_invalid": invalid}
+        messages.append(r.get("message") or {"role": "assistant", "content": r.get("content"), "tool_calls": tcs})
+        results, refused, answered = [], False, False
+        for tc in tcs:
+            fn = tc.get("function") or {}
+            name, raw = fn.get("name"), fn.get("arguments")
+            if name == "set_plan":                      # AnswerTool.Ask.note: a note, not a lookup or the answer
+                results.append((tc, "Plan recorded. It does not answer the decision: call `answer`."))
+                continue
+            if name == "answer":
+                if answered:
+                    results.append((tc, "ERROR: one answer per decision."))
+                    continue
+                answered = True
+                try:
+                    args = json.loads(raw) if isinstance(raw, str) and raw.strip() else (raw or {})
+                    opt = args.get("option") if isinstance(args, dict) else None
+                except ValueError:
+                    opt = None
+                if isinstance(opt, int) and not isinstance(opt, bool) and 1 <= opt <= n:
+                    return {"reply": r.get("content"), "choice": opt, "calls": calls, "usage": usage,
+                            "answer_via": "tool", "answer_invalid": invalid}
+                invalid += 1
+                if invalid >= 2:
+                    return {"reply": None, "choice": None, "calls": calls, "usage": usage,
+                            "answer_via": "lost", "answer_invalid": invalid}
+                why = ("this decision is answered with `option`" if opt is None
+                       else "option %r is not on the list; the options are 1-%d" % (opt, n))
+                results.append((tc, "ERROR: %s. Nothing was done. Call `answer` again with a legal value." % why))
+                continue
+            command, rejected = None, None
+            if not allow or used >= TOOLS_PER_ASK:
+                result, rejected, refused = BUDGET_ERROR, "budget", True
+            else:
+                try:
+                    args = json.loads(raw) if isinstance(raw, str) and raw.strip() else (raw or {})
+                    command, err = text_command(tools, name, args)
+                except ValueError:
+                    command, err = None, "ERROR: tool arguments are not valid JSON."
+                if err:
+                    result, rejected = err, "protocol"
+                else:
+                    used += 1
+                    result = seat.execute(command)
+                    rejected = None if not result.startswith("ERROR") else "argument"
+            calls.append({"request": {"name": name, "arguments": raw}, "command": command, "result": result,
+                          "ok": rejected is None, "rejected": rejected})
+            results.append((tc, result))
+        for tc, result in results:
+            messages.append({"role": "tool", "tool_call_id": tc.get("id"), "content": result})
+        if refused and not answered:
+            if pressed:
+                break
+            pressed = True
+            messages.append({"role": "user", "content": CALL_ANSWER})
+    return {"reply": None, "choice": None, "calls": calls, "usage": usage, "answer_via": None, "answer_invalid": invalid}
 
 
 def fact_returned(scenario, calls):
@@ -519,7 +650,11 @@ def policy_model(policy):
                 return {"content": None, "tool_calls": [{"id": "c%d" % seen, "type": "function",
                                                          "function": {"name": name, "arguments": json.dumps(args)}}]}
             return {"content": text_command(meta["tools"], name, args)[0]}
-        return {"content": "CHOICE: %d" % (s["answer"][0] if policy == "oracle" else 1)}
+        pick = s["answer"][0] if policy == "oracle" else 1
+        if native and any(t["function"]["name"] == "answer" for t in tools):
+            return {"content": None, "tool_calls": [{"id": "a%d" % seen, "type": "function", "function": {
+                "name": "answer", "arguments": json.dumps({"option": pick})}}]}
+        return {"content": "CHOICE: %d" % pick}
     return call
 
 
@@ -534,12 +669,16 @@ def run_all(model, tools, scen, arms, tiers, trials, workers, log=None):
         meta = {"tier": tier, "scenario": s, "kind": kind, "tools": tools}
         if arm == "native":
             res = run_native(s, kind, tier, model, tools, meta)
+        elif arm == "native-answer":
+            res = run_native_answer(s, kind, tier, model, tools, meta)
         else:
             res = run_text(s, kind, tier, model, arm == "text-lenient", meta)
         row = {"t": "tooluse", "arm": arm, "tier": tier, "instance": iid, "kind": kind, "cls": s["cls"], "trial": t,
                "choice": res["choice"], "reply": res["reply"], "calls": res["calls"],
                "errors": [u["error"] for u in res["usage"] if u.get("error")],
                "served": next((u.get("served") for u in res["usage"] if u.get("served")), None)}
+        if "answer_via" in res:
+            row.update(answer_via=res["answer_via"], answer_invalid=res["answer_invalid"])
         row.update(score(s, kind, res))
         return row
 
@@ -586,6 +725,9 @@ def summarise(rows, scen):
                  "ceiling_n": len(twin), "ceiling": sum(1 for r in twin if r["correct"]),
                  "model_calls": sum(r["model_calls"] for r in rs),
                  "completion_tokens": sum(r["completion_tokens"] for r in rs),
+                 # native-answer only: how the decision came back, and the invalid answers corrected.
+                 "answered_via_tool": sum(1 for r in rs if r.get("answer_via") == "tool"),
+                 "answer_invalid": sum(r.get("answer_invalid") or 0 for r in rs),
                  "by_class": {}}
             for cls in sorted(set(r["cls"] for r in n)):
                 c = [r for r in n if r["cls"] == cls]
@@ -608,6 +750,10 @@ def print_summary(summary):
             pct(a["restraint"], a["restraint_n"]), pct(a["ceiling"], a["ceiling_n"]), a["model_calls"],
             "  (%d transport errors)" % a["transport_errors"] if a["transport_errors"] else ""))
     print("rejected = protocol refusals + argument/budget errors, out of all tool attempts in the arm.")
+    for a in summary["arms"]:
+        if a["arm"] == "native-answer":
+            print("  native-answer/%s: answered by the tool %s, invalid answers corrected %d (text arms: 0 by construction)"
+                  % (a["tier"], pct(a["answered_via_tool"], a["asks"]), a["answer_invalid"]))
     for a in summary["arms"]:
         print("  %s/%s by class: %s" % (a["arm"], a["tier"], "  ".join(
             "%s reach %d/%d correct %d/%d" % (k, v["reach"], v["n"], v["correct"], v["n"]) for k, v in a["by_class"].items())))
