@@ -1733,6 +1733,37 @@ public class LlmSpikeTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** Issue #109: an exile cost that can take cards from more than one zone printed the Java list,
+     *  "from your [graveyard, hand]". The zones are joined in words. */
+    @Test
+    public void aMultiZoneExileCostNamesItsZonesInWords() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        Card host = addBattlefieldCard("Forest", me);
+        addGraveCard("Griselbrand", me);
+        addGraveCard("Thoughtseize", me);
+        addHandCard("Ponder", me);
+        forge.game.spellability.SpellAbility sa = forge.game.ability.AbilityFactory.getAbility(
+                "AB$ GainLife | Cost$ T | LifeAmount$ 1 | SpellDescription$ test.", host);
+        sa.setActivatingPlayer(me);
+        FixedReplyBridge bridge = new FixedReplyBridge("PICKS: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+        me.dangerouslySetController(ctrl);
+        forge.game.cost.CostExile exile = new forge.game.cost.CostExile("1", "Card", null,
+                Lists.newArrayList(ZoneType.Graveyard, ZoneType.Hand));
+
+        forge.game.cost.PaymentDecision d = new LlmCostDecision(me, sa, false).visit(exile);
+        Assert.assertNotNull(d);
+        Assert.assertEquals(bridge.prompts.size(), 1, "the exile was not asked");
+        String q = bridge.prompts.get(0);
+        Assert.assertTrue(q.contains("from your graveyard or hand."), q);
+        Assert.assertFalse(q.contains("[graveyard"), q);
+        Assert.assertEquals(LlmCostDecision.zonesInWords(Lists.newArrayList(ZoneType.Graveyard, ZoneType.Hand,
+                ZoneType.Library)), "graveyard, hand or library");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
     /** A tap-type cost (Glare of Subdual: "Tap an untapped creature you control") was paid by Forge's AI,
      *  lowest power first, with no row, so the AI chose which creature stayed up to attack or block.
      *  The real play path pays with LlmCostDecision (playChosenSpellAbility), so the pick must be the

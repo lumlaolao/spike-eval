@@ -1,6 +1,7 @@
 package forge.spike;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
@@ -135,8 +136,7 @@ final class LlmCostDecision extends AiCostDecision {
             typeList = ComputerUtilCost.paymentChoicesWithoutTargets(typeList, ability, player);
             if (amount <= 0 || typeList.size() <= amount) return super.visit(cost); // nothing to choose
 
-            String from = (cost.zoneRestriction == 1 ? "your " : "any player's ") + (cost.getFrom().size() == 1
-                    ? cost.getFrom().get(0).name().toLowerCase() : String.valueOf(cost.getFrom()).toLowerCase());
+            String from = (cost.zoneRestriction == 1 ? "your " : "any player's ") + zonesInWords(cost.getFrom());
             CardCollectionView pick = ask(typeList, amount, "exile", "COST: to pay for " + source.getName()
                     + " you must EXILE " + amount + " of these cards from " + from
                     + ". They leave now, as the cost is paid. Choose which");
@@ -146,6 +146,17 @@ final class LlmCostDecision extends AiCostDecision {
             fellBack("exile-cost", e.getClass().getSimpleName());
         }
         return super.visit(cost);
+    }
+
+    /** The zones a cost takes cards from, in words: "graveyard", "graveyard or hand", "graveyard,
+     *  hand or library" (issue #109: the Java list "[graveyard, hand]" was printed). */
+    static String zonesInWords(List<ZoneType> zones) {
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < zones.size(); i++) {
+            if (i > 0) b.append(i == zones.size() - 1 ? " or " : ", ");
+            b.append(zones.get(i).name().toLowerCase());
+        }
+        return b.toString();
     }
 
     /** Which cards a discard cost discards (Survival of the Fittest: "Discard a creature card").
