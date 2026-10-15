@@ -22,7 +22,7 @@
 #              real OpenRouter transport + parsing, memory tool round trips, one forced request timeout, no
 #              Authorization header on the wire, analyzer gates, provenance stamped as loopback
 #   faithful   the same loopback game under CONTEXT_PROFILE=v4-faithful: viewer-aware renderer in a real game,
-#              legend in every prompt, menu options and state sharing seat handles, no legacy engine-id leak
+#              no per-message legend (v24), menu options and state sharing seat handles, no legacy engine-id leak
 #   nativetool a loopback game on the STANDARD tool protocol (native function calling, on by default):
 #              tools sent as function definitions, real tool-call turns served through the same executor
 #              and budget, the text grammar never sent. faketool/faithful/rules pin NATIVE_TOOLS=0: they
@@ -497,7 +497,7 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 else:
     if game.get("native_tools") is not True: problems.append("native_tools=%r not stamped"%game.get("native_tools"))
-    if game.get("native_tools_version")!="seat-tools-v7": problems.append("native_tools_version=%r (expected seat-tools-v7; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
+    if game.get("native_tools_version")!="seat-tools-v8": problems.append("native_tools_version=%r (expected seat-tools-v8; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
     if game.get("memory_tools_version")!="evidence-tools-v2": problems.append("memory_tools_version=%r (expected evidence-tools-v2; move this pin WITH ContextMemory.VERSION)"%game.get("memory_tools_version"))
     if game.get("lookahead_version")!="lookahead-preview-v4" or game.get("lookahead") is not True: problems.append("lookahead=%r lookahead_version=%r (expected True, lookahead-preview-v4; move this pin WITH PlayerLookahead.VERSION)"%(game.get("lookahead"),game.get("lookahead_version")))
     if game.get("native_tools_seats")!="A/smart,A/fast": problems.append("native_tools_seats=%r"%game.get("native_tools_seats"))
@@ -647,7 +647,7 @@ else:
     if game.get("answer_tool") is not True: problems.append("answer_tool=%r not stamped"%game.get("answer_tool"))
     if game.get("answer_tool_version")!="answer-tool-v2": problems.append("answer_tool_version=%r (move this pin WITH AnswerTool.VERSION)"%game.get("answer_tool_version"))
     if game.get("answer_tool_seats")!="A/smart,A/fast": problems.append("answer_tool_seats=%r"%game.get("answer_tool_seats"))
-    if game.get("harness_epoch")!="harness-epoch-7": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-8": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
 dec=[r for r in rows if r.get("t")=="decision"]
 model=[r for r in dec if r.get("tier") in ("smart","fast")]
 via=collections.Counter(r.get("answer_via") for r in model)
@@ -692,7 +692,7 @@ fi
 
 # ---------------------------------------------------------------- faithful
 # The same loopback game under CONTEXT_PROFILE=v4-faithful: proves the viewer-aware renderer runs in a
-# real game (not only in fixtures), that every prompt is self-describing (legend), that menu options and
+# real game (not only in fixtures), that no prompt repeats the legend (v24: said once in the system prompt), that menu options and
 # state share seat-local handles, that no legacy engine-id reference leaks, and that provenance stamps
 # the faithful profile, all under the unchanged analyzer gates.
 if has_stage faithful; then
@@ -730,7 +730,7 @@ if game is None: problems.append("no game row")
 else:
     if game.get("context_profile")!="v4-faithful": problems.append("context_profile=%s"%game.get("context_profile"))
     if game.get("memory_tools") is not True: problems.append("memory_tools not stamped")
-    if game.get("harness_epoch")!="harness-epoch-7": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-8": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
     facts.append("winner=%s turns=%s context_sha=%s"%(game.get("winner"),game.get("turns"),game.get("context_sha")))
 if ai_rows: problems.append("%d tier=ai rows"%ai_rows)
 if model_rows<5: problems.append("only %d model-tier rows"%model_rows)
@@ -740,9 +740,9 @@ mull=0; rules_leak=0
 for r in calls:
     p=r.get("prompt") or ""
     # The mulligan ask shows only the opening hand (no board exists yet); it carries no observation.
-    if "KEEP" in p and "MULLIGAN" in p and "DECISION:" not in p: mull+=1; observed+=1; legend+=1; continue
-    if "observation-faithful-v23" in p: observed+=1
-    if "LEGEND: @N" in p: legend+=1
+    if "KEEP" in p and "MULLIGAN" in p and "DECISION:" not in p: mull+=1; observed+=1; continue
+    if "| priority: " in p: observed+=1   # the faithful header (v24 no longer prints its version)
+    if "LEGEND: @N" in p: legend+=1   # v24: the legend is said once, in the system prompt, never per message
     handles+=len(re.findall(r" @\d+", p))
     legacy+=len(re.findall(r"[A-Za-z\]]@\d+", p))          # the legacy candidateLabel form: Name[...]@id
     menu_handles+=len(re.findall(r"\n\s+\d+\) (?:CAST|PLAY LAND) [^\n]*@\d+", p))
@@ -753,7 +753,7 @@ if observed<len(calls): problems.append("%d/%d prompts lack the faithful observa
 # docs/STANDARDS.md section 8: no option a faithful ask offers is cut short.
 cut=sum(len(re.findall(r"(?m)^\s+\d+\) [^\n]*\.\.\.\]?$", r.get("prompt") or "")) for r in calls)
 if cut: problems.append("%d menu options cut short (ending in ...) in faithful prompts"%cut)
-if legend<len(calls): problems.append("%d/%d prompts lack the legend"%(len(calls)-legend,len(calls)))
+if legend: problems.append("%d/%d prompts repeat the legend (v24 says it once, in the system prompt)"%(legend,len(calls)))
 if handles<20: problems.append("only %d seat handles across all prompts"%handles)
 if legacy: problems.append("%d legacy engine-id references (Name@id) leaked into faithful prompts"%legacy)
 if menu_handles<3: problems.append("menu options carrying handles: %d (<3)"%menu_handles)
@@ -761,7 +761,7 @@ if rules_leak: problems.append("%d faithful prompts advertised RULES TOOL withou
 ok_tools=[x for x in tools if not str(x.get("result","")).startswith("ERROR")]
 if len(ok_tools)<2: problems.append("successful tool rows %d (<2)"%len(ok_tools))
 log=open(d+"/game.log",errors="replace").read()
-if "[OBSERVATION] observation-faithful-v23" not in log: problems.append("observer never announced itself in the log")
+if "[OBSERVATION] observation-faithful-v24" not in log: problems.append("observer never announced itself in the log")
 if "state unavailable" in log or "state unavailable" in "".join((r.get("prompt") or "") for r in calls): problems.append("renderer threw (state unavailable)")
 if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] present")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)

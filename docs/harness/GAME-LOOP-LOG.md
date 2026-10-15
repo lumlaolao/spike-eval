@@ -352,3 +352,16 @@ provider stall on attackers); analyzer PASS.
   the seat's own YIELD (33 end-of-turn, 5 my-next-turn); three mana-sources asks; no harness-guessed pass.
 - FIXED  the sheet called a last-sig repeat a SKIP: T6 upkeep, Rift Bolt's suspend trigger offered the
   identical spot (stack, board, menu) the seat had just passed on. It is now counted as a repeat.
+
+### game of 2026-10-15  seed 81  Sneak and Show (GPT-6 Luna) vs UR Delver (Forge AI)  lost T9  $0.011  harness-epoch-7
+
+First game with the answer tool (`answer-tool-v2`) and prompt caching, on the new default game model.
+
+- Harness: 20 of 20 model decisions came back as `answer` calls, 0 illegal calls, 0 taken, lost or
+  skipped, 0 Forge-AI decisions. The plan was set through `set_plan` 7 times and followed the game
+  (replanned after the counter). 70% of prompt tokens were read from the provider's cache. No lookups
+  were made.
+- The game: Show and Tell on turn 6 was countered by Force of Will. Delver and Lightning Bolts won
+  on turn 9. A fair loss; nothing for the harness to fix.
+- OPEN  Luna writes no visible text beside its calls, so `raw_reply` holds only the rendered
+  answer. Its reasoning is not recorded anywhere, which makes misplays hard to read.

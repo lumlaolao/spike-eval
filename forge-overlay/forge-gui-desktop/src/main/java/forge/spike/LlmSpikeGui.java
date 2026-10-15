@@ -173,8 +173,12 @@ public final class LlmSpikeGui {
      *  the mana line says its colours over-count; call markup past the budget is recorded as exhausted.
      *  Epoch 7: on a backend with function calling every decision is answered by calling `answer`
      *  (AnswerTool, ANSWER_TOOL=0 opts out) and the plan, cast list, opponent read and card-lines note are
-     *  tool arguments, not lines. */
-    static final String HARNESS_EPOCH = "harness-epoch-7";
+     *  tool arguments, not lines.
+     *  Epoch 8: under the faithful profile the system prompt is rewritten from the prompt audit (the deck,
+     *  how the interface works, how to read the state, Legacy terms; no coaching, no reasoning cap, no
+     *  worked examples), the state legend is said once there instead of in every message (observation
+     *  v24), and the decision text is the last thing in each message. */
+    static final String HARNESS_EPOCH = "harness-epoch-8";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -1272,6 +1276,7 @@ public final class LlmSpikeGui {
         /** {@code answerTool}: decisions are answered by calling `answer` (AnswerTool), so the format rules
          *  and the answer contract describe the call, not a final line. */
         static String framing(String seat, String plan, boolean terse, boolean nativeTools, boolean coaching, boolean answerTool) {
+            if (profile().faithfulObservation) return seatFraming(seat, plan, nativeTools, coaching, answerTool);
             // Under the faithful profile the fast tier is not told "NO reasoning": every decision text
             // asks it to reason briefly, and 72% of its replies in runs/loop g01-g07 reasoned anyway.
             String format = terse && !profile().faithfulObservation
@@ -1307,6 +1312,63 @@ public final class LlmSpikeGui {
             // NO_COACHING leaves it out with PRINCIPLES.
             return terse || !coaching ? base : base + "\n\n" + (answerTool ? toolReference() : STATIC_REFERENCE);
         }
+        /**
+         * The system prompt under the faithful profile (harness-epoch-8, docs/harness/PROMPT-AUDIT.md): the
+         * deck, how the interface works, how to read the state, and a reference of Legacy terms. Facts
+         * only: no advice on how to play (the old PRINCIPLES), no cap on reasoning, no worked examples, and
+         * no text answer contract when decisions are answered by the `answer` tool. Every part is fixed for
+         * the game, so the whole prompt caches.
+         */
+        static String seatFraming(String seat, String plan, boolean nativeTools, boolean coaching, boolean answerTool) {
+            String tools = MEMORY_TOOLS ? (nativeTools ? NativeTools.instructions() : ContextMemory.instructions())
+                    : "You have no lookup tools: everything you need is in the message.\n";
+            String answers = answerTool ? AnswerTool.instructions() : TEXT_ANSWERS;
+            return "You are playing Magic: The Gathering, Legacy format, as the player \"" + seat + "\" against one "
+                    + "opponent. Your goal is to win the game.\n\n"
+                    // PLAN_A=""/PLAN_B="" (and DECKLIST=0) give an arm with no deck information.
+                    + (plan == null || plan.isEmpty() ? "" : "<your_deck>\n" + plan.trim() + "\n</your_deck>\n\n")
+                    + "<how_this_works>\n"
+                    + "The Forge rules engine runs the game and asks you whenever you have a decision. Each message holds "
+                    + "the current state of the game, then one decision and its options. The engine has already checked "
+                    + "the rules: every option listed is legal, so choose on what is best for winning. The state in the "
+                    + "newest message is current; earlier messages describe the past.\n"
+                    + tools + answers
+                    + "</how_this_works>\n\n"
+                    + "<reading_the_state>\n" + SeatObservation.GUIDE + "</reading_the_state>\n"
+                    + (coaching ? "\n<legacy_reference>\n" + LEGACY_REFERENCE + "</legacy_reference>\n" : "");
+        }
+        /** How a decision is answered when it is answered in text (ANSWER_TOOL=0, or a backend without
+         *  function calling). */
+        static final String TEXT_ANSWERS =
+                "Answer each decision on its own last line, in the form the decision asks for: `CHOICE: <number>` for "
+              + "one option, `PICKS: <numbers>` for several (`PICKS: NONE` for none), `BLOCKS: <blocker>-><attacker>, "
+              + "...` (or `BLOCKS: NONE`), `KEEP` or `MULLIGAN`, `NUMBER: <n>` or `CARD: <name>`. The harness reads only "
+              + "that last line. If it cannot read it, it asks once more; after that it takes the decline or pass "
+              + "option.\n";
+        /** Terms and the archetypes of the eval pool: what they are, not how to play against them. */
+        static final String LEGACY_REFERENCE =
+                "Terms: tempo (mana efficiency and board presence); card advantage (more resources than the opponent); "
+              + "cantrip (a cheap spell that replaces itself, such as Brainstorm, Ponder or Preordain); combo (a specific "
+              + "set of cards that wins outside combat); prison or lock (denying the opponent resources).\n"
+              + "Keywords: storm (the spell is copied once for each spell cast before it this turn); delve (exile cards "
+              + "from your graveyard to pay generic mana); infect (damage to creatures as -1/-1 counters and to players "
+              + "as poison counters; 10 poison loses); energy (a counter resource); reanimation (putting a creature from "
+              + "a graveyard onto the battlefield, as with Animate Dead or Reanimate); miracle (cast a card for a cheaper "
+              + "cost the turn you draw it). Cascade, prowess, flash, flying, trample, deathtouch, lifelink, hexproof "
+              + "and shroud work as printed.\n"
+              + "Archetypes in this pool:\n"
+              + "- ANT / Storm: fast mana and rituals into Ad Nauseam and a lethal storm count.\n"
+              + "- Burn: cheap creatures (Goblin Guide, Monastery Swiftspear) and direct damage.\n"
+              + "- Death & Taxes: small disruptive creatures (Thalia, Mother of Runes) with Wasteland and Rishadan Port.\n"
+              + "- Elves: mana creatures that build to an overrun such as Craterhoof Behemoth.\n"
+              + "- Goblins: Goblin Lackey and Goblin Ringleader; a wide tribal board.\n"
+              + "- Grixis Reanimator: discard a large creature (Atraxa, Archon) and reanimate it early.\n"
+              + "- Infect: Glistener Elf and Blighted Agent with pump spells.\n"
+              + "- Lands: Wasteland, Rishadan Port and The Tabernacle at Pendrell Vale, winning with Marit Lage.\n"
+              + "- Mardu Energy: aggressive creatures with energy payoffs.\n"
+              + "- Miracles: Brainstorm and Ponder setting up Terminus and Entreat the Angels; control.\n"
+              + "- Sneak & Show: Show and Tell or Sneak Attack putting a huge creature such as Emrakul into play.\n"
+              + "- UR Delver: Delver of Secrets with cantrips, burn and counterspells; tempo.\n";
         /** {@link #STATIC_REFERENCE} with its answer contract describing the `answer` call. */
         static String toolReference() {
             int a = STATIC_REFERENCE.indexOf("=== ANSWER CONTRACT"), b = STATIC_REFERENCE.indexOf("=== WORKED EXAMPLES");
@@ -6037,7 +6099,7 @@ public final class LlmSpikeGui {
                     + ". This is a " + size + "-card hand with " + lands + " land(s): " + handNames
                     + ". If you MULLIGAN you will look at a NEW hand of only " + Math.max(0, size - 1)
                     + " cards (each mulligan costs you a card), and you can never go below 5. If you KEEP you play this "
-                    + size + "-card hand as-is. Keeping a workable hand almost always beats shrinking it. "
+                    + size + "-card hand as-is. " + (neutral ? "" : "Keeping a workable hand almost always beats shrinking it. ")
                     + (neutral ? "" : "For a combo deck, a hand with your enablers + a payoff is a KEEP even on few lands; only ship a hand "
                     + "that genuinely cannot function. ") + "Keep or mulligan? End with EXACTLY one word: KEEP or MULLIGAN.";
         }
@@ -6058,30 +6120,43 @@ public final class LlmSpikeGui {
             if (!lookaheadEnabled() || legal == null || legal.isEmpty() || defender == null) return "";
             try {
                 int dmg = ComputerUtilCombat.sumDamageIfUnblocked(legal, defender);
-                StringBuilder evasive = new StringBuilder();
+                // Which of the defender's creatures that can block now could block each attacker (#166: the old
+                // line asked CombatUtil.canBeBlocked, i.e. "can this be blocked at all", and told the seat a
+                // flying Emrakul "can be blocked" when the only untapped creature could not block a flyer).
+                List<Card> blockers = new ArrayList<>();
+                for (Card b : defender.getCreaturesInPlay()) {
+                    try { if (CombatUtil.canBlock(b, combat)) blockers.add(b); } catch (Exception ignore) { }
+                }
+                StringBuilder unblockable = new StringBuilder(), blockable = new StringBuilder();
                 for (Card c : legal) {
                     try {
-                        if (!CombatUtil.canBeBlocked(c, combat, defender)) {
-                            if (evasive.length() > 0) evasive.append(", ");
-                            evasive.append(c.getName()).append(" (").append(ComputerUtilCombat.damageIfUnblocked(c, defender, combat, false)).append(')');
+                        StringBuilder by = new StringBuilder();
+                        if (CombatUtil.canBeBlocked(c, combat, defender))
+                            for (Card b : blockers)
+                                if (CombatUtil.canBlock(c, b, combat)) by.append(by.length() == 0 ? "" : ", ").append(b.getName());
+                        if (by.length() == 0) {
+                            unblockable.append(unblockable.length() == 0 ? "" : ", ").append(c.getName()).append(" (")
+                                    .append(ComputerUtilCombat.damageIfUnblocked(c, defender, combat, false)).append(')');
+                        } else {
+                            blockable.append(blockable.length() == 0 ? "" : "; ").append(c.getName()).append(" by ").append(by);
                         }
                     } catch (Exception ignore) { }
                 }
                 return " OUTLOOK (engine, all unblocked): " + dmg + " damage."
-                        + (evasive.length() > 0 ? " Cannot be blocked: " + evasive + "." : " Every attacker can be blocked.");
+                        + (unblockable.length() > 0 ? " None of their creatures that can block now could block: " + unblockable + "." : "")
+                        + (blockable.length() > 0 ? " Could be blocked: " + blockable + "." : "");
             } catch (Exception e) { return ""; }
         }
 
         /** Adds the optional combat outlook to the shared attackers question. */
         static String buildAttackersQuestion(String defenderName, int oppLife, int oppPoison, boolean anyInfect, String outlook) {
             int poisonNeeded = Math.max(0, 10 - oppPoison);
-            String lethalHint = "COUNT LETHAL: opp life " + oppLife + ", poison " + oppPoison + "/10 -- lethal needs "
-                    + oppLife + " dmg OR " + poisonNeeded + " poison"
-                    + (anyInfect ? " (infect attackers deal poison, not life loss)" : "")
-                    + ". If your unblocked/unstoppable damage meets either number, attack with everything needed and WIN NOW.";
-            return "COMBAT — declare attackers vs " + defenderName + " (life " + oppLife
-                    + "). Pick which creatures attack (attacking with 0 is legal and sometimes correct — "
-                    + "weigh their untapped mana and possible blocks). " + lethalHint
+            // Facts only (harness-epoch-8, PROMPT-AUDIT.md C3): what lethal is, not what to do about it.
+            String lethalHint = "LETHAL: they are at " + oppLife + " life and " + oppPoison + "/10 poison, so " + oppLife
+                    + " damage or " + poisonNeeded + " poison wins"
+                    + (anyInfect ? " (infect attackers deal poison, not life loss)" : "") + ".";
+            return "COMBAT: declare attackers against " + defenderName + " (life " + oppLife
+                    + "). Choose which creatures attack; you may attack with none. " + lethalHint
                     + (outlook == null ? "" : outlook);
         }
 

@@ -162,6 +162,21 @@ class Seat:
             shown += 1
         return out + "Brief is selective; older evidence remains searchable. Current state takes precedence.\n"
 
+    def native_brief(self):
+        """ContextMemory.beginNative: the archive block first, the decision last (harness-epoch-8)."""
+        out = ("This decision is saved as archive entry M%d. The archive holds %d entries (earlier states, events and "
+               "reveals); search it with memory_search and read an entry with memory_read. Lookups left: %d for this "
+               "decision, 64 this game.\n" % (self.observation_id, len(self.entries), TOOLS_PER_ASK))
+        shown = 0
+        for i in range(len(self.entries) - 1, -1, -1):
+            if shown >= 4:
+                break
+            if self.entries[i]["kind"] != "historical reveal":
+                continue
+            out += "Earlier reveal [M%d]: %s\n" % (i + 1, snippet(self.entries[i]["text"]))
+            shown += 1
+        return "<archive>\n" + out + "</archive>\n\n"
+
     def execute(self, request):
         """One canonical command line -> result text, exactly as ContextMemory.execute decides it."""
         if request is None or len(request) > 1000 or "\n" in request or "\r" in request:
@@ -370,7 +385,7 @@ def run_native(scenario, kind, tier, model, tools, meta):
     seat = Seat(scenario, decision)
     offered = [{"type": "function", "function": t["function"]} for t in tools["tools"]
                if t["function"]["name"] not in ENGINE_ONLY]
-    user = decision + "\n" + seat.brief() + "\nTool calls available this ask: %d.\n" % TOOLS_PER_ASK
+    user = seat.native_brief() + decision + "\n"
     messages = [{"role": "system", "content": system_text(tier, native=True)}, {"role": "user", "content": user}]
     calls, usage, used = [], [], 0
     pressed = False
@@ -450,7 +465,7 @@ def run_native_answer(scenario, kind, tier, model, tools, meta):
     n = scenario["n_options"]
     offered = [{"type": "function", "function": t["function"]} for t in tools["tools"]
                if t["function"]["name"] not in ENGINE_ONLY] + answer_tool()
-    user = decision + "\n" + seat.brief() + "\nTool calls available this ask: %d.\n" % TOOLS_PER_ASK + ANSWER_LINE
+    user = seat.native_brief() + decision + "\n" + ANSWER_LINE
     messages = [{"role": "system", "content": system_text(tier, native=True, answer=True)}, {"role": "user", "content": user}]
     calls, usage, used, invalid, pressed = [], [], 0, 0, False
     for rnd in range(TOOLS_PER_ASK + 3):                    # AnswerTool.MAX_ROUNDS

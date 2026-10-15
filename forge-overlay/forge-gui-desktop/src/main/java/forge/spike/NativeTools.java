@@ -34,9 +34,11 @@ final class NativeTools {
      *  v6 (2026-10-15): `report_unclear_decision`, the seat saying a question is broken.
      *  v7 (2026-10-15): the decision itself is answered by a call ({@link AnswerTool}: `answer`, built per
      *  decision from its legal values, and `set_plan`); the lookups above are unchanged and share its
-     *  conversation. The per-decision `answer` is not in eval/tooluse/tools.json: the suite's
-     *  native-answer arm builds it from each scenario's options, as the seat does. */
-    static final String VERSION = "seat-tools-v7";
+     *  conversation. `answer` and `set_plan` are fixed (AnswerTool v2) and mirrored in
+     *  eval/tooluse/answer_tools.json; on a lookahead seat `simulate` is declared on every ask.
+     *  v8 (2026-10-15): the memory and rules descriptions say what each tool is for, when to use it and
+     *  when not (docs/harness/PROMPT-AUDIT.md G1). */
+    static final String VERSION = "seat-tools-v8";
     static final String SIMULATE = "simulate";
     /** The refusal of a preview on a decision with no play menu (the tool is declared on every ask). */
     static final String NO_PREVIEW = "ERROR: `simulate` previews an option of a play decision (your priority menu); "
@@ -161,23 +163,31 @@ final class NativeTools {
                 props("target", prop("string", "An object handle such as \"@41\", or an exact card name.", null, null)),
                 "target"));
         a.add(fn("memory_search",
-                "Literal, case-insensitive text search over this seat's archived observations and reveals. Returns "
-                + "up to 10 snippets per page with their evidence ids. Historical observations are NOT current "
-                + "state. Cannot query hidden state.",
+                "Search your archive: every earlier state you were shown, the events since each, and every hidden card "
+                + "you were revealed, in this game. The search is literal and case-insensitive, and returns up to 10 "
+                + "snippets per page, each with its evidence id [M<n>]; read one in full with memory_read. Use it when a "
+                + "decision turns on something from earlier that the current message does not show, such as a card "
+                + "you saw in their hand, what they cast on an earlier turn, or an event id. Do not use it for the "
+                + "current state, which is in the message, or for anything hidden you were never shown: archived "
+                + "entries are the past, not the present.",
                 props("query", prop("string", "Literal text to find, e.g. a card name or an event id like \"[E80]\".", null, null),
                       "offset", prop("integer", "Result offset for paging; 0 for the first page.", 0, null)),
                 "query"));
         a.add(fn("memory_read",
-                "Read one archived evidence entry in full (2000 characters per page). Use it when a snippet ends "
-                + "with \"[READ for full text]\". Historical observations are NOT current state.",
+                "Read one archive entry [M<n>] in full, 2000 characters per page. Use it after memory_search when a "
+                + "snippet ends with \"[READ for full text]\", or to see a whole earlier state you know the id of. The "
+                + "reply ends with next=<offset> when there is more; pass that offset to read on. An entry describes "
+                + "the game as it was then, not as it is now.",
                 props("evidence_id", prop("integer", "The n of an [M<n>] evidence id.", 1, null),
                       "offset", prop("integer", "Character offset; 0 for the start.", 0, null)),
                 "evidence_id"));
         a.add(fn("memory_note",
-                "Save a hypothesis or plan to your notebook, citing the evidence entry it rests on. Notes are YOUR "
-                + "unverified hypotheses, never engine facts; they are shown back to you on later decisions.",
+                "Write a note in your notebook, citing the archive entry it rests on: a read of the opponent's hand, a "
+                + "card they are likely holding, a plan for a later turn. The latest notes are shown back to you on "
+                + "later decisions. Notes are your own unverified hypotheses, never engine facts. Use set_plan, not a "
+                + "note, for your plan for this turn.",
                 props("evidence_id", prop("integer", "The observation or reveal [M<n>] the note cites.", 1, null),
-                      "note", prop("string", null, null, 500)),
+                      "note", prop("string", "The note, at most 500 characters.", null, 500)),
                 "evidence_id", "note"));
         if (rules) {
             JsonObject action = prop("string", "search: find rules by words. read: one rule in full (query = its number, "
@@ -187,8 +197,11 @@ final class NativeTools {
             for (String s : RULES_ACTIONS) actions.add(s);
             action.add("enum", actions);
             a.add(fn("rules_lookup",
-                "Look up the official Magic Comprehensive Rules. Replies are bounded pages with a next= offset. "
-                + "Returns public reference text, not evidence about this game.",
+                "Look up the official Magic: The Gathering Comprehensive Rules: search them by words, read one rule by "
+                + "number, get a digest of a section, define a glossary term, or list the chapters. Use it when a "
+                + "decision turns on an exact rule you are unsure of, such as layers, the timing of a trigger, or how "
+                + "a keyword works. It returns public reference text, not facts about this game; a card's own text is "
+                + "in the message or from inspect. Replies are pages; pass the next= offset to read on.",
                 props("action", action,
                       "query", prop("string", "Words, a rule or section number, or a glossary word; omit for toc.", null, null),
                       "offset", prop("integer", "Page offset from a previous reply's next=; 0 for the first page.", 0, null)),
