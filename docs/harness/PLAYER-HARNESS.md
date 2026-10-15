@@ -354,6 +354,16 @@ undid the Ponder order). Under the faithful profile:
 
 Tests: `PromptFidelityTest.theTargetAskCarriesTheReasonForThePlay`, `cancellingAtTheTargetStepAsksTheMenuAgain`.
 
+**2026-10-15 — X, modes, then targets, all the seat's (`observation-faithful-v17`).** The AI cast
+path never announces X (`PlaySpellAbility.announceValuesLikeX` is the human path), so the engine paid
+whatever X the ability held: Green Sun's Zenith resolved at X=1..3 in recorded games with no question.
+The play loop now asks X (from XMin up to the most the engine says it can pay), then a modal spell's
+modes, then targets, the order of CR 601.2b-c. Modes used to be chosen at cast, after targeting, so a
+targeted mode never got a target (Kozilek's Command "failed to target" 26 times in recorded logs).
+`announceRequirements` (Mind's Aglow, life bids) is the model's too (ledger row `model`). Option
+labels are no longer cut at 160 characters. Tests: `xIsTheSeatsChoiceUpToWhatItCanPay`,
+`everyChosenModeOfAModalSpellIsTargeted`.
+
 ### Tool protocol: `evidence-tools-v2` and native function calling (2026-10-13)
 
 `eval/tool_audit.py` over the three controlled arms (`runs/lines/ctl`, 48 games, 2,994 model calls)
