@@ -60,7 +60,7 @@ public class GoldenChecksTest {
             "color-colorless", "some-type", "protection", "card-name",
             // 2026-10-15: choices Forge's AI made outright until then (work plan priority 0, A).
             "pile", "opening-hand", "colors", "counter-type", "destroy", "keyword", "spell-for-effect", "clash",
-            "confirm-static", "card-face", "keyword-cost", "cost-reduction", "discard-unless"));
+            "confirm-static", "card-face", "keyword-cost", "cost-reduction", "discard-unless", "convoke", "new-targets"));
 
     /** Types a model answered in this class (tier smart or fast), across every test. */
     static final Set<String> ANSWERED = Collections.synchronizedSet(new TreeSet<>());
@@ -578,6 +578,20 @@ public class GoldenChecksTest {
         sourceName = "Force Spike"; sourceText = spike.getHostCard().getOracleText();
     }
 
+    /** With nothing to pay with, "Pay {2}" is not an option the seat can take: the decline is forced and
+     *  nothing is asked (runs/luna-v8/g1 asked it about Spell Pierce with no mana up). One row, not two. */
+    @Test
+    public void anUnlessCostTheSeatCannotPayIsNotAsked() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card bolt = card("Lightning Bolt", me, ZoneType.Hand);
+        LineFindingProbeTest.rivalCasts(g, "Spell Pierce", bolt);
+        SpellAbility pierce = g.getStack().peekAbility();
+        Script model = new Script("CHOICE: 1");
+        Assert.assertFalse(seat(g, model, model).payCostToPreventEffect(new forge.game.cost.Cost("2", false), pierce, false, null));
+        Assert.assertTrue(model.prompts.isEmpty(), "an unpayable cost was asked: " + model.prompts);
+    }
+
     @Test
     public void aKickerIsTheModels() {
         Game g = bareGame(PhaseType.MAIN1);
@@ -860,6 +874,36 @@ public class GoldenChecksTest {
         Assert.assertEquals(ctrl.chooseSingleSpellForEffect(Arrays.asList(petalSa, boltSa), sa, "Choose a spell", null), boltSa);
         Assert.assertEquals(ctrl.chooseCardsToDiscardUnlessType(2, me.getCardsIn(ZoneType.Hand), new String[] {"Artifact"}, sa).size(), 1,
                 "one artifact instead of two cards");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** Convoke: which creatures help pay is the seat's (Forge's AI paid nothing so), and each pays a symbol
+     *  it can; changing a spell's target (Misdirection-style) is the seat's (Forge's AI never retargeted). */
+    @Test
+    public void convokeAndANewTargetAreTheModels() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card stoke = card("Stoke the Flames", me, ZoneType.Hand);       // {2}{R}{R}, convoke
+        Card goblin = card("Goblin Guide", me, ZoneType.Battlefield);    // red
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);    // green
+        card("Savannah Lions", me, ZoneType.Battlefield);
+        Card bolt = card("Lightning Bolt", me, ZoneType.Hand);
+        Card goyf = card("Tarmogoyf", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1")
+                .on("CONVOKE", picks("Goblin Guide", "Grizzly Bears"))
+                .on("CHANGE TARGET", choice("Tarmogoyf"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        SpellAbility sa = spell(stoke, me);
+        Map<Card, forge.card.mana.ManaCostShard> paid = ctrl.inRealPaymentForTest(() -> ctrl.chooseCardsForConvokeOrImprovise(sa,
+                stoke.getManaCost(), me.getCreaturesInPlay(), false, true, null));
+        Assert.assertEquals(paid.size(), 2, String.valueOf(paid));
+        Assert.assertEquals(paid.get(goblin), forge.card.mana.ManaCostShard.RED, "the red creature pays a red symbol");
+        Assert.assertEquals(paid.get(bears), forge.card.mana.ManaCostShard.GENERIC, "the green one pays generic");
+        SpellAbility boltSa = spell(bolt, me);
+        boltSa.getTargets().add(rival);
+        forge.game.spellability.TargetChoices t = ctrl.chooseNewTargetsFor(boltSa, null, true);
+        Assert.assertNotNull(t, "the seat chose a new target");
+        Assert.assertTrue(t.contains(goyf), String.valueOf(t));
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 

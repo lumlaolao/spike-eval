@@ -365,3 +365,14 @@ First game with the answer tool (`answer-tool-v2`) and prompt caching, on the ne
   on turn 9. A fair loss; nothing for the harness to fix.
 - OPEN  Luna writes no visible text beside its calls, so `raw_reply` holds only the rendered
   answer. Its reasoning is not recorded anywhere, which makes misplays hard to read.
+
+### game of 2026-10-15  seed 81  Sneak and Show (GPT-6 Luna) vs UR Delver (Forge AI)  lost T9  $0.018  answer-tool-v8
+
+First game with no text alternative (`answer-tool-v8`, `tool_choice` "required" on Luna). `runs/luna-v8/g1`.
+
+- Harness: 24 of 24 model decisions came back as `answer` calls, 0 nudges, 0 filler yields, 0 Forge-AI
+  decisions.
+- The game: Show and Tell was Spell Pierced; Delver won on turn 9. A fair loss.
+- FIXED  an unless cost the seat could not pay ("Pay {2}", "Pay {R}{R}") was offered as a choice; it is
+  now a forced decline, not asked.
+- FIXED  each answer to an unless cost was recorded twice (the answer row and an auto row).

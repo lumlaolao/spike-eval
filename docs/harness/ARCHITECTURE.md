@@ -295,11 +295,10 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     fall back to it;
   - nor do the twenty choices it used to make outright: Fact or Fiction piles, opening-hand abilities,
     colours, counter kinds, replacement order, edicts, clash, combat taxes and others.
-  - **Still the engine's, rare in Legacy, each needing its own design:**
-    - convoke and improvise;
-    - retargeting (`chooseNewTargetsFor`) and redirection (`chooseTarget`);
-    - cost order;
-    - mana from the pool.
+  - Convoke and improvise, retargeting, redirection and mana from the pool are the seat's too. A convoke
+    choice asked from an affordability test is answered as "every helper could pay" without asking; the
+    engine does not say which calls are tests, so the seat's real payment marks its own window.
+  - Multi-target retargeting keeps its targets, recorded.
   - **No hook in the pinned engine:** the colour an any-colour source makes for a generic shard during
     payment. It matters only to converge, sunburst and spent-colour checks.
   - **Mechanics no deck in the pool reaches:** dice, stickers, contraptions.

@@ -202,8 +202,9 @@ public final class LlmSpikeGui {
      *  card naming, modes and targets on error take fixed legal choices; a short cost pick takes the first
      *  legal cards; empty choices return empty without asking Forge's AI.
      *  Epoch 15: a model's filled-in defaults do nothing (answer-tool-v8): `yield` "none" first, an empty
-     *  `keep_untapped` is not said, and handles that name no source ask the mana question. */
-    static final String HARNESS_EPOCH = "harness-epoch-15";
+     *  `keep_untapped` is not said, and handles that name no source ask the mana question.
+     *  Epoch 16: convoke/improvise, single-target retargeting, redirection and mana from the pool are the seat's. */
+    static final String HARNESS_EPOCH = "harness-epoch-16";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -3639,6 +3640,14 @@ public final class LlmSpikeGui {
             clearLast();
             if (cost == null) return false;
             try {
+                // An option the seat cannot take is not offered: with nothing to pay with, declining is forced
+                // (runs/luna-v8/g1 offered "Pay {2}" for Spell Pierce and "Pay {R}{R}" for Chain Lightning's copy
+                // with no mana up, and the model had to point it out).
+                if (!ComputerUtilCost.canPayCost(cost, sa, getPlayer(), true)) {
+                    evalDec("prevent-effect", 1, 0, "auto", 0, "forced(cannot-pay)->decline " + fit(cost.toSimpleString()), null);
+                    p("[ROUTER] prevent-effect: cannot pay " + fit(cost.toSimpleString()) + " -> decline (forced)");
+                    return false;
+                }
                 if (okFor("prevent-effect")) {
                     String desc = fit(cost.toSimpleString());
                     List<String> labels = Lists.newArrayList("Pay " + desc, "Decline (let it resolve)");
@@ -3648,11 +3657,10 @@ public final class LlmSpikeGui {
                         // UnlessSwitched: paying is what makes the effect happen (Chain Lightning's copy);
                         // runs/loop/g01 was asked it as "pay to prevent" and guessed it could not pay.
                         boolean pays = sa.hasParam("UnlessSwitched");
-                        boolean can = ComputerUtilCost.canPayCost(cost, sa, getPlayer(), true);
                         labels = Lists.newArrayList("Pay " + desc, pays ? "Decline (it does not happen)" : "Decline (let it resolve)");
                         q = (pays ? "Optional payment: pay " + desc + " to make this happen: "
                                   : "Pay " + desc + " to prevent this: ") + seatText(sa.getStackDescription())
-                            + srcAsk(sa) + " You " + (can ? "can" : "CANNOT") + " pay it right now.";
+                            + srcAsk(sa) + " You can pay it right now.";
                     }
                     int c = decideOne(bridgeFor("prevent-effect"), "prevent-effect", q, labels, null);
                     if (c == 0) {
@@ -3664,7 +3672,8 @@ public final class LlmSpikeGui {
                         p("[ROUTER] prevent-effect: paid " + desc + " -> " + paid);
                         return paid;
                     }
-                    if (c == 1) { auto("prevent-effect(model)->decline"); return false; }
+                    // decideOne wrote the model's row; a second (auto) row for the same answer double-counted it.
+                    if (c == 1) { p("[ROUTER] prevent-effect: declined " + desc); return false; }
                 }
             } catch (Exception e) { /* deterministic fallback below */ }
             auto("prevent-effect(default)->decline");
@@ -3834,9 +3843,12 @@ public final class LlmSpikeGui {
                 held.addAll(tapPart);
             }
             boolean paid;
+            boolean wasPaying = payingForReal;
+            payingForReal = true;
             try {
                 paid = super.payManaCost(toPay, costPartMana, sa, prompt, matrix, effect);
             } finally {
+                payingForReal = wasPaying;
                 for (Card c : held) forge.ai.AiCardMemory.forgetCard(getPlayer(), c, forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
             }
             try {
@@ -5152,6 +5164,122 @@ public final class LlmSpikeGui {
             for (int i = min; i <= max; i++) labels.add(String.valueOf(i));
             return min + Math.max(0, askOne("cost-reduction", "Choose how much to reduce the cost by" + srcAsk(sa) + ".",
                     labels, null, labels.size() - 1));
+        }
+
+        /** Spellskite-style redirection: which target of which spell is redirected. */
+        @Override
+        public org.apache.commons.lang3.tuple.Pair<forge.game.spellability.SpellAbilityStackInstance, forge.game.GameObject> chooseTarget(
+                SpellAbility saSrc, List<org.apache.commons.lang3.tuple.Pair<forge.game.spellability.SpellAbilityStackInstance, forge.game.GameObject>> allTargets) {
+            clearLast();
+            if (allTargets == null || allTargets.isEmpty()) return null;
+            List<String> labels = new ArrayList<>();
+            for (org.apache.commons.lang3.tuple.Pair<forge.game.spellability.SpellAbilityStackInstance, forge.game.GameObject> t : allTargets)
+                labels.add(safeName(t.getLeft().getSourceCard()) + " — its target " + labelOf((GameEntity) (t.getRight() instanceof GameEntity ? t.getRight() : null)));
+            return allTargets.get(askOne("redirect", "REDIRECT" + srcAsk(saSrc) + ": choose which spell's target to change.", labels, null, 0));
+        }
+
+        /** Change the target of a spell or ability (Misdirection, Deflecting Swat): whether, and to what. Forge's AI
+         *  never did (it returned null: targets unchanged). A single-target ability is asked; any other keeps its
+         *  targets, recorded. */
+        @Override
+        public forge.game.spellability.TargetChoices chooseNewTargetsFor(SpellAbility ability,
+                java.util.function.Predicate<forge.game.GameObject> filter, boolean optional) {
+            clearLast();
+            SpellAbility sa = ability instanceof forge.game.trigger.WrappedAbility
+                    ? ((forge.game.trigger.WrappedAbility) ability).getWrappedAbility() : ability;
+            if (sa == null || !sa.usesTargeting()) return null;
+            forge.game.spellability.TargetChoices old = sa.getTargets();
+            if (old.size() != 1 || sa.isDividedAsYouChoose() || sa.getMaxTargets() > 1) {
+                auto("new-targets(multi)->unchanged " + labelOf(sa));
+                return null;
+            }
+            TargetRestrictions tr = sa.getTargetRestrictions();
+            if (tr == null) return null;
+            Object current = old.get(0);
+            List<GameEntity> cands = new ArrayList<>();
+            for (GameEntity ge : tr.getAllCandidates(sa, false))
+                if (ge != current && (filter == null || filter.test(ge)) && sa.canTarget(ge)) cands.add(ge);
+            if (cands.isEmpty()) { auto("new-targets(none-legal)->unchanged"); return null; }
+            List<String> labels = new ArrayList<>();
+            for (GameEntity ge : cands) labels.add(labelOf(ge));
+            int c = askOne("new-targets", "CHANGE TARGET: " + labelOf(sa) + " targets "
+                    + labelOf(current instanceof GameEntity ? (GameEntity) current : null) + ". Choose its new target"
+                    + (optional ? ", or keep it" : "") + ".", labels, optional ? "Keep the current target" : null, optional ? -1 : 0);
+            if (c < 0) return null;
+            sa.resetTargets();
+            sa.getTargets().add(cands.get(c));
+            return sa.getTargets();
+        }
+
+        /** Which mana in the pool pays (several of different kinds float). */
+        @Override
+        public forge.game.mana.Mana chooseManaFromPool(List<forge.game.mana.Mana> manaChoices) {
+            clearLast();
+            if (manaChoices == null || manaChoices.isEmpty()) return null;
+            java.util.Set<String> kinds = new java.util.HashSet<>();
+            for (forge.game.mana.Mana m : manaChoices) kinds.add(m.toString());
+            if (kinds.size() == 1) return manaChoices.get(0);   // all alike: nothing to choose
+            List<String> labels = new ArrayList<>();
+            for (forge.game.mana.Mana m : manaChoices)
+                labels.add(m + (m.getSourceCard() == null ? "" : " (from " + safeName(m.getSourceCard()) + ")"));
+            return manaChoices.get(askOne("mana-from-pool", "MANA POOL: choose which floating mana pays.", labels, null, 0));
+        }
+
+        /** True while this seat's real mana payment runs (payManaCost). The engine also calls the convoke chooser
+         *  from affordability tests (CostAdjustment, test=true) without telling the controller which. */
+        private boolean payingForReal = false;
+        private boolean askingConvoke = false;
+
+        /** Test seam: runs {@code f} as inside this seat's real mana payment. */
+        <T> T inRealPaymentForTest(java.util.function.Supplier<T> f) {
+            boolean was = payingForReal;
+            payingForReal = true;
+            try { return f.get(); } finally { payingForReal = was; }
+        }
+
+        /** Convoke / improvise: which untapped creatures or artifacts help pay, each for a symbol it can pay
+         *  (a creature pays generic or a symbol of its colour; an artifact, generic). Forge's AI paid nothing so. */
+        @Override
+        public Map<Card, forge.card.mana.ManaCostShard> chooseCardsForConvokeOrImprovise(SpellAbility sa, forge.card.mana.ManaCost manaCost,
+                CardCollectionView untappedCards, boolean artifacts, boolean creatures, Integer maxReduction) {
+            clearLast();
+            Map<Card, forge.card.mana.ManaCostShard> out = new java.util.HashMap<>();
+            if (untappedCards == null || untappedCards.isEmpty() || manaCost == null) return out;
+            List<Card> opts = new ArrayList<>();
+            for (Card c : untappedCards) if ((artifacts && c.isArtifact()) || (creatures && c.isCreature())) opts.add(c);
+            if (opts.isEmpty()) return out;
+            // The symbols still to pay, coloured first: each chosen card takes the first one it can pay.
+            List<forge.card.mana.ManaCostShard> shards = new ArrayList<>();
+            for (forge.card.mana.ManaCostShard sh : manaCost) if (!sh.isGeneric()) shards.add(sh);
+            for (int i = 0; i < manaCost.getGenericCost(); i++) shards.add(forge.card.mana.ManaCostShard.GENERIC);
+            int max = Math.min(opts.size(), maxReduction != null ? Math.min(maxReduction, shards.size()) : shards.size());
+            if (max <= 0) return out;
+            // An affordability test (the menu asking "can this be cast?"): every helper that could pay is counted,
+            // nothing is asked. The real payment asks the seat.
+            List<Integer> picks;
+            // A nested call (the ask's own snapshot tests affordability, which calls this again) is a probe too.
+            if (!payingForReal || askingConvoke) {
+                picks = new ArrayList<>();
+                for (int i = 0; i < max; i++) picks.add(i);
+            } else {
+            String how = creatures && artifacts ? "creatures or artifacts" : creatures ? "creatures (convoke)" : "artifacts (improvise)";
+                askingConvoke = true;
+                try {
+                    picks = askMany("convoke", "CONVOKE/IMPROVISE: you are paying " + manaCost + " for " + labelOf(sa) + ". Tap untapped "
+                            + how + " to pay part of it (up to " + max + "; none pays it all with mana). Choose which.", cardLabels(opts), 0, max);
+                } finally {
+                    askingConvoke = false;
+                }
+            }
+            for (int i : picks) {
+                Card c = opts.get(i);
+                for (java.util.Iterator<forge.card.mana.ManaCostShard> it = shards.iterator(); it.hasNext(); ) {
+                    forge.card.mana.ManaCostShard sh = it.next();
+                    boolean ok = sh.isGeneric() || (creatures && c.isCreature() && c.getColor().hasAnyColor(sh.getColorMask()));
+                    if (ok) { out.put(c, sh); it.remove(); break; }
+                }
+            }
+            return out;
         }
 
         /** An attack or block tax (Propaganda, Ghostly Prison): whether to pay it. Paying is the engine's mechanics. */

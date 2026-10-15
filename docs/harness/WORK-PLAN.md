@@ -49,11 +49,15 @@ the recorded Luna prompts. What still lets text in:
 
 **A. No engine fallback.** "I would like no engine fallback if able" (owner). **Done 2026-10-15
 (#184, #185, harness-epoch-14).** Left:
-- rare in Legacy, each needing its own design: convoke and improvise, retargeting (`chooseNewTargetsFor`),
-  redirection (`chooseTarget`), cost order, mana from the pool;
+- multi-target retargeting keeps its targets (single-target retargeting, redirection, convoke and improvise,
+  and mana from the pool are the seat's since `fix/no-engine-fallback-last`);
 - no hook in the pinned engine: the colour an any-colour source makes for a generic shard during payment
   (Lotus Petal, LED; matters only to converge, sunburst and spent-colour checks);
 - the mechanics-only rows (dice, stickers, contraptions, attractions: no deck in the pool reaches them).
+
+First Luna game on answer-tool-v8 (`runs/luna-v8/g1`, $0.018): 24 of 24 decisions by call, 0 Forge-AI
+decisions. It found an unless cost the seat could not pay offered as a choice, and each such answer
+recorded twice; both fixed on `fix/no-engine-fallback-last`.
 
 **0b. Force the call where it keeps the reasoning (2026-10-15, owner: "the tool call should be the only way
 of interacting").** Researched and measured (`PROMPT-CRAFT.md` rule 2): `tool_choice` "required" for OpenAI
@@ -202,7 +206,10 @@ Left:
       will be small; a Forge AI solve is also accepted as the proof of solvability.
     - Found and fixed on the way: the baseline JVMs loaded stale classes (relative paths); the model
       seat was never told the puzzle's goal.
-    - Left: freeze `eval/suites/puzzles-forge-builtin-v1.json`, then a small Luna run (cost first).
+    - The first random pass hit the two-hour background limit at 285 of 368 and wrote nothing;
+      `run` now saves after every puzzle and `--resume` continues a killed run.
+    - Left: finish random, then Forge's AI and the full arms; freeze
+      `eval/suites/puzzles-forge-builtin-v1.json`, then a small Luna run (cost first).
 14. ~~Commit `runs/combo/`.~~ Done.
 
 ## Priority 3: later
