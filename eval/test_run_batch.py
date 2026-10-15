@@ -241,6 +241,29 @@ class TestOneTier(unittest.TestCase):
         self.assertEqual(run_batch.condition_diff(base, one), [("one_tier", False, True)])
 
 
+class TestNoCoaching(unittest.TestCase):
+    """NO_COACHING drops PRINCIPLES and the static reference from the system prompt, an assistance
+    condition: set only by --no-coaching, recorded, checked against `no_coaching`."""
+
+    def test_only_the_flag_sets_it_and_lines_keep_it_apart(self):
+        with mock.patch.dict(os.environ, {"NO_COACHING": "1"}, clear=False), tempfile.TemporaryDirectory() as d:
+            self.assertEqual(run_batch.build_env(make_args(), 7100, False, Path(d))["NO_COACHING"], "0")
+            self.assertEqual(run_batch.build_env(make_args(no_coaching=True), 7100, False, Path(d))["NO_COACHING"], "1")
+        p = subprocess.run([sys.executable, str(RUN_BATCH), "--seeds", "7100", "--exploratory",
+                            "--env", "NO_COACHING=1", "--forge-home", "/nonexistent"], capture_output=True, text=True)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--no-coaching", p.stderr)
+        off = run_batch.resume_expectation(make_args())
+        on = run_batch.resume_expectation(make_args(no_coaching=True))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False), off))        # predates the stamp
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False, no_coaching=True), off))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False, no_coaching=True), on))
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False), on))
+        base = run_batch.batch_condition(make_args(), cited=False)
+        bare = run_batch.batch_condition(make_args(no_coaching=True), cited=False)
+        self.assertEqual(run_batch.condition_diff(base, bare), [("no_coaching", False, True)])
+
+
 class TestLookahead(unittest.TestCase):
     """LOOKAHEAD changes what the seat can do (the `simulate` preview), so it is a condition like
     --rules-tool: set only by --lookahead, scrubbed from the ambient environment, recorded in the

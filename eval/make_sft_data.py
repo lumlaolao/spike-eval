@@ -185,6 +185,10 @@ class PreambleBuilder:
         self.plan_prefix, self.plan_suffix = blits[2], blits[3]
         self.body = ''.join(blits[4:-1])
         self.tail = blits[-1]
+        # PRINCIPLES is its own constant (left out under NO_COACHING) and sits right before the tail,
+        # so the coached body is base's literals followed by it: the bytes every game saw.
+        self.body += ''.join(v for kind, v in _scan_stmt(src, src.index("String PRINCIPLES ="))
+                             if kind == 'lit')
 
         # 3. STATIC_REFERENCE: one pure constant, no interpolation.
         self.static_reference = ''.join(

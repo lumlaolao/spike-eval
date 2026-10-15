@@ -260,6 +260,18 @@ public class PromptFidelityTest {
         Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.withPhyrexian(new forge.card.mana.ManaCost("U/P"), 1, false).isZero());
     }
 
+    /** NO_COACHING is an assistance condition: the system prompt loses the harness's advice
+     *  (PRINCIPLES) and the static reference, and keeps the protocol and the answer format. */
+    @Test
+    public void withoutCoachingTheSystemPromptHasNoPrinciplesOrReference() {
+        String coached = LlmSpikeGui.PlayerControllerLLM.framing("Seat", null, false, true, true);
+        String bare = LlmSpikeGui.PlayerControllerLLM.framing("Seat", null, false, true, false);
+        Assert.assertTrue(coached.contains("PRINCIPLES:") && coached.contains("=== SNAPSHOT LEGEND"), coached);
+        Assert.assertFalse(bare.contains("PRINCIPLES:") || bare.contains("=== SNAPSHOT LEGEND"), bare);
+        Assert.assertTrue(bare.contains("PROTOCOL:") && bare.contains("FORMAT:"), bare);
+        Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.framing("Seat", null, true, true, false).contains("PRINCIPLES:"));
+    }
+
     /** Green Sun's Zenith resolved at X=1..3 in recorded games with no question: the AI cast path
      *  never announces X. The seat now asks it, up to what it can pay, before targets. */
     @Test
