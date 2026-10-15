@@ -66,6 +66,9 @@ python3 eval/puzzle_format.py check eval/suites/puzzles-forge-builtin-v1.json
 - Everything here is free: the baseline JVMs point the model at a closed loopback port and carry no
   API key.
 - `run` can be split into stages with `--arms` and `--ids`, since baselines accumulate in the record.
+- `run` writes the manifest after every puzzle. `--resume` with the same `--out-dir` and `--build`
+  reuses each arm whose rows that build already wrote for exactly the requested seeds, so a killed run
+  continues where it stopped. Rows from another build or a partial seed set are run again.
 - A frozen suite carries `suite_sha256`, computed over everything that defines a score: ids, file
   hashes, goals, splits, statuses, tiers, the random rate and the engine commit. Editing a frozen
   suite breaks the hash, and every tool then refuses it.

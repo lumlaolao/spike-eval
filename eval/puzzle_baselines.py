@@ -30,7 +30,7 @@ import os
 import subprocess
 import sys
 import tempfile
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -129,8 +129,28 @@ def read_results(out_dir):
     return [json.loads(l) for l in f.read_text(encoding="utf-8").splitlines() if l.strip()]
 
 
+RESUME = False
+
+
+def reusable(build, out_dir, seeds):
+    """The rows an earlier run left in out_dir, when the same build ran exactly these seeds; else None."""
+    args = Path(out_dir) / "java.args"
+    rows = read_results(out_dir)
+    if not args.is_file() or not any(l.startswith(str(build.classes) + ":")
+                                                      for l in args.read_text().splitlines()):
+        return None
+    want = sorted(expand_seeds(seeds))
+    return rows if sorted(r.get("seed") for r in rows) == want else None
+
+
 def run_arm(build, pzl_path, arm, seeds, out_dir, extra_env=None):
-    """All rollouts of one arm on one puzzle, in one JVM. Returns the result rows."""
+    """All rollouts of one arm on one puzzle, in one JVM. Returns the result rows.
+
+    With RESUME (run --resume), rows the same build already wrote for exactly these seeds are reused."""
+    if RESUME and not extra_env:
+        rows = reusable(build, out_dir, seeds)
+        if rows is not None:
+            return rows
     env = {"PUZZLE": str(Path(pzl_path).resolve()), "CONTROLLER_A": ARM_CONTROLLER.get(arm, arm),
            "CONTROLLER_B": "ai", "PZL_SEEDS": seeds, "GAME_CAP_MS": "120000"}
     env.update(extra_env or {})
@@ -141,16 +161,20 @@ def run_arm(build, pzl_path, arm, seeds, out_dir, extra_env=None):
     return rows
 
 
-def seed_count(spec):
-    n = 0
+def expand_seeds(spec):
+    out = []
     for part in spec.split(","):
         part = part.strip()
         if ".." in part:
             a, b = part.split("..")
-            n += int(b) - int(a) + 1
+            out += range(int(a), int(b) + 1)
         elif part:
-            n += 1
-    return n
+            out.append(int(part))
+    return out
+
+
+def seed_count(spec):
+    return len(expand_seeds(spec))
 
 
 # ------------------------------------------------------------------ pure decisions
@@ -312,10 +336,23 @@ def cmd_run(a):
             return dict(rec, status="candidate", flags=sorted(set(rec.get("flags", []) + ["runner_error"])),
                         runner_error=str(e))
 
-    with ThreadPoolExecutor(max(1, a.jobs)) as ex:
-        done = {r["id"]: r for r in ex.map(work, todo)}
+    global RESUME
+    RESUME = a.resume
     manifest = dict(manifest, frozen=False, suite_sha256=None)
-    manifest["puzzles"] = [done.get(r["id"], r) for r in manifest["puzzles"]]
+    target = Path(a.write or a.suite)
+    done = {}
+
+    def save():  # after every puzzle, so a killed run keeps what it measured
+        m = dict(manifest, puzzles=[done.get(r["id"], r) for r in manifest["puzzles"]])
+        target.write_text(json.dumps(m, indent=2) + "\n", encoding="utf-8")
+        return m
+
+    with ThreadPoolExecutor(max(1, a.jobs)) as ex:
+        for rec in as_completed([ex.submit(work, r) for r in todo]):
+            r = rec.result()
+            done[r["id"]] = r
+            save()
+    manifest = save()
     for r in manifest["puzzles"]:
         if r["id"] in done:
             b = r.get("baselines", {})
@@ -323,7 +360,6 @@ def cmd_run(a):
                 r["id"], r["status"], r.get("tier"),
                 *[("%d/%d" % (b[x]["solved"], b[x]["n"])) if x in b else "-" for x in pf.BASELINE_ARMS],
                 (r.get("reference_line") or {}).get("solver_actions"), ",".join(r.get("flags", []))))
-    Path(a.write or a.suite).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return 0
 
 
@@ -360,6 +396,8 @@ def main(argv=None):
     r.add_argument("-j", "--jobs", type=int, default=4)
     r.add_argument("--out-dir", default=None)
     r.add_argument("--write", default=None, help="manifest to write (default: --suite in place)")
+    r.add_argument("--resume", action="store_true",
+                   help="reuse an arm's rows when this build already ran exactly its seeds in --out-dir")
     v = sub.add_parser("verify")
     v.add_argument("--suite", required=True)
     v.add_argument("-j", "--jobs", type=int, default=4)

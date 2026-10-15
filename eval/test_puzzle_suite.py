@@ -218,5 +218,25 @@ class BaselineDecisionTest(unittest.TestCase):
         self.assertEqual((s["solved"], s["n"], s["invalid"], s["tainted"]), (1, 3, 1, 1))
 
 
+class ResumeTest(unittest.TestCase):
+    """run --resume reuses an arm's rows only when the same build ran exactly the same seeds."""
+
+    def test_reuse_needs_the_same_build_and_the_same_seeds(self):
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d)
+            build = type("B", (), {"classes": Path("/b/one/classes")})()
+            (out / "java.args").write_text("-Xmx2048m\n-cp\n/b/one/classes:/forge/x.jar\n")
+            rows = [{"seed": s, "status": "failed"} for s in (1, 2, 3)]
+            (out / "puzzle-results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+            self.assertEqual(pb.reusable(build, out, "1..3"), rows)
+            self.assertIsNone(pb.reusable(build, out, "1..4"), "a partial run is run again")
+            other = type("B", (), {"classes": Path("/b/one/classes-old")})()
+            self.assertIsNone(pb.reusable(other, out, "1..3"), "another build's rows are not reused")
+
+    def test_seed_specs_expand(self):
+        self.assertEqual(pb.expand_seeds("1..3,7"), [1, 2, 3, 7])
+        self.assertEqual(pb.seed_count("1..3,7"), 4)
+
+
 if __name__ == "__main__":
     unittest.main()
