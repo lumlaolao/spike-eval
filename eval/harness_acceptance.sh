@@ -95,6 +95,14 @@ digest() {
   elif command -v md5sum >/dev/null 2>&1; then md5sum | cut -d" " -f1; fi
 }
 has_stage() { case " $STAGES " in *" $1 "*) return 0;; *) return 1;; esac; }
+# A stage list that names no real stage ran nothing and still printed PASS (`STAGES=compile,javatests`
+# is one unknown name). Every name must be a stage this script runs.
+for _s in $STAGES; do
+  case " preflight classpath compile javatests pytests canary gaming faketool faithful lookahead nativetool nativerefuse rules " in
+    *" $_s "*) ;;
+    *) echo "unknown stage '$_s' (STAGES is space-separated: STAGES=\"compile javatests\")" >&2; exit 2;;
+  esac
+done
 
 ADDOPENS="--add-opens java.desktop/java.beans=ALL-UNNAMED --add-opens java.desktop/javax.swing.border=ALL-UNNAMED \
 --add-opens java.desktop/javax.swing.event=ALL-UNNAMED --add-opens java.desktop/sun.swing=ALL-UNNAMED \

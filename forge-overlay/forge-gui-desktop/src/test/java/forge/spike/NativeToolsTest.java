@@ -566,6 +566,36 @@ public class NativeToolsTest {
         Assert.assertEquals(m2.get(3).getAsJsonObject().get("tool_call_id").getAsString(), "call_9");
     }
 
+    /** Anthropic models cache only a prefix marked cacheable; nothing was marked, so every call paid
+     *  the full input rate for the same preamble, tools and history. Other providers cache on their
+     *  own and are sent nothing new. What the provider read from or wrote to its cache is kept. */
+    @Test
+    public void anAnthropicModelMarksItsPromptCacheableAndTheCacheCountsAreKept() {
+        JsonObject cachedUsage = JsonParser.parseString(textResponse("CHOICE: 1")).getAsJsonObject();
+        JsonObject details = new JsonObject();
+        details.addProperty("cached_tokens", 9000);
+        details.addProperty("cache_write_tokens", 120);
+        cachedUsage.getAsJsonObject("usage").add("prompt_tokens_details", details);
+        synchronized (requests) {
+            requests.clear();
+            responses.clear();
+            responses.add(cachedUsage.toString());
+            responses.add(textResponse("CHOICE: 1"));
+        }
+        LlmSpikeGui.OpenRouterBridge claude = new LlmSpikeGui.OpenRouterBridge("Seat/smart", "anthropic/claude-haiku-5.5", "PREAMBLE", base, 5000);
+        Assert.assertEquals(claude.ask("DECISION"), "CHOICE: 1");
+        Assert.assertEquals(requests.get(0).getAsJsonObject("cache_control").get("type").getAsString(), "ephemeral");
+        Assert.assertEquals(claude.getLastCachedTokens(), 9000);
+        Assert.assertEquals(claude.getLastCacheWriteTokens(), 120);
+
+        LlmSpikeGui.OpenRouterBridge other = new LlmSpikeGui.OpenRouterBridge("Seat/smart", "deepseek/deepseek-v4.1-flash", "PREAMBLE", base, 5000);
+        Assert.assertEquals(other.ask("DECISION"), "CHOICE: 1");
+        Assert.assertFalse(requests.get(1).has("cache_control"));
+        Assert.assertEquals(other.getLastCachedTokens(), -1, "unreported is -1, not 0");
+        Assert.assertEquals(LlmSpikeGui.cacheFields(-1, -1), "");
+        Assert.assertEquals(LlmSpikeGui.cacheFields(9000, 0), ",\"cached_tokens\":9000,\"cache_write_tokens\":0");
+    }
+
     @Test
     public void aPlainAskSendsNoToolsAndTheSameBodyShapeAsBefore() {
         synchronized (requests) {
