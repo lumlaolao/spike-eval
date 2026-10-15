@@ -39,7 +39,7 @@
       "policy": "eval-only",
       "at_risk": true,
       "ranges": [[7000, 7999]],
-      "purpose": "Claimed for the stage3 student eval (eval/suites/stage3-v1.json). Sits in seed_policy's OPEN 1000-8999 dev/exploratory lane, chosen because a 1240-game development measurement is not a release certification and must not burn the 100-seat certification-holdout block, which is opened once at release and then retired. Verified clean when claimed: the highest seed in any corpus was 6529 on 2026-07-26. at_risk because seed_policy.py does not guard the open lane — if a future corpus build harvests from here, `seed_registry.py check` fails and this band must be re-cut, not quietly re-labelled."
+      "purpose": "Claimed for the stage3 student eval (eval/suites/stage3-v1.json, seeds 7000-7799) and the STR-AI panels (eval/suites/panels-v1.json, seeds 7800-7999). Sits in seed_policy's OPEN 1000-8999 dev/exploratory lane, chosen because a 1240-game development measurement is not a release certification and must not burn the 100-seat certification-holdout block, which is opened once at release and then retired. Verified clean when claimed: the highest seed in any corpus was 6529 on 2026-07-26. at_risk because seed_policy.py does not guard the open lane — if a future corpus build harvests from here, `seed_registry.py check` fails and this band must be re-cut, not quietly re-labelled."
     },
     {
       "name": "dev-lane",

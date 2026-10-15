@@ -325,7 +325,13 @@ def check_suites(registry, suites_dir=None):
         except (OSError, json.JSONDecodeError, ValueError) as e:
             out.append((fp.name, "(file)", ["unreadable suite: %s" % e]))
             continue
-        for arm in suite.get("arms") or []:
+        # A panels file (panels-v1.json) declares its seeds per panel and per control, not per arm.
+        arms = list(suite.get("arms") or [])
+        for pname, panel in sorted((suite.get("panels") or {}).items()):
+            arms.append({"name": "panel %s" % pname, "seeds": panel.get("seeds")})
+            if isinstance(panel.get("control"), dict):
+                arms.append({"name": "panel %s control" % pname, "seeds": panel["control"].get("seeds")})
+        for arm in arms:
             spec = arm.get("seeds")
             if not spec:
                 continue
