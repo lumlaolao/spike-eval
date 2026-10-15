@@ -111,6 +111,11 @@ PROVENANCE_FIELDS = (
     ("native_tools_seats", MISSING),
     ("native_tools_version", MISSING),
     ("native_tools_downgraded", MISSING),
+    # How a decision is answered: a call to `answer` (AnswerTool) or a text tag line. Tool and text
+    # answers are different conditions and never pool (CLAUDE.md, owner decision 2026-10-15).
+    ("answer_tool", MISSING),
+    ("answer_tool_seats", MISSING),
+    ("answer_tool_version", MISSING),
     ("rules_tool", MISSING),
     ("rules_tool_version", MISSING),
     ("rules_effective", MISSING),

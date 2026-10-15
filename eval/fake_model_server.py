@@ -41,6 +41,14 @@ Fault injection:
                                 deliberately malformed call. With --policy simulate, a request that
                                 offers the `simulate` tool is always answered by calling it once.
 
+  --answer-tool                 a request that offers the `answer` function (AnswerTool, the default decision
+                                protocol on a backend with function calling) is answered by calling it with
+                                values read from the schema the harness sent: the policy picks among the
+                                legal ones. A lookup (--native-calls, simulate) may come first in the same
+                                conversation; `set_plan` rides along on the first three answers.
+  --answer-invalid K            with --answer-tool: the K-th answer call is out of range once, so the
+                                harness's same-conversation correction (one more round) is exercised.
+
   --refuse-tools                a provider with no function calling: any request carrying `tools` is
                                 answered 404 "No endpoints found that support tool use." and logged
                                 with refused_tools=true. Requests without tools are answered as usual.
@@ -81,12 +89,76 @@ class Policy:
         offered = [t.get("function", {}).get("name") for t in body.get("tools") or []]
         if not offered or body.get("tool_choice") == "none":
             return None
-        if any(m.get("role") == "tool" for m in body.get("messages") or []):
-            return None
 
         def call(name, arguments):
             return {"id": "call_%s_%d" % (name, self.calls), "type": "function",
                     "function": {"name": name, "arguments": arguments if isinstance(arguments, str) else json.dumps(arguments)}}
+        msgs = body.get("messages") or []
+        if self.args.answer_tool and "answer" in offered:
+            # A lookup first while the ask still has none (as below), then the decision as a call.
+            looked = any(m.get("role") == "tool" for m in msgs)
+            if not looked:
+                lookup = self.lookup_calls(body, prompt, offered, call)
+                if lookup:
+                    return lookup
+            return self.answer_calls(body, msgs, offered, call)
+        if any(m.get("role") == "tool" for m in msgs):
+            return None
+        return self.lookup_calls(body, prompt, offered, call)
+
+    def answer_calls(self, body, msgs, offered, call):
+        """The decision answered by calling `answer`, built from the schema the harness sent: the legal
+        values only (the policy picks among them). With --answer-invalid K the K-th answer is out of range
+        once, so the same-conversation correction runs; `set_plan` rides along on the first answers."""
+        fn = next(t["function"] for t in body["tools"] if t.get("function", {}).get("name") == "answer")
+        props = fn["parameters"]["properties"]
+        props = {k: (v["anyOf"][0] if "anyOf" in v else v) for k, v in props.items()}   # strict: nullable optionals
+        first = self.args.policy in ("first", "simulate")
+        correcting = any(m.get("role") == "tool" and str(m.get("content", "")).startswith("ERROR:") for m in msgs[-3:])
+        with self.lock:
+            self.answers = getattr(self, "answers", 0) + 1
+            n = self.answers
+        args = {}
+        if "option" in props:
+            e = props["option"]["enum"]
+            args["option"] = min(e) if first else max(e)
+        elif "options" in props:
+            arr = props["options"]
+            e, lo = arr["items"]["enum"], arr.get("minItems", 0)
+            hi = arr.get("maxItems", len(e))
+            want = max(lo, 1 if first else 0)
+            args["options"] = e[:min(want, hi, len(e))]
+        elif "keep" in props:
+            args["keep"] = True
+        elif "blocks" in props:
+            args["blocks"] = []
+        elif "number" in props:
+            args["number"] = props["number"].get("minimum", 0)
+        elif "amounts" in props:
+            k = props["amounts"].get("minItems", 1)
+            total = int(re.search(r"summing to (-?\d+)", props["amounts"].get("description", "")).group(1))
+            args["amounts"] = [total] + [0] * (k - 1)
+        elif "card" in props:
+            args["card"] = "Lightning Bolt"
+        if "profile" in props:
+            args["profile"] = "fake read: an unknown deck"
+        if "lines" in props:
+            args["lines"] = "fake lines: none known"
+        with self.lock:
+            invalid = self.args.answer_invalid and n == self.args.answer_invalid and not correcting
+        if invalid:
+            if "option" in args:
+                args["option"] = 999
+            elif "options" in args:
+                args["options"] = [999]
+            else:
+                args = {"unknown_field": 1}
+        out = [call("answer", args)]
+        if "set_plan" in offered and n <= 3 and not correcting:
+            out.insert(0, call("set_plan", {"goal": "fake goal %d" % n, "next": "play a land, then pass"}))
+        return out
+
+    def lookup_calls(self, body, prompt, offered, call):
         if self.args.policy == "simulate" and "simulate" in offered:
             with self.lock:
                 self.previews = getattr(self, "previews", 0) + 1
@@ -101,6 +173,8 @@ class Policy:
                 if m:
                     return [call("simulate", {"option": int(m.group(1))})]
             return [call("simulate", {"option": 1, "then": [2]} if n % 2 == 0 else {"option": 1})]
+        if "memory_search" not in offered:
+            return None
         with self.lock:
             if self.native_sent >= self.args.native_calls:
                 return None
@@ -261,6 +335,11 @@ def main():
     ap.add_argument("--memory-call", type=int, default=0)
     ap.add_argument("--native-calls", type=int, default=0,
                     help="answer the first N tool-offering requests with a function call (NATIVE_TOOLS=1 games)")
+    ap.add_argument("--answer-tool", action="store_true",
+                    help="answer every request that offers the `answer` function by calling it (ANSWER_TOOL games)")
+    ap.add_argument("--answer-invalid", type=int, default=0,
+                    help="with --answer-tool: the K-th answer call is out of range once, so the harness's "
+                         "same-conversation correction runs")
     ap.add_argument("--refuse-tools", action="store_true",
                     help="answer 404 to any request that carries `tools` (a provider without function calling)")
     ap.add_argument("--rules-call", type=int, default=0,
