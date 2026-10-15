@@ -25,6 +25,14 @@ Two modes:
     Still stamps provenance (discipline=exploratory) but prints a loud banner
     that the numbers are NOT citable.
 
+Panels and sanity arms (eval/SCORING.md):
+  --panel mirror|cross launches every cell of a frozen panel (eval/suites/panels-v1.json), one
+    block directory per cell under --out, all capped by one --budget-usd (required). A cross-panel
+    cell is the one asymmetric matchup cited mode accepts: its decks must hash to the panel's pins.
+  --sanity-arms plays floor, random and the loopback fake model (empty and garbage replies) as
+    identity A on the scored block's seeds and decks, in <out>__sanity-<arm>; sanity_arms.py
+    checks that none of them beats the floor.
+
 Examples:
   # cited mirror run (numbers citable)
   python3 eval/run_batch.py --seeds 1..20 --pairs --deck eval/decks/mardu-energy.txt \
@@ -32,9 +40,14 @@ Examples:
   # exploratory poke (not citable)
   python3 eval/run_batch.py --seeds 3,7,42 --exploratory --jobs 2 \
       --deck-a eval/decks/grixis-reanimator.txt --deck-b eval/decks/mardu-energy.txt
+  # the mirror panel, a 3-seed block per cell, with its sanity arms
+  python3 eval/run_batch.py --panel mirror --seeds 7800..7802 --sanity-arms --budget-usd 6 \
+      --controller-a llm --smart-a openrouter:deepseek/deepseek-v4.1-flash \
+      --fast-a openrouter:deepseek/deepseek-v4.1-flash --out runs/panel-mirror-deepseek
 """
 
 import argparse
+import copy
 import hashlib
 import json
 import os
@@ -50,11 +63,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import cost_report  # noqa: E402  what a batch directory has cost so far (--budget-usd, the [cost] line)
 import seed_policy  # noqa: E402  seed governance (EVAL-DESIGN.md §6.5), the authority
 import seed_registry  # noqa: E402  enforcement layer over seed_policy's blocks
+import panel_score  # noqa: E402  the panels file: cells, deck pins, published seeds (--panel)
+import sanity_arms  # noqa: E402  the zero-cost arms beside a scored block (--sanity-arms)
 
 PRINT_LOCK = threading.Lock()
 
 # Repo root = parent of eval/. runs/ and forge-overlay/ live here.
 REPO_ROOT = Path(__file__).resolve().parent.parent
+PANEL_FILE = REPO_ROOT / "eval" / "suites" / "panels-v1.json"
 SPIKE_REL = "forge-gui-desktop/src/main/java/forge/spike"
 # Concatenated in THIS order for the OVERLAY_SHA (Gui then Headless).
 SPIKE_FILES = ("LlmSpikeGui.java", "LlmSpikeHeadless.java")
@@ -98,7 +114,7 @@ CONDITION_KEYS = (
     "controller_a", "controller_b", "smart_a", "smart_b", "fast_a", "fast_b",
     "plan_a", "plan_b", "context_profile", "memory_tools", "rules_tool", "native_tools", "lookahead", "one_tier", "no_coaching", "one_chat",
     "ctx_overrides", "checkpoint_sha", "engine_sha", "overlay_sha", "deck_sha",
-    "cap_minutes", "shadow_ai", "env_overrides",
+    "cap_minutes", "shadow_ai", "env_overrides", "fake_policy",
 )
 # --env values that must never be written to a manifest on disk.
 SECRET_KEY_HINTS = ("KEY", "TOKEN", "SECRET", "PASSWORD", "CREDENTIAL")
@@ -283,6 +299,10 @@ def build_env(args, seed, swap, out_dir):
     # names, ENGINE_SHA/OVERLAY_SHA/DECK_SHA/RUN_DISCIPLINE). Cited mode has
     # already refused any user --env that touches the forced heuristic keys.
     for k, v in (args.forced_env or {}).items():
+        env[k] = v
+    # A sanity arm's loopback endpoint. Not recorded in the manifest: its port changes on every
+    # launch, and fake_policy already names the condition.
+    for k, v in (getattr(args, "loopback_env", None) or {}).items():
         env[k] = v
     return env
 
@@ -509,6 +529,8 @@ def batch_condition(args, cited):
         "deck_sha": forced.get("DECK_SHA"),
         "cap_minutes": args.cap_minutes,
         "shadow_ai": bool(getattr(args, "shadow_ai", False)),
+        # A sanity arm's seat on the loopback fake model (sanity_arms.py): which policy answers.
+        "fake_policy": getattr(args, "fake_policy", None),
         "env_overrides": {k: v for k, v in overrides.items()
                           if not k.startswith(CTX_OVERRIDE_PREFIX)},
     }
@@ -713,7 +735,14 @@ def cited_pre_guards(args):
                 "or matching --deck-a/--deck-b.")
     pa = Path(da).expanduser().resolve()
     pb = Path(db).expanduser().resolve()
-    if pa != pb:
+    # The one asymmetric matchup cited mode accepts: a cross-panel cell, whose deck pair is fixed by
+    # the frozen panels file and whose two decklists still hash to the pins recorded there.
+    pin = getattr(args, "cross_pin", None)
+    if pa != pb and pin:
+        if (_deck_sha(pa), _deck_sha(pb)) != tuple(pin):
+            _refuse("cross-panel decks do not match their pins %s (got %s, %s)"
+                    % (list(pin), _deck_sha(pa), _deck_sha(pb)))
+    elif pa != pb:
         _refuse("mirror-only: DECK_A and DECK_B must resolve to the SAME file "
                 "(got %s\n           vs %s)." % (pa, pb))
     if not pa.is_file():
@@ -815,7 +844,11 @@ def finalize_provenance_and_cap(args, cited):
     forced["RUN_DISCIPLINE"] = "cited" if cited else "exploratory"
     forced["ENGINE_SHA"] = _engine_sha(args.forge_home)
     forced["OVERLAY_SHA"] = _overlay_sha(installed_dir)
-    forced["DECK_SHA"] = _deck_sha(args.deck_a or args.deck_b)
+    # A cross-panel cell stamps both decks, so its deck_sha names the whole matchup (panel_score.py
+    # checks it per cell). Other runs keep the historical one-deck stamp: changing it would refuse
+    # every resume into an existing asymmetric exploratory directory.
+    forced["DECK_SHA"] = (panel_score.pair_deck_sha(_deck_sha(args.deck_a), _deck_sha(args.deck_b))
+                          if getattr(args, "cross_pin", None) else _deck_sha(args.deck_a or args.deck_b))
     forced["CHECKPOINT_SHA"] = _checkpoint_sha(args.checkpoint)
     # Which declared band these seeds came from, stamped on every game line so
     # the artifact says whether it was held-out without re-deriving it later.
@@ -985,11 +1018,13 @@ def preflight_openrouter(args):
                  "launch JVMs that would all crash at startup.")
 
 
-def main():
+def build_parser():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--seeds", required=True, type=parse_seeds,
-                    help="'1..20' inclusive range, or '3,7,42' explicit list")
+    ap.add_argument("--seeds", type=parse_seeds, default=None,
+                    help="'1..20' inclusive range, or '3,7,42' explicit list. Required, except "
+                         "with --panel, where it defaults to the panel's published seeds and "
+                         "must be a subset of them")
     ap.add_argument("--pairs", action="store_true",
                     help="play each seed twice with SWAP_SEATS flipped (paired design)")
     ap.add_argument("--exploratory", action="store_true",
@@ -1081,17 +1116,58 @@ def main():
                          "condition from unassisted play and must live in its own --out.")
     ap.add_argument("--env", action="append", metavar="KEY=VALUE",
                     help="extra env var for the runner (repeatable)")
-    args = ap.parse_args()
+    ap.add_argument("--panel", choices=["mirror", "cross"],
+                    help="launch every cell of an STR-AI panel from --panel-file: identity A is the "
+                         "pilot given by --controller-a/--smart-a/--fast-a, identity B the panel's "
+                         "opponent (the Forge AI), one directory per cell under --out. The cross "
+                         "panel also plays its AI-vs-AI control per cell. Needs --budget-usd, which "
+                         "then caps the whole panel. Score with eval/panel_score.py")
+    ap.add_argument("--panel-file", default=str(PANEL_FILE),
+                    help="panels definition (default eval/suites/panels-v1.json)")
+    ap.add_argument("--panel-cells", metavar="ID,ID",
+                    help="with --panel: only these cell ids (a partial panel is not scored as valid)")
+    ap.add_argument("--no-control", action="store_true",
+                    help="with --panel cross: skip the AI-vs-AI control cells")
+    ap.add_argument("--sanity-arms", action="store_true",
+                    help="after the scored block (each panel cell), play the zero-cost sanity arms on "
+                         "the same seeds and decks: identity A as floor, random, and the LLM seat on "
+                         "the loopback fake model with --policy empty and --policy garbage. Each arm "
+                         "is a sibling directory <out>__sanity-<arm>; eval/sanity_arms.py checks that "
+                         "none of them beats the floor. Needs --budget-usd")
+    return ap
+
+
+def main(argv=None):
+    ap = build_parser()
+    args = ap.parse_args(argv)
     for kv in args.env or []:
         k = kv.split("=", 1)[0]
         if k in CONDITION_ENV_KEYS:
             raise SystemExit("run_batch: --env %s is not allowed in any mode; use "
                              "--context-profile / --memory-tools / --rules-tool / --text-tools / "
                              "--lookahead / --one-tier / --no-coaching / --one-chat so the condition is recorded and guarded." % k)
-
-    warn_reserved_seeds(args.seeds)
+    if args.seeds is None and not args.panel:
+        ap.error("--seeds is required (except with --panel)")
+    if (args.panel or args.sanity_arms) and args.budget_usd is None:
+        # A panel is 16 cells: the cost rule (CLAUDE.md, docs/STANDARDS.md section 6) is a budget on
+        # the whole thing, never an unbounded launch.
+        print("run_batch: REFUSING: --panel and --sanity-arms launch many games; pass --budget-usd "
+              "(it caps every paid game they start).", file=sys.stderr)
+        sys.exit(2)
     load_secrets()
-    preflight_openrouter(args)
+    if args.panel:
+        return run_panel(args)
+    rc, out_dir = run_block(args)
+    if args.sanity_arms:
+        rc = max(rc, run_sanity_arms(args, out_dir))
+    return rc
+
+
+def run_block(args):
+    """Launch one block (one directory, one condition). Returns (exit code, out_dir)."""
+    warn_reserved_seeds(args.seeds)
+    if not getattr(args, "fake_policy", None):
+        preflight_openrouter(args)
 
     cited = not args.exploratory
 
@@ -1185,24 +1261,28 @@ def main():
             % (len(foreign), ", ".join("%d/swap%d" % (s, w) for s, w in foreign)))
     if not todo:
         log("Nothing to do.")
-        return 0
+        return 0, out_dir
 
     log("Running %d games (jobs=%d, out=%s, forge_home=%s)"
         % (len(todo), args.jobs, out_dir, args.forge_home))
 
     budget = getattr(args, "budget_usd", None)
+    # A panel's budget covers every cell under its root, not one cell's directory.
+    budget_root = getattr(args, "budget_root", None)
+    spent = (lambda: spent_usd_tree(budget_root)) if budget_root else (lambda: spent_usd(out_dir))
     if budget is not None:
         unpriced = [s for s in (args.smart_a, args.fast_a, args.smart_b, args.fast_b)
                     if cost_report.model_id(s) and cost_report.price_of(cost_report.load_prices(), s) is None]
         if unpriced:
             _refuse("--budget-usd needs a price for %s in eval/pricing/prices.json" % ", ".join(sorted(set(unpriced))))
-        log("[budget] this directory may spend up to $%.2f (already $%.2f); a game is not started past that, "
-            "so the overshoot is at most the %d games in flight" % (budget, spent_usd(out_dir), args.jobs))
+        log("[budget] %s may spend up to $%.2f (already $%.2f); a game is not started past that, "
+            "so the overshoot is at most the %d games in flight"
+            % ("this panel" if budget_root else "this directory", budget, spent(), args.jobs))
 
     def guarded(seed, swap):
         # Checked when a worker picks the game up, not when it is queued.
-        if budget is not None and spent_usd(out_dir) >= budget:
-            log("[budget] not started: seed=%d swap=%d ($%.2f spent of $%.2f)" % (seed, swap, spent_usd(out_dir), budget))
+        if budget is not None and spent() >= budget:
+            log("[budget] not started: seed=%d swap=%d ($%.2f spent of $%.2f)" % (seed, swap, spent(), budget))
             return (seed, swap, "budget", 0)
         return run_one(args, seed, swap, out_dir)
 
@@ -1231,7 +1311,170 @@ def main():
     log("[cost] " + cost_report.fmt(cost_report.report_dir(str(out_dir), cost_report.load_prices())))
     log("Aggregate with: python3 %s %s"
         % (Path(__file__).with_name("aggregate.py"), out_dir))
-    return 1 if bad else 0
+    return (1 if bad else 0), out_dir
+
+
+# ----------------------------------------------------------- sanity arms
+
+def sanity_arm_args(scored, arm, scored_out):
+    """The namespace for one sanity arm of a scored block: identity A replaced, everything else
+    (decks, seeds, opponent, cap, context flags) kept, so the arm differs only in who plays A."""
+    a = copy.copy(scored)
+    for k, v in sanity_arms.arm_overrides(arm).items():
+        setattr(a, k, v)
+    a.out = str(sanity_arms.arm_dir(scored_out, arm))
+    a.checkpoint = None
+    a.native_tools = native_tools_requested(a)
+    a.loopback_env = None
+    # No paid model plays identity A here (floor, random or the loopback stub), so the arm cannot
+    # spend the budget; it still runs when the scored block used the budget up, which is exactly
+    # when its check is needed. Identity B is the scored block's opponent, never a paid model in a
+    # panel.
+    a.budget_usd = None if not paid_identity_b(a) else scored.budget_usd
+    return a
+
+
+def paid_identity_b(a):
+    """True when identity B is a model seat with a paid price (a PvP block's sanity arms then still
+    spend on B, so they keep the budget)."""
+    if (a.controller_b or "llm") != "llm":
+        return False
+    prices = cost_report.load_prices()
+    return any((cost_report.price_of(prices, s) or {}).get("prompt", 1) > 0 or not cost_report.model_id(s)
+               for s in (a.smart_b, a.fast_b))
+
+
+def run_sanity_arms(scored, scored_out):
+    """Play every sanity arm next to a finished scored block, then print the floor check."""
+    rc = 0
+    for arm in sanity_arms.ARMS:
+        a = sanity_arm_args(scored, arm, scored_out)
+        log("[sanity] arm %s -> %s" % (arm, a.out))
+        server = None
+        try:
+            if a.fake_policy:
+                # The request log lives outside the game directory, as in harness_acceptance.sh.
+                server, port = sanity_arms.start_fake_server(
+                    a.fake_policy, Path(a.out + ".server") / "fake_requests.jsonl")
+                a.loopback_env = sanity_arms.loopback_env(port)
+            rc = max(rc, run_block(a)[0])
+        finally:
+            if server is not None:
+                sanity_arms.stop_fake_server(server)
+    verdict = sanity_arms.check(scored_out, float(panel_anchor("random_max_margin_over_floor",
+                                                                sanity_arms.DEFAULT_RANDOM_MARGIN,
+                                                                getattr(scored, "panel_file", None))))
+    sanity_arms.print_human(verdict)
+    return max(rc, 1 if verdict["violations"] else 0)
+
+
+# ----------------------------------------------------------------- panels
+
+def panel_anchor(key, default, panel_file=None):
+    try:
+        doc = json.loads(Path(panel_file or PANEL_FILE).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return default
+    return (doc.get("anchors") or {}).get(key, default)
+
+
+def spent_usd_tree(root):
+    """Estimated spend of every run directory under root (a panel's cells, controls and arms)."""
+    root = Path(root)
+    if not root.is_dir():
+        return 0.0
+    dirs = sorted({p.parent for p in root.rglob("*.jsonl")})
+    return sum(spent_usd(d) for d in dirs)
+
+
+def _panel_refuse(msg):
+    """A panel that does not match its frozen definition: no mode bypasses this."""
+    print("run_batch: REFUSING (--panel): " + msg, file=sys.stderr)
+    sys.exit(2)
+
+
+def plan_panel(args):
+    """[(kind, cell id, namespace)] for every block a panel launch plays, in order, or a refusal.
+    kind is 'pilot' or 'control'. Pure: nothing is launched or created."""
+    try:
+        panel, pool, _doc = panel_score.load_panel(args.panel_file, args.panel)
+    except panel_score.PanelError as e:
+        _panel_refuse(str(e))
+    for flag in ("deck", "deck_a", "deck_b", "controller_b", "smart_b", "fast_b"):
+        if getattr(args, flag, None):
+            _panel_refuse("--panel fixes the decks and identity B; do not pass --%s" % flag.replace("_", "-"))
+    drift = []
+    for d in pool.values():
+        actual = _deck_sha(REPO_ROOT / d["path"])
+        if actual != d["sha12"]:
+            drift.append("%s (file %s, pinned %s)" % (d["name"], actual, d["sha12"]))
+    if drift:
+        _panel_refuse("deck file(s) changed since %s was frozen: %s. A new deck pool is a new panels "
+                "version." % (args.panel_file, ", ".join(drift)))
+    published = panel_score.parse_seed_spec(panel["seeds"])
+    seeds = args.seeds if args.seeds is not None else published
+    stray = sorted(set(seeds) - set(published))
+    if stray:
+        _panel_refuse("--seeds must be a subset of the panel's published seeds %s (every pilot plays the "
+                "same list, so deltas stay seed-paired); not in it: %s" % (panel["seeds"], stray[:10]))
+    cells = panel["cells"]
+    if args.panel_cells:
+        wanted = [c.strip() for c in args.panel_cells.split(",") if c.strip()]
+        unknown = sorted(set(wanted) - {c["id"] for c in cells})
+        if unknown:
+            _panel_refuse("unknown --panel-cells: %s" % ", ".join(unknown))
+        cells = [c for c in cells if c["id"] in wanted]
+    control = panel.get("control") if not getattr(args, "no_control", False) else None
+    if control:
+        cseeds = panel_score.parse_seed_spec(control["seeds"])
+        # The control plays the same seeds as the pilot and more: a prefix of its list, four times
+        # as long as the pilot's block (it is free, and its variance enters every margin).
+        n = min(len(cseeds), 4 * len(seeds)) if args.seeds is not None else len(cseeds)
+        cseeds = cseeds[:n]
+    root = Path(args.out).expanduser().resolve() if args.out else (
+        REPO_ROOT / "runs" / ("%s-panel-%s-%s" % (datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S"),
+                                                   args.panel, default_out_label(args))))
+    plan = []
+    for c in cells:
+        a = copy.copy(args)
+        a.deck = None
+        a.deck_a = str((REPO_ROOT / pool[c["deck_a"]]["path"]).resolve())
+        a.deck_b = str((REPO_ROOT / pool[c["deck_b"]]["path"]).resolve())
+        a.controller_b = panel.get("opponent", "ai")
+        a.smart_b = a.fast_b = None
+        a.seeds = list(seeds)
+        a.pairs = bool(panel.get("pairs", True))
+        a.out = str(root / c["id"])
+        a.budget_root = str(root)
+        a.cross_pin = ((pool[c["deck_a"]]["sha12"], pool[c["deck_b"]]["sha12"])
+                       if c["deck_a"] != c["deck_b"] else None)
+        plan.append(("pilot", c["id"], a))
+        if control:
+            k = copy.copy(a)
+            k.controller_a = control.get("controller_a", "ai")
+            k.controller_b = control.get("controller_b", "ai")
+            k.smart_a = k.fast_a = None
+            k.checkpoint = None
+            k.seeds = list(cseeds)
+            k.out = str(root / (c["id"] + panel_score.CONTROL_SUFFIX))
+            plan.append(("control", c["id"], k))
+    return root, plan
+
+
+def run_panel(args):
+    root, plan = plan_panel(args)
+    log("[panel] %s: %d block(s) under %s, budget $%.2f for the whole panel"
+        % (args.panel, len(plan), root, args.budget_usd))
+    rc = 0
+    for kind, cid, a in plan:
+        log("[panel] %s %s -> %s" % (kind, cid, a.out))
+        code, out_dir = run_block(a)
+        rc = max(rc, code)
+        if kind == "pilot" and args.sanity_arms:
+            rc = max(rc, run_sanity_arms(a, out_dir))
+    log("[cost] panel total $%.2f" % spent_usd_tree(root))
+    log("Score with: python3 %s %s --panel %s" % (Path(__file__).with_name("panel_score.py"), root, args.panel))
+    return rc
 
 
 if __name__ == "__main__":

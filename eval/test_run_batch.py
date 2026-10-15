@@ -529,5 +529,148 @@ class TestManifest(unittest.TestCase):
             self.assertIn("cannot be verified", msg)
 
 
+def panel_args(**kw):
+    base = dict(panel="mirror", panel_file=str(run_batch.PANEL_FILE), panel_cells=None, no_control=False,
+                sanity_arms=False, budget_usd=5.0, seeds=None, deck=None, deck_a=None, deck_b=None,
+                controller_a="llm", controller_b=None, smart_a="openrouter:deepseek/deepseek-v4.1-flash",
+                fast_a="openrouter:deepseek/deepseek-v4.1-flash", out="/tmp/panel-root", exploratory=False)
+    base.update(kw)
+    return make_args(**base)
+
+
+class TestPanelLaunch(unittest.TestCase):
+    def test_the_mirror_panel_plans_one_pilot_block_per_deck_against_the_forge_ai(self):
+        root, plan = run_batch.plan_panel(panel_args())
+        self.assertEqual(len(plan), 16)
+        self.assertTrue(all(kind == "pilot" for kind, _, _ in plan))
+        for _, cid, a in plan:
+            self.assertEqual(a.deck_a, a.deck_b)
+            self.assertTrue(a.deck_a.endswith("/eval/decks/%s.txt" % cid))
+            self.assertEqual((a.controller_b, a.smart_b, a.controller_a), ("ai", None, "llm"))
+            self.assertEqual(a.seeds, list(range(7800, 7850)))
+            self.assertTrue(a.pairs)
+            self.assertEqual(a.out, str(root / cid))
+            self.assertEqual(a.budget_root, str(root))
+            self.assertIsNone(a.cross_pin)
+
+    def test_the_cross_panel_adds_a_control_on_four_times_the_seeds(self):
+        root, plan = run_batch.plan_panel(panel_args(panel="cross", seeds=[7800, 7801]))
+        self.assertEqual([k for k, _, _ in plan[:2]], ["pilot", "control"])
+        self.assertEqual(len(plan), 32)
+        _, cid, pilot = plan[0]
+        _, _, control = plan[1]
+        self.assertEqual(cid, "ant-storm__vs__elves")
+        self.assertEqual(pilot.cross_pin, tuple(d["sha12"] for d in json.loads(
+            run_batch.PANEL_FILE.read_text())["deck_pool"] if d["name"] in ("ant-storm", "elves")))
+        self.assertEqual((control.controller_a, control.controller_b, control.smart_a), ("ai", "ai", None))
+        self.assertEqual(control.seeds, list(range(7800, 7808)))
+        self.assertEqual(control.out, str(root / (cid + "__control")))
+        self.assertEqual(len(run_batch.plan_panel(panel_args(panel="cross", no_control=True))[1]), 16)
+
+    def test_seeds_outside_the_published_list_are_refused(self):
+        with self.assertRaises(SystemExit):
+            run_batch.plan_panel(panel_args(seeds=[7799, 7800]))
+
+    def test_a_panel_fixes_the_decks_and_the_opponent(self):
+        for kw in ({"deck": "/tmp/x.txt"}, {"controller_b": "random"}, {"smart_b": "haiku"}):
+            with self.assertRaises(SystemExit):
+                run_batch.plan_panel(panel_args(**kw))
+
+    def test_a_subset_of_cells_can_be_launched(self):
+        _, plan = run_batch.plan_panel(panel_args(panel_cells="burn,elves"))
+        self.assertEqual([cid for _, cid, _ in plan], ["burn", "elves"])
+        with self.assertRaises(SystemExit):
+            run_batch.plan_panel(panel_args(panel_cells="burn,nope"))
+
+    def test_panels_and_sanity_arms_refuse_to_launch_without_a_budget(self):
+        for extra in (["--panel", "mirror"], ["--seeds", "7800", "--sanity-arms"]):
+            p = subprocess.run([sys.executable, str(RUN_BATCH)] + extra + ["--forge-home", "/nonexistent"],
+                               capture_output=True, text=True)
+            self.assertEqual(p.returncode, 2, p.stderr)
+            self.assertIn("--budget-usd", p.stderr)
+
+    def test_seeds_stay_required_outside_a_panel(self):
+        p = subprocess.run([sys.executable, str(RUN_BATCH), "--forge-home", "/nonexistent"],
+                           capture_output=True, text=True)
+        self.assertEqual(p.returncode, 2)
+        self.assertIn("--seeds is required", p.stderr)
+
+
+class TestCrossPin(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.da = Path(self.tmp.name) / "a.txt"
+        self.db = Path(self.tmp.name) / "b.txt"
+        self.da.write_text("4 Lightning Bolt\n")
+        self.db.write_text("4 Brainstorm\n")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def cited(self, **kw):
+        a = make_args(exploratory=False, deck_a=str(self.da), deck_b=str(self.db), seeds=[7800], **kw)
+        run_batch.cited_pre_guards(a)
+        return a
+
+    def test_cited_mode_accepts_asymmetric_decks_only_with_matching_pins(self):
+        pin = (run_batch._deck_sha(self.da), run_batch._deck_sha(self.db))
+        self.cited(cross_pin=pin)
+        with self.assertRaises(SystemExit):
+            self.cited(cross_pin=(pin[1], pin[0]))
+        with self.assertRaises(SystemExit):
+            self.cited()
+
+
+class TestSanityArmLaunch(unittest.TestCase):
+    def test_a_sanity_arm_changes_only_identity_a(self):
+        scored = make_args(seeds=[7800, 7801], controller_b="ai", smart_a="openrouter:deepseek/deepseek-v4.1-flash",
+                           fast_a="openrouter:deepseek/deepseek-v4.1-flash", checkpoint="tag", memory_tools=True)
+        for arm in ("floor", "random", "empty", "garbage"):
+            a = run_batch.sanity_arm_args(scored, arm, "/r/burn")
+            self.assertEqual((a.deck_a, a.deck_b, a.seeds, a.controller_b, a.cap_minutes),
+                             (scored.deck_a, scored.deck_b, scored.seeds, "ai", scored.cap_minutes))
+            self.assertEqual(a.out, "/r/burn__sanity-" + arm)
+            self.assertIsNone(a.checkpoint)
+        self.assertEqual(run_batch.sanity_arm_args(scored, "floor", "/r/burn").controller_a, "floor")
+        fake = run_batch.sanity_arm_args(scored, "empty", "/r/burn")
+        self.assertEqual((fake.smart_a, fake.fake_policy), ("openrouter:fake/harness-model", "empty"))
+        self.assertEqual(scored.controller_a, "llm")      # the scored namespace is untouched
+
+    def test_free_arms_run_past_the_budget_but_arms_facing_a_paid_model_do_not(self):
+        spec = "openrouter:deepseek/deepseek-v4.1-flash"
+        vs_ai = make_args(controller_b="ai", budget_usd=1.0)
+        self.assertIsNone(run_batch.sanity_arm_args(vs_ai, "empty", "/r/x").budget_usd)
+        vs_model = make_args(controller_b="llm", smart_b=spec, fast_b=spec, budget_usd=1.0)
+        self.assertEqual(run_batch.sanity_arm_args(vs_model, "floor", "/r/x").budget_usd, 1.0)
+        vs_cli = make_args(controller_b="llm", smart_b="haiku", fast_b="haiku", budget_usd=1.0)
+        self.assertEqual(run_batch.sanity_arm_args(vs_cli, "floor", "/r/x").budget_usd, 1.0)
+
+    def test_the_loopback_endpoint_reaches_the_jvm_but_not_the_manifest(self):
+        a = make_args(fake_policy="garbage", loopback_env={"OPENROUTER_BASE_URL": "http://127.0.0.1:5555/v1"})
+        self.assertEqual(run_batch.build_env(a, 7800, False, "/tmp/o")["OPENROUTER_BASE_URL"],
+                         "http://127.0.0.1:5555/v1")
+        cond = run_batch.batch_condition(a, cited=False)
+        self.assertEqual(cond["fake_policy"], "garbage")
+        self.assertNotIn("5555", json.dumps(cond))
+
+    def test_the_fake_model_is_priced_at_zero_so_a_budget_admits_it(self):
+        prices = run_batch.cost_report.load_prices()
+        self.assertEqual(run_batch.cost_report.price_of(prices, "openrouter:fake/harness-model")["prompt"], 0.0)
+
+    def test_a_panel_budget_counts_every_directory_under_its_root(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            spec = "openrouter:deepseek/deepseek-v4.1-flash"
+            for sub in ("burn", "elves__sanity-random", "elves"):
+                d = Path(tmp) / sub
+                d.mkdir()
+                write_game(d, "game-1-1.jsonl",
+                           {"t": "decision", "seat": "Identity-A", "tier": "smart", "prompt_tokens": 1_000_000,
+                            "completion_tokens": 0},
+                           game_line(1, False, smart_a=spec, fast_a=spec))
+            one = run_batch.spent_usd(Path(tmp) / "burn")
+            self.assertGreater(one, 0)
+            self.assertAlmostEqual(run_batch.spent_usd_tree(tmp), 3 * one)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
