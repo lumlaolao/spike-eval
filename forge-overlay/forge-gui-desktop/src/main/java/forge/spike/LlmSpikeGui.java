@@ -4878,7 +4878,7 @@ public final class LlmSpikeGui {
                 // retroactively dead time, and its text is the first genuinely-discarded reply worth
                 // keeping for diagnosis (jsonl first_failed_reply, capped).
                 if (lastReply != null) {
-                    if (lastFirstFailedReply == null) lastFirstFailedReply = cap(lastReply, 500);
+                    if (lastFirstFailedReply == null) lastFirstFailedReply = headAndTail(lastReply, 250);
                     lastRetryMs += lastSuccessMs;
                 }
                 lastSuccessMs = subMs; // only the truly-final successful sub-attempt's own duration
@@ -4893,6 +4893,12 @@ public final class LlmSpikeGui {
         }
         /** Cap a string at n chars for a jsonl field that must stay small (diagnostic reply snippets).
          *  Package-private (not private) so LlmSpikeTest can exercise it directly. */
+        /** The first and last n characters: a discarded reply's answer line, when it has one, is at the
+         *  end, which a plain head cap dropped. */
+        static String headAndTail(String s, int n) {
+            return (s == null || s.length() <= 2 * n + 5) ? s : s.substring(0, n) + " ... " + s.substring(s.length() - n);
+        }
+
         static String cap(String s, int n) {
             return (s == null || s.length() <= n) ? s : s.substring(0, n);
         }
@@ -7106,8 +7112,10 @@ public final class LlmSpikeGui {
      *  value (the word itself is the whole answer) so they keep the plain substring check. */
     static boolean looksLikeDecisionTag(String content) {
         if (content == null) return false;
+        // The mulligan answer is the upper-case word. Any "keep" in prose ("keep mana open") made a
+        // reply cut off mid-thought look answered, so its truncation retry never ran.
+        if (Pattern.compile("\\b(KEEP|MULLIGAN)\\b").matcher(content).find()) return true;
         String u = content.toUpperCase(Locale.ROOT);
-        if (u.contains("KEEP") || u.contains("MULLIGAN")) return true;
         for (String tag : new String[]{"CHOICE", "PICKS:", "BLOCKS:", "ANSWER:"}) {
             int i = u.indexOf(tag);
             if (i >= 0 && Pattern.compile("\\d").matcher(u.substring(i)).find()) return true;
@@ -7396,7 +7404,11 @@ public final class LlmSpikeGui {
                 body.append(",\"temperature\":").append(temperature);
             if (toolsJson != null)
                 body.append(",\"tools\":").append(toolsJson)
-                    .append(",\"tool_choice\":\"").append(allowCalls ? "auto" : "none").append("\"");
+                    .append(",\"tool_choice\":\"").append(allowCalls ? "auto" : "none").append("\"")
+                    // Route only to endpoints that honour every parameter sent: without it OpenRouter may
+                    // pick one that ignores tool_choice "none" (the seat-tools-v5 defect, a call made on a
+                    // round that offered none). An endpoint that refuses is the existing 404 downgrade path.
+                    .append(",\"provider\":{\"require_parameters\":true}");
             body.append("}");
 
             HttpRequest.Builder rb = HttpRequest.newBuilder()
