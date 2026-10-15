@@ -82,7 +82,15 @@ want() { # $1 key -> value from the expectations file
     END {if (np) print (np>1 ? "DUPLICATE" : p); else print (n>1 ? "DUPLICATE" : v)}' "$EXPECTED"
 }
 pinset() { # $1 arm -> which pins the canary is checked against
-  if grep -q "^$PLATFORM\.$1\." "$EXPECTED"; then echo "$PLATFORM pins"; else echo "plain (Mac) pins"; fi
+  # want() looks each key up on its own, so an OS pin set missing one outcome key would be checked
+  # against a mix of OS and plain values while the label said "<os> pins" (#113): that is PARTIAL.
+  local k have="" miss=""
+  for k in winner turns decisions; do
+    if grep -q "^$PLATFORM\.$1\.$k=" "$EXPECTED"; then have="$have $k"; else miss="$miss $k"; fi
+  done
+  if [ -z "$have" ]; then echo "plain (Mac) pins"
+  elif [ -z "$miss" ]; then echo "$PLATFORM pins"
+  else echo "PARTIAL $PLATFORM pins (has:$have; missing:$miss)"; fi
 }
 # md5 is macOS, md5sum is Linux. With neither, both sides of a comparison would hash to "" and the
 # gate would pass on anything; an exit inside $( ) does not stop this script, so the caller checks.
@@ -253,6 +261,7 @@ if has_stage canary; then
     for arm in floor random; do
       seed="$(want $arm.seed)"
       case "$seed" in ''|*[!0-9]*) fail "canary-$arm" "seed pin '$seed' is missing, duplicated or not a number in $EXPECTED"; continue;; esac
+      case "$(pinset $arm)" in PARTIAL*) fail "canary-$arm" "$(pinset $arm) in $EXPECTED: pin all three outcome keys for this OS or none"; continue;; esac
       say "canary $arm/$arm seed $seed"
       play "canary-$arm" "$seed" CONTROLLER_A=$arm CONTROLLER_B=$arm
       dir="$OUT/canary-$arm"
