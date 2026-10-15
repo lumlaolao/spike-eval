@@ -586,8 +586,12 @@ public class PromptFidelityTest {
     public void anEffectsNameCarriesNoEngineId() {
         Game g = bareGame(PhaseType.MAIN1);
         Player me = g.getPlayers().get(0);
+        Card wasp = card("Lightning Bolt", me, ZoneType.Battlefield);
+        wasp.setName("The Wondrous Wasp");
         Card effect = card("Lightning Bolt", me, ZoneType.Command);
-        effect.setName("The Wondrous Wasp (53)'s Effect");
+        effect.setName(wasp + "'s Effect");                  // how Forge names it: "The Wondrous Wasp (N)'s Effect"
+        effect.setEffectSource(wasp);
+        Assert.assertTrue(effect.getName().matches("The Wondrous Wasp \\(\\d+\\)'s Effect"), effect.getName());
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
         String ref = ctrl.observer().shortRef(effect);
         Assert.assertFalse(ref.contains("(53)"), "an engine id in a name: " + ref);

@@ -211,8 +211,9 @@ public final class LlmSpikeGui {
      *  Epoch 20: the seat sees the known top of its own library (observation-faithful-v27).
      *  Epoch 21: the first engine patch: the colour an any-colour source makes for generic is the seat's.
      *  Epoch 22: stack text redacted of engine ids, card text without literal \\n (observation-faithful-v28).
-     *  Epoch 23: no engine id inside a name (an effect named after its source; observation-faithful-v29). */
-    static final String HARNESS_EPOCH = "harness-epoch-23";
+     *  Epoch 23: no engine id inside a name (an effect named after its source; observation-faithful-v29).
+     *  Epoch 24: a target question's trigger text is redacted; an optional target declined is the seat's decision. */
+    static final String HARNESS_EPOCH = "harness-epoch-24";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -1182,7 +1183,8 @@ public final class LlmSpikeGui {
         }
         String labelOf(SpellAbility sa) {
             if (observer == null || sa.getHostCard() == null) return saLabel(sa);
-            return faithfulSaLabel(sa, observer.shortRef(sa.getHostCard()));
+            // Redacted: a trigger's text carries Forge's "[Card: Cityscape Leveler (70), Activator: ...]".
+            return observer.redactIds(faithfulSaLabel(sa, observer.shortRef(sa.getHostCard())));
         }
 
         /** True when every part of {@code sa} only produces mana (a ritual): the one kind of response
@@ -1660,7 +1662,11 @@ public final class LlmSpikeGui {
 
         /** Ask a bridge to pick ONE option (1-based in the prompt); returns 0-based index, or -1 for
          *  none/parse-failure. `noneLabel` (nullable) adds an extra "decline" option. */
+        /** The last decideOne returned -1 because the seat picked its "none" option, not because it failed. */
+        private boolean lastExplicitDecline = false;
+
         private int decideOne(LLMBridge b, String type, String question, List<String> options, String noneLabel) {
+            lastExplicitDecline = false;
             clearLast();
             // Repeated labels (two blockers sharing a name, two copies of one card as targets) become
             // "label #1"/"label #2" in the prompt AND the evalDec-logged options array, in one place.
@@ -1694,6 +1700,7 @@ public final class LlmSpikeGui {
                 AnswerTool.Answer ta = toolAnswer();
                 int c = ta != null ? ta.option : textNumber(reply, "CHOICE:");
                 if (c == noneIdx && noneIdx > 0) {         // explicit decline (a real model decision)
+                    lastExplicitDecline = true;
                     if (type != null) { // tells the caller its -1 return is already a logged row, not a silent drop
                         evalDec(type, options.size(), -1, tierOf(b == smart), 0, null, options);
                         lastDeclineLogged = true;
@@ -3537,7 +3544,10 @@ public final class LlmSpikeGui {
                                 + " (the spell/ability resolves against whatever you pick).", labels,
                                 sa.getMinTargets() == 0 ? "No target" : null);
                         if (c == -1 && sa.getMinTargets() == 0) {
-                            evalDec("target", cands.size(), -1, tierOf(smartTierFor("target")), 0, "target(optional-decline-or-unparsed)", labels);
+                            // The seat's own "No target" is its decision, not a fallback (runs/luna-std mod-g7 T10 read
+                            // it as a lost answer); only an answer that could not be used carries a fallback label.
+                            evalDec("target", cands.size(), -1, tierOf(smartTierFor("target")), 0,
+                                    lastExplicitDecline ? null : "target(unanswered)->no target", labels);
                             continue; // optional -> deliberately no target
                         }
                         if (cancellable && c == cands.size()) {

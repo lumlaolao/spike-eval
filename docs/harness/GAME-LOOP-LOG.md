@@ -439,3 +439,14 @@ decisions; analyzer PASS. The first Luna win in these games (Thalia, Stoneforge 
 - FIXED  "The Wondrous Wasp (53)'s Effect" in the command zone (22 prompts): an effect named after its source with
   the engine id inside the name. Names drop it. Test `anEffectsNameCarriesNoEngineId`.
 - clean  mulligan, plays, Kaito emblems, attacks; format named in the system prompt; decks loaded 60+15.
+
+### game of 2026-10-15  seed 87  Modern UrzaTron (GPT-6 Luna) vs Modern Rakdos Delirium (Forge AI)  WON T14  $0.04  harness-epoch-23
+
+`runs/luna-modern/g7`: the first Modern game. 64 model decisions by `answer` call; TAKEN 0, SKIP 0; 0 Forge-AI
+decisions; analyzer PASS.
+- FIXED  the seat's "No target" for Cityscape Leveler's up-to-one target (T10) was logged with the fallback
+  "target(optional-decline-or-unparsed)", and the sheet called it LOST. A decline now carries no fallback; only an
+  answer that could not be used does. Test `anOptionalTargetTheSeatDeclinesIsItsDecisionNotAFallback`.
+- FIXED  the target question pasted the trigger's engine text "[Card: Cityscape Leveler (70), Activator: Seat, ...]"
+  (also Devourer of Destiny (50), T6); ability labels are now redacted like the stack.
+- checked  "announce-x(forced)->0" twice for Kozilek's Command: two colourless sources, {X}{C}{C}, so X could only be 0.

@@ -363,6 +363,42 @@ public class LineFindingProbeTest {
         }
     }
 
+    /** Modern game mod-g7, T10: the seat chose "No target" for an up-to-one target; the row carried the fallback
+     *  "target(optional-decline-or-unparsed)" and the review sheet called the answer lost. A decline is the
+     *  seat's decision: no fallback on its row. */
+    @Test
+    public void anOptionalTargetTheSeatDeclinesIsItsDecisionNotAFallback() throws Exception {
+        java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("decline-rows");
+        LlmSpikeGui.EvalLog.closeForTest();
+        LlmSpikeGui.EvalLog.initToDir(dir.toString(), 7);
+        try {
+            Game g = bareGame(PhaseType.MAIN1);
+            Player me = g.getPlayers().get(0);
+            card("Ornithopter", me, ZoneType.Battlefield);
+            card("Ornithopter", g.getPlayers().get(1), ZoneType.Battlefield);
+            card("Plains", me, ZoneType.Battlefield);
+            card("Plains", me, ZoneType.Battlefield);
+            card("Banishing Slash", me, ZoneType.Hand);                    // up to one target
+            // The cast path: play -> target. CHOICE 1 casts it; on the target ask, 3) is "No target".
+            Recorder model = new Recorder("CHOICE: 1") {
+                @Override public String ask(String prompt) {
+                    prompts.add(prompt);
+                    return prompt.contains("Choose the TARGET") ? "CHOICE: 3" : "CHOICE: 1";
+                }
+            };
+            LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+            java.util.List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+            Assert.assertNotNull(r, "the seat cast Banishing Slash: " + model.prompts);
+            Assert.assertTrue(r.get(0).getTargets().isEmpty(), "the seat chose no target");
+            String rows = new String(java.nio.file.Files.readAllBytes(LlmSpikeGui.EvalLog.currentFile().toPath()));
+            Assert.assertTrue(rows.contains("\"type\":\"target\""), rows);
+            Assert.assertFalse(rows.contains("optional-decline-or-unparsed") || rows.contains("target(unanswered)"),
+                    "a decline recorded as a fallback: " + rows);
+        } finally {
+            LlmSpikeGui.EvalLog.closeForTest();
+        }
+    }
+
     /** Sacrifices `victim` through the engine's zone-change table, so "dies" triggers fire. */
     static void sacrificeForReal(Game g, Card victim) {
         forge.game.card.CardZoneTable table = new forge.game.card.CardZoneTable(
