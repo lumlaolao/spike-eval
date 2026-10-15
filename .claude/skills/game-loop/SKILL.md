@@ -36,8 +36,7 @@ python3 eval/run_batch.py --seeds $SEED --exploratory --jobs 1 --budget-usd 0.15
   --deck $PWD/eval/decks/<deck>.txt --name-a Seat --name-b ForgeAI \
   --controller-a llm --controller-b ai \
   --smart-a openrouter:deepseek/deepseek-v4.1-flash --fast-a openrouter:deepseek/deepseek-v4.1-flash \
-  --context-profile v4-faithful --memory-tools --lookahead --env MULLIGAN_HEURISTIC=0 --env SKIP_HEURISTICS=0 \
-  --env "TIER_FAST_TYPES=targets,target,zone-change,prevent-effect,ability-to-play,play-single,order" \
+  --context-profile v4-faithful --memory-tools --lookahead --one-tier --env MULLIGAN_HEURISTIC=0 --env SKIP_HEURISTICS=0 \
   --out $PWD/runs/loop/g$N --cap-minutes 20
 ```
 
@@ -48,10 +47,10 @@ does not guess which priority windows matter: every window with something usable
 may answer a PASS with `YIELD: end-of-turn` / `YIELD: my-next-turn` to stop being asked until then
 (the opponent's spells always ask). Passed windows are `t:"window"` rows; `yield:` ones were the seat's.
 
-`order` is in the fast-tier list for the reason the others are: it is a classification over a menu the
-harness has already legalised (which milled cards reach the graveyard in which order), and the smart
-tier spent 17 calls on it in runs/loop/g05 — 16% of that game's model calls — on an order the seat
-itself called irrelevant ("Order doesn't change the outcome").
+`--one-tier`: every decision goes to the same model with its reasoning on. The two-tier split sent
+58% of real decisions in runs/loop g01-g07 (every target, most instant-speed plays) to a tier with
+reasoning disabled; how hard the model may think is not the harness's call. A separate condition
+(stamped `one_tier`): compare it with two-tier games only as two arms.
 
 ## 2. The sheet (mechanical, never skip)
 

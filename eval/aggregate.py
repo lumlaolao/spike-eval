@@ -112,6 +112,9 @@ PROVENANCE_FIELDS = (
     ("rules_effective", MISSING),
     ("lookahead", MISSING),
     ("lookahead_version", MISSING),
+    # One bridge for every decision (ONE_TIER) vs the smart/fast split: how hard the model may
+    # think per decision type is a condition.
+    ("one_tier", MISSING),
 )
 
 # Identity fields a cited run must resolve. A value in this set means the field
