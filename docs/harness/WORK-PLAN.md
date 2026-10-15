@@ -40,9 +40,10 @@ when an item is finished or a new one is agreed, so the next session can pick up
     - Done: an acceptance run with an unknown stage name now fails; before, it ran nothing and
       printed PASS.
     - Reasoning across tool rounds was already correct.
-    - **Open:** one cheap Haiku 5.5 game to read the cache hit rate, then decide whether `tool_choice`
-      stays "none" on the last round of an ask (it invalidates the cached messages; a constant
-      "auto" risks a lost decision).
+    - Settled: `tool_choice` is "auto" on every round of an answer-tool ask (`AnswerTool.java`); "none"
+      survives only on the text protocol. Measured on the 4 new-prompt Luna games
+      (`runs/prompt-ab/new`): an ask's first round reads 54% of its prompt tokens from the cache, a
+      follow-up round 92%.
 2. ~~Audit every prompt the seat sees.~~ **Done 2026-10-15:** `docs/harness/PROMPT-AUDIT.md`, with
    19 findings (A1–H1) and the order the rewrite closes them in. The largest:
    - the system prompt's snapshot legend describes an older observation format than the one sent
@@ -87,7 +88,8 @@ when an item is finished or a new one is agreed, so the next session can pick up
    - Full re-asks fell from 9 to 2, and nothing was taken or lost in either arm.
    - Wins were 2 of 4 against 0 of 4: not evidence at this size (p = 0.43).
 
-   Next: a larger block, once the remaining prompt work (D1, card naming) is in.
+   Next: a larger block. The remaining prompt work (D1, card naming) is in (epoch 11). At about $0.02
+   a Luna game, 20 games per arm is about $0.80; waiting on the owner's go-ahead to spend it.
 6. **Mana payment: auto-tap vs manual (#111).**
    - Today: before a payment where the untapped sources outnumber what is needed and are not all
      alike, the seat is asked a separate `mana-sources` question (which sources stay untapped);
@@ -100,8 +102,10 @@ when an item is finished or a new one is agreed, so the next session can pick up
        the choice either way, and a model that plans ahead saves a round trip.
    - #111 (no card in the pool triggers it): the tap part of a cost is checked after the mana part,
      against what is actually still untapped, instead of against the test payment.
-   - **Built 2026-10-15** (answer-tool-v5): `keep_untapped` on the play answer. #111 is still open; no
-     card in the pool triggers it.
+   - **Built 2026-10-15** (answer-tool-v5): `keep_untapped` on the play answer.
+   - **#111 fixed 2026-10-15** (#177): a tap part with exactly as many candidates as it needs takes them
+     (Forge's own pick read a stale reserve and tapped the mana creature the payment then used), and
+     whatever a tap part names is held while that ability's mana is paid.
 7. ~~Heuristic skips off by default.~~ **Done 2026-10-15** (`harness-epoch-8`):
    - the mulligan heuristic, the skip heuristics and the fast tier are off unless `MULLIGAN_HEURISTIC=1`,
      `SKIP_HEURISTICS=1` or `ONE_TIER=0` (`run_batch.py --two-tier`);
@@ -125,17 +129,34 @@ Done 2026-10-15:
 
 Left:
 
-13. `feat/puzzle-suite` is unfinished. It has `puzzle_score.py`, `puzzle_baselines.py`,
-    `puzzle_format.py`, `PuzzleArms.java` and `PuzzleArmsTest`. It still needs `eval/PUZZLES.md`,
-    Python tests, a frozen suite and a merge with main. Moved to priority 3.
-14. Commit `runs/combo/` (8 Haiku 5.5 combo games and `REPORT.md`).
+13. The puzzle suite: in progress on `feat/puzzle-suite-finish` (merged with main, `eval/PUZZLES.md`,
+    `eval/test_puzzle_suite.py`, `puzzle_solve.py` for a model run with `--budget-usd`).
+    - Source: Forge's 368 built-in puzzles whose goal Forge enforces, read where Forge ships them
+      (most are third-party works, so they are not copied).
+    - Free baselines are running: random first (40 rollouts each), then Forge's AI, then the full
+      arms on what either solves. Random solved 3 of the first 77 at least once, so the active suite
+      will be small; a Forge AI solve is also accepted as the proof of solvability.
+    - Found and fixed on the way: the baseline JVMs loaded stale classes (relative paths); the model
+      seat was never told the puzzle's goal.
+    - Left: freeze `eval/suites/puzzles-forge-builtin-v1.json`, then a small Luna run (cost first).
+14. ~~Commit `runs/combo/`.~~ Done.
 
 ## Priority 3: later
 
 - Finish the puzzle suite (see 13).
 
 15. The first real scoring-panel run (cost stated first, small block).
-16. Compound actions: the model states a sequence once and it is carried out step by step.
+16. Compound actions: built as `steps` on the play answer, carried out only under `PLAN_EXECUTE=1`
+    (opt-in). Fixed 2026-10-15 (harness-epoch-12): the play ask offered `steps` in every game, a
+    promise the harness broke with `PLAN_EXECUTE` off. **Owner decision:** whether to turn
+    `PLAN_EXECUTE` on. It casts the model's own stated steps without asking again, and re-plans when
+    the opponent's side changes; that is the model's choice carried out, not a harness heuristic, but
+    it does not ask again at each step.
 17. Choose the headline score.
-18. Bradley-Terry deck-matchup term; automatic re-run of crashed games; handling of DSML and text
-    call markup from models that write calls as text.
+18. Done 2026-10-15:
+    - the Bradley-Terry deck-matchup term (#178);
+    - a crashed game is played once more, its failed attempt set aside under `crashed/`
+      (`run_batch.py --retries`);
+    - DSML and other call markup written as text: not parsed, by the standard (no tool request is
+      read out of prose). An answer-tool reply that calls nothing gets one reminder to call `answer`,
+      and only one recorded game (DeepSeek) ever wrote such markup.
