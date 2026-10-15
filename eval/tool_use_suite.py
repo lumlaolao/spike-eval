@@ -460,12 +460,14 @@ ANSWER_CALL = "Reason briefly, then call `answer` (`option`: one number from the
 CALL_ANSWER = "No lookups are available for this decision any more. Answer it now by calling `answer`."
 ANSWER_BY_CALL = ("You did not call `answer`, so nothing was done. Call `answer` now with your choice; "
                   "the decision's last line says which field it takes.")   # AnswerTool.ANSWER_BY_CALL
+MAX_NUDGES = 2                                                            # AnswerTool.MAX_NUDGES
 
 
 def run_native_answer(scenario, kind, tier, model, tools, meta):
     """AnswerTool.converse: the lookups and the decision in one conversation, tool_choice "auto" on
     every round, the answer a call to `answer` (one invalid call is corrected in place, a second is
-    lost), and a text reply still read, counted as answer_via "text"."""
+    lost), and a reply that calls nothing reminded up to MAX_NUDGES times, then lost: its prose is never
+    read as the answer (answer-tool-v7)."""
     decision = ANSWER_TAIL.sub(ANSWER_CALL, decision_text(scenario, kind))
     seat = Seat(scenario, decision)
     n = scenario["n_options"]
@@ -473,7 +475,7 @@ def run_native_answer(scenario, kind, tier, model, tools, meta):
                if t["function"]["name"] not in ENGINE_ONLY] + answer_tool()
     user = seat.native_brief() + decision + "\n" + ANSWER_LINE
     messages = [{"role": "system", "content": system_text(tier, native=True, answer=True)}, {"role": "user", "content": user}]
-    calls, usage, used, invalid, pressed, nudged = [], [], 0, 0, False, False
+    calls, usage, used, invalid, pressed, nudges = [], [], 0, 0, False, 0
     for rnd in range(TOOLS_PER_ASK + 3):                    # AnswerTool.MAX_ROUNDS
         allow = used < TOOLS_PER_ASK and rnd < TOOLS_PER_ASK
         r = model(messages, offered, dict(meta, tool_choice="auto"))
@@ -489,13 +491,13 @@ def run_native_answer(scenario, kind, tier, model, tools, meta):
                 pressed = True
                 messages.append({"role": "user", "content": CALL_ANSWER})
                 continue
-            if not nudged:                      # AnswerTool.converse: one reminder, in the same conversation
-                nudged = True
+            if nudges < MAX_NUDGES:             # AnswerTool.converse: reminders, in the same conversation
+                nudges += 1
                 messages.append({"role": "assistant", "content": reply})
                 messages.append({"role": "user", "content": ANSWER_BY_CALL})
                 continue
-            return {"reply": reply, "choice": parse_choice(reply), "calls": calls, "usage": usage,
-                    "answer_via": "text", "answer_invalid": invalid}
+            return {"reply": reply, "choice": None, "calls": calls, "usage": usage,   # lost: prose is never read
+                    "answer_via": "lost", "answer_invalid": invalid}
         messages.append(r.get("message") or {"role": "assistant", "content": r.get("content"), "tool_calls": tcs})
         results, refused, answered = [], False, False
         for tc in tcs:
@@ -516,7 +518,7 @@ def run_native_answer(scenario, kind, tier, model, tools, meta):
                     opt = None
                 if isinstance(opt, int) and not isinstance(opt, bool) and 1 <= opt <= n:
                     return {"reply": r.get("content"), "choice": opt, "calls": calls, "usage": usage,
-                            "answer_via": "nudged" if nudged else "tool", "answer_invalid": invalid}
+                            "answer_via": "nudged" if nudges else "tool", "answer_invalid": invalid}
                 invalid += 1
                 if invalid >= 2:
                     return {"reply": None, "choice": None, "calls": calls, "usage": usage,

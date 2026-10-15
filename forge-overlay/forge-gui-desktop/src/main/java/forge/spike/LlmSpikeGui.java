@@ -194,8 +194,10 @@ public final class LlmSpikeGui {
      *  faithful mulligan and card-naming asks state facts in plain sentences.
      *  Epoch 12: `steps` is offered (and the play ask mentions it) only under PLAN_EXECUTE, the only
      *  setting that carries the steps out; a tap part with exactly as many candidates as it needs takes
-     *  them, and what a tap part names is held while that ability's mana is paid (#111). */
-    static final String HARNESS_EPOCH = "harness-epoch-12";
+     *  them, and what a tap part names is held while that ability's mana is paid (#111).
+     *  Epoch 13: no text alternative on a tool ask (answer-tool-v7): a reply that calls nothing is reminded,
+     *  then lost; its prose is never read as the answer. */
+    static final String HARNESS_EPOCH = "harness-epoch-13";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -2859,6 +2861,7 @@ public final class LlmSpikeGui {
                 }
 
                 if (ownMain) p("[TALLY] smart=" + smartCalls + " fast=" + fastCalls + " auto=" + autoPicks + " ai=" + aiDelegations
+                        + (textFormatLeaks > 0 ? " text_format_leaks=" + textFormatLeaks : "")
                         + (smart.getCalls() > 0 ? " avgSmart=" + (smart.getTotalMs() / smart.getCalls()) + "ms" : "")
                         + (fast.getCalls() > 0 ? " avgFast=" + (fast.getTotalMs() / fast.getCalls()) + "ms" : ""));
                 p("[ROUTER] play(" + (ownMain ? "main" : "react") + "): " + options.size() + " castable"
@@ -5199,6 +5202,8 @@ public final class LlmSpikeGui {
         /** How the current decision was answered, for its row: "tool", "nudged", "text", "reask" (a second full ask),
          *  "lost" (two invalid calls); null when the answer tool was not offered. */
         private String answerVia = null;
+        /** Tool asks that still carried a text answer format (AnswerTool.textFormatLeak): must stay 0. */
+        int textFormatLeaks = 0;
         private int answerInvalid = 0;
         /** Records how the ask just made was answered; attempt > 0 is a full re-ask. */
         private void noteAnswerVia(int attempt) {
@@ -5213,7 +5218,16 @@ public final class LlmSpikeGui {
             nextAnswer = null;
             lastAnswer = answer;
             // The decision text's own format line ("end with EXACTLY: CHOICE: <number>") becomes the tool's.
-            if (answer != null) prompt = AnswerTool.rephrase(prompt, answer.spec, answer.plan);
+            if (answer != null) {
+                prompt = AnswerTool.rephrase(prompt, answer.spec, answer.plan);
+                // Every decision goes through the call: a text format left in a tool ask is a harness defect.
+                String leak = AnswerTool.textFormatLeak(prompt);
+                if (leak != null) { textFormatLeaks++; p("[TEXT-FORMAT-LEAK] a tool ask offers a text answer: ..." + leak + "..."); }
+            } else if (answerToolFor(b)) {
+                // A decision site that did not offer `answer` on a backend that calls: a text ask, the same defect.
+                textFormatLeaks++;
+                p("[TEXT-FORMAT-LEAK] a text ask on a tool backend (no offerAnswer before it)");
+            }
             java.util.function.Consumer<String> tap = TEST_ASK_TAP;
             if (tap != null) tap.accept(prompt);
             String reply = answer != null ? askAnswer(b, prompt, simulate, answer) : askOnce(b, prompt, simulate);
