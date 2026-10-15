@@ -1004,6 +1004,9 @@ public final class LlmSpikeGui {
             // Not cut (it was at 160): the option is the one place the ability's whole text is read
             // when it is chosen (Green Sun's Zenith lost "into its owner's library").
             desc = desc.replace("CARDNAME", name).replace("NICKNAME", name).replaceAll("\\s+", " ").trim();
+            // A trigger's description carries the engine's own note with its card id ("[Zone Changer:
+            // Orcish Bowmasters (37)]", runs/loop/g08): an engine id the faithful profile never shows.
+            desc = desc.replaceAll("\\s*\\[[A-Za-z ]+: [^\\]]*\\(\\d+\\)\\]", "").trim();
             String body = desc.isEmpty() ? "" : " [" + desc + "]";
             boolean spell;
             try { spell = sa.isSpell(); } catch (Exception e) { spell = true; }

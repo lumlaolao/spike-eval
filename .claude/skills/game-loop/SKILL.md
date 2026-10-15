@@ -25,19 +25,20 @@ tail -40 docs/harness/GAME-LOOP-LOG.md   # what the last games found; do not red
 ```
 
 Paid games use only an authorised model and always a budget (`CLAUDE.md`, "Cost of paid runs").
-One game costs about $0.04.
+One game costs about $0.04 two-tier; with `--one-tier` every decision reasons (runs/loop/g08: 54 calls,
+~23 s each, $0.15 for 13 turns), so budget about $0.35 and 45 minutes for a full game.
 
 ## 1. Play one game
 
 ```bash
 N=$(printf %02d $(( $(ls -d runs/loop/g* 2>/dev/null | wc -l) + 1 )))     # g01, g02, ...
 SEED=<a seed not used in runs/loop yet; not in a reserved block (eval/seed_policy.py)>
-python3 eval/run_batch.py --seeds $SEED --exploratory --jobs 1 --budget-usd 0.15 \
+python3 eval/run_batch.py --seeds $SEED --exploratory --jobs 1 --budget-usd 0.40 \
   --deck $PWD/eval/decks/<deck>.txt --name-a Seat --name-b ForgeAI \
   --controller-a llm --controller-b ai \
   --smart-a openrouter:deepseek/deepseek-v4.1-flash --fast-a openrouter:deepseek/deepseek-v4.1-flash \
   --context-profile v4-faithful --memory-tools --lookahead --one-tier --env MULLIGAN_HEURISTIC=0 --env SKIP_HEURISTICS=0 \
-  --out $PWD/runs/loop/g$N --cap-minutes 20
+  --out $PWD/runs/loop/g$N --cap-minutes 45
 ```
 
 Vary the deck and the seating between games (`--deck-a/--deck-b`, add `--pairs` only when you want
