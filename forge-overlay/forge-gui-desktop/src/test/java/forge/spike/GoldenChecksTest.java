@@ -57,7 +57,10 @@ public class GoldenChecksTest {
             "discard", "cleanup-discard", "delve", "sacrifice", "cards-for-effect", "prevent-effect",
             "optional-costs", "trigger-order", "reveal", "scry", "surveil", "order", "confirm",
             "confirm-trigger", "confirm-payment", "confirm-replacement", "binary", "color",
-            "color-colorless", "some-type", "protection", "card-name"));
+            "color-colorless", "some-type", "protection", "card-name",
+            // 2026-10-15: choices Forge's AI made outright until then (work plan priority 0, A).
+            "pile", "opening-hand", "colors", "counter-type", "destroy", "keyword", "spell-for-effect", "clash",
+            "confirm-static", "card-face", "keyword-cost", "cost-reduction", "discard-unless"));
 
     /** Types a model answered in this class (tier smart or fast), across every test. */
     static final Set<String> ANSWERED = Collections.synchronizedSet(new TreeSet<>());
@@ -766,6 +769,74 @@ public class GoldenChecksTest {
         Assert.assertEquals(ctrl.chooseCardName(spell(src, me), f -> true, "Card.nonLand", "Choose a nonland card name."), "Grim Lavamancer");
         Assert.assertEquals(model.prompts.size(), 3, "the list ask, the free ask and its retry");
         source(src);
+    }
+
+    // ------------------------------------------------------------------ choices Forge's AI made outright until 2026-10-15
+
+    /** Fact or Fiction's piles, an opening-hand Leyline, colours, a counter kind, a keyword, clash, an optional
+     *  static, a card face: each is the seat's, through the live controller. None reaches Forge's AI. */
+    @Test
+    public void choicesForgesAiUsedToMakeAreTheModels() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card bolt = card("Lightning Bolt", me, ZoneType.Library);
+        Card bears = card("Grizzly Bears", me, ZoneType.Library);
+        Card src = card("Pithing Needle", me, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1")
+                .on("Choose a pile", choice("Pile 2"))
+                .on("OPENING HAND", p -> "PICKS: NONE")
+                .on("Choose colors", picks("blue", "red"))
+                .on("kind of counter", choice("Loyalty"))
+                .on("Choose a keyword", choice("Trample"))
+                .on("CLASH", choice("Bottom"))
+                .on("optional effect", choice("No"))
+                .on("Choose a card face", choice("Thoughtseize"))
+                .on("How many times", choice("1"))
+                .on("reduce the cost", choice("1"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        SpellAbility sa = spell(src, me);
+        Assert.assertFalse(ctrl.chooseCardsPile(sa, new CardCollection(bolt), new CardCollection(bears), "True"), "pile 2");
+        Assert.assertTrue(ctrl.chooseSaToActivateFromOpeningHand(new ArrayList<>(Arrays.asList(spell(bolt, me)))).isEmpty());
+        ColorSet cs = ctrl.chooseColors("Choose two colors", sa, 2, 2, ColorSet.fromMask(MagicColor.ALL_COLORS));
+        Assert.assertTrue(cs.hasBlue() && cs.hasRed() && cs.countColors() == 2, String.valueOf(cs));
+        Assert.assertEquals(ctrl.chooseCounterType(Arrays.asList(forge.game.card.CounterEnumType.P1P1,
+                forge.game.card.CounterEnumType.LOYALTY), sa, "Choose a kind of counter", null).getName(),
+                forge.game.card.CounterEnumType.LOYALTY.getName());
+        Assert.assertEquals(ctrl.chooseKeywordForPump(Arrays.asList("Flying", "Trample"), sa, "Choose a keyword", bears), "Trample");
+        Assert.assertFalse(ctrl.willPutCardOnTop(bolt), "bottom");
+        Assert.assertFalse(ctrl.confirmStaticApplication(src, PlayerActionConfirmMode.Random, "Apply this optional effect?", null));
+        List<ICardFace> faces = new ArrayList<>();
+        for (String n : new String[] {"Griselbrand", "Thoughtseize"})
+            faces.add(FModel.getMagicDb().getCommonCards().getCard(n).getRules().getMainPart());
+        Assert.assertEquals(ctrl.chooseSingleCardFace(sa, faces, "Choose a card face").getName(), "Thoughtseize");
+        Assert.assertEquals(ctrl.chooseNumberForKeywordCost(sa, new forge.game.cost.Cost("Sac<1/Creature>", false), null, null, 2), 1);
+        Assert.assertEquals(ctrl.chooseNumberForCostReduction(sa, 0, 2), 1);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** Edict-style destroy, a spell chosen for an effect, and "discard two unless you discard an artifact". */
+    @Test
+    public void destroyAndSpellAndDiscardUnlessAreTheModels() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", me, ZoneType.Battlefield);
+        Card bolt = card("Lightning Bolt", me, ZoneType.Hand);
+        Card petal = card("Lotus Petal", me, ZoneType.Hand);
+        card("Mountain", me, ZoneType.Hand);
+        Card src = card("Pithing Needle", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1")
+                .on("DESTROY", picks("Savannah Lions"))
+                .on("Choose a spell", choice("Lightning Bolt"))
+                .on("DISCARD", picks("Lotus Petal"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        SpellAbility sa = spell(src, rival);
+        Assert.assertEquals(ctrl.choosePermanentsToDestroy(sa, 1, 1, new CardCollection(Arrays.asList(bears, lions)), "Choose a creature to DESTROY").getFirst(), lions);
+        SpellAbility boltSa = spell(bolt, me), petalSa = spell(petal, me);
+        Assert.assertEquals(ctrl.chooseSingleSpellForEffect(Arrays.asList(petalSa, boltSa), sa, "Choose a spell", null), boltSa);
+        Assert.assertEquals(ctrl.chooseCardsToDiscardUnlessType(2, me.getCardsIn(ZoneType.Hand), new String[] {"Artifact"}, sa).size(), 1,
+                "one artifact instead of two cards");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
     // ------------------------------------------------------------------ the gate

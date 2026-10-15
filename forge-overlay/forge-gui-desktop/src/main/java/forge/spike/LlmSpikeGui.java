@@ -4884,6 +4884,283 @@ public final class LlmSpikeGui {
             }
         }
 
+        // ---------------- choices Forge's AI used to make outright (never overridden) ----------------
+        // Work plan priority 0 (A), 2026-10-15: each was PlayerControllerAi's own decision with no row. Each is
+        // now asked of the seat; with no answer it takes a fixed legal option, recorded. Never Forge's AI.
+
+        /** One option of {@code labels}, or -1 for {@code noneLabel}; {@code dflt} when the seat cannot answer. */
+        private int askOne(String type, String question, List<String> labels, String noneLabel, int dflt) {
+            if (labels.size() == 1 && noneLabel == null) { auto(type + "(forced-only-legal)"); return 0; }
+            if (smartOk() || fastOk()) {
+                int c = decideOne(smartOk() ? smart : fast, type, question, labels, noneLabel);
+                if (c >= 0) return c;
+                if (c == -1 && noneLabel != null && lastDeclineLogged) return -1;
+            }
+            auto(type + "(no-answer)->" + (dflt < 0 ? "none" : "first"));
+            return dflt;
+        }
+
+        /** Between {@code min} and {@code max} of {@code labels}; the first {@code min} when the seat cannot answer. */
+        private List<Integer> askMany(String type, String question, List<String> labels, int min, int max) {
+            if (smartOk() || fastOk()) {
+                List<Integer> picks = decideMany(smartOk() ? smart : fast, type, question, labels, min, max);
+                if (picks != null && picks.size() >= min && picks.size() <= max) return picks;
+            }
+            List<Integer> first = new ArrayList<>();
+            for (int i = 0; i < min && i < labels.size(); i++) first.add(i);
+            auto(type + "(no-answer)->first " + first.size());
+            return first;
+        }
+
+        /** Fact or Fiction-style: which pile the seat takes. */
+        @Override
+        public boolean chooseCardsPile(SpellAbility sa, CardCollectionView pile1, CardCollectionView pile2, String faceUp) {
+            clearLast();
+            List<String> labels = java.util.Arrays.asList("Pile 1: " + pileLabel(pile1, faceUp), "Pile 2: " + pileLabel(pile2, faceUp));
+            return askOne("pile", "Choose a pile" + srcAsk(sa) + ".", labels, null, 0) == 0;
+        }
+
+        private String pileLabel(CardCollectionView pile, String faceUp) {
+            if (pile == null || pile.isEmpty()) return "(empty)";
+            if ("False".equals(faceUp)) return pile.size() + " face-down card" + (pile.size() == 1 ? "" : "s");
+            List<String> n = new ArrayList<>();
+            for (Card c : pile) n.add(labelOf(c));
+            return String.join(", ", n);
+        }
+
+        /** Leyline / Chancellor / Gemstone Caverns: which opening-hand abilities the seat uses. */
+        @Override
+        public List<SpellAbility> chooseSaToActivateFromOpeningHand(List<SpellAbility> usable) {
+            clearLast();
+            if (usable == null || usable.isEmpty()) return new ArrayList<>();
+            List<String> labels = new ArrayList<>();
+            for (SpellAbility a : usable) labels.add(labelOf(a));
+            List<SpellAbility> out = new ArrayList<>();
+            for (int i : askMany("opening-hand", "OPENING HAND: these cards in your hand can be used as the game "
+                    + "begins. Choose which to use (any number, none is allowed).", labels, 0, labels.size()))
+                out.add(usable.get(i));
+            return out;
+        }
+
+        /** Several colours at once (between min and max of the options). */
+        @Override
+        public ColorSet chooseColors(String message, SpellAbility sa, int min, int max, ColorSet options) {
+            clearLast();
+            List<MagicColor.Color> present = new ArrayList<>();
+            if (options != null) for (MagicColor.Color c : options) present.add(c);
+            if (present.isEmpty()) return ColorSet.C;
+            List<String> labels = new ArrayList<>();
+            for (MagicColor.Color c : present) labels.add(c.getName());
+            int lo = Math.max(0, Math.min(min, present.size())), hi = Math.max(lo, Math.min(max, present.size()));
+            byte mask = 0;
+            for (int i : askMany("colors", "Choose colors" + (message == null || message.isEmpty() ? "" : ": " + fit(message))
+                    + srcAsk(sa) + ".", labels, lo, hi))
+                mask |= present.get(i).getColorMask();
+            return ColorSet.fromMask(mask);
+        }
+
+        /** Which kind of counter. */
+        @Override
+        public CounterType chooseCounterType(List<CounterType> options, SpellAbility sa, String prompt, Map<String, Object> params) {
+            clearLast();
+            if (options == null || options.isEmpty()) return null;
+            List<String> labels = new ArrayList<>();
+            for (CounterType t : options) labels.add(t.getName());
+            return options.get(askOne("counter-type", (prompt == null || prompt.isEmpty() ? "Choose a kind of counter" : fit(prompt))
+                    + srcAsk(sa) + ".", labels, null, 0));
+        }
+
+        /** Which of several replacement effects applies first. */
+        @Override
+        public forge.game.replacement.ReplacementEffect chooseSingleReplacementEffect(List<forge.game.replacement.ReplacementEffect> possible) {
+            clearLast();
+            if (possible == null || possible.isEmpty()) return null;
+            List<String> labels = new ArrayList<>();
+            for (forge.game.replacement.ReplacementEffect re : possible)
+                labels.add(safeName(re.getHostCard()) + ": " + fit(String.valueOf(re.getDescription())));
+            return possible.get(askOne("replacement-order", "Several replacement effects apply to the same event. "
+                    + "Choose which applies first.", labels, null, 0));
+        }
+
+        /** Which of several static abilities applies (as replacement order, for statics). */
+        @Override
+        public forge.game.staticability.StaticAbility chooseSingleStaticAbility(List<forge.game.staticability.StaticAbility> possible) {
+            clearLast();
+            if (possible == null || possible.isEmpty()) return null;
+            List<String> labels = new ArrayList<>();
+            for (forge.game.staticability.StaticAbility st : possible)
+                labels.add(safeName(st.getHostCard()) + ": " + fit(String.valueOf(st)));
+            return possible.get(askOne("static-order", "Several static abilities apply. Choose which applies.", labels, null, 0));
+        }
+
+        /** Edict-style destroy: which permanents the seat destroys. */
+        @Override
+        public CardCollectionView choosePermanentsToDestroy(SpellAbility sa, int min, int max, CardCollectionView valid, String message) {
+            clearLast();
+            if (valid == null || valid.isEmpty()) return new CardCollection();
+            List<Card> opts = new ArrayList<>(valid);
+            int lo = Math.min(min, opts.size()), hi = Math.max(lo, Math.min(max, opts.size()));
+            if (lo == opts.size()) { auto("destroy(forced-all)"); return new CardCollection(opts); }
+            CardCollection out = new CardCollection();
+            for (int i : askMany("destroy", (message == null || message.isEmpty() ? "Choose permanents to DESTROY" : fit(message))
+                    + srcAsk(sa) + " (choose " + lo + (hi > lo ? " to " + hi : "") + ").", cardLabels(opts), lo, hi))
+                out.add(opts.get(i));
+            return out;
+        }
+
+        /** One card from each of several categories ("choose a creature, an artifact, ..."). */
+        @Override
+        public CardCollection chooseCardsForEffectMultiple(Map<String, CardCollection> validMap, SpellAbility sa, String title, boolean isOptional) {
+            clearLast();
+            CardCollection out = new CardCollection();
+            if (validMap == null) return out;
+            for (Map.Entry<String, CardCollection> e : validMap.entrySet()) {
+                List<Card> opts = new ArrayList<>(e.getValue());
+                opts.removeAll(out);
+                if (opts.isEmpty()) continue;
+                int c = askOne("cards-for-effect", (title == null || title.isEmpty() ? "Choose" : fit(title)) + srcAsk(sa)
+                        + " — " + e.getKey() + ".", cardLabels(opts), isOptional ? "None" : null, isOptional ? -1 : 0);
+                if (c >= 0) out.add(opts.get(c));
+            }
+            return out;
+        }
+
+        /** Which keyword a pump grants. */
+        @Override
+        public String chooseKeywordForPump(List<String> options, SpellAbility sa, String prompt, Card tgtCard) {
+            clearLast();
+            if (options == null || options.isEmpty()) return null;
+            return options.get(askOne("keyword", (prompt == null || prompt.isEmpty() ? "Choose a keyword" : fit(prompt))
+                    + (tgtCard != null ? " for " + labelOf(tgtCard) : "") + srcAsk(sa) + ".", new ArrayList<>(options), null, 0));
+        }
+
+        /** Which spell an effect acts on. */
+        @Override
+        public SpellAbility chooseSingleSpellForEffect(List<SpellAbility> spells, SpellAbility sa, String title, Map<String, Object> params) {
+            clearLast();
+            if (spells == null || spells.isEmpty()) return null;
+            List<String> labels = new ArrayList<>();
+            for (SpellAbility x : spells) labels.add(labelOf(x));
+            return spells.get(askOne("spell-for-effect", (title == null || title.isEmpty() ? "Choose a spell or ability" : fit(title))
+                    + srcAsk(sa) + ".", labels, null, 0));
+        }
+
+        /** Several spells an effect acts on: the seat picks them one at a time. */
+        @Override
+        public List<SpellAbility> chooseSpellAbilitiesForEffect(List<SpellAbility> spells, SpellAbility sa, String title, int num,
+                Map<String, Object> params) {
+            clearLast();
+            List<SpellAbility> out = new ArrayList<>();
+            if (spells == null || spells.isEmpty()) return out;
+            List<String> labels = new ArrayList<>();
+            for (SpellAbility x : spells) labels.add(labelOf(x));
+            int n = Math.min(num, spells.size());
+            for (int i : askMany("spell-for-effect", (title == null || title.isEmpty() ? "Choose spells or abilities" : fit(title))
+                    + srcAsk(sa) + " (choose " + n + ").", labels, n, n))
+                out.add(spells.get(i));
+            return out;
+        }
+
+        /** Clash: whether the revealed card goes on top of the library. */
+        @Override
+        public boolean willPutCardOnTop(Card c) {
+            clearLast();
+            return askOne("clash", "CLASH: you revealed " + labelOf(c) + " from the top of your library. Put it back on top, "
+                    + "or on the bottom?", java.util.Arrays.asList("Top", "Bottom"), null, 0) == 0;
+        }
+
+        /** An optional static ability ("you may"): whether it applies. */
+        @Override
+        public boolean confirmStaticApplication(Card hostCard, PlayerActionConfirmMode mode, String message, String logic) {
+            clearLast();
+            return askOne("confirm-static", (message == null || message.isEmpty() ? "Apply this optional effect?" : fit(message))
+                    + (hostCard != null ? " (" + labelOf(hostCard) + ")" : ""), java.util.Arrays.asList("Yes", "No"), null, 0) == 0;
+        }
+
+        /** "Discard N cards unless you discard a card of a type": the seat picks the cards. */
+        @Override
+        public CardCollectionView chooseCardsToDiscardUnlessType(int num, CardCollectionView hand, String[] unlessTypes, SpellAbility sa) {
+            clearLast();
+            if (hand == null || hand.isEmpty()) return new CardCollection();
+            List<Card> opts = new ArrayList<>(hand);
+            String types = unlessTypes == null ? "" : String.join(" or ", unlessTypes).toLowerCase();
+            List<String> labels = cardLabels(opts);
+            List<Integer> picks = askMany("discard-unless", "DISCARD" + srcAsk(sa) + ": discard " + num + " card"
+                    + (num == 1 ? "" : "s") + ", or a single " + types + " card instead. Choose the cards.", labels, 1,
+                    Math.min(num, opts.size()));
+            CardCollection out = new CardCollection();
+            for (int i : picks) out.add(opts.get(i));
+            boolean single = out.size() == 1 && unlessTypes != null && out.getFirst().isValid(unlessTypes, getPlayer(), null, sa);
+            if (!single && out.size() < Math.min(num, opts.size())) {   // not a legal discard: fill to the count
+                for (Card c : opts) { if (out.size() >= Math.min(num, opts.size())) break; if (!out.contains(c)) out.add(c); }
+                auto("discard-unless(short)->filled to " + out.size());
+            }
+            return out;
+        }
+
+        /** Which face of a card (a predicate over the database, or a list). */
+        @Override
+        public ICardFace chooseSingleCardFace(SpellAbility sa, List<ICardFace> faces, String message) {
+            clearLast();
+            if (faces == null || faces.isEmpty()) return null;
+            List<String> labels = new ArrayList<>();
+            for (ICardFace f : faces) labels.add(f.getName());
+            return faces.get(askOne("card-face", (message == null || message.isEmpty() ? "Choose a card face" : fit(message))
+                    + srcAsk(sa) + ".", labels, null, 0));
+        }
+
+        /** Which state of a card (a split, adventure or double-faced card's half). */
+        @Override
+        public forge.game.card.CardState chooseSingleCardState(SpellAbility sa, List<forge.game.card.CardState> states, String message,
+                Map<String, Object> params) {
+            clearLast();
+            if (states == null || states.isEmpty()) return null;
+            List<String> labels = new ArrayList<>();
+            for (forge.game.card.CardState st : states) labels.add(st.getName() + " — " + fit(String.valueOf(st.getOracleText())));
+            return states.get(askOne("card-state", (message == null || message.isEmpty() ? "Choose" : fit(message))
+                    + srcAsk(sa) + ".", labels, null, 0));
+        }
+
+        /** How many times to pay a keyword cost (casualty and the like); 0..max. */
+        @Override
+        public int chooseNumberForKeywordCost(SpellAbility sa, Cost cost, forge.game.keyword.KeywordInterface keyword, String prompt, int max) {
+            clearLast();
+            if (max <= 0) return 0;
+            List<String> labels = new ArrayList<>();
+            for (int i = 0; i <= max; i++) labels.add(String.valueOf(i));
+            int c = askOne("keyword-cost", (prompt == null || prompt.isEmpty() ? "How many times do you pay " + cost.toSimpleString() : fit(prompt))
+                    + srcAsk(sa) + "?", labels, null, 0);
+            return Math.max(0, c);
+        }
+
+        /** Whether to pay an optional keyword cost (one time). */
+        @Override
+        public boolean addKeywordCost(SpellAbility sa, Cost cost, forge.game.keyword.KeywordInterface keyword, String prompt) {
+            return chooseNumberForKeywordCost(sa, cost, keyword, prompt, 1) == 1;
+        }
+
+        /** How much a cost reduction reduces by (min..max). */
+        @Override
+        public int chooseNumberForCostReduction(SpellAbility sa, int min, int max) {
+            clearLast();
+            if (max <= min) return min;
+            List<String> labels = new ArrayList<>();
+            for (int i = min; i <= max; i++) labels.add(String.valueOf(i));
+            return min + Math.max(0, askOne("cost-reduction", "Choose how much to reduce the cost by" + srcAsk(sa) + ".",
+                    labels, null, labels.size() - 1));
+        }
+
+        /** An attack or block tax (Propaganda, Ghostly Prison): whether to pay it. Paying is the engine's mechanics. */
+        @Override
+        public boolean payCombatCost(Card card, Cost cost, SpellAbility sa, String prompt) {
+            clearLast();
+            if (!ComputerUtilCost.canPayCost(sa, getPlayer(), sa != null && sa.isTrigger())) { auto("combat-cost(cannot-pay)->no"); return false; }
+            int c = askOne("combat-cost", (prompt == null || prompt.isEmpty() ? "Pay " + cost.toSimpleString() : fit(prompt))
+                    + " for " + labelOf(card) + "? If you do not pay, it does not attack or block.",
+                    java.util.Arrays.asList("Pay", "Do not pay"), null, 0);
+            return c == 0 && super.payCombatCost(card, cost, sa, prompt);
+        }
+
         // ---------------- Goal A: log-only observation of decisions Forge's AI makes ----------------
         // These surfaces previously emitted NO eval line and ran invisibly on the engine AI (super).
         // Each override below calls super, OBSERVES the result, emits an evalDec line with tier "ai",
