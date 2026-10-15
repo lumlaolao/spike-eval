@@ -94,6 +94,18 @@ class MatchReviewTest(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(mr.main([d, "--fail-on-defect"]), 1)
 
+    def test_a_reply_that_was_not_the_option_used_is_lost(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "game-1-0.jsonl")
+            rows = [dec("target", "smart", choice=0, n_options=3, raw_reply="Bolt the Lions.\nCHOICE: 2"),
+                    dec("target", "smart", choice=1, n_options=3, raw_reply="CHOICE: 2"),
+                    {"t": "game", "seed": 1, "swap": False, "winner": "A"}]
+            with open(p, "w") as f:
+                f.write("".join(json.dumps(x) + "\n" for x in rows))
+            r = mr.review(p)
+            self.assertEqual(r["counts"]["LOST"], 1)
+            self.assertIn("the reply said CHOICE 2 but option 1 was used", mr.render(r))
+
     def test_a_clean_game_says_so(self):
         with tempfile.TemporaryDirectory() as d:
             p = os.path.join(d, "game-1-0.jsonl")

@@ -364,4 +364,29 @@ public class PromptFidelityTest {
         Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.buildMulliganPrompt(7, 1, "x", true).contains("combo deck"),
                 "legacy profiles keep their bytes");
     }
+
+    /** docs/STANDARDS.md section 8, the golden check over several decision types at once: every ask
+     *  carries the current observation and a DECISION, and no option it offers is cut short. */
+    @Test
+    public void everyAskCarriesTheStateAndNoCutOption() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        for (int i = 0; i < 3; i++) card("Forest", me, ZoneType.Battlefield);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Green Sun's Zenith", me, ZoneType.Hand);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        card("Llanowar Elves", me, ZoneType.Library);
+        card("Savannah Lions", rival, ZoneType.Battlefield);
+        Recorder model = new Recorder("CHOICE: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        ctrl.chooseSpellAbilityToPlay();                                   // play, X, then a pick
+        ctrl.chooseNumber(null, "Choose a number", 0, 3);                  // number
+        Assert.assertTrue(model.prompts.size() >= 3, decisions(model));
+        java.util.regex.Pattern cut = java.util.regex.Pattern.compile("(?m)^\\s+\\d+\\) [^\\n]*\\.\\.\\.\\]?$");
+        for (String p : model.prompts) {
+            Assert.assertTrue(p.contains("== Turn ") && p.contains("observation-faithful-"), "no observation: " + p);
+            Assert.assertTrue(p.contains("DECISION:"), "no decision: " + p);
+            Assert.assertFalse(cut.matcher(p).find(), "an option is cut short: " + p);
+        }
+    }
 }

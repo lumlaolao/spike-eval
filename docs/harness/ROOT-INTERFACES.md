@@ -12,6 +12,25 @@ the seat does, and the interface gap that produces the filed defects. It is a co
 `OWNERSHIP.md` (which hook is `model` vs `ai-inherited`) and `controller-ownership.tsv` (the pinned
 ledger): this one is about the *shape* of each override, ownership is about *whether* there is one.
 
+## Status 2026-10-15 (the bottleneck work, PRs #143-#155)
+
+What changed against the map below, and the contract that keeps it: `docs/STANDARDS.md` section 8.
+
+- **Never asked**: every pass the play loop makes is a `t:"window"` row (#143); the stack-blind
+  "already passed" key is fixed (#144); with `SKIP_HEURISTICS=0` the model asks for its own passes
+  (`YIELD:`, #152). Trigger targets/modes (#148), X (#147), attack targets (#149), votes, spells cast
+  by effects, discard and "unless" costs (#150) and which mana sources stay untapped (#151) are the
+  seat's. Silent Forge-AI strategic hooks: 3 -> 1 (`payManaCost`: colour of any-colour sources and
+  Phyrexian life-or-mana).
+- **Asked blind**: options say whose they are, nothing is cut at 90/160 characters, number/yes-no
+  asks carry the source's text (#145); every ask after a play carries the play and the model's reason
+  for it, and a target ask can cancel the play (#146, R4 / #108 at the root); modes are chosen before
+  targets (#147); no ask names one deck's line (#154).
+- **Thinking budget**: `ONE_TIER` is a stamped condition (#153).
+- The `super.` audit: 24 sites (not 27); the delegating conditions are empty/forced lists except the
+  ones fixed above. Galvanic Discharge chooses its target at cast and the number at resolution; the
+  defect was the number ask lacking the card text, fixed in #145.
+
 ## The one root surface
 
 ```

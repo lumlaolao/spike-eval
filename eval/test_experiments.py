@@ -57,7 +57,7 @@ def modern_line(seed, swap, winner, **kw):
          "native_tools": False, "native_tools_seats": "", "native_tools_version": "seat-tools-v4",
          "native_tools_downgraded": "", "rules_tool": False, "rules_tool_version": "rules-tool-v1",
          "rules_effective": "n/a", "lookahead": False, "lookahead_version": "lookahead-preview-v4",
-         "one_tier": False}
+         "one_tier": False, "harness_epoch": "harness-epoch-2"}
     g.update(kw)
     return g
 

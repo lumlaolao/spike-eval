@@ -153,6 +153,13 @@ public final class LlmSpikeGui {
 
     /** Eval-mode JSONL logger (opt-in via EVAL_OUT=<dir>). One file per game; every decision and the
      *  final game summary land here so batch runs produce a dataset, not scrollback. */
+    /** One number for "the interface the model plays through" (docs/STANDARDS.md section 8): bumped
+     *  whenever what the seat is asked, when it is asked, or what its answer does changes, beside the
+     *  per-layer versions. Games across an epoch are not compared. Epoch 2 = the 2026-10-15 bottleneck
+     *  work (window rows, intent carry and cancel, X/modes/targets, trigger targets, attack targets,
+     *  votes and effect casts, mana sources, model yields, ONE_TIER, neutral asks). */
+    static final String HARNESS_EPOCH = "harness-epoch-2";
+
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
         private static volatile java.io.File file; // the exact file `out` is writing (LlmSpikeFork reads it back)
@@ -7485,6 +7492,7 @@ public final class LlmSpikeGui {
                 + ",\"native_tools_downgraded\":\"" + jsonEscape(String.join(",", new java.util.TreeSet<>(NativeTools.DOWNGRADED))) + "\""
                 + ",\"native_tools_version\":\"" + NativeTools.VERSION + "\""
                 + ",\"one_tier\":" + PlayerControllerLLM.ONE_TIER
+                + ",\"harness_epoch\":\"" + HARNESS_EPOCH + "\""
                 + ",\"lookahead\":" + PlayerControllerLLM.lookaheadEnabled()
                 + ",\"lookahead_version\":\"" + PlayerLookahead.VERSION + "\""
                 + ",\"rules_tool\":" + PlayerControllerLLM.RULES_TOOL

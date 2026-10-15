@@ -568,6 +568,7 @@ if game is None: problems.append("no game row")
 else:
     if game.get("context_profile")!="v4-faithful": problems.append("context_profile=%s"%game.get("context_profile"))
     if game.get("memory_tools") is not True: problems.append("memory_tools not stamped")
+    if game.get("harness_epoch")!="harness-epoch-2": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
     facts.append("winner=%s turns=%s context_sha=%s"%(game.get("winner"),game.get("turns"),game.get("context_sha")))
 if ai_rows: problems.append("%d tier=ai rows"%ai_rows)
 if model_rows<5: problems.append("only %d model-tier rows"%model_rows)
@@ -587,6 +588,9 @@ for r in calls:
     # stage keeps prompts byte-identical to a run that has no rules tool at all.
     if "RULES TOOL" in p: rules_leak+=1
 if observed<len(calls): problems.append("%d/%d prompts lack the faithful observation header"%(len(calls)-observed,len(calls)))
+# docs/STANDARDS.md section 8: no option a faithful ask offers is cut short.
+cut=sum(len(re.findall(r"(?m)^\s+\d+\) [^\n]*\.\.\.\]?$", r.get("prompt") or "")) for r in calls)
+if cut: problems.append("%d menu options cut short (ending in ...) in faithful prompts"%cut)
 if legend<len(calls): problems.append("%d/%d prompts lack the legend"%(len(calls)-legend,len(calls)))
 if handles<20: problems.append("only %d seat handles across all prompts"%handles)
 if legacy: problems.append("%d legacy engine-id references (Name@id) leaked into faithful prompts"%legacy)
