@@ -1444,11 +1444,25 @@ public final class LlmSpikeGui {
          * no text answer contract when decisions are answered by the `answer` tool. Every part is fixed for
          * the game, so the whole prompt caches.
          */
+        /** The format the decks are built for (GAME_FORMAT: legacy, modern, standard, pauper, ...); the engine
+         *  plays any deck, so the format is what the seat is told and what the game line records. */
+        static final String GAME_FORMAT = gameFormat(System.getenv("GAME_FORMAT"));
+        static String gameFormat(String env) {
+            return env == null || env.isBlank() ? "legacy" : env.trim().toLowerCase(java.util.Locale.ROOT);
+        }
+        static String formatName(String format) {
+            return format.isEmpty() ? "Legacy" : Character.toUpperCase(format.charAt(0)) + format.substring(1);
+        }
+
         static String seatFraming(String seat, String plan, boolean nativeTools, boolean coaching, boolean answerTool) {
+            return seatFraming(GAME_FORMAT, seat, plan, nativeTools, coaching, answerTool);
+        }
+
+        static String seatFraming(String format, String seat, String plan, boolean nativeTools, boolean coaching, boolean answerTool) {
             String tools = MEMORY_TOOLS ? (nativeTools ? NativeTools.instructions() : ContextMemory.instructions())
                     : "You have no lookup tools: everything you need is in the message.\n";
             String answers = answerTool ? AnswerTool.instructions() : TEXT_ANSWERS;
-            return "You are playing Magic: The Gathering, Legacy format, as the player \"" + seat + "\" against one "
+            return "You are playing Magic: The Gathering, " + formatName(format) + " format, as the player \"" + seat + "\" against one "
                     + "opponent. Your goal is to win the game.\n\n"
                     // PLAN_A=""/PLAN_B="" (and DECKLIST=0) give an arm with no deck information.
                     + (plan == null || plan.isEmpty() ? "" : "<your_deck>\n" + plan.trim() + "\n</your_deck>\n\n")
@@ -1460,7 +1474,8 @@ public final class LlmSpikeGui {
                     + tools + answers
                     + "</how_this_works>\n\n"
                     + "<reading_the_state>\n" + SeatObservation.GUIDE + "</reading_the_state>\n"
-                    + (coaching ? "\n<legacy_reference>\n" + LEGACY_REFERENCE + "</legacy_reference>\n" : "");
+                    // The reference describes the Legacy pool's archetypes; it is not shown for another format.
+                    + (coaching && "legacy".equals(format) ? "\n<legacy_reference>\n" + LEGACY_REFERENCE + "</legacy_reference>\n" : "");
         }
         /** How a decision is answered when it is answered in text (ANSWER_TOOL=0, or a backend without
          *  function calling). */
@@ -7705,9 +7720,11 @@ public final class LlmSpikeGui {
         // deliberate plan-free cited arm); otherwise each deck's own <deck>.plan sidecar drives its
         // seat, so strategy generalizes per deck-identity instead of being hardcoded per seat.
         String planA = System.getenv("PLAN_A");
-        if (planA == null) planA = loadPlanSidecar(pathA, DEFAULT_PLAN_A);
+        // An explicit deck with no sidecar gets no plan text, never the default decks' plans: a Standard
+        // deck was told it was Grixis Reanimator. Its decklist and card texts still follow below.
+        if (planA == null) planA = loadPlanSidecar(pathA, System.getenv("DECK_A") == null ? DEFAULT_PLAN_A : "");
         String planB = System.getenv("PLAN_B");
-        if (planB == null) planB = loadPlanSidecar(pathB, DEFAULT_PLAN_B);
+        if (planB == null) planB = loadPlanSidecar(pathB, System.getenv("DECK_B") == null ? DEFAULT_PLAN_B : "");
         lastPlanA = planA; lastPlanB = planB;
         String ctlA = System.getenv().getOrDefault("CONTROLLER_A", "llm");
         String ctlB = System.getenv().getOrDefault("CONTROLLER_B", "llm");
@@ -8918,6 +8935,7 @@ public final class LlmSpikeGui {
                 }
             } catch (Exception e) { System.out.println("[PLAN] sidecar read failed (" + cand + "): " + e); }
         }
+        if (fallback.isEmpty()) System.out.println("[PLAN] no sidecar for " + deckPath + ": no plan text (the decklist still follows)");
         return fallback;
     }
 
@@ -9082,6 +9100,7 @@ public final class LlmSpikeGui {
                 + ",\"fast_budget\":" + PlayerControllerLLM.fastBudget()
                 + ",\"claude_deadline_ms\":" + ClaudeBridge.deadlineMs()
                 + ",\"game_cap_ms\":" + capMs
+                + ",\"game_format\":\"" + jsonEscape(PlayerControllerLLM.GAME_FORMAT) + "\""
                 + (gameError == null ? "" : ",\"game_error\":\"" + jsonEscape(gameError) + "\"")
                 + ",\"engine_sha\":\"" + jsonEscape(System.getenv().getOrDefault("ENGINE_SHA", "unknown")) + "\""
                 + ",\"overlay_sha\":\"" + jsonEscape(System.getenv().getOrDefault("OVERLAY_SHA", "unknown")) + "\""
