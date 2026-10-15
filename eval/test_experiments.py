@@ -50,14 +50,14 @@ def modern_line(seed, swap, winner, **kw):
          "openrouter_base_url": "http://127.0.0.1:8080/v1",
          "checkpoint_sha": "c" * 12, "model_cfg_sha": "builtin",
          "temperature_a": "0.7", "temperature_b": "n/a",
-         "memory_tools": False, "memory_tools_version": "evidence-tools-v1",
+         "memory_tools": False, "memory_tools_version": "evidence-tools-v3",
          "seed_bank": "stage3-holdout",
          "context_profile": "v1-compat", "context_sha": "1111",
          "claude_effort_smart": "n/a", "claude_effort_fast": "n/a",
-         "native_tools": False, "native_tools_seats": "", "native_tools_version": "seat-tools-v4",
+         "native_tools": False, "native_tools_seats": "", "native_tools_version": "seat-tools-v7",
          "native_tools_downgraded": "", "rules_tool": False, "rules_tool_version": "rules-tool-v1",
-         "rules_effective": "n/a", "lookahead": False, "lookahead_version": "lookahead-preview-v4",
-         "one_tier": False, "no_coaching": False, "one_chat": False, "one_chat_version": "one-chat-v1", "harness_epoch": "harness-epoch-2"}
+         "rules_effective": "n/a", "lookahead": False, "lookahead_version": "lookahead-preview-v5",
+         "one_tier": False, "no_coaching": False, "one_chat": False, "one_chat_version": "one-chat-v2", "harness_epoch": "harness-epoch-7"}
     g.update(kw)
     return g
 
@@ -123,7 +123,7 @@ class GroupingTest(unittest.TestCase):
                              ("native_tools_downgraded", "Identity-A/smart"),
                              ("rules_tool", True), ("lookahead", True),
                              ("native_tools_seats", "A/smart"), ("rules_tool_version", "rules-tool-v2"),
-                             ("rules_effective", "unavailable"), ("lookahead_version", "lookahead-preview-v5")):
+                             ("rules_effective", "unavailable"), ("lookahead_version", "lookahead-preview-v4")):
             with self.subTest(field=field), tempfile.TemporaryDirectory() as d:
                 write(d, "game-1-1000.jsonl", [modern_line(1, False, "A")])
                 write(d, "game-1-2000.jsonl", [modern_line(1, False, "B", **{field: other})])

@@ -1,5 +1,5 @@
 {
-  "version": "seat-tools-v6",
+  "version": "seat-tools-v7",
   "comment": "The seat's read-only tools as native function definitions. Each maps 1:1 onto a command ContextMemory.execute already implements (text_command), so the native and text protocols reach the SAME executor and differ only in how the request is expressed. Descriptions carry the same epistemic caveats the text grammar states. rules_lookup and simulate are served by the engine side only (RulesTool, PlayerLookahead), and report_unclear_decision is a complaint about the question, not a lookup; the tool-use suite has no fixture for them and does not offer them.",
   "tools": [
     {
@@ -28,7 +28,7 @@
       "text_command": "MEMORY SEARCH {offset} {query}",
       "function": {
         "name": "memory_search",
-        "description": "Literal, case-insensitive text search over this seat's archived observations and reveals. Returns up to 10 snippets per page with their evidence ids. Historical observations are NOT current state. Cannot query hidden state.",
+        "description": "Literal, case-insensitive text search over this seat's archived observations and reveals. Returns up to 50 snippets per page with their evidence ids. Historical observations are NOT current state. Cannot query hidden state.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -54,7 +54,7 @@
       "text_command": "MEMORY READ {evidence_id} {offset}",
       "function": {
         "name": "memory_read",
-        "description": "Read one archived evidence entry in full (2000 characters per page). Use it when a snippet ends with \"[READ for full text]\". Historical observations are NOT current state.",
+        "description": "Read one archived evidence entry in full (20000 characters per page). Use it when a snippet ends with \"[READ for full text]\". Historical observations are NOT current state.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -92,7 +92,7 @@
             },
             "note": {
               "type": "string",
-              "maxLength": 500
+              "maxLength": 2000
             }
           },
           "required": [
@@ -145,7 +145,7 @@
       "text_command": "SIMULATE {option} {target} {then}",
       "function": {
         "name": "simulate",
-        "description": "Preview what a numbered option of the current decision does when it resolves — a CAST, an ACTIVATE, a PLAY LAND or PASS — on a copy of the game built only from what you can see: which permanents leave or arrive, and each player's life, hand, library and graveyard counts. PASS resolves nothing, so its preview is that answer and no copy is made; it does not play out the opponent's turn. Pass `then` to preview a LINE: further options played after it, in order, on the same copy (it tells you if a later one can no longer be paid for). It is an estimate, not the engine's verdict: hidden cards are guessed, and the engine pays the costs on the copy. At most one preview per decision.",
+        "description": "Preview what a numbered option of the current decision does when it resolves — a CAST, an ACTIVATE, a PLAY LAND or PASS — on a copy of the game built only from what you can see: which permanents leave or arrive, and each player's life, hand, library and graveyard counts. PASS resolves nothing, so its preview is that answer and no copy is made; it does not play out the opponent's turn. Pass `then` to preview a LINE: further options played after it, in order, on the same copy (it tells you if a later one can no longer be paid for). It is an estimate, not the engine's verdict: hidden cards are guessed, and the engine pays the costs on the copy. You may preview several options or lines before you answer.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -164,8 +164,7 @@
                 "type": "integer",
                 "minimum": 1
               },
-              "maxItems": 2,
-              "description": "Optional: up to two more menu numbers to play after it, in order."
+              "description": "Optional: more menu numbers to play after it, in order, each at most once."
             }
           },
           "required": [
@@ -186,7 +185,7 @@
           "properties": {
             "problem": {
               "type": "string",
-              "maxLength": 500,
+              "maxLength": 2000,
               "description": "What is wrong with the question, in one or two sentences, naming the option numbers involved."
             }
           },

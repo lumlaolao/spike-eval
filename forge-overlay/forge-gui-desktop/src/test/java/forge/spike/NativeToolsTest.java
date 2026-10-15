@@ -128,6 +128,20 @@ public class NativeToolsTest {
 
     private static NativeTools.Call call(String id, String name, String args) { return new NativeTools.Call(id, name, args); }
 
+    /** {@code n} well-formed inspect calls on @from, @from+1, ...; prefixed by {@code first} when non-null. */
+    private static NativeTools.Call[] inspects(NativeTools.Call first, int from, int n) {
+        List<NativeTools.Call> out = new ArrayList<>();
+        if (first != null) out.add(first);
+        for (int i = 0; i < n; i++) out.add(call("i" + (from + i), "inspect", "{\"target\":\"@" + (from + i) + "\"}"));
+        return out.toArray(new NativeTools.Call[0]);
+    }
+
+    private static List<String> handles(int from, int n) {
+        List<String> out = new ArrayList<>();
+        for (int i = 0; i < n; i++) out.add("@" + (from + i));
+        return out;
+    }
+
     // ---- definitions --------------------------------------------------------------------------
 
     @Test
@@ -201,7 +215,7 @@ public class NativeToolsTest {
         Assert.assertEquals(first.size(), 1);
         String user = first.get(0).getAsJsonObject().get("content").getAsString();
         Assert.assertTrue(user.startsWith("DECISION: attack?\nCURRENT OBSERVATION: M1\nEVIDENCE ARCHIVE: 1 entries"), user);
-        Assert.assertTrue(user.contains("Tool calls available this ask: 2."));
+        Assert.assertTrue(user.contains("Tool calls available this ask: " + ContextMemory.TOOLS_PER_ASK + "."));
         Assert.assertFalse(user.contains("MEMORY TOOLS"), "the text grammar is not sent when tools are native");
         // Round 2 sees: the user turn, the assistant's own call echoed back, and the tool result.
         JsonArray second = JsonParser.parseString(seenMessages.get(1)).getAsJsonArray();
@@ -216,7 +230,7 @@ public class NativeToolsTest {
     }
 
     @Test
-    public void theBudgetIsTwoExecutedCallsAndAMalformedCallDoesNotSpendIt() {
+    public void theBudgetIsToolsPerAskExecutedCallsAndAMalformedCallDoesNotSpendIt() {
         ContextMemory memory = new ContextMemory();
         List<String> inspected = new ArrayList<>();
         memory.setInspector(arg -> { inspected.add(arg); return "text of " + arg; });
@@ -225,21 +239,19 @@ public class NativeToolsTest {
         String reply = memory.askNative("DECISION", (user, messages, tools, allow, round) -> {
             allowed.add(allow);
             switch (round) {
-                case 0: return turn(null, call("a", "inspect", "{oops"),                        // refused, free
-                                          call("b", "inspect", "{\"target\":\"@1\"}"),          // two in one turn
-                                          call("c", "inspect", "{\"target\":\"@2\"}"),
-                                          call("d", "inspect", "{\"target\":\"@3\"}"));         // over budget
+                // A refused call (free), then the whole budget in one turn, then one over it.
+                case 0: return turn(null, inspects(call("a", "inspect", "{oops"), 1, ContextMemory.TOOLS_PER_ASK + 1));
                 default: return turn("CHOICE: 1");
             }
         }, null, (request, result) -> results.add(result));
         Assert.assertEquals(reply, "CHOICE: 1");
-        Assert.assertEquals(inspected, List.of("@1", "@2"));
-        Assert.assertEquals(allowed, List.of(true, false), "after two executed calls the next turn may not call");
+        Assert.assertEquals(inspected, handles(1, ContextMemory.TOOLS_PER_ASK));
+        Assert.assertEquals(allowed, List.of(true, false), "after the budget's executed calls the next turn may not call");
         // A null or non-positive id is refused before the executor, not turned into `MEMORY READ -1 0`.
         Assert.assertTrue(NativeTools.command("memory_read", "{\"evidence_id\":null}").startsWith("ERROR:"));
         Assert.assertTrue(NativeTools.command("memory_read", "{\"evidence_id\":0}").startsWith("ERROR:"));
         Assert.assertTrue(results.get(0).startsWith("ERROR: tool arguments"));
-        Assert.assertTrue(results.get(3).startsWith("ERROR: tool budget exhausted"));
+        Assert.assertTrue(results.get(ContextMemory.TOOLS_PER_ASK + 1).startsWith("ERROR: tool budget exhausted"));
     }
 
     /** The seat can say a question is broken; it is recorded and logged, the decision is still
@@ -283,7 +295,7 @@ public class NativeToolsTest {
     }
 
     @Test
-    public void simulateIsOfferedOnlyWithAHandlerAndRunsOncePerAsk() {
+    public void simulateIsOfferedOnlyWithAHandlerAndRunsForEveryCall() {
         ContextMemory memory = new ContextMemory();
         List<String> previews = new ArrayList<>();
         List<String> results = new ArrayList<>();
@@ -294,8 +306,9 @@ public class NativeToolsTest {
                     : turn("CHOICE: 1");
         }, args -> { previews.add(args); return "LOOKAHEAD (option 1): resolves"; }, (request, result) -> results.add(result));
         Assert.assertEquals(reply, "CHOICE: 1");
-        Assert.assertEquals(previews, List.of("{\"option\":1}"));
-        Assert.assertEquals(results, List.of("LOOKAHEAD (option 1): resolves", "ERROR: one preview per decision."));
+        // Two previews in one ask both run (the one-preview rule refused a corrected retry in runs/loop).
+        Assert.assertEquals(previews, List.of("{\"option\":1}", "{\"option\":2}"));
+        Assert.assertEquals(results, List.of("LOOKAHEAD (option 1): resolves", "LOOKAHEAD (option 1): resolves"));
         // Without a handler the tool does not exist, and a call to it is an error, not a preview.
         String r2 = new ContextMemory().askNative("DECISION", (user, messages, tools, allow, round) -> {
             Assert.assertFalse(tools.contains("\"simulate\""));
@@ -341,17 +354,17 @@ public class NativeToolsTest {
         List<String> results = new ArrayList<>();
         String reply = memory.askNative("DECISION", (user, messages, tools, allow, round) -> {
             switch (round) {
-                case 0: return turn(null, call("a", "inspect", "{\"target\":\"@1\"}"), call("b", "inspect", "{\"target\":\"@2\"}"));
+                case 0: return turn(null, inspects(null, 1, ContextMemory.TOOLS_PER_ASK));
                 case 1: return turn("<\uff5cDSML\uff5c calls>\n<\uff5cDSML\uff5c invoke name=\"memory_read\">");
                 default: return turn("CHOICE: 2");
             }
         }, null, (request, result) -> results.add(result));
         Assert.assertEquals(reply, "CHOICE: 2");
-        Assert.assertEquals(results.get(2), "ERROR: tool budget exhausted; a call written as text was not run.");
+        Assert.assertEquals(results.get(ContextMemory.TOOLS_PER_ASK), "ERROR: tool budget exhausted; a call written as text was not run.");
     }
 
     /** The last round may not call: a tool run then could never be read and would only be spent.
-     *  Round 0 here is a refused call, so `used` alone would still allow one on round 2. */
+     *  Round 0 here is a refused call, so `used` alone would still allow one on the last round. */
     @Test
     public void theLastRoundMayNotCall() {
         ContextMemory memory = new ContextMemory();
@@ -361,12 +374,14 @@ public class NativeToolsTest {
         String reply = memory.askNative("DECISION", (user, messages, tools, allow, round) -> {
             allowed.add(allow);
             if (round == 0) return turn(null, call("a", "inspect", "{oops"));
-            if (round == 1) return turn(null, call("b", "inspect", "{\"target\":\"@1\"}"));
+            if (round < ContextMemory.TOOLS_PER_ASK) return turn(null, call("b" + round, "inspect", "{\"target\":\"@" + round + "\"}"));
             return turn("CHOICE: 1");
         }, null, (a, b) -> { });
         Assert.assertEquals(reply, "CHOICE: 1");
-        Assert.assertEquals(allowed, List.of(true, true, false));
-        Assert.assertEquals(inspected, List.of("@1"));
+        List<Boolean> expected = new ArrayList<>(java.util.Collections.nCopies(ContextMemory.TOOLS_PER_ASK, true));
+        expected.add(false);
+        Assert.assertEquals(allowed, expected);
+        Assert.assertEquals(inspected, handles(1, ContextMemory.TOOLS_PER_ASK - 1));
     }
 
     /** tool_choice "none" is a request, and a provider may ignore it. A call on a forbidden round is
@@ -384,19 +399,24 @@ public class NativeToolsTest {
         String reply = memory.askNative("DECISION", (user, messages, tools, allow, round) -> {
             allowed.add(allow);
             last.add(messages);
+            int tpa = ContextMemory.TOOLS_PER_ASK;
             if (round == 0) return turn(null, call("a", "inspect", "{oops"));
-            if (round == 1) return turn(null, call("b", "inspect", "{\"target\":\"@1\"}"));
-            if (round == 2) return turn(null, call("c", "inspect", "{\"target\":\"@2\"}"));   // ignored "none"
+            if (round < tpa) return turn(null, call("b" + round, "inspect", "{\"target\":\"@" + round + "\"}"));
+            if (round == tpa) return turn(null, call("c", "inspect", "{\"target\":\"@99\"}"));   // ignored "none"
             return turn("CHOICE: 1");
         }, null, (request, result) -> results.add(result));
+        int tpa = ContextMemory.TOOLS_PER_ASK;
         Assert.assertEquals(reply, "CHOICE: 1");
-        Assert.assertEquals(allowed, List.of(true, true, false, false));
-        Assert.assertEquals(inspected, List.of("@1"), "the forbidden call did not run");
-        Assert.assertTrue(results.get(2).startsWith("ERROR: tool budget exhausted"), results.get(2));
-        Assert.assertTrue(memory.brief().contains("MEMORY tools remaining this game: " + (ContextMemory.TOOLS_PER_GAME - 1) + "."),
+        List<Boolean> expected = new ArrayList<>(java.util.Collections.nCopies(tpa, true));
+        expected.add(false);
+        expected.add(false);
+        Assert.assertEquals(allowed, expected);
+        Assert.assertEquals(inspected, handles(1, tpa - 1), "the forbidden call did not run");
+        Assert.assertTrue(results.get(tpa).startsWith("ERROR: tool budget exhausted"), results.get(tpa));
+        Assert.assertTrue(memory.brief().contains("MEMORY tools remaining this game: " + (ContextMemory.TOOLS_PER_GAME - (tpa - 1)) + "."),
                 memory.brief());
         // Every call id is answered before the reminder, as chat-completions requires.
-        JsonArray sent = JsonParser.parseString(last.get(3)).getAsJsonArray();
+        JsonArray sent = JsonParser.parseString(last.get(tpa + 1)).getAsJsonArray();
         JsonObject tail = sent.get(sent.size() - 1).getAsJsonObject();
         Assert.assertEquals(tail.get("role").getAsString(), "user");
         Assert.assertTrue(tail.get("content").getAsString().startsWith("No tool calls are available"));
@@ -447,7 +467,7 @@ public class NativeToolsTest {
         String reply = memory.askNative("DECISION", (user, messages, tools, allow, round) -> {
             allowed.add(allow);
             last.add(messages);
-            if (round == 0) return turn(null, call("a", "inspect", "{\"target\":\"@1\"}"), call("b", "inspect", "{\"target\":\"@2\"}"));
+            if (round == 0) return turn(null, inspects(null, 1, ContextMemory.TOOLS_PER_ASK));
             if (round == 1) return turn("\n\n<｜DSML｜ calls>\n<｜DSML｜ invoke name=\"memory_read\">");
             return turn("CHOICE: 3");
         }, null, (a, b) -> { });

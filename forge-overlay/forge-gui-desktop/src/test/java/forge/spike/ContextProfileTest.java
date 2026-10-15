@@ -285,9 +285,9 @@ public class ContextProfileTest {
         // Every row renders field-for-field. Since 2026-10-13 there is ONE uniform row, so the check
         // is that all seven fields reach the hash on a row that has a value in every slot (deepseek),
         // and that the row the run_batch.py grace budget is pinned against renders identically (opus).
-        Assert.assertTrue(c.contains("deepseek:32000,300000,null,null,1024,45000,none|"),
+        Assert.assertTrue(c.contains("deepseek:32000,300000,null,null,8192,120000,none|"),
                 "deepseek row not rendered field-for-field: " + c);
-        Assert.assertTrue(c.contains("opus:32000,300000,null,null,1024,45000,none|"),
+        Assert.assertTrue(c.contains("opus:32000,300000,null,null,8192,120000,none|"),
                 "claude row not rendered field-for-field: " + c);
     }
 
@@ -346,5 +346,46 @@ public class ContextProfileTest {
             Assert.assertTrue(expected.getMessage().contains("OPENROUTER_ALLOW_EGRESS"),
                     "expected the egress refusal, got: " + expected.getMessage());
         }
+    }
+
+    /** docs/harness/MODEL-LIMITS.md: under the faithful profile nothing logged is dropped from the
+     *  history. 300 events since the last decision (past the old 40) are all verbatim, and every
+     *  earlier turn, however old, keeps its low-signal events and more than 12 entries (the old digest
+     *  kept 12 a turn, and only high-signal events for turns older than three). */
+    @Test
+    public void theFaithfulHistoryIsWhole() {
+        ContextProfile p = ContextProfile.V4_FAITHFUL;
+        java.util.List<GameHistory.Ev> evs = new java.util.ArrayList<>();
+        int id = 0;
+        for (int turn = 1; turn <= 30; turn++)
+            for (int k = 0; k < 20; k++)
+                evs.add(new GameHistory.Ev(++id, turn, k % 2 == 0 ? forge.game.GameLogEntryType.STACK_ADD
+                        : forge.game.GameLogEntryType.ZONE_CHANGE, "T" + turn + " event " + k));
+        for (int k = 0; k < 300; k++)
+            evs.add(new GameHistory.Ev(++id, 31, forge.game.GameLogEntryType.ZONE_CHANGE, "recent event " + k));
+        String text = GameHistory.renderEvents(evs, p, 600).text;
+        for (GameHistory.Ev e : evs) Assert.assertTrue(text.contains(e.msg), "dropped: " + e.msg);
+        Assert.assertFalse(text.contains("more)"), "a digest line was cut:\n" + text);
+        Assert.assertFalse(text.contains("no high-signal events"), text);
+    }
+
+    /** The two-tier arm's fast tier keeps reasoning off but its answer is not cut at 1024 tokens
+     *  (2 of 170 fast calls truncated in runs/compare/two-tier). */
+    @Test
+    public void theFastTierAnswerIsNotCutShort() {
+        LlmSpikeGui.ModelCfg c = LlmSpikeGui.ModelCfg.forModel("deepseek/deepseek-v4.1-flash");
+        Assert.assertEquals(c.fastMaxTokens, 8192);
+        Assert.assertEquals(c.fastTimeoutMs, 120000L);
+        Assert.assertEquals(c.fastReasoningEffort, "none", "the two-tier arm's fast tier is the no-reasoning tier");
+    }
+
+    /** The per-game call budgets, the per-turn play cap and the one-chat window are loop guards far
+     *  above any recorded game (at most 137 calls a game, 15 play decisions a turn). */
+    @Test
+    public void theCallBudgetsAndTheTurnCapAreLoopGuards() {
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.smartBudget(), 10000);
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.fastBudget(), 10000);
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.MAX_PLAY_DECISIONS_PER_TURN_FAITHFUL, 500);
+        Assert.assertEquals(ChatSessionBridge.MAX_PAIRS, 10000);
     }
 }

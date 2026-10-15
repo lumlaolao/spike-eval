@@ -776,4 +776,36 @@ public class SeatObservationTest {
         for (String n : hand)
             Assert.assertTrue(labels.stream().anyMatch(l -> l.startsWith("CAST " + n + " ")), n + " missing from " + labels);
     }
+
+    /** docs/harness/MODEL-LIMITS.md: nothing the observation shows is cut. An event's text was cut at
+     *  90 characters (19-31% of asks in runs/compare lost the end of an event, block assignments among
+     *  them), an opponent card's text at 320 (Ragavan lost its Dash clause), reveals to the latest 6
+     *  (48% of asks), and an object's zone trail to 8 moves. */
+    @Test
+    public void nothingTheObservationShowsIsCut() {
+        Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        Player rival = g.getPlayers().get(1);
+        SeatObservation o = observerFor(g, 0);
+        String longEvent = "Rival assigned Murktide Regent to block Thalia, Guardian of Thraben. Rival assigned "
+                + "Dragon's Rage Channeler to block Mother of Runes. Rival didn't block Stoneforge Mystic.";
+        g.getGameLog().add(GameLogEntryType.COMBAT, longEvent);
+        o.capture();
+        GameHistory.Ev last = o.events().get(o.events().size() - 1);
+        Assert.assertEquals(last.msg, longEvent);
+
+        card("Ragavan, Nimble Pilferer", rival, ZoneType.Battlefield);
+        for (int i = 0; i < 10; i++) o.recordReveal("reveal number " + i);
+        String r = render(o, "");
+        Assert.assertTrue(r.contains("beginning of the next end step"), "Ragavan's text was cut:\n" + r);
+        for (int i = 0; i < 10; i++) Assert.assertTrue(r.contains("reveal number " + i), r);
+
+        Card creature = card("Griselbrand", rival, ZoneType.Battlefield);
+        Zone battlefield = creature.getZone();
+        Zone yard = card("Dark Ritual", rival, ZoneType.Graveyard).getZone();
+        o.describe(creature, false);
+        int h = o.handleOf(creature);
+        for (int i = 0; i < 12; i++) o.onZoneChange(new GameEventCardChangeZone(creature, battlefield, yard));
+        String hist = o.inspect("@" + h);
+        Assert.assertEquals(hist.split("battlefield -> graveyard", -1).length - 1, 12, hist);
+    }
 }

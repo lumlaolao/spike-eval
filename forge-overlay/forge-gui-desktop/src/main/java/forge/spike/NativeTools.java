@@ -31,8 +31,11 @@ final class NativeTools {
      *  v5 (2026-10-14): a call made on a round that offered no tools (a provider ignoring
      *  tool_choice "none") is refused with the budget error, the seat is told once to answer, and a
      *  second such call ends the ask; it used to run and be answered.
-     *  v6 (2026-10-15): `report_unclear_decision`, the seat saying a question is broken. */
-    static final String VERSION = "seat-tools-v6";
+     *  v6 (2026-10-15): `report_unclear_decision`, the seat saying a question is broken.
+     *  v7 (2026-10-15): no decision limits in the definitions: `simulate` may run more than once a
+     *  decision and its line takes any number of further options; a search page holds 50 results, a
+     *  read page 20000 characters, a note or report up to 2000 characters (docs/harness/MODEL-LIMITS.md). */
+    static final String VERSION = "seat-tools-v7";
     static final String SIMULATE = "simulate";
     /** Not a lookup: it records the seat's complaint about the question and spends no archive budget
      *  (one per ask, {@link ContextMemory#REPORTS_PER_GAME} per game). */
@@ -133,7 +136,6 @@ final class NativeTools {
         JsonObject p = new JsonObject();
         p.addProperty("type", "array");
         p.add("items", items);
-        p.addProperty("maxItems", 2);
         p.addProperty("description", description);
         return p;
     }
@@ -155,13 +157,13 @@ final class NativeTools {
                 "target"));
         a.add(fn("memory_search",
                 "Literal, case-insensitive text search over this seat's archived observations and reveals. Returns "
-                + "up to 10 snippets per page with their evidence ids. Historical observations are NOT current "
+                + "up to 50 snippets per page with their evidence ids. Historical observations are NOT current "
                 + "state. Cannot query hidden state.",
                 props("query", prop("string", "Literal text to find, e.g. a card name or an event id like \"[E80]\".", null, null),
                       "offset", prop("integer", "Result offset for paging; 0 for the first page.", 0, null)),
                 "query"));
         a.add(fn("memory_read",
-                "Read one archived evidence entry in full (2000 characters per page). Use it when a snippet ends "
+                "Read one archived evidence entry in full (20000 characters per page). Use it when a snippet ends "
                 + "with \"[READ for full text]\". Historical observations are NOT current state.",
                 props("evidence_id", prop("integer", "The n of an [M<n>] evidence id.", 1, null),
                       "offset", prop("integer", "Character offset; 0 for the start.", 0, null)),
@@ -170,7 +172,7 @@ final class NativeTools {
                 "Save a hypothesis or plan to your notebook, citing the evidence entry it rests on. Notes are YOUR "
                 + "unverified hypotheses, never engine facts; they are shown back to you on later decisions.",
                 props("evidence_id", prop("integer", "The observation or reveal [M<n>] the note cites.", 1, null),
-                      "note", prop("string", null, null, 500)),
+                      "note", prop("string", null, null, ContextMemory.NOTE_CHARS)),
                 "evidence_id", "note"));
         if (rules) {
             JsonObject action = prop("string", "search: find rules by words. read: one rule in full (query = its number, "
@@ -194,15 +196,15 @@ final class NativeTools {
                 + "preview is that answer and no copy is made; it does not play out the opponent's turn. Pass `then` to "
                 + "preview a LINE: further options played after it, in order, on the same copy (it tells you if a later "
                 + "one can no longer be paid for). It is an estimate, not the engine's verdict: hidden cards are guessed, "
-                + "and the engine pays the costs on the copy. At most one preview per decision.",
+                + "and the engine pays the costs on the copy. You may preview several options or lines before you answer.",
                 props("option", prop("integer", "The number of a CAST, ACTIVATE, PLAY LAND or PASS option in the "
                                 + "decision's menu.", 1, null),
                       "target", prop("string", "Optional: the name of the target to preview the first option against.", null, null),
-                      "then", intArray("Optional: up to two more menu numbers to play after it, in order.")),
+                      "then", intArray("Optional: more menu numbers to play after it, in order, each at most once.")),
                 "option"));
         a.add(fn(REPORT,
                 "Tell the harness maintainers that THIS question is broken or confusing: the options do not match the state you see, an option you expected is missing, the text is garbled, or the question makes no sense after what you just did. It changes nothing in the game and does not end the decision: answer it afterwards as best you can. Not for a hard choice; only for a problem with the question itself.",
-                props("problem", prop("string", "What is wrong with the question, in one or two sentences, naming the option numbers involved.", null, 500)),
+                props("problem", prop("string", "What is wrong with the question, in one or two sentences, naming the option numbers involved.", null, ContextMemory.NOTE_CHARS)),
                 "problem"));
         return a;
     }

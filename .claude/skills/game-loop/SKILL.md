@@ -26,7 +26,10 @@ tail -40 docs/harness/GAME-LOOP-LOG.md   # what the last games found; do not red
 
 Paid games use only an authorised model and always a budget (`CLAUDE.md`, "Cost of paid runs").
 One game costs about $0.04 two-tier; with `--one-tier` every decision reasons (runs/loop/g08: 54 calls,
-~23 s each, $0.15 for 13 turns), so budget about $0.35 and 45 minutes for a full game.
+~23 s each, $0.15 for 13 turns), so budget about $0.35 for a full game. The cap is 120 minutes: since
+harness-epoch-7 the seat may think for 32000 tokens (up to 300 s a call) and make 16 tool calls a
+decision, and a capped game is scored invalid, so the cap must not end a game while the model thinks
+(docs/harness/MODEL-LIMITS.md).
 
 ## 1. Play one game
 
@@ -38,7 +41,7 @@ python3 eval/run_batch.py --seeds $SEED --exploratory --jobs 1 --budget-usd 0.40
   --controller-a llm --controller-b ai \
   --smart-a openrouter:deepseek/deepseek-v4.1-flash --fast-a openrouter:deepseek/deepseek-v4.1-flash \
   --context-profile v4-faithful --memory-tools --lookahead --one-tier --env MULLIGAN_HEURISTIC=0 --env SKIP_HEURISTICS=0 \
-  --out $PWD/runs/loop/g$N --cap-minutes 45
+  --out $PWD/runs/loop/g$N --cap-minutes 120
 ```
 
 Vary the deck and the seating between games (`--deck-a/--deck-b`, add `--pairs` only when you want

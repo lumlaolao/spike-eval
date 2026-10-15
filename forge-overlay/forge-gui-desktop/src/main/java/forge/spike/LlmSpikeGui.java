@@ -163,8 +163,10 @@ public final class LlmSpikeGui {
      *  chosen colour) are shown; an unparsed play or block is said, not read as PASS / NONE; block pairs
      *  keep names with commas; the per-turn play cap is 80 under the faithful profile; a PLAN line at any
      *  decision replaces the plan (a goal and steps); the seat can report a broken question. Epoch 6:
-     *  the mana line says its colours over-count; call markup past the budget is recorded as exhausted. */
-    static final String HARNESS_EPOCH = "harness-epoch-6";
+     *  the mana line says its colours over-count; call markup past the budget is recorded as exhausted.
+     *  Epoch 7: the harness no longer limits the model (docs/harness/MODEL-LIMITS.md): uncut history,
+     *  reveals and card text, 16 tool calls an ask, any number of previews, budgets as loop guards only. */
+    static final String HARNESS_EPOCH = "harness-epoch-7";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -476,10 +478,15 @@ public final class LlmSpikeGui {
          *  from what this seat may legally see. Zones are rendered in full (the caps are effectively
          *  off, and any cap that does fire is printed as an explicit omission), history is the
          *  seat-captured stream on the v3 ladder, and object handles are seat-local. The legacy
-         *  profiles above are untouched; this is a separate measurement with its own sha. */
+         *  profiles above are untouched; this is a separate measurement with its own sha.
+         *
+         *  2026-10-15 (docs/harness/MODEL-LIMITS.md): the history is whole. Every event since the
+         *  seat's last decision is verbatim (40 bound in 11 asks of runs/compare and runs/frontier),
+         *  and every earlier turn is a full digest line, repeats counted, nothing dropped: the 12-entry
+         *  digest cut fired 1,431 times and turns older than three kept only high-signal events. */
         static final ContextProfile V4_FAITHFUL =
-                new ContextProfile("v4-faithful", EVENTS_SINCE_LAST_DECISION, 40, 64, 10000, 10000, 10000,
-                                   GameHistory.Mode.TIERED, 3, 12, 5, true);
+                new ContextProfile("v4-faithful", EVENTS_SINCE_LAST_DECISION, 10000, 64, 10000, 10000, 10000,
+                                   GameHistory.Mode.TIERED, 10000, 10000, 5, true);
 
         private static final Map<String, ContextProfile> REGISTRY;
         static {
@@ -602,10 +609,14 @@ public final class LlmSpikeGui {
     static class PlayerControllerLLM extends PlayerControllerAi {
         private static final int MAX_PLAY_DECISIONS_PER_TURN = 25;
         /** The same loop guard under the faithful profile. It counts both players' windows in a turn, so
-         *  25 stopped Storm, Doomsday and Elves turns partway through; 80 still ends a real loop. */
-        private static final int MAX_PLAY_DECISIONS_PER_TURN_FAITHFUL = 80;
-        private static final int SMART_BUDGET = envInt("SMART_BUDGET", 320); // per-game load-bearing LLM calls
-        private static final int FAST_BUDGET  = envInt("FAST_BUDGET", 900);  // per-game cheap LLM calls
+         *  25 stopped Storm, Doomsday and Elves turns partway through. 500 (was 80; the most a recorded
+         *  turn asked was 15) only ends a seat that loops on one ability. */
+        static final int MAX_PLAY_DECISIONS_PER_TURN_FAITHFUL = 500;
+        /** Per-game model-call budgets. Loop guards, not decision limits: the most a recorded seat used
+         *  was 137 (runs/compare one-tier, 17 turns), and a seat out of budget gets the deterministic
+         *  pass. 10000 is far beyond any game a wall-clock cap lets finish (was 320 / 900). */
+        static final int SMART_BUDGET = envInt("SMART_BUDGET", 10000);
+        static final int FAST_BUDGET  = envInt("FAST_BUDGET", 10000);
         // Eval confound switches: MULLIGAN_HEURISTIC=0 -> the model decides ALL mulligans (no 2-4 land
         // auto-keep); SKIP_HEURISTICS=0 -> no free-pass shortcuts (every priority window with options
         // reaches the model). Defaults preserve the fast demo behavior.
@@ -793,6 +804,50 @@ public final class LlmSpikeGui {
             p("[ROUTER] plan" + (revised ? "(revised)" : "") + ": " + turnPlan);
             return true;
         }
+        private static final Pattern PROFILE_LINE = Pattern.compile("(?i)^[\\s*_>#`-]*PROFILE\\s*:(.*)$");
+        private static final Pattern LINES_LINE = Pattern.compile("(?i)^[\\s*_>#`-]*LINES\\s*:(.*)$");
+        private static final String[] NOTE_ENDS;
+        static {
+            NOTE_ENDS = java.util.Arrays.copyOf(PLAN_ENDS, PLAN_ENDS.length + 1);
+            NOTE_ENDS[PLAN_ENDS.length] = "PLAN:";
+        }
+
+        /** The text of the reply's last line that STARTS with the tag {@code line} matches, cut at an
+         *  answer tag on the same line; null when there is none. */
+        static String tagStatement(String reply, Pattern line) {
+            if (reply == null) return null;
+            String found = null;
+            for (String ln : reply.split("\\R")) {
+                Matcher m = line.matcher(ln);
+                if (m.find()) found = m.group(1);
+            }
+            if (found == null) return null;
+            found = cutAtTags(found, NOTE_ENDS).replaceAll("^[\\s*_`]+|[\\s*_`]+$", "").replaceAll("\\s+", " ").trim();
+            return found.isEmpty() ? null : found;
+        }
+
+        /** Faithful seats: a PROFILE or LINES line in any reply replaces that note, like a PLAN line. The
+         *  legend tells the seat it may revise its opponent profile "at any time", but a PROFILE line was
+         *  read only on the ask that requested it (every 5 turns), and LINES only on its first two asks:
+         *  the model's own notes were frozen between asks. Returns true when either changed. */
+        boolean adoptNotes(String reply) {
+            boolean changed = false;
+            String pf = tagStatement(reply, PROFILE_LINE);
+            if (pf != null && !pf.equals(oppProfile)) {
+                oppProfile = pf;
+                profileTurn = safeTurn();
+                p("[ROUTER] profile: " + oppProfile);
+                changed = true;
+            }
+            String dl = tagStatement(reply, LINES_LINE);
+            if (dl != null && !dl.equals(deckLines)) {
+                deckLines = dl;
+                deckLinesAsked = true;
+                p("[ROUTER] lines: " + deckLines);
+                changed = true;
+            }
+            return changed;
+        }
         private int planStepIdx;     // how many plan steps have been executed this turn
         /** The model's EXPLICIT cast list (`STEPS: A, B`), in order. Only this is auto-executed.
          *  Free-text matching was a real bug (2026-10-13): a plan reading "Hold Shallow Grave
@@ -811,7 +866,7 @@ public final class LlmSpikeGui {
          *  per-deck coaching, and would make "did the seat find its own lines" unmeasurable. */
         static final String DECK_LINES_ASK = "Also state how the cards in YOUR OWN deck combine, on its own line, as "
                 + "`LINES: <card> + <card> -> <what you do and what you get> | <card> + <card> -> ... | ...` "
-                + "(up to 3, each naming two or more of your own cards from the decklist above). ";
+                + "(as many as you see, each naming two or more of your own cards from the decklist above). ";
         private int profileTurn = -99;
         private static final int PROFILE_REFRESH_TURNS = 5;
 
@@ -1186,9 +1241,13 @@ public final class LlmSpikeGui {
                 observer.recordReveal(revealPrefix(messagePrefix, zone, o) + b);
             } catch (Exception ignore) { }
         }
+        /** Engine text the model reads: whole under the faithful profile, where the 90-character
+         *  {@link #oneLine} cut removed what a question turned on; the legacy profiles keep their bytes. */
+        private String said(String s) { return observer != null ? flat(s) : oneLine(s); }
+
         private String revealPrefix(String messagePrefix, ZoneType zone, Player owner) {
             String who = owner == null ? "?" : (owner == getPlayer() ? "your" : owner.getName() + "'s");
-            String what = messagePrefix == null || messagePrefix.trim().isEmpty() ? "revealed" : oneLine(messagePrefix);
+            String what = messagePrefix == null || messagePrefix.trim().isEmpty() ? "revealed" : said(messagePrefix);
             return what + " from " + who + " " + (zone == null ? "zone" : zone) + ": ";
         }
 
@@ -2448,7 +2507,7 @@ public final class LlmSpikeGui {
 
                 // Enumerate castable spells + distinct playable lands (shared with the ai-teacher seat so
                 // both build the byte-identical option menu — see enumeratePlayOptions).
-                PlayOptions po = enumeratePlayOptions(me, ownMain);
+                PlayOptions po = enumeratePlayOptions(me, ownMain, observer != null);
                 List<SpellAbility> options = po.spells;
                 List<SpellAbility> landPlays = po.landPlays;
                 List<Card> landCards = po.landCards;
@@ -2613,7 +2672,8 @@ public final class LlmSpikeGui {
                     }
                 }
 
-                StringBuilder lookCtx = new StringBuilder(); // at most one lookahead preview per decision
+                StringBuilder lookCtx = new StringBuilder(); // the previews this decision asked for (text path)
+                int textPreviews = 0;
                 // Native tools: the preview is a function the model calls, not a line it must reply with.
                 // `simulate` indexes the DECISION'S OWN numbered menu, so the numbers the model reads
                 // off the prompt are the numbers it passes: the CAST/ACTIVATE options, then the PLAY
@@ -2740,11 +2800,12 @@ public final class LlmSpikeGui {
                         return PASS;
                     }
                     // G8 lookahead (LOOKAHEAD=1): preview a spell option on a determinized COPY, then
-                    // re-ask. At most one preview per decision; a preview is not a failed parse.
-                    if (lookaheadOn && lookCtx.length() == 0) {
+                    // re-ask. As many previews as an ask has tool calls; a preview is not a failed parse.
+                    if (lookaheadOn && textPreviews < ContextMemory.TOOLS_PER_ASK) {
                         int simN = parseSimulateOption(reply, options.size());
                         if (simN > 0) {
                             String preview = PlayerLookahead.previewCast(me.getGame(), me, options.get(simN - 1), turn, simulateTargetHint(reply));
+                            textPreviews++;
                             lookCtx.append("\nLOOKAHEAD (option ").append(simN).append("): ").append(preview)
                                    .append("\nNow end with EXACTLY: CHOICE: <number>.\n");
                             p("[ROUTER] lookahead " + simN + ": " + preview);
@@ -3246,7 +3307,7 @@ public final class LlmSpikeGui {
             if (cost == null) return false;
             try {
                 if (okFor("prevent-effect")) {
-                    String desc = oneLine(cost.toSimpleString());
+                    String desc = said(cost.toSimpleString());
                     List<String> labels = Lists.newArrayList("Pay " + desc, "Decline (let it resolve)");
                     String q = "Pay " + desc + " to prevent " + (sa == null ? "the spell" : "the spell " + srcOf(sa))
                             + " from affecting you? Say 1 to pay or 2 to decline.";
@@ -3295,7 +3356,7 @@ public final class LlmSpikeGui {
                     }
                     if (!offer.isEmpty()) {
                         List<String> labels = new ArrayList<>();
-                        for (OptionalCostValue v : offer) labels.add(oneLine(v.toString()));
+                        for (OptionalCostValue v : offer) labels.add(said(v.toString()));
                         String q = "This spell offers optional additional costs (kicker/buyback/entwine)" + srcAsk(chosen)
                                 + ". Pick the ones worth paying for your plan; PICKS: NONE declines them all.";
                         List<Integer> picks = decideMany(smart, "optional-costs", q, labels, 0, offer.size());
@@ -3672,7 +3733,9 @@ public final class LlmSpikeGui {
             try {
                 if (smartOk()) {
                     List<String> labels = new ArrayList<>();
-                    for (SpellAbility sa : activePlayerSAs) labels.add(saLabel(sa));
+                    // labelOf: the faithful label is whole (saLabel cut the trigger's text at 160
+                    // characters) and carries no engine card id; the legacy profiles keep saLabel.
+                    for (SpellAbility sa : activePlayerSAs) labels.add(labelOf(sa));
                     int n = activePlayerSAs.size();
                     List<Integer> picks = decideMany(smart, "trigger-order",
                             "These " + n + " triggers go on the stack at the same time. List them in the order you want them to "
@@ -3930,7 +3993,7 @@ public final class LlmSpikeGui {
             try {
                 String t = wrapper.getTrigger() == null ? "" : wrapper.getTrigger().toString();
                 if (t == null || t.trim().isEmpty()) t = wrapper.getStackDescription();
-                return t == null ? "" : truncateWords(t.replaceAll("\\s+", " ").trim(), 320);
+                return t == null ? "" : flat(t);
             } catch (Exception e) { return ""; }
         }
 
@@ -4132,7 +4195,7 @@ public final class LlmSpikeGui {
                         List<String> labels = new ArrayList<>();
                         for (MagicColor.Color c : present) labels.add(c.getName());
                         int pick = decideOne(smart, "color",
-                                "Choose a color" + (message == null || message.isEmpty() ? "" : ": " + oneLine(message)) + srcAsk(sa),
+                                "Choose a color" + (message == null || message.isEmpty() ? "" : ": " + said(message)) + srcAsk(sa),
                                 labels, null);
                         if (pick >= 0 && pick < present.size()) return present.get(pick).getColorMask();
                     }
@@ -4154,7 +4217,7 @@ public final class LlmSpikeGui {
                         List<String> labels = new ArrayList<>();
                         for (MagicColor.Color c : present) labels.add(c.getName());
                         int pick = decideOne(smart, "color-colorless",
-                                "Choose a color (colorless allowed)" + (message == null || message.isEmpty() ? "" : ": " + oneLine(message)),
+                                "Choose a color (colorless allowed)" + (message == null || message.isEmpty() ? "" : ": " + said(message)),
                                 labels, null);
                         if (pick >= 0 && pick < present.size()) return present.get(pick).getColorMask();
                     }
@@ -4228,7 +4291,7 @@ public final class LlmSpikeGui {
                 if (faces.size() <= 20) {
                     List<String> labels = new ArrayList<>();
                     for (ICardFace f : faces) labels.add(f.getName());
-                    int c = decideOne(smart, "card-name", "NAME A CARD" + srcAsk(sa) + ": " + oneLine(message)
+                    int c = decideOne(smart, "card-name", "NAME A CARD" + srcAsk(sa) + ": " + said(message)
                             + (observer != null ? targetNote(sa, getPlayer()) : ""), labels, null);
                     if (c >= 0) { p("[ROUTER] card-name: " + labels.get(c) + srcOf(sa)); return labels.get(c); }
                     // Bridge-down (c==-2) or still-unparseable-after-retry (c==-1): same deterministic
@@ -4310,8 +4373,8 @@ public final class LlmSpikeGui {
 
         /** Shared free-form "CARD: <name>" ask (one retry). Returns the raw name or null. */
         private String askCardName(SpellAbility sa, String message, String valid) {
-            String q = snapshot() + "\nDECISION: NAME A CARD" + srcAsk(sa) + ": " + oneLine(message)
-                    + (valid != null && !valid.isEmpty() ? " (must match: " + oneLine(valid) + ")" : "")
+            String q = snapshot() + "\nDECISION: NAME A CARD" + srcAsk(sa) + ": " + said(message)
+                    + (valid != null && !valid.isEmpty() ? " (must match: " + said(valid) + ")" : "")
                     + (observer != null
                         ? "." + targetNote(sa, getPlayer())
                             + " Use everything you've seen this game (revealed hands, the target's deck) to choose the name. "
@@ -4350,7 +4413,7 @@ public final class LlmSpikeGui {
                     return defPick;
                 }
                 List<String> labels = new ArrayList<>();
-                for (AbilitySub ab : possible) labels.add(oneLine(ab.getDescription()));
+                for (AbilitySub ab : possible) labels.add(said(ab.getDescription()));
                 if (allowRepeat) {
                     List<Integer> rp = decideModesRepeat(smart, "MODAL SPELL — choose mode(s) for " + labelOf(sa)
                             + " (you may choose the same mode more than once).", labels, Math.max(0, min), num);
@@ -4699,12 +4762,12 @@ public final class LlmSpikeGui {
                 // where WHICH permanent leaves is often the whole point of the play.
                 boolean asCost = message != null && message.startsWith(LlmCostDecision.COST_MESSAGE);
                 String q = asCost
-                        ? "COST: to pay for" + srcOf(sa) + " (" + oneLine(String.valueOf(sa)) + ") you must SACRIFICE "
+                        ? "COST: to pay for" + srcOf(sa) + " (" + said(String.valueOf(sa)) + ") you must SACRIFICE "
                           + (min == max ? String.valueOf(min) : min + "-" + max) + " of these permanents. "
                           + "It leaves the battlefield now, as the cost is paid, before the ability resolves. Choose which."
                         : "You must SACRIFICE " + (min == max ? String.valueOf(min) : min + "-" + max)
                         + " permanent(s)" + srcOf(sa)
-                        + (message == null || message.isEmpty() ? "" : ": " + oneLine(message))
+                        + (message == null || message.isEmpty() ? "" : ": " + said(message))
                         + ". Choose what to give up — keep your best remaining threats/blockers/mana sources.";
                 boolean canCancel = asCost && offerCostCancel;
                 offerCostCancel = false;
@@ -4746,7 +4809,7 @@ public final class LlmSpikeGui {
             java.util.function.Consumer<String> tap = TEST_ASK_TAP;
             if (tap != null) tap.accept(prompt);
             String reply = askOnce(b, prompt, simulate);
-            if (observer != null && b == smart && reply != null) adoptPlan(reply);
+            if (observer != null && b == smart && reply != null) { adoptPlan(reply); adoptNotes(reply); }
             // ONE_CHAT: the conversation keeps each answered decision (a tool round or a dead bridge is not one).
             if (b instanceof ChatSessionBridge) ((ChatSessionBridge) b).remember(prompt, reply);
             return reply;
@@ -4956,8 +5019,7 @@ public final class LlmSpikeGui {
             if (reply == null) return "";
             // The plan line stays (it is often the whole reason); the answer and the side notes go.
             String r = reply.replaceAll("(?im)^\\s*(LINES|PROFILE|STEPS):.*$", "").replaceAll("(?i)CHOICE:\\s*\\d+", "");
-            r = flat(r);
-            return r.length() > 800 ? r.substring(0, 800) + "..." : r;
+            return flat(r); // whole: the 800-character cut fired on 14 carried intents in runs/compare
         }
 
         /** Passes priority for the seat without a model call and records it as a `t:"window"` row
@@ -5576,6 +5638,13 @@ public final class LlmSpikeGui {
          *  (the only mutation, {@code setActivatingPlayer} inside the target-legality probe, mirrors the
          *  original inline code). */
         static PlayOptions enumeratePlayOptions(Player me, boolean ownMain) {
+            return enumeratePlayOptions(me, ownMain, false);
+        }
+
+        /** {@code everyLand}: offer every distinct playable land, not the first 4 (the faithful seat;
+         *  a five-land-type hand had its fifth land unofferable). The legacy and teacher menus keep
+         *  the cap so their bytes, and the zero-model canaries, do not move. */
+        static PlayOptions enumeratePlayOptions(Player me, boolean ownMain, boolean everyLand) {
             List<SpellAbility> options = new ArrayList<>();
             // getSpellAbilities drops a spell's alternative costs whenever the spell is also castable
             // normally, leaving the AI to re-expand them later; this menu never did, so Unmask, Force of
@@ -5626,7 +5695,7 @@ public final class LlmSpikeGui {
                         SpellAbility lsa = null;
                         for (SpellAbility sa : lc.getAllPossibleAbilities(me, true)) if (sa.isLandAbility()) { lsa = sa; break; }
                         if (lsa != null) { landPlays.add(lsa); landCards.add(lc); }
-                        if (landPlays.size() >= 4) break;
+                        if (!everyLand && landPlays.size() >= 4) break;
                     }
                 }
             }
@@ -6598,7 +6667,12 @@ public final class LlmSpikeGui {
             // supported reasoning.effort, which is the next step. A model that still overruns is
             // truncated once and retried with reasoning off, which the game log and match_review
             // already report per game, so the tail is visible rather than silent.
-            ModelCfg uniform = new ModelCfg(32000, 300000, null, null, 1024, 45000, "none");
+            //
+            // The fast tier (two-tier runs only; ONE_TIER uses this smart row everywhere) keeps reasoning
+            // off -- that is what the two-tier arm IS -- but its answer is no longer cut: 1024 tokens
+            // truncated 2 of 170 fast calls in runs/compare/two-tier, and the retry then asked again
+            // at the same 1024. 8192 tokens and 120s (docs/harness/MODEL-LIMITS.md).
+            ModelCfg uniform = new ModelCfg(32000, 300000, null, null, 8192, 120000, "none");
             // THE TIMEOUT IS LOAD-BEARING: LlmSpikeHeadless sizes its post-cap shutdown grace from
             // maxDecisionMs() (three attempts of the slowest timeout), and run_batch.py's backstop budgets
             // for that with a hardcoded GRACE_S = 1000 (it cannot call the Java side). 300s gives a
@@ -6613,7 +6687,7 @@ public final class LlmSpikeGui {
             // 2026-10-13), so the "none" sentinel -- reasoning:{enabled:false} -- is REJECTED on every
             // fast-tier call, which is high-frequency. It asks for the lowest effort it has instead:
             // still cheap on a mechanical answer, and legal. Every other row can be disabled outright.
-            t.put("grok", new ModelCfg(32000, 300000, null, null, 1024, 45000, "low"));
+            t.put("grok", new ModelCfg(32000, 300000, null, null, 8192, 120000, "low"));
             try { applyEnvOverride(t); }
             catch (Exception e) { System.out.println("[MODEL-CFG] failed to parse OPENROUTER_MODEL_CFG, using built-in defaults: " + e); }
             return t;
@@ -6716,7 +6790,8 @@ public final class LlmSpikeGui {
     static final class ClaudeBridge implements LLMBridge {
         private static final String BIN = System.getenv().getOrDefault("CLAUDE_BIN", "claude");
         private static final String DEADLINE_ENV = System.getenv("CLAUDE_DEADLINE_MS");
-        private static final long DEADLINE_MS = parseLong(DEADLINE_ENV, 90000);
+        // 300s, the API lane's timeout (was 90s): the CLI lane may think as long as the API lane.
+        private static final long DEADLINE_MS = parseLong(DEADLINE_ENV, 300000);
         // SPEED: the persistent conversation's prefill grows with every ask, so calls get slower as the
         // game goes on. Restart the CLI session every N asks (re-priming the preamble); the per-message
         // snapshot + the controller's INTEL line carry the state that matters across the reset.
@@ -7328,7 +7403,10 @@ public final class LlmSpikeGui {
                     // (measured: enabled=false -> 65 completion tokens, 1.3s). So for a row we know is
                     // a reasoner, the retry DISABLES reasoning; every other model keeps the historic
                     // double-the-budget retry, which is right for a genuinely long answer.
-                    boolean reasoner = reasoningEffort != null || cfg.fastReasoningEffort != null;
+                    // A call whose reasoning was already off ("none": the fast tier) gets nothing from
+                    // turning it off again; it needs room for its answer, so it takes the doubled budget.
+                    boolean reasoner = !"none".equals(reasoningEffort)
+                            && (reasoningEffort != null || cfg.fastReasoningEffort != null);
                     int retryTokens = Math.min(maxTokens * 2, 64000);
                     String retryEffort = reasoningEffort;
                     if (reasoner) {
@@ -7609,8 +7687,9 @@ public final class LlmSpikeGui {
                         if (!mc.isEmpty()) b.append(' ').append(mc);
                         String t = r.getOracleText();
                         if (t != null && !t.isEmpty()) {
+                            // Whole: a 400-character cut ended 7 cards of the deck pool mid-sentence
+                            // (Animate Dead, Tamiyo, Ajani, Minsc & Boo, ...).
                             t = t.replaceAll("\\s+", " ").trim();
-                            if (t.length() > 400) t = t.substring(0, 397) + "...";
                             b.append(" — ").append(t);
                         }
                     }
