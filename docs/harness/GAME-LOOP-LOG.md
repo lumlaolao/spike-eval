@@ -342,3 +342,13 @@ SKIP 0, TOOL 0, SLOW 1; analyzer PASS; $0.15.
   the seat's; one mana-sources ask ("keep both Scrublands, tap Plateau").
 - FIXED  an engine card id leaked into the trigger option ("[Zone Changer: Orcish Bowmasters (37)]").
 - FIXED  the 20-minute cap ended the game at turn 13 (54 calls, ~23 s each): recipe cap 45 min.
+
+### g09  2026-10-15  seed 72  Elves (seat) vs Burn (Forge AI)  lost T16  deepseek-v4.1-flash one-tier  build fix/engine-id-leak  runs/loop/g09
+
+Full game inside the 45-minute cap: 91 calls, $0.21. Sheet: TAKEN 0, LOST 0, TOOL 0, SLOW 1 (a 150 s
+provider stall on attackers); analyzer PASS.
+
+- WORKS  Green Sun's Zenith's X was the seat's (X=2, asked up to what it could pay); 38 windows passed on
+  the seat's own YIELD (33 end-of-turn, 5 my-next-turn); three mana-sources asks; no harness-guessed pass.
+- FIXED  the sheet called a last-sig repeat a SKIP: T6 upkeep, Rift Bolt's suspend trigger offered the
+  identical spot (stack, board, menu) the seat had just passed on. It is now counted as a repeat.

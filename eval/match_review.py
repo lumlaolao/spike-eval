@@ -109,6 +109,11 @@ def review(path):
         elif t == "window":
             if str(r.get("reason") or "").startswith("yield:"):
                 out["counts"]["windows the seat yielded"] += 1      # a pass the model asked for
+            elif r.get("reason") == "last-sig":
+                # The same turn, phase, stack, board and menu the seat just passed on (its key covers all
+                # of them): the seat's own answer repeated, not a guess (runs/loop/g09 T6: Rift Bolt's
+                # suspend trigger offered the identical upkeep spot twice).
+                out["counts"]["windows repeating a spot the seat passed"] += 1
             elif (r.get("castable") or 0) > 0:
                 add("SKIP", r, "%s window passed without asking (%s) with %d usable" % (
                     r.get("phase"), r.get("reason"), r["castable"]))
