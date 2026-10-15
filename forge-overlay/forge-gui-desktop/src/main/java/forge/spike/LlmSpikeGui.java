@@ -679,6 +679,18 @@ public final class LlmSpikeGui {
         private int playDecisionsThisTurn = 0;
         private String lastAskSig = "";
         private boolean lastWasPass = false;
+        /** The play the model chose most recently (cast or activate) with its own words for it, shown
+         *  on every later ask that turn whichever tier answers it (faithful profile). The steps of one
+         *  action are separate asks, often on different tiers with no shared conversation: runs/loop/g07's
+         *  smart tier activated Wirewood Symbiote "to untap Reclamation Sage so it can block", and the
+         *  fast tier, asked for the target, called the activation pointless and untapped the opponent's
+         *  creature; g10's fast tier undid the Ponder order the smart tier had just chosen. */
+        private String actionIntent = null;
+        private int actionIntentTurn = -1;
+        /** Cancels in the current priority window (a cancelled play re-asks the menu, at most twice). */
+        private String cancelKey = "";
+        private int cancels = 0;
+        private String cancelNote = null;
         /** Priority windows the play loop passed without a model call, by reason (see skipWindow). */
         final java.util.Map<String, Integer> windowSkips = new java.util.TreeMap<>();
         // (stack, options) situations we already declined this turn — identical recurrences pass free.
@@ -2163,6 +2175,8 @@ public final class LlmSpikeGui {
                 Player me = getPlayer();
                 PhaseHandler phh = me.getGame().getPhaseHandler();
                 boolean ownMain = phh.isPlayerTurn(me) && (phh.is(PhaseType.MAIN1) || phh.is(PhaseType.MAIN2));
+                String winKey = phh.getTurn() + "|" + phh.getPhase() + "|" + safeStackTop(me.getGame());
+                if (!winKey.equals(cancelKey)) { cancelKey = winKey; cancels = 0; cancelNote = null; }
 
                 // SPEED: on a reactive (not-our-main) priority window, only think when something can
                 // actually matter — a spell/ability on the stack, combat (tricks/removal), or the
@@ -2389,6 +2403,7 @@ public final class LlmSpikeGui {
                 for (int attempt = 0; rnd == null && attempt < 2 && choice < 1; attempt++) {
                     String prompt = (attempt == 0
                             ? playPromptPrefix(snapshot(), phh.getPhase(), ownMain, menuStr)
+                              + (cancelNote != null && attempt == 0 ? "NOTE: " + cancelNote + "\n" : "")
                               + (asks.isEmpty() ? PLAY_PROMPT_TAIL : asks + "Then end with EXACTLY: CHOICE: <number>")
                             // The retry carries the WHOLE decision again. It used to be this one sentence
                             // alone ("...from the list above") sent to a stateless backend with no list
@@ -2509,7 +2524,22 @@ public final class LlmSpikeGui {
                 // cast (X is normally re-announced anyway, but sVar/XAlternative X can retain a stale value).
                 // No-op when SHADOW is off.
                 if (SHADOW) for (SpellAbility s = chosen; s != null; s = s.getSubAbility()) { s.resetTargets(); s.setXManaCostPaid(null); }
-                ensureTargetsSet(chosen); // AI cast path won't target for us — set legal LLM-chosen targets now
+                if (observer != null && rnd == null) {
+                    actionIntent = verbOf(chosen) + " " + labelOf(chosen) + ". What you wrote when you chose it: \"" + reasoningOf(lastReply) + "\"";
+                    actionIntentTurn = turn;
+                }
+                // AI cast path won't target for us — set legal LLM-chosen targets now. A target ask before
+                // the play is committed may be answered "cancel": the model saw the candidates and no
+                // longer wants the play (runs/loop/g06 Grindstone, g07 Wirewood Symbiote: "there's no
+                // 'don't activate' option"). The menu is asked again, at most twice per window.
+                if (!ensureTargetsSet(chosen, observer != null && rnd == null && cancels < 2)) {
+                    for (SpellAbility s = chosen; s != null; s = s.getSubAbility()) s.resetTargets();
+                    cancels++;
+                    cancelNote = "you chose " + verbOf(chosen) + " " + labelOf(chosen) + " and then cancelled it when asked for its target. Choose again.";
+                    actionIntent = null;
+                    p("[ROUTER] play: cancelled " + labelOf(chosen) + " -> re-ask");
+                    return chooseSpellAbilityToPlay();
+                }
                 p("[ROUTER] play: " + (observer == null || chosen.isSpell() ? "casts " : "activates ") + labelOf(chosen));
                 return Lists.newArrayList(chosen);
             } catch (Exception e) {
@@ -2731,7 +2761,13 @@ public final class LlmSpikeGui {
          *  untargeted spell we picked would fail hasLegalTargeting and fizzle ("Couldn't add to stack").
          *  We walk the ability chain and, for each targeting ability with no target yet, pick from the
          *  engine's own canTarget-validated candidates (LLM chooses when there's a real choice). */
-        private void ensureTargetsSet(SpellAbility root) {
+        private void ensureTargetsSet(SpellAbility root) { ensureTargetsSet(root, false); }
+
+        /** Label of the cancel option a target ask offers before its play is committed. */
+        static final String CANCEL_LABEL = "CANCEL: do not take this action; go back to the action menu";
+
+        /** False only when {@code cancellable} and the model chose {@link #CANCEL_LABEL}. */
+        private boolean ensureTargetsSet(SpellAbility root, boolean cancellable) {
             for (SpellAbility sa = root; sa != null; sa = sa.getSubAbility()) {
                 clearLast(); // per-ability: a single-candidate auto-target must not inherit a prior ability's prompt
                 try {
@@ -2758,6 +2794,7 @@ public final class LlmSpikeGui {
                     if (cands.size() > 1 && okFor("target")) {
                         List<String> labels = new ArrayList<>();
                         for (GameEntity ge : cands) labels.add(labelOf(ge));
+                        if (cancellable) labels.add(CANCEL_LABEL);
                         // type=null here -> decideOne never logs internally (incl. its decline branch), so
                         // EVERY exit from this call, including the "optional -> no target" one below, must be
                         // logged by us or it vanishes with zero jsonl/log trace (the exact C5 double-failure shape).
@@ -2767,6 +2804,10 @@ public final class LlmSpikeGui {
                         if (c == -1 && sa.getMinTargets() == 0) {
                             evalDec("target", cands.size(), -1, tierOf(smartTierFor("target")), 0, "target(optional-decline-or-unparsed)", labels);
                             continue; // optional -> deliberately no target
+                        }
+                        if (cancellable && c == cands.size()) {
+                            evalDec("target", labels.size(), c, tierOf(smartTierFor("target")), 0, null, labels);
+                            return false;
                         }
                         if (c >= 0) pick = c;
                         else { // -2/unparsed -> intent-aware fallback (report C3): prefer a plan-named
@@ -2811,6 +2852,7 @@ public final class LlmSpikeGui {
                             + (cands.size() == 1 ? " (only legal)" : ""));
                 } catch (Exception e) { /* leave targeting to the engine for this ability */ }
             }
+            return true;
         }
 
         @Override
@@ -4205,6 +4247,7 @@ public final class LlmSpikeGui {
         /** `simulate`: when non-null and native tools are on, the decision also offers a lookahead
          *  preview as a tool; it maps the call's JSON arguments to the preview text. */
         private String ask(LLMBridge b, String prompt, java.util.function.Function<String, String> simulate) {
+            prompt = withIntent(prompt);
             if (!MEMORY_TOOLS || !"llm".equals(mode)) return askModel(b, prompt);
             // Archive the existing player-narration stream before its lossy prompt compaction.
             // Never attach raw engine objects or omniscient evaluation records to this archive.
@@ -4374,6 +4417,30 @@ public final class LlmSpikeGui {
         }
         private <T> T aiDelegate(String where, T result) { noteAi(where); return result; }
         private void auto(String what) { autoPicks++; p("[AUTO-LEGAL] " + what); evalDec(firstWord(what), -1, -1, "auto", 0, what); }
+
+        /** The prompt with the most recent play and the model's reasoning for it, placed just before the
+         *  decision. Not on the play menu itself (that is where a new play is chosen), not on a legacy
+         *  profile, and not after the turn in which the play was chosen. */
+        String withIntent(String prompt) {
+            if (observer == null || actionIntent == null || actionIntentTurn != safeTurn()
+                    || prompt.contains("\nDECISION: You have priority")) return prompt;
+            // Only the model's own words carry over, never an old state: the snapshot above is current,
+            // and events since the play (a response, a trigger) are in it.
+            String block = "\nTHE PLAY YOU CHOSE MOST RECENTLY (T" + actionIntentTurn + "): " + actionIntent
+                    + "\n(The state above is current; if it has changed since you chose that play, decide on the current state.)\n";
+            int at = prompt.lastIndexOf("\nPRIORITY: you\nDECISION:");
+            if (at < 0) at = prompt.lastIndexOf("\nDECISION:");
+            return at < 0 ? prompt + block : prompt.substring(0, at) + block + prompt.substring(at);
+        }
+
+        /** The model's reply without its answer and tag lines: what it said about why. */
+        static String reasoningOf(String reply) {
+            if (reply == null) return "";
+            // The plan line stays (it is often the whole reason); the answer and the side notes go.
+            String r = reply.replaceAll("(?im)^\\s*(LINES|PROFILE|STEPS):.*$", "").replaceAll("(?i)CHOICE:\\s*\\d+", "");
+            r = flat(r);
+            return r.length() > 800 ? r.substring(0, 800) + "..." : r;
+        }
 
         /** Passes priority for the seat without a model call and records it as a `t:"window"` row
          *  (not a decision row, so decision counts and the canaries do not move). These shortcuts

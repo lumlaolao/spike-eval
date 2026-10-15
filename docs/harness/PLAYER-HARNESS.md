@@ -337,6 +337,23 @@ profiles keep their bytes:
 
 Tests: `PromptFidelityTest` (whose object, fast-tier framing, whole INSPECT text, number source text).
 
+**2026-10-15 — the steps of one action share its intent, and a play can be cancelled
+(`observation-faithful-v16`).** The engine asks for a play, then its target, cost, number or order
+as separate questions, often on different tiers with no shared conversation (each OpenRouter ask is
+stateless). runs/loop/g07: the smart tier activated Wirewood Symbiote "to untap Reclamation Sage so
+it can block"; the fast tier, asked for the target, called the activation pointless and untapped the
+opponent's creature. g08 and g10 were the same shape (a sacrifice "I didn't choose", a shuffle that
+undid the Ponder order). Under the faithful profile:
+
+- every ask after a play (not the play menu itself) carries `THE PLAY YOU CHOSE MOST RECENTLY (T<n>)`
+  with the option and what the model wrote when it chose it, for the rest of that turn. Only the
+  model's own words carry over, never an older state: the snapshot in the same prompt is current and
+  says so. This is ROOT-INTERFACES R4 (issue #108) at the root rather than per ask;
+- a target ask asked before the play is committed offers `CANCEL: do not take this action`; the play
+  menu is then asked again with a note saying what was cancelled (at most twice per window).
+
+Tests: `PromptFidelityTest.theTargetAskCarriesTheReasonForThePlay`, `cancellingAtTheTargetStepAsksTheMenuAgain`.
+
 ### Tool protocol: `evidence-tools-v2` and native function calling (2026-10-13)
 
 `eval/tool_audit.py` over the three controlled arms (`runs/lines/ctl`, 48 games, 2,994 model calls)
