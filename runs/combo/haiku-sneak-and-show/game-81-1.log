@@ -1,0 +1,1280 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=46665 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 34086 files in 8 ms (25 parts) using thread pool
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 857 files in 0 ms (8 parts) using thread pool
+[SEED] 81
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/sneak-and-show.plan
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/ur-delver.plan
+[DECK] loaded 'Seat': 60 main, 0 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/sneak-and-show.txt)
+[DECK] loaded 'ForgeAI': 60 main, 0 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/ur-delver.txt)
+[SEATS] A=Seat(llm,openrouter:anthropic/claude-haiku-5.5) B=ForgeAI(ai,opus) [SWAPPED]
+[Seat] [OBSERVATION] observation-faithful-v23 (profile v4-faithful/0c84768f2258)
+[HEADLESS] game starting (cap=45min)
+[OPENROUTER Seat/smart] replied in 2493 ms
+[Seat] [ROUTER] mulligan: 3/7 lands -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2443 ms
+[Seat] [ROUTER] mulligan: KEEP
+Lightning Bolt Did not have activator set in SpellAbilityRestriction.canPlay()
+[Seat] [TALLY] smart=2 fast=0 auto=0 ai=0 avgSmart=2468ms avgFast=2468ms
+[Seat] [ROUTER] play(main): 0 castable + 3 land -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4414 ms
+[Seat] [ROUTER] lines: Show and Tell + Emrakul, the Aeons Torn -> both players put Emrakul in play, I take an extra turn and swing with annihilator 6 | Sneak Attack + Griselbrand -> haste Griselbrand attacks, lifelink, and I can pay 7 life to draw seven | Force of Will + Show and Tell -> counter their answer to the combo and still resolve the enabler
+[Seat] [ROUTER] play: land Island
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2452 ms
+[Seat] [ROUTER] plan: GOAL: assemble Show and Tell or Sneak Attack with Emrakul or Griselbrand NEXT: play Scalding Tarn or Flooded Strand for mana, dig with cantrips, hold Spell Pierce and Force of Will for their key spell.
+[Seat] [ROUTER] profile: Unknown opponent on a Volcanic Island; they cast Ponder on turn 2, so likely a blue-red control or tempo deck. Respect any counterspell or sweeper.
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=4 fast=0 auto=0 ai=0 avgSmart=2950ms avgFast=2950ms
+[Seat] [ROUTER] play(main): 0 castable + 3 land -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4757 ms
+[Seat] [ROUTER] plan(revised): GOAL: land Emrakul or Griselbrand and cast Show and Tell or Sneak Attack NEXT: play Scalding Tarn, keep Force of Will and Spell Pierce up, dig with cantrips.
+[Seat] [ROUTER] play: land Scalding Tarn
+[Seat] [TALLY] smart=5 fast=0 auto=0 ai=0 avgSmart=3311ms avgFast=3311ms
+[Seat] [ROUTER] play(main): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2630 ms
+[Seat] [ROUTER] plan(revised): GOAL: land Emrakul or Griselbrand and cast Show and Tell or Sneak Attack NEXT: crack Tarn for Island, keep Spell Pierce up, dig with cantrips.
+[Seat] [ROUTER] play: activates Scalding Tarn @13 [{T}, Pay 1 life, Sacrifice Scalding Tarn: Search your library for a Island or Mountain card, put it onto the battlefield, then shuffle.]
+[OPENROUTER Seat/smart] replied in 2814 ms
+[Seat] [ROUTER] plan(revised): GOAL: land Emrakul or Griselbrand and cast Show and Tell or Sneak Attack. NEXT: fetch Volcanic Island, keep Spell Pierce up, dig with cantrips.
+[Seat] [ROUTER] zone-change: Volcanic Island @23 [Library, yours] -> Battlefield [Scalding Tarn]
+[Seat] [TALLY] smart=7 fast=0 auto=0 ai=0 avgSmart=3143ms avgFast=3143ms
+[Seat] [ROUTER] play(main): 1 castable + 2 land -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 5289 ms
+[Seat] [ROUTER] plan(revised): GOAL: land Emrakul or Griselbrand and cast Show and Tell or Sneak Attack. NEXT: play Flooded Strand and fetch an Island, cast Ponder to dig, hold Spell Pierce, play City of Traitors next turn.
+[Seat] [ROUTER] play: land Flooded Strand
+[Seat] [TALLY] smart=8 fast=0 auto=0 ai=0 avgSmart=3411ms avgFast=3411ms
+[Seat] [ROUTER] play(main): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3281 ms
+[Seat] [ROUTER] play: casts Ponder @68 {U} [Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card.]
+[OPENROUTER Seat/smart] replied in 2699 ms
+[Seat] [ROUTER] plan(revised): GOAL: land Emrakul or Griselbrand via Show and Tell or Sneak Attack. NEXT: Ponder, keep Spell Pierce mana, then play City of Traitors.
+[Seat] [ROUTER] mana: keep untapped 1 for CAST Ponder @73 {U} [Look at the top three cards of your library, then put them back in any order. You may shuffle. Draw a card.]
+[Seat] [TALLY] smart=10 fast=0 auto=0 ai=0 avgSmart=3327ms avgFast=3327ms
+[Seat] [ROUTER] play(main): 3 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3928 ms
+[Seat] [ROUTER] play: PASS
+[OPENROUTER Seat/smart] replied in 7653 ms
+[Seat] [ROUTER] order [Ponder] -> Library (top first): Emrakul, the Aeons Torn, Island, Flooded Strand
+[OPENROUTER Seat/smart] replied in 2741 ms
+[Seat] [ROUTER] plan(revised): GOAL: land Emrakul via Show and Tell, with Spell Pierce backup. NEXT: keep Emrakul on top (don't shuffle), draw it, then find Show and Tell mana.
+[Seat] [ROUTER] confirm(Do you want to shuffle the library?): NO
+[Seat] [TALLY] smart=13 fast=0 auto=0 ai=0 avgSmart=3661ms avgFast=3661ms
+[Seat] [ROUTER] play(main): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4032 ms
+[Seat] [ROUTER] play: activates Flooded Strand @72 [{T}, Pay 1 life, Sacrifice Flooded Strand: Search your library for a Plains or Island card, put it onto the battlefield, then shuffle.]
+[OPENROUTER Seat/smart] replied in 2758 ms
+[Seat] [ROUTER] zone-change: Island @44 [Library, yours] -> Battlefield [Flooded Strand]
+[Seat] [TALLY] smart=15 fast=0 auto=0 ai=0 avgSmart=3625ms avgFast=3625ms
+[Seat] [ROUTER] play(main): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 5329 ms
+[Seat] [ROUTER] target: Brainstorm {U} @82 [Stack, opponent's] <- Spell Pierce @7 {U} [Counter target noncreature spell unless its controller pays {2}.] (only legal)
+[Seat] [ROUTER] play: casts Spell Pierce @7 {U} [Counter target noncreature spell unless its controller pays {2}.]
+[Seat] [TALLY] smart=16 fast=0 auto=0 ai=0 avgSmart=3732ms avgFast=3732ms
+[Seat] [ROUTER] play(main): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3000 ms
+[Seat] [ROUTER] plan(revised): GOAL: land Emrakul via Show and Tell, with Spell Pierce backup. NEXT: let Spell Pierce resolve, keep Force of Will for their answer to the combo, find Show and Tell mana.
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=17 fast=0 auto=0 ai=0 avgSmart=3689ms avgFast=3689ms
+[Seat] [ROUTER] play(main): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3463 ms
+[Seat] [ROUTER] play: PASS
+Lightning Bolt Did not have activator set in SpellAbilityRestriction.canPlay()
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2252 ms
+[Seat] [ROUTER] plan(revised): GOAL: land Emrakul via Show and Tell, with Spell Pierce and Force of Will as protection. NEXT: pass on their Ponder (not worth a Force), find a land drop and mana, then deploy the combo when protected.
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=19 fast=0 auto=0 ai=0 avgSmart=3601ms avgFast=3601ms
+[Seat] [ROUTER] play(main): 1 castable + 2 land -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 7500 ms
+[Seat] [ROUTER] plan(revised): GOAL: land Emrakul via Show and Tell while the opponent is tapped out NEXT: play Ancient Tomb, cast Show and Tell putting Emrakul in, then attack with flying Emrakul next turn.
+[Seat] [ROUTER] profile: Blue-red tempo/control: Ponder, Brainstorm, Dragon's Rage Channeler, Wasteland; respect counterspells (Force of Will, Spell Pierce).
+[Seat] [ROUTER] play: land Ancient Tomb
+[Seat] [TALLY] smart=20 fast=0 auto=0 ai=0 avgSmart=3796ms avgFast=3796ms
+[Seat] [ROUTER] play(main): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 6637 ms
+[Seat] [ROUTER] play: casts Show and Tell @4 2{U} [Each player may put an artifact, creature, enchantment, or land card from their hand onto the battlefield.]
+[OPENROUTER Seat/smart] replied in 4477 ms
+[Seat] [ROUTER] mana: keep untapped 1 for CAST Show and Tell @93 2{U} [Each player may put an artifact, creature, enchantment, or land card from their hand onto the battlefield.]
+[Seat] [TALLY] smart=22 fast=0 auto=0 ai=0 avgSmart=3956ms avgFast=3956ms
+[Seat] [ROUTER] play(main): 1 castable + 2 land -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 6402 ms
+[Seat] [ROUTER] plan(revised): GOAL: Cheat Emrakul with Sneak Attack once I have RR, while protecting it with Force of Will NEXT: play Island now, hold Force of Will up, then find a second red source (Scalding Tarn for Volcanic) and cast Sneak Attack.
+[Seat] [ROUTER] play: land Island
+[Seat] [TALLY] smart=23 fast=0 auto=0 ai=0 avgSmart=4062ms avgFast=4062ms
+[Seat] [ROUTER] play(main): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4414 ms
+[Seat] [ROUTER] plan(revised): GOAL: Cheat Emrakul with Sneak Attack once I have RR, protected by Force of Will. NEXT: Hold FoW, find a second red source (Scalding Tarn/Volcanic), then cast Sneak Attack and activate it for Emrakul.
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=24 fast=0 auto=0 ai=0 avgSmart=4077ms avgFast=4077ms
+[Seat] [ROUTER] play(main): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3896 ms
+[Seat] [ROUTER] plan(revised): GOAL: Cheat Emrakul with Sneak Attack once I have a second red source, protected by Force of Will. NEXT: Hold FoW, dig for a red source and a creature/Show and Tell, then go for it.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2595 ms
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2522 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=27 fast=0 auto=0 ai=0 avgSmart=3958ms avgFast=3958ms
+[Seat] [ROUTER] play(main): 1 castable + 1 land -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 9133 ms
+[Seat] [ROUTER] plan(revised): GOAL: Cheat Emrakul with Sneak Attack once I have a second red source, protected by Force of Will. NEXT: Play City of Traitors, hold FoW with mana up, dig for a second red source (Volcanic Island) or Show and Tell, then go for it.
+[Seat] [ROUTER] play: land City of Traitors
+[Seat] [TALLY] smart=28 fast=0 auto=0 ai=0 avgSmart=4143ms avgFast=4143ms
+[Seat] [ROUTER] play(main): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3966 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=29 fast=0 auto=0 ai=0 avgSmart=4136ms avgFast=4136ms
+[Seat] [ROUTER] play(main): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4507 ms
+[Seat] [ROUTER] plan(revised): GOAL: Cheat Emrakul with Sneak Attack once I have a second red source, protected by Force of Will. NEXT: hold FoW mana, dig for a red source or Show and Tell, then go for it.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 1946 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4776 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 9854 ms
+[Seat] [ROUTER] plan(revised): GOAL: Survive burn, then find a second red source to cast Sneak Attack for Emrakul. NEXT: hard-cast Force of Will on Bolt now, rebuild life, dig with cantrips, hold FoW for the combo later.
+[Seat] [ROUTER] profile: Blue-red tempo/burn: Lightning Bolt x3, Dragon's Rage Channeler, Daze, Force of Will, Wasteland; respect counters and burn to my face.
+[Seat] [ROUTER] target: Lightning Bolt {R} @107 [Stack, opponent's] <- Force of Will @6 3{U}{U} [Counter target spell.] (only legal)
+[Seat] [ROUTER] play: casts Force of Will @6 3{U}{U} [Counter target spell.]
+[OPENROUTER Seat/smart] replied in 7159 ms
+[Seat] [ROUTER] mana: keep untapped 2 for CAST Force of Will @108 3{U}{U} [Counter target spell.]
+[Seat] [TALLY] smart=34 fast=0 auto=0 ai=0 avgSmart=4359ms avgFast=4359ms
+[Seat] [ROUTER] play(main): 2 castable + 1 land -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 11556 ms
+[Seat] [ROUTER] plan(revised): GOAL: Survive the burn and find a second red source, then Sneak Attack Emrakul or Griselbrand. NEXT: pass this turn, hold Sneak Attack and Emrakul, and dig for red mana with any cantrips I draw.
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=35 fast=0 auto=0 ai=0 avgSmart=4564ms avgFast=4564ms
+[Seat] [ROUTER] play(main): 2 castable + 1 land -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 10667 ms
+[Seat] [ROUTER] play: casts Sneak Attack @5 3{R} [Sneak Attack]
+[OPENROUTER Seat/smart] replied in 8150 ms
+[Seat] [AUTO-LEGAL] mana-sources(cannot-pay-keeping-them)->engine plan
+[Seat] [TALLY] smart=37 fast=0 auto=1 ai=0 avgSmart=4826ms avgFast=4826ms
+[Seat] [ROUTER] play(main): 0 castable + 1 land -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4867 ms
+[Seat] [ROUTER] play: land City of Traitors
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 8888 ms
+[Seat] [ROUTER] plan(revised): GOAL: Survive at 3 life and win through Sneak Attack. NEXT: Sneak Attack Emrakul now for {R} (haste), attack with annihilator 6 to strip their board, then keep Sneak Attack for later turns.
+[Seat] [ROUTER] play: activates Sneak Attack @115 [{R}: You may put a creature card from your hand onto the battlefield. That creature gains haste. Sacrifice the creature at the beginning of the next end step.]
+[OPENROUTER Seat/smart] replied in 4455 ms
+[Seat] [ROUTER] plan(revised): GOAL: Survive at 3 life and win through Sneak Attack. NEXT: Pay {R} with Volcanic Island, put Emrakul in with haste, attack with annihilator 6.
+[Seat] [ROUTER] mana: keep untapped 5 for ACTIVATE Sneak Attack @115 [{R}: You may put a creature card from your hand onto the battlefield. That creature gains haste. Sacrifice the creature at the beginning of the next end step.]
+[OPENROUTER Seat/smart] replied in 4458 ms
+[Seat] [ROUTER] zone-change: Emrakul, the Aeons Torn {15} 15/15 @75 [Hand, yours] -> Battlefield [Sneak Attack]
+[Seat] [TALLY] smart=41 fast=0 auto=1 ai=0 avgSmart=4908ms avgFast=4908ms
+[Seat] [ROUTER] play(main): 0 castable + 1 land -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 9425 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 1 can attack -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4033 ms
+[Seat] [ROUTER] plan(revised): GOAL: Win through Emrakul's evasive attack before Bolts finish me. NEXT: Attack with Emrakul now, then use remaining resources on the next turn.
+[Seat] [ROUTER] attackers: Emrakul, the Aeons Torn
+[Seat] [TALLY] smart=43 fast=0 auto=1 ai=0 avgSmart=4993ms avgFast=4993ms
+[Seat] [ROUTER] play(main): 0 castable + 1 land -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3201 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4529 ms
+[Seat] [ROUTER] plan(revised): GOAL: Deal the last 2 damage with Sneak Attack/Griselbrand or Emrakul after finding it again. NEXT: Pass this upkeep, draw, play a land, then dig for a creature and a red source for Sneak Attack.
+[Seat] [ROUTER] profile: Blue-red tempo/burn with Lightning Bolt x3, Daze, Force of Will; their lands were annihilated, so they are mana-light right now.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3461 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=46 fast=0 auto=1 ai=0 avgSmart=4910ms avgFast=4910ms
+[Seat] [ROUTER] play(main): 3 castable + 1 land -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 7559 ms
+[Seat] [ROUTER] play: land Flooded Strand
+[Seat] [TALLY] smart=47 fast=0 auto=1 ai=0 avgSmart=4967ms avgFast=4967ms
+[Seat] [ROUTER] play(main): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 8240 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=48 fast=0 auto=1 ai=0 avgSmart=5035ms avgFast=5035ms
+[Seat] [ROUTER] play(main): 4 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 8924 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 7500 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 5108 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 5245 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=52 fast=0 auto=1 ai=0 avgSmart=5163ms avgFast=5163ms
+[Seat] [ROUTER] play(main): 4 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 5013 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 6001 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 6480 ms
+[Seat] [ROUTER] plan(revised): GOAL: Deal the last 2 damage by putting a hasty creature in with Sneak Attack, Emrakul or Griselbrand. NEXT: Pass upkeep, draw, look for a creature, then play a land and dig with Flooded Strand if needed.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 8288 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3517 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4121 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4951 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4187 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3709 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4996 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 6783 ms
+[Seat] [ROUTER] plan(revised): GOAL: Deal the last 2 damage with a hasty creature (Sneak Attack or Show and Tell into Emrakul/Griselbrand). NEXT: Pass to draw, look for a creature or dig with Flooded Strand, keep life above Bolt range where possible.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 5279 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=64 fast=0 auto=1 ai=0 avgSmart=5184ms avgFast=5184ms
+[Seat] [ROUTER] play(main): 4 castable + 1 land -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 7363 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4413 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 7926 ms
+[Seat] [ROUTER] plan(revised): GOAL: Find a creature (Emrakul, Griselbrand, Atraxa) to put in via Show and Tell or Sneak Attack for haste damage. NEXT: Pass, keep life, dig with Brainstorm/Ponder/Preordain next turn.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2831 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=68 fast=0 auto=1 ai=0 avgSmart=5210ms avgFast=5210ms
+[Seat] [ROUTER] play(main): 4 castable + 1 land -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 6107 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2894 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4525 ms
+[Seat] [ROUTER] plan(revised): GOAL: Find a creature (Griselbrand, Emrakul, Atraxa) for Show and Tell or Sneak Attack to finish the opponent at 2 life. NEXT: Pass to draw, avoid paying life at 3 with Bolt in their deck, then dig with cantrips or play City of Traitors.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4054 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2708 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3477 ms
+[Seat] [ROUTER] plan(revised): GOAL: Find a creature (Griselbrand, Emrakul, Atraxa) to cheat in for lethal on the 2-life opponent. NEXT: Pass, keep life at 3, then play City of Traitors and dig with cantrips when I can.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3115 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3064 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 5146 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3422 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 5417 ms
+[Seat] [ROUTER] plan(revised): GOAL: Find Griselbrand, Emrakul or Atraxa to cheat in for lethal on the 2-life opponent. NEXT: Pass to draw, keep my 3 life (Bolt range), then dig with Strand or cantrips and cast the fatty via Show and Tell or Sneak Attack.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 8553 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=80 fast=0 auto=1 ai=0 avgSmart=5085ms avgFast=5085ms
+[Seat] [ROUTER] play(main): 5 castable + 1 land -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 10140 ms
+[Seat] [ROUTER] play: land City of Traitors
+[Seat] [TALLY] smart=81 fast=0 auto=1 ai=0 avgSmart=5147ms avgFast=5147ms
+[Seat] [ROUTER] play(main): 5 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 5320 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 8932 ms
+[Seat] [ROUTER] play: activates Flooded Strand @128 [{T}, Pay 1 life, Sacrifice Flooded Strand: Search your library for a Plains or Island card, put it onto the battlefield, then shuffle.]
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3319 ms
+[Seat] [ROUTER] play: PASS
+[OPENROUTER Seat/smart] replied in 2851 ms
+[Seat] [ROUTER] plan(revised): GOAL: Find Griselbrand, Emrakul or Atraxa to cheat in for lethal on the 2-life opponent. NEXT: Fetch Volcanic for red mana, then dig and cheat a fatty in.
+[Seat] [ROUTER] zone-change: Volcanic Island @47 [Library, yours] -> Battlefield [Flooded Strand]
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4345 ms
+[Seat] [ROUTER] plan(revised): GOAL: Win from 2 life vs. their 2 life by cheating in a fatty. NEXT: Dig for Griselbrand/Emrakul/Atraxa and keep Show and Tell or Sneak Attack live.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2914 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3188 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=88 fast=0 auto=1 ai=0 avgSmart=5088ms avgFast=5088ms
+[Seat] [ROUTER] play(main): 4 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3045 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2330 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3972 ms
+[Seat] [ROUTER] plan(revised): GOAL: Cheat Emrakul or Griselbrand into play once a fatty is in hand. NEXT: Dig with cantrips, then cast Show and Tell with the fatty in hand (Sneak Attack as backup), holding Sneak Attack for now.
+[Seat] [ROUTER] profile: Blue-red tempo/burn: Lightning Bolt, Daze, Force of Will, and Dragon's Rage Channeler. Respect Bolt on any creature and their Force of Will on my key spell.
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4867 ms
+[Seat] [ROUTER] plan(revised): GOAL: Cheat Emrakul or Griselbrand into play once a fatty is in hand. NEXT: Pass upkeep, draw, dig with cantrips, then cast a fatty via Show and Tell or Sneak Attack.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2867 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=93 fast=0 auto=1 ai=0 avgSmart=4999ms avgFast=4999ms
+[Seat] [ROUTER] play(main): 5 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4115 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2881 ms
+[Seat] [ROUTER] plan(revised): GOAL: Cheat Emrakul or Griselbrand into play once a fatty is in hand. NEXT: Pass, draw, dig with cantrips, then cast a fatty via Show and Tell or Sneak Attack.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2620 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2450 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=97 fast=0 auto=1 ai=0 avgSmart=4917ms avgFast=4917ms
+[Seat] [ROUTER] play(main): 5 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3684 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 1943 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3255 ms
+[Seat] [ROUTER] plan(revised): GOAL: Put a creature into play and finish the 2-life opponent before their burn finishes me. NEXT: Pass this turn, draw and dig for Griselbrand, Emrakul, or Atraxa, then cheat it in with Show and Tell or Sneak Attack.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2080 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2382 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3101 ms
+[Seat] [ROUTER] plan(revised): GOAL: Find a creature and cheat it in to finish the 2-life opponent. NEXT: Pass, draw and dig, then cast Show and Tell or Sneak Attack with a fatty.
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3291 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3115 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=105 fast=0 auto=1 ai=0 avgSmart=4760ms avgFast=4760ms
+[Seat] [ROUTER] play(main): 5 castable + 1 land -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 8858 ms
+[Seat] [ROUTER] plan(revised): GOAL: Find a creature and cheat it in to finish the 2-life opponent. NEXT: Play Strand, thin deck, draw into Brainstorm/Ponder and creatures.
+[Seat] [ROUTER] play: land Flooded Strand
+[Seat] [TALLY] smart=106 fast=0 auto=1 ai=0 avgSmart=4798ms avgFast=4798ms
+[Seat] [ROUTER] play(main): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4815 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=107 fast=0 auto=1 ai=0 avgSmart=4799ms avgFast=4799ms
+[Seat] [ROUTER] play(main): 6 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 7414 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3017 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 6687 ms
+[Seat] [ROUTER] plan(revised): GOAL: Draw a creature and cheat it in to finish the 2-life opponent. NEXT: Crack Strand to thin, then dig with Brainstorm/Ponder.
+[Seat] [ROUTER] play: activates Flooded Strand @151 [{T}, Pay 1 life, Sacrifice Flooded Strand: Search your library for a Plains or Island card, put it onto the battlefield, then shuffle.]
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2114 ms
+[Seat] [ROUTER] play: PASS
+[OPENROUTER Seat/smart] replied in 2999 ms
+[Seat] [ROUTER] plan(revised): GOAL: Draw a creature and cheat it in to finish the 2-life opponent. NEXT: Thin with Strand, then dig with Brainstorm/Ponder for a creature.
+[Seat] [ROUTER] zone-change: Volcanic Island @14 [Library, yours] -> Battlefield [Flooded Strand]
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2907 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3643 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=114 fast=0 auto=1 ai=0 avgSmart=4756ms avgFast=4756ms
+[Seat] [ROUTER] play(main): 5 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 6232 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2566 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3537 ms
+[Seat] [ROUTER] plan(revised): GOAL: Find a creature and cheat it in to finish the 2-life opponent. NEXT: Draw, dig with Brainstorm/Ponder, and cheat in a creature with Show and Tell or Sneak Attack.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3368 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 1942 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 1915 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2635 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3150 ms
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3955 ms
+[Seat] [ROUTER] plan(revised): GOAL: Find a creature and cheat it in to finish the 2-life opponent. NEXT: Draw, dig with Brainstorm/Ponder/Preordain for Griselbrand or Emrakul or Atraxa, then Show and Tell or Sneak Attack it in.
+[Seat] [ROUTER] profile: Blue-red tempo/burn: Lightning Bolt, Daze, Force of Will, Dragon's Rage Channeler; I'm at 1 life, so respect any Bolt and their Force of Will on my key spell.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2212 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=124 fast=0 auto=1 ai=0 avgSmart=4627ms avgFast=4627ms
+[Seat] [ROUTER] play(main): 5 castable + 1 land -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4685 ms
+[Seat] [ROUTER] play: land Flooded Strand
+[Seat] [TALLY] smart=125 fast=0 auto=1 ai=0 avgSmart=4627ms avgFast=4627ms
+[Seat] [ROUTER] play(main): 6 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4212 ms
+[Seat] [ROUTER] plan(revised): GOAL: Find a creature to cheat in with Show and Tell or Sneak Attack and finish the 2-life opponent. NEXT: Draw and dig with cantrips, keeping mana up for Force of Will.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3107 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2449 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2757 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=129 fast=0 auto=1 ai=0 avgSmart=4581ms avgFast=4581ms
+[Seat] [ROUTER] play(main): 6 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2489 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2289 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3310 ms
+[Seat] [ROUTER] plan(revised): GOAL: Find a creature to cheat in with Show and Tell or Sneak Attack and finish the 2-life opponent. NEXT: Dig with cantrips when I draw one, and avoid Flooded Strand while I am at 1 life.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2122 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2465 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 1889 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2504 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 1826 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 1878 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 1765 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 1996 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2509 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4004 ms
+[Seat] [ROUTER] plan(revised): GOAL: Find a creature (Griselbrand or Emrakul) to cheat in with Show and Tell or Sneak Attack and finish the 2-life opponent. NEXT: Draw and dig with any cantrip, never pay life at 1 life, then cast Show and Tell with a creature in hand.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 1555 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=143 fast=0 auto=1 ai=0 avgSmart=4360ms avgFast=4360ms
+[Seat] [ROUTER] play(main): 6 castable + 1 land -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 7230 ms
+[Seat] [ROUTER] plan(revised): GOAL: Draw a creature (Griselbrand or Emrakul) and cheat it in with Show and Tell or Sneak Attack to finish the 2-life opponent. NEXT: Dig with cantrips, never pay life at 1 life, and cast Show and Tell with the creature in hand.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2739 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2342 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2404 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=147 fast=0 auto=1 ai=0 avgSmart=4342ms avgFast=4342ms
+[Seat] [ROUTER] play(main): 6 castable + 1 land -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 4559 ms
+[Seat] [ROUTER] plan(revised): GOAL: Draw a creature (Griselbrand or Emrakul) and cheat it in with Show and Tell or Sneak Attack to finish the 2-life opponent. NEXT: Play Ancient Tomb without tapping it, pass, and dig for a creature.
+[Seat] [ROUTER] play: land Ancient Tomb
+[Seat] [TALLY] smart=148 fast=0 auto=1 ai=0 avgSmart=4343ms avgFast=4343ms
+[Seat] [ROUTER] play(main): 6 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2597 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 1514 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2792 ms
+[Seat] [ROUTER] plan(revised): GOAL: Draw Griselbrand or Emrakul and cheat it in with Show and Tell or Sneak Attack to finish the 2-life opponent. NEXT: Pass this turn, since Flooded Strand would kill me at 1 life and Sneak Attack has no creature in hand; then dig for a fatty.
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2165 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3226 ms
+[Seat] [ROUTER] plan(revised): GOAL: Draw Griselbrand or Emrakul and cheat it in with Show and Tell or Sneak Attack to finish the 2-life opponent. NEXT: Pass, since Flooded Strand would cost my last life point and no creature is in hand; dig for a fatty with cantrips when I can.
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 5518 ms
+[Seat] [ROUTER] plan(revised): GOAL: Win now by putting Griselbrand in with Sneak Attack (haste, flying) and attacking the opponent at 2 life with no blockers. NEXT: Activate Sneak Attack paying {R} for Griselbrand, attack for lethal, and fall back to Show and Tell if it gets countered.
+[Seat] [ROUTER] profile: Blue-red tempo/burn: Lightning Bolt, Daze, Force of Will, Dragon's Rage Channeler; no creatures on board, respect Bolt at my 1 life.
+[Seat] [ROUTER] play: activates Sneak Attack @115 [{R}: You may put a creature card from your hand onto the battlefield. That creature gains haste. Sacrifice the creature at the beginning of the next end step.]
+[OPENROUTER Seat/smart] replied in 4149 ms
+[Seat] [ROUTER] plan(revised): GOAL: Put Griselbrand in with Sneak Attack and attack the opponent at 2 with no blockers. NEXT: Pay {R} from Volcanic @71, attack for lethal, and fall back to Show and Tell if countered.
+[Seat] [ROUTER] mana: keep untapped 6 for ACTIVATE Sneak Attack @115 [{R}: You may put a creature card from your hand onto the battlefield. That creature gains haste. Sacrifice the creature at the beginning of the next end step.]
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3275 ms
+[Seat] [ROUTER] plan(revised): GOAL: Put Griselbrand in with Sneak Attack and attack the opponent at 2 with no blockers. NEXT: Let the ability resolve, attack for lethal, and fall back to Show and Tell if countered.
+[Seat] [ROUTER] play: PASS
+[OPENROUTER Seat/smart] replied in 2188 ms
+[Seat] [ROUTER] zone-change: Griselbrand 4{B}{B}{B}{B} 7/7 @176 [Hand, yours] -> Battlefield [Sneak Attack]
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 3586 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2773 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=159 fast=0 auto=1 ai=0 avgSmart=4255ms avgFast=4255ms
+[Seat] [ROUTER] play(main): 6 castable + 1 land -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2725 ms
+[Seat] [ROUTER] plan(revised): GOAL: Attack with Griselbrand for lethal. NEXT: Pass to combat and declare Griselbrand as the attacker.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 1722 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 1 can attack -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2641 ms
+[Seat] [ROUTER] plan(revised): GOAL: Win this turn by attacking with Griselbrand for lethal. NEXT: Declare Griselbrand, then pay 7 life to draw seven if the attack somehow fails.
+[Seat] [ROUTER] attackers: Griselbrand
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 2029 ms
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking anthropic/claude-haiku-5.5...
+[OPENROUTER Seat/smart] replied in 1711 ms
+[Seat] [ROUTER] play: PASS
+========== GAME OVER ==========
+outcome: A after 33 turns (AllOpponentsLost) in 702s
+--- full game log ---
+  MULLIGAN: Seat has kept a hand of 7 cards
+  MULLIGAN: ForgeAI has kept a hand of 7 cards
+  TURN: Turn 1 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Island (117)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 2 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Volcanic Island (17)
+  MANA: Volcanic Island (17) - {T}: Add {U}.
+  STACK_ADD: ForgeAI cast Ponder
+  STACK_RESOLVE: Ponder (39) - Look at the top 3 cards of ForgeAI's library. Then put them back in any order.You may have that player shuffle their library. ForgeAI draws a card.
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 3 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Scalding Tarn (88)
+  LIFE: Life: Seat 20 > 19
+  ZONE_CHANGE: Scalding Tarn (88) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat activated Scalding Tarn
+  STACK_RESOLVE: Scalding Tarn (88) - Seat searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 4 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Wasteland (47)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 5 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Flooded Strand (71)
+  MANA: Volcanic Island (78) - {T}: Add {U}.
+  STACK_ADD: Seat cast Ponder
+  STACK_RESOLVE: Ponder (100) - Look at the top 3 cards of Seat's library. Then put them back in any order.You may have that player shuffle their library. Seat draws a card.
+  LIFE: Life: Seat 19 > 18
+  ZONE_CHANGE: Flooded Strand (71) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat activated Flooded Strand
+  STACK_RESOLVE: Flooded Strand (71) - Seat searches their library for a Plains or Island card, puts it onto the battlefield, then shuffles.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  MANA: Volcanic Island (17) - {T}: Add {U}.
+  STACK_ADD: ForgeAI cast Brainstorm
+  MANA: Island (117) - {T}: Add {U}.
+  STACK_ADD: Seat cast Spell Pierce targeting [Brainstorm (13)]
+  STACK_RESOLVE: Spell Pierce (93) - Counter unless its controller pays {2}.
+  STACK_RESOLVE: Brainstorm (13) - ForgeAI draws three cards, then puts two cards from their hand on top of their library in any order.
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 6 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Flooded Strand (8)
+  LIFE: Life: ForgeAI 20 > 19
+  ZONE_CHANGE: Flooded Strand (8) was put into Graveyard from Battlefield.
+  STACK_ADD: ForgeAI activated Flooded Strand
+  STACK_RESOLVE: Flooded Strand (8) - ForgeAI searches their library for a Plains or Island card, puts it onto the battlefield, then shuffles.
+  MANA: Volcanic Island (17) - {T}: Add {U}.
+  STACK_ADD: ForgeAI cast Ponder
+  STACK_RESOLVE: Ponder (36) - Look at the top 3 cards of ForgeAI's library. Then put them back in any order.You may have that player shuffle their library. ForgeAI draws a card.
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Volcanic Island (18) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Dragon's Rage Channeler
+  STACK_RESOLVE: Dragon's Rage Channeler - Creature 1 / 1
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 7 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Ancient Tomb (106)
+  MANA: Island (117) - {T}: Add {U}.
+  MANA: Island (115) - {T}: Add {U}.
+  DAMAGE: Ancient Tomb (106) deals 2 non-combat damage to Seat.
+  LIFE: Life: Seat 18 > 16
+  MANA: Ancient Tomb (106) - {T}: Add {C}{C}. Ancient Tomb deals 2 damage to you. 
+  STACK_ADD: Seat cast Show and Tell
+  LIFE: Life: ForgeAI 19 > 18
+  STACK_ADD: ForgeAI cast Force of Will targeting [Each player may put an artifact, creature, enchantment, or land card from their hand onto the battlefield.]
+  STACK_ADD: ForgeAI triggered Dragon's Rage Channeler
+  STACK_RESOLVE: ForgeAI surveiled 1 card(s) to the graveyard
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Force of Will (21), Activator: ForgeAI, SpellAbility: Counter target spell. (You may pay 1 life and exile a blue card from your hand rather than pay this spell's mana cost.) ]
+  ZONE_CHANGE: Send countered spell to Graveyard
+  STACK_RESOLVE: Force of Will (21) - Counter Show and Tell (103).
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 8 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Dragon's Rage Channeler (31) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Dragon's Rage Channeler (31).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Dragon's Rage Channeler (31) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 16 > 15
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 9 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Island (116)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  MANA: Volcanic Island (17) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Lightning Bolt targeting [Seat]
+  STACK_ADD: ForgeAI triggered Dragon's Rage Channeler
+  STACK_RESOLVE: ForgeAI surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Lightning Bolt (1), Activator: ForgeAI, SpellAbility: Lightning Bolt deals 3 damage to any target.]
+  DAMAGE: Lightning Bolt (1) deals 3 non-combat damage to Seat.
+  LIFE: Life: Seat 15 > 12
+  STACK_RESOLVE: Lightning Bolt (1) - Lightning Bolt (1) deals 3 damage to Seat.
+  PHASE: Seat's Cleanup step
+  TURN: Turn 10 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Volcanic Island (19)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Dragon's Rage Channeler (31) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Dragon's Rage Channeler (31).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Dragon's Rage Channeler (31) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 12 > 11
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 11 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played City of Traitors (61)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  MANA: Volcanic Island (17) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Lightning Bolt targeting [Seat]
+  STACK_ADD: ForgeAI triggered Dragon's Rage Channeler
+  STACK_RESOLVE: ForgeAI surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Lightning Bolt (2), Activator: ForgeAI, SpellAbility: Lightning Bolt deals 3 damage to any target.]
+  DAMAGE: Lightning Bolt (2) deals 3 non-combat damage to Seat.
+  LIFE: Life: Seat 11 > 8
+  STACK_RESOLVE: Lightning Bolt (2) - Lightning Bolt (2) deals 3 damage to Seat.
+  PHASE: Seat's Cleanup step
+  TURN: Turn 12 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Dragon's Rage Channeler (31) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Dragon's Rage Channeler (31).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Dragon's Rage Channeler (31) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 8 > 7
+  MANA: Volcanic Island (17) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Lightning Bolt targeting [Seat]
+  STACK_ADD: ForgeAI triggered Dragon's Rage Channeler
+  MANA: Island (117) - {T}: Add {U}.
+  MANA: Island (115) - {T}: Add {U}.
+  MANA: City of Traitors (61) - {T}: Add {C}{C}.
+  MANA: Island (116) - {T}: Add {U}.
+  STACK_ADD: Seat cast Force of Will targeting [Lightning Bolt (3)]
+  LIFE: Life: ForgeAI 18 > 17
+  STACK_ADD: ForgeAI cast Force of Will targeting [Counter target spell.]
+  STACK_ADD: ForgeAI triggered Dragon's Rage Channeler
+  STACK_RESOLVE: ForgeAI surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Force of Will (23), Activator: ForgeAI, SpellAbility: Counter target spell. (You may pay 1 life and exile a blue card from your hand rather than pay this spell's mana cost.) ]
+  ZONE_CHANGE: Send countered spell to Graveyard
+  STACK_RESOLVE: Force of Will (23) - Counter Force of Will (84).
+  STACK_RESOLVE: ForgeAI surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: Whenever you cast a noncreature spell, surveil 1. (Look at the top card of your library. You may put that card into your graveyard.) [Card: Lightning Bolt (3), Activator: ForgeAI, SpellAbility: Lightning Bolt deals 3 damage to any target.]
+  DAMAGE: Lightning Bolt (3) deals 3 non-combat damage to Seat.
+  LIFE: Life: Seat 7 > 4
+  STACK_RESOLVE: Lightning Bolt (3) - Lightning Bolt (3) deals 3 damage to Seat.
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 13 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  MANA: Volcanic Island (78) - {T}: Add {R}.
+  MANA: City of Traitors (61) - {T}: Add {C}{C}.
+  MANA: Island (117) - {T}: Add {U}.
+  STACK_ADD: Seat cast Sneak Attack
+  STACK_RESOLVE: Sneak Attack
+  LAND: Seat played City of Traitors (64)
+  STACK_ADD: Seat triggered City of Traitors
+  ZONE_CHANGE: City of Traitors (61) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: When you play another land, sacrifice City of Traitors. [Land played: City of Traitors (64)]
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 14 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Dragon's Rage Channeler (31) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Dragon's Rage Channeler (31).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Dragon's Rage Channeler (31) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 4 > 3
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Volcanic Island (17) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Dragon's Rage Channeler
+  STACK_RESOLVE: Dragon's Rage Channeler - Creature 1 / 1
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 15 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  MANA: Volcanic Island (78) - {T}: Add {R}.
+  STACK_ADD: Seat activated Sneak Attack
+  STACK_RESOLVE: Sneak Attack (68) - Seat puts a Creature.YouCtrl card from their hand onto the battlefield.   gains haste . Sacrifice it at the beginning of the next end step. 
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Emrakul, the Aeons Torn (113) to attack ForgeAI.
+  STACK_ADD: Seat triggered Emrakul, the Aeons Torn
+  ZONE_CHANGE: Dragon's Rage Channeler (31) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Dragon's Rage Channeler (32) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Volcanic Island (17) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Volcanic Island (18) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Wasteland (47) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Volcanic Island (19) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Annihilator 6 (Whenever this creature attacks, defending player sacrifices six permanents.) [Attacker: Emrakul, the Aeons Torn (113)]
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Emrakul, the Aeons Torn (113).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Emrakul, the Aeons Torn (113) deals 15 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 17 > 2
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  STACK_ADD: Seat triggered Sneak Attack
+  ZONE_CHANGE: Emrakul, the Aeons Torn (113) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Sacrifice Emrakul, the Aeons Torn (113) at the beginning of the next end step. ([Emrakul, the Aeons Torn (113)]) [Phase: Seat]
+  STACK_ADD: Seat triggered Emrakul, the Aeons Torn
+  STACK_RESOLVE: When Emrakul, the Aeons Torn is put into a graveyard from anywhere, its owner shuffles their graveyard into their library. [Zone Changer: Emrakul, the Aeons Torn (113)]
+  PHASE: Seat's Cleanup step
+  TURN: Turn 16 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 17 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Flooded Strand (73)
+  STACK_ADD: Seat triggered City of Traitors
+  ZONE_CHANGE: City of Traitors (64) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: When you play another land, sacrifice City of Traitors. [Land played: Flooded Strand (73)]
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 18 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Island (54)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 19 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 20 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Island (52)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 21 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played City of Traitors (61)
+  PHASE: Seat's Beginning of Combat Step
+  LIFE: Life: Seat 3 > 2
+  ZONE_CHANGE: Flooded Strand (73) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat activated Flooded Strand
+  STACK_RESOLVE: Flooded Strand (73) - Seat searches their library for a Plains or Island card, puts it onto the battlefield, then shuffles.
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 22 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Island (57)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 23 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 24 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Island (56)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 25 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Flooded Strand (70)
+  STACK_ADD: Seat triggered City of Traitors
+  ZONE_CHANGE: City of Traitors (61) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: When you play another land, sacrifice City of Traitors. [Land played: Flooded Strand (70)]
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  LIFE: Life: Seat 2 > 1
+  ZONE_CHANGE: Flooded Strand (70) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat activated Flooded Strand
+  STACK_RESOLVE: Flooded Strand (70) - Seat searches their library for a Plains or Island card, puts it onto the battlefield, then shuffles.
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 26 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  MANA: Island (54) - {T}: Add {U}.
+  STACK_ADD: ForgeAI cast Ponder
+  STACK_RESOLVE: Ponder (38) - Look at the top 3 cards of ForgeAI's library. Then put them back in any order.You may have that player shuffle their library. ForgeAI draws a card.
+  LAND: ForgeAI played Wasteland (48)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 27 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Flooded Strand (71)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 28 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Island (54) - {T}: Add {U}.
+  STACK_ADD: ForgeAI cast Brainstorm
+  STACK_RESOLVE: Brainstorm (16) - ForgeAI draws three cards, then puts two cards from their hand on top of their library in any order.
+  MANA: Island (52) - {T}: Add {U}.
+  STACK_ADD: ForgeAI cast Brainstorm
+  STACK_RESOLVE: Brainstorm (15) - ForgeAI draws three cards, then puts two cards from their hand on top of their library in any order.
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 29 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  LAND: Seat played Ancient Tomb (105)
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 30 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  ZONE_CHANGE: Wasteland (48) was put into Graveyard from Battlefield.
+  STACK_ADD: ForgeAI activated Wasteland targeting [Ancient Tomb (106)]
+  ZONE_CHANGE: Ancient Tomb (106) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (48) - Destroy Ancient Tomb (106).
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Wasteland (45)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 31 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 32 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Scalding Tarn (26)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 33 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  MANA: Volcanic Island (78) - {T}: Add {R}.
+  STACK_ADD: Seat activated Sneak Attack
+  STACK_RESOLVE: Sneak Attack (68) - Seat puts a Creature.YouCtrl card from their hand onto the battlefield.   gains haste . Sacrifice it at the beginning of the next end step. 
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Griselbrand (82) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Griselbrand (82).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Griselbrand (82) deals 7 combat damage to ForgeAI.
+  LIFE: Life: Seat 1 > 8
+  LIFE: Life: ForgeAI 2 > -5
+  PLAYER_CONTROL: ForgeAI has restored control over themself
+  PLAYER_CONTROL: Seat has restored control over themself
+  GAME_OUTCOME: Match Duration 11m : 34s
+  GAME_OUTCOME: Turn 17
+  GAME_OUTCOME: ForgeAI has lost because life total reached 0
+  GAME_OUTCOME: Seat has won because all opponents have lost
+  MATCH_RESULTS: ForgeAI: 0 Seat: 1 
+===============================
