@@ -28,6 +28,11 @@ final class ContextMemory {
     private final List<String> reports = new ArrayList<>();
     private java.util.function.Consumer<String> reporter = r -> { };
     void setReporter(java.util.function.Consumer<String> reporter) { this.reporter = reporter; }
+    /** True on a seat with the lookahead preview: `simulate` is then declared on EVERY ask, so the tool
+     *  list (the start of the prompt-cache prefix) is the same on every call, and a call on a decision
+     *  with no play menu is refused with the reason. */
+    private boolean previews;
+    void offerPreviews(boolean on) { this.previews = on; }
     List<String> reports() { return reports; }
     /** 1-based id of the decision being asked now. A search skips it: the model has that text on
      *  screen, and a query quoting the decision would otherwise match the decision itself and hide
@@ -183,21 +188,18 @@ final class ContextMemory {
      */
     String askNative(String decision, NativeModel model, Function<String, String> simulate,
                      BiConsumer<String, String> audit) {
-        int id = observe(decision);
-        currentObservation = id;
-        String toolsJson = NativeTools.definitions(inspector != null, rulesLookup != null, simulate != null).toString();
-        String user = decision + "\nCURRENT OBSERVATION: M" + id + "\n" + brief()
-                + "\nTool calls available this ask: " + Math.min(TOOLS_PER_ASK, TOOLS_PER_GAME - toolsUsed) + ".\n";
+        String toolsJson = NativeTools.definitions(inspector != null, rulesLookup != null, previews || simulate != null).toString();
+        String user = beginNative(decision);
         JsonArray messages = new JsonArray();
         messages.add(NativeTools.message("user", user));
-        int used = 0;
-        boolean simulated = false, pressed = false, reported = false;
+        NativeAsk st = new NativeAsk(simulate);
+        boolean pressed = false;
         // The same bound as the text loop, TOOLS_PER_ASK + 1 model rounds, plus at most one more when
         // the model has to be told its tools are spent.
         for (int round = 0; round <= TOOLS_PER_ASK + 1; round++) {
             if (round == TOOLS_PER_ASK + 1 && !pressed) break;
             // No call on the last round: its result could never be read, and the tool would be spent.
-            boolean allow = used < TOOLS_PER_ASK && toolsUsed < TOOLS_PER_GAME && round < TOOLS_PER_ASK;
+            boolean allow = st.open(round);
             NativeTools.Turn turn = model.turn(user, messages.toString(), toolsJson, allow, round);
             if (turn == null) return null;
             if (turn.calls.isEmpty()) {
@@ -213,7 +215,7 @@ final class ContextMemory {
                     // spent and the answer is due; a second such reply ends the ask.
                     if (pressed || round >= TOOLS_PER_ASK + 1) return null;
                     pressed = true;
-                    used = TOOLS_PER_ASK;
+                    st.used = TOOLS_PER_ASK;
                     messages.add(NativeTools.message("user", TOOLS_SPENT));
                     continue;
                 }
@@ -221,39 +223,7 @@ final class ContextMemory {
             }
             messages.add(JsonParser.parseString(turn.messageJson));
             for (NativeTools.Call c : turn.calls) {
-                String result;
-                // tool_choice "none" is a request the provider may ignore. A call made anyway on a
-                // forbidden round must not run: on the last round its result could never be read.
-                if (!allow || used >= TOOLS_PER_ASK || toolsUsed >= TOOLS_PER_GAME) {
-                    result = "ERROR: tool budget exhausted; no tool executed. Answer the original decision.";
-                } else if (NativeTools.REPORT.equals(c.name)) {
-                    // Not a lookup: it spends one of the ask's calls but none of the game's archive budget.
-                    String command = NativeTools.command(c.name, c.arguments);
-                    if (command.startsWith("ERROR:")) result = command;
-                    else if (reported) result = "ERROR: one report per decision.";
-                    else if (reports.size() >= REPORTS_PER_GAME) result = "ERROR: no reports left this game. Answer the decision.";
-                    else {
-                        String problem = command.substring("REPORT ".length());
-                        reports.add(problem);
-                        reporter.accept(problem);
-                        used++;
-                        reported = true;
-                        result = "Recorded for the harness maintainers. Nothing in the game changed: answer the decision "
-                                + "with the options as given; if none fits, pick the one closest to what you intended.";
-                    }
-                } else if (NativeTools.SIMULATE.equals(c.name)) {
-                    if (simulate == null) result = "ERROR: unknown tool `" + c.name + "`.";
-                    else if (simulated) result = "ERROR: one preview per decision.";
-                    else {
-                        try { result = simulate.apply(c.arguments); } catch (RuntimeException e) { result = "ERROR: preview failed: " + e; }
-                        if (result == null) result = "ERROR: preview returned nothing.";
-                        if (!result.startsWith("ERROR:")) { used++; simulated = true; }
-                    }
-                } else {
-                    String command = NativeTools.command(c.name, c.arguments);
-                    if (command.startsWith("ERROR:")) result = command;
-                    else { used++; toolsUsed++; result = execute(command); }
-                }
+                String result = serve(c, st, allow);
                 audit.accept(c.render(), result);
                 messages.add(NativeTools.toolResult(c.id, result));
             }
@@ -261,11 +231,77 @@ final class ContextMemory {
                 // Same recovery as call markup written as text: say once that the answer is due.
                 if (pressed) return null;
                 pressed = true;
-                used = TOOLS_PER_ASK;
+                st.used = TOOLS_PER_ASK;
                 messages.add(NativeTools.message("user", TOOLS_SPENT));
             }
         }
         return null;
+    }
+
+    /** Archives the decision and returns the first user message of a native ask: the decision, its
+     *  observation id, the evidence brief, and the lookup budget. */
+    String beginNative(String decision) {
+        int id = observe(decision);
+        currentObservation = id;
+        return decision + "\nCURRENT OBSERVATION: M" + id + "\n" + brief()
+                + "\nTool calls available this ask: " + Math.min(TOOLS_PER_ASK, TOOLS_PER_GAME - toolsUsed) + ".\n";
+    }
+
+    /** One native ask's lookup state: calls spent, and the once-per-ask preview and report. */
+    final class NativeAsk {
+        final Function<String, String> simulate;
+        int used;
+        boolean simulated, reported;
+        NativeAsk(Function<String, String> simulate) { this.simulate = simulate; }
+        /** A lookup may run this round: budget left for the ask and the game, and not the last round. */
+        boolean open(int round) { return used < TOOLS_PER_ASK && toolsUsed < TOOLS_PER_GAME && round < TOOLS_PER_ASK; }
+    }
+
+    /** The lookups of a native ask as {@link AnswerTool.Lookups}: the same executor and budget. */
+    AnswerTool.Lookups lookups(Function<String, String> simulate) {
+        NativeAsk st = new NativeAsk(simulate);
+        return new AnswerTool.Lookups() {
+            public JsonArray definitions() { return NativeTools.definitions(inspector != null, rulesLookup != null, previews || simulate != null); }
+            public boolean open(int round) { return st.open(round); }
+            public String serve(NativeTools.Call c, boolean open) { return ContextMemory.this.serve(c, st, open); }
+        };
+    }
+
+    /** Runs one lookup call of a native ask, or refuses it. A malformed call is answered with an error
+     *  and spends nothing. */
+    String serve(NativeTools.Call c, NativeAsk st, boolean allow) {
+        // tool_choice "none" is a request the provider may ignore. A call made anyway on a
+        // forbidden round must not run: on the last round its result could never be read.
+        if (!allow || st.used >= TOOLS_PER_ASK || toolsUsed >= TOOLS_PER_GAME)
+            return "ERROR: tool budget exhausted; no tool executed. Answer the original decision.";
+        if (NativeTools.REPORT.equals(c.name)) {
+            // Not a lookup: it spends one of the ask's calls but none of the game's archive budget.
+            String command = NativeTools.command(c.name, c.arguments);
+            if (command.startsWith("ERROR:")) return command;
+            if (st.reported) return "ERROR: one report per decision.";
+            if (reports.size() >= REPORTS_PER_GAME) return "ERROR: no reports left this game. Answer the decision.";
+            String problem = command.substring("REPORT ".length());
+            reports.add(problem);
+            reporter.accept(problem);
+            st.used++;
+            st.reported = true;
+            return "Recorded for the harness maintainers. Nothing in the game changed: answer the decision "
+                    + "with the options as given; if none fits, pick the one closest to what you intended.";
+        }
+        if (NativeTools.SIMULATE.equals(c.name)) {
+            if (st.simulate == null) return previews ? NativeTools.NO_PREVIEW : "ERROR: unknown tool `" + c.name + "`.";
+            if (st.simulated) return "ERROR: one preview per decision.";
+            String result;
+            try { result = st.simulate.apply(c.arguments); } catch (RuntimeException e) { result = "ERROR: preview failed: " + e; }
+            if (result == null) result = "ERROR: preview returned nothing.";
+            if (!result.startsWith("ERROR:")) { st.used++; st.simulated = true; }
+            return result;
+        }
+        String command = NativeTools.command(c.name, c.arguments);
+        if (command.startsWith("ERROR:")) return command;
+        st.used++;
+        toolsUsed++;
+        return execute(command);
     }
 
     String execute(String request) {

@@ -40,16 +40,21 @@ class FakeModelServerTest(unittest.TestCase):
         self.assertIsNone(p.tool_calls_for(body(choice="none"), "x"))
         self.assertIsNone(p.tool_calls_for(body(extra=[{"role": "tool", "content": "r"}]), "x"))
 
-    def test_simulate_policy_previews_whenever_the_tool_is_offered(self):
+    def test_simulate_policy_previews_the_options_of_a_play_decision(self):
+        """`simulate` is declared on every ask of a lookahead seat (the tool list opens the cache prefix),
+        so the fake model previews only where a model would: a play decision, whose menu ends with PASS."""
+        menu = "Choose ONE action:\n  1) CAST X\n  2) PLAY LAND\n  3) PASS (do nothing)"
+        play = {"tools": TOOLS, "tool_choice": "auto", "messages": [{"role": "user", "content": menu}]}
         p = policy(policy="simulate")
-        c = p.tool_calls_for(body(), "x")[0]["function"]
+        c = p.tool_calls_for(play, menu)[0]["function"]
         self.assertEqual((c["name"], json.loads(c["arguments"])), ("simulate", {"option": 1}))
-        second = p.tool_calls_for(body(), "x")[0]["function"]
+        second = p.tool_calls_for(play, menu)[0]["function"]
         self.assertEqual(json.loads(second["arguments"]), {"option": 1, "then": [2]})      # every other one is a line
         # ... and every third one asks for PASS, whose menu number is read off the prompt, so the
         # acceptance game exercises the PASS preview (served, not refused).
-        third = p.tool_calls_for(body(), "Choose ONE action:\n  1) CAST X\n  2) PLAY LAND\n  3) PASS (do nothing)")[0]["function"]
+        third = p.tool_calls_for(play, menu)[0]["function"]
         self.assertEqual(json.loads(third["arguments"]), {"option": 3})
+        self.assertIsNone(p.tool_calls_for(body(), "x"))                      # no play menu: no preview
         self.assertIsNone(p.tool_calls_for(body(tools=TOOLS[:3]), "x"))       # not offered, no allowance
 
     def test_text_replies_are_always_a_legal_format(self):

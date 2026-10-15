@@ -31,9 +31,16 @@ final class NativeTools {
      *  v5 (2026-10-14): a call made on a round that offered no tools (a provider ignoring
      *  tool_choice "none") is refused with the budget error, the seat is told once to answer, and a
      *  second such call ends the ask; it used to run and be answered.
-     *  v6 (2026-10-15): `report_unclear_decision`, the seat saying a question is broken. */
-    static final String VERSION = "seat-tools-v6";
+     *  v6 (2026-10-15): `report_unclear_decision`, the seat saying a question is broken.
+     *  v7 (2026-10-15): the decision itself is answered by a call ({@link AnswerTool}: `answer`, built per
+     *  decision from its legal values, and `set_plan`); the lookups above are unchanged and share its
+     *  conversation. The per-decision `answer` is not in eval/tooluse/tools.json: the suite's
+     *  native-answer arm builds it from each scenario's options, as the seat does. */
+    static final String VERSION = "seat-tools-v7";
     static final String SIMULATE = "simulate";
+    /** The refusal of a preview on a decision with no play menu (the tool is declared on every ask). */
+    static final String NO_PREVIEW = "ERROR: `simulate` previews an option of a play decision (your priority menu); "
+            + "this decision has none, so nothing was previewed. Answer the decision.";
     /** Not a lookup: it records the seat's complaint about the question and spends no archive budget
      *  (one per ask, {@link ContextMemory#REPORTS_PER_GAME} per game). */
     static final String REPORT = "report_unclear_decision";

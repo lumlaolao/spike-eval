@@ -35,6 +35,8 @@ FORM_ERRORS = ("ERROR: use exactly one", "ERROR: tool arguments", "ERROR: unknow
 
 
 OUTCOMES = ("served", "REFUSED", "FAILED", "empty", "bad-args", "exhausted")
+# The decision answered by a call and the seat's plan note (AnswerTool): audited, but not lookups.
+ANSWER_TOOLS = ("answer", "set_plan")
 
 
 def classify(request, result):
@@ -77,7 +79,7 @@ def tool_name(request):
 
 def audit(paths):
     out = {"games": 0, "model_calls": 0, "requests": 0, "by_outcome": Counter(), "by_tool": Counter(),
-           "native_syntax_in_text": 0, "protocols": Counter(), "examples": {}}
+           "native_syntax_in_text": 0, "protocols": Counter(), "examples": {}, "answers": Counter()}
     for path in paths:
         with open(path, errors="replace") as f:
             for n, line in enumerate(f, 1):
@@ -93,6 +95,11 @@ def audit(paths):
                     out["protocols"][r.get("protocol") or "text"] += 1
                 elif t == "context_tool":
                     req, res = r.get("request") or "", r.get("result") or ""
+                    if tool_name(req) in ANSWER_TOOLS:
+                        # The decision itself (AnswerTool), not a lookup: an invalid answer is a model
+                        # mistake corrected in the same conversation, counted on the decision row.
+                        out["answers"][(tool_name(req), "accepted" if not res.startswith("ERROR") else "invalid")] += 1
+                        continue
                     kind = classify(req, res)
                     out["requests"] += 1
                     out["by_outcome"][kind] += 1
@@ -117,6 +124,9 @@ def report(name, a):
         n = a["by_outcome"].get(kind, 0)
         print("  %-10s %3d  (%s of requests)%s" % (kind, n, pct(n, a["requests"]),
                                                    "   e.g. " + a["examples"][kind] if kind in a["examples"] and kind != "served" else ""))
+    if a["answers"]:
+        print("  answer-tool calls (not lookups): " + ", ".join(
+            "%s %s %d" % (t, k, n) for (t, k), n in sorted(a["answers"].items())))
     if a["native_syntax_in_text"]:
         print("  %d text request(s) carried the model's own function-call markup" % a["native_syntax_in_text"])
     tools = sorted(set(t for t, _ in a["by_tool"]))
@@ -144,6 +154,7 @@ def main(argv=None):
     if a.json:
         def plain(x):
             return dict(x, by_outcome=dict(x["by_outcome"]), protocols=dict(x["protocols"]),
+                        answers={"%s/%s" % k: v for k, v in x["answers"].items()},
                         by_tool={"%s/%s" % k: v for k, v in x["by_tool"].items()})
         print(json.dumps({"total": plain(total), "runs": {k: plain(v) for k, v in per.items()}}, indent=1))
     else:

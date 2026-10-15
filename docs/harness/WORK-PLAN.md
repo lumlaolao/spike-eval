@@ -50,24 +50,17 @@ when an item is finished or a new one is agreed, so the next session can pick up
    - coaching and a reasoning cap are mixed into the protocol (C1–C5);
    - "Every attacker can be blocked" ignores which blockers the defender actually has (H1, a harness
      defect).
-3. **An answer tool for every decision and every note**, on by default (`ANSWER_TOOL=0` opts out).
-   The `feat/answer-tool` branch (built by a subagent before the no-subagent rule; its unfinished
-   work is saved as a WIP commit) has:
-   - a validator for every decision kind;
-   - a correction round in the same conversation;
-   - `set_plan`;
-   - text answers still accepted as a fallback.
+3. **An answer tool for every decision and every note.** Built on `feat/answer-tool`:
+   - one fixed `answer` schema, validated per decision;
+   - corrections in the same conversation;
+   - `set_plan` and `simulate` declared on every ask, so the tool list never breaks the cache;
+   - documented in `CLAUDE.md` (standard) and `PLAYER-HARNESS.md` ("Answer tool").
 
-   **Design decision (2026-10-15): one fixed `answer` schema, not one per decision.**
-   - Tool definitions are the start of the cache prefix, so a schema that changes every decision
-     discards the whole cache (tools, the system prompt and the history) on every call.
-   - Without `strict`, an enum in the schema is not enforced; it only documents options the decision
-     text already lists.
-   - So the schema is fixed, with every field optional: `option`, `options`, `blocks`, `amounts`,
-     `keep`, `number`, `card`, `steps`, `yield`, `profile`, `lines`. Each call is validated against
-     the decision by the existing validator, and an illegal call gets the reason and one more try.
-   - The per-decision schema stays as an opt-in arm (`ANSWER_SCHEMA=per-decision`), measured against
-     the fixed one: illegal-call rate on the tool-use suite, and cache hit rate and cost in a game.
+   Left before it is done:
+   - acceptance green;
+   - the tool-use suite run on a cheap model, `native` against `native-answer` (and the per-decision
+     arm), with cost stated first;
+   - one cheap Haiku 5.5 game read end to end.
 4. **Rewrite the prompts from the audit:** fixed parts first and the current state last (cache
    order); clearer questions; coaching (the PRINCIPLES list and the static guide) cut down to
    information, with opinion removed.

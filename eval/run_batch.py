@@ -10,7 +10,7 @@ context profile, memory tools, checkpoint, shas, cap, plans, env overrides) is
 written to <out>/batch-manifest.json on first launch; a later invocation with a
 different condition against the same --out is refused, so one directory is
 always one experiment. --context-profile, --memory-tools, --rules-tool,
---text-tools, --lookahead, --one-tier, --no-coaching and --one-chat are the only way to set CONDITION_ENV_KEYS (ambient
+--text-tools, --text-answers, --answer-tool-strict, --lookahead, --one-tier, --no-coaching and --one-chat are the only way to set CONDITION_ENV_KEYS (ambient
 values are scrubbed, --env is refused for them); unset means the JVM's
 historical baseline.
 
@@ -60,9 +60,11 @@ SPIKE_REL = "forge-gui-desktop/src/main/java/forge/spike"
 SPIKE_FILES = ("LlmSpikeGui.java", "LlmSpikeHeadless.java")
 # Env keys cited mode owns; a user --env override of these is refused.
 CITED_FORCED_KEYS = ("MULLIGAN_HEURISTIC", "SKIP_HEURISTICS", "PLAN_A", "PLAN_B")
-# Set by --context-profile, --memory-tools, --rules-tool, --text-tools, --lookahead, --one-tier, --no-coaching
+# Set by --context-profile, --memory-tools, --rules-tool, --text-tools, --text-answers, --answer-tool-strict,
+# --lookahead, --one-tier, --no-coaching
 # and --one-chat.
 CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD", "ONE_TIER", "NO_COACHING",
+                      "ANSWER_TOOL", "ANSWER_TOOL_STRICT",
                       "ONE_CHAT")
 # Env keys that DEFINE the run (decks, identities, arms, models, seeding,
 # caps, provenance). Cited mode refuses --env overrides of these — otherwise
@@ -96,7 +98,8 @@ MANIFEST_SCHEMA = "batch-manifest.v1"
 CONDITION_KEYS = (
     "discipline", "deck_a", "deck_b", "name_a", "name_b",
     "controller_a", "controller_b", "smart_a", "smart_b", "fast_a", "fast_b",
-    "plan_a", "plan_b", "context_profile", "memory_tools", "rules_tool", "native_tools", "lookahead", "one_tier", "no_coaching", "one_chat",
+    "plan_a", "plan_b", "context_profile", "memory_tools", "rules_tool", "native_tools", "answer_tool", "answer_tool_strict",
+    "lookahead", "one_tier", "no_coaching", "one_chat",
     "ctx_overrides", "checkpoint_sha", "engine_sha", "overlay_sha", "deck_sha",
     "cap_minutes", "shadow_ai", "env_overrides",
 )
@@ -239,7 +242,11 @@ def build_env(args, seed, swap, out_dir):
     env["CONTEXT_PROFILE"] = args.context_profile or "v1-compat"
     env["MEMORY_TOOLS"] = "1" if getattr(args, "memory_tools", False) else "0"
     env["RULES_TOOL"] = "1" if getattr(args, "rules_tool", False) else "0"
-    env["NATIVE_TOOLS"] = "1" if getattr(args, "native_tools", False) else "0"
+    # The answer tool is a function call too: NATIVE_TOOLS stays on for it even without --memory-tools.
+    answer = bool(getattr(args, "answer_tool", False))
+    env["NATIVE_TOOLS"] = "1" if getattr(args, "native_tools", False) or answer else "0"
+    env["ANSWER_TOOL"] = "1" if answer else "0"
+    env["ANSWER_TOOL_STRICT"] = "1" if answer and getattr(args, "answer_tool_strict", False) else "0"
     env["LOOKAHEAD"] = "1" if getattr(args, "lookahead", False) else "0"
     env["ONE_TIER"] = "1" if getattr(args, "one_tier", False) else "0"
     env["NO_COACHING"] = "1" if getattr(args, "no_coaching", False) else "0"
@@ -426,6 +433,8 @@ def resume_expectation(args):
         expect["rules_tool"] = [False, ABSENT]
     on = getattr(args, "lookahead", False)
     expect["lookahead"] = [on] if on != getattr(args, "unstamped_lookahead", False) else [on, ABSENT]
+    # A game line written before the answer tool existed answered in text.
+    expect["answer_tool"] = [True] if getattr(args, "answer_tool", False) else [False, ABSENT]
     expect["one_tier"] = [True] if getattr(args, "one_tier", False) else [False, ABSENT]
     expect["no_coaching"] = [True] if getattr(args, "no_coaching", False) else [False, ABSENT]
     expect["one_chat"] = [True] if getattr(args, "one_chat", False) else [False, ABSENT]
@@ -497,6 +506,8 @@ def batch_condition(args, cited):
         "memory_tools": bool(getattr(args, "memory_tools", False)),
         "rules_tool": bool(getattr(args, "rules_tool", False)),
         "native_tools": bool(getattr(args, "native_tools", False)),
+        "answer_tool": bool(getattr(args, "answer_tool", False)),
+        "answer_tool_strict": bool(getattr(args, "answer_tool", False) and getattr(args, "answer_tool_strict", False)),
         "lookahead": bool(getattr(args, "lookahead", False)),
         "one_tier": bool(getattr(args, "one_tier", False)),
         "no_coaching": bool(getattr(args, "no_coaching", False)),
@@ -526,6 +537,19 @@ def native_tools_requested(args):
                for c, smart, fast in seats for spec in (smart, fast))
 
 
+def answer_tool_requested(args):
+    """The answer tool (AnswerTool: every decision answered by a function call) is the standard decision
+    protocol: in effect whenever some LLM seat is on a backend with function calling (openrouter:),
+    unless --text-answers (or --text-tools, no function calling at all) opted out. Unlike the lookups it
+    does not need --memory-tools. Mirrors AnswerTool.seats + the game line's answer_tool stamp."""
+    if getattr(args, "text_answers", False) or getattr(args, "text_tools", False):
+        return False
+    seats = [(getattr(args, "controller_a", None), getattr(args, "smart_a", None), getattr(args, "fast_a", None)),
+             (getattr(args, "controller_b", None), getattr(args, "smart_b", None), getattr(args, "fast_b", None))]
+    return any((c or "llm") == "llm" and (spec or "").startswith("openrouter:")
+               for c, smart, fast in seats for spec in (smart, fast))
+
+
 def spent_usd(out_dir):
     """Estimated spend recorded in a batch directory so far (cost_report: finished and unfinished games)."""
     return cost_report.report_dir(str(out_dir), cost_report.load_prices())["usd"]
@@ -535,7 +559,7 @@ def condition_diff_norm(m, k):
     """A condition field as compared on resume. A manifest written before native_tools existed ran
     without it; one written before --lookahead recorded LOOKAHEAD, if at all, as an --env override."""
     env = m.get("env_overrides") or {}
-    if k in ("native_tools", "one_tier", "no_coaching", "one_chat"):
+    if k in ("native_tools", "answer_tool", "answer_tool_strict", "one_tier", "no_coaching", "one_chat"):
         return bool(m.get(k))
     if k == "lookahead":
         return bool(m.get(k)) or env.get("LOOKAHEAD") == "1"
@@ -573,7 +597,7 @@ def legacy_dir_condition(out_dir):
     lines do not carry are omitted (unknowable, not 'matches')."""
     field_map = {
         "context_profile": "context_profile", "memory_tools": "memory_tools",
-        "rules_tool": "rules_tool", "native_tools": "native_tools",
+        "rules_tool": "rules_tool", "native_tools": "native_tools", "answer_tool": "answer_tool",
         "controller_a": "controller_a", "controller_b": "controller_b",
         "smart_a": "smart_a", "smart_b": "smart_b", "fast_a": "fast_a", "fast_b": "fast_b",
         "name_a": "deck_a", "name_b": "deck_b", "discipline": "discipline",
@@ -586,7 +610,7 @@ def legacy_dir_condition(out_dir):
         n += 1
         # A game line written before native_tools existed ran the text grammar (or no tools).
         # Without this a legacy directory of text-grammar games would accept native-tools games.
-        rec = dict({"native_tools": False}, **rec)
+        rec = dict({"native_tools": False, "answer_tool": False}, **rec)
         for key, field in field_map.items():
             if field in rec:
                 seen.setdefault(key, set()).add(json.dumps(rec[field], sort_keys=True))
@@ -652,7 +676,7 @@ def check_resume_condition(out_dir, condition, cited):
         want = condition.get(key)
         if key == "context_profile" and want is None:
             want = "v1-compat"
-        if key in ("memory_tools", "rules_tool", "native_tools"):
+        if key in ("memory_tools", "rules_tool", "native_tools", "answer_tool"):
             want = bool(want)
         if key in ("controller_a", "controller_b", "smart_a", "smart_b",
                    "fast_a", "fast_b") and want is None:
@@ -1059,6 +1083,15 @@ def main():
                          "--memory-tools means on openrouter: seats; this flag is the opt-out, for "
                          "reproducing pre-2026-10-13 runs or measuring the protocol. A separate "
                          "condition: its own --out.")
+    ap.add_argument("--text-answers", action="store_true",
+                    help="ANSWER_TOOL=0: LLM seats answer each decision with a text tag line (CHOICE:, PICKS:, "
+                         "BLOCKS: ...) instead of calling the `answer` function. The answer tool is the standard "
+                         "wherever a seat is on openrouter:; this flag is the opt-out, for reproducing older runs "
+                         "or measuring the protocol. A separate condition (stamped answer_tool); its own --out.")
+    ap.add_argument("--answer-tool-strict", action="store_true",
+                    help="ANSWER_TOOL_STRICT=1: send `strict: true` with a strict-mode answer schema (support "
+                         "varies per OpenRouter endpoint). A separate condition (answer_tool_version ends "
+                         "+strict); its own --out.")
     ap.add_argument("--one-tier", action="store_true",
                     help="ONE_TIER=1: every decision goes to the smart model with its reasoning and system "
                          "prompt; no fast tier. A separate condition (stamped one_tier); its own --out.")
@@ -1085,7 +1118,7 @@ def main():
         k = kv.split("=", 1)[0]
         if k in CONDITION_ENV_KEYS:
             raise SystemExit("run_batch: --env %s is not allowed in any mode; use "
-                             "--context-profile / --memory-tools / --rules-tool / --text-tools / "
+                             "--context-profile / --memory-tools / --rules-tool / --text-tools / --text-answers / --answer-tool-strict / "
                              "--lookahead / --one-tier / --no-coaching / --one-chat so the condition is recorded and guarded." % k)
 
     warn_reserved_seeds(args.seeds)
@@ -1102,6 +1135,9 @@ def main():
         args.deck_b = args.deck
 
     args.native_tools = native_tools_requested(args)
+    args.answer_tool = answer_tool_requested(args)
+    if args.answer_tool_strict and not args.answer_tool:
+        _refuse("--answer-tool-strict needs the answer tool (an openrouter: LLM seat, without --text-answers).")
 
     # Deck paths are made ABSOLUTE here. A game's working directory is the Forge tree
     # (run-llm-headless.sh cd's into forge-gui-desktop), so a relative path never resolves — and
