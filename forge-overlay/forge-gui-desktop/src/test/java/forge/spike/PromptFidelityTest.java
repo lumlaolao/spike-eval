@@ -148,6 +148,45 @@ public class PromptFidelityTest {
                 "the play menu is where a new play is chosen, so it does not carry the old one");
     }
 
+    /** Issue #108: under PLAN_EXECUTE the harness casts a step of the model's STEPS list without an ask,
+     *  and the target ask for that step carried the PREVIOUS play and its reason as "the play you chose
+     *  most recently": the Shock's target was asked under "cast Lightning Bolt ... Bolt the Lions". */
+    @Test
+    public void aPlanExecutedStepsTargetAskCarriesThatStep() {
+        boolean was = LlmSpikeGui.PlayerControllerLLM.PLAN_EXECUTE;
+        LlmSpikeGui.PlayerControllerLLM.PLAN_EXECUTE = true;
+        try {
+            Game g = bareGame(PhaseType.MAIN1);
+            Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+            card("Mountain", me, ZoneType.Battlefield);
+            card("Mountain", me, ZoneType.Battlefield);
+            Card bolt = card("Lightning Bolt", me, ZoneType.Hand);
+            card("Shock", me, ZoneType.Hand);
+            card("Savannah Lions", rival, ZoneType.Battlefield);
+            card("Grizzly Bears", rival, ZoneType.Battlefield);
+            Recorder smart = new Recorder("Bolt the Lions first.\nPLAN: burn both of their creatures\nSTEPS: Lightning Bolt, Shock\nCHOICE: 1"),
+                    fast = new Recorder("CHOICE: 1");
+            LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, smart, fast);
+            Assert.assertEquals(ctrl.chooseSpellAbilityToPlay().get(0).getHostCard(), bolt, "fixture: the model chose the Bolt");
+            g.getAction().moveToGraveyard(bolt, null); // it resolved; the plan's next step is the Shock
+            smart.prompts.clear();
+            fast.prompts.clear();
+
+            java.util.List<forge.game.spellability.SpellAbility> next = ctrl.chooseSpellAbilityToPlay();
+            Assert.assertEquals(next.get(0).getHostCard().getName(), "Shock", "fixture: the plan step was not executed");
+            Assert.assertFalse(smart.asked("DECISION: You have priority") || fast.asked("DECISION: You have priority"),
+                    "fixture: a plan-executed step asks no play menu");
+            Recorder asked = smart.asked("DECISION: Choose the TARGET") ? smart : fast;
+            String p = promptWith(asked, "DECISION: Choose the TARGET");
+            String carried = p.substring(p.indexOf("THE PLAY YOU CHOSE"), p.lastIndexOf("DECISION:"));
+            Assert.assertTrue(carried.contains("Shock"), carried);
+            Assert.assertFalse(carried.contains("Bolt the Lions first."), "the Bolt's reason was carried to the Shock: " + carried);
+            Assert.assertTrue(carried.contains("burn both of their creatures"), "the plan the step belongs to: " + carried);
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.PLAN_EXECUTE = was;
+        }
+    }
+
     /** runs/loop/g06 and g07: at the target step the model no longer wanted the play and had no way
      *  back ("there's no 'don't activate' option"). Cancelling re-asks the menu, which says so. */
     @Test
