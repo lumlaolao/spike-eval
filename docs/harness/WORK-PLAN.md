@@ -30,21 +30,44 @@ when an item is finished or a new one is agreed, so the next session can pick up
 1. ~~Research: prompt craft and Anthropic's guides.~~ **Done 2026-10-15:**
    `docs/harness/PROMPT-CRAFT.md`, with 22 sourced rules, the current state measured against them,
    and the follow-ups below.
-1b. **Small request fixes the research found** (each contained in `OpenRouterBridge`, checked on one
-    cheap Haiku 5.5 game):
-    - send `cache_control` for `anthropic/` models; nothing is cached today, and a game's prompt
-      tokens average about 10K per call, almost all of it a repeated prefix;
-    - record `cached_tokens` and cache writes per call, and price them in `cost_report.py`;
-    - keep `tool_choice` fixed for the whole game (switching it invalidates the cache), refusing
-      calls over budget in the tool result instead;
-    - pass `reasoning_details` back with the assistant turn across tool rounds; today the model
-      loses its own reasoning after a lookup.
-2. **Audit every prompt the seat sees** against those rules: the system framing, the observation,
-   each decision type's question, retries, tool descriptions, the plan ask. For each: what is unclear,
-   redundant, missing, or ordered badly for caching.
-3. **An answer tool for every decision and every note**, on by default (`ANSWER_TOOL=0` opts out),
-   with an enum of the legal options in the schema. The `feat/answer-tool` branch (built by a
-   subagent before the no-subagent rule) is reviewed against items 1 and 2 and finished here.
+1b. **Small request fixes the research found:**
+    - Done 2026-10-15: `cache_control` is sent for `anthropic/` models (`PROMPT_CACHE=0` opts out,
+      and `prompt_cache` is on the game line).
+    - Done: `cached_tokens` and `cache_write_tokens` are on every row, priced at the provider's
+      cache rates in `cost_report.py`.
+    - Done: DeepSeek prices are re-checked.
+    - Done: an acceptance run with an unknown stage name now fails; before, it ran nothing and
+      printed PASS.
+    - Reasoning across tool rounds was already correct.
+    - **Open:** one cheap Haiku 5.5 game to read the cache hit rate, then decide whether `tool_choice`
+      stays "none" on the last round of an ask (it invalidates the cached messages; a constant
+      "auto" risks a lost decision).
+2. ~~Audit every prompt the seat sees.~~ **Done 2026-10-15:** `docs/harness/PROMPT-AUDIT.md`, with
+   19 findings (A1–H1) and the order the rewrite closes them in. The largest:
+   - the system prompt's snapshot legend describes an older observation format than the one sent
+     (A1);
+   - every answer is a text grammar with four extra piggybacked line formats (B1, B2);
+   - coaching and a reasoning cap are mixed into the protocol (C1–C5);
+   - "Every attacker can be blocked" ignores which blockers the defender actually has (H1, a harness
+     defect).
+3. **An answer tool for every decision and every note**, on by default (`ANSWER_TOOL=0` opts out).
+   The `feat/answer-tool` branch (built by a subagent before the no-subagent rule; its unfinished
+   work is saved as a WIP commit) has:
+   - a validator for every decision kind;
+   - a correction round in the same conversation;
+   - `set_plan`;
+   - text answers still accepted as a fallback.
+
+   **Design decision (2026-10-15): one fixed `answer` schema, not one per decision.**
+   - Tool definitions are the start of the cache prefix, so a schema that changes every decision
+     discards the whole cache (tools, the system prompt and the history) on every call.
+   - Without `strict`, an enum in the schema is not enforced; it only documents options the decision
+     text already lists.
+   - So the schema is fixed, with every field optional: `option`, `options`, `blocks`, `amounts`,
+     `keep`, `number`, `card`, `steps`, `yield`, `profile`, `lines`. Each call is validated against
+     the decision by the existing validator, and an illegal call gets the reason and one more try.
+   - The per-decision schema stays as an opt-in arm (`ANSWER_SCHEMA=per-decision`), measured against
+     the fixed one: illegal-call rate on the tool-use suite, and cache hit rate and cost in a game.
 4. **Rewrite the prompts from the audit:** fixed parts first and the current state last (cache
    order); clearer questions; coaching (the PRINCIPLES list and the static guide) cut down to
    information, with opinion removed.

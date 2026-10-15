@@ -125,6 +125,13 @@ interface LLMBridge {
     /** Completion (output) token count from the response `usage` object for the most recent ask(),
      *  or -1 when unreported. See {@link #getLastPromptTokens()}. */
     default int getLastCompletionTokens() { return -1; }
+    /** Prompt tokens of the most recent ask() that the provider read from its prompt cache
+     *  (`usage.prompt_tokens_details.cached_tokens`), counted inside getLastPromptTokens(); -1 when
+     *  unreported. Lets cost_report.py price them at the cache-read rate. */
+    default int getLastCachedTokens() { return -1; }
+    /** Prompt tokens the provider wrote to its cache on the most recent ask()
+     *  (`usage.prompt_tokens_details.cache_write_tokens`, Anthropic models), -1 when unreported. */
+    default int getLastCacheWriteTokens() { return -1; }
 }
 
 /**
@@ -660,6 +667,9 @@ public final class LlmSpikeGui {
         // backend reports none (Claude CLI) or no model was consulted for this decision.
         private int lastPromptTokens = -1;
         private int lastCompletionTokens = -1;
+        // Of lastPromptTokens: read from / written to the provider's prompt cache; -1 when unreported.
+        private int lastCachedTokens = -1;
+        private int lastCacheWriteTokens = -1;
         // ADDITIVE (Group-2): latency split — the SUCCESSFUL final attempt's own wall time (this is what
         // jsonl latency_ms now reports) vs. everything else (failed bridge sub-attempts, backoff waits,
         // and any earlier caller-level ask() round-trip whose reply was superseded by a later retry) which
@@ -685,7 +695,7 @@ public final class LlmSpikeGui {
         private List<Integer> lastPicks = null;
         private void clearLast() {
             lastPrompt = null; lastReply = null; lastTier = null; lastAskMs = 0; lastFinishReason = null;
-            lastPromptTokens = -1; lastCompletionTokens = -1;
+            lastPromptTokens = -1; lastCompletionTokens = -1; lastCachedTokens = -1; lastCacheWriteTokens = -1;
             lastSuccessMs = 0; lastRetryMs = 0; lastAttempts = 0; lastFirstFailedReply = null; lastDeclineLogged = false;
             lastShadowChoice = null; lastPicks = null;
         }
@@ -4794,7 +4804,7 @@ public final class LlmSpikeGui {
                             + ",\"call\":" + (++contextCallSeq) + ",\"round\":" + round
                             + ",\"tier\":\"" + (b == smart ? "smart" : "fast")
                             + "\",\"elapsed_ms\":" + (System.currentTimeMillis() - start)
-                            + ",\"prompt_tokens\":" + lastPromptTokens + ",\"completion_tokens\":" + lastCompletionTokens
+                            + ",\"prompt_tokens\":" + lastPromptTokens + ",\"completion_tokens\":" + lastCompletionTokens + cacheFields(lastCachedTokens, lastCacheWriteTokens)
                             + ",\"prompt\":\"" + jsonEscape(user) + "\""
                             // Later rounds carry the tool exchanges; the first is just the prompt above.
                             + (round == 0 ? "" : ",\"messages\":" + messages)
@@ -4815,7 +4825,7 @@ public final class LlmSpikeGui {
                         + "\",\"seat\":\"" + jsonEscape(seat) + "\",\"turn\":" + safeTurn()
                         + ",\"call\":" + (++contextCallSeq) + ",\"tier\":\"" + (b == smart ? "smart" : "fast")
                         + "\",\"elapsed_ms\":" + (System.currentTimeMillis() - start)
-                        + ",\"prompt_tokens\":" + lastPromptTokens + ",\"completion_tokens\":" + lastCompletionTokens
+                        + ",\"prompt_tokens\":" + lastPromptTokens + ",\"completion_tokens\":" + lastCompletionTokens + cacheFields(lastCachedTokens, lastCacheWriteTokens)
                         + ",\"prompt\":\"" + jsonEscape(request) + "\",\"raw_reply\":"
                         + (response == null ? "null" : "\"" + jsonEscape(response) + "\"") + "}");
                 if (ContextMemory.toolLine(response) != null) lastReply = null; // a tool round, not a failed answer
@@ -4887,6 +4897,8 @@ public final class LlmSpikeGui {
             lastFinishReason = b.getLastFinishReason();
             lastPromptTokens = b.getLastPromptTokens();
             lastCompletionTokens = b.getLastCompletionTokens();
+            lastCachedTokens = b.getLastCachedTokens();
+            lastCacheWriteTokens = b.getLastCacheWriteTokens();
             lastAskMs += System.currentTimeMillis() - tAsk; // summed over every attempt; retained for the
                                                              // ms<=0 legacy substitution guard in evalDec
             return reply;
@@ -5028,7 +5040,7 @@ public final class LlmSpikeGui {
             if (ms <= 0 && lastPrompt != null && ("smart".equals(tier) || "fast".equals(tier))) ms = lastSuccessMs;
             emitDecisionRow(getPlayer(), seat, type, nOptions, choice, tier, ms, fallback, options,
                     lastPrompt, lastReply, lastRetryMs, lastAttempts, lastFinishReason, lastFirstFailedReply,
-                    lastPromptTokens, lastCompletionTokens, lastShadowChoice, lastPicks);
+                    lastPromptTokens, lastCompletionTokens, lastShadowChoice, lastPicks, lastCachedTokens, lastCacheWriteTokens);
             lastPicks = null;
         }
         /** Tier label for asked decisions: random arm decisions are harness-made, not model-made. */
@@ -6937,6 +6949,11 @@ public final class LlmSpikeGui {
         return s == null ? "" : s.replaceAll("\\s+", " ").trim();
     }
 
+    /** The additive prompt-cache fields of a jsonl row; empty when the provider reported neither. */
+    static String cacheFields(int cachedTokens, int cacheWriteTokens) {
+        return (cachedTokens >= 0 ? ",\"cached_tokens\":" + cachedTokens : "")
+                + (cacheWriteTokens >= 0 ? ",\"cache_write_tokens\":" + cacheWriteTokens : "");
+    }
     /** Single JSONL decision-row writer, shared by the LLM seat's {@code evalDec} and the ai-teacher
      *  seat's {@code emit} so both emit byte-format-identical rows (same keys, same order). The LLM seat
      *  passes its captured per-decision model provenance (prompt/raw_reply/retry_ms/attempts/…); the
@@ -6955,6 +6972,15 @@ public final class LlmSpikeGui {
             long ms, String fallback, List<String> options, String prompt, String rawReply,
             long retryMs, int attempts, String finishReason, String firstFailedReply,
             int promptTokens, int completionTokens, Integer shadowChoice, List<Integer> picks) {
+        emitDecisionRow(pl, seat, type, nOptions, choice, tier, ms, fallback, options, prompt, rawReply,
+                retryMs, attempts, finishReason, firstFailedReply, promptTokens, completionTokens, shadowChoice, picks, -1, -1);
+    }
+    /** `cachedTokens` / `cacheWriteTokens`: additive, written only when the provider reported them. */
+    static void emitDecisionRow(Player pl, String seat, String type, int nOptions, int choice, String tier,
+            long ms, String fallback, List<String> options, String prompt, String rawReply,
+            long retryMs, int attempts, String finishReason, String firstFailedReply,
+            int promptTokens, int completionTokens, Integer shadowChoice, List<Integer> picks,
+            int cachedTokens, int cacheWriteTokens) {
         if (!EvalLog.on()) return;
         try {
             PhaseHandler ph = pl.getGame().getPhaseHandler();
@@ -6988,6 +7014,7 @@ public final class LlmSpikeGui {
                     // D4 DAgger additive field: the Forge-AI's shadow label over this row's menu, or null.
                     .append(",\"shadow_choice\":").append(shadowChoice == null ? "null" : shadowChoice);
             if (picks != null) sb.append(",\"picks\":").append(picks.toString().replace(" ", ""));
+            sb.append(cacheFields(cachedTokens, cacheWriteTokens));
             sb.append('}');
             // The write, the index increment, and the hook dispatch must be one atomic unit
             // with respect to concurrently-deciding seats: fork addressing depends on
@@ -7196,6 +7223,7 @@ public final class LlmSpikeGui {
         private volatile String lastFinishReason;
         private volatile int lastPromptTokens = -1;
         private volatile int lastCompletionTokens = -1;
+        private volatile int lastCachedTokens = -1, lastCacheWriteTokens = -1;
         // Test-only instrumentation (see lastSendCount()). A bridge belongs to one seat/tier and
         // ask() is never called concurrently on it, so the non-atomic ++ is safe; volatile is only
         // so a test thread reads what the calling thread wrote.
@@ -7359,10 +7387,12 @@ public final class LlmSpikeGui {
                     System.out.println("[OPENROUTER " + label + "] non-answer -> treating as bridge-down");
                     lastFinishReason = r.finishReason;
                     lastPromptTokens = r.promptTokens; lastCompletionTokens = r.completionTokens;
+                    lastCachedTokens = r.cachedTokens; lastCacheWriteTokens = r.cacheWriteTokens;
                     return null;
                 }
                 lastFinishReason = r.finishReason;
                 lastPromptTokens = r.promptTokens; lastCompletionTokens = r.completionTokens;
+                    lastCachedTokens = r.cachedTokens; lastCacheWriteTokens = r.cacheWriteTokens;
                 long dur = System.currentTimeMillis() - t0;
                 totalMs += dur; calls++;
                 System.out.println("[OPENROUTER " + label + "] replied in " + dur + " ms"
@@ -7393,6 +7423,11 @@ public final class LlmSpikeGui {
             }
             body.append(messages);
             body.append("],\"max_tokens\":").append(maxTokens);
+            // Every ask resends the same preamble, tools and chat history, and nothing marked it
+            // cacheable, so Anthropic models billed all of it at the full input rate (a Haiku 5.5 game
+            // averaged 10K prompt tokens a call). Top-level cache_control is automatic caching: the
+            // breakpoint follows the end of the conversation. DeepSeek and OpenAI cache on their own.
+            if (cachesPrompt(model)) body.append(",\"cache_control\":{\"type\":\"ephemeral\"}");
             if ("none".equals(reasoningEffort))
                 // Measured 2026-10-13: a mechanical answer costs ~848 completion tokens of which ~800 are
                 // hidden reasoning, and "low"/"minimal" do not reduce that -- only disabling does (65
@@ -7458,6 +7493,8 @@ public final class LlmSpikeGui {
             // -1 when the field is absent. Additive persistence for Stage-0 token-cost calibration.
             int promptTokens = extractJsonInt(resp.body(), "\"prompt_tokens\":");
             int completionTokens = extractJsonInt(resp.body(), "\"completion_tokens\":");
+            int cachedTokens = extractJsonInt(resp.body(), "\"cached_tokens\":");
+            int cacheWriteTokens = extractJsonInt(resp.body(), "\"cache_write_tokens\":");
             if (toolsJson != null) {
                 // A native turn is structured (tool calls, a null content): parse it, do not scan it.
                 NativeTools.Turn turn = NativeTools.parseTurn(resp.body());
@@ -7465,24 +7502,36 @@ public final class LlmSpikeGui {
                     System.out.println("[OPENROUTER " + label + "] unparseable native turn: " + oneLine(resp.body()));
                     return null;
                 }
-                return new OrResult(turn.content, finishReason, promptTokens, completionTokens, turn);
+                return new OrResult(turn.content, finishReason, promptTokens, completionTokens, turn)
+                        .withCache(cachedTokens, cacheWriteTokens);
             }
-            return new OrResult(content, finishReason, promptTokens, completionTokens, null);
+            return new OrResult(content, finishReason, promptTokens, completionTokens, null)
+                    .withCache(cachedTokens, cacheWriteTokens);
+        }
+
+        /** PROMPT_CACHE=0 turns it off, to reproduce a run made before caching. */
+        static final boolean PROMPT_CACHE = !"0".equals(System.getenv("PROMPT_CACHE"));
+        /** Anthropic models cache only a prefix marked with cache_control; others cache on their own. */
+        static boolean cachesPrompt(String model) {
+            return PROMPT_CACHE && model != null && model.startsWith("anthropic/");
         }
 
         private static final class OrResult {
             final String content, finishReason;
             final int promptTokens, completionTokens;
             final NativeTools.Turn turn; // null on the plain-text path
+            int cachedTokens = -1, cacheWriteTokens = -1;
             OrResult(String content, String finishReason, int promptTokens, int completionTokens, NativeTools.Turn turn) {
                 this.content = content; this.finishReason = finishReason;
                 this.promptTokens = promptTokens; this.completionTokens = completionTokens;
                 this.turn = turn;
             }
             boolean hasCalls() { return turn != null && !turn.calls.isEmpty(); }
+            OrResult withCache(int cached, int written) { cachedTokens = cached; cacheWriteTokens = written; return this; }
             OrResult withContent(String c) {
                 return new OrResult(c, finishReason, promptTokens, completionTokens,
-                        turn == null ? null : new NativeTools.Turn(c, turn.messageJson, turn.calls));
+                        turn == null ? null : new NativeTools.Turn(c, turn.messageJson, turn.calls))
+                        .withCache(cachedTokens, cacheWriteTokens);
             }
         }
 
@@ -7498,6 +7547,8 @@ public final class LlmSpikeGui {
         @Override public String getLastFinishReason() { return lastFinishReason; }
         @Override public int getLastPromptTokens() { return lastPromptTokens; }
         @Override public int getLastCompletionTokens() { return lastCompletionTokens; }
+        @Override public int getLastCachedTokens() { return lastCachedTokens; }
+        @Override public int getLastCacheWriteTokens() { return lastCacheWriteTokens; }
     }
 
     /** Factory: parses a model spec like "haiku" (Claude CLI) or
@@ -7752,6 +7803,8 @@ public final class LlmSpikeGui {
                 + ",\"duration_ms\":" + durMs
                 + ",\"mulligan_heuristic\":" + (PlayerControllerLLM.mullHeuristic() ? 1 : 0)
                 + ",\"skip_heuristics\":" + (PlayerControllerLLM.skipHeuristics() ? 1 : 0)
+                // Caching changes what a run costs, not what the model sees (the provider's output is the same).
+                + ",\"prompt_cache\":" + (OpenRouterBridge.PROMPT_CACHE ? 1 : 0)
                 + ",\"plan_a\":\"" + jsonEscape(lastPlanA) + "\""
                 + ",\"plan_b\":\"" + jsonEscape(lastPlanB) + "\""
                 + ",\"smart_budget\":" + PlayerControllerLLM.smartBudget()

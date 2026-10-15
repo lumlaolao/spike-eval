@@ -39,10 +39,10 @@ Sources, read 2026-10-15:
   `BLOCKS: …`, `KEEP`) scraped from prose. `STATIC_REFERENCE` spends a whole section (ANSWER
   CONTRACT) teaching that grammar, and threatens "a malformed answer costs you the decision". Only
   lookups are native tool calls.
-- **Reasoning is dropped across tool rounds.** We never send `reasoning_details` back with the
-  assistant turn that made a tool call. OpenRouter says the reasoning of the tool-request turn
-  should return with the tool result, unmodified [R]. Today the model answers after a lookup without
-  its own earlier reasoning.
+- **Reasoning across tool rounds is kept** (corrected after reading the code). The assistant turn
+  that made a tool call goes back exactly as served (`NativeTools.Turn.messageJson`). So
+  `reasoning` and `reasoning_details` return with the tool result, as OpenRouter asks [R]. The test
+  `NativeToolsTest.theBridgeSendsToolsAndParsesAToolCallTurn` pins it.
 - **Coaching is in the system prompt.** It is mixed with the protocol:
   - PRINCIPLES ("CAST IT — repeatedly passing while holding cantrips is how combo decks lose");
   - FORMAT ("at most two short sentences of reasoning");
@@ -62,9 +62,12 @@ Sources, read 2026-10-15:
    - Forcing a tool skips thinking on every model that accepts it.
    - Opus 5.5 and Sonnet 5.5 reject forced tool use with a 400 error. Use "auto" with strict tools
      instead, plus an instruction in the user message [T].
-   - Changing `tool_choice` between calls also invalidates the cached messages [C, T]. So keep it
-     the same on every call: do not switch to "none" when the budget is spent. Refuse the extra
-     call in the tool result instead (rule 6).
+   - Changing `tool_choice` between calls invalidates the cached messages (not the tools or the
+     system prompt) [C, T]. The harness sends "none" on the last round of an ask.
+     - Switching to a constant "auto" has a cost: a model that calls again on that round would lose
+       the decision.
+     - So this waits on a measurement: the per-round `cached_tokens` now recorded shows whether the
+       "none" round actually misses the cache.
 3. **Tool descriptions are the main lever: at least 3–4 sentences each** [T "by far the most important
    factor"]. Say what the tool does, when to use it and when not to, what each parameter means, and
    what it does not return. Write it as if onboarding a new hire [W].
@@ -80,6 +83,7 @@ Sources, read 2026-10-15:
    step-by-step reasoning" can draw a `reasoning_extraction` refusal [T]. A short `why` field is
    fine; thinking stays in thinking.
 8. **Pass reasoning back unchanged across tool rounds** (`reasoning_details` through OpenRouter) [R].
+   Already done: the served assistant message is echoed back whole.
 
 ### The prompt text
 
@@ -160,8 +164,7 @@ Sources, read 2026-10-15:
   - Drop PRINCIPLES, FORMAT and the ANSWER CONTRACT; move the snapshot legend into the rules tool,
     or keep it if it measures better.
 - **New, small, do first:**
-  - send `cache_control` for `anthropic/` models (rule 18);
-  - record `cached_tokens` (rule 20);
-  - keep `tool_choice` fixed (rule 2);
-  - pass `reasoning_details` back across tool rounds (rule 8).
-  - Each is a contained change in `OpenRouterBridge`, measurable on one cheap Haiku 5.5 game.
+  - send `cache_control` for `anthropic/` models (rule 18): done;
+  - record `cached_tokens` and `cache_write_tokens`, priced in `cost_report.py` (rule 20): done;
+  - `tool_choice` on the last round (rule 2): decided from the cache measurement;
+  - reasoning across tool rounds (rule 8): already correct.
