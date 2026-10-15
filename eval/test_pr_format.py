@@ -1,6 +1,8 @@
 """scripts/pr_format.py: the accepted examples are real subjects from this repository's history.
 Lives in eval/ so the acceptance suite (`unittest discover -s eval`) runs it."""
+import json
 import os
+import re
 import sys
 import unittest
 
@@ -142,6 +144,65 @@ class PrFormatTest(unittest.TestCase):
 
     def test_latest_verdict_per_agent_is_read(self):
         self.assertEqual(pf.reviews(BODY)["pr-review"], ("abc123456", "LOW", "two nits, fixed"))
+
+
+class RestOnlyTest(unittest.TestCase):
+    """Issue #118: `gh pr view` / `gh pr edit` / `gh pr merge` go over GraphQL, which Claude cloud
+    sessions are refused (HTTP 403), so the merge gate could not run where most agents work. Every
+    GitHub read and write goes through `gh api` REST routes instead."""
+
+    def setUp(self):
+        self.calls = []
+        self.real_run = pf.run
+        files = [{"filename": "eval/f%d.py" % i} for i in range(100)] + [{"filename": "README.md"}]
+        commits = [{"sha": "c1" * 20, "commit": {"message": "fix(eval): one\n\nbody line\n\nFixes #1"}},
+                   {"sha": "c2" * 20, "commit": {"message": "docs: two"}}]
+        pull = {"title": "fix(eval): t", "body": BODY, "state": "open", "draft": False,
+                "head": {"sha": "ab" * 20}}
+
+        def fake(*cmd, **kw):
+            self.calls.append((cmd, kw))
+            path = cmd[cmd.index("api") + 1] if "api" in cmd else ""
+            m = re.search(r"[?&]page=(\d+)", path)
+            page = int(m.group(1)) if m else 1
+            if "/files" in path:
+                return json.dumps(files[(page - 1) * 100:page * 100])
+            if "/commits" in path:
+                return json.dumps(commits if page == 1 else [])
+            return json.dumps(pull)
+        pf.run = fake
+
+    def tearDown(self):
+        pf.run = self.real_run
+
+    def test_a_pr_is_read_over_rest_into_the_same_shape(self):
+        pr = pf.gh_pr(7)
+        for cmd, _ in self.calls:
+            self.assertEqual(cmd[:2], ("gh", "api"), cmd)
+            self.assertIn("repos/{owner}/{repo}/pulls/7", cmd[2])
+        self.assertEqual(pr["headRefOid"], "ab" * 20)
+        self.assertEqual((pr["title"], pr["body"], pr["state"], pr["isDraft"]), ("fix(eval): t", BODY, "OPEN", False))
+        self.assertEqual(len(pr["files"]), 101, "the second page of files was not read")
+        self.assertEqual(pr["files"][-1]["path"], "README.md")
+        self.assertEqual(pf.pr_commits(pr), [("c1" * 20, "fix(eval): one\n\nbody line\n\nFixes #1"),
+                                             ("c2" * 20, "docs: two")])
+
+    def test_a_recorded_line_is_written_over_rest(self):
+        pf.record_line(7, "ab" * 20, "Review", "- pr-review @", "- pr-review @ {sha}: CLEAN")
+        cmd, kw = self.calls[-1]
+        self.assertEqual(cmd[:2], ("gh", "api"), cmd)
+        self.assertIn("PATCH", cmd)
+        self.assertIn("repos/{owner}/{repo}/pulls/7", cmd)
+        self.assertIn("- pr-review @ %s: CLEAN" % ("ab" * 20)[:9], json.loads(kw["input"])["body"])
+
+    def test_no_script_calls_a_graphql_gh_command(self):
+        root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts")
+        for name in ("pr_format.py", "pr_merge.sh"):
+            with open(os.path.join(root, name), encoding="utf-8") as f:
+                text = f.read()
+            code = "\n".join(l for l in text.splitlines() if not l.lstrip().startswith("#"))
+            hit = re.search(r"""["']?gh["']?,? +["']?pr["']?\b""", code)
+            self.assertIsNone(hit, "%s still calls `gh pr` (GraphQL): %r" % (name, hit and code[hit.start():hit.start() + 40]))
 
 
 if __name__ == "__main__":
