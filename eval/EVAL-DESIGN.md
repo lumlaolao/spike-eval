@@ -1,5 +1,8 @@
 # EVAL-DESIGN — a five-axis evaluation system for student vs. frontier MTG play
 
+> 2026-10-15: [BENCHMARK-RESEARCH.md](BENCHMARK-RESEARCH.md) revisits the scoring (strict score,
+> anchors, Bradley–Terry, puzzle rating, harness-gaming arms) from a second round of research.
+
 > Design document, 2026-07-25. Status: **design only — nothing here is built unless
 > marked EXISTS.** Each section is written to be implementable directly. Citations
 > "(Brief A §n)" / "(Brief B §n)" refer to the two commissioned research briefs
