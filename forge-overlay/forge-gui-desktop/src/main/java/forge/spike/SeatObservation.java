@@ -72,7 +72,7 @@ import forge.spike.LlmSpikeGui.ContextProfile;
  * seat are appended to the same stream, so every seat-visible fact has one E-id and one place to search.
  */
 final class SeatObservation {
-    static final String VERSION = "observation-faithful-v14";
+    static final String VERSION = "observation-faithful-v15";
     /** Printed once per observation so every prompt is self-describing. Part of the prompt bytes and
      *  therefore of this VERSION: change it and bump the version. */
     static final String LEGEND = "LEGEND: @N = your seat's handle for one object, assigned when you first see it; a zone change "
@@ -748,9 +748,9 @@ final class SeatObservation {
     /** Append a private reveal (or any seat-local evidence) to the stream with turn attribution. */
     int recordReveal(String text) {
         int turn = safeTurn();
-        String msg = "[private reveal to you] " + LlmSpikeGui.oneLine(text);
+        String msg = "[private reveal to you] " + LlmSpikeGui.flat(text);
         stream.add(new GameHistory.Ev(stream.size() + 1, turn, GameLogEntryType.INFORMATION, msg));
-        reveals.add("[E" + stream.size() + "] T" + turn + ": " + LlmSpikeGui.oneLine(text));
+        reveals.add("[E" + stream.size() + "] T" + turn + ": " + LlmSpikeGui.flat(text));
         return stream.size();
     }
 
@@ -1031,7 +1031,7 @@ final class SeatObservation {
                 Player who = si.getActivatingPlayer();
                 b.append(" (").append(who == null ? "?" : (who == viewer ? "you" : who.getName())).append(')');
                 if (known) {
-                    String d = LlmSpikeGui.oneLine(si.getStackDescription());
+                    String d = LlmSpikeGui.flat(si.getStackDescription());
                     if (d != null && !d.isEmpty()) b.append(": ").append(d.length() > 160 ? d.substring(0, 157) + "..." : d);
                 }
                 String t = targets(si);
@@ -1130,7 +1130,7 @@ final class SeatObservation {
             if (identityKnown(c)) {
                 b.append("\ntypes: ").append(typeLine(c));
                 try { String mc = LlmSpikeGui.PlayerControllerLLM.costStr(c); if (mc != null) b.append(" | cost ").append(mc); } catch (Exception ignore) { }
-                try { String o = c.getOracleText(); if (o != null && !o.isEmpty()) b.append("\noracle: ").append(LlmSpikeGui.oneLine(o)); } catch (Exception ignore) { }
+                try { String o = c.getOracleText(); if (o != null && !o.isEmpty()) b.append("\noracle: ").append(LlmSpikeGui.flat(o)); } catch (Exception ignore) { }
             } else {
                 b.append("\ntypes: ").append(typeLine(c)).append(" | identity hidden from you (face-down)");
             }
@@ -1146,7 +1146,7 @@ final class SeatObservation {
             try { if (r.getManaCost() != null) b.append(" ").append(r.getManaCost().getShortString()); } catch (Exception ignore) { }
             b.append("\ntypes: ").append(r.getType());
             try { if (r.getType().isCreature()) b.append(" | ").append(r.getPower()).append('/').append(r.getToughness()); } catch (Exception ignore) { }
-            b.append("\noracle: ").append(LlmSpikeGui.oneLine(r.getOracleText()));
+            b.append("\noracle: ").append(LlmSpikeGui.flat(r.getOracleText()));
             return b.toString();
         } catch (Exception e) {
             return "ERROR: card lookup failed.";

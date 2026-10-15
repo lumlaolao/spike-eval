@@ -316,6 +316,27 @@ wording (even two top piles: the rest pile lands above the chosen one).
 Legacy profiles keep their bytes. Tests: `aDigRestPileToTheTopIsAskedTopDownAndTheFirstPickEndsOnTop`,
 `aDigOrderIsAskedTopDownOnlyWhenEveryLibraryPileItCouldBeLandsOnTop`.
 
+**2026-10-15 — asks carry what they turn on (`observation-faithful-v15`).** From the per-decision
+prompt audit of runs/loop g01-g07 (`HANDOFF-PERFECT-HARNESS.md`). Faithful profile only; legacy
+profiles keep their bytes:
+
+- **Options say whose object they are**: `[Battlefield, yours]` / `[Battlefield, opponent's]`, and a
+  player option reads `you (Seat)` / `opponent (Rival)`. g07 untapped the opponent's creature from a
+  menu of eight, six its own, none marked.
+- **No 90-character cut** on menu options, private reveals, stack descriptions and INSPECT rules text
+  (`LlmSpikeGui.flat`). Sneak Attack's INSPECT text had lost its sacrifice clause; a ten-card reveal
+  kept three names.
+- **The fast tier is not told "NO reasoning"** while every decision text says "Reason briefly"
+  (all 268 fast asks in g01-g07 carried both). It may now write the same two sentences the smart tier
+  does; its API reasoning setting is unchanged.
+- **A number, yes/no, pick, order, discard or name ask states its source's rules text** and who the
+  spell targets, not the card's name alone ("Choose a number [Galvanic Discharge]").
+- **An "unless" payment that makes the effect happen is asked as that** (Chain Lightning's copy was
+  asked "pay to prevent"), with whether the seat can pay. A card-type choice is asked as one, not
+  "Choose a Card to name". The divided-damage ask ends with its own `ALLOC:` format.
+
+Tests: `PromptFidelityTest` (whose object, fast-tier framing, whole INSPECT text, number source text).
+
 ### Tool protocol: `evidence-tools-v2` and native function calling (2026-10-13)
 
 `eval/tool_audit.py` over the three controlled arms (`runs/lines/ctl`, 48 games, 2,994 model calls)
