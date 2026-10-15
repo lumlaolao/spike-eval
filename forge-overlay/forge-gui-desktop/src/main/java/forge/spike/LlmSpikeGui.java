@@ -1322,6 +1322,39 @@ public final class LlmSpikeGui {
             return null;
         }
 
+        /** Even split of `total` over `n`, remainder to the front: the deterministic legal fallback
+         *  for a divided spell when the model's allocation does not parse. It never picks a target,
+         *  only how to divide an amount the engine already fixed. */
+        private static List<Integer> evenSplit(int total, int n) {
+            List<Integer> out = new ArrayList<>();
+            int base = n > 0 ? total / n : 0, rem = n > 0 ? total % n : 0;
+            for (int i = 0; i < n; i++) out.add(base + (i < rem ? 1 : 0));
+            return out;
+        }
+
+        /** The divided-allocation ask: `n` numbers, in target order, summing to `total`. Null when the
+         *  reply does not give exactly `n`, so the caller can split evenly (legal). */
+        private List<Integer> decideAllocation(LLMBridge b, String question, List<String> labels, int total) {
+            clearLast();
+            int n = labels.size();
+            if (rnd != null) return evenSplit(total, n);   // RANDOM arm: the same deterministic legal split
+            String base = buildDecideManyPrompt(snapshot(), question
+                    + " (reply ALLOC: " + n + " numbers that sum to " + total + ")", labels, 1, Math.max(1, total));
+            for (int attempt = 0; attempt < 2; attempt++) {
+                String prompt = attempt == 0 ? base
+                        : base + "\n\n(Answer with ONE line only: ALLOC: <" + n + " numbers summing to " + total + ">.)";
+                String reply = ask(b, prompt);
+                if (reply == null) return null;
+                String seg = lastSegment(reply, "ALLOC:");
+                if (seg == null) continue;
+                List<Integer> out = new ArrayList<>();
+                Matcher m = Pattern.compile("\\d+").matcher(seg);
+                while (m.find() && out.size() < n) out.add(Integer.parseInt(m.group()));
+                if (out.size() == n) return out;           // the caller re-checks the sum
+            }
+            return null;
+        }
+
         /** `n` copies of one mode: a forced single mode under allowRepeat ("choose three, you may
          *  choose the same mode more than once") is that mode three times. */
         private static List<AbilitySub> repeated(AbilitySub sub, int n) {
@@ -2548,9 +2581,7 @@ public final class LlmSpikeGui {
             try {
                 if (sa == null || !sa.usesTargeting() || sa.getMaxTargets() < 1)
                     return super.chooseTargetsFor(sa);
-                // A spell that divides a value among its targets ("distribute 5 damage") needs
-                // sa.setDividedValue, which the seat does not set: keep the engine's choice (#124).
-                if (sa.isDividedAsYouChoose()) return super.chooseTargetsFor(sa);
+
                 // A targeting SUB-ABILITY chain used to bail to the Forge AI for the whole chain.
                 // Route every targeting ability in the chain through the same menu (ensureTargetsSet
                 // walks it), then succeed if the root's own required targets are set (#124).
@@ -2574,11 +2605,14 @@ public final class LlmSpikeGui {
                 List<String> labels = new ArrayList<>();
                 for (GameEntity ge : cands) labels.add(labelOf(ge));
                 // Multi-target abilities ("up to two target creatures") used to bail to the Forge AI
-                // for the whole target set. Pick a distinct subset through the same menu; when the
-                // candidates are no more than the minimum the subSET is forced (#124).
+                // for the whole target set; a DIVIDED spell ("distribute 5 damage", 132 cards) also
+                // needs an allocation per target. Both route through the same menu (#124); the
+                // division is the model's, with an even split as the deterministic legal fallback.
                 int max = sa.getMaxTargets();
-                if (max > 1) {
-                    int lo = Math.max(0, min), hi = Math.min(max, cands.size());
+                boolean divided = sa.isDividedAsYouChoose();
+                int divideTotal = divided && sa.getDividedValue() != null ? sa.getDividedValue() : 0;
+                if (max > 1 || divided) {
+                    int lo = Math.max(divided ? 1 : 0, min), hi = Math.min(Math.max(max, 1), cands.size());
                     List<Integer> tp;
                     if (cands.size() <= Math.max(1, min)) {         // forced: all candidates are needed
                         tp = new ArrayList<>();
@@ -2597,10 +2631,26 @@ public final class LlmSpikeGui {
                         for (int i = 0; i < lo && i < cands.size(); i++) tp.add(i);
                         evalDec("targets", cands.size(), tp.size(), "auto", 0, "targets(no-model)->first", labels);
                     }
-                    sa.resetTargets();
+                    // clearTargets() (not resetTargets()) is what also computes a divided spell's
+                    // total from its param, so getDividedValue() is non-null below (#124).
+                    if (divided) sa.clearTargets(); else sa.resetTargets();
                     for (int i : tp) sa.getTargets().add(cands.get(i));
                     if (min > 0 && sa.getTargets().size() < min) return super.chooseTargetsFor(sa); // safety net
-                    p("[ROUTER] targets: " + tp.size() + " -> " + labelOf(sa));
+                    StringBuilder split = new StringBuilder();
+                    if (divided && divideTotal > 0 && !tp.isEmpty()) {
+                        List<String> tl = new ArrayList<>();
+                        for (int i : tp) tl.add(labels.get(i));
+                        List<Integer> alloc = decideAllocation(bridgeFor("targets"), "Split " + divideTotal
+                                + " for " + labelOf(sa) + " among the chosen targets, in order.", tl, divideTotal);
+                        if (alloc == null || alloc.size() != tp.size()
+                                || alloc.stream().mapToInt(Integer::intValue).sum() != divideTotal)
+                            alloc = evenSplit(divideTotal, tp.size());
+                        for (int k = 0; k < tp.size(); k++) {
+                            sa.addDividedAllocation(cands.get(tp.get(k)), alloc.get(k));
+                            split.append(' ').append(alloc.get(k));
+                        }
+                    }
+                    p("[ROUTER] targets: " + tp.size() + (split.length() > 0 ? " divided [" + split.toString().trim() + "]" : "") + " -> " + labelOf(sa));
                     return true;
                 }
                 if (cands.size() > 1 && okFor("targets")) {
@@ -2657,6 +2707,16 @@ public final class LlmSpikeGui {
                 try {
                     if (!sa.usesTargeting()) continue;
                     if (sa.getTargets() != null && !sa.getTargets().isEmpty()) continue; // already targeted
+                    // A DIVIDED spell whose total is not known yet ({X}: Rolling Thunder, Fireball) must
+                    // NOT be pre-targeted here: with no allocation the engine NPEs at resolution. Leave
+                    // it to the engine, which asks chooseTargetsFor once X is set (#124). A fixed-total
+                    // divided spell (Pyrotechnics, 4) is known now and is handled below.
+                    if (sa.isDividedAsYouChoose()) {
+                        int dt = 0;
+                        try { dt = forge.game.ability.AbilityUtils.calculateAmount(
+                                sa.getHostCard(), sa.getParam("DividedAsYouChoose"), sa); } catch (Exception ignore) { }
+                        if (dt <= 0) continue;
+                    }
                     if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(getPlayer());
                     TargetRestrictions tr = sa.getTargetRestrictions();
                     if (tr == null) continue;
@@ -2691,10 +2751,29 @@ public final class LlmSpikeGui {
                         // single legal candidate — genuinely forced, no model call was ever attempted for it.
                         fb = "forced(only-legal)";
                     }
-                    sa.resetTargets();
+                    // clearTargets() also computes a divided spell's total (resetTargets does not),
+                    // so the allocation below has a non-null getDividedValue() to split (#124).
+                    if (sa.isDividedAsYouChoose()) sa.clearTargets(); else sa.resetTargets();
                     sa.getTargets().add(cands.get(pick));
                     for (int i = 0; sa.getTargets().size() < min && i < cands.size(); i++) // top up if it needs >1
                         if (i != pick) sa.getTargets().add(cands.get(i));
+                    // A DIVIDED spell needs an allocation per target or the engine reads a null
+                    // divided value and NPEs (seen: Pyrotechnics in a random game, 2026-10-14). Split
+                    // the engine's fixed total across the chosen targets: the model's allocation, with
+                    // an even split as the deterministic legal fallback (#124).
+                    if (sa.isDividedAsYouChoose() && sa.getDividedValue() != null && sa.getDividedValue() > 0
+                            && !sa.getTargets().isEmpty()) {
+                        int dt = sa.getDividedValue();
+                        List<String> tl = new ArrayList<>();
+                        for (forge.game.GameObject ge : sa.getTargets()) tl.add(labelOf((GameEntity) ge));
+                        List<Integer> alloc = decideAllocation(bridgeFor("target"), "Split " + dt + " for "
+                                + labelOf(sa) + " among the chosen targets, in order.", tl, dt);
+                        if (alloc == null || alloc.size() != tl.size()
+                                || alloc.stream().mapToInt(Integer::intValue).sum() != dt)
+                            alloc = evenSplit(dt, tl.size());
+                        int k = 0;
+                        for (forge.game.GameObject ge : sa.getTargets()) sa.addDividedAllocation(ge, alloc.get(k++));
+                    }
                     List<String> tgtOpts = new ArrayList<>();
                     for (GameEntity ge : cands) tgtOpts.add(labelOf(ge));
                     evalDec("target", cands.size(), pick, fb == null ? tierOf(smartTierFor("target")) : "auto", 0, fb, tgtOpts);

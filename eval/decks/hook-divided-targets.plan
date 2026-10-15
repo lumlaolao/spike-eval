@@ -1,0 +1,1 @@
+Mono-red built to reach a DIVIDED target set: Fireball, Rolling Thunder, Pyrotechnics and Arc Lightning distribute a value among targets (DividedAsYouChoose), which chooseTargetsFor now routes with a model allocation and an even-split legal fallback (#124).
