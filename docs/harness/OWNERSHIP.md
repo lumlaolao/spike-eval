@@ -21,6 +21,16 @@ Ownership values:
   analyzer's `ai=0` invariant cannot see these.**
 - `deterministic`, `base-inherited`, `wrapper`: no model and no strategic AI content.
 
+## Current state (2026-10-15)
+
+The silent count (Forge AI deciding a strategic or payment hook reachable in Legacy play, with no
+row) is **1**, pinned in `eval/harness_acceptance.expected` and `ControllerOwnershipTest`. It is
+`payManaCost`, PARTLY OWNED: the colour an any-colour source (Lotus Petal, LED) makes for a generic
+shard is set inside Forge's AI payment before the seat's colour question, and the pinned engine has
+no hook for it. Every other hook in the tables below is now the seat's (see the ledger's notes);
+the last ones routed were retargeting of every kind, convoke and improvise, mana from the pool, and
+effects played without the stack (`playSpellAbilityNoStack`). What follows is the history.
+
 ## Initial counts (2026-09-07, before direct implementation)
 
 | impl | rows |

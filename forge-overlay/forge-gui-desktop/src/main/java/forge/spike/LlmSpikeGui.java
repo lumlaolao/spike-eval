@@ -4117,7 +4117,36 @@ public final class LlmSpikeGui {
         @Override
         public boolean playTrigger(Card host, forge.game.trigger.WrappedAbility wrapperAbility, boolean isMandatory) {
             if (!prepareTrigger(wrapperAbility)) return false;
-            return forge.ai.ComputerUtil.playNoStack(wrapperAbility.getActivatingPlayer(), wrapperAbility, getGame(), true);
+            return playNoStack(wrapperAbility.getActivatingPlayer(), wrapperAbility, true);
+        }
+
+        /** An effect played without the stack (an opening-hand ability, a replacement effect, a may-effect from
+         *  the opening deck): the seat's modes and targets, then the engine plays it. The inherited version
+         *  targeted it with {@code brains.doTrigger}. As there, it is played even when a target has no legal
+         *  choice: a replacement that has already replaced its event cannot be undone. */
+        @Override
+        public void playSpellAbilityNoStack(SpellAbility effectSA, boolean canSetupTargets) {
+            if (canSetupTargets && !prepareTrigger(effectSA))
+                p("[ROUTER] no-stack: " + safeName(effectSA.getHostCard()) + " has a target with no legal choice");
+            playNoStack(getPlayer(), effectSA, true);
+        }
+
+        /** {@code ComputerUtil.playNoStack}, paying the seat's costs with {@link LlmCostDecision} where the
+         *  engine routine hard-codes {@code AiCostDecision} (as {@link #playChosenSpellAbility} does for a
+         *  cast). RE-DIFF against {@code ComputerUtil.playNoStack} on every engine re-pin (ENGINE-PIN.md). */
+        private boolean playNoStack(Player who, SpellAbility sa, boolean effect) {
+            if (!forge.ai.ComputerUtilCost.canPayCost(sa, who, effect)) return false;
+            final Card source = sa.getHostCard();
+            if (!effect && sa.isSpell() && !source.isCopiedSpell()) {
+                sa.setHostCard(getGame().getAction().moveToStack(source, sa));
+                sa = forge.game.GameActionUtil.addExtraKeywordCost(sa);
+            }
+            final CostPayment pay = new CostPayment(sa.getPayCosts(), sa);
+            final forge.game.cost.CostDecisionMakerBase decision = who == getPlayer()
+                    ? new LlmCostDecision(who, sa, effect) : new forge.ai.AiCostDecision(who, sa, effect);
+            if (!pay.payComputerCosts(decision)) return false;
+            forge.game.ability.AbilityUtils.resolve(sa);
+            return true;
         }
 
         /** Modes, then targets, for one of the seat's triggers (PlayerControllerAi.prepareSingleSa with

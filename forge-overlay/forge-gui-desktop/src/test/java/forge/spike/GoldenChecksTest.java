@@ -936,6 +936,24 @@ public class GoldenChecksTest {
     }
 
     @Test
+    public void anEffectPlayedWithoutTheStackHasTheModelsTargets() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card bolt = card("Lightning Bolt", me, ZoneType.Hand);
+        card("Goblin Guide", rival, ZoneType.Battlefield);
+        Card goyf = card("Tarmogoyf", rival, ZoneType.Battlefield);
+        card("Mountain", me, ZoneType.Battlefield);                     // Bolt's {R}
+        Script model = new Script("CHOICE: 1").on("Lightning Bolt", choice("Tarmogoyf"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        SpellAbility sa = spell(bolt, me);
+        ctrl.playSpellAbilityNoStack(sa, true);
+        Card now = g.getCardState(goyf);
+        Assert.assertTrue(now.getDamage() == 3 || now.isInZone(ZoneType.Graveyard),
+                "the model's target took the damage: " + now + " in " + now.getZone() + ", damage " + now.getDamage());
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    @Test
     public void aDividedSpellKeepsItsPortionsOnItsNewTargets() {
         Game g = bareGame(PhaseType.MAIN1);
         Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
