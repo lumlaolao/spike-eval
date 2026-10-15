@@ -134,6 +134,8 @@ PROVENANCE_FIELDS = (
     ("harness_epoch", MISSING),
     # Prompt caching (Anthropic models): changes what a run costs, not what the model answers.
     ("prompt_cache", MISSING),
+    # The format the decks are built for (GAME_FORMAT). A line without it was Legacy: the only format then.
+    ("game_format", "legacy"),
     # Two opt-in switches that change how the seat plays (issue #117): PLAN_EXECUTE makes the harness
     # play steps of the model's own stated turn plan, TIER_FAST_TYPES moves decision types off the
     # reasoning tier. Neither was stamped, keyed or pinned, so games played with them on and off pooled

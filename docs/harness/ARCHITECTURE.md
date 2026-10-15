@@ -256,6 +256,15 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 
 ## 12. The eval layer
 
+**Formats and decks.** The Legacy pool (16 decks) is the original benchmark; Modern, Standard and Pauper decks
+are real MTGO Challenge top-8 lists (`eval/decks/SOURCES.md`), run with `run_batch.py --format <f>`.
+- The engine plays any deck, so the format is what the seat is told (`GAME_FORMAT`, in the system prompt)
+  and what the game line records (`game_format`, an experiment condition: formats never pool).
+- `eval/deck_legality.py` checks a deck against the pinned engine's own format data (legal sets, ban lists,
+  Pauper's rarities); `--format` refuses a deck that is not legal.
+- A deck with no `.plan` gets no plan text, only its decklist and card texts. *Why:* the fallback used to be
+  the default decks' plan, so a Standard deck was told it was Grixis Reanimator.
+
 - **`run_batch.py`** launches games:
   - it pins every condition explicitly (ambient environment is scrubbed) and records provenance;
   - it resumes;

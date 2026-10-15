@@ -80,7 +80,7 @@ CITED_FORCED_KEYS = ("MULLIGAN_HEURISTIC", "SKIP_HEURISTICS", "PLAN_A", "PLAN_B"
 # Set only by their dedicated flags (listed in the module docstring).
 CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD", "ONE_TIER", "NO_COACHING",
                       "ANSWER_TOOL", "ANSWER_TOOL_STRICT",
-                      "ONE_CHAT", "PLAN_EXECUTE", "TIER_FAST_TYPES")
+                      "ONE_CHAT", "PLAN_EXECUTE", "TIER_FAST_TYPES", "GAME_FORMAT")
 # Condition env keys that a pre-flag manifest could only have recorded as an --env override. The
 # resume comparison folds them out of `env_overrides` and back into their own condition field, so a
 # directory made with `--env LOOKAHEAD=1` (or PLAN_EXECUTE / TIER_FAST_TYPES) resumes under the flag.
@@ -297,6 +297,7 @@ def build_env(args, seed, swap, out_dir):
         "CONTROLLER_B": args.controller_b,
         "DECK_A": args.deck_a,
         "DECK_B": args.deck_b,
+        "GAME_FORMAT": getattr(args, "format", None),
         "PLAN_A": args.plan_a,
         "PLAN_B": args.plan_b,
     }
@@ -849,6 +850,22 @@ def write_manifest(out_dir, condition, seeds, pairs, jobs, argv=None):
 
 # ----------------------------------------------------------- cited guards
 
+def format_guard(args):
+    """--format: every deck must be legal in it by the pinned engine's format data, or nothing launches."""
+    if not getattr(args, "format", None):
+        return
+    import deck_legality
+    forge = deck_legality.forge_home()
+    fmt = deck_legality.read_format(forge, args.format)
+    printings = deck_legality.read_printings(forge)
+    for d in {x for x in (args.deck_a, args.deck_b) if x}:
+        bad = deck_legality.problems(deck_legality.read_deck(d), fmt, printings)
+        if bad:
+            print("run_batch: REFUSING: %s is not legal in %s:\n  - %s" % (d, fmt["name"], "\n  - ".join(bad)),
+                  file=sys.stderr)
+            sys.exit(2)
+
+
 def cited_pre_guards(args):
     """Guards 1-3 (spec C). Pure — no forge-home, no dir creation. Runs
     FIRST so a misconfigured cited run refuses before anything launches."""
@@ -1170,6 +1187,10 @@ def build_parser():
     ap.add_argument("--deck",
                     help="mirror decklist for BOTH seats (sets --deck-a and "
                          "--deck-b). The cited-mode convenience flag.")
+    ap.add_argument("--format", default=None,
+                    help="GAME_FORMAT the decks are built for (legacy, modern, standard, pauper). Told to the seat "
+                         "and recorded on the game line; a deck that is not legal in it by the engine's own format "
+                         "data (eval/deck_legality.py) is refused.")
     ap.add_argument("--deck-a", help="DECK_A path")
     ap.add_argument("--deck-b", help="DECK_B path")
     ap.add_argument("--name-a", help="DECK_A_NAME (identity key; cited default Identity-A)")
@@ -1297,7 +1318,7 @@ def main(argv=None):
             raise SystemExit("run_batch: --env %s is not allowed in any mode; use "
                              "--context-profile / --memory-tools / --rules-tool / --text-tools / --text-answers / --answer-tool-strict / "
                              "--lookahead / --one-tier / --two-tier / --no-coaching / --one-chat / --plan-execute / "
-                             "--tier-fast-types so the condition is recorded and guarded." % k)
+                             "--tier-fast-types / --format so the condition is recorded and guarded." % k)
     if args.seeds is None and not args.panel:
         ap.error("--seeds is required (except with --panel)")
     if (args.panel or args.sanity_arms) and args.budget_usd is None:
@@ -1356,6 +1377,7 @@ def run_block(args):
 
     # Cited guards 1-3 run FIRST: before forge-home is touched and before any
     # directory is created, so a mirror-guard violation refuses cleanly.
+    format_guard(args)
     if cited:
         cited_pre_guards(args)
     else:

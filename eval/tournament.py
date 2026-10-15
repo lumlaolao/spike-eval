@@ -86,6 +86,8 @@ def load_pool():
     """Every eval/decks/*.txt with its one-line .plan blurb (blurb '' if absent)."""
     pool = []
     for txt in sorted(DECKS_DIR.glob("*.txt")):
+        if txt.stem.startswith(("modern-", "standard-", "pauper-")):
+            continue   # other formats' decks (eval/decks/SOURCES.md); the tournament is Legacy
         plan = txt.with_suffix(".plan")
         blurb = plan.read_text(encoding="utf-8").strip() if plan.is_file() else ""
         # first clause of the blurb keeps the draft menu compact

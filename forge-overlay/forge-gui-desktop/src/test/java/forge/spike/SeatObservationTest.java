@@ -378,6 +378,20 @@ public class SeatObservationTest {
         Assert.assertTrue(system.contains(SeatObservation.GUIDE), "the system prompt lost the guide to the state");
         Assert.assertFalse(system.contains("PRINCIPLES") || system.contains("WORKED EXAMPLES") || system.contains("at most two"),
                 "the faithful system prompt states facts, not coaching (PROMPT-AUDIT.md C1, C2, C5)");
+        // The format is the one the decks are built for; the Legacy archetype reference is for Legacy only.
+        Assert.assertTrue(system.contains("Legacy format") && system.contains("<legacy_reference>"), "the default is Legacy");
+        String modernSystem = LlmSpikeGui.PlayerControllerLLM.seatFraming("modern", "Seat", "GAME PLAN: x", true, true, true);
+        Assert.assertTrue(modernSystem.contains("Magic: The Gathering, Modern format"), modernSystem.substring(0, 120));
+        Assert.assertFalse(modernSystem.contains("<legacy_reference>"), "a Modern game was given the Legacy pool's archetypes");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.gameFormat(" Pauper "), "pauper");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.gameFormat(null), "legacy");
+        // The format is the one the decks are built for; the Legacy archetype reference is for Legacy only.
+        Assert.assertTrue(system.contains("Legacy format") && system.contains("<legacy_reference>"), "the default is Legacy");
+        String modern = LlmSpikeGui.PlayerControllerLLM.seatFraming("modern", "Seat", "GAME PLAN: x", true, true, true);
+        Assert.assertTrue(modern.contains("Magic: The Gathering, Modern format"), modern.substring(0, 120));
+        Assert.assertFalse(modern.contains("<legacy_reference>"), "a Modern game was given the Legacy pool's archetypes");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.gameFormat(" Pauper "), "pauper");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.gameFormat(null), "legacy");
 
         // Every handle the viewer has seen inspects identically in both worlds; no handle reaches a
         // hidden object because hidden objects are never sighted.
