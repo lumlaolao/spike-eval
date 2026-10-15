@@ -219,4 +219,26 @@ public class PromptFidelityTest {
         Assert.assertNotNull(top, "the trigger is on the stack");
         Assert.assertTrue(top.getTargets().contains(lions), "the seat's target was used: " + top.getTargets());
     }
+
+    /** Every attacker went at the first defending player; a planeswalker could never be attacked. */
+    @Test
+    public void anAttackerCanAttackAPlaneswalker() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card jace = card("Jace, the Mind Sculptor", rival, ZoneType.Battlefield);
+        Recorder model = new Recorder("PICKS: 1") {
+            @Override public String ask(String prompt) {
+                prompts.add(prompt);
+                if (!prompt.contains("DECISION: Where does")) return "PICKS: 1";
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?m)^\\s*(\\d+)\\) Jace").matcher(prompt);
+                return m.find() ? "CHOICE: " + m.group(1) : "CHOICE: 1";
+            }
+        };
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        forge.game.combat.Combat combat = new forge.game.combat.Combat(me);
+        ctrl.declareAttackers(me, combat);
+        Assert.assertEquals(combat.getAttackers().size(), 1, decisions(model));
+        Assert.assertEquals(combat.getDefenderByAttacker(combat.getAttackers().get(0)), jace, decisions(model));
+    }
 }
