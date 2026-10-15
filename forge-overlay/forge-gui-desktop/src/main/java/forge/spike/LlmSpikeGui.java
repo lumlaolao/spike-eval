@@ -204,7 +204,7 @@ public final class LlmSpikeGui {
      *  Epoch 15: a model's filled-in defaults do nothing (answer-tool-v8): `yield` "none" first, an empty
      *  `keep_untapped` is not said, and handles that name no source ask the mana question.
      *  Epoch 16: convoke/improvise, single-target retargeting, redirection and mana from the pool are the seat's. */
-    static final String HARNESS_EPOCH = "harness-epoch-16";
+    static final String HARNESS_EPOCH = "harness-epoch-17";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -5189,12 +5189,14 @@ public final class LlmSpikeGui {
                     ? ((forge.game.trigger.WrappedAbility) ability).getWrappedAbility() : ability;
             if (sa == null || !sa.usesTargeting()) return null;
             forge.game.spellability.TargetChoices old = sa.getTargets();
-            if (old.size() != 1 || sa.isDividedAsYouChoose() || sa.getMaxTargets() > 1) {
-                auto("new-targets(multi)->unchanged " + labelOf(sa));
+            TargetRestrictions tr = sa.getTargetRestrictions();
+            if (tr == null || old.isEmpty()) return null;
+            if (sa.isDividedAsYouChoose() && old.size() > 1) {
+                // No hook: the engine would need the old division re-spread over the new targets.
+                auto("new-targets(divided)->unchanged " + labelOf(sa));
                 return null;
             }
-            TargetRestrictions tr = sa.getTargetRestrictions();
-            if (tr == null) return null;
+            if (old.size() > 1 || sa.getMaxTargets() > 1) return chooseNewTargetSet(sa, tr, old, filter);
             Object current = old.get(0);
             List<GameEntity> cands = new ArrayList<>();
             for (GameEntity ge : tr.getAllCandidates(sa, false))
@@ -5208,6 +5210,36 @@ public final class LlmSpikeGui {
             if (c < 0) return null;
             sa.resetTargets();
             sa.getTargets().add(cands.get(c));
+            return sa.getTargets();
+        }
+
+        /** A spell or copy with several targets: the seat picks the whole new set, up to as many as it had
+         *  (as a human chooses). Picking none, or a set the spell cannot have, keeps the old targets. */
+        private forge.game.spellability.TargetChoices chooseNewTargetSet(SpellAbility sa, TargetRestrictions tr,
+                forge.game.spellability.TargetChoices old, java.util.function.Predicate<forge.game.GameObject> filter) {
+            List<GameEntity> cands = new ArrayList<>();
+            sa.resetTargets();   // a candidate is judged without the old set (unique-target restrictions)
+            try {
+                for (GameEntity ge : tr.getAllCandidates(sa, false))
+                    if ((filter == null || filter.test(ge)) && sa.canTarget(ge)) cands.add(ge);
+            } finally { sa.setTargets(old); }
+            if (cands.isEmpty()) { auto("new-targets(none-legal)->unchanged"); return null; }
+            int max = old.size();
+            List<String> labels = new ArrayList<>();
+            List<String> now = new ArrayList<>();
+            for (GameEntity ge : cands) labels.add(labelOf(ge) + (old.contains(ge) ? " (a current target)" : ""));
+            for (forge.game.GameObject o : old) now.add(o instanceof GameEntity ? labelOf((GameEntity) o) : String.valueOf(o));
+            List<Integer> picks = askMany("new-targets", "CHANGE TARGETS: " + labelOf(sa) + " targets "
+                    + String.join(", ", now) + ". Choose its new targets, up to " + max
+                    + " (at least " + sa.getMinTargets() + "), or none to keep them.", labels, 0, max);
+            if (picks.isEmpty()) return null;
+            sa.resetTargets();
+            for (int i : picks) {
+                GameEntity ge = cands.get(i);
+                if (!sa.canTarget(ge)) { sa.setTargets(old); auto("new-targets(illegal-set)->unchanged"); return null; }
+                sa.getTargets().add(ge);
+            }
+            if (!sa.isTargetNumberValid()) { sa.setTargets(old); auto("new-targets(too-few)->unchanged"); return null; }
             return sa.getTargets();
         }
 

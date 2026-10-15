@@ -907,6 +907,34 @@ public class GoldenChecksTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    @Test
+    public void aSpellWithSeveralTargetsGetsTheModelsNewSet() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card flicker = card("Ghostly Flicker", me, ZoneType.Hand);      // exactly two targets
+        Card goblin = card("Goblin Guide", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", me, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("CHANGE TARGETS", picks("Grizzly Bears", "Savannah Lions"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        SpellAbility sa = spell(flicker, me);
+        sa.getTargets().add(goblin);
+        sa.getTargets().add(bears);
+        forge.game.spellability.TargetChoices t = ctrl.chooseNewTargetsFor(sa, null, true);
+        Assert.assertNotNull(t, "the seat chose a new set");
+        Assert.assertTrue(t.contains(bears) && t.contains(lions) && !t.contains(goblin), String.valueOf(t));
+
+        // One target where the spell needs two: the old targets stay.
+        Script one = new Script("CHOICE: 1").on("CHANGE TARGETS", picks("Savannah Lions"));
+        LlmSpikeGui.PlayerControllerLLM ctrl1 = seat(g, one, one);
+        SpellAbility sa1 = spell(flicker, me);
+        sa1.getTargets().add(goblin);
+        sa1.getTargets().add(bears);
+        Assert.assertNull(ctrl1.chooseNewTargetsFor(sa1, null, true), "a set the spell cannot have keeps the old one");
+        Assert.assertTrue(sa1.getTargets().contains(goblin) && sa1.getTargets().contains(bears), String.valueOf(sa1.getTargets()));
+        Assert.assertEquals(ctrl.aiDelegationsCount() + ctrl1.aiDelegationsCount(), 0);
+    }
+
     // ------------------------------------------------------------------ the gate
 
     /** Runs last: every type the seat asks has a test above that a model answered, and nothing above
