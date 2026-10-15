@@ -8,10 +8,10 @@ because results built on different engines are different measurements and must n
 
 | | |
 |---|---|
-| Commit | `6c1810dd0b42213f9ad768d1b5f251753e1e298d` |
-| Date | 2026-10-13 |
-| Previous pin | `c1c64a53586459cd0d4c70f27abd1aa8bbc92891` (2026-07-09) |
-| Upstream | `Card-Forge/forge` `master` (the old pin is an ancestor; this was a clean fast-forward) |
+| Commit | `34a8662b7966a6ee757411feae2ae8ff38cce436` |
+| Date | 2026-10-14 |
+| Previous pin | `6c1810dd0b42213f9ad768d1b5f251753e1e298d` (2026-10-13) |
+| Upstream | `Card-Forge/forge` `master` (clean fast-forward, 10 commits) |
 
 ## What changed and what it cost
 
@@ -33,6 +33,21 @@ The only API-visible changes that touched the overlay's surface:
 | `PlayerControllerAi.setUseSimulation(boolean)` removed | The overlay never called it. |
 | `AiCostDecision`, `ComputerUtilCombat`, `CombatUtil`, `ComputerUtilMana` internals | No signature change to anything the overlay calls. |
 | Engine behaviour generally (card scripts, AI, rules handling) | The two zero-model canaries moved — floor kept winner **and** turns (A/108) but decisions `1053 → 1064`; random re-rolled the whole game (`B/17/75 → A/29/167`). Re-pinned **deliberately** in `eval/harness_acceptance.expected`, each gated on the analyzer's `tier=ai`=0 and `silent drops=0`. |
+
+## 2026-10-14 bump: 6c1810dd0b42 -> 34a8662b7966
+
+10 upstream commits (tip "fix vprompt"); 64 files, +1385/-87. Against the overlay it was **inert**:
+
+- The overlay compiles cleanly and **321/321 Java tests pass**; the ownership baseline did not move
+  (still **3** silent core strategic/payment hooks), so no hook was added or removed.
+- `ComputerUtil.handlePlayingSpellAbility` (the routine `playChosenSpellAbility` copies), `GameCopier`
+  and `PlayerController` were **not touched** by these commits, so the 4b and 4c checks did not apply.
+- **The floor canary did not move**: A/108/**1068**, unchanged. The random canary re-rolled, as it
+  does on any engine change: B/19/65 -> **B/33/307**, reproduced twice. Re-pinned in
+  `eval/harness_acceptance.expected` (2026-10-14 note), which also refreshes the Mac random pin #112
+  recorded as stale. The `linux.*` pins are the old engine's and are named STALE there.
+
+Evidence: acceptance preflight/classpath/compile/javatests/canary PASS at the new pin.
 
 ## How to bump it again
 

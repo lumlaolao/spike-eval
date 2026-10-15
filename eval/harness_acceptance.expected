@@ -35,9 +35,16 @@ random.seed=42
 # again instead of "forced-only-legal" shortcuts (attack with it / keep it, unasked). The random arm
 # now rolls those too, so its walk re-rolls: winner B, 19 turns / 65 decisions. Reproduced twice
 # (/tmp/acc-fbef9cfab, /tmp/acc-part). Floor is unchanged: it attacks with everything and never scries.
+# 2026-10-14: engine pin bumped 6c1810dd0b42 -> 34a8662b7966 (10 upstream commits, tip "fix
+# vprompt"). The floor arm did NOT move (A/108/1068 above, unchanged). The random arm re-rolled
+# as it does on any engine change and now reproduces at B/33/307 (twice, same class-load build).
+# Re-pinned deliberately: ai=0 rows, silent drops=0, game not capped. This also refreshes the Mac
+# random pin that #112 recorded as stale (B/19/65 was unreproducible on this machine).
+# STALE: linux.floor.* and linux.random.* are the OLD engine's (see #112/#95); re-pin them on Linux
+# at 34a8662b7966 before the Linux canaries are trusted again.
 random.winner=B
-random.turns=19
-random.decisions=65
+random.turns=33
+random.decisions=307
 # Silent Forge-AI strategic/payment hooks reachable in Legacy play (ControllerOwnershipTest baseline).
 ownership.silent_ai_strategic_max=3
 # 2026-10-14: LINUX pins (PR #95). The same commit plays seed 42 differently on Linux (Debian
@@ -49,8 +56,9 @@ ownership.silent_ai_strategic_max=3
 # Random differs by OS too: on Linux it is B/16/94 at a955cd8 (where the Mac pin B/19/65 was set; JDK
 # 17 and 21) and at main b425298. Random on Linux is A/56/290 at this PR, reproduced 5 times (JDK 17,
 # CPU 1/4/12, C.UTF-8, TZ); this PR moves the random arm on every OS (it now casts alternative-cost
-# spells and picks what exile and return costs take), so the Mac random pin above is STALE until it
-# is re-pinned on the Mac.
+# spells and picks what exile and return costs take). The Mac random pin was re-measured on
+# 2026-10-14 at the new engine (B/33/307, above); these linux.* pins are still the old engine's and
+# are STALE (see the 2026-10-14 note above) until re-pinned on Linux at 34a8662b7966.
 linux.floor.winner=A
 linux.floor.turns=108
 linux.floor.decisions=1081
