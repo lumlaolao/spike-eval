@@ -27,11 +27,18 @@ when an item is finished or a new one is agreed, so the next session can pick up
 
 ## Priority 1: tool calls and prompts
 
-1. **Research: prompt craft and Anthropic's guides.** Anthropic's prompt-engineering guide, prompt
-   caching (what goes first so every decision hits the cache), tool use (descriptions, `tool_choice`,
-   thinking with tools), Agent Skills, MCP, and context engineering; OpenAI's prompting guide for
-   comparison. Output: `docs/harness/PROMPT-CRAFT.md`, a doc of concrete rules for our prompts, each
-   rule sourced.
+1. ~~Research: prompt craft and Anthropic's guides.~~ **Done 2026-10-15:**
+   `docs/harness/PROMPT-CRAFT.md`, with 22 sourced rules, the current state measured against them,
+   and the follow-ups below.
+1b. **Small request fixes the research found** (each contained in `OpenRouterBridge`, checked on one
+    cheap Haiku 5.5 game):
+    - send `cache_control` for `anthropic/` models; nothing is cached today, and a game's prompt
+      tokens average about 10K per call, almost all of it a repeated prefix;
+    - record `cached_tokens` and cache writes per call, and price them in `cost_report.py`;
+    - keep `tool_choice` fixed for the whole game (switching it invalidates the cache), refusing
+      calls over budget in the tool result instead;
+    - pass `reasoning_details` back with the assistant turn across tool rounds; today the model
+      loses its own reasoning after a lookup.
 2. **Audit every prompt the seat sees** against those rules: the system framing, the observation,
    each decision type's question, retries, tool descriptions, the plan ask. For each: what is unclear,
    redundant, missing, or ordered badly for caching.
