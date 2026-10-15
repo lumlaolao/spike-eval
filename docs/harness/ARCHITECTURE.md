@@ -140,6 +140,10 @@ round in the same conversation; a second illegal call loses the decision.
 - *Why every optional field's default means nothing:* a model may fill every field with its first or
   empty value. Luna did, and the old first `yield` value took it out of its own windows. `yield` starts
   with "none", and an empty `keep_untapped` is "not said" (answer-tool-v8).
+- *Why a yield never passes the seat's own main phase:* a yield passes the windows with nothing of the
+  opponent's on the stack until the turn it names. Given at the seat's own upkeep ("keep mana open"), it
+  also passed that turn's main phases, so the seat lost its land drop and every sorcery-speed play
+  (`runs/luna-v8/g3`, two turns). The main phases with an empty stack always ask (answer-tool-v9).
 
 **No text alternative (answer-tool-v7).**
 - A reply that calls nothing is reminded up to twice in the same conversation, then the decision is lost.

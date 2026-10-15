@@ -68,7 +68,7 @@
           },
           "yield": {
             "type": "string",
-            "description": "Optional, only with PASS on a play decision. \"none\" (the default): you are asked at every window as usual. \"end-of-turn\" or \"my-next-turn\": until then you are not asked in windows where nothing of your opponent's is on the stack (anything they cast or activate always asks you).",
+            "description": "Optional, only with PASS on a play decision. \"none\" (the default): you are asked at every window as usual. \"end-of-turn\" or \"my-next-turn\": until then you are not asked in windows where nothing of your opponent's is on the stack (anything they cast or activate always asks you; your own main phases always ask too).",
             "enum": [
               "none",
               "end-of-turn",

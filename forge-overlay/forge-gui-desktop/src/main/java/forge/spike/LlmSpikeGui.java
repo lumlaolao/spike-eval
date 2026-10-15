@@ -203,8 +203,10 @@ public final class LlmSpikeGui {
      *  legal cards; empty choices return empty without asking Forge's AI.
      *  Epoch 15: a model's filled-in defaults do nothing (answer-tool-v8): `yield` "none" first, an empty
      *  `keep_untapped` is not said, and handles that name no source ask the mana question.
-     *  Epoch 16: convoke/improvise, single-target retargeting, redirection and mana from the pool are the seat's. */
-    static final String HARNESS_EPOCH = "harness-epoch-18";
+     *  Epoch 16: convoke/improvise, single-target retargeting, redirection and mana from the pool are the seat's.
+     *  Epoch 17: every retargeting and effects played without the stack. Epoch 18: delve is the seat's; a
+     *  crashed game has no winner. Epoch 19: a yield never passes the seat's own main phase (answer-tool-v9). */
+    static final String HARNESS_EPOCH = "harness-epoch-19";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -790,11 +792,11 @@ public final class LlmSpikeGui {
         private int yieldTurn = -1;
         static final String YIELD_HINT = "If you PASS, you may also add a line `YIELD: end-of-turn` or `YIELD: my-next-turn`: "
                 + "until then you are not asked in windows where nothing of your opponent's is on the stack "
-                + "(anything they cast or activate always asks you). ";
+                + "(anything they cast or activate always asks you; your own main phases always ask too). ";
         /** {@link #YIELD_HINT} for the answer tool: a field of the answer, not a line. */
         static final String YIELD_TOOL_HINT = "If you PASS, you may also give `yield` in your `answer` (end-of-turn or my-next-turn): "
                 + "until then you are not asked in windows where nothing of your opponent's is on the stack "
-                + "(anything they cast or activate always asks you). ";
+                + "(anything they cast or activate always asks you; your own main phases always ask too). ";
 
         /** The play ask's notes under the answer tool: the plan through `set_plan`, the cast list, the
          *  card-interactions note and the opponent read as fields of `answer`. No line is asked for. */
@@ -2799,7 +2801,10 @@ public final class LlmSpikeGui {
                     boolean over = "end-of-turn".equals(yieldUntil) ? phh.getTurn() != yieldTurn
                             : phh.isPlayerTurn(me) && phh.getTurn() != yieldTurn;
                     if (over) yieldUntil = null;
-                    else if (!oppOnStack) return skipWindow("yield:" + yieldUntil, options.size());
+                    // The seat's own main phase with an empty stack is never yielded away: its land drop and
+                    // sorcery-speed plays live there (runs/luna-v8/g3 yielded at its upkeep and lost both turns).
+                    else if (!oppOnStack && !(ownMain && me.getGame().getStack().isEmpty()))
+                        return skipWindow("yield:" + yieldUntil, options.size());
                 }
                 if (SKIP_HEUR && rnd == null && !ownMain && !oppEot && !phh.inCombat()) {
                     boolean anyInteractive = false;

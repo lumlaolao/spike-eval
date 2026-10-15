@@ -47,7 +47,7 @@ final class AnswerTool {
      *  is lost; prose is never parsed as the answer. A text format left in a tool ask is logged and counted.
      *  v8: a model's filled-in defaults do nothing: `yield` has "none" as its first value, and an empty
      *  `keep_untapped` means not said (Luna filled every field: 175 of 189 answers yielded to end of turn). */
-    static final String VERSION = "answer-tool-v8";
+    static final String VERSION = "answer-tool-v9";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -248,7 +248,8 @@ final class AnswerTool {
         props.add("steps", steps);
         JsonObject y = obj("type", "string", "description", "Optional, only with PASS on a play decision. \"none\" (the default): "
                 + "you are asked at every window as usual. \"end-of-turn\" or \"my-next-turn\": until then you are not asked in "
-                + "windows where nothing of your opponent's is on the stack (anything they cast or activate always asks you).");
+                + "windows where nothing of your opponent's is on the stack (anything they cast or activate always asks you; "
+                + "your own main phases always ask too).");
         JsonArray e = new JsonArray();
         // "none" first: a model that fills every field takes the first value (Luna did, 175 of 189 answers).
         e.add("none"); e.add("end-of-turn"); e.add("my-next-turn");
@@ -399,7 +400,7 @@ final class AnswerTool {
         if (s.yield) {
             JsonObject y = obj("type", "string", "description", "Optional, with PASS only. \"none\" (the default): you are asked "
                     + "as usual. Otherwise, until then you are not asked in windows where nothing of your opponent's is on the stack "
-                    + "(anything they cast or activate always asks you).");
+                    + "(anything they cast or activate always asks you; your own main phases always ask too).");
             JsonArray e = new JsonArray();
             e.add("none"); e.add("end-of-turn"); e.add("my-next-turn");
             y.add("enum", e);
