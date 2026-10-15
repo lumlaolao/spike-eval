@@ -363,6 +363,77 @@ class TestLookahead(unittest.TestCase):
         self.assertFalse(run_batch.game_line_matches(game_line(1, False), run_batch.resume_expectation(make_args(lookahead=True))))
 
 
+class TestPlanExecuteAndTierFastTypes(unittest.TestCase):
+    """PLAN_EXECUTE and TIER_FAST_TYPES change how the seat plays (issue #117): the harness plays a
+    step of the plan, or a decision type moves off the reasoning tier. Both are conditions like
+    --lookahead: set only by their flags, scrubbed from the ambient environment, recorded in the
+    manifest and checked against each game line's own stamp."""
+
+    def test_only_the_flags_set_them(self):
+        with mock.patch.dict(os.environ, {"PLAN_EXECUTE": "1", "TIER_FAST_TYPES": "targets"},
+                             clear=False), tempfile.TemporaryDirectory() as d:
+            env = run_batch.build_env(make_args(), 7100, False, Path(d))
+            self.assertEqual(env["PLAN_EXECUTE"], "0")   # ambient value scrubbed
+            self.assertEqual(env["TIER_FAST_TYPES"], "")
+            on = run_batch.build_env(make_args(plan_execute=True, tier_fast_types="targets,target"),
+                                     7100, False, Path(d))
+            self.assertEqual(on["PLAN_EXECUTE"], "1")
+            self.assertEqual(on["TIER_FAST_TYPES"], "target,targets")  # normalized
+        for kv in ("PLAN_EXECUTE=1", "TIER_FAST_TYPES=targets"):
+            p = subprocess.run([sys.executable, str(RUN_BATCH), "--seeds", "7100", "--exploratory",
+                                "--env", kv, "--forge-home", "/nonexistent"],
+                               capture_output=True, text=True)
+            with self.subTest(env=kv):
+                self.assertNotEqual(p.returncode, 0)
+                self.assertIn("--plan-execute", p.stderr)
+
+    def test_game_lines_and_manifests_keep_them_apart(self):
+        off = run_batch.resume_expectation(make_args())
+        on = run_batch.resume_expectation(make_args(plan_execute=True, tier_fast_types="target,targets"))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False), off))            # pre-stamp line
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False, plan_execute=True), off))
+        self.assertTrue(run_batch.game_line_matches(
+            game_line(1, False, plan_execute=True, tier_fast_types="target,targets"), on))
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False), on))
+        self.assertFalse(run_batch.game_line_matches(
+            game_line(1, False, tier_fast_types="target"), on))  # wrong type set
+        base = run_batch.batch_condition(make_args(), cited=False)
+        sw = run_batch.batch_condition(make_args(plan_execute=True, tier_fast_types="targets,target"),
+                                       cited=False)
+        self.assertEqual(run_batch.condition_diff(base, sw),
+                         [("plan_execute", False, True),
+                          ("tier_fast_types", "", "target,targets")])
+        # A manifest from before the flags recorded them as `--env`; the same values under the flags
+        # are the same condition, and without the flags they are not.
+        old = dict(base, env_overrides={"PLAN_EXECUTE": "1", "TIER_FAST_TYPES": "Targets, target"})
+        del old["plan_execute"]
+        del old["tier_fast_types"]
+        self.assertEqual(run_batch.condition_diff(old, sw), [])
+        self.assertEqual(run_batch.condition_diff(old, base),
+                         [("plan_execute", True, False),
+                          ("tier_fast_types", "target,targets", "")])
+
+    def test_unstamped_lines_of_a_pre_flag_batch_count_as_done(self):
+        # A batch run with `--env PLAN_EXECUTE=1 TIER_FAST_TYPES=...` before the flags: its unstamped
+        # lines ran with them on, so resuming under the flags must not replay its finished games.
+        manifest = {"condition": {"env_overrides": {"PLAN_EXECUTE": "1", "TIER_FAST_TYPES": "targets"}}}
+        args = make_args(plan_execute=True, tier_fast_types="targets")
+        args.unstamped_plan_execute = run_batch.unstamped_play_switch(manifest, "plan_execute",
+                                                                      "PLAN_EXECUTE")
+        args.unstamped_tier_fast_types = run_batch.unstamped_play_switch(manifest, "tier_fast_types",
+                                                                         "TIER_FAST_TYPES")
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False), run_batch.resume_expectation(args)))
+        # Without a pre-flag manifest that proves the value, an unstamped line is not this batch's.
+        self.assertFalse(run_batch.game_line_matches(
+            game_line(1, False), run_batch.resume_expectation(
+                make_args(plan_execute=True, tier_fast_types="targets"))))
+
+    def test_tier_fast_types_is_normalized(self):
+        self.assertEqual(run_batch.normalize_tier_fast_types("Targets, target ,targets"), "target,targets")
+        self.assertEqual(run_batch.normalize_tier_fast_types(None), "")
+        self.assertEqual(run_batch.normalize_tier_fast_types("  "), "")
+
+
 class TestResumeIdentity(unittest.TestCase):
     """A game line counts as 'already done' only under this batch's condition."""
 

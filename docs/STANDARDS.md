@@ -105,8 +105,13 @@ most log questions).
   pooled count may be shown for description only when it is labelled, names the arms, and the
   per-arm counts are beside it.
 - **JSONL is additive-only.** New fields; never a renamed or re-typed one. Readers use `.get()`.
-- **An opt-in flag is a condition.** It is pinned by `run_batch.py`, recorded in the manifest, and
-  refused on resume into a directory made under a different value.
+- **An opt-in flag is a condition.** It is pinned by `run_batch.py`, recorded in the manifest,
+  stamped on the game line and keyed by `aggregate.PROVENANCE_FIELDS`, and refused on resume into a
+  directory made under a different value. A condition the JVM reads from the environment but never
+  stamps pools its on- and off-games (issue #117: `PLAN_EXECUTE`, `TIER_FAST_TYPES`); every
+  `System.getenv` in the game-line writer is either stamped or on a named allowlist of settings that
+  do not change the seat's decisions (the check is `eval/test_experiments.py`'s
+  `GameLineStampCoverageTest`).
 - **Python**: standard library only, Python 3.9, a module docstring that says what it measures and
   what it cannot. **Shell**: bash 3.2 (macOS); no apostrophe inside a heredoc in `$( )`.
 - **Delete what a change makes dead** in the same PR: the unused flag, the helper with no caller,

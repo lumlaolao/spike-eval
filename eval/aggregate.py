@@ -127,6 +127,12 @@ PROVENANCE_FIELDS = (
     ("one_chat_version", MISSING),
     # The interface the model plays through, as one number (docs/STANDARDS.md section 8).
     ("harness_epoch", MISSING),
+    # Two opt-in switches that change how the seat plays (issue #117): PLAN_EXECUTE makes the harness
+    # play steps of the model's own stated turn plan, TIER_FAST_TYPES moves decision types off the
+    # reasoning tier. Neither was stamped, keyed or pinned, so games played with them on and off pooled
+    # into one experiment. A legacy line that carries neither reads MISSING, as a distinct condition.
+    ("plan_execute", MISSING),
+    ("tier_fast_types", MISSING),
 )
 
 # Identity fields a cited run must resolve. A value in this set means the field
