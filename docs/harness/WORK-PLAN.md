@@ -218,6 +218,25 @@ Left:
       `eval/suites/puzzles-forge-builtin-v1.json`, then a small Luna run (cost first).
 14. ~~Commit `runs/combo/`.~~ Done.
 
+## Proposed, waiting on the owner: engine patches where the seat has no hook (2026-10-15)
+
+Owner: "can we think about editing the forge engine if needed to truly let agents have control". It can be
+done without editing the Forge checkout: `install.sh` copies `forge-overlay/` over it, and the isolated
+acceptance build puts the overlay's classes first, so a patched copy of an engine file at its own path in
+the overlay replaces the original on both paths. The rules it would follow:
+- only where a decision the seat should own has no controller hook, or an engine bug distorts play;
+- the whole upstream file copied, the change marked `// HARNESS PATCH:`, kept minimal;
+- `docs/harness/ENGINE-PATCHES.md` records each file with the sha256 of its upstream original at
+  `FORGE_COMMIT`; a test fails when the pinned checkout's file differs, so a re-pin forces a re-diff;
+- a golden check per patch, acceptance and the canaries, as for any change.
+
+What it would be used for today (audited 2026-10-15): one decision. The colour an any-colour source (Lotus
+Petal, LED) makes for a generic shard is set inside Forge's AI payment (`ComputerUtilMana`, forge-ai) before
+the seat's colour question; it matters only to converge, sunburst and spent-colour checks. The engine's
+`isAI()` branches were checked: none takes a decision from the seat (Spire colours are asked; a library
+search picks one card at a time; the priority loop guard). Recommendation: set the mechanism up when a
+decision needs it; this one is low value.
+
 ## Priority 3: later
 
 - Finish the puzzle suite (see 13).
