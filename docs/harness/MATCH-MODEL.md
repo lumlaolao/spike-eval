@@ -1,6 +1,6 @@
 # The match model — persistent state, continuity, and memory for the LLM seat
 
-**Status:** built and acceptance-gated (PRs #46–#58, #77). Observation version `observation-faithful-v22`.
+**Status:** built and acceptance-gated (PRs #46–#58, #77). Observation version `observation-faithful-v23`.
 
 ## Why
 

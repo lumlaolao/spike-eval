@@ -202,7 +202,12 @@ final class ContextMemory {
             if (turn == null) return null;
             if (turn.calls.isEmpty()) {
                 if (toolLine(turn.content) != null || NativeTools.looksLikeCallMarkup(turn.content)) {
-                    audit.accept(turn.content, "ERROR: a tool request must be a function call; no tool executed.");
+                    // On a round that offered no calls, call markup written as text is a model asking past
+                    // its budget (runs/compare: deepseek's DSML markup after two searches), not a form
+                    // the harness refused; say so, so the audit counts it as exhausted, not REFUSED.
+                    audit.accept(turn.content, allow
+                            ? "ERROR: a tool request must be a function call; no tool executed."
+                            : "ERROR: tool budget exhausted; a call written as text was not run.");
                     // Seen in games: with calls forbidden the model writes its call markup as text.
                     // Returning null there lost the decision. Say once, in words, that the tools are
                     // spent and the answer is due; a second such reply ends the ask.

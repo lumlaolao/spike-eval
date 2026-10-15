@@ -72,7 +72,7 @@ import forge.spike.LlmSpikeGui.ContextProfile;
  * seat are appended to the same stream, so every seat-visible fact has one E-id and one place to search.
  */
 final class SeatObservation {
-    static final String VERSION = "observation-faithful-v22";
+    static final String VERSION = "observation-faithful-v23";
     /** Printed once per observation so every prompt is self-describing. Part of the prompt bytes and
      *  therefore of this VERSION: change it and bump the version. */
     static final String LEGEND = "LEGEND: @N = your seat's handle for one object, assigned when you first see it; a zone change "
@@ -141,6 +141,14 @@ final class SeatObservation {
      *  model, refreshed rarely, re-injected every decision, and always labelled unverified — it is a
      *  hypothesis the model can revise, never an engine fact. Empty until the model writes one. */
     private String profile = "";
+
+    /** The colour tally plus what it means (observation v23): a source is counted under every colour
+     *  it can make, so `{W:3 U:1 B:1 R:1 G:1 C:1} (3 untapped sources)` from two Plains and a Cavern
+     *  of Souls read to a judge as nine mana from four sources (runs/frontier/opus, T8). */
+    static String manaLine(Player p) {
+        return LlmSpikeGui.PlayerControllerLLM.manaAvailable(p).replace(" untapped sources)",
+                " untapped sources; each is counted under every colour it can make, so the colours add up to more than can be spent)");
+    }
 
     void setProfile(String p) { this.profile = p == null ? "" : p; }
     /** When the seat's plan was stated ("T5 MAIN1"), for the plan line. */
@@ -855,7 +863,7 @@ final class SeatObservation {
             s.append("  hand(").append(viewer.getCardsIn(ZoneType.Hand).size()).append("): ").append(handList()).append('\n');
             s.append("  board: ").append(perms(viewer)).append('\n');
             s.append("  lands: ").append(lands(viewer)).append('\n');
-            s.append("  mana available: ").append(LlmSpikeGui.PlayerControllerLLM.manaAvailable(viewer)).append('\n');
+            s.append("  mana available: ").append(manaLine(viewer)).append('\n');
             s.append("  graveyard(").append(viewer.getCardsIn(ZoneType.Graveyard).size()).append("): ")
              .append(zoneList(viewer.getCardsIn(ZoneType.Graveyard), ctx.yardCap)).append('\n');
             s.append("  exile(").append(viewer.getCardsIn(ZoneType.Exile).size()).append("): ")
@@ -870,7 +878,7 @@ final class SeatObservation {
                 s.append("  hand: ").append(opp.getCardsIn(ZoneType.Hand).size()).append(" cards (hidden)\n");
                 s.append("  board: ").append(perms(opp)).append('\n');
                 s.append("  lands: ").append(lands(opp)).append('\n');
-                s.append("  mana available: ").append(LlmSpikeGui.PlayerControllerLLM.manaAvailable(opp)).append('\n');
+                s.append("  mana available: ").append(manaLine(opp)).append('\n');
                 s.append("  graveyard(").append(opp.getCardsIn(ZoneType.Graveyard).size()).append("): ")
                  .append(zoneList(opp.getCardsIn(ZoneType.Graveyard), ctx.yardCap)).append('\n');
                 s.append("  exile(").append(opp.getCardsIn(ZoneType.Exile).size()).append("): ")

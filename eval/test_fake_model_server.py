@@ -60,6 +60,11 @@ class FakeModelServerTest(unittest.TestCase):
         self.assertEqual(policy(policy="simulate").reply_for("  1) PLAY LAND\n  2) PASS\nCHOICE: <n>", 1), "CHOICE: 1")
         self.assertEqual(p.reply_for("PICKS: <numbers>", 1), "PICKS: none")
 
+    def test_the_gaming_policies_never_answer(self):
+        self.assertEqual(policy(policy="empty").reply_for("  1) A\n  2) B\nCHOICE: <n>", 1), "")
+        g = policy(policy="garbage").reply_for("  1) A\n  2) B\nCHOICE: <n>", 1)
+        self.assertNotRegex(g, r"CHOICE:\s*\d|PICKS:\s*(\d|none)|BLOCKS:\s*none|\bKEEP\b")
+
 
 class RefuseToolsTest(unittest.TestCase):
     """--refuse-tools over real HTTP: the 404 wording is the one OpenRouterBridge.refusesTools reads."""

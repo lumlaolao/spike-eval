@@ -326,9 +326,28 @@ public class NativeToolsTest {
         String reply = new ContextMemory().askNative("Name a card.", (user, messages, tools, allow, round) ->
                 turn("I should look first.\nINSPECT Delver of Secrets"), null, (request, result) -> results.add(result));
         Assert.assertNull(reply);
-        // Told once that the tools are spent, it wrote the same thing again: two refusals, then no answer.
+        // Told once that the tools are spent, it wrote the same thing again: refused, then past its
+        // budget, then no answer.
         Assert.assertEquals(results, List.of("ERROR: a tool request must be a function call; no tool executed.",
-                "ERROR: a tool request must be a function call; no tool executed."));
+                "ERROR: tool budget exhausted; a call written as text was not run."));
+    }
+
+    /** runs/compare: after its two calls deepseek wrote its own call markup as text. That is a request
+     *  past the budget, recorded as exhausted (not a REFUSED form), and the decision is still answered. */
+    @Test
+    public void callMarkupAfterTheBudgetIsExhaustedNotRefused() {
+        ContextMemory memory = new ContextMemory();
+        memory.setInspector(arg -> "text");
+        List<String> results = new ArrayList<>();
+        String reply = memory.askNative("DECISION", (user, messages, tools, allow, round) -> {
+            switch (round) {
+                case 0: return turn(null, call("a", "inspect", "{\"target\":\"@1\"}"), call("b", "inspect", "{\"target\":\"@2\"}"));
+                case 1: return turn("<\uff5cDSML\uff5c calls>\n<\uff5cDSML\uff5c invoke name=\"memory_read\">");
+                default: return turn("CHOICE: 2");
+            }
+        }, null, (request, result) -> results.add(result));
+        Assert.assertEquals(reply, "CHOICE: 2");
+        Assert.assertEquals(results.get(2), "ERROR: tool budget exhausted; a call written as text was not run.");
     }
 
     /** The last round may not call: a tool run then could never be read and would only be spent.

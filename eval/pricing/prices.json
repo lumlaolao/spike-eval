@@ -15,6 +15,20 @@
       "checked": "2026-10-15",
       "source": "https://openrouter.ai/api/v1/models"
     },
+    "anthropic/claude-haiku-5.5": {
+      "prompt": 0.0000001,
+      "completion": 0.0000005,
+      "input_cache_read": 0.00000001,
+      "checked": "2026-10-15",
+      "source": "https://openrouter.ai/api/v1/models"
+    },
+    "anthropic/claude-sonnet-5.5": {
+      "prompt": 0.000002,
+      "completion": 0.00001,
+      "input_cache_read": 0.0000001,
+      "checked": "2026-10-15",
+      "source": "https://openrouter.ai/api/v1/models"
+    },
     "openai/gpt-6-luna": {
       "prompt": 0.0000001,
       "completion": 0.0000005,

@@ -54,6 +54,10 @@ from pathlib import Path
 DEFAULT_RESAMPLES = 10_000
 DEFAULT_BOOTSTRAP_SEED = 20260715  # fixed for reproducible CIs
 DEFAULT_MAX_FALLBACK_RATE = 0.10
+# The harness-decided share: decisions the harness made when the model could have (match_review's
+# TAKEN and LOST, and any Forge-AI row), over the llm identities' decisions. Forced picks (one legal
+# option) are not counted; the fallback rate above counts them, which hides this number.
+DEFAULT_MAX_HARNESS_DECIDED_RATE = 0.02
 
 # Default for fields the harness did not yet emit when the line was written.
 # Kept DISTINCT from "unknown": absent means this run predates the field and
@@ -563,21 +567,35 @@ def summarize_arms(games):
 
     Identity-keyed: winner "A" is identity A's win and controller_a/smart_a
     are identity A's config, so attribution never flips on swap."""
-    arms = defaultdict(lambda: {"wins": 0, "games": 0})
+    arms = defaultdict(lambda: {"wins": 0, "games": 0, "started": 0, "draws": 0})
     for g in games:
         w = g.get("winner")
+        la, lb = arm_label(g, "a"), arm_label(g, "b")
+        # Every started game, for the strict score: a game that ended in a draw or never finished (the
+        # wall-clock cap, a crash) is not dropped there, so stalling a lost game into the cap cannot
+        # erase the loss.
+        arms[la]["started"] += 1
+        arms[lb]["started"] += 1
+        if w == "draw":
+            arms[la]["draws"] += 1
+            arms[lb]["draws"] += 1
         if w not in ("A", "B"):
             continue
-        la, lb = arm_label(g, "a"), arm_label(g, "b")
         arms[la]["games"] += 1
         arms[lb]["games"] += 1
         arms[la if w == "A" else lb]["wins"] += 1
     out = {}
     for label, d in sorted(arms.items()):
+        if not d["games"]:
+            continue                        # an arm with no decisive game is not listed (as before)
         lo, hi = wilson_ci(d["wins"], d["games"])
         out[label] = {"wins": d["wins"], "games": d["games"],
                       "win_rate": d["wins"] / d["games"] if d["games"] else None,
-                      "wilson95": [lo, hi]}
+                      "wilson95": [lo, hi],
+                      "started": d["started"], "draws": d["draws"],
+                      # Strict score: wins + half the draws over every started game (an unfinished
+                      # game scores 0). Equal to win_rate when every game finished decisively.
+                      "strict_score": (d["wins"] + 0.5 * d["draws"]) / d["started"] if d["started"] else None}
     return out
 
 
@@ -819,7 +837,7 @@ def summarize_model_identity(games, prov):
     }
 
 
-def summarize_fallback_gate(games, decisions, max_rate):
+def summarize_fallback_gate(games, decisions, max_rate, max_harness_rate=DEFAULT_MAX_HARNESS_DECIDED_RATE):
     """Fallback gate over decisions of LLM-controlled identities only.
 
     Decisions are attributed by seat: a decision's `seat` is the player/deck
@@ -844,7 +862,7 @@ def summarize_fallback_gate(games, decisions, max_rate):
                 if name is not None:
                     llm_names.add(name)
 
-    denom = numer = 0
+    denom = numer = harness = 0
     for d in decisions:
         seat = d.get("seat")
         if seat not in llm_names:
@@ -855,8 +873,12 @@ def summarize_fallback_gate(games, decisions, max_rate):
             numer += 1
         elif tier in ("smart", "fast") and d.get("fallback") is not None:
             numer += 1
+        if harness_decided(d):
+            harness += 1
     rate = (numer / denom) if denom else None
     failed = bool(any_llm_arm and rate is not None and rate > max_rate)
+    hrate = (harness / denom) if denom else None
+    hfailed = bool(any_llm_arm and hrate is not None and hrate > max_harness_rate)
     return {
         "max_fallback_rate": max_rate,
         "any_llm_arm": any_llm_arm,
@@ -866,7 +888,22 @@ def summarize_fallback_gate(games, decisions, max_rate):
         "n_fallback": numer,
         "fallback_rate": rate,
         "failed": failed,
+        "max_harness_decided_rate": max_harness_rate,
+        "n_harness_decided": harness,
+        "harness_decided_rate": hrate,
+        "harness_failed": hfailed,
     }
+
+
+def harness_decided(d):
+    """True when the harness, not the model, made a choice the model could have made."""
+    import match_review                     # lazy: aggregate stays importable on its own
+    tier = d.get("tier")
+    if tier == "ai":
+        return True
+    if tier == "auto":
+        return match_review.classify_auto(d) in ("TAKEN", "LOST")
+    return tier in ("smart", "fast") and bool(match_review.LOST.search(str(d.get("fallback") or "")))
 
 
 # ------------------------------------------------------- tool accounting
@@ -1356,7 +1393,10 @@ def print_fallback_gate(s):
         print("fallbacks: %d/%d = %s of llm-identity decisions (auto+ai plus "
               "smart/fast with a fallback reason)"
               % (fg["n_fallback"], fg["n_llm_decisions"], fmt_pct(fg["fallback_rate"])))
-    print("gate: %s" % ("FAILED" if fg["failed"] else "passed"))
+        print("harness-decided: %d/%d = %s (TAKEN + LOST + Forge AI; forced picks excluded; ceiling %s)"
+              % (fg["n_harness_decided"], fg["n_llm_decisions"], fmt_pct(fg["harness_decided_rate"]),
+                 fmt_pct(fg["max_harness_decided_rate"])))
+    print("gate: %s" % ("FAILED" if fg["failed"] or fg.get("harness_failed") else "passed"))
 
 
 def print_games_block(g, indent=""):
@@ -1383,6 +1423,9 @@ def print_arms_and_paired(arms, p, indent=""):
         print("%s%-24s %3d/%3d  %s  Wilson95 [%.1f%%, %.1f%%]"
               % (indent, label, a["wins"], a["games"], fmt_pct(a["win_rate"]),
                  100 * lo, 100 * hi))
+        if a.get("started", a["games"]) != a["games"]:
+            print("%s%-24s strict score %s over all %d started games (draws half, unfinished 0)"
+                  % (indent, "", fmt_pct(a["strict_score"]), a["started"]))
     print("%s--- paired analysis (seed x seat-swap) ---" % indent)
     if p.get("n_pairs_used", 0) == 0:
         print("%s%s" % (indent, p.get("note", "no usable pairs")))
@@ -1579,10 +1622,18 @@ def main():
     # Exit 2 stays the fallback gate's documented code; the identity gate gets
     # its own 3 so a caller can tell "degraded games" from "unidentifiable
     # player". Both messages print even when both fail.
+    if fg.get("harness_failed"):
+        print("\n" + "!" * 60, file=sys.stderr)
+        print("FAILED HARNESS-DECIDED GATE: the harness made %s of the llm identities' choices "
+              "(ceiling %s). The score measures the harness as much as the model."
+              % (fmt_pct(fg["harness_decided_rate"]), fmt_pct(fg["max_harness_decided_rate"])), file=sys.stderr)
+        print("!" * 60, file=sys.stderr)
     if fg["failed"]:
         sys.exit(2)
     if mi["failed"]:
         sys.exit(3)
+    if fg.get("harness_failed"):
+        sys.exit(4)
 
 
 if __name__ == "__main__":

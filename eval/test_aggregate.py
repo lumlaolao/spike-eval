@@ -484,6 +484,41 @@ def test_mixed_checkpoint_is_mixed_provenance():
               "checkpoint_sha" in p["mixed_fields"], str(p["mixed_fields"]))
 
 
+def test_harness_decided_gate():
+    """Forced picks are not the harness deciding; a TAKEN or LOST row is, and the gate fires on it."""
+    with tempfile.TemporaryDirectory() as d:
+        g = game_line(3, False, "A")
+        g["deck_a"], g["deck_b"] = "Identity-A", "Identity-B"
+        lines = [g]
+        for _ in range(96):
+            lines.append({"t": "decision", "seat": "Identity-A", "tier": "smart", "type": "play", "fallback": None})
+        lines.append({"t": "decision", "seat": "Identity-A", "tier": "auto", "type": "targets",
+                      "fallback": "targets(forced)"})                      # one legal target: forced
+        lines.append({"t": "decision", "seat": "Identity-A", "tier": "smart", "type": "play",
+                      "fallback": "play(unparsed)->PASS"})                  # asked, answer not used: LOST
+        lines.append({"t": "decision", "seat": "Identity-A", "tier": "auto", "type": "attackers",
+                      "fallback": "attackers(forced)"})                    # one candidate in a subset: TAKEN
+        lines.append({"t": "decision", "seat": "Identity-A", "tier": "auto", "type": "play",
+                      "fallback": "play(turn-cap)->PASS"})                  # a harness rule: TAKEN
+        write_jsonl(d, "game-3-1000.jsonl", lines)
+        fg = aggregate.build_summary(Path(d), 200, 1)["fallback_gate"]
+        check("harness-decided counts TAKEN and LOST, not forced", fg["n_harness_decided"] == 3, str(fg))
+        check("3 of 100 is over the 2% ceiling", fg["harness_failed"] is True, str(fg))
+        check("the fallback gate itself passes", fg["failed"] is False, str(fg))
+
+
+def test_strict_score_counts_every_started_game():
+    """A game that never finished is not dropped from the strict score (a stall cannot erase a loss)."""
+    games = [{"winner": "A", "controller_a": "llm", "controller_b": "ai"},
+             {"winner": "draw", "controller_a": "llm", "controller_b": "ai"},
+             {"winner": "invalid", "controller_a": "llm", "controller_b": "ai"},
+             {"winner": "B", "controller_a": "llm", "controller_b": "ai"}]
+    arms = aggregate.summarize_arms(games)
+    a = arms[aggregate.arm_label(games[0], "a")]
+    check("decisive-only win rate is 1/2", approx(a["win_rate"], 0.5), str(a))
+    check("strict score is (1 + 0.5) / 4", approx(a["strict_score"], 0.375), str(a))
+
+
 def main():
     test_wilson()
     test_p90()
@@ -493,6 +528,8 @@ def main():
     test_interleaved_and_duplicates()
     test_decision_round_trip()
     test_fallback_gate()
+    test_harness_decided_gate()
+    test_strict_score_counts_every_started_game()
     test_mixed_provenance()
     test_provenance_legacy_unknown()
     test_model_identity_attributable()

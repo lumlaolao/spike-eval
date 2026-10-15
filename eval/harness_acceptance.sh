@@ -17,6 +17,7 @@
 #   canary     seed-42 floor/floor and random/random games on the freshly compiled classes; asserts the JVM
 #              actually loaded THIS build (class-load log), the pinned winner/turns/decision counts, and the
 #              unchanged eval/defect_analyzer.py hard gates (ai=0, silent drops=0)
+#   gaming     empty-reply and garbage-reply LLM seats vs Forge AI must not beat the floor seat (seed 42)
 #   faketool   one MEMORY_TOOLS=1 game with the LLM seat on a loopback fake model (eval/fake_model_server.py):
 #              real OpenRouter transport + parsing, memory tool round trips, one forced request timeout, no
 #              Authorization header on the wire, analyzer gates, provenance stamped as loopback
@@ -53,7 +54,7 @@ fi
 JAVA="$JAVA_HOME/bin/java"; JAVAC="$JAVA_HOME/bin/javac"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="${OUT:-$REPO/runs/harness-acceptance/$STAMP}"
-STAGES="${STAGES:-preflight classpath compile javatests pytests canary faketool faithful lookahead nativetool nativerefuse rules}"
+STAGES="${STAGES:-preflight classpath compile javatests pytests canary gaming faketool faithful lookahead nativetool nativerefuse rules}"
 EXPECTED="$REPO/eval/harness_acceptance.expected"
 OVERLAY="$REPO/forge-overlay/forge-gui-desktop/src"
 LEDGER="$REPO/docs/harness/controller-ownership.tsv"
@@ -268,6 +269,65 @@ if has_stage canary; then
         fail "canary-$arm" "outcome winner=$W turns=$T decisions=$D differs from pinned winner=$EW turns=$ET decisions=$ED, $(pinset $arm) (re-pin deliberately if an auto/floor path changed)"
       else pass "canary-$arm" "seed $seed: winner=$W turns=$T decisions=$D as pinned ($(pinset $arm)); $AI $DROP; build verified via class-load log"; fi
     done
+  fi
+fi
+
+# ---------------------------------------------------------------- gaming
+# A seat whose model never answers (empty replies, then garbage) must not score above the floor seat
+# against the same opponent on the same seed: the harness's fallbacks must not play for it
+# (eval/BENCHMARK-RESEARCH.md, point 10). Also: no Forge-AI decisions and no harness-decided choice.
+if has_stage gaming; then
+  if [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail gaming "no compiled classes"; else
+    say "gaming: floor seat vs Forge AI, then empty-reply and garbage-reply LLM seats vs Forge AI (seed 42)"
+    # MULLIGAN_HEURISTIC=0 SKIP_HEURISTICS=0: the recipe scored games use, so nothing is decided for the seat.
+    play gaming-floor 42 CONTROLLER_A=floor CONTROLLER_B=ai MULLIGAN_HEURISTIC=0 SKIP_HEURISTICS=0
+    for pol in empty garbage; do
+      sdir="$OUT/gaming-$pol-server"; mkdir -p "$sdir"; : > "$sdir/fake_requests.jsonl"
+      python3 "$REPO/eval/fake_model_server.py" --port 0 --policy $pol --log "$sdir/fake_requests.jsonl" >"$sdir/fake_server.out" 2>&1 &
+      FAKE_PID=$!
+      PORT=""; for i in 1 2 3 4 5 6 7 8 9 10; do PORT="$(awk '/^LISTENING/{print $2}' "$sdir/fake_server.out" 2>/dev/null)"; [ -n "$PORT" ] && break; sleep 0.5; done
+      play gaming-$pol 42 CONTROLLER_A=llm CONTROLLER_B=ai SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
+          OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" OPENROUTER_TIMEOUT_MS=4000 CONTEXT_PROFILE=v4-faithful SMART_BUDGET=400 FAST_BUDGET=400 MULLIGAN_HEURISTIC=0 SKIP_HEURISTICS=0
+      kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
+    done
+    GVERDICT="$(cd "$REPO/eval" && python3 - "$OUT" <<'PYEOF'
+import glob, json, sys
+import match_review
+out = sys.argv[1]; problems = []; facts = []
+def load(tag):
+    files = glob.glob("%s/%s/game-*.jsonl" % (out, tag))
+    if len(files) != 1: return None, []
+    rows = []
+    for l in open(files[0]):
+        try: rows.append(json.loads(l))
+        except ValueError: pass
+    return next((r for r in rows if r.get("t") == "game"), None), rows
+floor, _ = load("gaming-floor")
+if floor is None: problems.append("floor game has no game row")
+for pol in ("empty", "garbage"):
+    g, rows = load("gaming-" + pol)
+    if g is None: problems.append("%s: no game row" % pol); continue
+    dec = [r for r in rows if r.get("t") == "decision"]
+    model = sum(1 for r in dec if r.get("tier") in ("smart", "fast"))
+    ai = sum(1 for r in dec if r.get("tier") == "ai")
+    taken = sum(1 for r in dec if r.get("tier") == "auto" and match_review.classify_auto(r) == "TAKEN")
+    if floor is not None and g.get("winner") == "A" and floor.get("winner") != "A":
+        problems.append("%s seat won where the floor seat lost" % pol)
+    if ai: problems.append("%s: %d Forge-AI decisions" % (pol, ai))
+    if taken: problems.append("%s: %d harness-decided (TAKEN) choices" % (pol, taken))
+    asked = sum(1 for _ in open("%s/gaming-%s-server/fake_requests.jsonl" % (out, pol)))
+    if asked < 3: problems.append("%s: the fake model was asked %d times (was the seat asked?)" % (pol, asked))
+    played = [r.get("fallback") for r in dec if r.get("tier") == "auto" and r.get("type") in ("play", "attackers")
+              and r.get("fallback") and "->PASS" not in r["fallback"] and "->none" not in r["fallback"]]
+    if played: problems.append("%s: the harness acted for the seat: %s" % (pol, sorted(set(played))[:3]))
+    log = open("%s/gaming-%s/game.log" % (out, pol), errors="replace").read()
+    if "[FALLBACK->AI]" in log: problems.append("%s: [FALLBACK->AI] in log" % pol)
+    facts.append("%s winner=%s turns=%s asked=%d model_rows=%d" % (pol, g.get("winner"), g.get("turns"), asked, model))
+if floor is not None: facts.insert(0, "floor winner=%s turns=%s" % (floor.get("winner"), floor.get("turns")))
+print(("FAIL " if problems else "PASS ") + "; ".join(problems + facts))
+PYEOF
+)"
+    case "$GVERDICT" in PASS*) pass gaming "${GVERDICT#PASS }";; *) fail gaming "${GVERDICT#FAIL }";; esac
   fi
 fi
 
@@ -569,7 +629,7 @@ if game is None: problems.append("no game row")
 else:
     if game.get("context_profile")!="v4-faithful": problems.append("context_profile=%s"%game.get("context_profile"))
     if game.get("memory_tools") is not True: problems.append("memory_tools not stamped")
-    if game.get("harness_epoch")!="harness-epoch-5": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-6": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
     facts.append("winner=%s turns=%s context_sha=%s"%(game.get("winner"),game.get("turns"),game.get("context_sha")))
 if ai_rows: problems.append("%d tier=ai rows"%ai_rows)
 if model_rows<5: problems.append("only %d model-tier rows"%model_rows)
@@ -580,7 +640,7 @@ for r in calls:
     p=r.get("prompt") or ""
     # The mulligan ask shows only the opening hand (no board exists yet); it carries no observation.
     if "KEEP" in p and "MULLIGAN" in p and "DECISION:" not in p: mull+=1; observed+=1; legend+=1; continue
-    if "observation-faithful-v22" in p: observed+=1
+    if "observation-faithful-v23" in p: observed+=1
     if "LEGEND: @N" in p: legend+=1
     handles+=len(re.findall(r" @\d+", p))
     legacy+=len(re.findall(r"[A-Za-z\]]@\d+", p))          # the legacy candidateLabel form: Name[...]@id
@@ -600,7 +660,7 @@ if rules_leak: problems.append("%d faithful prompts advertised RULES TOOL withou
 ok_tools=[x for x in tools if not str(x.get("result","")).startswith("ERROR")]
 if len(ok_tools)<2: problems.append("successful tool rows %d (<2)"%len(ok_tools))
 log=open(d+"/game.log",errors="replace").read()
-if "[OBSERVATION] observation-faithful-v22" not in log: problems.append("observer never announced itself in the log")
+if "[OBSERVATION] observation-faithful-v23" not in log: problems.append("observer never announced itself in the log")
 if "state unavailable" in log or "state unavailable" in "".join((r.get("prompt") or "") for r in calls): problems.append("renderer threw (state unavailable)")
 if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] present")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
