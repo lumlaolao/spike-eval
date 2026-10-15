@@ -504,6 +504,21 @@ public class LlmSpikeTest {
         Assert.assertTrue(LlmSpikeGui.looksLikeDecisionTag("MULLIGAN, too risky."));
     }
 
+    /** A play reply cut off mid-thought that mentions keeping mana open is not a mulligan answer: it
+     *  used to count as one, so its truncation retry never ran. */
+    @Test
+    public void looksLikeDecisionTag_aLowerCaseKeepInProseIsNotAnAnswer() {
+        Assert.assertFalse(LlmSpikeGui.looksLikeDecisionTag("I should keep mana open for Force and pass, but the"));
+        Assert.assertTrue(LlmSpikeGui.looksLikeDecisionTag("Six lands is fine.\nKEEP"));
+    }
+
+    @Test
+    public void aDiscardedReplyKeepsItsEndWhereTheAnswerLineIs() {
+        String reply = "x".repeat(2000) + "\nCHOICE: 7";
+        String kept = LlmSpikeGui.PlayerControllerLLM.headAndTail(reply, 250);
+        Assert.assertTrue(kept.endsWith("CHOICE: 7") && kept.length() < 600, kept.length() + "");
+    }
+
     @Test
     public void collapseDegenerateRepetition_collapsesQF1StyleRepeatedChoiceLines() {
         // Reproduces tournament QF-1 decision_line 87: a fast-tier gemini reply that degenerated into
@@ -1261,15 +1276,12 @@ public class LlmSpikeTest {
     public void buildAttackersQuestion_matchesTheAttackersQuestionWireFormatExactly() {
         // Non-infect: life-based lethal hint, poisonNeeded = 10 - oppPoison, no infect parenthetical.
         String got = LlmSpikeGui.PlayerControllerLLM.buildAttackersQuestion("Bob", 18, 0, false);
-        String expect = "COMBAT — declare attackers vs Bob (life 18"
-                + "). Pick which creatures attack (attacking with 0 is legal and sometimes correct — "
-                + "weigh their untapped mana and possible blocks). "
-                + "COUNT LETHAL: opp life 18, poison 0/10 -- lethal needs 18 dmg OR 10 poison"
-                + ". If your unblocked/unstoppable damage meets either number, attack with everything needed and WIN NOW.";
+        String expect = "COMBAT: declare attackers against Bob (life 18). Choose which creatures attack; you may attack "
+                + "with none. LETHAL: they are at 18 life and 0/10 poison, so 18 damage or 10 poison wins.";
         Assert.assertEquals(got, expect, "attackers question template drifted");
         // Infect present + existing poison: parenthetical appears, poisonNeeded reflects counters.
         String gotInf = LlmSpikeGui.PlayerControllerLLM.buildAttackersQuestion("Bob", 20, 3, true);
-        Assert.assertTrue(gotInf.contains("poison 3/10 -- lethal needs 20 dmg OR 7 poison"
+        Assert.assertTrue(gotInf.contains("20 life and 3/10 poison, so 20 damage or 7 poison wins"
                 + " (infect attackers deal poison, not life loss)"),
                 "infect attackers add the poison parenthetical and correct poisonNeeded");
     }

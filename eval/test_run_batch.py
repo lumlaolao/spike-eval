@@ -264,6 +264,52 @@ class TestNoCoaching(unittest.TestCase):
         self.assertEqual(run_batch.condition_diff(base, bare), [("no_coaching", False, True)])
 
 
+class TestAnswerTool(unittest.TestCase):
+    """The answer tool (every decision answered by a function call) is the default decision protocol on
+    a backend with function calling, --text-answers is the opt-out, and the two never share a --out."""
+
+    OR = "openrouter:deepseek/deepseek-v4.1-flash"
+
+    def test_it_is_the_default_on_openrouter_and_the_flag_opts_out(self):
+        self.assertTrue(run_batch.answer_tool_requested(make_args(smart_a=self.OR)))     # no --memory-tools needed
+        self.assertFalse(run_batch.answer_tool_requested(make_args(smart_a=self.OR, text_answers=True)))
+        self.assertFalse(run_batch.answer_tool_requested(make_args(smart_a=self.OR, text_tools=True)))
+        self.assertFalse(run_batch.answer_tool_requested(make_args(smart_a="haiku")))   # the Claude CLI lane
+        self.assertFalse(run_batch.answer_tool_requested(make_args(smart_a=self.OR, controller_a="floor")))
+        self.assertTrue(run_batch.answer_tool_requested(make_args(smart_a="haiku", fast_a=self.OR)))
+
+    def test_only_the_flags_set_it_and_lines_keep_it_apart(self):
+        with mock.patch.dict(os.environ, {"ANSWER_TOOL": "1", "ANSWER_TOOL_STRICT": "1"}, clear=False), \
+                tempfile.TemporaryDirectory() as d:
+            off = run_batch.build_env(make_args(), 7100, False, Path(d))
+            self.assertEqual((off["ANSWER_TOOL"], off["ANSWER_TOOL_STRICT"], off["NATIVE_TOOLS"]), ("0", "0", "0"))
+            on = run_batch.build_env(make_args(answer_tool=True), 7100, False, Path(d))
+            # Function calling stays on for the answer even without --memory-tools.
+            self.assertEqual((on["ANSWER_TOOL"], on["ANSWER_TOOL_STRICT"], on["NATIVE_TOOLS"]), ("1", "0", "1"))
+            strict = run_batch.build_env(make_args(answer_tool=True, answer_tool_strict=True), 7100, False, Path(d))
+            self.assertEqual(strict["ANSWER_TOOL_STRICT"], "1")
+        for key in ("ANSWER_TOOL", "ANSWER_TOOL_STRICT"):
+            p = subprocess.run([sys.executable, str(RUN_BATCH), "--seeds", "7100", "--exploratory",
+                                "--env", key + "=1", "--forge-home", "/nonexistent"], capture_output=True, text=True)
+            self.assertNotEqual(p.returncode, 0)
+            self.assertIn("--text-answers", p.stderr)
+        off = run_batch.resume_expectation(make_args())
+        on = run_batch.resume_expectation(make_args(answer_tool=True))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False), off))        # predates the stamp
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False, answer_tool=True), off))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False, answer_tool=True), on))
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False), on))
+        base = run_batch.batch_condition(make_args(), cited=False)
+        tool = run_batch.batch_condition(make_args(answer_tool=True), cited=False)
+        self.assertEqual(run_batch.condition_diff(base, tool), [("answer_tool", False, True)])
+
+    def test_a_legacy_directory_of_text_answers_refuses_tool_answers(self):
+        with tempfile.TemporaryDirectory() as d:
+            write_game(d, "game-7100-1.jsonl", game_line(7100, False))
+            legacy = run_batch.legacy_dir_condition(d)
+            self.assertEqual(legacy["fields"]["answer_tool"], [False])
+
+
 class TestOneChat(unittest.TestCase):
     """ONE_CHAT (one conversation per seat) changes what each ask carries, so it is a condition:
     set only by --one-chat, recorded, checked against `one_chat`."""

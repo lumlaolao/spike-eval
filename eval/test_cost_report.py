@@ -28,6 +28,23 @@ class CostReportTest(unittest.TestCase):
         self.assertEqual((r["games"], r["calls"], r["prompt_tokens"], r["completion_tokens"]), (1, 2, 2000000, 100000))
         self.assertAlmostEqual(r["usd"], 2 * 0.0441 + 0.0765, places=6)
 
+    def test_cached_and_cache_written_prompt_tokens_are_priced_at_their_own_rates(self):
+        p = {"prompt": 1.0, "completion": 10.0, "input_cache_read": 0.1, "input_cache_write": 1.25}
+        # 1000 prompt tokens: 800 read from cache, 100 written to it, 100 at the full rate; 10 completion.
+        self.assertAlmostEqual(cr.usd_of(p, 1000, 10, 800, 100), 100 * 1.0 + 800 * 0.1 + 100 * 1.25 + 10 * 10.0)
+        # No cache rates in the price file: every prompt token at the full rate, as before.
+        self.assertAlmostEqual(cr.usd_of({"prompt": 1.0, "completion": 10.0}, 1000, 10, 800, 100), 1000 + 100)
+        with tempfile.TemporaryDirectory() as d:
+            write(d, "game-1.jsonl", [
+                {"t": "context_call", "tier": "smart", "prompt_tokens": 1000, "completion_tokens": 10, "cached_tokens": 800,
+                 "cache_write_tokens": 100},
+                {"t": "context_call", "tier": "smart", "prompt_tokens": 1000, "completion_tokens": 10},   # a row from before
+                {"t": "game", "smart_a": "openrouter:x/y", "fast_a": "openrouter:x/y"}])
+            r = cr.report_dir(d, {"x/y": dict(p, checked="t")})
+        self.assertEqual(r["cached_tokens"], 800)
+        self.assertAlmostEqual(r["usd"], (100 + 80 + 125 + 100) + (1000 + 100))
+        self.assertIn("40% of prompt tokens read from cache", cr.fmt(r))
+
     def test_a_game_without_tool_rounds_is_priced_from_its_decisions(self):
         with tempfile.TemporaryDirectory() as d:
             write(d, "game-1.jsonl", [

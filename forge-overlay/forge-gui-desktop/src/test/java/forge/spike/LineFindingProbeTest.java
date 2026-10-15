@@ -316,27 +316,33 @@ public class LineFindingProbeTest {
      *  decision rows never see these windows: before this, the review sheet called such games clean. */
     @Test
     public void aWindowThePlayLoopPassesWithoutAskingIsRecorded() throws Exception {
-        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.skipHeuristics(), "the shortcut under test is on by default");
-        java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("window-rows");
-        LlmSpikeGui.EvalLog.closeForTest();
-        LlmSpikeGui.EvalLog.initToDir(dir.toString(), 7);
+        // The skip heuristics are off by default since 2026-10-15 (SKIP_HEURISTICS=1 opts in); this tests them on.
+        boolean was = LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR;
+        LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR = true;
         try {
-            Game g = bareGame(PhaseType.UPKEEP);
-            Player me = g.getPlayers().get(0);
-            card("Island", me, ZoneType.Battlefield);
-            card("Sensei's Divining Top", me, ZoneType.Battlefield);
-            Recorder smart = new Recorder(PLAY), fast = new Recorder(PLAY);
-            LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, smart, fast);
-
-            Assert.assertNull(ctrl.chooseSpellAbilityToPlay(), "the shortcut passes priority");
-            Assert.assertEquals(smart.prompts.size() + fast.prompts.size(), 0, "no model was asked");
-            Assert.assertEquals(ctrl.windowSkips.get("window-gate"), Integer.valueOf(1));
-            String rows = new String(java.nio.file.Files.readAllBytes(LlmSpikeGui.EvalLog.currentFile().toPath()));
-            Assert.assertTrue(rows.contains("\"t\":\"window\""), rows);
-            Assert.assertTrue(rows.contains("\"phase\":\"UPKEEP\""), rows);
-            Assert.assertTrue(rows.contains("\"reason\":\"window-gate\",\"castable\":2"), rows);
-        } finally {
+            java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("window-rows");
             LlmSpikeGui.EvalLog.closeForTest();
+            LlmSpikeGui.EvalLog.initToDir(dir.toString(), 7);
+            try {
+                Game g = bareGame(PhaseType.UPKEEP);
+                Player me = g.getPlayers().get(0);
+                card("Island", me, ZoneType.Battlefield);
+                card("Sensei's Divining Top", me, ZoneType.Battlefield);
+                Recorder smart = new Recorder(PLAY), fast = new Recorder(PLAY);
+                LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, smart, fast);
+    
+                Assert.assertNull(ctrl.chooseSpellAbilityToPlay(), "the shortcut passes priority");
+                Assert.assertEquals(smart.prompts.size() + fast.prompts.size(), 0, "no model was asked");
+                Assert.assertEquals(ctrl.windowSkips.get("window-gate"), Integer.valueOf(1));
+                String rows = new String(java.nio.file.Files.readAllBytes(LlmSpikeGui.EvalLog.currentFile().toPath()));
+                Assert.assertTrue(rows.contains("\"t\":\"window\""), rows);
+                Assert.assertTrue(rows.contains("\"phase\":\"UPKEEP\""), rows);
+                Assert.assertTrue(rows.contains("\"reason\":\"window-gate\",\"castable\":2"), rows);
+            } finally {
+                LlmSpikeGui.EvalLog.closeForTest();
+            }
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR = was;
         }
     }
 
@@ -496,39 +502,46 @@ public class LineFindingProbeTest {
      *  ACTIVATED ability on the stack it is still not asked. */
     @Test
     public void theSeatMayRespondToItsOwnTriggerButNotToItsOwnActivation() {
-        Game g = bareGame(PhaseType.END_OF_TURN);
-        Player me = g.getPlayers().get(0);
-        card("Goblin Bombardment", me, ZoneType.Battlefield);
-        card("Ajani, Nacatl Pariah", me, ZoneType.Battlefield);
-        card("Grizzly Bears", me, ZoneType.Battlefield);
-        Card lions = card("Savannah Lions", me, ZoneType.Battlefield);
-        Recorder smart = new Recorder("CHOICE: 2"), fast = new Recorder("CHOICE: 2");   // 2 = PASS
-        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, smart, fast);
-        ownTriggerOnStack(g, lions);
-        Assert.assertEquals(g.getStack().size(), 1, "fixture: the trigger is not on the stack");
-        Assert.assertTrue(g.getStack().peekAbility().isTrigger());
-
-        Assert.assertNull(ctrl.chooseSpellAbilityToPlay());
-        int asked = smart.prompts.size() + fast.prompts.size();
-        Assert.assertEquals(asked, 1, "the seat was not asked about its own trigger window");
-        Assert.assertTrue((smart.prompts.isEmpty() ? fast : smart).prompts.get(0).contains("Goblin Bombardment"));
-        Assert.assertNull(ctrl.chooseSpellAbilityToPlay());
-        Assert.assertEquals(smart.prompts.size() + fast.prompts.size(), asked, "the same declined window was asked twice");
-
-        // Own ACTIVATION on the stack: unchanged, no ask.
-        Game g2 = bareGame(PhaseType.MAIN1);
-        Player me2 = g2.getPlayers().get(0);
-        card("Goblin Bombardment", me2, ZoneType.Battlefield);
-        card("Grizzly Bears", me2, ZoneType.Battlefield);
-        card("Memnite", me2, ZoneType.Battlefield);
-        Recorder s2 = new Recorder(PLAY, "Memnite"), f2 = new Recorder("CHOICE: 1", "Memnite");
-        LlmSpikeGui.PlayerControllerLLM c2 = seat(g2, s2, f2);
-        List<SpellAbility> first = c2.chooseSpellAbilityToPlay();
-        Assert.assertNotNull(first);
-        c2.playChosenSpellAbility(first.get(0));
-        int before = s2.prompts.size() + f2.prompts.size();
-        Assert.assertNull(c2.chooseSpellAbilityToPlay());
-        Assert.assertEquals(s2.prompts.size() + f2.prompts.size(), before, "asked to respond to its own activation");
+        // The skip heuristics are off by default since 2026-10-15 (SKIP_HEURISTICS=1 opts in); this tests them on.
+        boolean was = LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR;
+        LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR = true;
+        try {
+            Game g = bareGame(PhaseType.END_OF_TURN);
+            Player me = g.getPlayers().get(0);
+            card("Goblin Bombardment", me, ZoneType.Battlefield);
+            card("Ajani, Nacatl Pariah", me, ZoneType.Battlefield);
+            card("Grizzly Bears", me, ZoneType.Battlefield);
+            Card lions = card("Savannah Lions", me, ZoneType.Battlefield);
+            Recorder smart = new Recorder("CHOICE: 2"), fast = new Recorder("CHOICE: 2");   // 2 = PASS
+            LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, smart, fast);
+            ownTriggerOnStack(g, lions);
+            Assert.assertEquals(g.getStack().size(), 1, "fixture: the trigger is not on the stack");
+            Assert.assertTrue(g.getStack().peekAbility().isTrigger());
+    
+            Assert.assertNull(ctrl.chooseSpellAbilityToPlay());
+            int asked = smart.prompts.size() + fast.prompts.size();
+            Assert.assertEquals(asked, 1, "the seat was not asked about its own trigger window");
+            Assert.assertTrue((smart.prompts.isEmpty() ? fast : smart).prompts.get(0).contains("Goblin Bombardment"));
+            Assert.assertNull(ctrl.chooseSpellAbilityToPlay());
+            Assert.assertEquals(smart.prompts.size() + fast.prompts.size(), asked, "the same declined window was asked twice");
+    
+            // Own ACTIVATION on the stack: unchanged, no ask.
+            Game g2 = bareGame(PhaseType.MAIN1);
+            Player me2 = g2.getPlayers().get(0);
+            card("Goblin Bombardment", me2, ZoneType.Battlefield);
+            card("Grizzly Bears", me2, ZoneType.Battlefield);
+            card("Memnite", me2, ZoneType.Battlefield);
+            Recorder s2 = new Recorder(PLAY, "Memnite"), f2 = new Recorder("CHOICE: 1", "Memnite");
+            LlmSpikeGui.PlayerControllerLLM c2 = seat(g2, s2, f2);
+            List<SpellAbility> first = c2.chooseSpellAbilityToPlay();
+            Assert.assertNotNull(first);
+            c2.playChosenSpellAbility(first.get(0));
+            int before = s2.prompts.size() + f2.prompts.size();
+            Assert.assertNull(c2.chooseSpellAbilityToPlay());
+            Assert.assertEquals(s2.prompts.size() + f2.prompts.size(), before, "asked to respond to its own activation");
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR = was;
+        }
     }
 
     /** The seat passes on the rival's Ponder, then the rival casts Show and Tell in the same phase.
@@ -588,16 +601,23 @@ public class LineFindingProbeTest {
     /** A ritual is not an answer: with only mana production available the seat is still not asked. */
     @Test
     public void manaProductionAloneIsNotAResponse() {
-        Game g = bareGame(PhaseType.MAIN1);
-        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
-        card("Swamp", me, ZoneType.Battlefield);
-        card("Dark Ritual", me, ZoneType.Hand);
-        Card fatty = card("Griselbrand", rival, ZoneType.Graveyard);
-        rivalCasts(g, "Reanimate", fatty);
-        Recorder smart = new Recorder("CHOICE: 1"), fast = new Recorder("CHOICE: 1");
-        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, smart, fast);
-        Assert.assertNull(ctrl.chooseSpellAbilityToPlay());
-        Assert.assertEquals(smart.prompts.size() + fast.prompts.size(), 0, "asked whether to answer a spell with a ritual");
+        // The skip heuristics are off by default since 2026-10-15 (SKIP_HEURISTICS=1 opts in); this tests them on.
+        boolean was = LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR;
+        LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR = true;
+        try {
+            Game g = bareGame(PhaseType.MAIN1);
+            Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+            card("Swamp", me, ZoneType.Battlefield);
+            card("Dark Ritual", me, ZoneType.Hand);
+            Card fatty = card("Griselbrand", rival, ZoneType.Graveyard);
+            rivalCasts(g, "Reanimate", fatty);
+            Recorder smart = new Recorder("CHOICE: 1"), fast = new Recorder("CHOICE: 1");
+            LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, smart, fast);
+            Assert.assertNull(ctrl.chooseSpellAbilityToPlay());
+            Assert.assertEquals(smart.prompts.size() + fast.prompts.size(), 0, "asked whether to answer a spell with a ritual");
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR = was;
+        }
     }
 
     // ---- one candidate is not a forced choice --------------------------------------------------

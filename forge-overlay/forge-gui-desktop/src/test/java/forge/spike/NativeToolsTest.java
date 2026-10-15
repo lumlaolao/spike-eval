@@ -200,8 +200,9 @@ public class NativeToolsTest {
         JsonArray first = JsonParser.parseString(seenMessages.get(0)).getAsJsonArray();
         Assert.assertEquals(first.size(), 1);
         String user = first.get(0).getAsJsonObject().get("content").getAsString();
-        Assert.assertTrue(user.startsWith("DECISION: attack?\nCURRENT OBSERVATION: M1\nEVIDENCE ARCHIVE: 1 entries"), user);
-        Assert.assertTrue(user.contains("Tool calls available this ask: 2."));
+        Assert.assertTrue(user.startsWith("<archive>\nThis decision is saved as archive entry M1. The archive holds 1 entries"), user);
+        Assert.assertTrue(user.contains("Lookups left: 2 for this decision"), user);
+        Assert.assertTrue(user.endsWith("</archive>\n\nDECISION: attack?\n"), "the decision is the last thing in the message: " + user);
         Assert.assertFalse(user.contains("MEMORY TOOLS"), "the text grammar is not sent when tools are native");
         // Round 2 sees: the user turn, the assistant's own call echoed back, and the tool result.
         JsonArray second = JsonParser.parseString(seenMessages.get(1)).getAsJsonArray();
@@ -262,7 +263,7 @@ public class NativeToolsTest {
         Assert.assertTrue(NativeTools.command(NativeTools.REPORT, "{}").startsWith("ERROR:"));
         // The next ask is unaffected.
         String next = memory.askNative("DECISION: next", (user, messages, tools, allow, round) -> {
-            Assert.assertTrue(user.contains("Tool calls available this ask: " + ContextMemory.TOOLS_PER_ASK + "."), user);
+            Assert.assertTrue(user.contains("Lookups left: " + ContextMemory.TOOLS_PER_ASK + " for this decision"), user);
             return turn("CHOICE: 2");
         }, null, (a, b) -> { });
         Assert.assertEquals(next, "CHOICE: 2");
@@ -564,6 +565,36 @@ public class NativeToolsTest {
         Assert.assertEquals(m2.get(2).getAsJsonObject().get("reasoning").getAsString(),
                 "kept so the provider sees its own thinking again");
         Assert.assertEquals(m2.get(3).getAsJsonObject().get("tool_call_id").getAsString(), "call_9");
+    }
+
+    /** Anthropic models cache only a prefix marked cacheable; nothing was marked, so every call paid
+     *  the full input rate for the same preamble, tools and history. Other providers cache on their
+     *  own and are sent nothing new. What the provider read from or wrote to its cache is kept. */
+    @Test
+    public void anAnthropicModelMarksItsPromptCacheableAndTheCacheCountsAreKept() {
+        JsonObject cachedUsage = JsonParser.parseString(textResponse("CHOICE: 1")).getAsJsonObject();
+        JsonObject details = new JsonObject();
+        details.addProperty("cached_tokens", 9000);
+        details.addProperty("cache_write_tokens", 120);
+        cachedUsage.getAsJsonObject("usage").add("prompt_tokens_details", details);
+        synchronized (requests) {
+            requests.clear();
+            responses.clear();
+            responses.add(cachedUsage.toString());
+            responses.add(textResponse("CHOICE: 1"));
+        }
+        LlmSpikeGui.OpenRouterBridge claude = new LlmSpikeGui.OpenRouterBridge("Seat/smart", "anthropic/claude-haiku-5.5", "PREAMBLE", base, 5000);
+        Assert.assertEquals(claude.ask("DECISION"), "CHOICE: 1");
+        Assert.assertEquals(requests.get(0).getAsJsonObject("cache_control").get("type").getAsString(), "ephemeral");
+        Assert.assertEquals(claude.getLastCachedTokens(), 9000);
+        Assert.assertEquals(claude.getLastCacheWriteTokens(), 120);
+
+        LlmSpikeGui.OpenRouterBridge other = new LlmSpikeGui.OpenRouterBridge("Seat/smart", "deepseek/deepseek-v4.1-flash", "PREAMBLE", base, 5000);
+        Assert.assertEquals(other.ask("DECISION"), "CHOICE: 1");
+        Assert.assertFalse(requests.get(1).has("cache_control"));
+        Assert.assertEquals(other.getLastCachedTokens(), -1, "unreported is -1, not 0");
+        Assert.assertEquals(LlmSpikeGui.cacheFields(-1, -1), "");
+        Assert.assertEquals(LlmSpikeGui.cacheFields(9000, 0), ",\"cached_tokens\":9000,\"cache_write_tokens\":0");
     }
 
     @Test

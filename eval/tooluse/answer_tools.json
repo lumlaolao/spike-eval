@@ -1,0 +1,124 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "answer",
+      "description": "Answer the current decision. Every decision is answered with this one call: give the field the decision asks for (one option number, a list of option numbers, blocks, amounts, keep, a number or a card name) and the optional notes it invites. The call ends the decision and the engine carries it out. If the values are not legal for this decision you are told why, nothing happens, and you may call once more. Think before calling; the arguments hold only the answer. Lookups made before it do not count against it.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "option": {
+            "type": "integer",
+            "description": "For a decision that asks for ONE option from a numbered list: that option's number. A decline/none/PASS option, when listed, is just another number."
+          },
+          "options": {
+            "type": "array",
+            "description": "For a decision that asks you to choose several options (or none) from a numbered list (discard, reveal, sacrifice, scry/surveil, attackers): the numbers, in the order you want them, within the minimum and maximum the decision states. An empty list chooses none.",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "blocks": {
+            "type": "array",
+            "description": "For a declare-blockers decision: each block as a blocker number and an attacker number; each blocker at most once. An empty list declares no blocks.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "blocker": {
+                  "type": "integer",
+                  "description": "The number of your blocking creature, from the decision's blocker list."
+                },
+                "attacker": {
+                  "type": "integer",
+                  "description": "The number of the attacker it blocks, from the decision's attacker list."
+                }
+              },
+              "required": [
+                "blocker",
+                "attacker"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "amounts": {
+            "type": "array",
+            "description": "For a decision that divides an amount (damage, counters) among listed targets: one number per target, in the order listed, adding up to the stated total.",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "keep": {
+            "type": "boolean",
+            "description": "For a mulligan decision: true to keep this hand, false to mulligan."
+          },
+          "number": {
+            "type": "integer",
+            "description": "For a decision that asks for a number (X, a count): an integer in the range the decision states."
+          },
+          "card": {
+            "type": "string",
+            "description": "For a decision that asks you to name a card: its exact English name."
+          },
+          "steps": {
+            "type": "array",
+            "description": "Optional, on a play decision only, if you want the harness to cast steps of your plan for you without asking again this turn: the CAST/ACTIVATE option numbers you intend to use, in order. Omit anything you are holding.",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "yield": {
+            "type": "string",
+            "description": "Optional, only with PASS on a play decision: until then you are not asked in windows where nothing of your opponent's is on the stack (anything they cast or activate always asks you).",
+            "enum": [
+              "end-of-turn",
+              "my-next-turn"
+            ]
+          },
+          "profile": {
+            "type": "string",
+            "description": "Optional, when the decision asks for it: your read of the OPPONENT in one short line (their deck and plan, and the cards to respect)."
+          },
+          "lines": {
+            "type": "string",
+            "description": "Optional, when the decision asks for it: how cards in YOUR OWN deck combine, in one or two short lines."
+          },
+          "why": {
+            "type": "string",
+            "description": "Optional: one sentence on why you chose this, kept in the game record for the people reviewing it. It does not change the answer."
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "set_plan",
+      "description": "State or replace YOUR plan: it is shown back to you on every later decision with the turn you set it. Call it whenever your plan changes, at any decision, alongside your answer. It does not answer the decision.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "goal": {
+            "type": "string",
+            "description": "What you are working toward.",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "next": {
+            "type": "string",
+            "description": "The steps you intend, in order (e.g. a land, cast a card, hold a card for their turn).",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "goal",
+          "next"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+]

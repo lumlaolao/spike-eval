@@ -93,7 +93,11 @@ def review(path):
                 out["counts"]["model decisions"] += 1
                 # The answer must be the one used: the last CHOICE in the reply against the recorded
                 # pick (9,570 replies checked over runs/loop and runs/lines: 2 differed, both attackers).
-                said = re.findall(r"CHOICE:\s*(\d+)", str(r.get("raw_reply") or ""))
+                # Only a single-pick question has a CHOICE to compare: on a PICKS (subset) question the
+                # row's choice is not an option index, and a stray "CHOICE: 1" written beside the real
+                # "PICKS: 1" read as a lost answer (runs/combo/haiku-ant-storm: 3 false findings).
+                said = [] if "PICKS:" in str(r.get("prompt") or "")[-1500:] else \
+                    re.findall(r"CHOICE:\s*(\d+)", str(r.get("raw_reply") or ""))
                 ch, n = r.get("choice"), r.get("n_options") or 0
                 if said and isinstance(ch, int) and ch >= 0 and n > 1 and r.get("type") != "attackers" \
                         and int(said[-1]) - 1 != ch and int(said[-1]) <= n:
@@ -127,6 +131,11 @@ def review(path):
             else:
                 out["counts"]["windows with nothing usable"] += 1
         elif t == "context_tool":
+            if tool_audit.tool_name(r.get("request")) in tool_audit.ANSWER_TOOLS:
+                # The decision answered by a call (AnswerTool), not a lookup; a lost answer is a
+                # fallback on its decision row, read above.
+                out["counts"]["answer-tool calls"] += 1
+                continue
             if tool_audit.tool_name(r.get("request")) == "report_unclear_decision" \
                     and not str(r.get("result") or "").startswith("ERROR"):
                 args = str(r.get("request")).split(" ", 3)[-1]

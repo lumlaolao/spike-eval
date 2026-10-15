@@ -125,6 +125,13 @@ interface LLMBridge {
     /** Completion (output) token count from the response `usage` object for the most recent ask(),
      *  or -1 when unreported. See {@link #getLastPromptTokens()}. */
     default int getLastCompletionTokens() { return -1; }
+    /** Prompt tokens of the most recent ask() that the provider read from its prompt cache
+     *  (`usage.prompt_tokens_details.cached_tokens`), counted inside getLastPromptTokens(); -1 when
+     *  unreported. Lets cost_report.py price them at the cache-read rate. */
+    default int getLastCachedTokens() { return -1; }
+    /** Prompt tokens the provider wrote to its cache on the most recent ask()
+     *  (`usage.prompt_tokens_details.cache_write_tokens`, Anthropic models), -1 when unreported. */
+    default int getLastCacheWriteTokens() { return -1; }
 }
 
 /**
@@ -163,8 +170,17 @@ public final class LlmSpikeGui {
      *  chosen colour) are shown; an unparsed play or block is said, not read as PASS / NONE; block pairs
      *  keep names with commas; the per-turn play cap is 80 under the faithful profile; a PLAN line at any
      *  decision replaces the plan (a goal and steps); the seat can report a broken question. Epoch 6:
-     *  the mana line says its colours over-count; call markup past the budget is recorded as exhausted. */
-    static final String HARNESS_EPOCH = "harness-epoch-6";
+     *  the mana line says its colours over-count; call markup past the budget is recorded as exhausted.
+     *  Epoch 7: on a backend with function calling every decision is answered by calling `answer`
+     *  (AnswerTool, ANSWER_TOOL=0 opts out) and the plan, cast list, opponent read and card-lines note are
+     *  tool arguments, not lines.
+     *  Epoch 8: under the faithful profile the system prompt is rewritten from the prompt audit (the deck,
+     *  how the interface works, how to read the state, Legacy terms; no coaching, no reasoning cap, no
+     *  worked examples), the state legend is said once there instead of in every message (observation
+     *  v24), and the decision text is the last thing in each message. The harness shortcuts are off by
+     *  default: no mulligan heuristic, no skip heuristics, one tier (no question sent to a no-reasoning
+     *  call); each comes back only with MULLIGAN_HEURISTIC=1, SKIP_HEURISTICS=1, ONE_TIER=0. */
+    static final String HARNESS_EPOCH = "harness-epoch-8";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -606,12 +622,14 @@ public final class LlmSpikeGui {
         private static final int MAX_PLAY_DECISIONS_PER_TURN_FAITHFUL = 80;
         private static final int SMART_BUDGET = envInt("SMART_BUDGET", 320); // per-game load-bearing LLM calls
         private static final int FAST_BUDGET  = envInt("FAST_BUDGET", 900);  // per-game cheap LLM calls
-        // Eval confound switches: MULLIGAN_HEURISTIC=0 -> the model decides ALL mulligans (no 2-4 land
-        // auto-keep); SKIP_HEURISTICS=0 -> no free-pass shortcuts (every priority window with options
-        // reaches the model). Defaults preserve the fast demo behavior.
-        private static final boolean MULL_HEURISTIC = !"0".equals(System.getenv("MULLIGAN_HEURISTIC"));
+        // Eval confound switches: MULLIGAN_HEURISTIC=1 -> the harness keeps 2-4 land hands without asking;
+        // SKIP_HEURISTICS=1 -> free-pass shortcuts on windows where the model has options.
+        // Owner decision 2026-10-15: no heuristic decides for the model. Both shortcuts are off unless set
+        // to 1, for measuring them; the only skips left are the engine's (PASS is the only legal action) and
+        // an identical spot already passed (last-sig).
+        private static final boolean MULL_HEURISTIC = "1".equals(System.getenv("MULLIGAN_HEURISTIC"));
         // Not final: tests turn it off in-process (an env var cannot be set there).
-        static boolean SKIP_HEUR = !"0".equals(System.getenv("SKIP_HEURISTICS"));
+        static boolean SKIP_HEUR = "1".equals(System.getenv("SKIP_HEURISTICS"));
         // D4 DAgger shadow-labeling: when SHADOW_AI=1, four overrides also compute the Forge-AI's choice
         // over the SAME option menu the student sees and stash it in lastShadowChoice, which emitDecisionRow
         // writes as an additive `shadow_choice` field on the STUDENT'S existing decision row (never a
@@ -660,6 +678,9 @@ public final class LlmSpikeGui {
         // backend reports none (Claude CLI) or no model was consulted for this decision.
         private int lastPromptTokens = -1;
         private int lastCompletionTokens = -1;
+        // Of lastPromptTokens: read from / written to the provider's prompt cache; -1 when unreported.
+        private int lastCachedTokens = -1;
+        private int lastCacheWriteTokens = -1;
         // ADDITIVE (Group-2): latency split — the SUCCESSFUL final attempt's own wall time (this is what
         // jsonl latency_ms now reports) vs. everything else (failed bridge sub-attempts, backoff waits,
         // and any earlier caller-level ask() round-trip whose reply was superseded by a later retry) which
@@ -685,9 +706,10 @@ public final class LlmSpikeGui {
         private List<Integer> lastPicks = null;
         private void clearLast() {
             lastPrompt = null; lastReply = null; lastTier = null; lastAskMs = 0; lastFinishReason = null;
-            lastPromptTokens = -1; lastCompletionTokens = -1;
+            lastPromptTokens = -1; lastCompletionTokens = -1; lastCachedTokens = -1; lastCacheWriteTokens = -1;
             lastSuccessMs = 0; lastRetryMs = 0; lastAttempts = 0; lastFirstFailedReply = null; lastDeclineLogged = false;
             lastShadowChoice = null; lastPicks = null;
+            nextAnswer = null; lastAnswer = null; answerVia = null; answerInvalid = 0;
         }
 
         // per-turn play-loop state (was static in v1 — now per-instance so two seats don't collide)
@@ -722,6 +744,26 @@ public final class LlmSpikeGui {
         static final String YIELD_HINT = "If you PASS, you may also add a line `YIELD: end-of-turn` or `YIELD: my-next-turn`: "
                 + "until then you are not asked in windows where nothing of your opponent's is on the stack "
                 + "(anything they cast or activate always asks you). ";
+        /** {@link #YIELD_HINT} for the answer tool: a field of the answer, not a line. */
+        static final String YIELD_TOOL_HINT = "If you PASS, you may also give `yield` in your `answer` (end-of-turn or my-next-turn): "
+                + "until then you are not asked in windows where nothing of your opponent's is on the stack "
+                + "(anything they cast or activate always asks you). ";
+
+        /** The play ask's notes under the answer tool: the plan through `set_plan`, the cast list, the
+         *  card-interactions note and the opponent read as fields of `answer`. No line is asked for. */
+        static String playToolAsks(boolean askPlan, boolean askLines, boolean askProfile) {
+            StringBuilder b = new StringBuilder();
+            if (askPlan) b.append("First set your plan with `set_plan` (goal: what you are working toward; next: the steps you ")
+                    .append("intend, in order, e.g. <land>, cast <card>, hold <card> for their turn); you can replace it at any later ")
+                    .append("decision. If (and only if) you want the harness to cast steps of that plan for you without asking again ")
+                    .append("this turn, give `steps` in your `answer`: ONLY the CAST/ACTIVATE option numbers you intend to use, in ")
+                    .append("order; omit anything you are holding. ");
+            if (askLines) b.append("Also give `lines` in your `answer`: how the cards in YOUR OWN deck combine (<card> + <card> -> ")
+                    .append("<what you do and what you get>, up to 3, each naming two or more of your own cards from the decklist above). ");
+            if (askProfile) b.append("Also give `profile` in your `answer`: your read of the OPPONENT in one short line (their ")
+                    .append("deck/plan and the cards to respect, e.g. '<archetype>: <their key cards>, respect <card>'). ");
+            return b.toString();
+        }
         /** A Charm spell whose modes the play loop already chose, so the cast does not ask again. */
         private SpellAbility modesChosenFor = null;
         /** Priority windows the play loop passed without a model call, by reason (see skipWindow). */
@@ -745,7 +787,7 @@ public final class LlmSpikeGui {
          *  reasoning. The two-tier split sends 58% of real decisions in runs/loop g01-g07 (every target,
          *  most instant-speed plays) to a tier with reasoning disabled, which is the harness deciding how
          *  hard the model may think per decision type. A condition: stamped `one_tier` on the game line. */
-        static final boolean ONE_TIER = "1".equals(System.getenv("ONE_TIER"));
+        static final boolean ONE_TIER = !"0".equals(System.getenv("ONE_TIER"));   // default since 2026-10-15
         /** NO_COACHING=1: the system prompt leaves out PRINCIPLES and {@link #STATIC_REFERENCE}, the
          *  harness's own advice about how to play and read the state. An assistance condition, like a
          *  deck plan (docs/STANDARDS.md section 8): stamped `no_coaching` on the game line. */
@@ -778,8 +820,13 @@ public final class LlmSpikeGui {
          *  changed plan drops the old cast list, which belonged to the old plan. Returns true when it
          *  changed. Whitespace-collapsed, never truncated (the C4 defect cut a stated finisher). */
         boolean adoptPlan(String reply) {
-            String pl = planStatement(reply);
-            if (pl == null) return false;
+            return adoptPlanText(planStatement(reply));
+        }
+
+        /** The plan itself, from a PLAN line or from `set_plan` ("GOAL: ... NEXT: ..."). */
+        boolean adoptPlanText(String pl) {
+            if (pl != null) pl = pl.replaceAll("\\s+", " ").trim();
+            if (pl == null || pl.isEmpty()) return false;
             String ph = "";
             try { ph = " " + getGame().getPhaseHandler().getPhase(); } catch (Exception ignore) { }
             planTurn = safeTurn();
@@ -931,11 +978,11 @@ public final class LlmSpikeGui {
 
         /** The smart and fast bridges: one shared smart bridge under ONE_TIER, else one per tier. */
         private static LLMBridge[] oneTierPair(String seat, String deckPlan, String smartModel, String fastModel) {
-            LLMBridge smartB = LLMBridgeFactory.create(seat + "/smart", smartModel, framing(seat, deckPlan, false, NativeTools.usedBy(smartModel)));
+            LLMBridge smartB = LLMBridgeFactory.create(seat + "/smart", smartModel, framingFor(seat, deckPlan, false, smartModel));
             if (ChatSessionBridge.ON && smartB instanceof OpenRouterBridge) smartB = new ChatSessionBridge((OpenRouterBridge) smartB);
             if (ONE_TIER) return new LLMBridge[] {smartB, smartB};
             return new LLMBridge[] {smartB,
-                    LLMBridgeFactory.create(seat + "/fast", fastModel, framing(seat, deckPlan, true, NativeTools.usedBy(fastModel)))};
+                    LLMBridgeFactory.create(seat + "/fast", fastModel, framingFor(seat, deckPlan, true, fastModel))};
         }
 
         /** Package-private test seam: inject bridges directly instead of building them via
@@ -959,6 +1006,7 @@ public final class LlmSpikeGui {
             this.observer = ctx.faithfulObservation ? new SeatObservation(game, p) : null;
             if (observer != null && MEMORY_TOOLS) contextMemory.setInspector(observer::inspect);
             contextMemory.setReporter(problem -> p("[REPORT] " + seat + " T" + safeTurn() + ": " + problem));
+            contextMemory.offerPreviews(lookaheadEnabled());
             if (MEMORY_TOOLS && RULES_TOOL) {
                 RulesTool rt = rulesTool();
                 if (rt.available()) {
@@ -1104,6 +1152,13 @@ public final class LlmSpikeGui {
          *  Pilferer"), so splitting on every comma broke such names and the pair was dropped. Between two
          *  arrows the cut is the first comma or semicolon whose left side names an attacker and right
          *  side a blocker (else the last one). Each pair is {blocker text, attacker text}. */
+        /** "1 = X; 2 = Y": the numbers a block answer uses. */
+        static String numberedList(List<String> labels) {
+            StringBuilder b = new StringBuilder();
+            for (int i = 0; i < labels.size(); i++) b.append(i == 0 ? "" : "; ").append(i + 1).append(" = ").append(labels.get(i));
+            return b.toString();
+        }
+
         List<String[]> blockPairs(String line, Iterable<Card> blockers, Iterable<Card> attackers) {
             List<String[]> out = new ArrayList<>();
             String[] segs = line.split("->");
@@ -1208,11 +1263,24 @@ public final class LlmSpikeGui {
         /** `nativeTools`: this tier's backend takes function definitions, so the preamble describes
          *  the tools in one paragraph instead of teaching the text grammar. */
         static String framing(String seat, String plan, boolean terse, boolean nativeTools) {
-            return framing(seat, plan, terse, nativeTools, !NO_COACHING);
+            return framing(seat, plan, terse, nativeTools, !NO_COACHING, false);
         }
 
         /** {@code coaching} false is the NO_COACHING condition: no PRINCIPLES, no static reference. */
         static String framing(String seat, String plan, boolean terse, boolean nativeTools, boolean coaching) {
+            return framing(seat, plan, terse, nativeTools, coaching, false);
+        }
+
+        /** The preamble of one tier's bridge for its model spec: native tools and the answer tool when
+         *  that backend takes function definitions. */
+        static String framingFor(String seat, String plan, boolean terse, String modelSpec) {
+            return framing(seat, plan, terse, NativeTools.usedBy(modelSpec), !NO_COACHING, AnswerTool.usedBy(modelSpec));
+        }
+
+        /** {@code answerTool}: decisions are answered by calling `answer` (AnswerTool), so the format rules
+         *  and the answer contract describe the call, not a final line. */
+        static String framing(String seat, String plan, boolean terse, boolean nativeTools, boolean coaching, boolean answerTool) {
+            if (profile().faithfulObservation) return seatFraming(seat, plan, nativeTools, coaching, answerTool);
             // Under the faithful profile the fast tier is not told "NO reasoning": every decision text
             // asks it to reason briefly, and 72% of its replies in runs/loop g01-g07 reasoned anyway.
             String format = terse && !profile().faithfulObservation
@@ -1222,6 +1290,9 @@ public final class LlmSpikeGui {
                     : "FORMAT: at most two short sentences of reasoning, then a final line in EXACTLY the format I "
                       + "request (e.g. `CHOICE: 3` or `PICKS: 1,4`). I parse ONLY that final line — never write "
                       + "anything after it.";
+            if (answerTool) format = terse && !profile().faithfulObservation
+                    ? "FORMAT: call `answer` at once; no reasoning text — every extra token slows the game down."
+                    : "FORMAT: at most two short sentences of reasoning, then call `answer` with your choice.";
             String base = "You are a world-class Magic: The Gathering (Legacy) player piloting \"" + seat + "\".\n"
                     // PLAN_A=""/PLAN_B="" gives a plan-free eval arm — no expert strategy injected.
                     + (plan == null || plan.isEmpty() ? "" : "GAME PLAN: " + plan + "\n")
@@ -1231,6 +1302,7 @@ public final class LlmSpikeGui {
                     + "authoritative: trust it over your memory of earlier turns. "
                     + (MEMORY_TOOLS ? (nativeTools ? NativeTools.instructions() : ContextMemory.instructions())
                         : "You have NO tools and cannot inspect anything yourself — everything you need is in the message; answer directly.\n")
+                    + (answerTool ? AnswerTool.instructions() : "")
                     + (coaching ? PRINCIPLES : "")
                     + format + " Play to WIN the game, not just the current decision.";
             // SMART-TIER STATIC APPENDIX (byte-identical for every decision in every game — no game state):
@@ -1242,7 +1314,83 @@ public final class LlmSpikeGui {
             // message byte-stable per (seat, tier), the prompt-caching prerequisite once a cache breakpoint
             // is added (see wiki "Prompt Caching for the MTG Harness via OpenRouter").
             // NO_COACHING leaves it out with PRINCIPLES.
-            return terse || !coaching ? base : base + "\n\n" + STATIC_REFERENCE;
+            return terse || !coaching ? base : base + "\n\n" + (answerTool ? toolReference() : STATIC_REFERENCE);
+        }
+        /**
+         * The system prompt under the faithful profile (harness-epoch-8, docs/harness/PROMPT-AUDIT.md): the
+         * deck, how the interface works, how to read the state, and a reference of Legacy terms. Facts
+         * only: no advice on how to play (the old PRINCIPLES), no cap on reasoning, no worked examples, and
+         * no text answer contract when decisions are answered by the `answer` tool. Every part is fixed for
+         * the game, so the whole prompt caches.
+         */
+        static String seatFraming(String seat, String plan, boolean nativeTools, boolean coaching, boolean answerTool) {
+            String tools = MEMORY_TOOLS ? (nativeTools ? NativeTools.instructions() : ContextMemory.instructions())
+                    : "You have no lookup tools: everything you need is in the message.\n";
+            String answers = answerTool ? AnswerTool.instructions() : TEXT_ANSWERS;
+            return "You are playing Magic: The Gathering, Legacy format, as the player \"" + seat + "\" against one "
+                    + "opponent. Your goal is to win the game.\n\n"
+                    // PLAN_A=""/PLAN_B="" (and DECKLIST=0) give an arm with no deck information.
+                    + (plan == null || plan.isEmpty() ? "" : "<your_deck>\n" + plan.trim() + "\n</your_deck>\n\n")
+                    + "<how_this_works>\n"
+                    + "The Forge rules engine runs the game and asks you whenever you have a decision. Each message holds "
+                    + "the current state of the game, then one decision and its options. The engine has already checked "
+                    + "the rules: every option listed is legal, so choose on what is best for winning. The state in the "
+                    + "newest message is current; earlier messages describe the past.\n"
+                    + tools + answers
+                    + "</how_this_works>\n\n"
+                    + "<reading_the_state>\n" + SeatObservation.GUIDE + "</reading_the_state>\n"
+                    + (coaching ? "\n<legacy_reference>\n" + LEGACY_REFERENCE + "</legacy_reference>\n" : "");
+        }
+        /** How a decision is answered when it is answered in text (ANSWER_TOOL=0, or a backend without
+         *  function calling). */
+        static final String TEXT_ANSWERS =
+                "Answer each decision on its own last line, in the form the decision asks for: `CHOICE: <number>` for "
+              + "one option, `PICKS: <numbers>` for several (`PICKS: NONE` for none), `BLOCKS: <blocker>-><attacker>, "
+              + "...` (or `BLOCKS: NONE`), `KEEP` or `MULLIGAN`, `NUMBER: <n>` or `CARD: <name>`. The harness reads only "
+              + "that last line. If it cannot read it, it asks once more; after that it takes the decline or pass "
+              + "option.\n";
+        /** Terms and the archetypes of the eval pool: what they are, not how to play against them. */
+        static final String LEGACY_REFERENCE =
+                "Terms: tempo (mana efficiency and board presence); card advantage (more resources than the opponent); "
+              + "cantrip (a cheap spell that replaces itself, such as Brainstorm, Ponder or Preordain); combo (a specific "
+              + "set of cards that wins outside combat); prison or lock (denying the opponent resources).\n"
+              + "Keywords: storm (the spell is copied once for each spell cast before it this turn); delve (exile cards "
+              + "from your graveyard to pay generic mana); infect (damage to creatures as -1/-1 counters and to players "
+              + "as poison counters; 10 poison loses); energy (a counter resource); reanimation (putting a creature from "
+              + "a graveyard onto the battlefield, as with Animate Dead or Reanimate); miracle (cast a card for a cheaper "
+              + "cost the turn you draw it). Cascade, prowess, flash, flying, trample, deathtouch, lifelink, hexproof "
+              + "and shroud work as printed.\n"
+              + "Archetypes in this pool:\n"
+              + "- ANT / Storm: fast mana and rituals into Ad Nauseam and a lethal storm count.\n"
+              + "- Burn: cheap creatures (Goblin Guide, Monastery Swiftspear) and direct damage.\n"
+              + "- Death & Taxes: small disruptive creatures (Thalia, Mother of Runes) with Wasteland and Rishadan Port.\n"
+              + "- Elves: mana creatures that build to an overrun such as Craterhoof Behemoth.\n"
+              + "- Goblins: Goblin Lackey and Goblin Ringleader; a wide tribal board.\n"
+              + "- Grixis Reanimator: discard a large creature (Atraxa, Archon) and reanimate it early.\n"
+              + "- Infect: Glistener Elf and Blighted Agent with pump spells.\n"
+              + "- Lands: Wasteland, Rishadan Port and The Tabernacle at Pendrell Vale, winning with Marit Lage.\n"
+              + "- Mardu Energy: aggressive creatures with energy payoffs.\n"
+              + "- Miracles: Brainstorm and Ponder setting up Terminus and Entreat the Angels; control.\n"
+              + "- Sneak & Show: Show and Tell or Sneak Attack putting a huge creature such as Emrakul into play.\n"
+              + "- UR Delver: Delver of Secrets with cantrips, burn and counterspells; tempo.\n";
+        /** {@link #STATIC_REFERENCE} with its answer contract describing the `answer` call. */
+        static String toolReference() {
+            int a = STATIC_REFERENCE.indexOf("=== ANSWER CONTRACT"), b = STATIC_REFERENCE.indexOf("=== WORKED EXAMPLES");
+            if (a < 0 || b < a) return STATIC_REFERENCE;
+            return STATIC_REFERENCE.substring(0, a)
+                    + "=== ANSWER CONTRACT (the `answer` call for each decision kind) ===\n"
+                    + "- Numbered single pick -> `option`: one number from the Options list (a 'decline/none' option,\n"
+                    + "  when offered, is just another number).\n"
+                    + "- Choose a subset (discard, reveal, cards-for-effect, scry/surveil keep-on-top, sacrifice, attackers) ->\n"
+                    + "  `options`: the numbers, honoring the stated MIN and MAX; an empty list chooses none where MIN is 0.\n"
+                    + "  For scry/surveil, list the ones to KEEP ON TOP in order (first = new top card).\n"
+                    + "- Declare blockers -> `blocks`: pairs of a blocker number and an attacker number (empty: no blocks).\n"
+                    + "- Mulligan -> `keep`: true or false. A number -> `number`. Naming a card -> `card`.\n"
+                    + "Your plan -> `set_plan` (goal, next), whenever it is offered and your plan is new or changed.\n"
+                    + "An answer outside the legal values is refused with the reason and you may call again once; a\n"
+                    + "second illegal call costs you the decision (I take the decline/PASS option for you).\n"
+                    + "\n"
+                    + STATIC_REFERENCE.substring(b);
         }
         /** The harness's advice on how to play; left out under NO_COACHING. */
         private static final String PRINCIPLES =
@@ -1396,9 +1544,15 @@ public final class LlmSpikeGui {
                 // the faithful observer's header must be present on EVERY model ask).
                 String prompt = attempt == 0 ? base
                         : base + "\n\n(Your previous reply had no parseable CHOICE line. Answer with ONE line only, nothing else: CHOICE: <a number from the list above>.)";
+                List<String> menu = new ArrayList<>(options);
+                if (noneLabel != null) menu.add(noneLabel);
+                offerAnswer(b, AnswerTool.Spec.one(menu.size()).labels(menu));
                 String reply = ask(b, prompt);
+                noteAnswerVia(attempt);
+                if (answerLost()) return -1;               // two invalid calls: the caller's legal default
                 if (reply == null) return -2;              // bridge dead -> caller decides
-                int c = parseTagNumber(reply, "CHOICE:");
+                AnswerTool.Answer ta = toolAnswer();
+                int c = ta != null ? ta.option : parseTagNumber(reply, "CHOICE:");
                 if (c == noneIdx && noneIdx > 0) {         // explicit decline (a real model decision)
                     if (type != null) { // tells the caller its -1 return is already a logged row, not a silent drop
                         evalDec(type, options.size(), -1, tierOf(b == smart), 0, null, options);
@@ -1462,15 +1616,21 @@ public final class LlmSpikeGui {
                 String prompt = attempt == 0 ? base
                         : base + "\n\n(Your previous reply had no parseable PICKS line. Answer with ONE line only, nothing else: PICKS: <"
                           + min + " to " + max + " numbers from the list above, comma-separated>.)";
+                offerAnswer(b, AnswerTool.Spec.many(options.size(), min, max).cancel(cancelIdx >= 0 ? cancelIdx + 1 : -1).labels(options));
                 String reply = ask(b, prompt);
+                noteAnswerVia(attempt);
                 if (reply == null) return null;
-                String seg = lastSegment(reply, "PICKS:");
-                if (seg == null) continue;
                 java.util.LinkedHashSet<Integer> picks = new java.util.LinkedHashSet<>();
-                Matcher m = Pattern.compile("\\d+").matcher(seg);
-                while (m.find()) {
-                    int idx = Integer.parseInt(m.group());
-                    if (idx >= 1 && idx <= options.size()) picks.add(idx - 1);
+                AnswerTool.Answer ta = toolAnswer();
+                if (ta != null) picks.addAll(ta.zeroBased());   // validated: in range, distinct, within bounds
+                else {
+                    String seg = lastSegment(reply, "PICKS:");
+                    if (seg == null) continue;
+                    Matcher m = Pattern.compile("\\d+").matcher(seg);
+                    while (m.find()) {
+                        int idx = Integer.parseInt(m.group());
+                        if (idx >= 1 && idx <= options.size()) picks.add(idx - 1);
+                    }
                 }
                 if (cancelIdx >= 0 && picks.contains(cancelIdx)) {
                     lastPicks = java.util.Collections.singletonList(cancelIdx);
@@ -1509,15 +1669,21 @@ public final class LlmSpikeGui {
                 String prompt = attempt == 0 ? base
                         : base + "\n\n(Answer with ONE line only: PICKS: <" + min + " to " + num
                           + " numbers from the list; the same number may repeat>.)";
+                offerAnswer(b, AnswerTool.Spec.repeat(options.size(), min, num).labels(options));
                 String reply = ask(b, prompt);
+                noteAnswerVia(attempt);
                 if (reply == null) return null;
-                String seg = lastSegment(reply, "PICKS:");
-                if (seg == null) continue;
                 List<Integer> out = new ArrayList<>();
-                Matcher m = Pattern.compile("\\d+").matcher(seg);
-                while (m.find() && out.size() < Math.max(1, num)) {
-                    int idx = Integer.parseInt(m.group());
-                    if (idx >= 1 && idx <= options.size()) out.add(idx - 1);
+                AnswerTool.Answer ta = toolAnswer();
+                if (ta != null) out.addAll(ta.zeroBased());
+                else {
+                    String seg = lastSegment(reply, "PICKS:");
+                    if (seg == null) continue;
+                    Matcher m = Pattern.compile("\\d+").matcher(seg);
+                    while (m.find() && out.size() < Math.max(1, num)) {
+                        int idx = Integer.parseInt(m.group());
+                        if (idx >= 1 && idx <= options.size()) out.add(idx - 1);
+                    }
                 }
                 if (out.size() >= min) {
                     lastPicks = out;
@@ -1551,8 +1717,12 @@ public final class LlmSpikeGui {
             for (int attempt = 0; attempt < 2; attempt++) {
                 String prompt = attempt == 0 ? base
                         : base + "\n\n(Answer with ONE line only: ALLOC: <" + n + " numbers summing to " + total + ">.)";
+                offerAnswer(b, AnswerTool.Spec.alloc(n, total).labels(labels));
                 String reply = ask(b, prompt);
+                noteAnswerVia(attempt);
                 if (reply == null) return null;
+                AnswerTool.Answer ta = toolAnswer();
+                if (ta != null) return new ArrayList<>(ta.amounts);   // validated: n amounts summing to total
                 String seg = lastSegment(reply, "ALLOC:");
                 if (seg == null) continue;
                 List<Integer> out = new ArrayList<>();
@@ -2119,7 +2289,12 @@ public final class LlmSpikeGui {
             for (int attempt = 0; attempt < 2; attempt++) {
                 String prompt = attempt == 0 ? basePrompt
                         : "That reply contained neither KEEP nor MULLIGAN. Answer with ONE word only: KEEP or MULLIGAN.";
-                String reply = ask(smart, prompt);
+                // The retry is the whole decision again when the tool is offered: a one-line correction
+                // would reach a stateless backend with no hand in it.
+                offerAnswer(smart, AnswerTool.Spec.keep());
+                String reply = ask(smart, attempt > 0 && nextAnswer != null ? basePrompt + "\n\n" + prompt : prompt);
+                noteAnswerVia(attempt);
+                if (answerLost()) break;   // two invalid calls: the deterministic KEEP below, recorded as unparsed
                 // Bridge dead -> the SAME deterministic KEEP the unparsed-after-retry branch below
                 // uses, never Forge AI (this file's blanket hard invariant: a dead bridge always takes
                 // the deterministic legal default, same ladder as confirm/attackers/surveil).
@@ -2128,10 +2303,15 @@ public final class LlmSpikeGui {
                     p("[ROUTER] mulligan: KEEP (bridge-down)");
                     return true;
                 }
-                String r = reply.toUpperCase();
-                int k = r.lastIndexOf("KEEP"), mu = r.lastIndexOf("MULLIGAN");
-                if (k < 0 && mu < 0) continue; // no decision token -> retry, then deterministic fallback below
-                boolean keep = k >= 0 && (mu < 0 || k > mu);
+                AnswerTool.Answer ta = toolAnswer();
+                boolean keep;
+                if (ta != null) keep = ta.keep;
+                else {
+                    String r = reply.toUpperCase();
+                    int k = r.lastIndexOf("KEEP"), mu = r.lastIndexOf("MULLIGAN");
+                    if (k < 0 && mu < 0) continue; // no decision token -> retry, then deterministic fallback below
+                    keep = k >= 0 && (mu < 0 || k > mu);
+                }
                 evalDec("mulligan", 2, keep ? 0 : 1, "smart", 0, null, mullOpts);
                 p("[ROUTER] mulligan: " + (keep ? "KEEP" : "MULLIGAN"));
                 return keep;
@@ -2364,15 +2544,45 @@ public final class LlmSpikeGui {
                 // line on, so without it a block kept its whole stale state (PromptFidelityTest contract).
                 if (observer != null) prompt = prompt.replace("\nCOMBAT — declare blockers.", "\nDECISION: COMBAT — declare blockers.");
                 p("[ROUTER] blockers: " + attackers.size() + " atk / " + blockers.size() + " blk -> " + routeLabel(smart.getModel(), rnd != null));
-                String reply = ask(smart, prompt);
-                if (reply == null) { auto("blockers(bridge-down)->none"); return; }
-                String line = lastSegment(reply, "BLOCKS:");
-                if (line == null) { // one retry with the whole decision, as decideOne does
-                    reply = ask(smart, prompt + "\n\n(Your previous reply had no BLOCKS line. End with EXACTLY: BLOCKS: blocker->attacker, ...   or BLOCKS: NONE)");
+                // The answer tool names blocks by NUMBER: the two lists, numbered, and every pair checked
+                // against the engine before it is accepted (an illegal block is corrected in the same
+                // conversation instead of being dropped).
+                List<String> atkLabels = new ArrayList<>();
+                for (Card a : attackers) atkLabels.add(observer != null ? observer.shortRef(a) : a.getName() + " (" + a.getNetPower() + "/" + a.getNetToughness() + ")");
+                final List<Card> blkList = new ArrayList<>(blockers), atkList = new ArrayList<>(attackers);
+                AnswerTool.Spec blockSpec = AnswerTool.Spec.blocks(blkLabels, atkLabels).check(ans -> {
+                    for (int[] pr : ans.blocks)
+                        if (!CombatUtil.canBlock(atkList.get(pr[1] - 1), blkList.get(pr[0] - 1), combat))
+                            return "blocker " + pr[0] + " (" + blkLabels.get(pr[0] - 1) + ") cannot block attacker "
+                                    + pr[1] + " (" + atkLabels.get(pr[1] - 1) + ").";
+                    return null;
+                });
+                String numbered = "\nATTACKERS: " + numberedList(atkLabels) + "\nYOUR BLOCKERS: " + numberedList(blkLabels) + "\n";
+                String line = null;
+                for (int attempt = 0; attempt < 2 && line == null; attempt++) {
+                    // The retry carries the whole decision, as decideOne does.
+                    String text = attempt == 0 ? prompt
+                            : prompt + "\n\n(Your previous reply had no BLOCKS line. End with EXACTLY: BLOCKS: blocker->attacker, ...   or BLOCKS: NONE)";
+                    offerAnswer(smart, blockSpec);
+                    String reply = ask(smart, nextAnswer != null ? text + numbered : text);
+                    noteAnswerVia(attempt);
+                    if (answerLost()) { auto("blockers(unparsed)->none"); return; }
                     if (reply == null) { auto("blockers(bridge-down)->none"); return; }
+                    AnswerTool.Answer ta = toolAnswer();
+                    if (ta != null) {
+                        int assigned = 0;
+                        for (int[] pr : ta.blocks) {   // validated, each pair checked with CombatUtil.canBlock
+                            Card b = blkList.get(pr[0] - 1), a = atkList.get(pr[1] - 1);
+                            combat.addBlocker(a, b); assigned++; blockers.remove(b);
+                        }
+                        lastShadowChoice = shadowBlk; // genuine model-consulted decision -> label it
+                        evalDec("blockers", blkLabels.size(), assigned, "smart", 0, null, blkLabels); // choice = # blocks
+                        p("[ROUTER] blockers: " + (assigned == 0 ? "NONE" : "assigned " + assigned));
+                        return;
+                    }
                     line = lastSegment(reply, "BLOCKS:");
-                    if (line == null) { auto("blockers(unparsed)->none"); return; }
                 }
+                if (line == null) { auto("blockers(unparsed)->none"); return; }
                 line = line.split("\\R", 2)[0];
                 if (line.trim().replaceAll("[^A-Za-z]", "").equalsIgnoreCase("NONE")) {
                     // A genuine model-consulted decision (the reply came back fine) — must log exactly
@@ -2586,6 +2796,9 @@ public final class LlmSpikeGui {
                 if (askProfile) asks += "Also state your read of the OPPONENT as `PROFILE: <one short line>` "
                         + "(their deck/plan and the cards to respect, e.g. "
                         + (observer != null ? "'<archetype>: <their key cards>, respect <card>'). " : "'Grixis Reanimator: Entomb+Reanimate, respect Force of Will'). ");
+                // The answer tool: the same notes, asked as `set_plan` and as fields of the answer.
+                final boolean playTool = answerToolFor(b);
+                if (playTool) asks = playToolAsks(askPlan, askLines, askProfile);
                 boolean lookaheadOn = lookaheadEnabled();
                 // PLAN-THEN-EXECUTE: run a step of the model's own plan without asking again.
                 if (PLAN_EXECUTE && rnd == null && ownMain && !landOnly && planTurn == turn
@@ -2623,8 +2836,9 @@ public final class LlmSpikeGui {
                 // Mystic's ability) — and 13 of 92 requests named one in runs/lines/ctl2/native-lookahead.
                 final List<SpellAbility> simOptions = new ArrayList<>(options);
                 simOptions.addAll(landPlays);
-                final boolean nativeSim = lookaheadOn && !simOptions.isEmpty() && MEMORY_TOOLS && NativeTools.enabled()
-                        && b.supportsNativeTools();
+                // With the answer tool the preview is a function call even without MEMORY_TOOLS.
+                final boolean nativeSim = lookaheadOn && !simOptions.isEmpty()
+                        && ((MEMORY_TOOLS && NativeTools.enabled() && b.supportsNativeTools()) || playTool);
                 final int simTurn = turn;
                 final int simPassIdx = passIdx;      // PASS is the last menu line; a preview of it is not an option
                 final java.util.function.Function<String, String> simulateTool = argsJson -> {
@@ -2656,12 +2870,13 @@ public final class LlmSpikeGui {
                     p("[ROUTER] lookahead " + which + ": " + preview);
                     return "LOOKAHEAD (option " + which + "): " + preview;
                 };
+                AnswerTool.Answer playAnswer = null;  // the tool answer, when the play was answered by a call
                 if (rnd != null) choice = 1 + rnd.nextInt(passIdx); // random arm: uniform incl. PASS
                 for (int attempt = 0; rnd == null && attempt < 2 && choice < 1; attempt++) {
                     String prompt = (attempt == 0
                             ? playPromptPrefix(snapshot(), phh.getPhase(), ownMain, menuStr)
                               + (cancelNote != null && attempt == 0 ? "NOTE: " + cancelNote + "\n" : "")
-                              + (!SKIP_HEUR && observer != null && attempt == 0 ? YIELD_HINT : "")
+                              + (!SKIP_HEUR && observer != null && attempt == 0 ? (playTool ? YIELD_TOOL_HINT : YIELD_HINT) : "")
                               + (asks.isEmpty() ? PLAY_PROMPT_TAIL : asks + "Then end with EXACTLY: CHOICE: <number>")
                             // The retry carries the WHOLE decision again. It used to be this one sentence
                             // alone ("...from the list above") sent to a stateless backend with no list
@@ -2673,7 +2888,42 @@ public final class LlmSpikeGui {
                             + (lookaheadOn && attempt == 0 && !nativeSim
                                ? "\nYou may instead reply `SIMULATE: <number>` (optionally `SIMULATE: <number> <target name>`) to see what a CAST or ACTIVATE option (1.." + options.size()
                                  + ") resolves to; you will then be asked again with the result." : "");
+                    AnswerTool.Spec playSpec = AnswerTool.Spec.one(passIdx).labels(playLabels);
+                    if (attempt == 0) {
+                        playSpec.plan = askPlan;
+                        if (askPlan && !options.isEmpty()) {
+                            playSpec.stepOptions = new ArrayList<>();
+                            for (int i = 1; i <= options.size(); i++) playSpec.stepOptions.add(i);
+                        }
+                        playSpec.yield = !SKIP_HEUR && observer != null;
+                        playSpec.profile = askProfile;
+                        playSpec.lines = askLines;
+                    }
+                    offerAnswer(b, playSpec);
                     String reply = ask(b, prompt, nativeSim && attempt == 0 ? simulateTool : null);
+                    noteAnswerVia(attempt);
+                    if (answerLost()) break;     // two invalid calls: PASS below, recorded as play(unparsed)
+                    AnswerTool.Answer ta = toolAnswer();
+                    if (ta != null) {            // the notes are fields of the answer; nothing is read from prose
+                        playAnswer = ta;
+                        if (askPlan && attempt == 0 && ta.steps != null)
+                            for (int n : ta.steps) {
+                                String host = null;
+                                try { host = options.get(n - 1).getHostCard().getName(); } catch (Exception ignore) { }
+                                if (host != null) planSteps.add(host);
+                            }
+                        if (askLines && attempt == 0) {
+                            deckLinesAsks++;
+                            if (ta.lines != null) { deckLines = ta.lines; deckLinesAsked = true; p("[ROUTER] lines: " + deckLines); }
+                        }
+                        if (askProfile && attempt == 0 && ta.profile != null) {
+                            oppProfile = ta.profile;
+                            profileTurn = turn;
+                            p("[ROUTER] profile: " + oppProfile);
+                        }
+                        choice = ta.option;
+                        continue;
+                    }
                     if (reply != null && askPlan && attempt == 0 && observer != null) {
                         // ask() already adopted a PLAN line (adoptPlan); the cast list rides this ask only.
                         String st = planStatement(reply) == null ? null : lastSegment(reply, "STEPS:");
@@ -2777,7 +3027,7 @@ public final class LlmSpikeGui {
                     if (unparsed) p("[ROUTER] play: no usable CHOICE in the reply -> PASS (unparsed)");
                     else if (reactSig != null) passedReactSigs.add(reactSig); // don't re-ask this situation this turn
                     if (!SKIP_HEUR && observer != null && rnd == null) {
-                        String y = lastSegment(lastReply, "YIELD:");
+                        String y = playAnswer != null ? playAnswer.yieldUntil : lastSegment(lastReply, "YIELD:");
                         if (y != null) {
                             y = y.trim().toLowerCase(java.util.Locale.ROOT);
                             if (y.startsWith("end-of-turn") || y.startsWith("my-next-turn")) {
@@ -4016,9 +4266,12 @@ public final class LlmSpikeGui {
                         + srcAsk(sa) + "\nEvery integer from " + min + " through " + max
                         + " inclusive is legal. Reply with exactly NUMBER: <integer>.";
                 for (int attempt = 0; attempt < 2 && fastOk(); attempt++) {
+                    offerAnswer(fast, AnswerTool.Spec.number(min, max));
                     String reply = ask(fast, base + (attempt == 0 ? "" : "\nInvalid answer. Use exactly NUMBER: <integer> within the range."));
+                    noteAnswerVia(attempt);
                     if (reply == null) break;
-                    Integer value = parseNumberReply(reply, min, max);
+                    AnswerTool.Answer ta = toolAnswer();
+                    Integer value = ta != null ? ta.number : parseNumberReply(reply, min, max);
                     if (value != null) {
                         // Numeric values are not option indexes; the explicit domain is in options.
                         evalDec("number-value", -1, value, tierOf(false), 0, null,
@@ -4236,7 +4489,10 @@ public final class LlmSpikeGui {
                     auto("card-name(list:unparsed)->" + faces.get(0).getName());
                     return faces.get(0).getName();
                 }
-                String want = askCardName(sa, message, null);
+                String want = askCardName(sa, message, null, name -> {
+                    for (ICardFace f : faces) if (f.getName().equalsIgnoreCase(name)) return true;
+                    return false;
+                });
                 if (want != null) {
                     for (ICardFace f : faces)
                         if (f.getName().equalsIgnoreCase(want)) {
@@ -4276,7 +4532,10 @@ public final class LlmSpikeGui {
                     } catch (Exception ignore) { }
                     return aiDelegate("card-name(no-pool)", super.chooseCardName(sa, cpp, valid, message));
                 }
-                String want = askCardName(sa, message, valid);
+                String want = askCardName(sa, message, valid, name -> {
+                    ICardFace f = StaticData.instance().getCommonCards().getFaceByName(name);
+                    return f != null && (cpp == null || cpp.test(f));
+                });
                 if (want != null) {
                     ICardFace face = StaticData.instance().getCommonCards().getFaceByName(want);
                     if (face != null && (cpp == null || cpp.test(face))) {
@@ -4308,8 +4567,9 @@ public final class LlmSpikeGui {
             }
         }
 
-        /** Shared free-form "CARD: <name>" ask (one retry). Returns the raw name or null. */
-        private String askCardName(SpellAbility sa, String message, String valid) {
+        /** Shared free-form "CARD: <name>" ask (one retry). Returns the raw name or null. `exists`
+         *  (nullable): whether a name is one the caller would accept, checked on a tool answer. */
+        private String askCardName(SpellAbility sa, String message, String valid, java.util.function.Predicate<String> exists) {
             String q = snapshot() + "\nDECISION: NAME A CARD" + srcAsk(sa) + ": " + oneLine(message)
                     + (valid != null && !valid.isEmpty() ? " (must match: " + oneLine(valid) + ")" : "")
                     + (observer != null
@@ -4319,9 +4579,17 @@ public final class LlmSpikeGui {
                             + "the card most likely there / most dangerous to your plan. ")
                     + "End with EXACTLY: CARD: <exact English card name>";
             for (int attempt = 0; attempt < 2; attempt++) {
-                String reply = ask(smart, attempt == 0 ? q
-                        : "That was not a legal or recognizable card name here. Answer with ONE line only: CARD: <exact card name>");
+                // With the tool the retry is the whole decision (a stateless backend has no question
+                // above it), and a name that is not a card is corrected in the same conversation.
+                AnswerTool.Spec spec = AnswerTool.Spec.card();
+                if (exists != null) spec.check(a -> exists.test(a.card) ? null : "\"" + a.card + "\" is not a card that can be named here.");
+                String retry = "That was not a legal or recognizable card name here. Answer with ONE line only: CARD: <exact card name>";
+                boolean tool = offerAnswer(smart, spec) != null;
+                String reply = ask(smart, attempt == 0 ? q : tool ? q + "\n\n" + retry : retry);
+                noteAnswerVia(attempt);
                 if (reply == null) return null;
+                AnswerTool.Answer ta = toolAnswer();
+                if (ta != null) return ta.card;
                 String seg = lastSegment(reply, "CARD:");
                 if (seg != null) {
                     String want = seg.replace("\"", "").replace("`", "").trim();
@@ -4741,21 +5009,86 @@ public final class LlmSpikeGui {
         /** Test seam: sees every prompt the seat asks (PromptFidelityTest's per-type contract). Null in play. */
         static volatile java.util.function.Consumer<String> TEST_ASK_TAP = null;
 
+        // ---------------- the answer tool (AnswerTool) ----------------
+        /** The answer session the NEXT ask() offers, set by a decision site through {@link #offerAnswer};
+         *  ask() takes it. Null: the ask is answered in text. */
+        private AnswerTool.Ask nextAnswer;
+        /** The answer session of the most recent ask(), or null when it offered none. A decision site
+         *  reads {@code lastAnswer.answer} instead of parsing the reply. */
+        AnswerTool.Ask lastAnswer;
+        /** The answer tool applies to this bridge: on (ANSWER_TOOL is not 0), native tools on, a model
+         *  seat, and a backend with function calling (an `openrouter:` spec; not the Claude CLI lane). */
+        private boolean answerToolFor(LLMBridge b) {
+            return AnswerTool.enabled() && NativeTools.enabled() && "llm".equals(mode) && rnd == null
+                    && b != null && b.supportsNativeTools();
+        }
+        /** Offers `answer` (with `spec`) on the next ask of {@code b}, or nothing when the tool does not
+         *  apply. `set_plan` rides along wherever a plan may be stated: any smart ask under the faithful
+         *  profile (as PLAN: lines are read there), and the play ask that asks for the turn plan. */
+        private AnswerTool.Ask offerAnswer(LLMBridge b, AnswerTool.Spec spec) {
+            lastAnswer = null;
+            if (!answerToolFor(b)) { nextAnswer = null; return null; }
+            AnswerTool.Ask a = new AnswerTool.Ask(spec, spec.plan || (observer != null && b == smart));
+            a.planSink = this::adoptPlanText;
+            nextAnswer = a;
+            return a;
+        }
+        /** The validated answer of the last ask, when it came from the tool. */
+        private AnswerTool.Answer toolAnswer() {
+            return lastAnswer != null && lastAnswer.answered() ? lastAnswer.answer : null;
+        }
+        /** The last ask offered the tool and the model spent its correction: the caller's fallback, no re-ask. */
+        private boolean answerLost() { return lastAnswer != null && lastAnswer.lost; }
+        /** How the current decision was answered, for its row: "tool", "text", "reask" (a second full ask),
+         *  "lost" (two invalid calls); null when the answer tool was not offered. */
+        private String answerVia = null;
+        private int answerInvalid = 0;
+        /** Records how the ask just made was answered; attempt > 0 is a full re-ask. */
+        private void noteAnswerVia(int attempt) {
+            if (lastAnswer == null) return;
+            answerInvalid += lastAnswer.invalid;
+            answerVia = lastAnswer.lost ? "lost" : attempt > 0 ? "reask" : lastAnswer.via;
+        }
+
         private String ask(LLMBridge b, String prompt, java.util.function.Function<String, String> simulate) {
             prompt = withIntent(prompt);
+            AnswerTool.Ask answer = nextAnswer;
+            nextAnswer = null;
+            lastAnswer = answer;
+            // The decision text's own format line ("end with EXACTLY: CHOICE: <number>") becomes the tool's.
+            if (answer != null) prompt = AnswerTool.rephrase(prompt, answer.spec, answer.plan);
             java.util.function.Consumer<String> tap = TEST_ASK_TAP;
             if (tap != null) tap.accept(prompt);
-            String reply = askOnce(b, prompt, simulate);
-            if (observer != null && b == smart && reply != null) adoptPlan(reply);
+            String reply = answer != null ? askAnswer(b, prompt, simulate, answer) : askOnce(b, prompt, simulate);
+            // A PLAN line is read from a TEXT reply only; a tool answer's plan came through set_plan.
+            if (observer != null && b == smart && reply != null && (answer == null || !answer.answered())) adoptPlan(reply);
             // ONE_CHAT: the conversation keeps each answered decision (a tool round or a dead bridge is not one).
             if (b instanceof ChatSessionBridge) ((ChatSessionBridge) b).remember(prompt, reply);
             return reply;
         }
 
-        private String askOnce(LLMBridge b, String prompt, java.util.function.Function<String, String> simulate) {
-            if (!MEMORY_TOOLS || !"llm".equals(mode)) return askModel(b, prompt);
-            // Archive the existing player-narration stream before its lossy prompt compaction.
-            // Never attach raw engine objects or omniscient evaluation records to this archive.
+        /** An ask answered through `answer`: the lookups (when MEMORY_TOOLS) and the answer share one
+         *  conversation. Returns the answer rendered in the text grammar's words (also the row's raw_reply),
+         *  a text reply, or null (no reply, or the answer was lost). */
+        private String askAnswer(LLMBridge b, String prompt, java.util.function.Function<String, String> simulate,
+                                 AnswerTool.Ask answer) {
+            String user = prompt;
+            AnswerTool.Lookups lookups = null;
+            if (MEMORY_TOOLS) {
+                archiveEvents();
+                user = contextMemory.beginNative(prompt);
+                lookups = contextMemory.lookups(simulate);
+            } else if (simulate != null || lookaheadEnabled()) {
+                lookups = AnswerTool.previewOnly(simulate);
+            }
+            String reply = AnswerTool.converse(user, answer, nativeModel(b), lookups, contextAudit());
+            if (answer.answered()) lastReply = reply;   // the row records the answer, not the call's markup
+            return reply;
+        }
+
+        /** Archive the existing player-narration stream before its lossy prompt compaction.
+         *  Never attach raw engine objects or omniscient evaluation records to this archive. */
+        private void archiveEvents() {
             try {
                 // Faithful path: archive the SEAT stream (redacted, reveals included), never the raw
                 // global log, so the archive can hold nothing the observation could not.
@@ -4770,40 +5103,63 @@ public final class LlmSpikeGui {
             } catch (Exception e) {
                 contextMemory.observe("HISTORY UNAVAILABLE at T" + safeTurn() + "; archive may be incomplete.");
             }
-            java.util.function.BiConsumer<String, String> audit = (command, result) -> EvalLog.write(
+        }
+
+        private java.util.function.BiConsumer<String, String> contextAudit() {
+            return (command, result) -> EvalLog.write(
                     "{\"t\":\"context_tool\",\"version\":\"" + ContextMemory.VERSION + "\",\"seat\":\"" + jsonEscape(seat)
                     + "\",\"turn\":" + safeTurn() + ",\"call\":" + contextCallSeq
                     + ",\"request\":\"" + jsonEscape(command) + "\",\"result\":\"" + jsonEscape(result) + "\"}");
+        }
+
+        /** One native model turn over bridge {@code b}, with the decision row's bookkeeping and a
+         *  context_call transcript row. */
+        /** The additive `reasoning` field of a context_call row: the model's readable reasoning, when the
+         *  provider returned it in plain text. */
+        static String reasoningField(NativeTools.Turn t) {
+            String r = t == null ? null : NativeTools.reasoningOf(t.messageJson);
+            return r == null ? "" : ",\"reasoning\":\"" + jsonEscape(r) + "\"";
+        }
+
+        private ContextMemory.NativeModel nativeModel(LLMBridge b) {
+            return (user, messages, tools, allowCalls, round) -> {
+                if (!b.supportsNativeTools()) return null;
+                if (!(b == smart ? smartOk() : fastOk())) return null;
+                long start = System.currentTimeMillis();
+                NativeTools.Turn[] got = new NativeTools.Turn[1];
+                String text = askModel(b, user, () -> {
+                    got[0] = b.chat(messages, tools, allowCalls);
+                    return got[0] == null ? null : got[0].text();
+                });
+                EvalLog.write("{\"t\":\"context_call\",\"version\":\"" + ContextMemory.VERSION
+                        + "\",\"protocol\":\"native\",\"tools_version\":\"" + NativeTools.VERSION
+                        + "\",\"seat\":\"" + jsonEscape(seat) + "\",\"turn\":" + safeTurn()
+                        + ",\"call\":" + (++contextCallSeq) + ",\"round\":" + round
+                        + ",\"tier\":\"" + (b == smart ? "smart" : "fast")
+                        + "\",\"elapsed_ms\":" + (System.currentTimeMillis() - start)
+                        + ",\"prompt_tokens\":" + lastPromptTokens + ",\"completion_tokens\":" + lastCompletionTokens + cacheFields(lastCachedTokens, lastCacheWriteTokens)
+                        + ",\"prompt\":\"" + jsonEscape(user) + "\""
+                        // Later rounds carry the tool exchanges; the first is just the prompt above.
+                        + (round == 0 ? "" : ",\"messages\":" + messages)
+                        + ",\"raw_reply\":" + (text == null ? "null" : "\"" + jsonEscape(text) + "\"")
+                        + reasoningField(got[0]) + "}");
+                // A turn of tool calls is not a discarded answer: the next round must not record it
+                // as first_failed_reply or bill its time to retry_ms.
+                if (got[0] != null && !got[0].calls.isEmpty()) lastReply = null;
+                return text == null ? null : got[0];
+            };
+        }
+
+        private String askOnce(LLMBridge b, String prompt, java.util.function.Function<String, String> simulate) {
+            if (!MEMORY_TOOLS || !"llm".equals(mode)) return askModel(b, prompt);
+            archiveEvents();
+            java.util.function.BiConsumer<String, String> audit = contextAudit();
             if (NativeTools.enabled() && b.supportsNativeTools()) {
                 // Native function calling: same archive, same executor, same budget; the request is a
                 // structured call instead of a line of text the reply must consist of.
                 // If the provider refuses tools mid-ask, this one decision gets no model answer (its
                 // caller takes the deterministic fallback); the seat's later decisions use the text loop.
-                return contextMemory.askNative(prompt, (user, messages, tools, allowCalls, round) -> {
-                    if (!b.supportsNativeTools()) return null;
-                    if (!(b == smart ? smartOk() : fastOk())) return null;
-                    long start = System.currentTimeMillis();
-                    NativeTools.Turn[] got = new NativeTools.Turn[1];
-                    String text = askModel(b, user, () -> {
-                        got[0] = b.chat(messages, tools, allowCalls);
-                        return got[0] == null ? null : got[0].text();
-                    });
-                    EvalLog.write("{\"t\":\"context_call\",\"version\":\"" + ContextMemory.VERSION
-                            + "\",\"protocol\":\"native\",\"tools_version\":\"" + NativeTools.VERSION
-                            + "\",\"seat\":\"" + jsonEscape(seat) + "\",\"turn\":" + safeTurn()
-                            + ",\"call\":" + (++contextCallSeq) + ",\"round\":" + round
-                            + ",\"tier\":\"" + (b == smart ? "smart" : "fast")
-                            + "\",\"elapsed_ms\":" + (System.currentTimeMillis() - start)
-                            + ",\"prompt_tokens\":" + lastPromptTokens + ",\"completion_tokens\":" + lastCompletionTokens
-                            + ",\"prompt\":\"" + jsonEscape(user) + "\""
-                            // Later rounds carry the tool exchanges; the first is just the prompt above.
-                            + (round == 0 ? "" : ",\"messages\":" + messages)
-                            + ",\"raw_reply\":" + (text == null ? "null" : "\"" + jsonEscape(text) + "\"") + "}");
-                    // A turn of tool calls is not a discarded answer: the next round must not record it
-                    // as first_failed_reply or bill its time to retry_ms.
-                    if (got[0] != null && !got[0].calls.isEmpty()) lastReply = null;
-                    return text == null ? null : got[0];
-                }, simulate, audit);
+                return contextMemory.askNative(prompt, nativeModel(b), simulate, audit);
             }
             return contextMemory.ask(prompt, request -> {
                 if (!(b == smart ? smartOk() : fastOk())) return null;
@@ -4815,7 +5171,7 @@ public final class LlmSpikeGui {
                         + "\",\"seat\":\"" + jsonEscape(seat) + "\",\"turn\":" + safeTurn()
                         + ",\"call\":" + (++contextCallSeq) + ",\"tier\":\"" + (b == smart ? "smart" : "fast")
                         + "\",\"elapsed_ms\":" + (System.currentTimeMillis() - start)
-                        + ",\"prompt_tokens\":" + lastPromptTokens + ",\"completion_tokens\":" + lastCompletionTokens
+                        + ",\"prompt_tokens\":" + lastPromptTokens + ",\"completion_tokens\":" + lastCompletionTokens + cacheFields(lastCachedTokens, lastCacheWriteTokens)
                         + ",\"prompt\":\"" + jsonEscape(request) + "\",\"raw_reply\":"
                         + (response == null ? "null" : "\"" + jsonEscape(response) + "\"") + "}");
                 if (ContextMemory.toolLine(response) != null) lastReply = null; // a tool round, not a failed answer
@@ -4878,7 +5234,7 @@ public final class LlmSpikeGui {
                 // retroactively dead time, and its text is the first genuinely-discarded reply worth
                 // keeping for diagnosis (jsonl first_failed_reply, capped).
                 if (lastReply != null) {
-                    if (lastFirstFailedReply == null) lastFirstFailedReply = cap(lastReply, 500);
+                    if (lastFirstFailedReply == null) lastFirstFailedReply = headAndTail(lastReply, 250);
                     lastRetryMs += lastSuccessMs;
                 }
                 lastSuccessMs = subMs; // only the truly-final successful sub-attempt's own duration
@@ -4887,12 +5243,20 @@ public final class LlmSpikeGui {
             lastFinishReason = b.getLastFinishReason();
             lastPromptTokens = b.getLastPromptTokens();
             lastCompletionTokens = b.getLastCompletionTokens();
+            lastCachedTokens = b.getLastCachedTokens();
+            lastCacheWriteTokens = b.getLastCacheWriteTokens();
             lastAskMs += System.currentTimeMillis() - tAsk; // summed over every attempt; retained for the
                                                              // ms<=0 legacy substitution guard in evalDec
             return reply;
         }
         /** Cap a string at n chars for a jsonl field that must stay small (diagnostic reply snippets).
          *  Package-private (not private) so LlmSpikeTest can exercise it directly. */
+        /** The first and last n characters: a discarded reply's answer line, when it has one, is at the
+         *  end, which a plain head cap dropped. */
+        static String headAndTail(String s, int n) {
+            return (s == null || s.length() <= 2 * n + 5) ? s : s.substring(0, n) + " ... " + s.substring(s.length() - n);
+        }
+
         static String cap(String s, int n) {
             return (s == null || s.length() <= n) ? s : s.substring(0, n);
         }
@@ -5022,7 +5386,7 @@ public final class LlmSpikeGui {
             if (ms <= 0 && lastPrompt != null && ("smart".equals(tier) || "fast".equals(tier))) ms = lastSuccessMs;
             emitDecisionRow(getPlayer(), seat, type, nOptions, choice, tier, ms, fallback, options,
                     lastPrompt, lastReply, lastRetryMs, lastAttempts, lastFinishReason, lastFirstFailedReply,
-                    lastPromptTokens, lastCompletionTokens, lastShadowChoice, lastPicks);
+                    lastPromptTokens, lastCompletionTokens, lastShadowChoice, lastPicks, answerVia, answerInvalid, lastCachedTokens, lastCacheWriteTokens);
             lastPicks = null;
         }
         /** Tier label for asked decisions: random arm decisions are harness-made, not model-made. */
@@ -5747,7 +6111,7 @@ public final class LlmSpikeGui {
                     + ". This is a " + size + "-card hand with " + lands + " land(s): " + handNames
                     + ". If you MULLIGAN you will look at a NEW hand of only " + Math.max(0, size - 1)
                     + " cards (each mulligan costs you a card), and you can never go below 5. If you KEEP you play this "
-                    + size + "-card hand as-is. Keeping a workable hand almost always beats shrinking it. "
+                    + size + "-card hand as-is. " + (neutral ? "" : "Keeping a workable hand almost always beats shrinking it. ")
                     + (neutral ? "" : "For a combo deck, a hand with your enablers + a payoff is a KEEP even on few lands; only ship a hand "
                     + "that genuinely cannot function. ") + "Keep or mulligan? End with EXACTLY one word: KEEP or MULLIGAN.";
         }
@@ -5768,30 +6132,43 @@ public final class LlmSpikeGui {
             if (!lookaheadEnabled() || legal == null || legal.isEmpty() || defender == null) return "";
             try {
                 int dmg = ComputerUtilCombat.sumDamageIfUnblocked(legal, defender);
-                StringBuilder evasive = new StringBuilder();
+                // Which of the defender's creatures that can block now could block each attacker (#166: the old
+                // line asked CombatUtil.canBeBlocked, i.e. "can this be blocked at all", and told the seat a
+                // flying Emrakul "can be blocked" when the only untapped creature could not block a flyer).
+                List<Card> blockers = new ArrayList<>();
+                for (Card b : defender.getCreaturesInPlay()) {
+                    try { if (CombatUtil.canBlock(b, combat)) blockers.add(b); } catch (Exception ignore) { }
+                }
+                StringBuilder unblockable = new StringBuilder(), blockable = new StringBuilder();
                 for (Card c : legal) {
                     try {
-                        if (!CombatUtil.canBeBlocked(c, combat, defender)) {
-                            if (evasive.length() > 0) evasive.append(", ");
-                            evasive.append(c.getName()).append(" (").append(ComputerUtilCombat.damageIfUnblocked(c, defender, combat, false)).append(')');
+                        StringBuilder by = new StringBuilder();
+                        if (CombatUtil.canBeBlocked(c, combat, defender))
+                            for (Card b : blockers)
+                                if (CombatUtil.canBlock(c, b, combat)) by.append(by.length() == 0 ? "" : ", ").append(b.getName());
+                        if (by.length() == 0) {
+                            unblockable.append(unblockable.length() == 0 ? "" : ", ").append(c.getName()).append(" (")
+                                    .append(ComputerUtilCombat.damageIfUnblocked(c, defender, combat, false)).append(')');
+                        } else {
+                            blockable.append(blockable.length() == 0 ? "" : "; ").append(c.getName()).append(" by ").append(by);
                         }
                     } catch (Exception ignore) { }
                 }
                 return " OUTLOOK (engine, all unblocked): " + dmg + " damage."
-                        + (evasive.length() > 0 ? " Cannot be blocked: " + evasive + "." : " Every attacker can be blocked.");
+                        + (unblockable.length() > 0 ? " None of their creatures that can block now could block: " + unblockable + "." : "")
+                        + (blockable.length() > 0 ? " Could be blocked: " + blockable + "." : "");
             } catch (Exception e) { return ""; }
         }
 
         /** Adds the optional combat outlook to the shared attackers question. */
         static String buildAttackersQuestion(String defenderName, int oppLife, int oppPoison, boolean anyInfect, String outlook) {
             int poisonNeeded = Math.max(0, 10 - oppPoison);
-            String lethalHint = "COUNT LETHAL: opp life " + oppLife + ", poison " + oppPoison + "/10 -- lethal needs "
-                    + oppLife + " dmg OR " + poisonNeeded + " poison"
-                    + (anyInfect ? " (infect attackers deal poison, not life loss)" : "")
-                    + ". If your unblocked/unstoppable damage meets either number, attack with everything needed and WIN NOW.";
-            return "COMBAT — declare attackers vs " + defenderName + " (life " + oppLife
-                    + "). Pick which creatures attack (attacking with 0 is legal and sometimes correct — "
-                    + "weigh their untapped mana and possible blocks). " + lethalHint
+            // Facts only (harness-epoch-8, PROMPT-AUDIT.md C3): what lethal is, not what to do about it.
+            String lethalHint = "LETHAL: they are at " + oppLife + " life and " + oppPoison + "/10 poison, so " + oppLife
+                    + " damage or " + poisonNeeded + " poison wins"
+                    + (anyInfect ? " (infect attackers deal poison, not life loss)" : "") + ".";
+            return "COMBAT: declare attackers against " + defenderName + " (life " + oppLife
+                    + "). Choose which creatures attack; you may attack with none. " + lethalHint
                     + (outlook == null ? "" : outlook);
         }
 
@@ -6591,15 +6968,18 @@ public final class LlmSpikeGui {
             // same seed pair) at 16000 vs 6000 via OPENROUTER_MODEL_CFG, no rebuild: max completion
             // 14989 vs 4600, p90 4876 vs 3978, median 1382 vs 1203. The cap clips the TAIL -- exactly
             // the hard decisions -- which is why raising it bought thinking rather than headroom. 16000
-            // is chosen so it does not clip; separating the two budgets properly needs an explicit,
+            // still clipped: 9 of ~1,770 deepseek calls in runs/compare hit it, every one a hard main
+            // phase (8 castable + 2 lands), and the truncation retry then answered it with reasoning
+            // OFF -- the hardest decisions decided without thinking. 32000 (2026-10-15), with the
+            // timeout doubled to 300s so the longer think can finish (16000 tokens took 80-130s); separating the two budgets properly needs an explicit,
             // supported reasoning.effort, which is the next step. A model that still overruns is
             // truncated once and retried with reasoning off, which the game log and match_review
             // already report per game, so the tail is visible rather than silent.
-            ModelCfg uniform = new ModelCfg(16000, 150000, null, null, 1024, 45000, "none");
-            // THE 150s CEILING IS LOAD-BEARING: LlmSpikeHeadless sizes its post-cap shutdown grace as
-            // maxConfiguredTimeoutMs() + 10s, and run_batch.py's backstop budgets for that with a
-            // hardcoded GRACE_S = 200 (it cannot call the Java side). 150s keeps the grace at 160s,
-            // inside that budget. Raising any timeout above 190s REQUIRES raising GRACE_S too, or
+            ModelCfg uniform = new ModelCfg(32000, 300000, null, null, 1024, 45000, "none");
+            // THE TIMEOUT IS LOAD-BEARING: LlmSpikeHeadless sizes its post-cap shutdown grace from
+            // maxDecisionMs() (three attempts of the slowest timeout), and run_batch.py's backstop budgets
+            // for that with a hardcoded GRACE_S = 1000 (it cannot call the Java side). 300s gives a
+            // grace of about 912s, inside that budget. Raising any timeout further REQUIRES raising GRACE_S too, or
             // capped games get killed before an in-flight ask lands — the orphaned-row silent drop
             // that defect_analyzer.py exists to catch. graceFitsRunBatchBudget() in LlmSpikeTest
             // asserts this mechanically so it cannot be forgotten.
@@ -6610,7 +6990,7 @@ public final class LlmSpikeGui {
             // 2026-10-13), so the "none" sentinel -- reasoning:{enabled:false} -- is REJECTED on every
             // fast-tier call, which is high-frequency. It asks for the lowest effort it has instead:
             // still cheap on a mechanical answer, and legal. Every other row can be disabled outright.
-            t.put("grok", new ModelCfg(16000, 150000, null, null, 1024, 45000, "low"));
+            t.put("grok", new ModelCfg(32000, 300000, null, null, 1024, 45000, "low"));
             try { applyEnvOverride(t); }
             catch (Exception e) { System.out.println("[MODEL-CFG] failed to parse OPENROUTER_MODEL_CFG, using built-in defaults: " + e); }
             return t;
@@ -6928,6 +7308,11 @@ public final class LlmSpikeGui {
         return s == null ? "" : s.replaceAll("\\s+", " ").trim();
     }
 
+    /** The additive prompt-cache fields of a jsonl row; empty when the provider reported neither. */
+    static String cacheFields(int cachedTokens, int cacheWriteTokens) {
+        return (cachedTokens >= 0 ? ",\"cached_tokens\":" + cachedTokens : "")
+                + (cacheWriteTokens >= 0 ? ",\"cache_write_tokens\":" + cacheWriteTokens : "");
+    }
     /** Single JSONL decision-row writer, shared by the LLM seat's {@code evalDec} and the ai-teacher
      *  seat's {@code emit} so both emit byte-format-identical rows (same keys, same order). The LLM seat
      *  passes its captured per-decision model provenance (prompt/raw_reply/retry_ms/attempts/…); the
@@ -6946,6 +7331,17 @@ public final class LlmSpikeGui {
             long ms, String fallback, List<String> options, String prompt, String rawReply,
             long retryMs, int attempts, String finishReason, String firstFailedReply,
             int promptTokens, int completionTokens, Integer shadowChoice, List<Integer> picks) {
+        emitDecisionRow(pl, seat, type, nOptions, choice, tier, ms, fallback, options, prompt, rawReply, retryMs,
+                attempts, finishReason, firstFailedReply, promptTokens, completionTokens, shadowChoice, picks, null, 0, -1, -1);
+    }
+    /** `cachedTokens` / `cacheWriteTokens`: additive, written only when the provider reported them.
+     *  `answerVia`: additive, present only when the ask offered the answer tool (AnswerTool): "tool",
+     *  "text", "reask" or "lost"; `answer_invalid` counts the invalid calls corrected on the way. */
+    static void emitDecisionRow(Player pl, String seat, String type, int nOptions, int choice, String tier,
+            long ms, String fallback, List<String> options, String prompt, String rawReply,
+            long retryMs, int attempts, String finishReason, String firstFailedReply,
+            int promptTokens, int completionTokens, Integer shadowChoice, List<Integer> picks,
+            String answerVia, int answerInvalid, int cachedTokens, int cacheWriteTokens) {
         if (!EvalLog.on()) return;
         try {
             PhaseHandler ph = pl.getGame().getPhaseHandler();
@@ -6979,6 +7375,8 @@ public final class LlmSpikeGui {
                     // D4 DAgger additive field: the Forge-AI's shadow label over this row's menu, or null.
                     .append(",\"shadow_choice\":").append(shadowChoice == null ? "null" : shadowChoice);
             if (picks != null) sb.append(",\"picks\":").append(picks.toString().replace(" ", ""));
+            if (answerVia != null) sb.append(",\"answer_via\":\"").append(answerVia).append("\",\"answer_invalid\":").append(answerInvalid);
+            sb.append(cacheFields(cachedTokens, cacheWriteTokens));
             sb.append('}');
             // The write, the index increment, and the hook dispatch must be one atomic unit
             // with respect to concurrently-deciding seats: fork addressing depends on
@@ -7103,8 +7501,10 @@ public final class LlmSpikeGui {
      *  value (the word itself is the whole answer) so they keep the plain substring check. */
     static boolean looksLikeDecisionTag(String content) {
         if (content == null) return false;
+        // The mulligan answer is the upper-case word. Any "keep" in prose ("keep mana open") made a
+        // reply cut off mid-thought look answered, so its truncation retry never ran.
+        if (Pattern.compile("\\b(KEEP|MULLIGAN)\\b").matcher(content).find()) return true;
         String u = content.toUpperCase(Locale.ROOT);
-        if (u.contains("KEEP") || u.contains("MULLIGAN")) return true;
         for (String tag : new String[]{"CHOICE", "PICKS:", "BLOCKS:", "ANSWER:"}) {
             int i = u.indexOf(tag);
             if (i >= 0 && Pattern.compile("\\d").matcher(u.substring(i)).find()) return true;
@@ -7185,6 +7585,7 @@ public final class LlmSpikeGui {
         private volatile String lastFinishReason;
         private volatile int lastPromptTokens = -1;
         private volatile int lastCompletionTokens = -1;
+        private volatile int lastCachedTokens = -1, lastCacheWriteTokens = -1;
         // Test-only instrumentation (see lastSendCount()). A bridge belongs to one seat/tier and
         // ask() is never called concurrently on it, so the non-atomic ++ is safe; volatile is only
         // so a test thread reads what the calling thread wrote.
@@ -7348,10 +7749,12 @@ public final class LlmSpikeGui {
                     System.out.println("[OPENROUTER " + label + "] non-answer -> treating as bridge-down");
                     lastFinishReason = r.finishReason;
                     lastPromptTokens = r.promptTokens; lastCompletionTokens = r.completionTokens;
+                    lastCachedTokens = r.cachedTokens; lastCacheWriteTokens = r.cacheWriteTokens;
                     return null;
                 }
                 lastFinishReason = r.finishReason;
                 lastPromptTokens = r.promptTokens; lastCompletionTokens = r.completionTokens;
+                    lastCachedTokens = r.cachedTokens; lastCacheWriteTokens = r.cacheWriteTokens;
                 long dur = System.currentTimeMillis() - t0;
                 totalMs += dur; calls++;
                 System.out.println("[OPENROUTER " + label + "] replied in " + dur + " ms"
@@ -7382,6 +7785,11 @@ public final class LlmSpikeGui {
             }
             body.append(messages);
             body.append("],\"max_tokens\":").append(maxTokens);
+            // Every ask resends the same preamble, tools and chat history, and nothing marked it
+            // cacheable, so Anthropic models billed all of it at the full input rate (a Haiku 5.5 game
+            // averaged 10K prompt tokens a call). Top-level cache_control is automatic caching: the
+            // breakpoint follows the end of the conversation. DeepSeek and OpenAI cache on their own.
+            if (cachesPrompt(model)) body.append(",\"cache_control\":{\"type\":\"ephemeral\"}");
             if ("none".equals(reasoningEffort))
                 // Measured 2026-10-13: a mechanical answer costs ~848 completion tokens of which ~800 are
                 // hidden reasoning, and "low"/"minimal" do not reduce that -- only disabling does (65
@@ -7393,7 +7801,11 @@ public final class LlmSpikeGui {
                 body.append(",\"temperature\":").append(temperature);
             if (toolsJson != null)
                 body.append(",\"tools\":").append(toolsJson)
-                    .append(",\"tool_choice\":\"").append(allowCalls ? "auto" : "none").append("\"");
+                    .append(",\"tool_choice\":\"").append(allowCalls ? "auto" : "none").append("\"")
+                    // Route only to endpoints that honour every parameter sent: without it OpenRouter may
+                    // pick one that ignores tool_choice "none" (the seat-tools-v5 defect, a call made on a
+                    // round that offered none). An endpoint that refuses is the existing 404 downgrade path.
+                    .append(",\"provider\":{\"require_parameters\":true}");
             body.append("}");
 
             HttpRequest.Builder rb = HttpRequest.newBuilder()
@@ -7443,6 +7855,8 @@ public final class LlmSpikeGui {
             // -1 when the field is absent. Additive persistence for Stage-0 token-cost calibration.
             int promptTokens = extractJsonInt(resp.body(), "\"prompt_tokens\":");
             int completionTokens = extractJsonInt(resp.body(), "\"completion_tokens\":");
+            int cachedTokens = extractJsonInt(resp.body(), "\"cached_tokens\":");
+            int cacheWriteTokens = extractJsonInt(resp.body(), "\"cache_write_tokens\":");
             if (toolsJson != null) {
                 // A native turn is structured (tool calls, a null content): parse it, do not scan it.
                 NativeTools.Turn turn = NativeTools.parseTurn(resp.body());
@@ -7450,24 +7864,36 @@ public final class LlmSpikeGui {
                     System.out.println("[OPENROUTER " + label + "] unparseable native turn: " + oneLine(resp.body()));
                     return null;
                 }
-                return new OrResult(turn.content, finishReason, promptTokens, completionTokens, turn);
+                return new OrResult(turn.content, finishReason, promptTokens, completionTokens, turn)
+                        .withCache(cachedTokens, cacheWriteTokens);
             }
-            return new OrResult(content, finishReason, promptTokens, completionTokens, null);
+            return new OrResult(content, finishReason, promptTokens, completionTokens, null)
+                    .withCache(cachedTokens, cacheWriteTokens);
+        }
+
+        /** PROMPT_CACHE=0 turns it off, to reproduce a run made before caching. */
+        static final boolean PROMPT_CACHE = !"0".equals(System.getenv("PROMPT_CACHE"));
+        /** Anthropic models cache only a prefix marked with cache_control; others cache on their own. */
+        static boolean cachesPrompt(String model) {
+            return PROMPT_CACHE && model != null && model.startsWith("anthropic/");
         }
 
         private static final class OrResult {
             final String content, finishReason;
             final int promptTokens, completionTokens;
             final NativeTools.Turn turn; // null on the plain-text path
+            int cachedTokens = -1, cacheWriteTokens = -1;
             OrResult(String content, String finishReason, int promptTokens, int completionTokens, NativeTools.Turn turn) {
                 this.content = content; this.finishReason = finishReason;
                 this.promptTokens = promptTokens; this.completionTokens = completionTokens;
                 this.turn = turn;
             }
             boolean hasCalls() { return turn != null && !turn.calls.isEmpty(); }
+            OrResult withCache(int cached, int written) { cachedTokens = cached; cacheWriteTokens = written; return this; }
             OrResult withContent(String c) {
                 return new OrResult(c, finishReason, promptTokens, completionTokens,
-                        turn == null ? null : new NativeTools.Turn(c, turn.messageJson, turn.calls));
+                        turn == null ? null : new NativeTools.Turn(c, turn.messageJson, turn.calls))
+                        .withCache(cachedTokens, cacheWriteTokens);
             }
         }
 
@@ -7483,6 +7909,8 @@ public final class LlmSpikeGui {
         @Override public String getLastFinishReason() { return lastFinishReason; }
         @Override public int getLastPromptTokens() { return lastPromptTokens; }
         @Override public int getLastCompletionTokens() { return lastCompletionTokens; }
+        @Override public int getLastCachedTokens() { return lastCachedTokens; }
+        @Override public int getLastCacheWriteTokens() { return lastCacheWriteTokens; }
     }
 
     /** Factory: parses a model spec like "haiku" (Claude CLI) or
@@ -7716,6 +8144,8 @@ public final class LlmSpikeGui {
         String fastASpec  = System.getenv().getOrDefault("FAST_MODEL_A", fastDef);
         String fastBSpec  = System.getenv().getOrDefault("FAST_MODEL_B", fastDef);
         String nativeSeats = NativeTools.seats(PlayerControllerLLM.MEMORY_TOOLS, System.getenv().getOrDefault("CONTROLLER_A", "llm"), smartASpec, fastASpec, System.getenv().getOrDefault("CONTROLLER_B", "llm"), smartBSpec, fastBSpec);
+        String answerSeats = AnswerTool.seats(System.getenv().getOrDefault("CONTROLLER_A", "llm"), smartASpec, fastASpec,
+                System.getenv().getOrDefault("CONTROLLER_B", "llm"), smartBSpec, fastBSpec);
         boolean anyOpenRouter = smartASpec.startsWith("openrouter:") || smartBSpec.startsWith("openrouter:")
                 || fastASpec.startsWith("openrouter:") || fastBSpec.startsWith("openrouter:");
         // Gate the accessor so a zero-model floor/random run doesn't class-init the OpenRouter bridge
@@ -7737,6 +8167,8 @@ public final class LlmSpikeGui {
                 + ",\"duration_ms\":" + durMs
                 + ",\"mulligan_heuristic\":" + (PlayerControllerLLM.mullHeuristic() ? 1 : 0)
                 + ",\"skip_heuristics\":" + (PlayerControllerLLM.skipHeuristics() ? 1 : 0)
+                // Caching changes what a run costs, not what the model sees (the provider's output is the same).
+                + ",\"prompt_cache\":" + (OpenRouterBridge.PROMPT_CACHE ? 1 : 0)
                 + ",\"plan_a\":\"" + jsonEscape(lastPlanA) + "\""
                 + ",\"plan_b\":\"" + jsonEscape(lastPlanB) + "\""
                 + ",\"smart_budget\":" + PlayerControllerLLM.smartBudget()
@@ -7766,6 +8198,11 @@ public final class LlmSpikeGui {
                 + ",\"native_tools_seats\":\"" + jsonEscape(nativeSeats) + "\""
                 + ",\"native_tools_downgraded\":\"" + jsonEscape(String.join(",", new java.util.TreeSet<>(NativeTools.DOWNGRADED))) + "\""
                 + ",\"native_tools_version\":\"" + NativeTools.VERSION + "\""
+                // How a decision is answered: a call to `answer` (AnswerTool) or a text tag line. True when
+                // ANY tier of ANY model-driven seat answered through the tool; never pooled with text games.
+                + ",\"answer_tool\":" + !answerSeats.isEmpty()
+                + ",\"answer_tool_seats\":\"" + jsonEscape(answerSeats) + "\""
+                + ",\"answer_tool_version\":\"" + AnswerTool.protocolVersion() + "\""
                 + ",\"one_tier\":" + PlayerControllerLLM.ONE_TIER
                 + ",\"no_coaching\":" + PlayerControllerLLM.NO_COACHING
                 + ",\"one_chat\":" + ChatSessionBridge.ON

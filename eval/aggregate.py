@@ -111,6 +111,11 @@ PROVENANCE_FIELDS = (
     ("native_tools_seats", MISSING),
     ("native_tools_version", MISSING),
     ("native_tools_downgraded", MISSING),
+    # How a decision is answered: a call to `answer` (AnswerTool) or a text tag line. Tool and text
+    # answers are different conditions and never pool (CLAUDE.md, owner decision 2026-10-15).
+    ("answer_tool", MISSING),
+    ("answer_tool_seats", MISSING),
+    ("answer_tool_version", MISSING),
     ("rules_tool", MISSING),
     ("rules_tool_version", MISSING),
     ("rules_effective", MISSING),
@@ -127,6 +132,8 @@ PROVENANCE_FIELDS = (
     ("one_chat_version", MISSING),
     # The interface the model plays through, as one number (docs/STANDARDS.md section 8).
     ("harness_epoch", MISSING),
+    # Prompt caching (Anthropic models): changes what a run costs, not what the model answers.
+    ("prompt_cache", MISSING),
 )
 
 # Identity fields a cited run must resolve. A value in this set means the field
@@ -144,7 +151,9 @@ UNATTRIBUTABLE_VALUES = ("unknown", "", "unregistered")
 # into one win rate or one paired delta, whatever directory they share.
 CONDITION_ARM_FIELDS = ("deck_a", "deck_b", "controller_a", "controller_b",
                         "smart_a", "smart_b", "fast_a", "fast_b")
-NON_BEHAVIORAL_PROVENANCE = ("discipline", "seed_bank")
+# prompt_cache is recorded but does not split experiments: the provider returns the same output
+# with or without its cache, so caching on and off are one measurement at two prices.
+NON_BEHAVIORAL_PROVENANCE = ("discipline", "seed_bank", "prompt_cache")
 # What the endpoint said answered, keyed by deck identity and tier. These are
 # OBSERVATIONS and partition experiments exactly as recorded (2026-09-07): a
 # game whose endpoint named nothing ("unknown") is a different measurement from
