@@ -116,7 +116,12 @@ mess" (owner, 2026-10-15).
   - `ANSWER_TOOL=0` returns to the text grammar;
   - `ANSWER_SCHEMA=per-decision` builds a schema from each decision's legal values (the v1 arm);
   - `ANSWER_TOOL_STRICT=1` sends `strict: true`.
-  - A text reply in a tool ask is still read, and counted as `answer_via: "text"` on the row.
+- **No text alternative on a tool ask** (owner, 2026-10-15: "everything goes through the tool calls"). A reply
+  that calls nothing is reminded, in the same conversation, at most `AnswerTool.MAX_NUDGES` times; then the
+  decision is lost (`answer_via: "lost"`, the caller's fixed legal option). Its prose is never parsed. A tool ask
+  that still carries a text answer format, or a text ask on a backend that calls, logs `[TEXT-FORMAT-LEAK]` and
+  counts on `[TALLY]`; `GoldenChecksToolTest` runs every golden check with the seat answering by calls and fails
+  on either, and the `answertool` acceptance stage checks every ask of its game.
 
 ## Key files
 
