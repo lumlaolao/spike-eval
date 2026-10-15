@@ -298,7 +298,12 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   - Convoke and improvise, retargeting, redirection and mana from the pool are the seat's too. A convoke
     choice asked from an affordability test is answered as "every helper could pay" without asking; the
     engine does not say which calls are tests, so the seat's real payment marks its own window.
-  - Multi-target retargeting keeps its targets, recorded.
+  - An effect played without the stack (an opening-hand ability, a replacement effect, a trigger that
+    skips the stack) gets the seat's modes and targets, and its cost is paid with the seat's cost
+    decision: the engine routine hard-codes Forge's AI there, so the harness runs a copy of it.
+  - A spell or copy with several targets is retargeted as a set: the seat picks up to as many as it had,
+    and none, or a set the spell cannot have, keeps the old one. A divided spell keeps its portions, as
+    the engine does for a human: exactly as many new targets, each taking an old portion the seat assigns.
   - **No hook in the pinned engine:** the colour an any-colour source makes for a generic shard during
     payment. It matters only to converge, sunburst and spent-colour checks.
   - **Mechanics no deck in the pool reaches:** dice, stickers, contraptions.

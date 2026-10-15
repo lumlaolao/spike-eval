@@ -204,7 +204,7 @@ public final class LlmSpikeGui {
      *  Epoch 15: a model's filled-in defaults do nothing (answer-tool-v8): `yield` "none" first, an empty
      *  `keep_untapped` is not said, and handles that name no source ask the mana question.
      *  Epoch 16: convoke/improvise, single-target retargeting, redirection and mana from the pool are the seat's. */
-    static final String HARNESS_EPOCH = "harness-epoch-16";
+    static final String HARNESS_EPOCH = "harness-epoch-17";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -4117,7 +4117,36 @@ public final class LlmSpikeGui {
         @Override
         public boolean playTrigger(Card host, forge.game.trigger.WrappedAbility wrapperAbility, boolean isMandatory) {
             if (!prepareTrigger(wrapperAbility)) return false;
-            return forge.ai.ComputerUtil.playNoStack(wrapperAbility.getActivatingPlayer(), wrapperAbility, getGame(), true);
+            return playNoStack(wrapperAbility.getActivatingPlayer(), wrapperAbility, true);
+        }
+
+        /** An effect played without the stack (an opening-hand ability, a replacement effect, a may-effect from
+         *  the opening deck): the seat's modes and targets, then the engine plays it. The inherited version
+         *  targeted it with {@code brains.doTrigger}. As there, it is played even when a target has no legal
+         *  choice: a replacement that has already replaced its event cannot be undone. */
+        @Override
+        public void playSpellAbilityNoStack(SpellAbility effectSA, boolean canSetupTargets) {
+            if (canSetupTargets && !prepareTrigger(effectSA))
+                p("[ROUTER] no-stack: " + safeName(effectSA.getHostCard()) + " has a target with no legal choice");
+            playNoStack(getPlayer(), effectSA, true);
+        }
+
+        /** {@code ComputerUtil.playNoStack}, paying the seat's costs with {@link LlmCostDecision} where the
+         *  engine routine hard-codes {@code AiCostDecision} (as {@link #playChosenSpellAbility} does for a
+         *  cast). RE-DIFF against {@code ComputerUtil.playNoStack} on every engine re-pin (ENGINE-PIN.md). */
+        private boolean playNoStack(Player who, SpellAbility sa, boolean effect) {
+            if (!forge.ai.ComputerUtilCost.canPayCost(sa, who, effect)) return false;
+            final Card source = sa.getHostCard();
+            if (!effect && sa.isSpell() && !source.isCopiedSpell()) {
+                sa.setHostCard(getGame().getAction().moveToStack(source, sa));
+                sa = forge.game.GameActionUtil.addExtraKeywordCost(sa);
+            }
+            final CostPayment pay = new CostPayment(sa.getPayCosts(), sa);
+            final forge.game.cost.CostDecisionMakerBase decision = who == getPlayer()
+                    ? new LlmCostDecision(who, sa, effect) : new forge.ai.AiCostDecision(who, sa, effect);
+            if (!pay.payComputerCosts(decision)) return false;
+            forge.game.ability.AbilityUtils.resolve(sa);
+            return true;
         }
 
         /** Modes, then targets, for one of the seat's triggers (PlayerControllerAi.prepareSingleSa with
@@ -5189,12 +5218,9 @@ public final class LlmSpikeGui {
                     ? ((forge.game.trigger.WrappedAbility) ability).getWrappedAbility() : ability;
             if (sa == null || !sa.usesTargeting()) return null;
             forge.game.spellability.TargetChoices old = sa.getTargets();
-            if (old.size() != 1 || sa.isDividedAsYouChoose() || sa.getMaxTargets() > 1) {
-                auto("new-targets(multi)->unchanged " + labelOf(sa));
-                return null;
-            }
             TargetRestrictions tr = sa.getTargetRestrictions();
-            if (tr == null) return null;
+            if (tr == null || old.isEmpty()) return null;
+            if (old.size() > 1 || sa.getMaxTargets() > 1) return chooseNewTargetSet(sa, tr, old, filter);
             Object current = old.get(0);
             List<GameEntity> cands = new ArrayList<>();
             for (GameEntity ge : tr.getAllCandidates(sa, false))
@@ -5206,9 +5232,57 @@ public final class LlmSpikeGui {
                     + labelOf(current instanceof GameEntity ? (GameEntity) current : null) + ". Choose its new target"
                     + (optional ? ", or keep it" : "") + ".", labels, optional ? "Keep the current target" : null, optional ? -1 : 0);
             if (c < 0) return null;
+            int portion = old.getTotalDividedValue();
             sa.resetTargets();
             sa.getTargets().add(cands.get(c));
+            if (sa.isDividedAsYouChoose()) sa.addDividedAllocation(cands.get(c), portion);   // the whole division moves
             return sa.getTargets();
+        }
+
+        /** A spell or copy with several targets: the seat picks the whole new set, up to as many as it had
+         *  (as a human chooses). Picking none, or a set the spell cannot have, keeps the old targets. A divided
+         *  spell keeps its portions: exactly as many new targets, each taking one old portion the seat assigns. */
+        private forge.game.spellability.TargetChoices chooseNewTargetSet(SpellAbility sa, TargetRestrictions tr,
+                forge.game.spellability.TargetChoices old, java.util.function.Predicate<forge.game.GameObject> filter) {
+            List<GameEntity> cands = new ArrayList<>();
+            sa.resetTargets();   // a candidate is judged without the old set (unique-target restrictions)
+            try {
+                for (GameEntity ge : tr.getAllCandidates(sa, false))
+                    if ((filter == null || filter.test(ge)) && sa.canTarget(ge)) cands.add(ge);
+            } finally { sa.setTargets(old); }
+            if (cands.isEmpty()) { auto("new-targets(none-legal)->unchanged"); return null; }
+            boolean divided = sa.isDividedAsYouChoose();
+            int max = old.size();
+            List<String> labels = new ArrayList<>();
+            List<String> now = new ArrayList<>();
+            for (GameEntity ge : cands) labels.add(labelOf(ge) + (old.contains(ge) ? " (a current target)" : ""));
+            for (forge.game.GameObject o : old) now.add(o instanceof GameEntity ? labelOf((GameEntity) o) : String.valueOf(o));
+            List<Integer> picks = askMany("new-targets", "CHANGE TARGETS: " + labelOf(sa) + " targets "
+                    + String.join(", ", now) + (divided
+                        ? " (divided " + old.getDividedValues() + "). Choose exactly " + max + " new targets; each takes one"
+                          + " of those portions"
+                        : ". Choose its new targets, up to " + max + " (at least " + sa.getMinTargets() + ")")
+                    + ", or none to keep them.", labels, 0, max);
+            if (picks.isEmpty()) return null;
+            if (divided && picks.size() != max) { auto("new-targets(divided-count)->unchanged"); return null; }
+            List<Integer> portions = divided ? new ArrayList<>(old.getDividedValues()) : null;
+            sa.resetTargets();
+            for (int i : picks) {
+                GameEntity ge = cands.get(i);
+                if (!sa.canTarget(ge)) { sa.setTargets(old); auto("new-targets(illegal-set)->unchanged"); return null; }
+                sa.getTargets().add(ge);
+                if (divided) sa.addDividedAllocation(ge, portions.remove(portionFor(ge, portions)));
+            }
+            if (!sa.isTargetNumberValid()) { sa.setTargets(old); auto("new-targets(too-few)->unchanged"); return null; }
+            return sa.getTargets();
+        }
+
+        /** Which of the old portions a new target of a divided spell takes; the only kind left needs no ask. */
+        private int portionFor(GameEntity ge, List<Integer> portions) {
+            if (new java.util.HashSet<>(portions).size() == 1) return 0;
+            List<String> labels = new ArrayList<>();
+            for (Integer v : portions) labels.add(String.valueOf(v));
+            return askOne("new-targets", "DIVIDE: which portion goes to " + labelOf(ge) + "?", labels, null, 0);
         }
 
         /** Which mana in the pool pays (several of different kinds float). */

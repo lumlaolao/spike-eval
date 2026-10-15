@@ -907,6 +907,89 @@ public class GoldenChecksTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    @Test
+    public void aSpellWithSeveralTargetsGetsTheModelsNewSet() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card flicker = card("Ghostly Flicker", me, ZoneType.Hand);      // exactly two targets
+        Card goblin = card("Goblin Guide", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", me, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("CHANGE TARGETS", picks("Grizzly Bears", "Savannah Lions"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        SpellAbility sa = spell(flicker, me);
+        sa.getTargets().add(goblin);
+        sa.getTargets().add(bears);
+        forge.game.spellability.TargetChoices t = ctrl.chooseNewTargetsFor(sa, null, true);
+        Assert.assertNotNull(t, "the seat chose a new set");
+        Assert.assertTrue(t.contains(bears) && t.contains(lions) && !t.contains(goblin), String.valueOf(t));
+
+        // One target where the spell needs two: the old targets stay.
+        Script one = new Script("CHOICE: 1").on("CHANGE TARGETS", picks("Savannah Lions"));
+        LlmSpikeGui.PlayerControllerLLM ctrl1 = seat(g, one, one);
+        SpellAbility sa1 = spell(flicker, me);
+        sa1.getTargets().add(goblin);
+        sa1.getTargets().add(bears);
+        Assert.assertNull(ctrl1.chooseNewTargetsFor(sa1, null, true), "a set the spell cannot have keeps the old one");
+        Assert.assertTrue(sa1.getTargets().contains(goblin) && sa1.getTargets().contains(bears), String.valueOf(sa1.getTargets()));
+        Assert.assertEquals(ctrl.aiDelegationsCount() + ctrl1.aiDelegationsCount(), 0);
+    }
+
+    @Test
+    public void anEffectPlayedWithoutTheStackHasTheModelsTargets() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card bolt = card("Lightning Bolt", me, ZoneType.Hand);
+        card("Goblin Guide", rival, ZoneType.Battlefield);
+        Card goyf = card("Tarmogoyf", rival, ZoneType.Battlefield);
+        card("Mountain", me, ZoneType.Battlefield);                     // Bolt's {R}
+        Script model = new Script("CHOICE: 1").on("Lightning Bolt", choice("Tarmogoyf"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        SpellAbility sa = spell(bolt, me);
+        ctrl.playSpellAbilityNoStack(sa, true);
+        Card now = g.getCardState(goyf);
+        Assert.assertTrue(now.getDamage() == 3 || now.isInZone(ZoneType.Graveyard),
+                "the model's target took the damage: " + now + " in " + now.getZone() + ", damage " + now.getDamage());
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    @Test
+    public void aDividedSpellKeepsItsPortionsOnItsNewTargets() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card arc = card("Arc Lightning", me, ZoneType.Hand);            // 3 divided among up to three
+        Card goblin = card("Goblin Guide", rival, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", rival, ZoneType.Battlefield);
+        Card goyf = card("Tarmogoyf", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1")
+                .on("CHANGE TARGETS", picks("Savannah Lions", "Tarmogoyf"))
+                .on("DIVIDE: which portion goes to Savannah Lions", choice("1"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        SpellAbility sa = spell(arc, me);
+        sa.getTargets().add(goblin);
+        sa.addDividedAllocation(goblin, 2);
+        sa.getTargets().add(bears);
+        sa.addDividedAllocation(bears, 1);
+        forge.game.spellability.TargetChoices t = ctrl.chooseNewTargetsFor(sa, null, true);
+        Assert.assertNotNull(t, "the seat chose a new set");
+        Assert.assertEquals(t.getDividedValue(lions), Integer.valueOf(1), "the seat gave the Lions the 1");
+        Assert.assertEquals(t.getDividedValue(goyf), Integer.valueOf(2), "and Tarmogoyf the 2 left");
+        Assert.assertEquals(t.getTotalDividedValue(), 3);
+
+        // One target holding the whole division (Forked Bolt, up to two): the new target takes all of it.
+        Script one = new Script("CHOICE: 1").on("CHANGE TARGETS", picks("Tarmogoyf"));
+        LlmSpikeGui.PlayerControllerLLM ctrl1 = seat(g, one, one);
+        Card fork = card("Forked Bolt", me, ZoneType.Hand);
+        SpellAbility sa1 = spell(fork, me);
+        sa1.getTargets().add(goblin);
+        sa1.addDividedAllocation(goblin, 2);
+        forge.game.spellability.TargetChoices t1 = ctrl1.chooseNewTargetsFor(sa1, null, true);
+        Assert.assertNotNull(t1);
+        Assert.assertEquals(t1.getDividedValue(goyf), Integer.valueOf(2), String.valueOf(t1));
+        Assert.assertEquals(ctrl.aiDelegationsCount() + ctrl1.aiDelegationsCount(), 0);
+    }
+
     // ------------------------------------------------------------------ the gate
 
     /** Runs last: every type the seat asks has a test above that a model answered, and nothing above
