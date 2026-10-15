@@ -6591,15 +6591,18 @@ public final class LlmSpikeGui {
             // same seed pair) at 16000 vs 6000 via OPENROUTER_MODEL_CFG, no rebuild: max completion
             // 14989 vs 4600, p90 4876 vs 3978, median 1382 vs 1203. The cap clips the TAIL -- exactly
             // the hard decisions -- which is why raising it bought thinking rather than headroom. 16000
-            // is chosen so it does not clip; separating the two budgets properly needs an explicit,
+            // still clipped: 9 of ~1,770 deepseek calls in runs/compare hit it, every one a hard main
+            // phase (8 castable + 2 lands), and the truncation retry then answered it with reasoning
+            // OFF -- the hardest decisions decided without thinking. 32000 (2026-10-15), with the
+            // timeout doubled to 300s so the longer think can finish (16000 tokens took 80-130s); separating the two budgets properly needs an explicit,
             // supported reasoning.effort, which is the next step. A model that still overruns is
             // truncated once and retried with reasoning off, which the game log and match_review
             // already report per game, so the tail is visible rather than silent.
-            ModelCfg uniform = new ModelCfg(16000, 150000, null, null, 1024, 45000, "none");
-            // THE 150s CEILING IS LOAD-BEARING: LlmSpikeHeadless sizes its post-cap shutdown grace as
-            // maxConfiguredTimeoutMs() + 10s, and run_batch.py's backstop budgets for that with a
-            // hardcoded GRACE_S = 200 (it cannot call the Java side). 150s keeps the grace at 160s,
-            // inside that budget. Raising any timeout above 190s REQUIRES raising GRACE_S too, or
+            ModelCfg uniform = new ModelCfg(32000, 300000, null, null, 1024, 45000, "none");
+            // THE TIMEOUT IS LOAD-BEARING: LlmSpikeHeadless sizes its post-cap shutdown grace from
+            // maxDecisionMs() (three attempts of the slowest timeout), and run_batch.py's backstop budgets
+            // for that with a hardcoded GRACE_S = 1000 (it cannot call the Java side). 300s gives a
+            // grace of about 912s, inside that budget. Raising any timeout further REQUIRES raising GRACE_S too, or
             // capped games get killed before an in-flight ask lands — the orphaned-row silent drop
             // that defect_analyzer.py exists to catch. graceFitsRunBatchBudget() in LlmSpikeTest
             // asserts this mechanically so it cannot be forgotten.
@@ -6610,7 +6613,7 @@ public final class LlmSpikeGui {
             // 2026-10-13), so the "none" sentinel -- reasoning:{enabled:false} -- is REJECTED on every
             // fast-tier call, which is high-frequency. It asks for the lowest effort it has instead:
             // still cheap on a mechanical answer, and legal. Every other row can be disabled outright.
-            t.put("grok", new ModelCfg(16000, 150000, null, null, 1024, 45000, "low"));
+            t.put("grok", new ModelCfg(32000, 300000, null, null, 1024, 45000, "low"));
             try { applyEnvOverride(t); }
             catch (Exception e) { System.out.println("[MODEL-CFG] failed to parse OPENROUTER_MODEL_CFG, using built-in defaults: " + e); }
             return t;

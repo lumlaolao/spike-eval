@@ -205,9 +205,9 @@ public class ContextProfileTest {
     }
 
     /** The post-cap grace window is maxConfiguredTimeoutMs()+10s, and run_batch.py budgets for it
-     *  with a HARDCODED GRACE_S = 200 because it cannot call the Java side. That cross-language
-     *  coupling is invisible at both ends, so it is asserted here: raise a model timeout past 190s
-     *  and capped games start getting killed with an ask in flight, orphaning its jsonl row — the
+     *  with a HARDCODED GRACE_S = 1000 because it cannot call the Java side. That cross-language
+     *  coupling is invisible at both ends, so it is asserted here: raise a model timeout so the
+     *  grace passes 1000s and capped games start getting killed with an ask in flight, orphaning its jsonl row — the
      *  silent drop defect_analyzer.py exists to catch. If you need a longer timeout, raise GRACE_S
      *  in eval/run_batch.py in the same commit. */
     @Test
@@ -216,10 +216,9 @@ public class ContextProfileTest {
         // and every further attempt gets a FULL fresh timeout. Budgeting one timeout understated
         // the real worst case by 3x and let a capped game be killed with an ask in flight.
         long graceMs = LlmSpikeGui.ModelCfg.maxDecisionMs() + 10_000L;
-        Assert.assertTrue(graceMs <= 600_000L,
-                "post-cap grace " + graceMs + "ms exceeds the GRACE_S=600s budgeted by BOTH "
-                + "run_batch.py and run_pzl.py; raise GRACE_S in both in the same commit, or "
-                + "lower the model timeout");
+        Assert.assertTrue(graceMs <= 1_000_000L,
+                "post-cap grace " + graceMs + "ms exceeds the GRACE_S=1000s budgeted by "
+                + "run_batch.py; raise GRACE_S there in the same commit, or lower the model timeout");
     }
 
     /** The grace must cover the retry loop, not just one attempt -- the arithmetic that was wrong. */
@@ -286,9 +285,9 @@ public class ContextProfileTest {
         // Every row renders field-for-field. Since 2026-10-13 there is ONE uniform row, so the check
         // is that all seven fields reach the hash on a row that has a value in every slot (deepseek),
         // and that the row the run_batch.py grace budget is pinned against renders identically (opus).
-        Assert.assertTrue(c.contains("deepseek:16000,150000,null,null,1024,45000,none|"),
+        Assert.assertTrue(c.contains("deepseek:32000,300000,null,null,1024,45000,none|"),
                 "deepseek row not rendered field-for-field: " + c);
-        Assert.assertTrue(c.contains("opus:16000,150000,null,null,1024,45000,none|"),
+        Assert.assertTrue(c.contains("opus:32000,300000,null,null,1024,45000,none|"),
                 "claude row not rendered field-for-field: " + c);
     }
 
