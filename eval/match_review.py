@@ -11,6 +11,8 @@ For one recorded game it lists, each with its JSONL line so the row can be opene
   LOST      the model was asked and its answer was not used: a fallback after a model call
             (bridge-down, unparsed, no reply), i.e. a decision that cost time and then went to a
             deterministic default
+  SKIP      a priority window the harness passed without asking while the seat had a spell or
+            ability it could use (`t:"window"` rows; their `reason` names the shortcut)
   TOOL      a tool request that was not served: REFUSED, FAILED, empty, bad-args, exhausted
   SLOW      a decision that needed more than one model attempt, or was cut off (finish_reason=length)
   LOG       anomalies in the game log: an AI fallback, an exception, a payment that failed
@@ -20,7 +22,7 @@ that the model played well. Forced picks (one legal option in a pick-exactly-one
 and not listed. Stdlib only.
 
   python3 eval/match_review.py runs/loop/g01                 # every game in the directory
-  python3 eval/match_review.py runs/loop/g01 --fail-on-defect # exit 1 if anything is TAKEN, LOST or FAILED
+  python3 eval/match_review.py runs/loop/g01 --fail-on-defect # exit 1 if anything is TAKEN, LOST, SKIP or FAILED
 """
 import argparse
 import glob
@@ -97,6 +99,12 @@ def review(path):
                 out["counts"]["forced picks" if kind == "forced" else "other automatic"] += kind in ("forced", "other")
                 if kind in ("TAKEN", "LOST"):
                     add(kind, r, "%s: %s" % (r.get("type"), r.get("fallback")))
+        elif t == "window":
+            if (r.get("castable") or 0) > 0:
+                add("SKIP", r, "%s window passed without asking (%s) with %d usable" % (
+                    r.get("phase"), r.get("reason"), r["castable"]))
+            else:
+                out["counts"]["windows with nothing usable"] += 1
         elif t == "context_tool":
             kind = tool_audit.classify(r.get("request"), r.get("result"))
             out["counts"]["tool requests"] += 1
@@ -128,7 +136,7 @@ def review(path):
 def defects(r):
     """The findings that mean the harness got in the way, as opposed to cost or noise."""
     c = r["counts"]
-    return c["TAKEN"] + c["LOST"] + c["tool FAILED"] + c["tool REFUSED"]
+    return c["TAKEN"] + c["LOST"] + c["SKIP"] + c["tool FAILED"] + c["tool REFUSED"]
 
 
 def render(r):
@@ -137,15 +145,16 @@ def render(r):
     lines = ["== %s  seed %s swap %s  winner %s  turns %s  %s" % (
         os.path.basename(r["file"]), g.get("seed"), g.get("swap"), g.get("winner", "(unfinished)"), g.get("turns"),
         g.get("win_condition", "")),
-        "   model decisions %d | forced picks %d | tool requests %d | TAKEN %d  LOST %d  TOOL %d  SLOW %d" % (
-            c["model decisions"], c["forced picks"], c["tool requests"], c["TAKEN"], c["LOST"], c["TOOL"], c["SLOW"])]
+        "   model decisions %d | forced picks %d | tool requests %d | TAKEN %d  LOST %d  SKIP %d  TOOL %d  SLOW %d" % (
+            c["model decisions"], c["forced picks"], c["tool requests"], c["TAKEN"], c["LOST"], c["SKIP"], c["TOOL"],
+            c["SLOW"])]
     grouped = Counter()
     first = {}
     for kind, line, turn, text in r["findings"]:
         key = (kind, re.sub(r"@?\d+", "#", text))
         grouped[key] += 1
         first.setdefault(key, (line, turn, text))
-    order = {"LOST": 0, "TAKEN": 1, "TOOL": 2, "LOG": 3, "SLOW": 4}
+    order = {"LOST": 0, "TAKEN": 1, "SKIP": 2, "TOOL": 3, "LOG": 4, "SLOW": 5}
     for (kind, _), n in sorted(grouped.items(), key=lambda kv: (order.get(kv[0][0], 9), -kv[1])):
         line, turn, text = first[(kind, _)]
         where = (" line %d" % line if line else "") + (" T%s" % turn if turn is not None else "")

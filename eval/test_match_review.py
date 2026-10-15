@@ -76,6 +76,22 @@ class MatchReviewTest(unittest.TestCase):
         self.assertIn("AI fallback x1", text)
         self.assertIn("preview failed x1", text)
 
+    def test_a_window_passed_with_something_usable_is_a_skip(self):
+        # The play loop's shortcuts used to pass without any row, so the sheet read "nothing taken"
+        # in games where the harness had declined dozens of windows for the seat.
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "game-1-0.jsonl")
+            rows = [{"t": "window", "turn": 4, "phase": "UPKEEP", "reason": "window-gate", "castable": 2},
+                    {"t": "window", "turn": 4, "phase": "DRAW", "reason": "window-gate", "castable": 0},
+                    {"t": "game", "seed": 1, "swap": False, "winner": "A"}]
+            with open(p, "w") as f:
+                f.write("".join(json.dumps(r) + "\n" for r in rows))
+            r = mr.review(p)
+            self.assertEqual((r["counts"]["SKIP"], r["counts"]["windows with nothing usable"]), (1, 1))
+            self.assertIn("UPKEEP window passed without asking (window-gate) with 2 usable", mr.render(r))
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(mr.main([d, "--fail-on-defect"]), 1)
+
     def test_a_clean_game_says_so(self):
         with tempfile.TemporaryDirectory() as d:
             p = os.path.join(d, "game-1-0.jsonl")
