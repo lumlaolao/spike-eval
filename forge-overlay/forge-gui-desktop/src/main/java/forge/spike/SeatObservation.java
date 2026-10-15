@@ -1140,6 +1140,16 @@ final class SeatObservation {
 
     /** {@code @N}: current public characteristics of an observed object, or its historical record when
      *  it is no longer current. Any other text: public card-database reference for that exact name. */
+    /** The current, visible object a handle names, or null (unknown, historical or hidden). */
+    Card currentCard(int h) {
+        Tracked t = byHandle.get(h);
+        if (t == null) return null;
+        Card c = null;
+        try { for (Card x : game.getCardsInGame()) if (x.getId() == t.engineId) { c = x; break; } } catch (Exception ignore) { }
+        boolean current = c != null && byEngineId.get(t.engineId) == t && !t.pendingNew && c.getGameTimestamp() == t.timestamp;
+        return current && zoneVisible(zoneTypeOf(c), zoneOwnerOf(c)) ? c : null;
+    }
+
     String inspect(String arg) {
         if (arg == null) return "ERROR: INSPECT needs @<handle> or an exact card name.";
         String a = arg.trim();

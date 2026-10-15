@@ -723,6 +723,9 @@ public final class LlmSpikeGui {
         /** The 0-based option indices a multi-pick decision chose, for the decision row. `choice` on
          *  such a row is the COUNT of picks, so without this the row never said which were picked. */
         private List<Integer> lastPicks = null;
+        /** A play answer's `keep_untapped` (handles), for the payment of the play it chose; null when not given. */
+        private List<Integer> pendingKeep = null;
+        private SpellAbility pendingKeepFor = null;
         private void clearLast() {
             lastPrompt = null; lastReply = null; lastTier = null; lastAskMs = 0; lastFinishReason = null;
             lastPromptTokens = -1; lastCompletionTokens = -1; lastCachedTokens = -1; lastCacheWriteTokens = -1;
@@ -2987,6 +2990,7 @@ public final class LlmSpikeGui {
                         playSpec.profile = askProfile;
                         playSpec.lines = askLines;
                     }
+                    playSpec.keep = observer != null && !options.isEmpty();
                     offerAnswer(b, playSpec);
                     String reply = ask(b, prompt, nativeSim && attempt == 0 ? simulateTool : null);
                     noteAnswerVia(attempt);
@@ -3010,6 +3014,10 @@ public final class LlmSpikeGui {
                             p("[ROUTER] profile: " + oppProfile);
                         }
                         choice = ta.option;
+                        // Which mana sources stay untapped, said with the play: used by holdManaSources when this
+                        // play is paid, instead of a separate question.
+                        pendingKeep = ta.keepUntapped;
+                        pendingKeepFor = ta.keepUntapped != null && choice >= 1 && choice <= options.size() ? options.get(choice - 1) : null;
                         continue;
                     }
                     if (reply != null && askPlan && attempt == 0 && observer != null) {
@@ -3858,7 +3866,27 @@ public final class LlmSpikeGui {
                 int spare = sources.size() - plan.size();
                 java.util.Set<String> kinds = new java.util.HashSet<>();
                 for (Card c : sources) kinds.add(c.getName());
+                List<Integer> said = pendingKeepFor == sa ? pendingKeep : null;
+                pendingKeep = null; pendingKeepFor = null;
                 if (spare <= 0 || kinds.size() < 2) return none;
+                if (said != null && observer != null) {
+                    // The seat said which sources to keep when it chose this play: no second question.
+                    List<Card> held = new ArrayList<>();
+                    for (int h : said) {
+                        Card c = observer.currentCard(h);
+                        if (c != null && sources.contains(c) && held.size() < spare) held.add(c);
+                    }
+                    // The seat's own choice ("the engine chooses"), not a harness decision: logged, no row.
+                    if (held.isEmpty()) { p("[ROUTER] mana: the engine chooses the sources (said with the play)"); return none; }
+                    for (Card c : held) forge.ai.AiCardMemory.rememberCard(me, c, forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
+                    if (ComputerUtilMana.getManaSourcesToPayCost(neededMana(toPay, sa, effect), sa, me, effect) == null) {
+                        for (Card c : held) forge.ai.AiCardMemory.forgetCard(me, c, forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
+                        auto("mana-sources(said-with-play, cannot-pay-keeping-them)->engine plan");
+                        return none;
+                    }
+                    p("[ROUTER] mana: keep untapped " + held.size() + " (said with the play) for " + verbOf(sa) + " " + labelOf(sa));
+                    return held;
+                }
                 List<String> labels = new ArrayList<>();
                 for (Card c : sources) {
                     StringBuilder m = new StringBuilder();

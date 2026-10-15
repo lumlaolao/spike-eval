@@ -82,6 +82,13 @@
             "type": "string",
             "description": "Optional, when the decision asks for it: how cards in YOUR OWN deck combine, in one or two short lines."
           },
+          "keep_untapped": {
+            "type": "array",
+            "description": "Optional, on a play decision whose choice casts or activates something with a mana cost: the mana sources to leave UNTAPPED when it is paid, by handle (\"@12\"), for example to keep blue up for a counterspell. An empty list lets the engine choose the sources. Omit it and you are asked when the choice matters.",
+            "items": {
+              "type": "string"
+            }
+          },
           "why": {
             "type": "string",
             "description": "Optional: one sentence on why you chose this, kept in the game record for the people reviewing it. It does not change the answer."

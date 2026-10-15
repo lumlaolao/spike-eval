@@ -40,8 +40,9 @@ final class AnswerTool {
      *  always offered. Tool definitions open the prompt-cache prefix, so a schema that changed every
      *  decision discarded the cache on every call (docs/harness/PROMPT-CRAFT.md rule 19).
      *  v3: an optional `why` (one sentence, for the record), and readable reasoning kept on the row.
-     *  v4: a reply that calls nothing is asked once, in the same conversation, for the call (`nudged`). */
-    static final String VERSION = "answer-tool-v4";
+     *  v4: a reply that calls nothing is asked once, in the same conversation, for the call (`nudged`).
+     *  v5: a play's `keep_untapped` says which mana sources stay untapped when it is paid (work plan item 6). */
+    static final String VERSION = "answer-tool-v5";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -96,6 +97,8 @@ final class AnswerTool {
         /** Steps of the plan the harness may cast for the seat: the 1-based CAST/ACTIVATE options. */
         List<Integer> stepOptions;
         boolean yield, profile, lines, plan;
+        /** A play decision: `keep_untapped` (the mana sources to leave untapped when the chosen play is paid). */
+        boolean keep;
         /** Site-level legality the schema cannot express (a block a blocker cannot make, a card name
          *  that does not exist): an error message, or null when legal. */
         Function<Answer, String> check;
@@ -135,6 +138,9 @@ final class AnswerTool {
         /** Optional one-sentence explanation, for the game record (a model whose reasoning is encrypted
          *  otherwise leaves no trace of why it chose). */
         String why;
+        /** `keep_untapped`: handles of mana sources to leave untapped when the chosen play is paid; null
+         *  when not given (the seat is asked when there is a choice), empty for "the engine chooses". */
+        List<Integer> keepUntapped;
         /** 0-based picks, for the sites that index their own lists. */
         List<Integer> zeroBased() {
             List<Integer> out = new ArrayList<>();
@@ -220,6 +226,12 @@ final class AnswerTool {
                 + "OPPONENT in one short line (their deck and plan, and the cards to respect)."));
         props.add("lines", obj("type", "string", "description", "Optional, when the decision asks for it: how cards in YOUR OWN "
                 + "deck combine, in one or two short lines."));
+        JsonObject keep = obj("type", "array", "description", "Optional, on a play decision whose choice casts or activates "
+                + "something with a mana cost: the mana sources to leave UNTAPPED when it is paid, by handle (\"@12\"), for "
+                + "example to keep blue up for a counterspell. An empty list lets the engine choose the sources. Omit it "
+                + "and you are asked when the choice matters.");
+        keep.add("items", obj("type", "string"));
+        props.add("keep_untapped", keep);
         props.add("why", obj("type", "string", "description", "Optional: one sentence on why you chose this, kept in the "
                 + "game record for the people reviewing it. It does not change the answer."));
         JsonObject params = new JsonObject();
@@ -582,6 +594,16 @@ final class AnswerTool {
         }
         if (s.profile) out.profile = str(a, "profile");
         if (s.lines) out.lines = str(a, "lines");
+        if (s.keep && !absent(a, "keep_untapped")) {
+            if (!a.get("keep_untapped").isJsonArray()) return Result.bad("`keep_untapped` is a list of handles such as \"@12\".");
+            List<Integer> hs = new ArrayList<>();
+            for (JsonElement e : a.getAsJsonArray("keep_untapped")) {
+                java.util.regex.Matcher m = e.isJsonPrimitive() ? java.util.regex.Pattern.compile("@?(\\d+)").matcher(e.getAsString()) : null;
+                if (m == null || !m.find()) return Result.bad("`keep_untapped` is a list of handles such as \"@12\".");
+                hs.add(Integer.parseInt(m.group(1)));
+            }
+            out.keepUntapped = hs;
+        }
         out.why = str(a, "why");
         // The fixed schema names every field; another decision kind's field beside the right one is ignored.
         JsonObject known = (perDecision() ? definition(s) : fixedDefinition())
@@ -621,6 +643,11 @@ final class AnswerTool {
         if (a.yieldUntil != null) b.append("\nYIELD: ").append(a.yieldUntil);
         if (a.profile != null) b.append("\nPROFILE: ").append(a.profile);
         if (a.lines != null) b.append("\nLINES: ").append(a.lines);
+        if (a.keepUntapped != null) {
+            b.append("\nKEEP UNTAPPED: ");
+            if (a.keepUntapped.isEmpty()) b.append("(the engine chooses)");
+            for (int i = 0; i < a.keepUntapped.size(); i++) b.append(i == 0 ? "@" : ", @").append(a.keepUntapped.get(i));
+        }
         return b.toString();
     }
 

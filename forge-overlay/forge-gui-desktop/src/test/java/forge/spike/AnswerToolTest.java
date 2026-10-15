@@ -174,4 +174,20 @@ public class AnswerToolTest {
         Assert.assertEquals(text, "CHOICE: 2");
         Assert.assertEquals(twice.via, "text");
     }
+
+    /** A play can say which mana sources stay untapped when it is paid, by handle; an empty list leaves it
+     *  to the engine; not giving it means the seat is asked when the choice matters. */
+    @Test
+    public void aPlaySaysWhichManaSourcesStayUntapped() {
+        AnswerTool.Spec play = AnswerTool.Spec.one(3);
+        play.keep = true;
+        AnswerTool.Answer a = AnswerTool.validate(play, "{\"option\":1,\"keep_untapped\":[\"@12\",\"Volcanic Island @16\"]}").answer;
+        Assert.assertEquals(a.keepUntapped, List.of(12, 16));
+        Assert.assertTrue(AnswerTool.render(play, a).endsWith("KEEP UNTAPPED: @12, @16"), AnswerTool.render(play, a));
+        Assert.assertEquals(AnswerTool.validate(play, "{\"option\":1,\"keep_untapped\":[]}").answer.keepUntapped, List.of());
+        Assert.assertNull(AnswerTool.validate(play, "{\"option\":1}").answer.keepUntapped);
+        Assert.assertNotNull(AnswerTool.validate(play, "{\"option\":1,\"keep_untapped\":\"@12\"}").error);
+        // Not a play: the field is ignored, as the other decision kinds' notes are.
+        Assert.assertNull(AnswerTool.validate(AnswerTool.Spec.one(3), "{\"option\":1,\"keep_untapped\":[\"@12\"]}").answer.keepUntapped);
+    }
 }
