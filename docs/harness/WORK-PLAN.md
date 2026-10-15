@@ -49,9 +49,8 @@ the recorded Luna prompts. What still lets text in:
 
 **A. No engine fallback.** "I would like no engine fallback if able" (owner). **Done 2026-10-15
 (#184, #185, harness-epoch-14).** Left:
-- a divided spell with several targets (Fire, Electrolyze) keeps its targets when retargeted: the engine
-  would need the old division spread over the new set (every other retargeting, redirection, convoke and
-  improvise, and mana from the pool are the seat's since #187 and `fix/multi-target-retarget`);
+- (retargeting of every kind, divided spells included, redirection, convoke and improvise, and mana from
+  the pool are the seat's since #187 and `fix/multi-target-retarget`);
 - no hook in the pinned engine: the colour an any-colour source makes for a generic shard during payment
   (Lotus Petal, LED; matters only to converge, sunburst and spent-colour checks);
 - the mechanics-only rows (dice, stickers, contraptions, attractions: no deck in the pool reaches them).

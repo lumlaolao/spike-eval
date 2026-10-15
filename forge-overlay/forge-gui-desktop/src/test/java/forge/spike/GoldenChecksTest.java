@@ -935,6 +935,43 @@ public class GoldenChecksTest {
         Assert.assertEquals(ctrl.aiDelegationsCount() + ctrl1.aiDelegationsCount(), 0);
     }
 
+    @Test
+    public void aDividedSpellKeepsItsPortionsOnItsNewTargets() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card arc = card("Arc Lightning", me, ZoneType.Hand);            // 3 divided among up to three
+        Card goblin = card("Goblin Guide", rival, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", rival, ZoneType.Battlefield);
+        Card goyf = card("Tarmogoyf", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1")
+                .on("CHANGE TARGETS", picks("Savannah Lions", "Tarmogoyf"))
+                .on("DIVIDE: which portion goes to Savannah Lions", choice("1"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        SpellAbility sa = spell(arc, me);
+        sa.getTargets().add(goblin);
+        sa.addDividedAllocation(goblin, 2);
+        sa.getTargets().add(bears);
+        sa.addDividedAllocation(bears, 1);
+        forge.game.spellability.TargetChoices t = ctrl.chooseNewTargetsFor(sa, null, true);
+        Assert.assertNotNull(t, "the seat chose a new set");
+        Assert.assertEquals(t.getDividedValue(lions), Integer.valueOf(1), "the seat gave the Lions the 1");
+        Assert.assertEquals(t.getDividedValue(goyf), Integer.valueOf(2), "and Tarmogoyf the 2 left");
+        Assert.assertEquals(t.getTotalDividedValue(), 3);
+
+        // One target holding the whole division (Forked Bolt, up to two): the new target takes all of it.
+        Script one = new Script("CHOICE: 1").on("CHANGE TARGETS", picks("Tarmogoyf"));
+        LlmSpikeGui.PlayerControllerLLM ctrl1 = seat(g, one, one);
+        Card fork = card("Forked Bolt", me, ZoneType.Hand);
+        SpellAbility sa1 = spell(fork, me);
+        sa1.getTargets().add(goblin);
+        sa1.addDividedAllocation(goblin, 2);
+        forge.game.spellability.TargetChoices t1 = ctrl1.chooseNewTargetsFor(sa1, null, true);
+        Assert.assertNotNull(t1);
+        Assert.assertEquals(t1.getDividedValue(goyf), Integer.valueOf(2), String.valueOf(t1));
+        Assert.assertEquals(ctrl.aiDelegationsCount() + ctrl1.aiDelegationsCount(), 0);
+    }
+
     // ------------------------------------------------------------------ the gate
 
     /** Runs last: every type the seat asks has a test above that a model answered, and nothing above

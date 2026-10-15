@@ -5191,11 +5191,6 @@ public final class LlmSpikeGui {
             forge.game.spellability.TargetChoices old = sa.getTargets();
             TargetRestrictions tr = sa.getTargetRestrictions();
             if (tr == null || old.isEmpty()) return null;
-            if (sa.isDividedAsYouChoose() && old.size() > 1) {
-                // No hook: the engine would need the old division re-spread over the new targets.
-                auto("new-targets(divided)->unchanged " + labelOf(sa));
-                return null;
-            }
             if (old.size() > 1 || sa.getMaxTargets() > 1) return chooseNewTargetSet(sa, tr, old, filter);
             Object current = old.get(0);
             List<GameEntity> cands = new ArrayList<>();
@@ -5208,13 +5203,16 @@ public final class LlmSpikeGui {
                     + labelOf(current instanceof GameEntity ? (GameEntity) current : null) + ". Choose its new target"
                     + (optional ? ", or keep it" : "") + ".", labels, optional ? "Keep the current target" : null, optional ? -1 : 0);
             if (c < 0) return null;
+            int portion = old.getTotalDividedValue();
             sa.resetTargets();
             sa.getTargets().add(cands.get(c));
+            if (sa.isDividedAsYouChoose()) sa.addDividedAllocation(cands.get(c), portion);   // the whole division moves
             return sa.getTargets();
         }
 
         /** A spell or copy with several targets: the seat picks the whole new set, up to as many as it had
-         *  (as a human chooses). Picking none, or a set the spell cannot have, keeps the old targets. */
+         *  (as a human chooses). Picking none, or a set the spell cannot have, keeps the old targets. A divided
+         *  spell keeps its portions: exactly as many new targets, each taking one old portion the seat assigns. */
         private forge.game.spellability.TargetChoices chooseNewTargetSet(SpellAbility sa, TargetRestrictions tr,
                 forge.game.spellability.TargetChoices old, java.util.function.Predicate<forge.game.GameObject> filter) {
             List<GameEntity> cands = new ArrayList<>();
@@ -5224,23 +5222,38 @@ public final class LlmSpikeGui {
                     if ((filter == null || filter.test(ge)) && sa.canTarget(ge)) cands.add(ge);
             } finally { sa.setTargets(old); }
             if (cands.isEmpty()) { auto("new-targets(none-legal)->unchanged"); return null; }
+            boolean divided = sa.isDividedAsYouChoose();
             int max = old.size();
             List<String> labels = new ArrayList<>();
             List<String> now = new ArrayList<>();
             for (GameEntity ge : cands) labels.add(labelOf(ge) + (old.contains(ge) ? " (a current target)" : ""));
             for (forge.game.GameObject o : old) now.add(o instanceof GameEntity ? labelOf((GameEntity) o) : String.valueOf(o));
             List<Integer> picks = askMany("new-targets", "CHANGE TARGETS: " + labelOf(sa) + " targets "
-                    + String.join(", ", now) + ". Choose its new targets, up to " + max
-                    + " (at least " + sa.getMinTargets() + "), or none to keep them.", labels, 0, max);
+                    + String.join(", ", now) + (divided
+                        ? " (divided " + old.getDividedValues() + "). Choose exactly " + max + " new targets; each takes one"
+                          + " of those portions"
+                        : ". Choose its new targets, up to " + max + " (at least " + sa.getMinTargets() + ")")
+                    + ", or none to keep them.", labels, 0, max);
             if (picks.isEmpty()) return null;
+            if (divided && picks.size() != max) { auto("new-targets(divided-count)->unchanged"); return null; }
+            List<Integer> portions = divided ? new ArrayList<>(old.getDividedValues()) : null;
             sa.resetTargets();
             for (int i : picks) {
                 GameEntity ge = cands.get(i);
                 if (!sa.canTarget(ge)) { sa.setTargets(old); auto("new-targets(illegal-set)->unchanged"); return null; }
                 sa.getTargets().add(ge);
+                if (divided) sa.addDividedAllocation(ge, portions.remove(portionFor(ge, portions)));
             }
             if (!sa.isTargetNumberValid()) { sa.setTargets(old); auto("new-targets(too-few)->unchanged"); return null; }
             return sa.getTargets();
+        }
+
+        /** Which of the old portions a new target of a divided spell takes; the only kind left needs no ask. */
+        private int portionFor(GameEntity ge, List<Integer> portions) {
+            if (new java.util.HashSet<>(portions).size() == 1) return 0;
+            List<String> labels = new ArrayList<>();
+            for (Integer v : portions) labels.add(String.valueOf(v));
+            return askOne("new-targets", "DIVIDE: which portion goes to " + labelOf(ge) + "?", labels, null, 0);
         }
 
         /** Which mana in the pool pays (several of different kinds float). */
