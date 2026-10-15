@@ -52,6 +52,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import threading
@@ -589,8 +590,69 @@ def answer_tool_requested(args):
 
 
 def spent_usd(out_dir):
-    """Estimated spend recorded in a batch directory so far (cost_report: finished and unfinished games)."""
-    return cost_report.report_dir(str(out_dir), cost_report.load_prices())["usd"]
+    """Estimated spend recorded in a batch directory so far (cost_report: finished and unfinished games),
+    crashed attempts set aside under crashed/ included: they were billed all the same."""
+    prices = cost_report.load_prices()
+    crashed = Path(out_dir) / CRASHED_DIR
+    return (cost_report.report_dir(str(out_dir), prices)["usd"]
+            + (cost_report.report_dir(str(crashed), prices)["usd"] if crashed.is_dir() else 0.0))
+
+
+# A crashed attempt's files go here before its game is played again, so aggregate.py (which reads the
+# directory's own game files) never counts them, while spend and the record keep them.
+CRASHED_DIR = "crashed"
+# Failures a second attempt can fix: the JVM died, wrote no game line, or hung. A condition mismatch or
+# a launch error would fail the same way again.
+RETRYABLE = ("nonzero-exit", "no-game-line", "timeout")
+
+
+def attempt_jsonl(log_path):
+    """The game file an attempt wrote, as its JVM named it in its log ("[EVAL] jsonl <name>"), or None."""
+    try:
+        with open(log_path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                m = re.match(r"\[EVAL\] jsonl (game-[0-9-]+\.jsonl)\s*$", line)
+                if m:
+                    return m.group(1)
+    except OSError:
+        pass
+    return None
+
+
+def play_with_retries(play, seed, swap, out_dir, retries, over_budget):
+    """play() up to retries+1 times while it fails in a RETRYABLE way, setting each failed attempt aside.
+    Returns the last result, or (seed, swap, "budget", 0) when the budget stops the first attempt."""
+    result = None
+    for attempt in range(retries + 1):
+        if over_budget():
+            return result or (seed, swap, "budget", 0)
+        result = play()
+        if result[2] not in RETRYABLE or attempt == retries:
+            return result
+        moved = set_aside(out_dir, seed, swap, attempt + 1)
+        log("[retry] seed=%d swap=%d attempt %d %s; set aside %s and playing it again"
+            % (seed, swap, attempt + 1, result[2], ", ".join(moved) or "nothing"))
+    return result
+
+
+def set_aside(out_dir, seed, swap, attempt):
+    """Move one crashed attempt's log and game file under crashed/, named by attempt. Returns the moved
+    names. The batch manifest is copied there once, so cost_report can price the unfinished game."""
+    out_dir = Path(out_dir)
+    dest = out_dir / CRASHED_DIR
+    dest.mkdir(exist_ok=True)
+    man = out_dir / "batch-manifest.json"
+    if man.is_file() and not (dest / man.name).exists():
+        shutil.copy(str(man), str(dest / man.name))
+    log_path = out_dir / ("game-%d-%d.log" % (seed, 1 if swap else 0))
+    moved = []
+    name = attempt_jsonl(log_path)
+    for p in ([out_dir / name] if name else []) + [log_path]:
+        if p.is_file():
+            target = dest / ("attempt%d-swap%d-%s" % (attempt, 1 if swap else 0, p.name))
+            p.rename(target)
+            moved.append(target.name)
+    return moved
 
 
 def normalize_tier_fast_types(v):
@@ -1151,6 +1213,10 @@ def build_parser():
                     help="stop starting games once this directory's estimated spend (eval/cost_report.py) "
                          "reaches USD. Games in flight finish, so the overshoot is at most --jobs games. "
                          "Rerun with a larger value to resume. Refuses a model with no price on file.")
+    ap.add_argument("--retries", type=int, default=1, metavar="N",
+                    help="play a game again up to N times when its JVM crashes, writes no game line or hangs "
+                         "(default 1). The failed attempt's files move to <out>/crashed/ (still priced, never "
+                         "aggregated) and the batch log says [retry]. 0 turns it off.")
     ap.add_argument("--text-tools", action="store_true",
                     help="NATIVE_TOOLS=0: with --memory-tools, use the text tool grammar instead "
                          "of native function calling. Native calling is the standard and is what "
@@ -1376,12 +1442,16 @@ def run_block(args):
             "so the overshoot is at most the %d games in flight"
             % ("this panel" if budget_root else "this directory", budget, spent(), args.jobs))
 
-    def guarded(seed, swap):
-        # Checked when a worker picks the game up, not when it is queued.
+    def over_budget(seed, swap):
+        # Checked when a worker picks the game up, not when it is queued, and before every retry.
         if budget is not None and spent() >= budget:
             log("[budget] not started: seed=%d swap=%d ($%.2f spent of $%.2f)" % (seed, swap, spent(), budget))
-            return (seed, swap, "budget", 0)
-        return run_one(args, seed, swap, out_dir)
+            return True
+        return False
+
+    def guarded(seed, swap):
+        return play_with_retries(lambda: run_one(args, seed, swap, out_dir), seed, swap, out_dir,
+                                 max(0, getattr(args, "retries", 1)), lambda: over_budget(seed, swap))
 
     results = []
     if args.jobs <= 1:
@@ -1406,6 +1476,10 @@ def run_block(args):
     if unstarted:
         log("not started (budget reached): %d; rerun with a larger --budget-usd to resume them" % len(unstarted))
     log("[cost] " + cost_report.fmt(cost_report.report_dir(str(out_dir), cost_report.load_prices())))
+    crashed = out_dir / CRASHED_DIR
+    if crashed.is_dir():
+        log("[cost] crashed attempts (set aside, re-played): "
+            + cost_report.fmt(cost_report.report_dir(str(crashed), cost_report.load_prices())))
     log("Aggregate with: python3 %s %s"
         % (Path(__file__).with_name("aggregate.py"), out_dir))
     return (1 if bad else 0), out_dir
@@ -1480,7 +1554,9 @@ def spent_usd_tree(root):
     root = Path(root)
     if not root.is_dir():
         return 0.0
-    dirs = sorted({p.parent for p in root.rglob("*.jsonl")})
+    # A crashed/ directory is counted by spent_usd of the run directory that holds it, even when every
+    # game file of that run directory was set aside.
+    dirs = sorted({p.parent.parent if p.parent.name == CRASHED_DIR else p.parent for p in root.rglob("*.jsonl")})
     return sum(spent_usd(d) for d in dirs)
 
 
