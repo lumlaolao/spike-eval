@@ -331,3 +331,14 @@ Sheet: TAKEN 0, LOST 0, TOOL 0, SLOW 0; analyzer PASS. 20 calls, 1.25M prompt to
   Test: theShuffleAskAfterAnOrderSaysWhatTheShuffleWouldUndo.
 - clean  mulligan, Show and Tell's put-in (Emrakul, asked), both scries, attacks.
 
+
+### g08  2026-10-15  seed 71  Mardu Energy (seat) vs UR Delver (Forge AI)  draw (cap) T13  deepseek-v4.1-flash one-tier  build feat/one-tier..docs/bottleneck-contract  runs/loop/g08
+
+First game on the bottleneck stack (#143-#155): SKIP_HEURISTICS=0, --one-tier. Sheet: TAKEN 0, LOST 0,
+SKIP 0, TOOL 0, SLOW 1; analyzer PASS; $0.15.
+
+- WORKS  no harness-guessed passes: windows were 100 nothing-usable and 13 yield:end-of-turn (the seat
+  asked for 3 yields). 16 asks carried THE PLAY YOU CHOSE MOST RECENTLY; Bowmasters' trigger target was
+  the seat's; one mana-sources ask ("keep both Scrublands, tap Plateau").
+- FIXED  an engine card id leaked into the trigger option ("[Zone Changer: Orcish Bowmasters (37)]").
+- FIXED  the 20-minute cap ended the game at turn 13 (54 calls, ~23 s each): recipe cap 45 min.
