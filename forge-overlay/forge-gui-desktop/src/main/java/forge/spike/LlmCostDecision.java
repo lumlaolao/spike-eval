@@ -262,9 +262,10 @@ final class LlmCostDecision extends AiCostDecision {
      *  part, and tapping a tapped card is a silent no-op, so offering one would let the cost go unpaid.
      *  AiCostDecision reads PAYS_TAP_COST as it stands, but the seat test-pays many other abilities
      *  while building its menu, so that set belongs to whichever was last; a test payment of THIS
-     *  ability refreshes it first. Without a mana part nothing is reserved. */
+     *  ability refreshes it first. It test-pays even when the printed cost has no mana part: a raise
+     *  (Suppression Field: {2} more) gives it one, and the test payment computes the cost with raises
+     *  (issue #110); with no mana to pay, the refreshed set is empty. */
     private Set<Card> manaSources() {
-        if (!ability.getPayCosts().hasManaCost()) return Collections.emptySet();
         ComputerUtilMana.canPayManaCost(ability, player, 0, isEffect());
         Set<Card> reserved = AiCardMemory.getMemorySet(player, AiCardMemory.MemorySet.PAYS_TAP_COST);
         return reserved == null ? Collections.emptySet() : reserved;
