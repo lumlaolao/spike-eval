@@ -407,3 +407,12 @@ decisions, no delve noise (the affordability tests are silent now). The sheet re
 - OPEN   recorded runs were hit the same way: `runs/compare/*` up to 27 own main phases a game,
   `runs/prompt-ab/*` up to 17. Their comparisons are confounded by it.
 - OPEN   a second 300 s Luna timeout (T23 play), retried.
+
+### game of 2026-10-15  seed 84  UR Delver (GPT-6 Luna) vs Sneak and Show (Forge AI)  lost T13  $0.07  harness-epoch-19
+
+`runs/luna-v9/g4`, the build of #191 (answer-tool-v9). 68 model decisions by `answer` call; TAKEN 0,
+LOST 0, SKIP 0; 0 Forge-AI decisions; analyzer PASS.
+- WORKS  the yield fix: 16 yielded windows, none of them the seat's own main phase; every seat turn with
+  something usable had a main-phase ask (turn 12 had no land and nothing castable).
+- OPEN   one Luna ask took 3 attempts (T8 play, 31 s lost).
+- clean  mulligan, plays, targets, attacks.
