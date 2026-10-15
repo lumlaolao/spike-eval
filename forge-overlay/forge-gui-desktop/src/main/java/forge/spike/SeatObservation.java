@@ -822,7 +822,8 @@ final class SeatObservation {
      *  not, so a named card or chosen colour reached the model only if the game log happened to say it. */
     int recordNotice(String text) {
         int turn = safeTurn();
-        stream.add(new GameHistory.Ev(stream.size() + 1, turn, GameLogEntryType.INFORMATION, "[notice to you] " + LlmSpikeGui.flat(text)));
+        // Redacted: the engine's own text carries ids ("Lotus Petal (111) picked {U}", runs/luna-v9/g4).
+        stream.add(new GameHistory.Ev(stream.size() + 1, turn, GameLogEntryType.INFORMATION, "[notice to you] " + redactIds(LlmSpikeGui.flat(text))));
         return stream.size();
     }
 

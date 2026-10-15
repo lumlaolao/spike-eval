@@ -24,6 +24,9 @@ final class AskContract {
     static final Pattern CUT_TEXT = Pattern.compile("[^\\s.]\\.\\.\\.(?!\\.)");
     /** The engine formats a card as "Name (id)"; the faithful profile names objects by handle only. */
     static final Pattern ENGINE_ID = Pattern.compile("[A-Za-z'] \\(\\d+\\)");
+    /** In the state a count follows a lower-case word ("library (50)"); an engine id follows a card name, whose
+     *  last word is capitalised ("Aether Vial (4)", "Show and Tell (104)"). */
+    static final Pattern STATE_ENGINE_ID = Pattern.compile("\\b[A-Z][A-Za-z']* \\(\\d+\\)");
     static final Pattern RANGE = Pattern.compile("Choose between (\\d+) and (\\d+) of these");
     static final Pattern NUMBER_RANGE = Pattern.compile("Every integer from (-?\\d+) through (-?\\d+) inclusive is legal");
     static final Pattern HAND_TAG = Pattern.compile("@(\\d+) \\((castable[^)]*|payable, not castable now|need [^)]*|not castable now)\\)");
@@ -75,6 +78,10 @@ final class AskContract {
         String asked = p.substring(d, labels.isEmpty() ? questionEnd(p, d) : d + endOfMenu(decision, labels.size()));
         Matcher id = ENGINE_ID.matcher(asked);
         if (id.find()) Assert.fail(test + ": an engine card id is shown ('" + id.group() + "'): " + asked);
+        // Nor anywhere else the seat reads: the state's stack and event lines carried them (runs/luna-v9/g4, g5).
+        Matcher anywhere = STATE_ENGINE_ID.matcher(p.substring(0, d));
+        if (anywhere.find()) Assert.fail(test + ": an engine card id is shown in the state ('" + anywhere.group() + "'): ..."
+                + p.substring(Math.max(0, anywhere.start() - 120), Math.min(d, anywhere.end() + 60)) + "...");
 
         // The answer contract matches the menu: a CHOICE names one of at least two options, a subset
         // states a range the menu can meet, a free number states its legal range.
