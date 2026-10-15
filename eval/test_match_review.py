@@ -111,6 +111,19 @@ class MatchReviewTest(unittest.TestCase):
             self.assertEqual((r["counts"]["SKIP"], r["counts"]["windows the seat yielded"]), (1, 1))
             self.assertIn("own MAIN1 passed by a yield", mr.render(r))
 
+    def test_an_engine_id_in_a_prompt_is_a_leak(self):
+        # runs/luna-v9/g5: "Aether Vial (4) - ..." in the stack, read as four charge counters.
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "game-1-0.jsonl")
+            rows = [dec("confirm", "smart", prompt="STACK: #1 ability of Aether Vial @9 (you): Aether Vial (4) - You may"),
+                    dec("play", "smart", prompt="NOT VISIBLE: ForgeAI's hand (7 cards) and library (50); your library (48)"),
+                    {"t": "game", "seed": 1, "swap": False, "winner": "A"}]
+            with open(p, "w") as f:
+                f.write("".join(json.dumps(r) + "\n" for r in rows))
+            r = mr.review(p)
+            self.assertEqual(r["counts"]["LEAK"], 1, "one leak, and the library counts are not ids")
+            self.assertIn("Vial (4)", mr.render(r))
+
     def test_a_reply_that_was_not_the_option_used_is_lost(self):
         with tempfile.TemporaryDirectory() as d:
             p = os.path.join(d, "game-1-0.jsonl")

@@ -580,6 +580,30 @@ public class PromptFidelityTest {
         Assert.assertTrue(mountain.isTapped(), "the other source paid");
     }
 
+    /** runs/luna-v9/g5, T7: the stack read "Aether Vial (4) - You may put a creature card ...", the engine id 4
+     *  unredacted, and the seat answered "Vial is at four counters" with three on it. Card text also showed a
+     *  literal "\n" ("...on Aether Vial.\n{T}: ..."). */
+    @Test
+    public void theStackShowsNoEngineIdAndCardTextNoEscapes() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card vial = card("Aether Vial", me, ZoneType.Battlefield);
+        vial.addCounterInternal(forge.game.card.CounterEnumType.CHARGE, 3, me, false, null, null);
+        forge.game.spellability.SpellAbility tap = null;
+        for (forge.game.spellability.SpellAbility sa : vial.getSpellAbilities()) if (!sa.isTrigger() && sa.getPayCosts() != null && sa.getPayCosts().hasTapCost()) tap = sa;
+        Assert.assertNotNull(tap, "Aether Vial's {T} ability");
+        tap.setActivatingPlayer(me);
+        g.getStack().add(tap);
+        String raw = g.getStack().peek().getStackDescription();
+        Assert.assertTrue(raw.contains("(" + vial.getId() + ")"), "the engine's own text carries the id: " + raw);
+        Recorder model = new Recorder("CHOICE: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        String stack = ctrl.observer().stack();
+        Assert.assertFalse(stack.matches("(?s).*Aether Vial \\(\\d+\\).*"), "an engine id in the stack: " + stack);
+        Assert.assertTrue(stack.contains("Aether Vial @"), "the id became the seat's handle: " + stack);
+        Assert.assertFalse(LlmSpikeGui.flat("on Aether Vial.\\n{T}: You may").contains("\\n"));
+    }
+
     /** runs/luna-v8/g2: the seat kept Chain Lightning on top with a surveil, and the next prompt said nothing about
      *  its library; only a history of 53 "engine presented ... for a choice" lines. A player knows what it put on
      *  top: the state shows it, drops a drawn card, follows a Ponder's new order and forgets it all on a shuffle. */
