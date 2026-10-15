@@ -50,7 +50,8 @@ the recorded Luna prompts. What still lets text in:
 **A. No engine fallback.** "I would like no engine fallback if able" (owner). **Done 2026-10-15
 (#184, #185, #187, #188, harness-epoch-17).** Since #187 and #188 the seat also owns retargeting of
 every kind (divided spells keep their portions), redirection, convoke and improvise, mana from the
-pool, and effects played without the stack (their targets and their cost decision). Left:
+pool, effects played without the stack (their targets and their cost decision), and since #189 how
+many cards delve exiles. Left:
 - no hook in the pinned engine: the colour an any-colour source makes for a generic shard during payment
   (Lotus Petal, LED; matters only to converge, sunburst and spent-colour checks);
 - the mechanics-only rows (dice, stickers, contraptions, attractions: no deck in the pool reaches them).
