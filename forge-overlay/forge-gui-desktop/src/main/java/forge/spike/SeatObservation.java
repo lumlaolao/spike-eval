@@ -73,8 +73,10 @@ import forge.spike.LlmSpikeGui.ContextProfile;
  */
 final class SeatObservation {
     /** v24: the legend moved out of every message into the system prompt ({@link #GUIDE}), where it is said
-     *  once and cached; the header no longer names this version (it is for the logs, not the model). */
-    static final String VERSION = "observation-faithful-v24";
+     *  once and cached; the header no longer names this version (it is for the logs, not the model).
+     *  v25: the golden checks (stack text redacted of engine ids; the hand's "(castable)" tag agrees with
+     *  the menu), merged with v24. */
+    static final String VERSION = "observation-faithful-v25";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
      *  Every section named here is one {@link #render} prints. */
@@ -763,6 +765,9 @@ final class SeatObservation {
         return sb.toString();
     }
 
+    /** {@link #redact} for text the seat is asked with (a stack description in a question). */
+    String redactIds(String msg) { return redact(msg, null, cardsById()); }
+
     private static boolean endsWith(StringBuilder sb, String s) {
         int n = s.length();
         if (n == 0 || sb.length() < n) return false;
@@ -994,7 +999,7 @@ final class SeatObservation {
             b.append(describe(c, false));
             if (!c.isLand()) {
                 try {
-                    String afford = LlmSpikeGui.PlayerControllerLLM.affordability(viewer, c, tally);
+                    String afford = LlmSpikeGui.PlayerControllerLLM.castTag(viewer, c, tally);
                     if (afford != null) b.append(' ').append(afford);
                 } catch (Exception ignore) { }
             }
