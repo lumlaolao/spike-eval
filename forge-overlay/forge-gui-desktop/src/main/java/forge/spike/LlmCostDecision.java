@@ -41,6 +41,10 @@ final class LlmCostDecision extends AiCostDecision {
 
     LlmCostDecision(Player ai0, SpellAbility sa, boolean effect) {
         super(ai0, sa, effect);
+        // A new payment of this ability: what an earlier one held for its tap part (a payment that never
+        // reached its mana) must not hold anything now. Forge reuses an ability's SpellAbility object.
+        LlmSpikeGui.PlayerControllerLLM seat = seat();
+        if (seat != null) seat.clearTapPartHolds(sa);
     }
 
     /** The play this cost pays for is not committed yet (the seat's playChosenSpellAbility: CostPayment
@@ -221,20 +225,32 @@ final class LlmCostDecision extends AiCostDecision {
         try {
             final int amount = cost.getAbilityAmount(ability);
             CardCollection typeList = tapCandidates(cost);
-            if (typeList == null || amount <= 0 || typeList.size() <= amount) return engineTap(cost); // nothing to choose
+            if (typeList == null || amount <= 0 || typeList.size() < amount) return engineTap(cost);
+            // Exactly enough: no choice, but the pick is still this list. The engine's own pick excludes a
+            // reserve read when it was built, not the one just refreshed, so it could name the mana
+            // creature this payment taps (Llanowar Elves feeding a Signet): one tap for two jobs.
+            if (typeList.size() == amount) return reserve(typeList);
 
             CardCollectionView pick = ask(typeList, amount, "tap", "COST: to pay for " + source.getName()
                     + (manaFor == null ? "" : " (making mana for " + manaFor + ")") + " you must TAP " + amount
                     + " of these untapped permanents. A tapped creature cannot attack or block until it untaps. Choose which");
-            if (pick != null) {
-                tapped.addAll(pick);
-                return PaymentDecision.card(pick);
-            }
+            if (pick != null) return reserve(pick);
             if (cancelled) return null;
         } catch (Exception e) {
             fellBack("tap-cost", e.getClass().getSimpleName());
         }
         return engineTap(cost);
+    }
+
+    /** The tap part's pick. It is also held for this ability's own mana payment (issue #111): the
+     *  candidates leave out what a TEST payment taps, but the real payment can differ (it prepays a
+     *  filter such as a Signet from a mana creature the test never used), and tapping a card the tap
+     *  part named makes the tap a no-op. Held, the payment finds another source or fails. */
+    private PaymentDecision reserve(CardCollectionView pick) {
+        tapped.addAll(pick);
+        LlmSpikeGui.PlayerControllerLLM seat = seat();
+        if (seat != null && manaFor == null) seat.holdForTapPart(ability, pick);
+        return PaymentDecision.card(pick);
     }
 
     /** The permanents this tap part may take, or null for a shape the engine keeps: crewing (total
