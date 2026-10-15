@@ -163,8 +163,9 @@ public final class LlmSpikeGui {
      *  chosen colour) are shown; an unparsed play or block is said, not read as PASS / NONE; block pairs
      *  keep names with commas; the per-turn play cap is 80 under the faithful profile; a PLAN line at any
      *  decision replaces the plan (a goal and steps); the seat can report a broken question. Epoch 6:
-     *  the mana line says its colours over-count; call markup past the budget is recorded as exhausted. */
-    static final String HARNESS_EPOCH = "harness-epoch-6";
+     *  the mana line says its colours over-count; call markup past the budget is recorded as exhausted.
+     *  Epoch 7: under PLAN_EXECUTE a plan-executed step's follow-up asks carry that step (#108). */
+    static final String HARNESS_EPOCH = "harness-epoch-7";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -739,8 +740,8 @@ public final class LlmSpikeGui {
          *  in the current menu, and nothing on the OPPONENT's side has changed since it stated the plan,
          *  the harness executes that step itself instead of asking again -- one smart call per turn
          *  rather than one per priority window. Any interruption (their spell, a life change, a new
-         *  permanent) invalidates the plan and forces a re-ask. Off by default. */
-        static final boolean PLAN_EXECUTE = "1".equals(System.getenv("PLAN_EXECUTE"));
+         *  permanent) invalidates the plan and forces a re-ask. Off by default. Not final: tests set it. */
+        static boolean PLAN_EXECUTE = "1".equals(System.getenv("PLAN_EXECUTE"));
         /** ONE_TIER=1: one bridge answers every decision, with the smart tier's model, system prompt and
          *  reasoning. The two-tier split sends 58% of real decisions in runs/loop g01-g07 (every target,
          *  most instant-speed plays) to a tier with reasoning disabled, which is the harness deciding how
@@ -2607,6 +2608,12 @@ public final class LlmSpikeGui {
                             evalDec("play", passIdx, idx, "plan", 0,
                                     "play(plan-executed)->step" + planStepIdx, playLabels);
                             p("[ROUTER] play: plan step " + planStepIdx + " (" + step + ") -> " + labelOf(planned));
+                            // Its follow-up asks carry THIS play, not the last one the model chose by hand (#108).
+                            if (observer != null) {
+                                actionIntent = verbOf(planned) + " " + labelOf(planned) + ". It is step " + planStepIdx
+                                        + " of the STEPS you listed for your plan: \"" + turnPlan + "\"";
+                                actionIntentTurn = turn;
+                            }
                             ensureTargetsSet(planned);
                             return Lists.newArrayList(planned);
                         }
