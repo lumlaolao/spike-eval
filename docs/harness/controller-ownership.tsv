@@ -1,6 +1,6 @@
 signature	impl	kind	ownership	legacy_reach	notes
 addKeywordCost[class forge.game.spellability.SpellAbility, class forge.game.cost.Cost, interface forge.game.keyword.KeywordInterface, class java.lang.String]	BASE	strategic	wrapper	rare	Base wrapper -> chooseNumberForKeywordCost (AI). Casualty/similar keyword costs decided by Forge AI.
-announceRequirements[class forge.game.spellability.SpellAbility, int, int, class java.lang.String]	LLM	strategic	ai-observed	core	Override only logs: X value chosen by Forge AI (announce-x, tier=ai row). Real strategic choice (Engineered Explosives, X spells).
+announceRequirements[class forge.game.spellability.SpellAbility, int, int, class java.lang.String]	LLM	strategic	model	core	Model-routed via chooseNumber (ChooseAnyNumber, BidLife). Mana-cost X is announced by the play loop (announceX) before modes and targets.
 applyManaToCost[class forge.game.mana.ManaCostBeingPaid, class forge.game.spellability.SpellAbility, class java.lang.String, class forge.game.mana.ManaConversionMatrix, boolean]	AI	payment	ai-inherited	none	Engine placeholder (assert false); AI path never calls it.
 arrangeForScry[class forge.game.card.CardCollection]	LLM	strategic	model	core	Model-routed; deterministic fallback (keep on top).
 arrangeForSurveil[class forge.game.card.CardCollection]	LLM	strategic	model	core	Model-routed; deterministic fallback.

@@ -691,6 +691,8 @@ public final class LlmSpikeGui {
         private String cancelKey = "";
         private int cancels = 0;
         private String cancelNote = null;
+        /** A Charm spell whose modes the play loop already chose, so the cast does not ask again. */
+        private SpellAbility modesChosenFor = null;
         /** Priority windows the play loop passed without a model call, by reason (see skipWindow). */
         final java.util.Map<String, Integer> windowSkips = new java.util.TreeMap<>();
         // (stack, options) situations we already declined this turn — identical recurrences pass free.
@@ -967,8 +969,9 @@ public final class LlmSpikeGui {
             String name = host == null ? "?" : host.getName();
             String desc = sa.getDescription();
             if (desc == null || desc.isEmpty()) desc = String.valueOf(sa);
+            // Not cut (it was at 160): the option is the one place the ability's whole text is read
+            // when it is chosen (Green Sun's Zenith lost "into its owner's library").
             desc = desc.replace("CARDNAME", name).replace("NICKNAME", name).replaceAll("\\s+", " ").trim();
-            desc = truncateWords(desc, 160);
             String body = desc.isEmpty() ? "" : " [" + desc + "]";
             boolean spell;
             try { spell = sa.isSpell(); } catch (Exception e) { spell = true; }
@@ -2528,6 +2531,18 @@ public final class LlmSpikeGui {
                     actionIntent = verbOf(chosen) + " " + labelOf(chosen) + ". What you wrote when you chose it: \"" + reasoningOf(lastReply) + "\"";
                     actionIntentTurn = turn;
                 }
+                // X, then modes, then targets: the order a player announces them (CR 601.2b-c), so a
+                // mode's targets exist when targets are asked. Modes used to be chosen in
+                // playChosenSpellAbility AFTER targeting, so a targeted mode never got one: Kozilek's
+                // Command "Couldn't add to stack, failed to target" 26 times in recorded logs.
+                announceX(chosen);
+                if (chosen.getApi() == ApiType.Charm) {
+                    if (!forge.game.ability.effects.CharmEffect.makeChoices(chosen)) {
+                        p("[ROUTER] play: no legal mode set for " + labelOf(chosen) + " -> PASS");
+                        return PASS;
+                    }
+                    modesChosenFor = chosen;
+                }
                 // AI cast path won't target for us — set legal LLM-chosen targets now. A target ask before
                 // the play is committed may be answered "cancel": the model saw the candidates and no
                 // longer wants the play (runs/loop/g06 Grindstone, g07 Wirewood Symbiote: "there's no
@@ -3036,6 +3051,8 @@ public final class LlmSpikeGui {
                 for (SpellAbility part = sa; ours && part != null; part = part.getSubAbility())
                     if (part.hasParam("TargetingPlayer")) ours = false;
             } catch (Exception e) { ours = false; }
+            boolean modesChosen = sa == modesChosenFor;
+            modesChosenFor = null;
             if (!ours) return super.playChosenSpellAbility(sa);
 
             final Player ai = getPlayer();
@@ -3053,7 +3070,7 @@ public final class LlmSpikeGui {
             }
             if (!sa.isCopied()) { sa.resetPaidHash(); sa.setPaidLife(0); }
             sa = forge.game.GameActionUtil.addExtraKeywordCost(sa);
-            if (sa.getApi() == ApiType.Charm && !forge.game.ability.effects.CharmEffect.makeChoices(sa)) return true;
+            if (sa.getApi() == ApiType.Charm && !modesChosen && !forge.game.ability.effects.CharmEffect.makeChoices(sa)) return true;
 
             game.getStack().freezeStack(sa);
             final CostPayment pay = new CostPayment(sa.getPayCosts(), sa);
@@ -4166,24 +4183,39 @@ public final class LlmSpikeGui {
             } catch (Exception e) { return "?"; }
         }
 
+        /** X for a spell or ability with {X} in its mana cost: the seat's choice, from XMin up to the most
+         *  it can pay. The AI cast path never announces X (PlaySpellAbility.announceValuesLikeX is the
+         *  human path), so the engine paid whatever X the ability happened to hold: Green Sun's Zenith
+         *  resolved at X=1..3 with no question, and a planned Kozilek's Command at X=1 failed. */
+        private void announceX(SpellAbility sa) {
+            try {
+                if (sa.getPayCosts() == null || sa.getPayCosts().getCostMana() == null
+                        || sa.getPayCosts().getCostMana().getAmountOfX() == 0) return;
+                int min = Math.max(0, sa.getPayCosts().getCostMana().getXMin());
+                // The most X the engine says it can pay. ComputerUtilMana.determineLeftoverMana answered 0
+                // and 1 with three Forests for Green Sun's Zenith while canPayManaCost(X=2) is true.
+                int max = min;
+                while (max < 99 && forge.ai.ComputerUtilMana.canPayManaCost(sa, getPlayer(), max + 1, false)) max++;
+                int x = min == max ? min : !smartOk() && !fastOk() ? min
+                        : chooseNumber(sa, "Choose X for " + verbOf(sa) + " " + labelOf(sa)
+                            + " (you can pay for X up to " + max + ")", min, max);
+                if (min == max) auto("announce-x(forced)->" + x);
+                sa.setXManaCostPaid(x);
+                p("[ROUTER] X = " + x + " for " + labelOf(sa));
+            } catch (Exception e) { p("[ROUTER] X: " + e + " -> engine default"); }
+        }
+
         /** X / Multikicker / BidLife announcement. VALUE semantics: choice carries the announced
          *  NUMBER itself (not a menu index); -1 when super returns null — and that null is itself the
          *  AI's decision (it aborts the cast, PlaySpellAbility.java:757), so it is returned unchanged.
          *  Options enumerate min..max only when the range is small; max can be Integer.MAX_VALUE. */
         @Override
         public Integer announceRequirements(SpellAbility ability, int min, int max, String announce) {
-            long t0 = System.currentTimeMillis();
-            Integer v = super.announceRequirements(ability, min, max, announce);
-            try {
-                long span = (long) max - (long) min + 1L;
-                List<String> labels = new ArrayList<>();
-                if (span >= 1 && span <= 12) { for (int i = min; i <= max; i++) labels.add(String.valueOf(i)); }
-                else labels.add("announce " + announce + " [" + min + ".." + (max == Integer.MAX_VALUE ? "unbounded" : String.valueOf(max)) + "]");
-                int nOpts = (span >= 1 && span <= 10000) ? (int) span : -1;
-                observeAiDec("announce-x", nOpts, v == null ? -1 : v.intValue(), t0,
-                        "announce-x(ai) " + announce + "=" + v + " [" + min + ".." + max + "]" + srcOf(ability), labels);
-            } catch (Exception ignore) { }
-            return v;
+            // The seat's choice now (it was Forge AI's, a tier=ai row). For the seat the engine reaches
+            // this only from ChooseNumberEffect (ChooseAnyNumber, e.g. Mind's Aglow) and BidLife; mana
+            // X is announced by announceX in the play loop.
+            if (max < min) return null;
+            return chooseNumber(ability, "Announce " + announce + srcAsk(ability), min, max);
         }
 
         /** Edict-style sacrifice (Sacrifice/Balance effects, Annihilator, Emerge/Offering costs) —

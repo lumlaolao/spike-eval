@@ -142,4 +142,55 @@ public class PromptFidelityTest {
         Assert.assertTrue(model.asked("NOTE: you chose CAST Lightning Bolt"), decisions(model));
         Assert.assertTrue(me.getCardsIn(ZoneType.Hand).size() == 1, "nothing was cast");
     }
+
+    /** Green Sun's Zenith resolved at X=1..3 in recorded games with no question: the AI cast path
+     *  never announces X. The seat now asks it, up to what it can pay, before targets. */
+    @Test
+    public void xIsTheSeatsChoiceUpToWhatItCanPay() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Forest", me, ZoneType.Battlefield);
+        card("Green Sun's Zenith", me, ZoneType.Hand);
+        card("Llanowar Elves", me, ZoneType.Library);
+        Recorder model = new Recorder("CHOICE: 1") {
+            @Override public String ask(String prompt) {
+                prompts.add(prompt);
+                return prompt.contains("DECISION: Choose X for") ? "CHOICE: 3" : "CHOICE: 1";
+            }
+        };
+        java.util.List<forge.game.spellability.SpellAbility> r = seat(g, model, model).chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r);
+        String p = promptWith(model, "DECISION: Choose X for CAST Green Sun's Zenith");
+        Assert.assertTrue(p.contains("(you can pay for X up to 2)") && p.contains("3) 2"), p);
+        Assert.assertEquals(r.get(0).getXManaCostPaid(), Integer.valueOf(2));
+    }
+
+    /** A modal spell's modes are chosen before its targets, so every chosen targeted mode gets one.
+     *  Modes used to be chosen at cast, after targeting: "Couldn't add to stack, failed to target". */
+    @Test
+    public void everyChosenModeOfAModalSpellIsTargeted() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Badlands", me, ZoneType.Battlefield);
+        card("Badlands", me, ZoneType.Battlefield);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Kolaghan's Command", me, ZoneType.Hand);
+        card("Savannah Lions", rival, ZoneType.Battlefield);
+        card("Grizzly Bears", rival, ZoneType.Hand);
+        Recorder model = new Recorder("CHOICE: 1") {
+            @Override public String ask(String prompt) {
+                prompts.add(prompt);
+                return prompt.contains("PICKS:") && !prompt.contains("DECISION: You have priority") ? "PICKS: 2,4" : "CHOICE: 1";
+            }
+        };
+        java.util.List<forge.game.spellability.SpellAbility> r = seat(g, model, model).chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, decisions(model));
+        int targeted = 0;
+        for (forge.game.spellability.SpellAbility part = r.get(0); part != null; part = part.getSubAbility()) {
+            if (!part.usesTargeting()) continue;
+            Assert.assertFalse(part.getTargets().isEmpty(), "mode without a target: " + part + "\n" + decisions(model));
+            targeted++;
+        }
+        Assert.assertEquals(targeted, 2, decisions(model));
+    }
 }
