@@ -119,7 +119,19 @@ mechanics** (established by reading the engine source, not assumed):
 `payManaCost` is routed for one part only: a mana ability with a tap-type cost (Heritage Druid) is
 activated by the seat before the engine pays, so which Elves it taps is the model's (#105); which
 sources pay is `ComputerUtilMana.payManaCost(...)`, the whole mana-payment mechanism with no seam,
-and stays Forge AI's; `playTrigger` — its targeting goes through `brains.doTrigger` inside
+and stays Forge AI's; since 2026-10-15 so do which sources stay untapped (`holdManaSources`) and how
+Phyrexian symbols are paid (`phyrexianByLife`: the seat pays the life itself and hands the engine the
+rest of the cost, whose Phyrexian symbols the engine then pays with mana). **The colour an any-colour
+source makes during a payment (Lotus Petal, Lion's Eye Diamond, City of Brass) has no hook and stays the
+engine's:** `ComputerUtilMana.canPayShardWithSpellAbility` sets `AbilityManaPart.setExpressChoice`
+inside the static payment loop, for the shard it is paying, and no `PlayerController` method is called
+between choosing the source and activating it. A coloured shard forces its colour; for a generic shard the
+colour changes nothing except converge/sunburst counts (Engineered Explosives) and "mana of a colour was
+spent" checks. The only way in is the #105 pattern (the seat activates the source before the engine
+pays), which for a sacrifice source means the seat choosing the source as well: re-deriving the payment
+plan, which G7-REMAINING-WORK-ORDER.md rules out. So `payManaCost` stays PARTLY OWNED and the baseline
+stays 1. (A Lotus Petal activated from the menu, outside a payment, asks its colour through the seat.)
+`playTrigger` — its targeting goes through `brains.doTrigger` inside
 `prepareSingleSa`, and its yes/no is already covered by `confirmTrigger`;
 `orderAndPlaySimultaneousSa` — the strategic ORDER is model-owned (via `orderSimultaneousSa`), only
 the inherited play/targeting loop remains.
