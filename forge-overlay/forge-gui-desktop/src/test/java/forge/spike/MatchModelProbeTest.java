@@ -145,9 +145,12 @@ public class MatchModelProbeTest {
     public void everyObservationIsSelfDescribing() {
         Game g = SeatObservationTest.world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
         String r = SeatObservationTest.render(SeatObservationTest.observerFor(g, 0), "");
-        Assert.assertTrue(r.contains("observation " + SeatObservation.VERSION), r);
-        Assert.assertTrue(r.contains("LEGEND: @N"), "every prompt must explain its own notation");
-        List<String> must = List.of("SPENT THIS TURN", "YOUR PLAN", "FACTS", "KNOWN IN HIDDEN ZONES");
-        for (String s : must) Assert.assertTrue(r.contains(s), "legend must describe " + s + ":\n" + r);
+        Assert.assertTrue(r.contains("| priority: "), r);   // the faithful header (v24 dropped the version from it)
+        // v24: the notation is explained once, in the system prompt (SeatObservation.GUIDE), for every
+        // section the observation prints.
+        Assert.assertFalse(r.contains("LEGEND:"), r);
+        List<String> must = List.of("@N", "SPENT THIS TURN", "YOUR PLAN", "FACTS", "KNOWN IN HIDDEN ZONES", "SINCE YOUR LAST DECISION",
+                "CAST THIS GAME", "NOT VISIBLE", "mana available");
+        for (String s : must) Assert.assertTrue(SeatObservation.GUIDE.contains(s), "the guide must describe " + s);
     }
 }

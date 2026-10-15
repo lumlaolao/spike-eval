@@ -1,5 +1,5 @@
 {
-  "version": "seat-tools-v7",
+  "version": "seat-tools-v8",
   "comment": "The seat's read-only tools as native function definitions. Each maps 1:1 onto a command ContextMemory.execute already implements (text_command), so the native and text protocols reach the SAME executor and differ only in how the request is expressed. Descriptions carry the same epistemic caveats the text grammar states. rules_lookup and simulate are served by the engine side only (RulesTool, PlayerLookahead), and report_unclear_decision is a complaint about the question, not a lookup; the tool-use suite has no fixture for them and does not offer them. The decision answer (`answer`, AnswerTool.java) is built per decision from its legal values, so it is not listed here: the suite's native-answer arm builds it from each scenario's numbered options, the way the seat does.",
   "tools": [
     {
@@ -28,7 +28,7 @@
       "text_command": "MEMORY SEARCH {offset} {query}",
       "function": {
         "name": "memory_search",
-        "description": "Literal, case-insensitive text search over this seat's archived observations and reveals. Returns up to 10 snippets per page with their evidence ids. Historical observations are NOT current state. Cannot query hidden state.",
+        "description": "Search your archive: every earlier state you were shown, the events since each, and every hidden card you were revealed, in this game. The search is literal and case-insensitive, and returns up to 10 snippets per page, each with its evidence id [M<n>]; read one in full with memory_read. Use it when a decision turns on something from earlier that the current message does not show, such as a card you saw in their hand, what they cast on an earlier turn, or an event id. Do not use it for the current state, which is in the message, or for anything hidden you were never shown: archived entries are the past, not the present.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -54,7 +54,7 @@
       "text_command": "MEMORY READ {evidence_id} {offset}",
       "function": {
         "name": "memory_read",
-        "description": "Read one archived evidence entry in full (2000 characters per page). Use it when a snippet ends with \"[READ for full text]\". Historical observations are NOT current state.",
+        "description": "Read one archive entry [M<n>] in full, 2000 characters per page. Use it after memory_search when a snippet ends with \"[READ for full text]\", or to see a whole earlier state you know the id of. The reply ends with next=<offset> when there is more; pass that offset to read on. An entry describes the game as it was then, not as it is now.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -81,7 +81,7 @@
       "text_command": "MEMORY NOTE {evidence_id} {note}",
       "function": {
         "name": "memory_note",
-        "description": "Save a hypothesis or plan to your notebook, citing the evidence entry it rests on. Notes are YOUR unverified hypotheses, never engine facts; they are shown back to you on later decisions.",
+        "description": "Write a note in your notebook, citing the archive entry it rests on: a read of the opponent's hand, a card they are likely holding, a plan for a later turn. The latest notes are shown back to you on later decisions. Notes are your own unverified hypotheses, never engine facts. Use set_plan, not a note, for your plan for this turn.",
         "parameters": {
           "type": "object",
           "properties": {
@@ -92,7 +92,8 @@
             },
             "note": {
               "type": "string",
-              "maxLength": 500
+              "maxLength": 500,
+              "description": "The note, at most 500 characters."
             }
           },
           "required": [
@@ -108,7 +109,7 @@
       "text_command": "RULES {action} {query} {offset}",
       "function": {
         "name": "rules_lookup",
-        "description": "Look up the official Magic Comprehensive Rules. Replies are bounded pages with a next= offset. Returns public reference text, not evidence about this game.",
+        "description": "Look up the official Magic: The Gathering Comprehensive Rules: search them by words, read one rule by number, get a digest of a section, define a glossary term, or list the chapters. Use it when a decision turns on an exact rule you are unsure of, such as layers, the timing of a trigger, or how a keyword works. It returns public reference text, not facts about this game; a card's own text is in the message or from inspect. Replies are pages; pass the next= offset to read on.",
         "parameters": {
           "type": "object",
           "properties": {

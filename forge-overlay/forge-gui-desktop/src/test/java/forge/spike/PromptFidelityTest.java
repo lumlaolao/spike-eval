@@ -54,7 +54,7 @@ public class PromptFidelityTest {
         for (String p : new java.util.ArrayList<>(asked)) {
             int d = p.lastIndexOf("DECISION:");
             Assert.assertTrue(d >= 0, result.getName() + ": an ask with no DECISION: " + p);
-            Assert.assertTrue(p.contains("== Turn ") && p.contains("observation-faithful-"), result.getName() + ": no observation: " + p);
+            Assert.assertTrue(p.contains("== Turn ") && p.contains("| priority: "), result.getName() + ": no observation: " + p);
             Assert.assertFalse(CUT.matcher(p).find(), result.getName() + ": an option is cut short: " + p);
             java.util.regex.Matcher m = BATTLEFIELD_OPTION.matcher(p.substring(d));
             while (m.find())
@@ -313,10 +313,14 @@ public class PromptFidelityTest {
     public void withoutCoachingTheSystemPromptHasNoPrinciplesOrReference() {
         String coached = LlmSpikeGui.PlayerControllerLLM.framing("Seat", null, false, true, true);
         String bare = LlmSpikeGui.PlayerControllerLLM.framing("Seat", null, false, true, false);
-        Assert.assertTrue(coached.contains("PRINCIPLES:") && coached.contains("=== SNAPSHOT LEGEND"), coached);
-        Assert.assertFalse(bare.contains("PRINCIPLES:") || bare.contains("=== SNAPSHOT LEGEND"), bare);
-        Assert.assertTrue(bare.contains("PROTOCOL:") && bare.contains("FORMAT:"), bare);
-        Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.framing("Seat", null, true, true, false).contains("PRINCIPLES:"));
+        // Faithful (harness-epoch-8): no advice in either; NO_COACHING also drops the Legacy reference. Both
+        // keep how the interface works and how to read the state, which are information, not coaching.
+        Assert.assertTrue(coached.contains("<legacy_reference>"), coached);
+        Assert.assertFalse(bare.contains("<legacy_reference>"), bare);
+        for (String p : new String[] {coached, bare}) {
+            Assert.assertFalse(p.contains("PRINCIPLES") || p.contains("WORKED EXAMPLES"), p);
+            Assert.assertTrue(p.contains("<how_this_works>") && p.contains(SeatObservation.GUIDE), p);
+        }
     }
 
     /** BLOCKS pairs were split on every comma, so a legendary name ("Ragavan, Nimble Pilferer")
@@ -596,6 +600,8 @@ public class PromptFidelityTest {
         for (String banned : new String[] {"Griselbrand", "Reanimate", "Petal", "Grixis", "Entomb", "Force of Will"})
             Assert.assertFalse(p.contains(banned), "the play ask names " + banned);
         Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.buildMulliganPrompt(7, 1, "x", true, true).contains("combo deck"));
+        Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.buildMulliganPrompt(7, 1, "x", true, true).contains("workable hand"),
+                "the faithful mulligan states the facts, not advice (PROMPT-AUDIT.md C3)");
         Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.buildMulliganPrompt(7, 1, "x", true).contains("combo deck"),
                 "legacy profiles keep their bytes");
     }
@@ -619,9 +625,32 @@ public class PromptFidelityTest {
         Assert.assertTrue(model.prompts.size() >= 3, decisions(model));
         java.util.regex.Pattern cut = java.util.regex.Pattern.compile("(?m)^\\s+\\d+\\) [^\\n]*\\.\\.\\.\\]?$");
         for (String p : model.prompts) {
-            Assert.assertTrue(p.contains("== Turn ") && p.contains("observation-faithful-"), "no observation: " + p);
+            Assert.assertTrue(p.contains("== Turn ") && p.contains("| priority: "), "no observation: " + p);
             Assert.assertTrue(p.contains("DECISION:"), "no decision: " + p);
             Assert.assertFalse(cut.matcher(p).find(), "an option is cut short: " + p);
+        }
+    }
+
+    /** #166: the attack outlook said "Every attacker can be blocked" for a flying attacker when the only
+     *  creature that could block was a ground creature. It now names who could block each attacker. */
+    @Test
+    public void theAttackOutlookNamesTheBlockersTheDefenderActuallyHas() {
+        LlmSpikeGui.PlayerControllerLLM.TEST_LOOKAHEAD_OVERRIDE = true;
+        try {
+            Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+            Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+            Card angel = card("Serra Angel", me, ZoneType.Battlefield);
+            Card bear = card("Grizzly Bears", me, ZoneType.Battlefield);
+            card("Grizzly Bears", opp, ZoneType.Battlefield);
+            forge.game.card.CardCollection legal = new forge.game.card.CardCollection();
+            legal.add(angel);
+            legal.add(bear);
+            String outlook = LlmSpikeGui.PlayerControllerLLM.attackersCeiling(legal, opp, new forge.game.combat.Combat(me));
+            Assert.assertTrue(outlook.contains("None of their creatures that can block now could block: Serra Angel (4)"), outlook);
+            Assert.assertTrue(outlook.contains("Could be blocked: Grizzly Bears by Grizzly Bears"), outlook);
+            Assert.assertFalse(outlook.contains("Every attacker can be blocked"), outlook);
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.TEST_LOOKAHEAD_OVERRIDE = null;
         }
     }
 }

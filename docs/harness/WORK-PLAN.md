@@ -64,9 +64,25 @@ when an item is finished or a new one is agreed, so the next session can pick up
    - restraint and ceiling were 100% in both arms.
 
    Left: one cheap Luna game read end to end.
-4. **Rewrite the prompts from the audit:** fixed parts first and the current state last (cache
-   order); clearer questions; coaching (the PRINCIPLES list and the static guide) cut down to
-   information, with opinion removed.
+4. **Rewrite the prompts from the audit.** First pass done 2026-10-15 (`harness-epoch-8`, observation v24,
+   seat-tools-v8), closing these `PROMPT-AUDIT.md` findings:
+   - A1: one correct state guide, in the system prompt only;
+   - C1, C2, C5: no PRINCIPLES, reasoning cap or worked examples in the faithful system prompt, which
+     now has tagged sections (`<your_deck>`, `<how_this_works>`, `<reading_the_state>`,
+     `<legacy_reference>`);
+   - C3: the advice is gone from the mulligan and attackers texts;
+   - C4: the Legacy reference describes the archetypes without advice;
+   - E1: the archive block comes first and the decision last;
+   - F1, F2: no internal ids, version tags or double budgets in the message;
+   - G1: the four short tool descriptions are rewritten;
+   - H1 (#166): the attack outlook names who could block each attacker.
+
+   Still open:
+   - D1: capitals and "EXACTLY" in individual decision texts (the answer tool already replaces their
+     answer lines);
+   - C3: advice in the card-naming text;
+   - record the model's reasoning (Luna writes no visible text beside its calls, so a row holds only
+     the answer): store `message.reasoning` where the provider returns it.
 5. **Measure the new prompts and tools:** `eval/tool_use_suite.py`, the golden checks, then a few
    cheap Haiku 5.5 and deepseek games comparing old and new, with cost stated first.
 6. **Mana payment: auto-tap vs manual (#111).** Today Forge picks which lands pay, and the model is

@@ -243,8 +243,30 @@ final class ContextMemory {
     String beginNative(String decision) {
         int id = observe(decision);
         currentObservation = id;
-        return decision + "\nCURRENT OBSERVATION: M" + id + "\n" + brief()
-                + "\nTool calls available this ask: " + Math.min(TOOLS_PER_ASK, TOOLS_PER_GAME - toolsUsed) + ".\n";
+        // The archive first and the decision last: the question is the last thing the model reads
+        // (docs/harness/PROMPT-AUDIT.md E1), and the lines say what the model can do, not internal names (F1).
+        return "<archive>\n" + nativeBrief(id) + "</archive>\n\n" + decision + (decision.endsWith("\n") ? "" : "\n");
+    }
+
+    /** The archive lines of a native ask: what is in it, how to reach it, what is left, the latest reveals
+     *  and notes. */
+    String nativeBrief(int id) {
+        StringBuilder out = new StringBuilder("This decision is saved as archive entry M").append(id).append(". The archive holds ")
+                .append(entries.size()).append(" entries (earlier states, events and reveals); search it with memory_search and "
+                + "read an entry with memory_read. Lookups left: ").append(Math.min(TOOLS_PER_ASK, TOOLS_PER_GAME - toolsUsed))
+                .append(" for this decision, ").append(TOOLS_PER_GAME - toolsUsed).append(" this game.\n");
+        int shown = 0;
+        for (int i = entries.size() - 1; i >= 0 && shown < 4; i--) {
+            Entry e = entries.get(i);
+            if (!"historical reveal".equals(e.kind)) continue;
+            out.append("Earlier reveal [M").append(i + 1).append("]: ").append(snippet(e.text)).append('\n');
+            shown++;
+        }
+        if (!notes.isEmpty()) {
+            out.append("Your notebook (your own unverified notes; latest 4 of ").append(notes.size()).append("):\n");
+            for (int i = Math.max(0, notes.size() - 4); i < notes.size(); i++) out.append(notes.get(i)).append('\n');
+        }
+        return out.toString();
     }
 
     /** One native ask's lookup state: calls spent, and the once-per-ask preview and report. */
