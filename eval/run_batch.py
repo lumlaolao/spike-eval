@@ -10,7 +10,7 @@ context profile, memory tools, checkpoint, shas, cap, plans, env overrides) is
 written to <out>/batch-manifest.json on first launch; a later invocation with a
 different condition against the same --out is refused, so one directory is
 always one experiment. --context-profile, --memory-tools, --rules-tool,
---text-tools, --lookahead and --one-tier are the only way to set CONDITION_ENV_KEYS (ambient
+--text-tools, --lookahead, --one-tier and --no-coaching are the only way to set CONDITION_ENV_KEYS (ambient
 values are scrubbed, --env is refused for them); unset means the JVM's
 historical baseline.
 
@@ -60,8 +60,8 @@ SPIKE_REL = "forge-gui-desktop/src/main/java/forge/spike"
 SPIKE_FILES = ("LlmSpikeGui.java", "LlmSpikeHeadless.java")
 # Env keys cited mode owns; a user --env override of these is refused.
 CITED_FORCED_KEYS = ("MULLIGAN_HEURISTIC", "SKIP_HEURISTICS", "PLAN_A", "PLAN_B")
-# Set by --context-profile, --memory-tools, --rules-tool, --text-tools, --lookahead and --one-tier.
-CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD", "ONE_TIER")
+# Set by --context-profile, --memory-tools, --rules-tool, --text-tools, --lookahead, --one-tier and --no-coaching.
+CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD", "ONE_TIER", "NO_COACHING")
 # Env keys that DEFINE the run (decks, identities, arms, models, seeding,
 # caps, provenance). Cited mode refuses --env overrides of these — otherwise
 # e.g. `--env DECK_A=other.txt` would silently break the mirror while the run
@@ -94,7 +94,7 @@ MANIFEST_SCHEMA = "batch-manifest.v1"
 CONDITION_KEYS = (
     "discipline", "deck_a", "deck_b", "name_a", "name_b",
     "controller_a", "controller_b", "smart_a", "smart_b", "fast_a", "fast_b",
-    "plan_a", "plan_b", "context_profile", "memory_tools", "rules_tool", "native_tools", "lookahead", "one_tier",
+    "plan_a", "plan_b", "context_profile", "memory_tools", "rules_tool", "native_tools", "lookahead", "one_tier", "no_coaching",
     "ctx_overrides", "checkpoint_sha", "engine_sha", "overlay_sha", "deck_sha",
     "cap_minutes", "shadow_ai", "env_overrides",
 )
@@ -240,6 +240,7 @@ def build_env(args, seed, swap, out_dir):
     env["NATIVE_TOOLS"] = "1" if getattr(args, "native_tools", False) else "0"
     env["LOOKAHEAD"] = "1" if getattr(args, "lookahead", False) else "0"
     env["ONE_TIER"] = "1" if getattr(args, "one_tier", False) else "0"
+    env["NO_COACHING"] = "1" if getattr(args, "no_coaching", False) else "0"
     # Explicitly clear SWAP_SEATS when not swapping so an inherited value
     # can't silently flip seats.
     if swap:
@@ -424,6 +425,7 @@ def resume_expectation(args):
     on = getattr(args, "lookahead", False)
     expect["lookahead"] = [on] if on != getattr(args, "unstamped_lookahead", False) else [on, ABSENT]
     expect["one_tier"] = [True] if getattr(args, "one_tier", False) else [False, ABSENT]
+    expect["no_coaching"] = [True] if getattr(args, "no_coaching", False) else [False, ABSENT]
     for field, val in (("controller_a", args.controller_a), ("controller_b", args.controller_b),
                        ("smart_a", args.smart_a), ("smart_b", args.smart_b),
                        ("fast_a", args.fast_a), ("fast_b", args.fast_b)):
@@ -494,6 +496,7 @@ def batch_condition(args, cited):
         "native_tools": bool(getattr(args, "native_tools", False)),
         "lookahead": bool(getattr(args, "lookahead", False)),
         "one_tier": bool(getattr(args, "one_tier", False)),
+        "no_coaching": bool(getattr(args, "no_coaching", False)),
         "ctx_overrides": ctx,
         "checkpoint_sha": forced.get("CHECKPOINT_SHA"),
         "engine_sha": forced.get("ENGINE_SHA"),
@@ -528,7 +531,7 @@ def condition_diff_norm(m, k):
     """A condition field as compared on resume. A manifest written before native_tools existed ran
     without it; one written before --lookahead recorded LOOKAHEAD, if at all, as an --env override."""
     env = m.get("env_overrides") or {}
-    if k in ("native_tools", "one_tier"):
+    if k in ("native_tools", "one_tier", "no_coaching"):
         return bool(m.get(k))
     if k == "lookahead":
         return bool(m.get(k)) or env.get("LOOKAHEAD") == "1"
@@ -1055,6 +1058,10 @@ def main():
     ap.add_argument("--one-tier", action="store_true",
                     help="ONE_TIER=1: every decision goes to the smart model with its reasoning and system "
                          "prompt; no fast tier. A separate condition (stamped one_tier); its own --out.")
+    ap.add_argument("--no-coaching", action="store_true",
+                    help="NO_COACHING=1: the system prompt drops PRINCIPLES and the static reference "
+                         "(snapshot legend, worked examples, glossary). A separate condition (stamped "
+                         "no_coaching); its own --out.")
     ap.add_argument("--lookahead", action="store_true",
                     help="LOOKAHEAD=1: LLM seats may preview a play option (`simulate`) before "
                          "choosing. Default off; a separate condition from unassisted play and must "
@@ -1071,7 +1078,7 @@ def main():
         if k in CONDITION_ENV_KEYS:
             raise SystemExit("run_batch: --env %s is not allowed in any mode; use "
                              "--context-profile / --memory-tools / --rules-tool / --text-tools / "
-                             "--lookahead / --one-tier so the condition is recorded and guarded." % k)
+                             "--lookahead / --one-tier / --no-coaching so the condition is recorded and guarded." % k)
 
     warn_reserved_seeds(args.seeds)
     load_secrets()

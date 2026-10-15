@@ -115,6 +115,9 @@ PROVENANCE_FIELDS = (
     # One bridge for every decision (ONE_TIER) vs the smart/fast split: how hard the model may
     # think per decision type is a condition.
     ("one_tier", MISSING),
+    # PRINCIPLES and the static reference left out of the system prompt (NO_COACHING): an
+    # assistance condition (docs/STANDARDS.md section 8).
+    ("no_coaching", MISSING),
     # The interface the model plays through, as one number (docs/STANDARDS.md section 8).
     ("harness_epoch", MISSING),
 )

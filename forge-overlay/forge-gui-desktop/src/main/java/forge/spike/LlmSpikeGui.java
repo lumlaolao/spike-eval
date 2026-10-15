@@ -744,6 +744,10 @@ public final class LlmSpikeGui {
          *  most instant-speed plays) to a tier with reasoning disabled, which is the harness deciding how
          *  hard the model may think per decision type. A condition: stamped `one_tier` on the game line. */
         static final boolean ONE_TIER = "1".equals(System.getenv("ONE_TIER"));
+        /** NO_COACHING=1: the system prompt leaves out PRINCIPLES and {@link #STATIC_REFERENCE}, the
+         *  harness's own advice about how to play and read the state. An assistance condition, like a
+         *  deck plan (docs/STANDARDS.md section 8): stamped `no_coaching` on the game line. */
+        static final boolean NO_COACHING = "1".equals(System.getenv("NO_COACHING"));
         private String planSig;      // opponent-side signature when the plan was stated
         private int planStepIdx;     // how many plan steps have been executed this turn
         /** The model's EXPLICIT cast list (`STEPS: A, B`), in order. Only this is auto-executed.
@@ -1116,6 +1120,11 @@ public final class LlmSpikeGui {
         /** `nativeTools`: this tier's backend takes function definitions, so the preamble describes
          *  the tools in one paragraph instead of teaching the text grammar. */
         static String framing(String seat, String plan, boolean terse, boolean nativeTools) {
+            return framing(seat, plan, terse, nativeTools, !NO_COACHING);
+        }
+
+        /** {@code coaching} false is the NO_COACHING condition: no PRINCIPLES, no static reference. */
+        static String framing(String seat, String plan, boolean terse, boolean nativeTools, boolean coaching) {
             // Under the faithful profile the fast tier is not told "NO reasoning": every decision text
             // asks it to reason briefly, and 72% of its replies in runs/loop g01-g07 reasoned anyway.
             String format = terse && !profile().faithfulObservation
@@ -1134,14 +1143,7 @@ public final class LlmSpikeGui {
                     + "authoritative: trust it over your memory of earlier turns. "
                     + (MEMORY_TOOLS ? (nativeTools ? NativeTools.instructions() : ContextMemory.instructions())
                         : "You have NO tools and cannot inspect anything yourself — everything you need is in the message; answer directly.\n")
-                    + "PRINCIPLES: (1) Sequence toward your game plan, not the shiniest single play. "
-                    + "(2) At instant speed with nothing to gain, PASS. "
-                    + "(3) In combat, count damage and their untapped mana before committing. "
-                    + "(4) Life, cards, and tempo are resources — spend them to win, not to feel safe. "
-                    + "(5) Card selection is fuel: with spare mana, a draw/loot/dig spell, and no better line, "
-                    + "CAST IT — repeatedly passing while holding cantrips is how combo decks lose. "
-                    + "(6) If your key piece is gone (stripped/bounced), your plan is to FIND another (dig), "
-                    + "not to accumulate mana with nothing to spend it on.\n"
+                    + (coaching ? PRINCIPLES : "")
                     + format + " Play to WIN the game, not just the current decision.";
             // SMART-TIER STATIC APPENDIX (byte-identical for every decision in every game — no game state):
             // a snapshot-format legend (derived from snapshot()/candidateLabel/manaAvailable/landSummary so
@@ -1151,8 +1153,19 @@ public final class LlmSpikeGui {
             // calls would be pure latency there. Because it carries zero volatile state it keeps the system
             // message byte-stable per (seat, tier), the prompt-caching prerequisite once a cache breakpoint
             // is added (see wiki "Prompt Caching for the MTG Harness via OpenRouter").
-            return terse ? base : base + "\n\n" + STATIC_REFERENCE;
+            // NO_COACHING leaves it out with PRINCIPLES.
+            return terse || !coaching ? base : base + "\n\n" + STATIC_REFERENCE;
         }
+        /** The harness's advice on how to play; left out under NO_COACHING. */
+        private static final String PRINCIPLES =
+                      "PRINCIPLES: (1) Sequence toward your game plan, not the shiniest single play. "
+                    + "(2) At instant speed with nothing to gain, PASS. "
+                    + "(3) In combat, count damage and their untapped mana before committing. "
+                    + "(4) Life, cards, and tempo are resources — spend them to win, not to feel safe. "
+                    + "(5) Card selection is fuel: with spare mana, a draw/loot/dig spell, and no better line, "
+                    + "CAST IT — repeatedly passing while holding cantrips is how combo decks lose. "
+                    + "(6) If your key piece is gone (stripped/bounced), your plan is to FIND another (dig), "
+                    + "not to accumulate mana with nothing to spend it on.\n";
         /** See framing(): byte-stable, game-state-free reference appended to the smart-tier system
          *  message. Kept as one constant so it is literally identical across seats/games. */
         private static final String STATIC_REFERENCE =
@@ -7603,6 +7616,7 @@ public final class LlmSpikeGui {
                 + ",\"native_tools_downgraded\":\"" + jsonEscape(String.join(",", new java.util.TreeSet<>(NativeTools.DOWNGRADED))) + "\""
                 + ",\"native_tools_version\":\"" + NativeTools.VERSION + "\""
                 + ",\"one_tier\":" + PlayerControllerLLM.ONE_TIER
+                + ",\"no_coaching\":" + PlayerControllerLLM.NO_COACHING
                 + ",\"harness_epoch\":\"" + HARNESS_EPOCH + "\""
                 + ",\"lookahead\":" + PlayerControllerLLM.lookaheadEnabled()
                 + ",\"lookahead_version\":\"" + PlayerLookahead.VERSION + "\""
