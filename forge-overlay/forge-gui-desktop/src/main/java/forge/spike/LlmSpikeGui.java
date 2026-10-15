@@ -42,7 +42,6 @@ import forge.card.ICardFace;
 import forge.card.ColorSet;
 import forge.card.MagicColor;
 import forge.ai.AiCardMemory;
-import forge.ai.AiCostDecision;
 import forge.ai.ComputerUtilAbility;
 import forge.ai.ComputerUtilCombat;
 import forge.ai.ComputerUtilCost;
@@ -2093,6 +2092,47 @@ public final class LlmSpikeGui {
             }
         }
 
+        /** A vote (Council's Judgment): the seat's, not ComputerUtil.vote. The ledger had it as "not in
+         *  the eval decks"; miracles plays Council's Judgment. */
+        @Override
+        public Object vote(SpellAbility sa, String prompt, List<Object> options,
+                           com.google.common.collect.ListMultimap<Object, Player> votes, Player forPlayer, boolean optional) {
+            clearLast();
+            if (options == null || options.isEmpty()) return null;
+            if (options.size() == 1 && !optional) { auto("vote(forced)"); return options.get(0); }
+            if (!smartOk() && !fastOk()) { auto("vote(no-model)->first of " + options.size() + " legal"); return options.get(0); }
+            List<String> labels = new ArrayList<>();
+            for (Object o : options) labels.add(o instanceof GameEntity ? labelOf((GameEntity) o) : String.valueOf(o));
+            int c = decideOne(smartOk() ? smart : fast, "vote", "VOTE" + srcAsk(sa) + ": " + flat(prompt), labels, optional ? "Abstain" : null);
+            if (c >= 0) return options.get(c);
+            if (optional && lastDeclineLogged) return null;
+            auto("vote(unparsed)->first of " + options.size() + " legal");
+            return options.get(0);
+        }
+
+        /** A spell cast by an effect (cascade, suspend, Dreadhorde Arcanist, "you may cast it"): whether
+         *  to cast it when it is optional, then X, modes and targets, all the seat's. The inherited version
+         *  asked Forge AI whether to cast it and let doTrigger-style AI logic target it (Rift Bolt off
+         *  suspend got an AI target). */
+        @Override
+        public boolean playSaFromPlayEffect(SpellAbility tgtSA) {
+            clearLast();
+            if (!(tgtSA instanceof forge.game.spellability.Spell)) return true;
+            boolean optional = !tgtSA.getPayCosts().isMandatory();
+            if (optional) {
+                if (!smartOk() && !fastOk()) { auto("play-from-effect(no-model)->decline"); return false; }
+                List<String> labels = Lists.newArrayList("Cast it", "Do not cast it");
+                int c = decideOne(smartOk() ? smart : fast, "play-from-effect", "An effect lets you cast "
+                        + verbOf(tgtSA) + " " + labelOf(tgtSA) + " now. Cast it?", labels, null);
+                if (c != 0) { if (c < 0) auto("play-from-effect(unparsed)->decline"); return false; }
+            }
+            if (tgtSA.getActivatingPlayer() == null) tgtSA.setActivatingPlayer(getPlayer());
+            announceX(tgtSA);
+            if (tgtSA.getApi() == ApiType.Charm && !forge.game.ability.effects.CharmEffect.makeChoices(tgtSA)) return false;
+            ensureTargetsSet(tgtSA);
+            return forge.ai.ComputerUtil.playStack(tgtSA, getPlayer(), getGame());
+        }
+
         /** Where one declared attacker attacks: the player, or a planeswalker or battle it can attack.
          *  Every attacker used to go at the first defending player, so Jace, the Mind Sculptor, Minsc &
          *  Boo or Karn could never be attacked. Asked only when there is more than one legal defender. */
@@ -3000,7 +3040,9 @@ public final class LlmSpikeGui {
                     if (c == 0) {
                         if (!ComputerUtilCost.canPayCost(cost, sa, getPlayer(), true)) { auto("prevent-effect(model)->cannot-pay"); return false; }
                         CostPayment pay = new CostPayment(cost, sa);
-                        boolean paid = pay.payComputerCosts(new AiCostDecision(getPlayer(), sa, true));
+                        // The seat's cost decisions: Forge AI chose what an "unless" payment discarded or
+                        // sacrificed (Reality Smasher's "unless you discard a card").
+                        boolean paid = pay.payComputerCosts(new LlmCostDecision(getPlayer(), sa, true));
                         p("[ROUTER] prevent-effect: paid " + desc + " -> " + paid);
                         return paid;
                     }
