@@ -36,14 +36,17 @@ python3 eval/run_batch.py --seeds $SEED --exploratory --jobs 1 --budget-usd 0.15
   --deck $PWD/eval/decks/<deck>.txt --name-a Seat --name-b ForgeAI \
   --controller-a llm --controller-b ai \
   --smart-a openrouter:deepseek/deepseek-v4.1-flash --fast-a openrouter:deepseek/deepseek-v4.1-flash \
-  --context-profile v4-faithful --memory-tools --lookahead --env MULLIGAN_HEURISTIC=0 \
+  --context-profile v4-faithful --memory-tools --lookahead --env MULLIGAN_HEURISTIC=0 --env SKIP_HEURISTICS=0 \
   --env "TIER_FAST_TYPES=targets,target,zone-change,prevent-effect,ability-to-play,play-single,order" \
   --out $PWD/runs/loop/g$N --cap-minutes 20
 ```
 
 Vary the deck and the seating between games (`--deck-a/--deck-b`, add `--pairs` only when you want
 both seatings of one seed): a defect usually belongs to a card type, and one deck shows few.
-`MULLIGAN_HEURISTIC=0` so the mulligan is the model's decision too.
+`MULLIGAN_HEURISTIC=0` so the mulligan is the model's decision too. `SKIP_HEURISTICS=0` so the harness
+does not guess which priority windows matter: every window with something usable is asked, and the seat
+may answer a PASS with `YIELD: end-of-turn` / `YIELD: my-next-turn` to stop being asked until then
+(the opponent's spells always ask). Passed windows are `t:"window"` rows; `yield:` ones were the seat's.
 
 `order` is in the fast-tier list for the reason the others are: it is a classification over a menu the
 harness has already legalised (which milled cards reach the graveyard in which order), and the smart

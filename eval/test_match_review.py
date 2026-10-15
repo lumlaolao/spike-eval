@@ -83,11 +83,13 @@ class MatchReviewTest(unittest.TestCase):
             p = os.path.join(d, "game-1-0.jsonl")
             rows = [{"t": "window", "turn": 4, "phase": "UPKEEP", "reason": "window-gate", "castable": 2},
                     {"t": "window", "turn": 4, "phase": "DRAW", "reason": "window-gate", "castable": 0},
+                    {"t": "window", "turn": 4, "phase": "END_OF_TURN", "reason": "yield:end-of-turn", "castable": 3},
                     {"t": "game", "seed": 1, "swap": False, "winner": "A"}]
             with open(p, "w") as f:
                 f.write("".join(json.dumps(r) + "\n" for r in rows))
             r = mr.review(p)
-            self.assertEqual((r["counts"]["SKIP"], r["counts"]["windows with nothing usable"]), (1, 1))
+            self.assertEqual((r["counts"]["SKIP"], r["counts"]["windows with nothing usable"],
+                              r["counts"]["windows the seat yielded"]), (1, 1, 1))
             self.assertIn("UPKEEP window passed without asking (window-gate) with 2 usable", mr.render(r))
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(mr.main([d, "--fail-on-defect"]), 1)

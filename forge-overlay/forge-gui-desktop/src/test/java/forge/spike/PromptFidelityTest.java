@@ -317,4 +317,33 @@ public class PromptFidelityTest {
         Assert.assertFalse(volc.isTapped(), "the source the seat kept is untapped");
         Assert.assertTrue(mountain.isTapped(), "the other source paid");
     }
+
+    /** With the harness's shortcuts off, the seat says when it does not want to be asked: a PASS with
+     *  YIELD: end-of-turn passes later empty-stack windows that turn, and an opponent's spell still asks. */
+    @Test
+    public void aYieldTheModelAskedForPassesQuietWindowsButNotTheOpponentsSpells() {
+        boolean was = LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR;
+        LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR = false;
+        try {
+            Game g = bareGame(PhaseType.MAIN1);
+            Player me = g.getPlayers().get(0);
+            card("Mountain", me, ZoneType.Battlefield);
+            card("Lightning Bolt", me, ZoneType.Hand);
+            Recorder model = new Recorder("Nothing to do.\nCHOICE: 2\nYIELD: end-of-turn");
+            LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+            Assert.assertNull(ctrl.chooseSpellAbilityToPlay());
+            Assert.assertEquals(model.prompts.size(), 1);
+            Assert.assertTrue(model.prompts.get(0).contains("YIELD: end-of-turn"), "the yield is offered");
+            g.getPhaseHandler().devModeSet(PhaseType.END_OF_TURN, me);
+            Assert.assertNull(ctrl.chooseSpellAbilityToPlay());
+            Assert.assertEquals(model.prompts.size(), 1, "a quiet window inside the yield was asked");
+            Assert.assertEquals(ctrl.windowSkips.get("yield:end-of-turn"), Integer.valueOf(1));
+            LineFindingProbeTest.rivalCasts(g, "Ponder", null);
+            g.getPhaseHandler().devModeSet(PhaseType.MAIN1, me);
+            ctrl.chooseSpellAbilityToPlay();
+            Assert.assertEquals(model.prompts.size(), 2, "the opponent's spell did not break the yield");
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR = was;
+        }
+    }
 }

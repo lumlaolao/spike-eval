@@ -100,7 +100,9 @@ def review(path):
                 if kind in ("TAKEN", "LOST"):
                     add(kind, r, "%s: %s" % (r.get("type"), r.get("fallback")))
         elif t == "window":
-            if (r.get("castable") or 0) > 0:
+            if str(r.get("reason") or "").startswith("yield:"):
+                out["counts"]["windows the seat yielded"] += 1      # a pass the model asked for
+            elif (r.get("castable") or 0) > 0:
                 add("SKIP", r, "%s window passed without asking (%s) with %d usable" % (
                     r.get("phase"), r.get("reason"), r["castable"]))
             else:
