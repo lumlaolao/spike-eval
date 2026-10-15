@@ -163,8 +163,12 @@ public final class LlmSpikeGui {
      *  chosen colour) are shown; an unparsed play or block is said, not read as PASS / NONE; block pairs
      *  keep names with commas; the per-turn play cap is 80 under the faithful profile; a PLAN line at any
      *  decision replaces the plan (a goal and steps); the seat can report a broken question. Epoch 6:
-     *  the mana line says its colours over-count; call markup past the budget is recorded as exhausted. */
-    static final String HARNESS_EPOCH = "harness-epoch-6";
+     *  the mana line says its colours over-count; call markup past the budget is recorded as exhausted. Epoch 7:
+     *  the golden checks (GoldenChecksTest, docs/harness/GOLDEN-CHECKS.md): no faithful ask cuts its
+     *  question or shows an engine id or CARDNAME; the mulligan and a wide number carry the observation and
+     *  a DECISION; retries re-send the whole ask; a divided spell's split is asked from the target hook; a
+     *  "(castable)" hand tag means the menu can cast it; discard/delve asks no longer coach. */
+    static final String HARNESS_EPOCH = "harness-epoch-7";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -983,6 +987,12 @@ public final class LlmSpikeGui {
         // (`presented` = the engine handed us this candidate, which waives the zone rule but never the
         // face-down rule). Legacy profiles: the static helpers, byte-for-byte as before.
         String cardLabel(Card c) { return observer != null ? observer.describe(c, true) : candidateLabel(c); }
+        /** Text an ask reads: whole under the faithful profile (nothing the model decides on is cut
+         *  short), {@link #oneLine}'s 90-character cut on legacy profiles, which keep their bytes. */
+        private String fit(String s) { return observer != null ? flat(s) : oneLine(s); }
+        /** Engine-formatted text ("Spell Pierce (93) - Counter Umezawa's Jitte (40)") with each engine
+         *  card id mapped to the seat's handle under the faithful profile, as the narration is. */
+        private String seatText(String s) { return observer != null ? observer.redactIds(flat(s)) : s; }
         String labelOf(GameEntity e) {
             if (observer != null && e instanceof Card) {
                 Card c = (Card) e;
@@ -1009,6 +1019,12 @@ public final class LlmSpikeGui {
                 String text = flat(h.getOracleText());
                 return " [" + h.getName() + (text.isEmpty() ? "" : ": " + text) + "]" + targetNote(sa, getPlayer());
             } catch (Exception e) { return srcOf(sa); }
+        }
+        /** {@link #srcAsk} for an ask the engine hands a card instead of an ability. */
+        private String cardAsk(Card h) {
+            if (h == null) return "";
+            String text = flat(h.getOracleText());
+            return " [" + h.getName() + (text.isEmpty() ? "" : ": " + text) + "]";
         }
         String labelOf(SpellAbility sa) {
             if (observer == null || sa.getHostCard() == null) return saLabel(sa);
@@ -2109,6 +2125,9 @@ public final class LlmSpikeGui {
             // builder). afterKeep == size: this Forge deals a shrinking hand each mulligan; you keep what you see.
             String basePrompt = buildMulliganPrompt(size, lands, n.toString(),
                     getPlayer() == firstPlayer, observer != null);
+            // Faithful: the mulligan is asked with the observation and a DECISION line like every other
+            // ask, and its retry re-sends the whole ask (it was a bare hand list, and a bare correction).
+            if (observer != null) basePrompt = snapshot() + "\nDECISION: " + basePrompt;
             p("[ROUTER] mulligan: " + lands + "/" + size + " lands -> " + routeLabel(smart.getModel(), rnd != null));
             List<String> mullOpts = java.util.Arrays.asList("KEEP", "MULLIGAN");
             // Retry once on an unparseable reply (matching every decideOne/decideMany site). Read the
@@ -2117,8 +2136,8 @@ public final class LlmSpikeGui {
             // ... KEEP"). First-indexOf matched that prose token and inverted the model's actual choice
             // — observed on 10/31 mulligans in haiku-vs-ai-2, every one a KEEP shipped as a mulligan.
             for (int attempt = 0; attempt < 2; attempt++) {
-                String prompt = attempt == 0 ? basePrompt
-                        : "That reply contained neither KEEP nor MULLIGAN. Answer with ONE word only: KEEP or MULLIGAN.";
+                String retry = "That reply contained neither KEEP nor MULLIGAN. Answer with ONE word only: KEEP or MULLIGAN.";
+                String prompt = attempt == 0 ? basePrompt : observer != null ? basePrompt + "\n\n(" + retry + ")" : retry;
                 String reply = ask(smart, prompt);
                 // Bridge dead -> the SAME deterministic KEEP the unparsed-after-retry branch below
                 // uses, never Forge AI (this file's blanket hard invariant: a dead bridge always takes
@@ -2966,7 +2985,6 @@ public final class LlmSpikeGui {
                 // division is the model's, with an even split as the deterministic legal fallback.
                 int max = sa.getMaxTargets();
                 boolean divided = sa.isDividedAsYouChoose();
-                int divideTotal = divided && sa.getDividedValue() != null ? sa.getDividedValue() : 0;
                 if (max > 1 || divided) {
                     int lo = Math.max(divided ? 1 : 0, min), hi = Math.min(Math.max(max, 1), cands.size());
                     List<Integer> tp;
@@ -2990,6 +3008,9 @@ public final class LlmSpikeGui {
                     // clearTargets() (not resetTargets()) is what also computes a divided spell's
                     // total from its param, so getDividedValue() is non-null below (#124).
                     if (divided) sa.clearTargets(); else sa.resetTargets();
+                    // Read only now: before clearTargets() a fresh divided spell's total is null, so the
+                    // split was never asked and the targets had no allocation (GoldenChecksTest).
+                    int divideTotal = divided && sa.getDividedValue() != null ? sa.getDividedValue() : 0;
                     for (int i : tp) sa.getTargets().add(cands.get(i));
                     if (min > 0 && sa.getTargets().size() < min) return super.chooseTargetsFor(sa); // safety net
                     StringBuilder split = new StringBuilder();
@@ -3168,8 +3189,8 @@ public final class LlmSpikeGui {
                 String q = stripping
                         ? "You are choosing which card(s) " + p.getName() + " must DISCARD from their revealed hand"
                           + srcAsk(sa) + ". Strip whatever most threatens your game plan (their removal/disruption/payoff)."
-                        : "You must DISCARD from your hand" + srcAsk(sa) + ". Pick which card(s) to discard "
-                          + "(remember your game plan — e.g. discarding a huge creature you can later reanimate is often correct).";
+                        : "You must DISCARD from your hand" + srcAsk(sa) + ". Pick which card(s) to discard"
+                          + (observer != null ? "." : " (remember your game plan — e.g. discarding a huge creature you can later reanimate is often correct).");
                 List<Integer> picks = decideMany(smart, null, q, labels, min, max);
                 if (picks == null) return firstN(opts, min, "discard(unparsed)");
                 CardCollection out = new CardCollection();
@@ -3223,8 +3244,8 @@ public final class LlmSpikeGui {
                 if (!smartOk()) return firstN(opts, genericAmount, "delve(no-budget)");
                 List<String> labels = new ArrayList<>();
                 for (Card c : opts) labels.add(cardLabel(c));
-                String q = "Delve: exile " + genericAmount + " card(s) from your graveyard to pay. Exile what you can "
-                        + "least use — spare your recursion/reanimation targets and anything your plan needs.";
+                String q = "Delve: exile " + genericAmount + " card(s) from your graveyard to pay"
+                        + (observer != null ? "." : ". Exile what you can least use — spare your recursion/reanimation targets and anything your plan needs.");
                 List<Integer> picks = decideMany(smart, "delve", q, labels, genericAmount, genericAmount);
                 if (picks == null) return firstN(opts, genericAmount, "delve(unparsed)");
                 CardCollection out = new CardCollection();
@@ -3246,7 +3267,7 @@ public final class LlmSpikeGui {
             if (cost == null) return false;
             try {
                 if (okFor("prevent-effect")) {
-                    String desc = oneLine(cost.toSimpleString());
+                    String desc = fit(cost.toSimpleString());
                     List<String> labels = Lists.newArrayList("Pay " + desc, "Decline (let it resolve)");
                     String q = "Pay " + desc + " to prevent " + (sa == null ? "the spell" : "the spell " + srcOf(sa))
                             + " from affecting you? Say 1 to pay or 2 to decline.";
@@ -3257,7 +3278,7 @@ public final class LlmSpikeGui {
                         boolean can = ComputerUtilCost.canPayCost(cost, sa, getPlayer(), true);
                         labels = Lists.newArrayList("Pay " + desc, pays ? "Decline (it does not happen)" : "Decline (let it resolve)");
                         q = (pays ? "Optional payment: pay " + desc + " to make this happen: "
-                                  : "Pay " + desc + " to prevent this: ") + flat(sa.getStackDescription())
+                                  : "Pay " + desc + " to prevent this: ") + seatText(sa.getStackDescription())
                             + srcAsk(sa) + " You " + (can ? "can" : "CANNOT") + " pay it right now.";
                     }
                     int c = decideOne(bridgeFor("prevent-effect"), "prevent-effect", q, labels, null);
@@ -3295,7 +3316,7 @@ public final class LlmSpikeGui {
                     }
                     if (!offer.isEmpty()) {
                         List<String> labels = new ArrayList<>();
-                        for (OptionalCostValue v : offer) labels.add(oneLine(v.toString()));
+                        for (OptionalCostValue v : offer) labels.add(fit(v.toString()));
                         String q = "This spell offers optional additional costs (kicker/buyback/entwine)" + srcAsk(chosen)
                                 + ". Pick the ones worth paying for your plan; PICKS: NONE declines them all.";
                         List<Integer> picks = decideMany(smart, "optional-costs", q, labels, 0, offer.size());
@@ -3672,7 +3693,7 @@ public final class LlmSpikeGui {
             try {
                 if (smartOk()) {
                     List<String> labels = new ArrayList<>();
-                    for (SpellAbility sa : activePlayerSAs) labels.add(saLabel(sa));
+                    for (SpellAbility sa : activePlayerSAs) labels.add(labelOf(sa));
                     int n = activePlayerSAs.size();
                     List<Integer> picks = decideMany(smart, "trigger-order",
                             "These " + n + " triggers go on the stack at the same time. List them in the order you want them to "
@@ -3907,7 +3928,9 @@ public final class LlmSpikeGui {
             boolean useRouted = routed && okFor(type);
             if (!useRouted && !fastOk()) { auto(type + "(no-model)->NO"); return false; }
             try {
-                String source = sa == null ? "" : "\nAbility: " + labelOf(sa);
+                // Faithful: the source card's rules text too, not only the ability's label ("Snuff Out"'s
+                // pay-4-life option is in its rules text, not in the destroy ability it labels).
+                String source = sa == null ? "" : "\nAbility: " + labelOf(sa) + (observer != null ? "\nSource:" + srcAsk(sa) : "");
                 int c = decideOne(useRouted ? bridgeFor(type) : fast, type, question + source,
                         Lists.newArrayList("YES (accept)", "NO (decline)"), null);
                 if (c >= 0) {
@@ -3930,7 +3953,7 @@ public final class LlmSpikeGui {
             try {
                 String t = wrapper.getTrigger() == null ? "" : wrapper.getTrigger().toString();
                 if (t == null || t.trim().isEmpty()) t = wrapper.getStackDescription();
-                return t == null ? "" : truncateWords(t.replaceAll("\\s+", " ").trim(), 320);
+                return t == null ? "" : flat(t);
             } catch (Exception e) { return ""; }
         }
 
@@ -4012,7 +4035,7 @@ public final class LlmSpikeGui {
                 }
                 // A range is a legal domain, not a three-option approximation. Avoid constructing
                 // billions of options or overflowing at Integer.MAX_VALUE.
-                String base = snapshot() + "\n" + (title == null ? "Choose a number" : title)
+                String base = snapshot() + (observer != null ? "\nDECISION: " : "\n") + (title == null ? "Choose a number" : title)
                         + srcAsk(sa) + "\nEvery integer from " + min + " through " + max
                         + " inclusive is legal. Reply with exactly NUMBER: <integer>.";
                 for (int attempt = 0; attempt < 2 && fastOk(); attempt++) {
@@ -4132,7 +4155,7 @@ public final class LlmSpikeGui {
                         List<String> labels = new ArrayList<>();
                         for (MagicColor.Color c : present) labels.add(c.getName());
                         int pick = decideOne(smart, "color",
-                                "Choose a color" + (message == null || message.isEmpty() ? "" : ": " + oneLine(message)) + srcAsk(sa),
+                                "Choose a color" + (message == null || message.isEmpty() ? "" : ": " + fit(message)) + srcAsk(sa),
                                 labels, null);
                         if (pick >= 0 && pick < present.size()) return present.get(pick).getColorMask();
                     }
@@ -4154,7 +4177,8 @@ public final class LlmSpikeGui {
                         List<String> labels = new ArrayList<>();
                         for (MagicColor.Color c : present) labels.add(c.getName());
                         int pick = decideOne(smart, "color-colorless",
-                                "Choose a color (colorless allowed)" + (message == null || message.isEmpty() ? "" : ": " + oneLine(message)),
+                                "Choose a color (colorless allowed)" + (message == null || message.isEmpty() ? "" : ": " + fit(message))
+                                + (observer != null ? cardAsk(card) : ""),
                                 labels, null);
                         if (pick >= 0 && pick < present.size()) return present.get(pick).getColorMask();
                     }
@@ -4228,7 +4252,7 @@ public final class LlmSpikeGui {
                 if (faces.size() <= 20) {
                     List<String> labels = new ArrayList<>();
                     for (ICardFace f : faces) labels.add(f.getName());
-                    int c = decideOne(smart, "card-name", "NAME A CARD" + srcAsk(sa) + ": " + oneLine(message)
+                    int c = decideOne(smart, "card-name", "NAME A CARD" + srcAsk(sa) + ": " + fit(message)
                             + (observer != null ? targetNote(sa, getPlayer()) : ""), labels, null);
                     if (c >= 0) { p("[ROUTER] card-name: " + labels.get(c) + srcOf(sa)); return labels.get(c); }
                     // Bridge-down (c==-2) or still-unparseable-after-retry (c==-1): same deterministic
@@ -4310,8 +4334,8 @@ public final class LlmSpikeGui {
 
         /** Shared free-form "CARD: <name>" ask (one retry). Returns the raw name or null. */
         private String askCardName(SpellAbility sa, String message, String valid) {
-            String q = snapshot() + "\nDECISION: NAME A CARD" + srcAsk(sa) + ": " + oneLine(message)
-                    + (valid != null && !valid.isEmpty() ? " (must match: " + oneLine(valid) + ")" : "")
+            String q = snapshot() + "\nDECISION: NAME A CARD" + srcAsk(sa) + ": " + fit(message)
+                    + (valid != null && !valid.isEmpty() ? " (must match: " + fit(valid) + ")" : "")
                     + (observer != null
                         ? "." + targetNote(sa, getPlayer())
                             + " Use everything you've seen this game (revealed hands, the target's deck) to choose the name. "
@@ -4319,8 +4343,10 @@ public final class LlmSpikeGui {
                             + "the card most likely there / most dangerous to your plan. ")
                     + "End with EXACTLY: CARD: <exact English card name>";
             for (int attempt = 0; attempt < 2; attempt++) {
-                String reply = ask(smart, attempt == 0 ? q
-                        : "That was not a legal or recognizable card name here. Answer with ONE line only: CARD: <exact card name>");
+                // The retry re-sends the whole ask under the faithful profile, as decideOne does: a stateless
+                // backend asked the bare correction answered with no state and no question.
+                String retry = "That was not a legal or recognizable card name here. Answer with ONE line only: CARD: <exact card name>";
+                String reply = ask(smart, attempt == 0 ? q : observer != null ? q + "\n\n(" + retry + ")" : retry);
                 if (reply == null) return null;
                 String seg = lastSegment(reply, "CARD:");
                 if (seg != null) {
@@ -4350,7 +4376,9 @@ public final class LlmSpikeGui {
                     return defPick;
                 }
                 List<String> labels = new ArrayList<>();
-                for (AbilitySub ab : possible) labels.add(oneLine(ab.getDescription()));
+                String host = sa.getHostCard() == null ? "" : sa.getHostCard().getName();
+                for (AbilitySub ab : possible)
+                    labels.add(observer != null ? fit(ab.getDescription()).replace("CARDNAME", host).replace("NICKNAME", host) : oneLine(ab.getDescription()));
                 if (allowRepeat) {
                     List<Integer> rp = decideModesRepeat(smart, "MODAL SPELL — choose mode(s) for " + labelOf(sa)
                             + " (you may choose the same mode more than once).", labels, Math.max(0, min), num);
@@ -4699,12 +4727,12 @@ public final class LlmSpikeGui {
                 // where WHICH permanent leaves is often the whole point of the play.
                 boolean asCost = message != null && message.startsWith(LlmCostDecision.COST_MESSAGE);
                 String q = asCost
-                        ? "COST: to pay for" + srcOf(sa) + " (" + oneLine(String.valueOf(sa)) + ") you must SACRIFICE "
+                        ? "COST: to pay for" + srcOf(sa) + " (" + (observer != null ? seatText(String.valueOf(sa)) : oneLine(String.valueOf(sa))) + ") you must SACRIFICE "
                           + (min == max ? String.valueOf(min) : min + "-" + max) + " of these permanents. "
                           + "It leaves the battlefield now, as the cost is paid, before the ability resolves. Choose which."
                         : "You must SACRIFICE " + (min == max ? String.valueOf(min) : min + "-" + max)
-                        + " permanent(s)" + srcOf(sa)
-                        + (message == null || message.isEmpty() ? "" : ": " + oneLine(message))
+                        + " permanent(s)" + srcAsk(sa)
+                        + (message == null || message.isEmpty() ? "" : ": " + fit(message))
                         + ". Choose what to give up — keep your best remaining threats/blockers/mana sources.";
                 boolean canCancel = asCost && offerCostCancel;
                 offerCostCancel = false;
@@ -4740,6 +4768,8 @@ public final class LlmSpikeGui {
          *  preview as a tool; it maps the call's JSON arguments to the preview text. */
         /** Test seam: sees every prompt the seat asks (PromptFidelityTest's per-type contract). Null in play. */
         static volatile java.util.function.Consumer<String> TEST_ASK_TAP = null;
+        /** Test seam: sees the type and tier of every decision row (GoldenChecksTest's per-type coverage). */
+        static volatile java.util.function.BiConsumer<String, String> TEST_DECISION_TAP = null;
 
         private String ask(LLMBridge b, String prompt, java.util.function.Function<String, String> simulate) {
             prompt = withIntent(prompt);
@@ -5006,6 +5036,8 @@ public final class LlmSpikeGui {
          *  final text. prompt/raw_reply are the LAST model attempt for this decision (captured in ask()),
          *  or null when no model was consulted. */
         private void evalDec(String type, int nOptions, int choice, String tier, long ms, String fallback, List<String> options) {
+            java.util.function.BiConsumer<String, String> decTap = TEST_DECISION_TAP;
+            if (decTap != null) decTap.accept(type, tier);
             if (!EvalLog.on()) return;
             // Log choke point: several callers log their own labels list after decideOne/decideMany
             // disambiguated only its local copy — dedupe HERE so the logged options always match the
@@ -5594,24 +5626,9 @@ public final class LlmSpikeGui {
                 } catch (Exception ignore) { /* the base spell is still offered */ }
             }
             for (SpellAbility sa : candidates) {
-                if (sa.isLandAbility() || sa.isManaAbility()) continue;
-                if (!sa.canPlay()) continue;
-                // An alternative cost is rarely mana alone (exile a card, pay life, return an Island),
-                // so it is checked as a whole cost; the normal cast keeps its historical mana check.
-                if (altCosts.contains(sa) ? !ComputerUtilCost.canPayCost(sa, me, false)
-                        : !ComputerUtilMana.canPayManaCost(sa, me, 0, false)) continue;
-                // Skip a targeted spell that currently has NO legal target — casting it just fizzles
-                // ("Couldn't add to stack, failed to target"), e.g. Animate Dead with an empty graveyard.
-                if (sa.usesTargeting()) {
-                    try {
-                        if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(me);
-                        TargetRestrictions tr = sa.getTargetRestrictions();
-                        if (tr != null && tr.getAllCandidates(sa, false).size() < Math.max(1, sa.getMinTargets())) continue;
-                    } catch (Exception ignore) { /* can't evaluate -> offer it, prior behavior */ }
-                }
                 // Every castable entry is offered: a cap here hides spells from the seat without a log
                 // line (issue #106).
-                options.add(sa);
+                if (offerable(sa, me, altCosts.contains(sa))) options.add(sa);
             }
             // Distinct lands we could play this main phase (by name), each offered as its own option so the
             // model chooses WHICH land — colored sources, fetchlands, painlands all matter for sequencing.
@@ -5631,6 +5648,48 @@ public final class LlmSpikeGui {
                 }
             }
             return new PlayOptions(options, landPlays, landCards);
+        }
+
+        /** Whether the play menu offers {@code sa} now: playable (timing, restrictions), payable, and with
+         *  a legal target when it targets. {@code alt}: an alternative cost, which is rarely mana alone
+         *  (exile a card, pay life, return an Island), so it is checked as a whole cost; the normal cast
+         *  keeps its historical mana check. */
+        static boolean offerable(SpellAbility sa, Player me, boolean alt) {
+            if (sa.isLandAbility() || sa.isManaAbility()) return false;
+            if (!sa.canPlay()) return false;
+            if (alt ? !ComputerUtilCost.canPayCost(sa, me, false) : !ComputerUtilMana.canPayManaCost(sa, me, 0, false)) return false;
+            // Skip a targeted spell that currently has NO legal target — casting it just fizzles
+            // ("Couldn't add to stack, failed to target"), e.g. Animate Dead with an empty graveyard.
+            if (sa.usesTargeting()) {
+                try {
+                    if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(me);
+                    TargetRestrictions tr = sa.getTargetRestrictions();
+                    if (tr != null && tr.getAllCandidates(sa, false).size() < Math.max(1, sa.getMinTargets())) return false;
+                } catch (Exception ignore) { /* can't evaluate -> offer it, prior behavior */ }
+            }
+            return true;
+        }
+
+        /** The faithful hand tag: "(castable)" only when the play menu would offer the card now, so the
+         *  observation never calls a card castable that the menu cannot cast (a creature on the
+         *  opponent's turn was "(castable)" because its mana was there). A card the menu offers only at
+         *  an alternative cost says so; payable mana with no way to cast it now says that. Otherwise
+         *  the {@link #affordability} tag. */
+        static String castTag(Player pl, Card c, int[] tally) {
+            String base = affordability(pl, c, tally);
+            boolean normal = false, alt = false;
+            try {
+                for (SpellAbility sa : ComputerUtilAbility.getSpellAbilities(new CardCollection(c), pl)) {
+                    if (!sa.isSpell() || sa.getAlternativeCost() != null) continue;
+                    if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(pl);
+                    if (offerable(sa, pl, false)) { normal = true; break; }
+                    for (SpellAbility a : GameActionUtil.getAlternativeCosts(sa, pl, false))
+                        if (offerable(a, pl, true)) alt = true;
+                }
+            } catch (Exception e) { return base; }
+            if (normal) return "(castable)";
+            if (alt) return "(castable by an alternative cost)";
+            return "(castable)".equals(base) ? "(payable, not castable now)" : base;
         }
 
         /** The play menu's option labels in menu order: "CAST &lt;saLabel&gt;" per spell, "PLAY LAND
@@ -5726,8 +5785,10 @@ public final class LlmSpikeGui {
             StringBuilder menu = new StringBuilder();
             int n = 1;
             for (String o : options) menu.append("  ").append(n++).append(") ").append(full ? flat(o) : oneLine(o)).append('\n');
-            return snapshot + "\nPRIORITY: you\nDECISION: " + question + "\nChoose between " + min + " and " + max
-                    + " of these (by number):\n" + menu
+            // An ask with its own answer format (the ALLOC split) is not a subset ask: under the faithful
+            // profile it does not say "choose between 1 and <total> of these" over fewer options.
+            String header = full && tail != null ? "Options:" : "Choose between " + min + " and " + max + " of these (by number):";
+            return snapshot + "\nPRIORITY: you\nDECISION: " + question + "\n" + header + "\n" + menu
                     + (tail != null ? tail : "Reason briefly, then end with EXACTLY: PICKS: <comma-separated numbers>"
                     + (min == 0 ? " (or PICKS: NONE to choose zero)" : ""));
         }

@@ -41,28 +41,12 @@ public class PromptFidelityTest {
         LlmSpikeGui.PlayerControllerLLM.TEST_ASK_TAP = null;
     }
 
-    private static final java.util.regex.Pattern CUT = java.util.regex.Pattern.compile("(?m)^\\s+\\d+\\) [^\\n]*\\.\\.\\.\\]?$");
-    private static final java.util.regex.Pattern BATTLEFIELD_OPTION = java.util.regex.Pattern.compile("(?m)^\\s+\\d+\\) [^\\n]*\\[Battlefield[^\\n]*$");
-
     /** docs/STANDARDS.md section 8, per decision type: every ask any scenario here makes (play, X,
-     *  modes, targets, costs, numbers, votes, attack targets, triggers, mana, blocks...) carries the
-     *  current observation and a DECISION, cuts no option short, says whose each battlefield option is,
-     *  and shows the play it follows before the decision. A scenario that adds an ask adds it here. */
+     *  modes, targets, costs, numbers, votes, attack targets, triggers, mana, blocks...) keeps the ask
+     *  contract (AskContract). A scenario that adds an ask adds it here. */
     @AfterMethod(alwaysRun = true)
     public void everyAskKeepsTheContract(org.testng.ITestResult result) {
-        if (!result.isSuccess()) return;
-        for (String p : new java.util.ArrayList<>(asked)) {
-            int d = p.lastIndexOf("DECISION:");
-            Assert.assertTrue(d >= 0, result.getName() + ": an ask with no DECISION: " + p);
-            Assert.assertTrue(p.contains("== Turn ") && p.contains("observation-faithful-"), result.getName() + ": no observation: " + p);
-            Assert.assertFalse(CUT.matcher(p).find(), result.getName() + ": an option is cut short: " + p);
-            java.util.regex.Matcher m = BATTLEFIELD_OPTION.matcher(p.substring(d));
-            while (m.find())
-                Assert.assertTrue(m.group().contains("yours") || m.group().contains("opponent's"),
-                        result.getName() + ": an option does not say whose it is: " + m.group());
-            int intent = p.indexOf("THE PLAY YOU CHOSE");
-            Assert.assertTrue(intent < 0 || intent < d, result.getName() + ": the carried play comes after the decision");
-        }
+        if (result.isSuccess()) AskContract.check(result.getName(), asked);
     }
 
     static String decisions(Recorder r) {
