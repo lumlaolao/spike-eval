@@ -177,7 +177,9 @@ public final class LlmSpikeGui {
      *  Epoch 8: under the faithful profile the system prompt is rewritten from the prompt audit (the deck,
      *  how the interface works, how to read the state, Legacy terms; no coaching, no reasoning cap, no
      *  worked examples), the state legend is said once there instead of in every message (observation
-     *  v24), and the decision text is the last thing in each message. */
+     *  v24), and the decision text is the last thing in each message. The harness shortcuts are off by
+     *  default: no mulligan heuristic, no skip heuristics, one tier (no question sent to a no-reasoning
+     *  call); each comes back only with MULLIGAN_HEURISTIC=1, SKIP_HEURISTICS=1, ONE_TIER=0. */
     static final String HARNESS_EPOCH = "harness-epoch-8";
 
     static final class EvalLog {
@@ -620,12 +622,14 @@ public final class LlmSpikeGui {
         private static final int MAX_PLAY_DECISIONS_PER_TURN_FAITHFUL = 80;
         private static final int SMART_BUDGET = envInt("SMART_BUDGET", 320); // per-game load-bearing LLM calls
         private static final int FAST_BUDGET  = envInt("FAST_BUDGET", 900);  // per-game cheap LLM calls
-        // Eval confound switches: MULLIGAN_HEURISTIC=0 -> the model decides ALL mulligans (no 2-4 land
-        // auto-keep); SKIP_HEURISTICS=0 -> no free-pass shortcuts (every priority window with options
-        // reaches the model). Defaults preserve the fast demo behavior.
-        private static final boolean MULL_HEURISTIC = !"0".equals(System.getenv("MULLIGAN_HEURISTIC"));
+        // Eval confound switches: MULLIGAN_HEURISTIC=1 -> the harness keeps 2-4 land hands without asking;
+        // SKIP_HEURISTICS=1 -> free-pass shortcuts on windows where the model has options.
+        // Owner decision 2026-10-15: no heuristic decides for the model. Both shortcuts are off unless set
+        // to 1, for measuring them; the only skips left are the engine's (PASS is the only legal action) and
+        // an identical spot already passed (last-sig).
+        private static final boolean MULL_HEURISTIC = "1".equals(System.getenv("MULLIGAN_HEURISTIC"));
         // Not final: tests turn it off in-process (an env var cannot be set there).
-        static boolean SKIP_HEUR = !"0".equals(System.getenv("SKIP_HEURISTICS"));
+        static boolean SKIP_HEUR = "1".equals(System.getenv("SKIP_HEURISTICS"));
         // D4 DAgger shadow-labeling: when SHADOW_AI=1, four overrides also compute the Forge-AI's choice
         // over the SAME option menu the student sees and stash it in lastShadowChoice, which emitDecisionRow
         // writes as an additive `shadow_choice` field on the STUDENT'S existing decision row (never a
@@ -783,7 +787,7 @@ public final class LlmSpikeGui {
          *  reasoning. The two-tier split sends 58% of real decisions in runs/loop g01-g07 (every target,
          *  most instant-speed plays) to a tier with reasoning disabled, which is the harness deciding how
          *  hard the model may think per decision type. A condition: stamped `one_tier` on the game line. */
-        static final boolean ONE_TIER = "1".equals(System.getenv("ONE_TIER"));
+        static final boolean ONE_TIER = !"0".equals(System.getenv("ONE_TIER"));   // default since 2026-10-15
         /** NO_COACHING=1: the system prompt leaves out PRINCIPLES and {@link #STATIC_REFERENCE}, the
          *  harness's own advice about how to play and read the state. An assistance condition, like a
          *  deck plan (docs/STANDARDS.md section 8): stamped `no_coaching` on the game line. */
@@ -5110,6 +5114,13 @@ public final class LlmSpikeGui {
 
         /** One native model turn over bridge {@code b}, with the decision row's bookkeeping and a
          *  context_call transcript row. */
+        /** The additive `reasoning` field of a context_call row: the model's readable reasoning, when the
+         *  provider returned it in plain text. */
+        static String reasoningField(NativeTools.Turn t) {
+            String r = t == null ? null : NativeTools.reasoningOf(t.messageJson);
+            return r == null ? "" : ",\"reasoning\":\"" + jsonEscape(r) + "\"";
+        }
+
         private ContextMemory.NativeModel nativeModel(LLMBridge b) {
             return (user, messages, tools, allowCalls, round) -> {
                 if (!b.supportsNativeTools()) return null;
@@ -5130,7 +5141,8 @@ public final class LlmSpikeGui {
                         + ",\"prompt\":\"" + jsonEscape(user) + "\""
                         // Later rounds carry the tool exchanges; the first is just the prompt above.
                         + (round == 0 ? "" : ",\"messages\":" + messages)
-                        + ",\"raw_reply\":" + (text == null ? "null" : "\"" + jsonEscape(text) + "\"") + "}");
+                        + ",\"raw_reply\":" + (text == null ? "null" : "\"" + jsonEscape(text) + "\"")
+                        + reasoningField(got[0]) + "}");
                 // A turn of tool calls is not a discarded answer: the next round must not record it
                 // as first_failed_reply or bill its time to retry_ms.
                 if (got[0] != null && !got[0].calls.isEmpty()) lastReply = null;

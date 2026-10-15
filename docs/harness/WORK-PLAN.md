@@ -89,11 +89,15 @@ when an item is finished or a new one is agreed, so the next session can pick up
    asked only which sources to keep untapped. Design it properly: auto-pay by default, the model able
    to name the sources when it matters (offered as a tool), and fix the filter-land payment defect
    through that design (`ROOT-INTERFACES.md` R2).
-7. **Heuristic skips off by default.** Turn `SKIP_HEURISTICS` and `MULLIGAN_HEURISTIC` off by
-   default, keeping only the skips allowed above. The heuristic skips are the quiet-window gate,
-   "own spell on the stack", the interaction filter, and the cross-phase `react-sig` dedupe. Decide
-   `PLAN_EXECUTE` and the fast tier the same way: both decide or downgrade for the model. Expect more
-   model calls per game, and state the cost change.
+7. ~~Heuristic skips off by default.~~ **Done 2026-10-15** (`harness-epoch-8`):
+   - the mulligan heuristic, the skip heuristics and the fast tier are off unless `MULLIGAN_HEURISTIC=1`,
+     `SKIP_HEURISTICS=1` or `ONE_TIER=0` (`run_batch.py --two-tier`);
+   - the skips left are the engine's (PASS is the only legal action) and an identical spot already
+     passed;
+   - `PLAN_EXECUTE` was already off by default.
+
+   Also done: `answer` takes an optional `why` (one sentence for the record), and readable reasoning
+   is kept on context_call rows (Luna's is encrypted, so `why` is its only trace); answer-tool-v3.
 
 ## Priority 2: land the work already built
 

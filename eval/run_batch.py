@@ -1093,8 +1093,12 @@ def main():
                          "varies per OpenRouter endpoint). A separate condition (answer_tool_version ends "
                          "+strict); its own --out.")
     ap.add_argument("--one-tier", action="store_true",
-                    help="ONE_TIER=1: every decision goes to the smart model with its reasoning and system "
-                         "prompt; no fast tier. A separate condition (stamped one_tier); its own --out.")
+                    help="the default since 2026-10-15 (kept so older command lines still run): every decision "
+                         "goes to the smart model with its reasoning and system prompt; no fast tier.")
+    ap.add_argument("--two-tier", action="store_true",
+                    help="ONE_TIER=0: route 'minor' decisions to the fast tier (no reasoning), as before "
+                         "2026-10-15. The harness deciding which questions deserve thought is a shortcut; this "
+                         "is for measuring it. A separate condition (stamped one_tier=false); its own --out.")
     ap.add_argument("--no-coaching", action="store_true",
                     help="NO_COACHING=1: the system prompt drops PRINCIPLES and the static reference "
                          "(snapshot legend, worked examples, glossary). A separate condition (stamped "
@@ -1136,6 +1140,10 @@ def main():
 
     args.native_tools = native_tools_requested(args)
     args.answer_tool = answer_tool_requested(args)
+    # One tier is the default (owner, 2026-10-15: no harness shortcuts); --two-tier is the measured opt-out.
+    if args.one_tier and args.two_tier:
+        ap.error("--one-tier and --two-tier contradict each other")
+    args.one_tier = not args.two_tier
     if args.answer_tool_strict and not args.answer_tool:
         _refuse("--answer-tool-strict needs the answer tool (an openrouter: LLM seat, without --text-answers).")
 

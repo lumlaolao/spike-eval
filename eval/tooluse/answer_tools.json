@@ -81,6 +81,10 @@
           "lines": {
             "type": "string",
             "description": "Optional, when the decision asks for it: how cards in YOUR OWN deck combine, in one or two short lines."
+          },
+          "why": {
+            "type": "string",
+            "description": "Optional: one sentence on why you chose this, kept in the game record for the people reviewing it. It does not change the answer."
           }
         },
         "required": [],

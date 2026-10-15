@@ -98,7 +98,8 @@ mess" (owner, 2026-10-15).
 
 - `AnswerTool.java` owns it. There is **one fixed `answer` schema** for every decision, all fields
   optional: `option`, `options`, `blocks`, `amounts`, `keep`, `number`, `card`, plus the optional `steps`,
-  `yield`, `profile` and `lines`. The decision says which field it takes, and `AnswerTool.validate`
+  `yield`, `profile`, `lines` and `why` (one sentence for the game record; readable reasoning, where the
+  provider returns it, is kept on the context_call row as `reasoning`). The decision says which field it takes, and `AnswerTool.validate`
   checks the call against that decision. An illegal call gets the reason and one more round in the same
   conversation; a second illegal call loses the decision to the caller's deterministic fallback.
 - **The tool list never changes within a game.** Tool definitions open the prompt-cache prefix, so a
@@ -256,8 +257,8 @@ generation seeds outside these blocks. Full policy: `eval/EVAL-DESIGN.md` §6.5.
 
 Seeded, baseline-anchored A/B comparisons (see README "Eval mode" + `eval/README.md`):
 `GAME_SEED`, `SWAP_SEATS`, `SMART_MODEL_A/B`, `CONTROLLER_A/B` (llm|random|floor|ai),
-`EVAL_OUT` (JSONL), confound switches `MULLIGAN_HEURISTIC=0` / `SKIP_HEURISTICS=0` /
-`PLAN_A=""`. The JSONL winner field is **identity-keyed** (A = deck-identity A
+`EVAL_OUT` (JSONL), confound switches `MULLIGAN_HEURISTIC=1` / `SKIP_HEURISTICS=1` / `ONE_TIER=0`
+(each turns a harness shortcut back ON; all are off by default since 2026-10-15) / `PLAN_A=""`. The JSONL winner field is **identity-keyed** (A = deck-identity A
 regardless of seat swap) — don't "fix" that in either language.
 
 ## Recording

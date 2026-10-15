@@ -316,6 +316,31 @@ final class NativeTools {
                 || content.contains("<function_call") || content.contains("<function=");
     }
 
+    /** The model's reasoning in readable form, from an assistant message as served: OpenRouter's `reasoning`
+     *  string, or the text and summary parts of `reasoning_details`. Null when there is none, or it is only
+     *  encrypted (OpenAI models). For the game record only; it is never shown back to the model. */
+    static String reasoningOf(String messageJson) {
+        try {
+            JsonObject m = JsonParser.parseString(messageJson).getAsJsonObject();
+            JsonElement r = m.get("reasoning");
+            if (r != null && r.isJsonPrimitive() && !r.getAsString().trim().isEmpty()) return r.getAsString().trim();
+            JsonElement d = m.get("reasoning_details");
+            if (d == null || !d.isJsonArray()) return null;
+            StringBuilder b = new StringBuilder();
+            for (JsonElement e : d.getAsJsonArray()) {
+                if (!e.isJsonObject()) continue;
+                for (String k : new String[] {"text", "summary"}) {
+                    JsonElement v = e.getAsJsonObject().get(k);
+                    if (v != null && v.isJsonPrimitive() && !v.getAsString().trim().isEmpty())
+                        b.append(b.length() == 0 ? "" : "\n").append(v.getAsString().trim());
+                }
+            }
+            return b.length() == 0 ? null : b.toString();
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
     /** Parse one chat-completions response body into a turn; null when it carries no usable message. */
     static Turn parseTurn(String responseBody) {
         try {
