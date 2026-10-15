@@ -1662,7 +1662,7 @@ public final class LlmSpikeGui {
                 if (answerLost()) return -1;               // two invalid calls: the caller's legal default
                 if (reply == null) return -2;              // bridge dead -> caller decides
                 AnswerTool.Answer ta = toolAnswer();
-                int c = ta != null ? ta.option : parseTagNumber(reply, "CHOICE:");
+                int c = ta != null ? ta.option : textNumber(reply, "CHOICE:");
                 if (c == noneIdx && noneIdx > 0) {         // explicit decline (a real model decision)
                     if (type != null) { // tells the caller its -1 return is already a logged row, not a silent drop
                         evalDec(type, options.size(), -1, tierOf(b == smart), 0, null, options);
@@ -1734,7 +1734,7 @@ public final class LlmSpikeGui {
                 AnswerTool.Answer ta = toolAnswer();
                 if (ta != null) picks.addAll(ta.zeroBased());   // validated: in range, distinct, within bounds
                 else {
-                    String seg = lastSegment(reply, "PICKS:");
+                    String seg = textSegment(reply, "PICKS:");
                     if (seg == null) continue;
                     Matcher m = Pattern.compile("\\d+").matcher(seg);
                     while (m.find()) {
@@ -1787,7 +1787,7 @@ public final class LlmSpikeGui {
                 AnswerTool.Answer ta = toolAnswer();
                 if (ta != null) out.addAll(ta.zeroBased());
                 else {
-                    String seg = lastSegment(reply, "PICKS:");
+                    String seg = textSegment(reply, "PICKS:");
                     if (seg == null) continue;
                     Matcher m = Pattern.compile("\\d+").matcher(seg);
                     while (m.find() && out.size() < Math.max(1, num)) {
@@ -1833,7 +1833,7 @@ public final class LlmSpikeGui {
                 if (reply == null) return null;
                 AnswerTool.Answer ta = toolAnswer();
                 if (ta != null) return new ArrayList<>(ta.amounts);   // validated: n amounts summing to total
-                String seg = lastSegment(reply, "ALLOC:");
+                String seg = textSegment(reply, "ALLOC:");
                 if (seg == null) continue;
                 List<Integer> out = new ArrayList<>();
                 Matcher m = Pattern.compile("\\d+").matcher(seg);
@@ -2693,7 +2693,7 @@ public final class LlmSpikeGui {
                         p("[ROUTER] blockers: " + (assigned == 0 ? "NONE" : "assigned " + assigned));
                         return;
                     }
-                    line = lastSegment(reply, "BLOCKS:");
+                    line = textSegment(reply, "BLOCKS:");
                 }
                 if (line == null) { auto("blockers(unparsed)->none"); return; }
                 line = line.split("\\R", 2)[0];
@@ -2881,6 +2881,7 @@ public final class LlmSpikeGui {
                 }
 
                 if (ownMain) p("[TALLY] smart=" + smartCalls + " fast=" + fastCalls + " auto=" + autoPicks + " ai=" + aiDelegations
+                        + " textParses=" + textParsesOnToolAsks
                         + (textFormatLeaks > 0 ? " text_format_leaks=" + textFormatLeaks : "")
                         + (smart.getCalls() > 0 ? " avgSmart=" + (smart.getTotalMs() / smart.getCalls()) + "ms" : "")
                         + (fast.getCalls() > 0 ? " avgFast=" + (fast.getTotalMs() / fast.getCalls()) + "ms" : ""));
@@ -3056,13 +3057,13 @@ public final class LlmSpikeGui {
                     }
                     if (reply != null && askPlan && attempt == 0 && observer != null) {
                         // ask() already adopted a PLAN line (adoptPlan); the cast list rides this ask only.
-                        String st = planStatement(reply) == null ? null : lastSegment(reply, "STEPS:");
+                        String st = planStatement(reply) == null ? null : textSegment(reply, "STEPS:");
                         if (st != null) {
                             st = cutAtTags(st, "CHOICE:");
                             for (String one : st.split(",")) if (!one.trim().isEmpty()) planSteps.add(one.trim());
                         }
                     } else if (reply != null && askPlan && attempt == 0) {
-                        String pl = lastSegment(reply, "PLAN:");
+                        String pl = textSegment(reply, "PLAN:");
                         if (pl != null) { // models sometimes co-mingle "PLAN: ... CHOICE: 3" — cut at the tag
                             int cut = pl.toUpperCase().indexOf("CHOICE:");
                             if (cut >= 0) pl = pl.substring(0, cut);
@@ -3076,7 +3077,7 @@ public final class LlmSpikeGui {
                                 planSig = oppPlanSig();   // plan-then-execute: what "not interrupted" means
                                 planStepIdx = 0;
                                 planSteps.clear();
-                                String st = lastSegment(reply, "STEPS:");
+                                String st = textSegment(reply, "STEPS:");
                                 if (st != null) {
                                     int cutS = st.toUpperCase().indexOf("CHOICE:");
                                     if (cutS >= 0) st = st.substring(0, cutS);
@@ -3088,7 +3089,7 @@ public final class LlmSpikeGui {
                     }
                     if (reply != null && attempt == 0 && askLines) {
                         deckLinesAsks++; // counted only once the model has actually been shown the ask
-                        String dl = lastSegment(reply, "LINES:");
+                        String dl = textSegment(reply, "LINES:");
                         if (dl != null) {
                             dl = cutAtTags(dl, "CHOICE:", "PLAN:", "PROFILE:", "STEPS:");
                             if (!dl.trim().isEmpty()) {
@@ -3099,7 +3100,7 @@ public final class LlmSpikeGui {
                         }
                     }
                     if (reply != null && attempt == 0 && askProfile) {
-                        String pf = lastSegment(reply, "PROFILE:");
+                        String pf = textSegment(reply, "PROFILE:");
                         if (pf != null) {
                             int cut = pf.toUpperCase().indexOf("CHOICE:");
                             if (cut >= 0) pf = pf.substring(0, cut);
@@ -3121,7 +3122,7 @@ public final class LlmSpikeGui {
                     }
                     // G8 lookahead (LOOKAHEAD=1): preview a spell option on a determinized COPY, then
                     // re-ask. As many previews as an ask has tool calls; a preview is not a failed parse.
-                    if (lookaheadOn && textPreviews < ContextMemory.TOOLS_PER_ASK) {
+                    if (lookaheadOn && textPreviews < ContextMemory.TOOLS_PER_ASK && !refuseText("SIMULATE:")) {
                         int simN = parseSimulateOption(reply, options.size());
                         if (simN > 0) {
                             String preview = PlayerLookahead.previewCast(me.getGame(), me, options.get(simN - 1), turn, simulateTargetHint(reply));
@@ -3133,7 +3134,7 @@ public final class LlmSpikeGui {
                             continue;
                         }
                     }
-                    choice = parseTagNumber(reply, "CHOICE:");
+                    choice = textNumber(reply, "CHOICE:");
                 }
                 // FORK (rollout, additive — inert unless LlmSpikeFork installed a forcer): replace the
                 // computed choice at exactly one decision index so evalDec below still logs what
@@ -3158,7 +3159,7 @@ public final class LlmSpikeGui {
                     if (unparsed) p("[ROUTER] play: no usable CHOICE in the reply -> PASS (unparsed)");
                     else if (reactSig != null) passedReactSigs.add(reactSig); // don't re-ask this situation this turn
                     if (!SKIP_HEUR && observer != null && rnd == null) {
-                        String y = playAnswer != null ? playAnswer.yieldUntil : lastSegment(lastReply, "YIELD:");
+                        String y = playAnswer != null ? playAnswer.yieldUntil : textSegment(lastReply, "YIELD:");
                         if (y != null) {
                             y = y.trim().toLowerCase(java.util.Locale.ROOT);
                             if (y.startsWith("end-of-turn") || y.startsWith("my-next-turn")) {
@@ -4895,7 +4896,7 @@ public final class LlmSpikeGui {
                 if (reply == null) return null;
                 AnswerTool.Answer ta = toolAnswer();
                 if (ta != null) return ta.card;
-                String seg = lastSegment(reply, "CARD:");
+                String seg = textSegment(reply, "CARD:");
                 if (seg != null) {
                     String want = seg.replace("\"", "").replace("`", "").trim();
                     if (!want.isEmpty()) return want;
@@ -5801,6 +5802,25 @@ public final class LlmSpikeGui {
             a.planSink = this::adoptPlanText;
             nextAnswer = a;
             return a;
+        }
+        /** Text read for a decision on an ask that offered `answer`: must stay 0. A tool answer is read from the
+         *  typed {@link AnswerTool.Answer}; the text grammar is only for a backend with no function calling. */
+        int textParsesOnToolAsks = 0;
+        /** {@link #parseTagNumber} for a decision site: refused (-1) on an ask that offered `answer`. */
+        private int textNumber(String reply, String key) {
+            if (refuseText(key)) return -1;
+            return parseTagNumber(reply, key);
+        }
+        /** {@link #lastSegment} for a decision site: refused (null) on an ask that offered `answer`. */
+        private String textSegment(String reply, String key) {
+            if (refuseText(key)) return null;
+            return lastSegment(reply, key);
+        }
+        private boolean refuseText(String key) {
+            if (lastAnswer == null) return false;
+            textParsesOnToolAsks++;
+            p("[TEXT-PARSE] refused: a decision tried to read " + key + " from the text of a tool ask");
+            return true;
         }
         /** The validated answer of the last ask, when it came from the tool. */
         private AnswerTool.Answer toolAnswer() {
