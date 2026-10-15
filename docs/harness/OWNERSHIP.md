@@ -24,10 +24,10 @@ Ownership values:
 ## Current state (2026-10-15)
 
 The silent count (Forge AI deciding a strategic or payment hook reachable in Legacy play, with no
-row) is **1**, pinned in `eval/harness_acceptance.expected` and `ControllerOwnershipTest`. It is
-`payManaCost`, PARTLY OWNED: the colour an any-colour source (Lotus Petal, LED) makes for a generic
-shard is set inside Forge's AI payment before the seat's colour question, and the pinned engine has
-no hook for it. Every other hook in the tables below is now the seat's (see the ledger's notes);
+row) is **0**, pinned in `eval/harness_acceptance.expected` and `ControllerOwnershipTest`. The last one,
+the colour an any-colour source (Lotus Petal, LED) makes for a generic shard inside `payManaCost`, became
+the seat's through the first engine patch (`docs/harness/ENGINE-PATCHES.md`). Every hook in the tables
+below is now the seat's (see the ledger's notes);
 the last ones routed were retargeting of every kind, convoke and improvise, mana from the pool, and
 effects played without the stack (`playSpellAbilityNoStack`). What follows is the history.
 
@@ -132,8 +132,8 @@ sources pay is `ComputerUtilMana.payManaCost(...)`, the whole mana-payment mecha
 and stays Forge AI's; since 2026-10-15 so do which sources stay untapped (`holdManaSources`) and how
 Phyrexian symbols are paid (`phyrexianByLife`: the seat pays the life itself and hands the engine the
 rest of the cost, whose Phyrexian symbols the engine then pays with mana). **The colour an any-colour
-source makes during a payment (Lotus Petal, Lion's Eye Diamond, City of Brass) has no hook and stays the
-engine's:** `ComputerUtilMana.canPayShardWithSpellAbility` sets `AbilityManaPart.setExpressChoice`
+source makes during a payment (Lotus Petal, Lion's Eye Diamond, City of Brass) had no hook (since
+2026-10-15 an engine patch leaves it to the seat for a generic shard; see ENGINE-PATCHES.md):** `ComputerUtilMana.canPayShardWithSpellAbility` sets `AbilityManaPart.setExpressChoice`
 inside the static payment loop, for the shard it is paying, and no `PlayerController` method is called
 between choosing the source and activating it. A coloured shard forces its colour; for a generic shard the
 colour changes nothing except converge/sunburst counts (Engineered Explosives) and "mana of a colour was

@@ -206,8 +206,9 @@ public final class LlmSpikeGui {
      *  Epoch 16: convoke/improvise, single-target retargeting, redirection and mana from the pool are the seat's.
      *  Epoch 17: every retargeting and effects played without the stack. Epoch 18: delve is the seat's; a
      *  crashed game has no winner. Epoch 19: a yield never passes the seat's own main phase (answer-tool-v9).
-     *  Epoch 20: the seat sees the known top of its own library (observation-faithful-v27). */
-    static final String HARNESS_EPOCH = "harness-epoch-20";
+     *  Epoch 20: the seat sees the known top of its own library (observation-faithful-v27).
+     *  Epoch 21: the first engine patch: the colour an any-colour source makes for generic is the seat's. */
+    static final String HARNESS_EPOCH = "harness-epoch-21";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -659,6 +660,14 @@ public final class LlmSpikeGui {
     }
 
     static class PlayerControllerLLM extends PlayerControllerAi {
+        // Engine patch (docs/harness/ENGINE-PATCHES.md): Forge's AI payment fixed the colour an any-colour source
+        // (Lotus Petal, LED) makes for a generic shard before the colour question. For a model seat it is left
+        // open, so chooseColor below asks the seat; the opponent AI and the zero-model arms are unchanged.
+        static {
+            forge.ai.ComputerUtilMana.HARNESS_SEAT_CHOOSES_ANY_COLOR = p -> p.getController() instanceof PlayerControllerLLM
+                    && ((PlayerControllerLLM) p.getController()).choosesOwnColours();
+        }
+        boolean choosesOwnColours() { return "llm".equals(mode) && rnd == null; }
         private static final int MAX_PLAY_DECISIONS_PER_TURN = 25;
         /** The same loop guard under the faithful profile. It counts both players' windows in a turn, so
          *  25 stopped Storm, Doomsday and Elves turns partway through. 500 (was 80; the most a recorded

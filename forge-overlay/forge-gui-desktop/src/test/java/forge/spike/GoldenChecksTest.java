@@ -138,6 +138,31 @@ public class GoldenChecksTest {
 
     // ------------------------------------------------------------------ the play loop
 
+    /** The engine patch (docs/harness/ENGINE-PATCHES.md): Forge's AI payment fixed the colour Lotus Petal makes for
+     *  a generic shard (the first of WUBRG) before the colour question, so the seat was offered one colour. Now
+     *  it is offered all five, and the mana it names is the mana spent. */
+    @Test
+    public void theColourAnAnyColourSourceMakesForGenericIsTheSeats() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Birds of Paradise", me, ZoneType.Battlefield);   // any colour, as Lotus Petal
+        card("Sol Ring", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choice("CAST Sol Ring"))
+                .on("Choose a color", choice("black"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "the seat cast Sol Ring");
+        ctrl.playChosenSpellAbility(r.get(0));
+        String ask = PromptFidelityTest.promptWith(model, "Choose a color");
+        for (String c : new String[] {"white", "blue", "black", "red", "green"})
+            Assert.assertTrue(ask.contains(") " + c), "the colour ask offers " + c + ":\n" + ask);
+        boolean black = false;
+        for (forge.game.mana.Mana m : r.get(0).getPayingMana()) black |= (m.getColor() & forge.card.MagicColor.BLACK) != 0;
+        Assert.assertTrue(black, "the mana spent is the colour the seat named: " + r.get(0).getPayingMana());
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
     /** play -> target -> mana-sources: the menu pick, the target pick and the kept source are all used. */
     @Test
     public void aCastIsAskedAsPlayThenTargetThenWhichSourceStaysUp() {

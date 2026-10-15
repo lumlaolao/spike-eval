@@ -65,7 +65,8 @@ random.decisions=438
 # Silent Forge-AI strategic/payment hooks reachable in Legacy play (ControllerOwnershipTest baseline).
 # 2026-10-15: trigger targets and modes are the seat's (orderAndPlaySimultaneousSa, playTrigger
 # overridden; Forge AI's doTrigger chose every trigger target before). 3 -> 1.
-ownership.silent_ai_strategic_max=1
+# 2026-10-15: the any-colour shard colour is the seat's (engine patch, docs/harness/ENGINE-PATCHES.md). 1 -> 0.
+ownership.silent_ai_strategic_max=0
 # 2026-10-14: LINUX pins (PR #95). The same commit plays seed 42 differently on Linux (Debian
 # container, Xvfb) than on the reference Mac, so the canaries are pinned per OS; a "linux." key wins
 # over the plain key there, and the plain keys stay the Mac's. Floor is A/108/1081 on Linux at every

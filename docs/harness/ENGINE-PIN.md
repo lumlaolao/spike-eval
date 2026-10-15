@@ -68,6 +68,8 @@ Evidence: acceptance preflight/classpath/compile/javatests/canary PASS at the ne
    hard-codes `AiCostDecision` there). If upstream changed that method, port the change. The same holds
    for `PlayerControllerLLM.playNoStack`, a copy of `ComputerUtil.playNoStack` (effects and triggers
    played without the stack).
+   Every engine patch in `docs/harness/ENGINE-PATCHES.md` is re-diffed the same way, and its upstream
+   sha256 recorded again (`eval/test_engine_patches.py` fails until it is).
 4c. **Re-check the copier workaround.** `PlayerLookahead.UncopiedEffects` reaches the private
    `forge.game.StaticEffects.staticEffects` map by reflection, because `GameCopier` does not copy the
    Sideboard and throws on a sideboard card with a characteristic-defining ability.
