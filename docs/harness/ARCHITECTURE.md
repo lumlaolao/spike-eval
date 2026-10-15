@@ -295,6 +295,8 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
     fall back to it;
   - nor do the twenty choices it used to make outright: Fact or Fiction piles, opening-hand abilities,
     colours, counter kinds, replacement order, edicts, clash, combat taxes and others.
+  - Delve is asked the same way: in the real payment, how many cards (any number up to the generic part)
+    and which; an affordability test counts every card, unasked.
   - Convoke and improvise, retargeting, redirection and mana from the pool are the seat's too. A convoke
     choice asked from an affordability test is answered as "every helper could pay" without asking; the
     engine does not say which calls are tests, so the seat's real payment marks its own window.

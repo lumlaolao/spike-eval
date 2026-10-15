@@ -527,9 +527,58 @@ public class GoldenChecksTest {
         Player me = g.getPlayers().get(0);
         card("Lightning Bolt", me, ZoneType.Graveyard);
         Card cs = card("Counterspell", me, ZoneType.Graveyard);
-        Script model = new Script("PICKS: 1").on("Delve", picks("Counterspell"));
+        Script model = new Script("PICKS: 1").on("DELVE", picks("Counterspell"));
         CardCollection grave = new CardCollection(me.getCardsIn(ZoneType.Graveyard));
-        Assert.assertEquals(seat(g, model, model).chooseCardsToDelve(1, grave).getFirst(), cs);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Assert.assertEquals(ctrl.inRealPaymentForTest(() -> ctrl.chooseCardsToDelve(1, grave)).getFirst(), cs);
+    }
+
+    /** runs/luna-v8/g2 crashed on turn 6 with a StackOverflowError: six cards in the graveyard, more than Murktide
+     *  Regent's generic 5, so an affordability test asked the seat, and the ask's own snapshot tested Murktide's
+     *  affordability again, which asked again. A test now asks nothing, and the real ask cannot re-enter. */
+    @Test
+    public void delveWithMurktideInHandDoesNotRecurse() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Murktide Regent", me, ZoneType.Hand);
+        for (int i = 0; i < 2; i++) card("Island", me, ZoneType.Battlefield);
+        for (String n : new String[] {"Flooded Strand", "Lightning Bolt", "Ponder", "Brainstorm", "Lightning Bolt", "Ponder"})
+            card(n, me, ZoneType.Graveyard);
+        Script model = new Script("PICKS: 1,2,3,4,5");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        CardCollection grave = new CardCollection(me.getCardsIn(ZoneType.Graveyard));
+        Assert.assertEquals(ctrl.chooseCardsToDelve(5, grave).size(), 5);
+        Assert.assertTrue(model.prompts.isEmpty(), "an affordability test asks nothing");
+        Assert.assertEquals(ctrl.inRealPaymentForTest(() -> ctrl.chooseCardsToDelve(5, grave)).size(), 5);
+        Assert.assertEquals(model.prompts.size(), 1, "the real payment asks once");
+    }
+
+    @Test
+    public void aGameWhoseThreadCrashedHasNoWinner() {
+        Assert.assertEquals(LlmSpikeGui.finalWinner("A", false, null), "A");
+        Assert.assertEquals(LlmSpikeGui.finalWinner("draw", false, "java.lang.StackOverflowError"), "invalid");
+        Assert.assertEquals(LlmSpikeGui.finalWinner("B", true, null), "invalid");
+    }
+
+    /** runs/luna-v8/g2: every delve exiled the whole graveyard unasked ("delve(all)"), and a larger graveyard
+     *  forced exactly the generic amount. Delve exiles any number up to it, so fewer is the seat's choice. */
+    @Test
+    public void delveMayExileFewerAndAnAffordabilityTestAsksNothing() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Island", me, ZoneType.Battlefield);
+        Card bolt = card("Lightning Bolt", me, ZoneType.Graveyard);
+        card("Ponder", me, ZoneType.Graveyard);
+        card("Flooded Strand", me, ZoneType.Graveyard);
+        Script model = new Script("PICKS: NONE").on("DELVE", picks("Lightning Bolt"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        CardCollection grave = new CardCollection(me.getCardsIn(ZoneType.Graveyard));
+        Assert.assertEquals(ctrl.chooseCardsToDelve(3, grave).size(), 3, "a test counts every card that could pay");
+        Assert.assertTrue(model.prompts.isEmpty(), "and asks nothing");
+        forge.game.card.CardCollectionView out = ctrl.inRealPaymentForTest(() -> ctrl.chooseCardsToDelve(3, grave));
+        Assert.assertEquals(out.size(), 1, "three Islands pay the rest: the seat exiled only " + out);
+        Assert.assertTrue(out.contains(bolt));
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
     /** An edict (not a cost): which permanent is sacrificed. */

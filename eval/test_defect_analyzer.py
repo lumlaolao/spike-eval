@@ -115,6 +115,22 @@ def test_clean_game_no_defects():
         check("hard invariants pass", report["hard_invariants"]["pass"] is True)
 
 
+def test_crashed_game_fails_the_invariants():
+    """runs/luna-v8/g2: the game thread died on a StackOverflowError and the run read as a clean draw."""
+    with tempfile.TemporaryDirectory() as d:
+        dpath = Path(d)
+        crashed = game_line(seed=2, swap=False, winner="invalid")
+        crashed["game_error"] = "java.lang.StackOverflowError"
+        write_lines(dpath / "game-2-1000.jsonl", [crashed,
+                                                  dec(seat="model-a", dtype="mulligan", n_options=2, choice=0)])
+        write_text(dpath / "game-2-0.log", "[model-a] [ROUTER] mulligan: 2/7 lands -> asking x/model-a...\n"
+                   "[OPENROUTER model-a/smart] replied in 4000 ms\n"
+                   "[HEADLESS] game thread threw: java.lang.StackOverflowError")
+        report = da.build_report([dpath])
+        check("a crashed game is counted", report["hard_invariants"]["game_crash_count"] == 1)
+        check("and fails the invariants", report["hard_invariants"]["pass"] is False)
+
+
 def test_silent_drop_detected():
     """C5 signature: two 'play(react) -> asking' log lines for a seat that
     never produces a matching jsonl row (bridge-down->PASS branch that
@@ -320,6 +336,7 @@ def main():
     test_blocks_and_empty_picks_not_counted_as_parse_fail()
     test_malformed_lines_and_no_log_are_tolerated()
     test_shadow_choice_field_invisible_to_merge_gate()
+    test_crashed_game_fails_the_invariants()
     print()
     if FAILURES:
         print("FAILED: %s" % ", ".join(FAILURES))
