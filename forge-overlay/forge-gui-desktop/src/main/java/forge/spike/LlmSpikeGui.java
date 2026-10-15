@@ -3211,6 +3211,50 @@ public final class LlmSpikeGui {
          *  lists the order it wants the triggers to RESOLVE; the engine plays them in
          *  stack-placement order, so the list is reversed before returning. Deterministic
          *  fallback: the as-triggered order. */
+        /** Puts the seat's simultaneous triggers on the stack in the seat's order, with the SEAT's
+         *  targets and modes. The inherited version set them with {@code brains.doTrigger}, so Forge's
+         *  AI chose every trigger target: Orcish Bowmasters' ping, Snapcaster Mage's card, Fury's
+         *  damage, and whether an "up to one" trigger (Solitude, Skyclave Apparition) targets at all.
+         *  A copied spell keeps the engine's path (the AI may re-target a copy of our own spell). */
+        @Override
+        public void orderAndPlaySimultaneousSa(List<SpellAbility> activePlayerSAs) {
+            for (final SpellAbility sa : orderSimultaneousSa(activePlayerSAs)) {
+                if (sa.isTrigger() && !sa.isCopied()) {
+                    if (prepareTrigger(sa)) forge.ai.ComputerUtil.playStack(sa, getPlayer(), getGame());
+                    else p("[ROUTER] trigger: " + safeName(sa.getHostCard()) + " has no legal target -> not put on the stack");
+                } else {
+                    super.orderAndPlaySimultaneousSa(java.util.Collections.singletonList(sa));
+                }
+            }
+        }
+
+        /** A trigger that resolves without using the stack: the same seat targeting, then the engine plays it. */
+        @Override
+        public boolean playTrigger(Card host, forge.game.trigger.WrappedAbility wrapperAbility, boolean isMandatory) {
+            if (!prepareTrigger(wrapperAbility)) return false;
+            return forge.ai.ComputerUtil.playNoStack(wrapperAbility.getActivatingPlayer(), wrapperAbility, getGame(), true);
+        }
+
+        /** Modes, then targets, for one of the seat's triggers (PlayerControllerAi.prepareSingleSa with
+         *  the seat in place of {@code doTrigger}). False when a required target has no legal choice. */
+        private boolean prepareTrigger(SpellAbility sa) {
+            if (sa.getApi() == ApiType.Charm) {
+                if (!forge.game.ability.effects.CharmEffect.makeChoices(sa)) return false;
+                if (sa.hasParam("Random")) sa = sa.getSubAbility();
+                if (sa == null) return true;
+            }
+            if (sa.hasParam("TargetingPlayer")) {
+                Player tp = forge.game.ability.AbilityUtils.getDefinedPlayers(sa.getHostCard(), sa.getParam("TargetingPlayer"), sa).get(0);
+                sa.setTargetingPlayer(tp);
+                return tp.getController().chooseTargetsFor(sa);
+            }
+            if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(getPlayer());
+            ensureTargetsSet(sa);
+            for (SpellAbility part = sa; part != null; part = part.getSubAbility())
+                if (part.usesTargeting() && !part.isTargetNumberValid()) return false;
+            return true;
+        }
+
         @Override
         public List<SpellAbility> orderSimultaneousSa(List<SpellAbility> activePlayerSAs) {
             clearLast();
