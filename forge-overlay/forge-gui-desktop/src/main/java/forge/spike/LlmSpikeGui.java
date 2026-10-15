@@ -214,6 +214,9 @@ public final class LlmSpikeGui {
                 d.mkdirs();
                 file = new java.io.File(d, "game-" + seed + "-" + System.currentTimeMillis() + ".jsonl");
                 out = new java.io.PrintWriter(new java.io.FileWriter(file, true), true);
+                // run_batch.py reads this from the game's log to set a crashed attempt's file aside: the
+                // name carries the seed but not the seat swap, and both swaps of a seed can run at once.
+                System.out.println("[EVAL] jsonl " + file.getName());
             } catch (Exception e) { System.out.println("[EVAL] log init failed: " + e); }
         }
         static synchronized void write(String json) { if (out != null) out.println(json); }
