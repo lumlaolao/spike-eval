@@ -40,8 +40,8 @@ random.seed=42
 # as it does on any engine change and now reproduces at B/33/307 (twice, same class-load build).
 # Re-pinned deliberately: ai=0 rows, silent drops=0, game not capped. This also refreshes the Mac
 # random pin that #112 recorded as stale (B/19/65 was unreproducible on this machine).
-# STALE: linux.floor.* and linux.random.* are the OLD engine's (see #112/#95); re-pin them on Linux
-# at 34a8662b7966 before the Linux canaries are trusted again.
+# The linux.* pins below are ANOTHER ENVIRONMENT's (a Linux container, #95/#112). They do not affect
+# this Mac dev checkout, where the plain keys above are used; Mac development does not maintain them.
 random.winner=B
 random.turns=33
 random.decisions=307
@@ -56,9 +56,9 @@ ownership.silent_ai_strategic_max=3
 # Random differs by OS too: on Linux it is B/16/94 at a955cd8 (where the Mac pin B/19/65 was set; JDK
 # 17 and 21) and at main b425298. Random on Linux is A/56/290 at this PR, reproduced 5 times (JDK 17,
 # CPU 1/4/12, C.UTF-8, TZ); this PR moves the random arm on every OS (it now casts alternative-cost
-# spells and picks what exile and return costs take). The Mac random pin was re-measured on
-# 2026-10-14 at the new engine (B/33/307, above); these linux.* pins are still the old engine's and
-# are STALE (see the 2026-10-14 note above) until re-pinned on Linux at 34a8662b7966.
+# spells and picks what exile and return costs take). The Mac pin was re-measured on 2026-10-14 (B/33/307,
+# above); the docs describe the OS difference. The linux.* pins below are that environment's, kept
+# for a Linux runner, not a Mac-dev requirement.
 linux.floor.winner=A
 linux.floor.turns=108
 linux.floor.decisions=1081

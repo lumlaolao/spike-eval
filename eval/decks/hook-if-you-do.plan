@@ -1,0 +1,1 @@
+Gruul built for the reflexive "when you do" trigger: Minsc & Boo -2 sacrifices a creature (ImmediateTrigger) then deals damage equal to its power and draws if it was a Hamster. The sacrifice and the damage target are the seat’s; the "if you do" chain is the engine’s.
