@@ -96,6 +96,21 @@ class MatchReviewTest(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(mr.main([d, "--fail-on-defect"]), 1)
 
+    def test_a_yield_that_passed_the_seats_own_main_phase_is_a_skip(self):
+        # runs/luna-v8/g3: a yield given at the seat's own upkeep passed its main phases (15 of them).
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "game-1-0.jsonl")
+            rows = [{"t": "window", "turn": 9, "phase": "MAIN1", "active": True, "stack": 0,
+                     "reason": "yield:end-of-turn", "castable": 3},
+                    {"t": "window", "turn": 10, "phase": "MAIN1", "active": False, "stack": 0,
+                     "reason": "yield:end-of-turn", "castable": 1},
+                    {"t": "game", "seed": 1, "swap": False, "winner": "A"}]
+            with open(p, "w") as f:
+                f.write("".join(json.dumps(r) + "\n" for r in rows))
+            r = mr.review(p)
+            self.assertEqual((r["counts"]["SKIP"], r["counts"]["windows the seat yielded"]), (1, 1))
+            self.assertIn("own MAIN1 passed by a yield", mr.render(r))
+
     def test_a_reply_that_was_not_the_option_used_is_lost(self):
         with tempfile.TemporaryDirectory() as d:
             p = os.path.join(d, "game-1-0.jsonl")

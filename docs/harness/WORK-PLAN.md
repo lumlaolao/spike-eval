@@ -157,6 +157,11 @@ built that way.
    - Full re-asks fell from 9 to 2, and nothing was taken or lost in either arm.
    - Wins were 2 of 4 against 0 of 4: not evidence at this size (p = 0.43).
 
+   **Confounded (found 2026-10-15, `runs/luna-v8/g3`):** a yield passed the seat's own main phases until
+   answer-tool-v9, so both arms lost land drops and plays to it (`runs/prompt-ab/*` up to 17 main phases a
+   game, `runs/compare/*` up to 27; `match_review.py` now counts them as SKIP). This block, and the
+   one-tier against two-tier comparison, must be re-run on harness-epoch-19 before any conclusion.
+
    Next: a larger block. The remaining prompt work (D1, card naming) is in (epoch 11). At about $0.02
    a Luna game, 20 games per arm is about $0.80; waiting on the owner's go-ahead to spend it.
 6. **Mana payment: auto-tap vs manual (#111).**

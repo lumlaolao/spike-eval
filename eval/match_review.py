@@ -118,7 +118,13 @@ def review(path):
                 if kind in ("TAKEN", "LOST"):
                     add(kind, r, "%s: %s" % (r.get("type"), r.get("fallback")))
         elif t == "window":
-            if str(r.get("reason") or "").startswith("yield:"):
+            if (str(r.get("reason") or "").startswith("yield:") and r.get("active")
+                    and r.get("phase") in ("MAIN1", "MAIN2") and not r.get("stack")):
+                # A yield never covers the seat's own main phase (runs/luna-v8/g3 lost 15 of them, and
+                # with them its land drops): a harness pass, not the seat's.
+                add("SKIP", r, "own %s passed by a yield (%s) with %d usable" % (
+                    r.get("phase"), r.get("reason"), r.get("castable") or 0))
+            elif str(r.get("reason") or "").startswith("yield:"):
                 out["counts"]["windows the seat yielded"] += 1      # a pass the model asked for
             elif r.get("reason") == "last-sig":
                 # The same turn, phase, stack, board and menu the seat just passed on (its key covers all
