@@ -210,8 +210,9 @@ public final class LlmSpikeGui {
      *  crashed game has no winner. Epoch 19: a yield never passes the seat's own main phase (answer-tool-v9).
      *  Epoch 20: the seat sees the known top of its own library (observation-faithful-v27).
      *  Epoch 21: the first engine patch: the colour an any-colour source makes for generic is the seat's.
-     *  Epoch 22: stack text redacted of engine ids, card text without literal \\n (observation-faithful-v28). */
-    static final String HARNESS_EPOCH = "harness-epoch-22";
+     *  Epoch 22: stack text redacted of engine ids, card text without literal \\n (observation-faithful-v28).
+     *  Epoch 23: no engine id inside a name (an effect named after its source; observation-faithful-v29). */
+    static final String HARNESS_EPOCH = "harness-epoch-23";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
