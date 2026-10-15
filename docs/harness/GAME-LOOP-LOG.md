@@ -393,3 +393,17 @@ thread died.
   `defect_analyzer.py` fails on `game_crash_count`.
 - OPEN   one Luna call hit the 300 s deadline and was retried twice (T4 play, 300 s lost).
 - clean  mulligan, plays, targets, surveil (each answer took effect), the fetch, attacks.
+
+### game of 2026-10-15  seed 83  UR Delver (GPT-6 Luna) vs Sneak and Show (Forge AI)  lost T24  $0.07  harness-epoch-18
+
+`runs/luna-v8/g3`, the build of #189. 73 model decisions by `answer` call, 0 taken or lost, 0 Forge-AI
+decisions, no delve noise (the affordability tests are silent now). The sheet read clean, and was wrong.
+- FIXED  a yield passed the seat's own main phases: 15 of them in 12 turns, the first main phase on
+  turns 3, 7, 9, 11, 13 and 21. The seat yielded at its own upkeep to keep its mana open ("keep both
+  Volcanics open") and lost its land drop and every sorcery-speed play with it: 6 lands in 12 turns, two
+  discards to hand size. A yield now never passes the seat's own main phase (answer-tool-v9).
+  Test `aYieldAtTheSeatsOwnUpkeepStillAsksInItsMainPhase`.
+- FIXED  `match_review.py` counted those windows as the seat's yields; each is now a SKIP (15 here).
+- OPEN   recorded runs were hit the same way: `runs/compare/*` up to 27 own main phases a game,
+  `runs/prompt-ab/*` up to 17. Their comparisons are confounded by it.
+- OPEN   a second 300 s Luna timeout (T23 play), retried.

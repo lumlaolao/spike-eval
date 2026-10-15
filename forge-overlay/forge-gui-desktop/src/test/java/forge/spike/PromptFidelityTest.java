@@ -609,6 +609,34 @@ public class PromptFidelityTest {
         }
     }
 
+    /** runs/luna-v8/g3, turns 9 and 11: the seat passed at its own upkeep with YIELD: end-of-turn ("keep both
+     *  Volcanics open"), and the yield passed its own main phases too: no land drop, no spell, a discard to hand
+     *  size. A yield never passes the seat's own main phase; its other quiet windows stay passed. */
+    @Test
+    public void aYieldAtTheSeatsOwnUpkeepStillAsksInItsMainPhase() {
+        boolean was = LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR;
+        LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR = false;
+        try {
+            Game g = bareGame(PhaseType.UPKEEP);
+            Player me = g.getPlayers().get(0);
+            card("Mountain", me, ZoneType.Battlefield);
+            card("Lightning Bolt", me, ZoneType.Hand);
+            card("Mountain", me, ZoneType.Hand);
+            Recorder model = new Recorder("Keep mana open.\nCHOICE: 99\nYIELD: end-of-turn");
+            LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+            Assert.assertNull(ctrl.chooseSpellAbilityToPlay());
+            Assert.assertEquals(model.prompts.size(), 1);
+            g.getPhaseHandler().devModeSet(PhaseType.MAIN1, me);
+            ctrl.chooseSpellAbilityToPlay();
+            Assert.assertEquals(model.prompts.size(), 2, "the seat's own main phase was passed by its yield");
+            g.getPhaseHandler().devModeSet(PhaseType.END_OF_TURN, me);
+            ctrl.chooseSpellAbilityToPlay();
+            Assert.assertEquals(model.prompts.size(), 2, "its end step is still inside the yield");
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR = was;
+        }
+    }
+
     /** The plan and profile asks named Grixis Reanimator's line in every deck's prompt, and the
      *  mulligan ask gave combo advice to Burn. Under the faithful profile no ask names a deck's line. */
     @Test
