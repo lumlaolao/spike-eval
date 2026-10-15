@@ -949,7 +949,9 @@ public final class LlmSpikeGui {
             this.seat = seat;
             this.deckPlan = deckPlan;
             this.mode = mode == null || mode.isEmpty() ? "llm" : mode;
-            this.rnd = "random".equals(this.mode) ? new java.util.Random(MyRandom.getRandom().nextLong()) : null;
+            // The random arm and the other zero-model puzzle arms (PuzzleArms: script, pass, first) share
+            // the random arm's decision paths; each draws the same one long from MyRandom here.
+            this.rnd = PuzzleArms.isArm(this.mode) ? PuzzleArms.forMode(this.mode, MyRandom.getRandom().nextLong()) : null;
             this.smart = smartBridge;
             this.fast  = fastBridge;
             this.ctx = profile();
@@ -976,6 +978,9 @@ public final class LlmSpikeGui {
 
         /** Non-null under a faithful profile; tests use it to drive the live observer directly. */
         SeatObservation observer() { return observer; }
+
+        /** The zero-model arm's draw source (null for llm/floor); LlmSpikePuzzle reads its tape. */
+        java.util.Random armRandom() { return rnd; }
 
         // ---------------- candidate labels: one seam, two renderers ----------------
         // Faithful profile: every menu option is rendered by the observer, so what the model can pick
@@ -1383,7 +1388,7 @@ public final class LlmSpikeGui {
             if (rnd != null) {
                 int n = options.size() + (noneLabel != null ? 1 : 0);
                 if (n == 0) return -1;
-                int c = rnd.nextInt(n);
+                int c = PuzzleArms.pick(rnd, n, noneLabel != null);
                 int res = c >= options.size() ? -1 : c;
                 if (type != null) evalDec(type, options.size(), res, tierOf(b == smart), System.currentTimeMillis() - t0, null, options);
                 return res;
@@ -1446,10 +1451,10 @@ public final class LlmSpikeGui {
             if (rnd != null) {
                 List<Integer> all = new ArrayList<>();
                 for (int i = 0; i < options.size(); i++) all.add(i);
-                java.util.Collections.shuffle(all, rnd);
+                PuzzleArms.shuffle(all, rnd);
                 int lo = Math.max(0, min), hi = Math.min(max, options.size());
                 if (hi < lo) return null;
-                List<Integer> res = new ArrayList<>(all.subList(0, lo + (hi > lo ? rnd.nextInt(hi - lo + 1) : 0)));
+                List<Integer> res = new ArrayList<>(all.subList(0, PuzzleArms.subsetSize(rnd, lo, hi)));
                 lastPicks = res;
                 if (type != null) evalDec(type, options.size(), res.size(), tierOf(b == smart), System.currentTimeMillis() - t0, null, options);
                 return res;
@@ -2656,7 +2661,7 @@ public final class LlmSpikeGui {
                     p("[ROUTER] lookahead " + which + ": " + preview);
                     return "LOOKAHEAD (option " + which + "): " + preview;
                 };
-                if (rnd != null) choice = 1 + rnd.nextInt(passIdx); // random arm: uniform incl. PASS
+                if (rnd != null) choice = 1 + PuzzleArms.pick(rnd, passIdx, true); // random arm: uniform incl. PASS (last)
                 for (int attempt = 0; rnd == null && attempt < 2 && choice < 1; attempt++) {
                     String prompt = (attempt == 0
                             ? playPromptPrefix(snapshot(), phh.getPhase(), ownMain, menuStr)

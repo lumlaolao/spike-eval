@@ -26,6 +26,7 @@ import forge.gamemodes.puzzle.Puzzle;
 import forge.localinstance.properties.ForgeConstants;
 import forge.util.FileSection;
 import forge.util.FileUtil;
+import forge.util.MyRandom;
 
 /**
  * PZL axis: run ONE Forge puzzle headless and report solved / not solved.
@@ -52,8 +53,12 @@ import forge.util.FileUtil;
  * Env:
  *   PUZZLE=<id|path>     required. Bare id resolves against PUZZLE_DIRS.
  *   PUZZLE_DIRS=a:b      search path (default: Forge's res/puzzle, then $PWD/eval/puzzles/upstream)
- *   CONTROLLER_A=...     solver arm: llm|random|floor|ai-log  (default llm)
+ *   CONTROLLER_A=...     solver arm: llm|random|floor|ai-log|pass|first|script (default llm);
+ *                        pass/first/script are the zero-model puzzle arms in {@link PuzzleArms}
  *   CONTROLLER_B=...     opponent arm: ai|ai-log|llm|random|floor (default ai)
+ *   PZL_SEEDS=1..200     many rollouts in one JVM, one result row each (default: one at GAME_SEED)
+ *   PZL_TAPE=<file>      the draw tape the script arm replays (a stored reference line)
+ *   PZL_TAPE_ALL=1       keep every rollout's tape (default: only solved rollouts and single runs)
  *   SMART_MODEL_A / FAST_MODEL_A / GAME_SEED / EVAL_OUT / GAME_CAP_MS as usual.
  *
  * Run: PUZZLE=PS_MSH1 CONTROLLER_A=random bash run-llm-headless.sh
@@ -172,6 +177,77 @@ public final class LlmSpikePuzzle {
                     + "Forge-AI floor arm; it is the same AI with decision logging.");
     }
 
+    /** Arms that may sit in the solver seat. Plain "ai" cannot (see requireOverridableSolver); any
+     *  other value would be built as a model seat, so a typo must not silently call a model. */
+    static final java.util.Set<String> SOLVER_ARMS = new java.util.HashSet<>(java.util.Arrays.asList(
+            "llm", "random", "floor", "ai-log", "pass", "first", "script"));
+
+    static void requireSolverArm(String ctl) {
+        requireOverridableSolver(ctl);
+        if (!SOLVER_ARMS.contains(ctl))
+            throw new RuntimeException("CONTROLLER_A=" + ctl + " is not a solver arm " + new java.util.TreeSet<>(SOLVER_ARMS)
+                    + "; anything else would be built as a model seat");
+    }
+
+    /** PZL_SEEDS: "a..b" (inclusive) and/or "a,b,c". Empty or null -> null (one run at GAME_SEED). */
+    static List<Long> parseSeeds(String spec) {
+        if (spec == null || spec.trim().isEmpty()) return null;
+        List<Long> out = new ArrayList<>();
+        for (String part : spec.split(",")) {
+            String t = part.trim();
+            if (t.isEmpty()) continue;
+            int dots = t.indexOf("..");
+            if (dots > 0) {
+                long a = Long.parseLong(t.substring(0, dots).trim());
+                long b = Long.parseLong(t.substring(dots + 2).trim());
+                if (b < a) throw new IllegalArgumentException("PZL_SEEDS range " + t + " runs backwards");
+                if (b - a >= 100_000) throw new IllegalArgumentException("PZL_SEEDS range " + t + " is too large");
+                for (long x = a; x <= b; x++) out.add(x);
+            } else {
+                out.add(Long.parseLong(t));
+            }
+        }
+        return out;
+    }
+
+    /** The solver's own actions in the game log (cast, activate, land, attack). Their count is the
+     *  length of a line; the lines themselves are the readable form of a reference solution. */
+    static List<String> solverActions(List<String> logLines, String solverName) {
+        List<String> out = new ArrayList<>();
+        for (String l : logLines) {
+            int colon = l.indexOf(": ");
+            if (colon < 0) continue;
+            String type = l.substring(0, colon);
+            String msg = l.substring(colon + 2);
+            if (("STACK_ADD".equals(type) && (msg.startsWith(solverName + " cast ") || msg.startsWith(solverName + " activated ")))
+                    || ("LAND".equals(type) && msg.startsWith(solverName + " played "))
+                    || ("COMBAT".equals(type) && msg.startsWith(solverName + " assigned ")))
+                out.add(l);
+        }
+        return out;
+    }
+
+    /** sha256 of the game log without its wall-clock line ("Match Duration 0m : 01s"), which is the
+     *  only part of a deterministic replay that differs from run to run. Two rollouts with the same
+     *  fingerprint played the same game; the verifier relies on that. */
+    static String logFingerprint(List<String> logLines) {
+        List<String> kept = new ArrayList<>();
+        for (String l : logLines) if (!l.startsWith("GAME_OUTCOME: Match Duration")) kept.add(l);
+        return sha256(String.join("\n", kept));
+    }
+
+    static String sha256(String s) {
+        try {
+            byte[] d = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(s.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : d) sb.append(String.format("%02x", b));
+            return sb.toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     public static void run(String spec) throws Exception {
         long capMs = 10 * 60 * 1000L; // a puzzle is <=3 turns; 3h would hide a hang, not survive one
         try { String v = System.getenv("GAME_CAP_MS"); if (v != null) capMs = Long.parseLong(v.trim()); } catch (Exception ignore) {}
@@ -190,18 +266,59 @@ public final class LlmSpikePuzzle {
         }
         requireEnforcedGoal(goal);
         final boolean bounded = goalIsBounded(sections);
-        final Puzzle puzzle = new Puzzle(sections, id, false);
+        final String pzlSha = sha256(FileUtil.readFileToString(file));
 
         String ctlA = System.getenv().getOrDefault("CONTROLLER_A", "llm");
         String ctlB = System.getenv().getOrDefault("CONTROLLER_B", "ai");
-        requireOverridableSolver(ctlA);
+        requireSolverArm(ctlA);
         String smartA = System.getenv().getOrDefault("SMART_MODEL_A",
                 System.getenv().getOrDefault("SMART_MODEL", "opus"));
         String fastA = System.getenv().getOrDefault("FAST_MODEL_A",
                 System.getenv().getOrDefault("FAST_MODEL", "haiku"));
 
-        long seed = LlmSpikeGui.applySeed();
-        LlmSpikeGui.EvalLog.init(seed);
+        // The reference line the script arm replays: a draw tape written by an earlier random rollout.
+        if ("script".equals(ctlA)) {
+            String tapeFile = System.getenv("PZL_TAPE");
+            if (tapeFile == null || tapeFile.trim().isEmpty())
+                throw new RuntimeException("CONTROLLER_A=script needs PZL_TAPE=<file holding the draw tape>");
+            PuzzleArms.scriptTape = FileUtil.readFileToString(new File(tapeFile.trim())).trim();
+        }
+
+        // Many rollouts share one JVM (startup is ~10 s, a puzzle ~1 s). Each rollout re-seeds the
+        // engine RNG and builds a fresh Match, Game and seats, as a fresh launch would.
+        List<Long> seeds = parseSeeds(System.getenv("PZL_SEEDS"));
+        boolean multi = seeds != null;
+        if (!multi) {
+            seeds = new ArrayList<>();
+            seeds.add(LlmSpikeGui.applySeed());
+        }
+        boolean keepAllTapes = !multi || "1".equals(System.getenv("PZL_TAPE_ALL"));
+        int rollout = 0;
+        for (long seed : seeds) {
+            if (multi) {
+                MyRandom.setRandom(new java.util.Random(seed));
+                LlmSpikeGui.SEED_USED = seed;
+                LlmSpikeGui.EvalLog.closeForTest();
+            }
+            LlmSpikeGui.EvalLog.init(seed);
+            boolean healthy = runOnce(file, id, sections, goal, bounded, pzlSha, ctlA, ctlB, smartA, fastA,
+                    seed, capMs, rollout++, keepAllTapes);
+            if (!healthy) {
+                System.out.println("[PZL] the game thread outlived the cap at seed " + seed
+                        + "; later rollouts would share the JVM with it, so the run stops here");
+                break;
+            }
+        }
+        LlmSpikeGui.EvalLog.closeForTest();
+        System.exit(0);
+    }
+
+    /** One rollout. Returns false when the game thread is still alive after the cap and its grace
+     *  (the JVM is then not safe for another rollout). */
+    static boolean runOnce(File file, String id, Map<String, List<String>> sections, String goal, boolean bounded,
+                           String pzlSha, String ctlA, String ctlB, String smartA, String fastA, long seed,
+                           long capMs, int rollout, boolean keepTape) throws Exception {
+        final Puzzle puzzle = new Puzzle(sections, id, false);
 
         // Empty decks and a zero-card opening hand: the [state] section IS the board. Anything drawn
         // here would be a card the puzzle author never put in the position.
@@ -224,9 +341,9 @@ public final class LlmSpikePuzzle {
         Match match = new Match(rules, players, "LlmPuzzle");
         final Game game = match.createGame();
 
-        System.out.println("[PZL] " + id + "  goal=" + puzzle.getGoalDescription().replace("\n", " | "));
+        if (rollout == 0) System.out.println("[PZL] " + id + "  goal=" + puzzle.getGoalDescription().replace("\n", " | "));
         System.out.println("[PZL] solver=" + ctlA + " opponent=" + ctlB + " seed=" + seed
-                + " cap=" + (capMs / 1000) + "s");
+                + " cap=" + (capMs / 1000) + "s rollout=" + rollout);
 
         // Set inside the start-game hook, immediately after the board is applied. This observes the
         // real post-apply state rather than racing it ONLY because the worker below is named
@@ -307,6 +424,14 @@ public final class LlmSpikePuzzle {
                 : (!goalInstalled[0] || !bounded) ? "unscoreable"
                 : (solved ? "solved" : "failed");
 
+        List<String> logLines = new ArrayList<>();
+        try {
+            for (GameLogEntry e : game.getGameLog().getAllEntries()) logLines.add(e.type() + ": " + e.message());
+        } catch (Exception e) {
+            logLines.add("INFORMATION: (log unavailable: " + e + ")");
+        }
+        List<String> actions = solverActions(logLines, "Solver");
+
         System.out.println("========== PUZZLE OVER ==========");
         System.out.println("puzzle : " + id);
         System.out.println("status : " + status
@@ -324,10 +449,7 @@ public final class LlmSpikePuzzle {
             System.out.println("WARNING: decided by an empty-library deck-out (Milled), not by the puzzle "
                     + "line -- this row is TAINTED and must not be pooled into a solve rate.");
         System.out.println("--- game log ---");
-        try {
-            for (GameLogEntry e : game.getGameLog().getAllEntries())
-                System.out.println("  " + e.type() + ": " + e.message());
-        } catch (Exception e) { System.out.println("  (log unavailable: " + e + ")"); }
+        for (String l : logLines) System.out.println("  " + l);
         System.out.println("=================================");
 
         Map<String, Object> extra = new LinkedHashMap<>();
@@ -338,9 +460,34 @@ public final class LlmSpikePuzzle {
         extra.put("goal_bounded", bounded);
         extra.put("tainted_by_deckout", tainted);
         extra.put("taint_side", tainted ? ("Milled".equals(solverLoss) ? "solver" : "opponent") : "");
+        // Puzzle-suite fields (eval/PUZZLES.md), additive: which rollout, which exact position, a
+        // fingerprint of what happened (the verifier compares it), and the line when it is wanted.
+        extra.put("rollout", rollout);
+        extra.put("pzl_sha256", pzlSha);
+        // Which frozen suite version this attempt was run for (eval/puzzle_score.py refuses to pool versions).
+        String suiteSha = System.getenv("PZL_SUITE_SHA256");
+        if (suiteSha != null && !suiteSha.trim().isEmpty()) extra.put("suite_sha256", suiteSha.trim());
+        extra.put("log_sha256", logFingerprint(logLines));
+        extra.put("solver_actions", actions.size());
+        java.util.Random arm = null;
+        try {
+            Object ctl = game.getRegisteredPlayers().get(0).getController();
+            if (ctl instanceof LlmSpikeGui.PlayerControllerLLM) arm = ((LlmSpikeGui.PlayerControllerLLM) ctl).armRandom();
+        } catch (Exception ignore) {}
+        if (arm instanceof PuzzleArms.ArmRandom) {
+            PuzzleArms.ArmRandom ar = (PuzzleArms.ArmRandom) arm;
+            extra.put("draws", ar.draws());
+            if (keepTape || solved) extra.put("tape", ar.tapeString());
+            if (ar instanceof PuzzleArms.Script) {
+                extra.put("script_drift", ar.drift == null ? "" : ar.drift);
+                extra.put("script_exhausted", ar.exhausted);
+                extra.put("script_unconsumed", ((PuzzleArms.Script) ar).unconsumed());
+            }
+        }
+        if (keepTape || solved) extra.put("actions", actions);
         writeRow(id, file, status, solved, turns, winCond, durMs, seed, ctlA, ctlB,
                 smartA, goalInstalled[0], goalOracle[0], goal, extra);
-        System.exit(0);
+        return !worker.isAlive();
     }
 
     /** Seat i's PlayerOutcome, read off the STABLE player list.
@@ -418,6 +565,16 @@ public final class LlmSpikePuzzle {
             sb.append('"').append(esc(e.getKey())).append("\":");
             Object v = e.getValue();
             if (v instanceof Boolean || v instanceof Number) sb.append(v);
+            else if (v instanceof List) {
+                sb.append('[');
+                boolean firstItem = true;
+                for (Object o : (List<?>) v) {
+                    if (!firstItem) sb.append(',');
+                    firstItem = false;
+                    sb.append('"').append(esc(String.valueOf(o))).append('"');
+                }
+                sb.append(']');
+            }
             else sb.append('"').append(esc(String.valueOf(v))).append('"');
         }
         return sb.append('}').toString();
