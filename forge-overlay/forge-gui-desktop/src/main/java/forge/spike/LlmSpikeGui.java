@@ -2077,7 +2077,7 @@ public final class LlmSpikeGui {
                 StringBuilder chosen = new StringBuilder();
                 lastDeclaredAttackerNames.clear();
                 for (int i : picks) {
-                    combat.addAttacker(legal.get(i), defender);
+                    combat.addAttacker(legal.get(i), attackTarget(legal.get(i), defender, combat));
                     lastDeclaredAttackerNames.add(legal.get(i).getName());
                     if (chosen.length() > 0) chosen.append(", ");
                     chosen.append(legal.get(i).getName());
@@ -2091,6 +2091,22 @@ public final class LlmSpikeGui {
                 // resolves combat from an empty set.
                 auto("attackers(err)->none");
             }
+        }
+
+        /** Where one declared attacker attacks: the player, or a planeswalker or battle it can attack.
+         *  Every attacker used to go at the first defending player, so Jace, the Mind Sculptor, Minsc &
+         *  Boo or Karn could never be attacked. Asked only when there is more than one legal defender. */
+        private GameEntity attackTarget(Card attacker, Player player, Combat combat) {
+            List<GameEntity> defs = new ArrayList<>();
+            try { for (GameEntity d : combat.getDefenders()) if (CombatUtil.canAttack(attacker, d)) defs.add(d); }
+            catch (Exception e) { return player; }
+            if (defs.size() <= 1) return defs.isEmpty() ? player : defs.get(0);
+            List<String> labels = new ArrayList<>();
+            for (GameEntity d : defs) labels.add(labelOf(d));
+            int c = decideOne(smart, "attack-target", "Where does " + labelOf(attacker) + " attack?", labels, null);
+            if (c >= 0) return defs.get(c);
+            auto("attack-target(unparsed)->player");
+            return player;
         }
 
         @Override
