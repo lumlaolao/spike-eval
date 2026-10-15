@@ -72,7 +72,7 @@ import forge.spike.LlmSpikeGui.ContextProfile;
  * seat are appended to the same stream, so every seat-visible fact has one E-id and one place to search.
  */
 final class SeatObservation {
-    static final String VERSION = "observation-faithful-v20";
+    static final String VERSION = "observation-faithful-v21";
     /** Printed once per observation so every prompt is self-describing. Part of the prompt bytes and
      *  therefore of this VERSION: change it and bump the version. */
     static final String LEGEND = "LEGEND: @N = your seat's handle for one object, assigned when you first see it; a zone change "
@@ -754,6 +754,15 @@ final class SeatObservation {
         return stream.size();
     }
 
+    /** Append an engine notice the seat's player is shown (the card an opponent named, a colour or
+     *  number chosen): {@code PlayerController.notifyOfValue}. A human player sees these; the seat did
+     *  not, so a named card or chosen colour reached the model only if the game log happened to say it. */
+    int recordNotice(String text) {
+        int turn = safeTurn();
+        stream.add(new GameHistory.Ev(stream.size() + 1, turn, GameLogEntryType.INFORMATION, "[notice to you] " + LlmSpikeGui.flat(text)));
+        return stream.size();
+    }
+
     private int safeTurn() {
         try { return game.getPhaseHandler().getTurn(); } catch (Exception e) { return currentTurn; }
     }
@@ -1110,6 +1119,10 @@ final class SeatObservation {
         if (arg == null) return "ERROR: INSPECT needs @<handle> or an exact card name.";
         String a = arg.trim();
         if (a.isEmpty()) return "ERROR: INSPECT needs @<handle> or an exact card name.";
+        // The model copies an option as it reads, "Cavern of Souls @11": the handle names the object
+        // (runs/compare two-tier seed 82 asked that and was told no such card exists).
+        java.util.regex.Matcher hm = java.util.regex.Pattern.compile("@(\\d+)").matcher(a);
+        if (!a.startsWith("@") && hm.find()) a = "@" + hm.group(1);
         if (a.startsWith("@")) {
             int h;
             try { h = Integer.parseInt(a.substring(1).trim().split("\\s+")[0]); } catch (Exception e) { return "ERROR: malformed handle."; }

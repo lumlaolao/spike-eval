@@ -108,6 +108,20 @@ class MatchReviewTest(unittest.TestCase):
             self.assertEqual(r["counts"]["LOST"], 1)
             self.assertIn("the reply said CHOICE 2 but option 1 was used", mr.render(r))
 
+    def test_a_model_row_whose_answer_was_not_used_is_lost(self):
+        # The play loop turned an unparsed reply into a PASS row identical to a real PASS, and block
+        # pairs that named no legal block vanished; both rows now carry a fallback and are LOST.
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "game-1-0.jsonl")
+            rows = [dec("play", "smart", choice=-1, n_options=3, fallback="play(unparsed)->PASS"),
+                    dec("blockers", "smart", choice=1, n_options=2, fallback="blockers(unparsed-pairs:1)"),
+                    dec("play", "auto", choice=-1, n_options=-1, fallback="play(turn-cap)->PASS"),
+                    {"t": "game", "seed": 1, "swap": False, "winner": "A"}]
+            with open(p, "w") as f:
+                f.write("".join(json.dumps(x) + "\n" for x in rows))
+            r = mr.review(p)
+            self.assertEqual((r["counts"]["LOST"], r["counts"]["TAKEN"]), (2, 1))
+
     def test_a_clean_game_says_so(self):
         with tempfile.TemporaryDirectory() as d:
             p = os.path.join(d, "game-1-0.jsonl")

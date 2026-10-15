@@ -125,6 +125,26 @@ public class LookaheadProbeTest {
         Assert.assertTrue(theirs.isInZone(forge.game.zone.ZoneType.Battlefield));
     }
 
+    /** runs/compare: after Palace Jailer's monarchy changed hands, every preview failed with
+     *  "Couldn't map The Monarch" (the engine leaves the old monarch's effect card a stale zone). */
+    @Test
+    public void aPreviewWorksAfterTheMonarchyChangedHands() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+        for (int i = 0; i < 2; i++) SeatObservationTest.card("Mountain", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.card.Card pyro = SeatObservationTest.card("Pyroclasm", me, forge.game.zone.ZoneType.Hand);
+        SeatObservationTest.card("Elite Vanguard", opp, forge.game.zone.ZoneType.Battlefield);
+        me.createMonarchEffect("CN2");
+        me.removeMonarchEffect();
+        opp.createMonarchEffect("CN2");
+        String report = PlayerLookahead.previewCast(g, me, spellOn(pyro), 5L);
+        Assert.assertFalse(report.contains("preview failed"), report);
+        Assert.assertTrue(report.contains("board 1 -> 0"), report);
+        PlayerLookahead.StaleEffectCards again = PlayerLookahead.StaleEffectCards.park(g);
+        Assert.assertEquals(again.size(), 1, "the live stale pointer was put back after the preview");
+        again.restore();
+    }
+
     /**
      * The defect behind every failed preview of the Mardu games (runs/lines/ctl/native-lookahead: 16
      * of 16 spell previews; 104 of 104 on loopback): a characteristic-defining card in a SIDEBOARD

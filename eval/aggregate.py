@@ -118,6 +118,9 @@ PROVENANCE_FIELDS = (
     # PRINCIPLES and the static reference left out of the system prompt (NO_COACHING): an
     # assistance condition (docs/STANDARDS.md section 8).
     ("no_coaching", MISSING),
+    # One conversation per seat (ONE_CHAT) vs a stateless ask per decision.
+    ("one_chat", MISSING),
+    ("one_chat_version", MISSING),
     # The interface the model plays through, as one number (docs/STANDARDS.md section 8).
     ("harness_epoch", MISSING),
 )

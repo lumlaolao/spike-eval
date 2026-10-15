@@ -39,7 +39,8 @@ FORCED = re.compile(r"forced|only-legal|\(forced\)", re.I)
 # A fallback that follows a model call: the answer was asked for and not used.
 LOST = re.compile(r"bridge-down|unparsed|no-reply|budget-exhausted|\(err\)|parse", re.I)
 # A decision made by a rule of thumb in the harness instead of by the seat.
-HEURISTIC = re.compile(r"heuristic", re.I)
+# turn-cap: the per-turn loop guard stopped the seat asking (a combo turn cut short).
+HEURISTIC = re.compile(r"heuristic|turn-cap", re.I)
 # A choice the seat could have made and was not asked about: the harness's own fallback records how
 # many options were legal, and more than one is not a forced pick (runs/loop/g06: four Painter's
 # Servant colour choices recorded as "color(default)->first" against a five-colour legal set).
@@ -95,6 +96,10 @@ def review(path):
                 if said and isinstance(ch, int) and ch >= 0 and n > 1 and r.get("type") != "attackers" \
                         and int(said[-1]) - 1 != ch and int(said[-1]) <= n:
                     add("LOST", r, "%s: the reply said CHOICE %s but option %d was used" % (r.get("type"), said[-1], ch + 1))
+                # A model row with a failure fallback: asked, and the answer (or part of it) not used
+                # (an unparsed play read as PASS, a block pair that named no legal block).
+                if LOST.search(str(r.get("fallback") or "")):
+                    add("LOST", r, "%s: %s" % (r.get("type"), r.get("fallback")))
                 # `attempts` counts tool rounds too; a decision is slow when time was actually wasted.
                 if (r.get("retry_ms") or 0) > 0 or r.get("finish_reason") == "length":
                     add("SLOW", r, "%s: %s attempts, %sms wasted, finish=%s" % (

@@ -25,11 +25,45 @@ public class PromptFidelityTest {
     @BeforeClass
     public void init() { new LineFindingProbeTest().initializeModel(); }
 
+    /** Every prompt any scenario in this class asks, checked against the ask contract after it. */
+    private final java.util.List<String> asked = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+
     @BeforeMethod
-    public void faithful() { LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = LlmSpikeGui.ContextProfile.V4_FAITHFUL; }
+    public void faithful() {
+        LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = LlmSpikeGui.ContextProfile.V4_FAITHFUL;
+        asked.clear();
+        LlmSpikeGui.PlayerControllerLLM.TEST_ASK_TAP = asked::add;
+    }
 
     @AfterMethod(alwaysRun = true)
-    public void legacy() { LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null; }
+    public void legacy() {
+        LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null;
+        LlmSpikeGui.PlayerControllerLLM.TEST_ASK_TAP = null;
+    }
+
+    private static final java.util.regex.Pattern CUT = java.util.regex.Pattern.compile("(?m)^\\s+\\d+\\) [^\\n]*\\.\\.\\.\\]?$");
+    private static final java.util.regex.Pattern BATTLEFIELD_OPTION = java.util.regex.Pattern.compile("(?m)^\\s+\\d+\\) [^\\n]*\\[Battlefield[^\\n]*$");
+
+    /** docs/STANDARDS.md section 8, per decision type: every ask any scenario here makes (play, X,
+     *  modes, targets, costs, numbers, votes, attack targets, triggers, mana, blocks...) carries the
+     *  current observation and a DECISION, cuts no option short, says whose each battlefield option is,
+     *  and shows the play it follows before the decision. A scenario that adds an ask adds it here. */
+    @AfterMethod(alwaysRun = true)
+    public void everyAskKeepsTheContract(org.testng.ITestResult result) {
+        if (!result.isSuccess()) return;
+        for (String p : new java.util.ArrayList<>(asked)) {
+            int d = p.lastIndexOf("DECISION:");
+            Assert.assertTrue(d >= 0, result.getName() + ": an ask with no DECISION: " + p);
+            Assert.assertTrue(p.contains("== Turn ") && p.contains("observation-faithful-"), result.getName() + ": no observation: " + p);
+            Assert.assertFalse(CUT.matcher(p).find(), result.getName() + ": an option is cut short: " + p);
+            java.util.regex.Matcher m = BATTLEFIELD_OPTION.matcher(p.substring(d));
+            while (m.find())
+                Assert.assertTrue(m.group().contains("yours") || m.group().contains("opponent's"),
+                        result.getName() + ": an option does not say whose it is: " + m.group());
+            int intent = p.indexOf("THE PLAY YOU CHOSE");
+            Assert.assertTrue(intent < 0 || intent < d, result.getName() + ": the carried play comes after the decision");
+        }
+    }
 
     static String decisions(Recorder r) {
         StringBuilder b = new StringBuilder();
@@ -82,6 +116,19 @@ public class PromptFidelityTest {
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
         String r = ctrl.observer().inspect("Sneak Attack");
         Assert.assertTrue(r.contains("Sacrifice the creature at the beginning of the next end step"), r);
+    }
+
+    /** runs/compare two-tier seed 82: INSPECT "Cavern of Souls @11" (an option copied as read) was
+     *  told no such card exists; the handle names the object. */
+    @Test
+    public void inspectOfANameWithItsHandleFindsTheObject() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card cavern = card("Cavern of Souls", me, ZoneType.Battlefield);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        String ref = ctrl.observer().shortRef(cavern);
+        String r = ctrl.observer().inspect(ref);
+        Assert.assertTrue(r.contains("(current)") && r.contains("Cavern of Souls"), ref + " -> " + r);
     }
 
     /** "Choose a number [Galvanic Discharge]" did not say what the number does. */
@@ -270,6 +317,63 @@ public class PromptFidelityTest {
         Assert.assertFalse(bare.contains("PRINCIPLES:") || bare.contains("=== SNAPSHOT LEGEND"), bare);
         Assert.assertTrue(bare.contains("PROTOCOL:") && bare.contains("FORMAT:"), bare);
         Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.framing("Seat", null, true, true, false).contains("PRINCIPLES:"));
+    }
+
+    /** BLOCKS pairs were split on every comma, so a legendary name ("Ragavan, Nimble Pilferer")
+     *  broke its pair and the block was dropped without a trace. */
+    @Test
+    public void aBlockNamingACardWithACommaIsUsed() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card thalia = card("Thalia, Guardian of Thraben", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card ragavan = card("Ragavan, Nimble Pilferer", rival, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", rival, ZoneType.Battlefield);
+        Recorder model = new Recorder("BLOCKS: Thalia, Guardian of Thraben->Ragavan, Nimble Pilferer, Grizzly Bears->Savannah Lions");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        forge.game.combat.Combat combat = new forge.game.combat.Combat(rival);
+        combat.addAttacker(ragavan, me);
+        combat.addAttacker(lions, me);
+        ctrl.declareBlockers(me, combat);
+        Assert.assertTrue(combat.getBlockers(ragavan).contains(thalia), "Thalia blocks Ragavan: " + combat.getBlockers(ragavan));
+        Assert.assertTrue(combat.getBlockers(lions).contains(bears), "Bears block Lions: " + combat.getBlockers(lions));
+    }
+
+    /** A reply with no BLOCKS line was read as "no blocks"; it is asked once more, whole. */
+    @Test
+    public void aBlockReplyWithNoBlocksLineIsAskedAgain() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", rival, ZoneType.Battlefield);
+        Recorder model = new Recorder("x") {
+            @Override public String ask(String prompt) {
+                prompts.add(prompt);
+                return prompts.size() == 1 ? "I will block the Lions with the Bears." : "BLOCKS: Grizzly Bears->Savannah Lions";
+            }
+        };
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        forge.game.combat.Combat combat = new forge.game.combat.Combat(rival);
+        combat.addAttacker(lions, me);
+        ctrl.declareBlockers(me, combat);
+        Assert.assertEquals(model.prompts.size(), 2);
+        Assert.assertTrue(combat.getBlockers(lions).contains(bears));
+    }
+
+    /** The engine tells a player what was chosen (a named card, a colour). A human is shown it; the
+     *  seat was not, so a Meddling Mage's name reached the model only if the game log said it. */
+    @Test
+    public void aNoticeOfAChosenValueReachesTheSeatsPrompt() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        Recorder model = new Recorder("CHOICE: 2");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        ctrl.notifyOfValue(null, null, "Brainstorm");
+        ctrl.chooseSpellAbilityToPlay();
+        String p = promptWith(model, "DECISION: You have priority");
+        Assert.assertTrue(p.contains("[notice to you]") && p.contains("Brainstorm"), p);
     }
 
     /** Green Sun's Zenith resolved at X=1..3 in recorded games with no question: the AI cast path
