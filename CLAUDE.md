@@ -1,6 +1,7 @@
 # mtg-forge-llm-agent — LLM agents playing Magic: The Gathering on the Forge engine
 
-> **Open work lives in [docs/harness/WORK-PLAN.md](docs/harness/WORK-PLAN.md); read it first.** September 2026 continuation: see [Player harness direction and status](docs/harness/PLAYER-HARNESS.md). Newer Java sources were recovered from the adjacent Forge checkout; older status claims below may be superseded. `MEMORY_TOOLS=1` enables experimental evidence retrieval and a seat-local strategy notebook.
+> **Open work lives in [docs/harness/WORK-PLAN.md](docs/harness/WORK-PLAN.md); read it first.** The whole harness, each part
+> with the reason it is built that way: [docs/harness/ARCHITECTURE.md](docs/harness/ARCHITECTURE.md). September 2026 continuation: see [Player harness direction and status](docs/harness/PLAYER-HARNESS.md). Newer Java sources were recovered from the adjacent Forge checkout; older status claims below may be superseded. `MEMORY_TOOLS=1` enables experimental evidence retrieval and a seat-local strategy notebook.
 
 Claude models pilot full Legacy games inside the real Forge rules engine. A custom
 `PlayerControllerLLM` routes ~15 decision types (plays, targets, combat, discards,
