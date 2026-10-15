@@ -33,7 +33,7 @@ them and refuses to pool what is not comparable.
 
 ## 2. The engine
 
-**Forge, pinned (`FORGE_COMMIT`, `docs/harness/ENGINE-PIN.md`), never edited.**
+**Forge, pinned (`FORGE_COMMIT`, `docs/harness/ENGINE-PIN.md`); the checkout is never edited by hand.**
 - *Why Forge:* it implements the full comprehensive rules for a large card pool, with a headless mode.
   The engine decides legality, so the model can never make an illegal move, and the harness never has to
   judge one.
@@ -42,6 +42,11 @@ them and refuses to pool what is not comparable.
 - *Why unmodified:* a forked rules engine could drift from the one it claims to be. Everything we add
   lives in `forge-overlay/` and is copied in by `install.sh`. The overlay is the source of truth; files in
   the Forge checkout get overwritten.
+- *Engine patches (owner, 2026-10-15), only where the seat has no hook:* a patched copy of an engine file at
+  its own path in the overlay, every change marked `HARNESS PATCH`, the upstream original's sha256 recorded
+  in `docs/harness/ENGINE-PATCHES.md` and checked by `eval/test_engine_patches.py`, so a re-pin forces a
+  re-diff. Why: "truly let agents have control" (owner) where no `PlayerController` call exists. One so far:
+  the colour an any-colour source makes for a generic shard.
 
 ## 3. The seat: `PlayerControllerLLM`
 
@@ -321,8 +326,8 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   - A spell or copy with several targets is retargeted as a set: the seat picks up to as many as it had,
     and none, or a set the spell cannot have, keeps the old one. A divided spell keeps its portions, as
     the engine does for a human: exactly as many new targets, each taking an old portion the seat assigns.
-  - **No hook in the pinned engine:** the colour an any-colour source makes for a generic shard during
-    payment. It matters only to converge, sunburst and spent-colour checks.
+  - The colour an any-colour source makes for a generic shard during payment is the seat's through the
+    first engine patch (`ComputerUtilMana`); a coloured shard forces its colour.
   - **Mechanics no deck in the pool reaches:** dice, stickers, contraptions.
 - **Mana payment:** the engine maps the chosen sources to the cost. The seat decides which sources stay
   untapped when it matters (`keep_untapped`, or the mana-sources ask).

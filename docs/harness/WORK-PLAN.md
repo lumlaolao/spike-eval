@@ -51,9 +51,8 @@ the recorded Luna prompts. What still lets text in:
 (#184, #185, #187, #188, harness-epoch-17).** Since #187 and #188 the seat also owns retargeting of
 every kind (divided spells keep their portions), redirection, convoke and improvise, mana from the
 pool, effects played without the stack (their targets and their cost decision), and since #189 how
-many cards delve exiles. Left:
-- no hook in the pinned engine: the colour an any-colour source makes for a generic shard during payment
-  (Lotus Petal, LED; matters only to converge, sunburst and spent-colour checks);
+many cards delve exiles, and through the first engine patch the colour an any-colour source makes for a
+generic shard (silent count 0). Left:
 - the mechanics-only rows (dice, stickers, contraptions, attractions: no deck in the pool reaches them).
 
 First Luna game on answer-tool-v8 (`runs/luna-v8/g1`, $0.018): 24 of 24 decisions by call, 0 Forge-AI
@@ -218,7 +217,7 @@ Left:
       `eval/suites/puzzles-forge-builtin-v1.json`, then a small Luna run (cost first).
 14. ~~Commit `runs/combo/`.~~ Done.
 
-## Proposed, waiting on the owner: engine patches where the seat has no hook (2026-10-15)
+## Engine patches where the seat has no hook (owner approved 2026-10-15; built, `docs/harness/ENGINE-PATCHES.md`)
 
 Owner: "can we think about editing the forge engine if needed to truly let agents have control". It can be
 done without editing the Forge checkout: `install.sh` copies `forge-overlay/` over it, and the isolated
@@ -234,8 +233,8 @@ What it would be used for today (audited 2026-10-15): one decision. The colour a
 Petal, LED) makes for a generic shard is set inside Forge's AI payment (`ComputerUtilMana`, forge-ai) before
 the seat's colour question; it matters only to converge, sunburst and spent-colour checks. The engine's
 `isAI()` branches were checked: none takes a decision from the seat (Spire colours are asked; a library
-search picks one card at a time; the priority loop guard). Recommendation: set the mechanism up when a
-decision needs it; this one is low value.
+search picks one card at a time; the priority loop guard). Built with that one patch after the owner's
+approval: `ComputerUtilMana`, golden check `theColourAnAnyColourSourceMakesForGenericIsTheSeats`.
 
 ## Priority 3: later
 

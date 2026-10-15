@@ -66,6 +66,10 @@ bash install.sh                                   # 2. copy overlay into $FORGE_
 cd ~/code/forge && mvn -q -pl forge-gui-desktop -am compile -o   # 3. compile (offline is fine)
 ```
 
+**Engine patches (owner, 2026-10-15):** where the seat has no `PlayerController` hook, a patched copy of
+the engine file goes in `forge-overlay/` at its own path, every change marked `HARNESS PATCH`, listed in
+`docs/harness/ENGINE-PATCHES.md` with its upstream sha256 (`eval/test_engine_patches.py` checks both).
+
 The Forge checkout is pinned: `FORGE_COMMIT` records the engine version everything was
 validated against (`install.sh` warns on drift). Don't bump it casually — eval results
 are only comparable within one engine version.
