@@ -217,8 +217,10 @@ public final class LlmSpikeGui {
      *  Epoch 26: each block names its source (engine, Forge game log, the seat's notes); the opponent's casts and
      *  land drops come from engine events, not log wording (observation-faithful-v31).
      *  Epoch 27: questions name cards without engine ids (one name function); mode and target questions say the
-     *  announced X. */
-    static final String HARNESS_EPOCH = "harness-epoch-27";
+     *  announced X.
+     *  Epoch 28: a mulligan at five cards or fewer is the seat's (the floor only with MULLIGAN_HEURISTIC=1).
+     *  Epoch 29: the plan is a note, not a commitment: every decision is re-made on the state then (answer-tool-v10). */
+    static final String HARNESS_EPOCH = "harness-epoch-29";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -829,8 +831,8 @@ public final class LlmSpikeGui {
         static String playToolAsks(boolean askPlan, boolean askLines, boolean askProfile) {
             StringBuilder b = new StringBuilder();
             if (askPlan) b.append("First set your plan with `set_plan` (goal: what you are working toward; next: the steps you ")
-                    .append("intend, in order, e.g. <land>, cast <card>, hold <card> for their turn); you can replace it at any later ")
-                    .append("decision. ");
+                    .append("intend, in order, e.g. <land>, cast <card>, hold <card> for their turn). It is a note, not a commitment: ")
+                    .append("every later decision is yours on the state then, and you replace the plan when it no longer fits. ");
             // Steps are offered only where PLAN_EXECUTE carries them out; otherwise the offer would be false.
             if (askPlan && PLAN_EXECUTE) b.append("If (and only if) you want the harness to cast steps of that plan for you without ")
                     .append("asking again this turn, give `steps` in your `answer`: ONLY the CAST/ACTIVATE option numbers you intend ")
@@ -2020,7 +2022,8 @@ public final class LlmSpikeGui {
             if (turnPlan == null || turnPlan.isEmpty()) return "";
             return "YOUR PLAN (yours, stated " + (planWhen == null || planWhen.isEmpty() ? "at T" + planTurn : "at " + planWhen)
                     + (planTurn == nowTurn ? ", this turn" : ", an earlier turn")
-                    + "; events after that happened since. It stands until you change it: at any decision, write a new "
+                    + "; events after that happened since. It is a note, not a commitment: check it against the state above at "
+                    + "this decision, and when it no longer fits, write a new "
                     + "`PLAN: GOAL: <what you are working toward> NEXT: <the steps>` line before your answer): "
                     + turnPlan + "\n";
         }
@@ -2477,9 +2480,9 @@ public final class LlmSpikeGui {
             CardCollectionView hand = player.getCardsIn(ZoneType.Hand);
             int lands = CardLists.filter(hand, CardPredicates.LANDS).size();
             int size = hand.size();
-            // HARD FLOOR: never spiral below 5 cards. A functional 5-card hand beats mulliganing to oblivion —
-            // this is the guardrail against a model that likes to ship every imperfect hand.
-            if (size <= 5) {
+            // The 5-card floor is a harness shortcut like the land heuristic below: on only with MULLIGAN_HEURISTIC=1.
+            // By default a mulligan at any size is the seat's (runs/luna-std/g13: the harness kept a 1-land five).
+            if (MULL_HEURISTIC && size <= 5) {
                 p("[ROUTER] mulligan: FLOOR keep (" + lands + "/" + size + ")");
                 evalDec("mulligan", 2, 0, "auto", 0, "mulligan(floor-keep " + lands + "/" + size + ")",
                         java.util.Arrays.asList("KEEP", "MULLIGAN"));
@@ -2494,7 +2497,7 @@ public final class LlmSpikeGui {
                         java.util.Arrays.asList("KEEP", "MULLIGAN"));
                 return true;
             }
-            // Only the extremes (0-1 lands, or 5+ = flood) reach the model, and only above the 5-card floor.
+            // With MULLIGAN_HEURISTIC=1 only the extremes (0-1 lands, or 5+ = flood) above five cards reach the model.
             if (!smartOk()) { auto("mulligan(no-model)->KEEP"); return true; } // deterministic legal, not the AI
             StringBuilder n = new StringBuilder();
             for (Card c : hand) { if (n.length() > 0) n.append(", "); n.append(c.getName()); }
@@ -3013,7 +3016,8 @@ public final class LlmSpikeGui {
                         ? (observer != null
                            // Faithful (v22): a goal and the steps toward it, replaceable at any decision.
                            ? "First state your plan as `PLAN: GOAL: <what you are working toward> NEXT: <the steps you intend, in order, "
-                             + "e.g. <land>, cast <card>, hold <card> for their turn>`; you can replace it at any later decision. "
+                             + "e.g. <land>, cast <card>, hold <card> for their turn>`. It is a note, not a commitment: every later decision is "
+                             + "yours on the state then, and you replace the plan when it no longer fits. "
                            // The example named one eval deck's line (Grixis Reanimator) in every deck's prompt.
                            : "First state your plan for THIS TURN as `PLAN: <one short line>` (the sequence you intend, e.g. "
                              + "'ritual into Reanimate on Griselbrand, hold Petal'). ")

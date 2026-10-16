@@ -80,7 +80,13 @@ FORGE_PUZZLE_DIR = "forge-gui/res/puzzle"
 
 
 def forge_home():
-    return Path(os.environ.get("FORGE_HOME") or Path.home() / "code/forge")
+    """The first of $FORGE_HOME (variables expanded: one environment sets it to the literal "$HOME/forge"),
+    ~/code/forge and /root/forge that has Forge's puzzles, as deck_legality.py looks."""
+    env = os.path.expanduser(os.path.expandvars(os.environ.get("FORGE_HOME", "")))
+    for c in ([Path(env)] if env else []) + [Path.home() / "code/forge", Path("/root/forge")]:
+        if (c / FORGE_PUZZLE_DIR).is_dir():
+            return c
+    return Path(env) if env else Path.home() / "code/forge"
 
 
 def pzl_path(rec, repo=REPO):

@@ -352,6 +352,17 @@ public class GoldenChecksTest {
         Assert.assertEquals(model.prompts.size(), 1, "the seat was asked");
         Assert.assertTrue(me.getCardsIn(ZoneType.Command).isEmpty(), "no companion");
         Assert.assertTrue(me.getCardsIn(ZoneType.Sideboard).contains(lurrus), "Lurrus stays in the sideboard");
+    /** A five-card hand is the seat's to keep or mulligan: the harness kept it on its own (runs/luna-std/g13). */
+    @Test
+    public void aFiveCardHandIsStillTheSeatsMulligan() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (String n : new String[] {"Mountain", "Lightning Bolt", "Ponder", "Brainstorm", "Counterspell"})
+            card(n, me, ZoneType.Hand);
+        Script model = new Script("MULLIGAN");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Assert.assertFalse(ctrl.mulliganKeepHand(me, 2), "the model's MULLIGAN at five cards");
+        Assert.assertEquals(model.prompts.size(), 1, "the five-card hand was asked");
     }
 
     /** A seven with no land is asked (with the observation), the retry carries the whole ask, and

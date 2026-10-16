@@ -46,8 +46,10 @@ final class AnswerTool {
      *  v7: no text alternative: a reply that calls nothing is reminded up to MAX_NUDGES times, then the decision
      *  is lost; prose is never parsed as the answer. A text format left in a tool ask is logged and counted.
      *  v8: a model's filled-in defaults do nothing: `yield` has "none" as its first value, and an empty
-     *  `keep_untapped` means not said (Luna filled every field: 175 of 189 answers yielded to end of turn). */
-    static final String VERSION = "answer-tool-v9";
+     *  `keep_untapped` means not said (Luna filled every field: 175 of 189 answers yielded to end of turn).
+     *  v10: `set_plan` says the plan is a note, not a commitment: each decision is re-made on the state then (Anthropic,
+     *  OpenAI, Google and xAI agent guides: the model gets the environment's result at every step). */
+    static final String VERSION = "answer-tool-v10";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -447,9 +449,10 @@ final class AnswerTool {
         if (strict()) params = strictify(params);
         JsonObject f = new JsonObject();
         f.addProperty("name", SET_PLAN);
-        f.addProperty("description", "State or replace YOUR plan: it is shown back to you on every later decision with the "
-                + "turn you set it. Call it whenever your plan changes, at any decision, alongside your answer. It does "
-                + "not answer the decision.");
+        f.addProperty("description", "State or replace YOUR plan, a note and not a commitment: it is shown back to you on "
+                + "every later decision with the turn you set it, and each decision is still yours on the state then. Call "
+                + "it whenever the plan no longer fits, at any decision, alongside your answer. It does not answer the "
+                + "decision.");
         f.add("parameters", params);
         if (strict()) f.addProperty("strict", true);
         JsonObject tool = new JsonObject();

@@ -268,12 +268,19 @@ Fantasticar), UR Delver (Ragavan, Nimble Pilferer). Replacing them changes the p
 - Finish the puzzle suite (see 13).
 
 15. The first real scoring-panel run (cost stated first, small block).
-16. Compound actions: built as `steps` on the play answer, carried out only under `PLAN_EXECUTE=1`
-    (opt-in). Fixed 2026-10-15 (harness-epoch-12): the play ask offered `steps` in every game, a
-    promise the harness broke with `PLAN_EXECUTE` off. **Owner decision:** whether to turn
-    `PLAN_EXECUTE` on. It casts the model's own stated steps without asking again, and re-plans when
-    the opponent's side changes; that is the model's choice carried out, not a harness heuristic, but
-    it does not ask again at each step.
+16. ~~Compound actions (`PLAN_EXECUTE`).~~ **Settled 2026-10-16 (owner): off; it stays an opt-in measurement
+    switch.** "The plan shouldnt be a set in stone set of decisions, obviously we must reevaluate at each part."
+    Every vendor guide describes the same loop, in which the model sees the environment's result before each step:
+    - Anthropic, *Building effective agents*: agents must "gain ground truth from the environment at each step";
+      predefined paths (workflows) are for "well-defined tasks";
+    - OpenAI, *A practical guide to building agents*: a run is "a loop that lets agents operate until an exit
+      condition is reached", for "nuanced judgment, exceptions, or context-sensitive decisions";
+    - Google, Gemini function calling: calls run "in sequence", each result sent back to the model;
+    - xAI, tools overview: the model "decides what to do next", "processes results and continues".
+
+    `PLAN_EXECUTE` casts the stated steps without asking again, and the harness decides when the plan is broken: a
+    workflow, in a game of hidden information and an opponent acting in between. The plan stays a note (`set_plan`),
+    shown at every decision and worded since answer-tool-v10 as "a note, not a commitment".
 17. Choose the headline score.
 18. Done 2026-10-15:
     - the Bradley-Terry deck-matchup term (#178);
