@@ -399,6 +399,32 @@ public class LookaheadProbeTest {
                 "preview left a target on the LIVE option");
     }
 
+    /** The copy kept the opponent's real hand (2026-10-16 review H2): a Show and Tell preview could name the
+     *  creature the opponent would put in. Two games whose opponent holds the same cards split differently
+     *  between hand and library, which the seat cannot tell apart, must preview the same. */
+    @Test
+    public void hiddenCardsDoNotChangeThePreview() {
+        String[] reports = new String[2];
+        for (int k = 0; k < 2; k++) {
+            Game g = SeatObservationTest.bareGame();
+            Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
+            for (int i = 0; i < 3; i++) SeatObservationTest.card("Island", me, forge.game.zone.ZoneType.Battlefield);
+            forge.game.card.Card st = SeatObservationTest.card("Show and Tell", me, forge.game.zone.ZoneType.Hand);
+            SeatObservationTest.card(k == 0 ? "Craw Wurm" : "Plains", opp, forge.game.zone.ZoneType.Hand);
+            SeatObservationTest.card(k == 0 ? "Plains" : "Craw Wurm", opp, forge.game.zone.ZoneType.Library);
+            for (int i = 0; i < 4; i++) SeatObservationTest.card("Plains", opp, forge.game.zone.ZoneType.Library);
+            forge.game.spellability.SpellAbility sa = spellOn(st);
+            Assert.assertNotNull(sa, "fixture: no spell ability on Show and Tell");
+            sa.setActivatingPlayer(me);
+            reports[k] = PlayerLookahead.previewCast(g, me, sa, 5L);
+            System.out.println("[LOOKAHEAD] " + reports[k]);
+            Assert.assertTrue(reports[k].contains("Show and Tell"), reports[k]);
+            // The live hand is untouched by the re-deal.
+            Assert.assertEquals(opp.getCardsIn(forge.game.zone.ZoneType.Hand).get(0).getName(), k == 0 ? "Craw Wurm" : "Plains");
+        }
+        Assert.assertEquals(reports[1], reports[0], "the preview depends on the opponent's hidden hand");
+    }
+
     /** The model can aim the preview: a hint naming a legal target is honoured. */
     @Test
     public void previewCastHonoursATargetHint() {

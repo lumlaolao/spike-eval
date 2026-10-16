@@ -48,6 +48,19 @@ public class AnswerToolTest {
         Assert.assertTrue(one.contains("\"name\":\"answer\"") && one.contains("\"name\":\"set_plan\""));
     }
 
+    /** A tool ask carried "Reason briefly, then call `answer` (...)" and then the ANSWER line saying it again
+     *  (2026-10-16 review M1): a reasoning cap and the instruction twice. The text tail is removed; the one
+     *  answer line is the ANSWER line the ask appends. */
+    @Test
+    public void aToolAskCapsNoReasoningAndSaysHowToAnswerOnce() {
+        String text = "Keep or mulligan? Reason briefly, then end with EXACTLY: KEEP or MULLIGAN\n";
+        String out = AnswerTool.rephrase(text, AnswerTool.Spec.keep(), false);
+        Assert.assertEquals(out, "Keep or mulligan?\n");
+        Assert.assertNull(AnswerTool.textFormatLeak(out));
+        String play = "Options:\n  1) PASS\n" + LlmSpikeGui.PlayerControllerLLM.PLAY_PROMPT_TAIL;
+        Assert.assertFalse(AnswerTool.rephrase(play, AnswerTool.Spec.one(1), false).contains("Reason"));
+    }
+
     /** The tool-use suite measures the same two functions the seat is offered (eval/tooluse/answer_tools.json,
      *  next to the lookups' tools.json). */
     @Test

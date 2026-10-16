@@ -47,7 +47,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import deck_legality  # noqa: E402
 from run_batch import (  # noqa: E402  provenance helpers, reused verbatim
-    REPO_ROOT, SPIKE_REL, _engine_sha, _overlay_sha, _spike_drift,
+    REPO_ROOT, _engine_sha, _overlay_sha, _spike_drift,
 )
 
 DECKS_DIR = REPO_ROOT / "eval" / "decks"
@@ -372,7 +372,6 @@ def run_match(a, b, match_id, out_dir, args, rng):
 
 def _match_env(a, b, seed, swap, mp4, jdir, args):
     env = os.environ.copy()
-    installed = args.forge_home / SPIKE_REL
     env.update({
         "GAME_SEED": str(seed),
         "CONTROLLER_A": "llm", "CONTROLLER_B": "llm",
@@ -384,7 +383,7 @@ def _match_env(a, b, seed, swap, mp4, jdir, args):
         "EVAL_OUT": str(jdir),
         "GAME_CAP_MS": str(int(args.cap_minutes * 60_000)),
         "ENGINE_SHA": _engine_sha(args.forge_home),
-        "OVERLAY_SHA": _overlay_sha(installed),
+        "OVERLAY_SHA": _overlay_sha(args.forge_home),
         "DECK_SHA": "tournament-mixed",
         "RUN_DISCIPLINE": "tournament",
     })
@@ -647,11 +646,11 @@ def main():
     out_dir.mkdir(parents=True, exist_ok=True)
     log("[out] %s" % out_dir)
 
-    # spike-drift guard: the installed JVM code must match this checkout (only when
+    # overlay-drift guard: the installed JVM code must match this checkout (only when
     # games will actually launch — a full --dry-run doesn't need a built overlay).
-    drift = _spike_drift(args.forge_home / SPIKE_REL, REPO_ROOT / "forge-overlay" / SPIKE_REL)
+    drift = _spike_drift(args.forge_home)
     if drift and launches_games:
-        die("installed spike file(s) differ from this checkout: %s — run "
+        die("installed overlay file(s) differ from this checkout: %s — run "
             "`bash install.sh` && recompile first." % ", ".join(drift))
 
     # --- smoke: single recorded game, model vs itself on two random decks ---

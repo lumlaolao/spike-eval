@@ -87,7 +87,9 @@ SIMULATE 3 (attack with Ragavan + Dragon's Rage Channeler):
 
 1. **Hidden-world invariance** — two games differing only in the opponent's hidden hand/library
    produce **byte-identical** lookahead reports (the paired-world test `SeatObservationTest`
-   already uses this shape).
+   already uses this shape). Shown since lookahead-preview-v6 (2026-10-16):
+   `LookaheadProbeTest.hiddenCardsDoNotChangeThePreview`. Until then the preview copy kept the
+   opponent's real hand, which an independent review found (H2).
 2. **No live side effects** — the live game's `winner`/turn/RNG stream are unchanged with the
    tool on vs off (a floor canary with the tool forcibly invoked).
 3. **No hidden-order read** — a fixture where the real top card differs between worlds leaves
@@ -100,7 +102,8 @@ SIMULATE 3 (attack with Ragavan + Dragon's Rage Channeler):
 
 ## Non-goals (v2+ / never)
 
-- Full ISMCTS (opponent hand re-dealt, not just library) — v1 partial determinization, disclosed.
+- Full ISMCTS (many sampled worlds). The preview re-deals the opponent's hand and every library once,
+  from a fixed seed (v6); it samples one world, not many.
 - Omniscient analysis using the real hidden order — **never** exposed as a player tool.
 - Using Forge's actual strategic policy silently — the continuation policy is disclosed.
 - Public-information *hidden* reasoning — out of scope.

@@ -9,6 +9,7 @@ are only read.
 
 | Stage | What it proves | What would make it fail |
 | --- | --- | --- |
+| 2026-10-16 | all 15 stages PASS (independent review R2-R7, harness-epoch-30; new stage `scoring`) | 529/529 Java, 337 Python. Canaries unchanged (floor A/108/1828, random A/45/376). New stage `scoring`: one open puzzle through `puzzle_solve.py` on the loopback model, scored by `puzzle_score.py --ids` as a pilot; one mirror panel cell (random pilot, seed 7800, both seats) through `run_batch.py --panel` on a stand-in Forge home running the isolated build, scored by `panel_score.py` with no version, condition, deck-pin or gate problem (`bv1-1f8a4b323806`). What would make it fail: a scorer refusal (the old puzzle-hash mismatch), a launcher loading another build, a provenance or condition problem. |
 | preflight | JDK 17, engine checkout at `FORGE_COMMIT`, decks/ledger/expectations present, no live game JVM | pin drift, a game running, a missing deck file |
 | classpath | offline Maven dependency classpath resolved with module `target/classes` first; Forge tree unchanged afterwards | Maven writing into the checkout, TestNG missing |
 | compile | overlay main+test sources compile with `javac --release 17` into `$OUT/classes` | any compile error |

@@ -26,11 +26,14 @@ def make_repo(root):
     (root / "eval" / "decks").mkdir(parents=True)
     (root / "eval" / "suites").mkdir(parents=True)
     (root / "eval" / "tooluse").mkdir(parents=True)
-    spike = root / bv.OVERLAY_SPIKE
+    spike = root / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
     spike.mkdir(parents=True)
     (root / "FORGE_COMMIT").write_text("e" * 40 + "\n")
-    for n in bv.OVERLAY_FILES:
+    for n in ("LlmSpikeGui.java", "AnswerTool.java"):
         (spike / n).write_text("class %s {}" % n)
+    patch = root / "forge-overlay/forge-game/src/main/java/forge/game/player"
+    patch.mkdir(parents=True)
+    (patch / "Player.java").write_text("class Player {}")
     (root / "eval" / "decks" / "burn.txt").write_text("4 Lightning Bolt\n")
     (root / "eval" / "seed_registry.json").write_text('{"version": 2, "banks": []}')
     (root / "eval" / "tooluse" / "tools.json").write_text('{"tools": []}')
@@ -74,7 +77,9 @@ class TestVersionId(unittest.TestCase):
             lambda: (self.repo / "eval" / "tooluse" / "tools.json").write_text('{"tools": [1]}'),
             lambda: (self.repo / "eval" / "seed_registry.json").write_text('{"version": 3, "banks": []}'),
             lambda: (self.repo / "FORGE_COMMIT").write_text("f" * 40),
-            lambda: (self.repo / bv.OVERLAY_SPIKE / bv.OVERLAY_FILES[0]).write_text("class X {}"),
+            lambda: (self.repo / "forge-overlay/forge-gui-desktop/src/main/java/forge/spike/AnswerTool.java").write_text("class X {}"),
+            # an engine patch is part of the harness too (2026-10-16 review H3)
+            lambda: (self.repo / "forge-overlay/forge-game/src/main/java/forge/game/player/Player.java").write_text("class P {}"),
             lambda: (self.repo / "eval" / "suites" / "puzzles-v1.json").write_text("{}"),
             lambda: write_panels(self.repo, anchors={"forge_ai_elo": 1600}),
         ]

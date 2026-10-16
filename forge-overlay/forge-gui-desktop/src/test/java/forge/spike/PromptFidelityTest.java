@@ -92,6 +92,21 @@ public class PromptFidelityTest {
     }
 
     /** Sneak Attack's INSPECT text was cut at 90 characters, before "sacrifice the creature". */
+    /** The repeat-pass key counted zone sizes only (2026-10-16 review): an untap, a counter or a pump
+     *  between two windows with the same menu passed the second window for the seat. */
+    @Test
+    public void theRepeatPassKeySeesTappedStateCountersAndPower() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card bear = card("Grizzly Bears", me, ZoneType.Battlefield);
+        String before = LlmSpikeGui.PlayerControllerLLM.boardDigest(g);
+        bear.setTapped(true);
+        String tapped = LlmSpikeGui.PlayerControllerLLM.boardDigest(g);
+        Assert.assertNotEquals(tapped, before, "tapping a permanent is a new spot");
+        bear.addCounterInternal(forge.game.card.CounterEnumType.P1P1, 1, me, false, null, null);
+        Assert.assertNotEquals(LlmSpikeGui.PlayerControllerLLM.boardDigest(g), tapped, "a counter is a new spot");
+    }
+
     @Test
     public void inspectReturnsTheWholeRulesText() {
         Game g = bareGame(PhaseType.MAIN1);
@@ -336,10 +351,10 @@ public class PromptFidelityTest {
     public void withoutCoachingTheSystemPromptHasNoPrinciplesOrReference() {
         String coached = LlmSpikeGui.PlayerControllerLLM.framing("Seat", null, false, true, true);
         String bare = LlmSpikeGui.PlayerControllerLLM.framing("Seat", null, false, true, false);
-        // Faithful (harness-epoch-8): no advice in either; NO_COACHING also drops the Legacy reference. Both
+        // Faithful (harness-epoch-8): no advice in either; NO_COACHING also drops the terms reference. Both
         // keep how the interface works and how to read the state, which are information, not coaching.
-        Assert.assertTrue(coached.contains("<legacy_reference>"), coached);
-        Assert.assertFalse(bare.contains("<legacy_reference>"), bare);
+        Assert.assertTrue(coached.contains("<reference>"), coached);
+        Assert.assertFalse(bare.contains("<reference>"), bare);
         for (String p : new String[] {coached, bare}) {
             Assert.assertFalse(p.contains("PRINCIPLES") || p.contains("WORKED EXAMPLES"), p);
             Assert.assertTrue(p.contains("<how_this_works>") && p.contains(SeatObservation.GUIDE), p);

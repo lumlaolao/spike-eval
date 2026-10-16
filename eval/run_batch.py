@@ -66,15 +66,13 @@ import seed_policy  # noqa: E402  seed governance (EVAL-DESIGN.md §6.5), the au
 import seed_registry  # noqa: E402  enforcement layer over seed_policy's blocks
 import panel_score  # noqa: E402  the panels file: cells, deck pins, published seeds (--panel)
 import sanity_arms  # noqa: E402  the zero-cost arms beside a scored block (--sanity-arms)
+import benchmark_version  # noqa: E402  the overlay's file list and its hash (OVERLAY_SHA, drift)
 
 PRINT_LOCK = threading.Lock()
 
 # Repo root = parent of eval/. runs/ and forge-overlay/ live here.
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PANEL_FILE = REPO_ROOT / "eval" / "suites" / "panels-v1.json"
-SPIKE_REL = "forge-gui-desktop/src/main/java/forge/spike"
-# Concatenated in THIS order for the OVERLAY_SHA (Gui then Headless).
-SPIKE_FILES = ("LlmSpikeGui.java", "LlmSpikeHeadless.java")
 # Env keys cited mode owns; a user --env override of these is refused.
 CITED_FORCED_KEYS = ("MULLIGAN_HEURISTIC", "SKIP_HEURISTICS", "PLAN_A", "PLAN_B")
 # Set only by their dedicated flags (listed in the module docstring).
@@ -183,16 +181,11 @@ def _engine_sha(forge_home):
         return "unknown"
 
 
-def _overlay_sha(installed_dir):
-    """sha256[:12] over the two INSTALLED spike files (Gui then Headless,
-    concatenated). 'unknown' if either is unreadable."""
-    blobs = []
-    for name in SPIKE_FILES:
-        b = _read_bytes(Path(installed_dir) / name)
-        if b is None:
-            return "unknown"
-        blobs.append(b)
-    return _sha12_bytes(b"".join(blobs))
+def _overlay_sha(forge_home):
+    """sha256[:12] over every overlay source as INSTALLED under forge_home (benchmark_version.
+    overlay_tree_sha over this checkout's file list): the harness classes and the engine patches.
+    'unknown' if any is unreadable. It covered only LlmSpikeGui/LlmSpikeHeadless until 2026-10-16."""
+    return benchmark_version.overlay_tree_sha(forge_home, benchmark_version.overlay_files(REPO_ROOT))
 
 
 def _deck_sha(path):
@@ -234,15 +227,17 @@ def _checkpoint_sha(spec):
     return h.hexdigest()[:12]
 
 
-def _spike_drift(installed_dir, overlay_dir):
-    """Filenames whose INSTALLED bytes differ from this checkout's overlay
-    copy (or that are missing on either side). Empty list == no drift."""
+def _spike_drift(forge_home, overlay_root=None):
+    """Overlay files (paths relative to forge-overlay) whose INSTALLED bytes under forge_home differ
+    from this checkout's overlay, or that are missing on either side. Empty list == no drift. Every
+    overlay source counts: an uninstalled AnswerTool or engine patch is as stale as LlmSpikeGui."""
+    overlay_root = Path(overlay_root) if overlay_root else REPO_ROOT / "forge-overlay"
     drift = []
-    for name in SPIKE_FILES:
-        inst = _read_bytes(Path(installed_dir) / name)
-        over = _read_bytes(Path(overlay_dir) / name)
+    for rel in benchmark_version.overlay_files(overlay_root.parent):
+        inst = _read_bytes(Path(forge_home) / rel)
+        over = _read_bytes(overlay_root / rel)
         if inst is None or over is None or inst != over:
-            drift.append(name)
+            drift.append(rel)
     return drift
 
 
@@ -959,9 +954,6 @@ def finalize_provenance_and_cap(args, cited):
     """Guards 4-5 (spec C): derive the per-tier cap when --cap-minutes was
     omitted, compute provenance env, and (cited only) refuse on spike drift.
     Requires args.forge_home already resolved."""
-    installed_dir = args.forge_home / SPIKE_REL
-    overlay_dir = REPO_ROOT / "forge-overlay" / SPIKE_REL
-
     forced = {}
     if cited:
         forced["MULLIGAN_HEURISTIC"] = "0"
@@ -974,19 +966,19 @@ def finalize_provenance_and_cap(args, cited):
         forced["DECK_B_NAME"] = args.name_b
 
     # Drift check (cited refuses; exploratory only notes it).
-    drift = _spike_drift(installed_dir, overlay_dir)
+    drift = _spike_drift(args.forge_home)
     if drift:
         if cited:
-            _refuse("installed spike file(s) differ from this checkout's "
+            _refuse("installed overlay file(s) differ from this checkout's "
                     "forge-overlay: %s — run `bash install.sh` first."
                     % ", ".join(drift))
         else:
-            log("[warn] spike drift (%s) — installed JVM code != this overlay."
+            log("[warn] overlay drift (%s) — installed JVM code != this overlay."
                 % ", ".join(drift))
 
     forced["RUN_DISCIPLINE"] = "cited" if cited else "exploratory"
     forced["ENGINE_SHA"] = _engine_sha(args.forge_home)
-    forced["OVERLAY_SHA"] = _overlay_sha(installed_dir)
+    forced["OVERLAY_SHA"] = _overlay_sha(args.forge_home)
     # A cross-panel cell stamps both decks, so its deck_sha names the whole matchup (panel_score.py
     # checks it per cell). Other runs keep the historical one-deck stamp: changing it would refuse
     # every resume into an existing asymmetric exploratory directory.
