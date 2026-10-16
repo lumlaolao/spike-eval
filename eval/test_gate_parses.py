@@ -7,7 +7,9 @@ quote-scan, the file dies at parse time, and every stage list runs at most
 preflight + classpath while the rest silently never executes — a broken gate
 that still prints PASS lines.
 
-bash -n is the cheapest rung that reaches that class. It cannot see run-time
+bash -n is the cheapest rung that reaches that class, on the bash that runs it: the hazard is
+bash 3.2's (macOS), and bash 4+ (Linux) parses such a file cleanly, so this test guards it only
+where it runs under bash 3.2. It cannot see run-time
 behaviour: a script that parses but dies mid-stage, or a stage list naming a
 stage the gate never runs. The scanned set is the top-level eval/ and scripts/
 gate scripts; root install.sh and the run-llm-*.sh launchers are outside it.
