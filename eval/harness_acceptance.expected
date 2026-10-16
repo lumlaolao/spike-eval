@@ -95,6 +95,8 @@ ownership.silent_ai_strategic_max=0
 # spells and picks what exile and return costs take). The Mac pin was re-measured on 2026-10-14 (B/33/307,
 # above); the docs describe the OS difference. The linux.* pins below are that environment's, kept
 # for a Linux runner, not a Mac-dev requirement.
+# 2026-10-16: CONFIRMED on linux: floor A/108/1828 measured by acceptance at #216, #218, #226 and #229 (from
+# runs/harness-acceptance/20261016T163523Z on), unchanged by the macOS re-pin above.
 linux.floor.winner=A
 linux.floor.turns=108
 # 2026-10-15 (feat/no-heuristics): the harness shortcuts are off by default. Floor on Linux is A/108/1824:
@@ -113,6 +115,8 @@ linux.floor.decisions=1828
 # A/45/368, reproduced three times with the same class-load build. Floor unchanged on Linux (A/108/1081).
 # Both OS pin sets are kept so one checkout passes on the Mac laptop and on a Linux server; a change
 # that moves the random walk re-pins the OS it was measured on and marks the other STALE until measured.
+# 2026-10-16: CONFIRMED on linux: random A/45/376 measured by acceptance at #216, #218, #226 and #229,
+# unchanged by the macOS re-pin above.
 linux.random.winner=A
 linux.random.turns=45
 # 2026-10-15 (fix/no-engine-fallback-rare): six replacement-order and two counter-type choices with one

@@ -138,7 +138,9 @@ most log questions).
   every OS that has a pin, or names the OS left stale in the expectations file and the PR.
   The naming is script-checked (`eval/test_os_pin_staleness.py`, stdlib only): it fails when a
   re-pinned plain key's `<os>.<key>` siblings are neither re-pinned with a date at or after
-  the plain re-pin nor named STALE with the movers (an issue ref, an epoch, or a dated line).
+  the plain re-pin, nor named STALE with the movers (an issue ref, an epoch, or a dated line), nor
+  named CONFIRMED with a date at or after the re-pin (measured on that OS and unchanged: a current
+  pin must not have to be called stale).
   The check reads this file's shape only; the PR-side half of the naming is off its sight.
 - `bash eval/harness_acceptance.sh` is the whole-harness gate; it must pass on the PR's head.
 - The acceptance compile rejects what the Forge checkout build is known to reject: unused and

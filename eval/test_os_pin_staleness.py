@@ -3,8 +3,9 @@
 What it measures (docs/STANDARDS.md §5): when a plain (reference Mac) canary pin carries a
 dated re-pin, every other OS that pins the same family either carries a pin dated at or after
 that re-pin, or some comment line names that OS STALE together with the movers (an issue
-ref, an epoch, or a date on the line). Fails loudly when a re-pin silently leaves a sibling
-OS behind.
+ref, an epoch, or a date on the line), or some line names that OS CONFIRMED with a date at or
+after the re-pin (measured there and unchanged: the pin is current, not stale). Fails loudly
+when a re-pin silently leaves a sibling OS behind.
 What it cannot see: the PR-side half of that naming (the STANDARDS rule wants the same line
 in the PR body, which is not this file), whether a date is true history, or which commit
 actually moved a number; the check reads text shape only.
@@ -65,6 +66,11 @@ def stale_problems(pins):
             os_dates = [d for p in os_pins for c in p["block"] for d in DATE.findall(c)]
             if os_dates and max(os_dates) >= latest_plain:
                 continue  # the sibling was re-pinned at or after the plain re-pin
+            confirmed = any(
+                "CONFIRMED" in c.upper() and os in c and any(d >= latest_plain for d in DATE.findall(c))
+                for p in plain + os_pins for c in p["block"])
+            if confirmed:
+                continue  # measured on that OS at or after the plain re-pin, and unchanged
             named = any(
                 "STALE" in c.upper() and os in c and (MOVER.search(c) or DATE.search(c))
                 for p in plain + os_pins for c in p["block"])
@@ -104,6 +110,16 @@ class OsPinStalenessTest(unittest.TestCase):
         self.assertEqual(self.run_on(self.RED.replace(
             "# the other OS's older pins, unmentioned by the re-pin above",
             "# 2026-10-17: this OS re-measured the new floor at this build (twice).")), [])
+
+    def test_a_sibling_confirmed_unchanged_on_or_after_the_repin_passes(self):
+        self.assertEqual(self.run_on(self.RED.replace(
+            "# the other OS's older pins, unmentioned by the re-pin above",
+            "# 2026-10-16: CONFIRMED on linux: the canary ran at #216 and did not move.")), [])
+
+    def test_a_confirmed_line_without_a_current_date_does_not_count(self):
+        for line in ("# CONFIRMED on linux.", "# 2026-10-15: CONFIRMED on linux before the re-pin."):
+            problems = self.run_on(self.RED.replace("# the other OS's older pins, unmentioned by the re-pin above", line))
+            self.assertTrue(problems and problems[0].startswith("UNNAMED STALE"), line)
 
     def test_a_stale_line_without_movers_does_not_count_as_the_naming(self):
         problems = self.run_on(self.RED.replace(
