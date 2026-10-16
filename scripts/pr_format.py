@@ -73,7 +73,12 @@ def commit_problems(message):
     if not lines:
         return ["empty commit message"]
     out = subject_problems(lines[0])
-    if lines[0].startswith("Merge "):
+    if lines[0].startswith(("Merge ", "Revert ")):
+        return out
+    body = [l for l in lines[1:] if l.strip() and not TRAILER.match(l)]
+    if not body:
+        out.append("a commit with no body carries no why; write what was needed, was measured, "
+                   "and would have caught it (STANDARDS section 2)")
         return out
     if len(lines) > 1 and lines[1].strip():
         out.append("no blank line between the subject and the body")

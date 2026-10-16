@@ -57,7 +57,14 @@ class PrFormatTest(unittest.TestCase):
         self.assertTrue(pf.commit_problems("fix(a): b\nno blank line\n"))
         self.assertTrue(pf.commit_problems("fix(a): b\n\n" + "word " * 30 + "\n"))
         self.assertEqual(pf.commit_problems("fix(a): b\n\nhttps://example.com/" + "x" * 120 + "\n"), [])
-        self.assertEqual(pf.commit_problems("# comment\n\nfix(a): b\n"), [])
+        self.assertEqual(pf.commit_problems("# comment\n\nfix(a): b\n\nwhy it was needed\n"), [])
+
+    def test_a_subject_only_commit_carrying_no_why_fails_the_check(self):
+        self.assertTrue(any("no body" in p for p in pf.commit_problems("fix(a): b\n")), "subject only")
+        self.assertTrue(any("no body" in p for p in
+                            pf.commit_problems("fix(a): b\n\nClaude-Session: ses_x\n")), "one trailer only")
+        self.assertEqual(pf.commit_problems("Merge pull request #79 from a/branch-name"), [])
+        self.assertEqual(pf.commit_problems('Revert "fix(a): the old shape"\n\nThis reverts commit abc1234.\n'), [])
 
     def test_a_complete_pr_passes_the_gate_for_its_head(self):
         self.assertEqual(pf.pr_problems("feat(tools): the seat's tools are native function calls", BODY,
