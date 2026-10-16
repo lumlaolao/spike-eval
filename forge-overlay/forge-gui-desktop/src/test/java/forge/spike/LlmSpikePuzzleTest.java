@@ -33,6 +33,22 @@ public class LlmSpikePuzzleTest {
     // forever for a turn that already passed and the solver gets unlimited turns.
     // ================================================================================
 
+    /** A result row's pzl_sha256 is the sha256 of the file's bytes, as the frozen suite records it
+     *  (puzzle_format.py sha256_file): it hashed the text Forge's reader returns, so puzzle_score.py matched no
+     *  Luna result to its puzzle (/tmp pilot, 2026-10-16). */
+    @Test
+    public void aResultHashesThePuzzleFileItsBytes() throws Exception {
+        java.nio.file.Path f = java.nio.file.Files.createTempFile("pzl", ".pzl");
+        byte[] bytes = "[metadata]\r\nName:x\r\nGoal:Win\r\n".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        java.nio.file.Files.write(f, bytes);
+        byte[] d = java.security.MessageDigest.getInstance("SHA-256").digest(bytes);
+        StringBuilder want = new StringBuilder();
+        for (byte b : d) want.append(String.format("%02x", b));
+        Assert.assertEquals(LlmSpikePuzzle.fileSha256(f.toString()), want.toString());
+        Assert.assertNotEquals(LlmSpikePuzzle.sha256(forge.util.FileUtil.readFileToString(f.toString())), want.toString(),
+                "the text Forge's reader returns is not the file's bytes");
+    }
+
     @Test
     public void goalBounded_ordinaryPuzzleStartsAtTurnOne() {
         Assert.assertTrue(LlmSpikePuzzle.goalIsBounded(sections(

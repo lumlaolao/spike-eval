@@ -236,6 +236,20 @@ public final class LlmSpikePuzzle {
         return sha256(String.join("\n", kept));
     }
 
+    /** The sha256 of the .pzl file's bytes, as eval/puzzle_format.py freezes it (sha256_file). It hashed the text
+     *  Forge's reader returns, which differs (line ends), so puzzle_score.py matched no result to its puzzle. */
+    static String fileSha256(String path) {
+        try {
+            byte[] d = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(path)));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : d) sb.append(String.format("%02x", b));
+            return sb.toString();
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     static String sha256(String s) {
         try {
             byte[] d = java.security.MessageDigest.getInstance("SHA-256")
@@ -266,7 +280,7 @@ public final class LlmSpikePuzzle {
         }
         requireEnforcedGoal(goal);
         final boolean bounded = goalIsBounded(sections);
-        final String pzlSha = sha256(FileUtil.readFileToString(file));
+        final String pzlSha = fileSha256(String.valueOf(file));
 
         String ctlA = System.getenv().getOrDefault("CONTROLLER_A", "llm");
         String ctlB = System.getenv().getOrDefault("CONTROLLER_B", "ai");
