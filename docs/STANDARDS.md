@@ -113,7 +113,10 @@ most log questions).
   do not change the seat's decisions (the check is `eval/test_experiments.py`'s
   `GameLineStampCoverageTest`).
 - **Python**: standard library only, Python 3.9, a module docstring that says what it measures and
-  what it cannot. **Shell**: bash 3.2 (macOS); no apostrophe inside a heredoc in `$( )`.
+  what it cannot. **Shell**: bash 3.2 (macOS); no apostrophe **or backtick** inside a heredoc
+  in `$( )` — bash 3.2 scans for the closing paren before parsing the heredoc (issue #219).
+  Check: `eval/test_gate_parses.py` runs `bash -n` over the `eval` and `scripts` shell
+  scripts; it cannot see run-time behaviour.
 - **Delete what a change makes dead** in the same PR: the unused flag, the helper with no caller,
   the comment about code that is gone.
 
