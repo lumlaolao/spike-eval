@@ -212,8 +212,9 @@ public final class LlmSpikeGui {
      *  Epoch 21: the first engine patch: the colour an any-colour source makes for generic is the seat's.
      *  Epoch 22: stack text redacted of engine ids, card text without literal \\n (observation-faithful-v28).
      *  Epoch 23: no engine id inside a name (an effect named after its source; observation-faithful-v29).
-     *  Epoch 24: a target question's trigger text is redacted; an optional target declined is the seat's decision. */
-    static final String HARNESS_EPOCH = "harness-epoch-24";
+     *  Epoch 24: a target question's trigger text is redacted; an optional target declined is the seat's decision.
+     *  Epoch 25: mana available is the engine's mana per source, not a count of sources (observation-faithful-v30). */
+    static final String HARNESS_EPOCH = "harness-epoch-25";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -1566,10 +1567,10 @@ public final class LlmSpikeGui {
               + "`lands: U untapped / T total (Name xU [untapped], Name xK [tapped])`: your land count and the\n"
               + "per-copy tap breakdown — duplicate-named lands are listed separately by tap state so you can\n"
               + "target the right copy.\n"
-              + "`mana available: {U:2 R:1 C:1} (K untapped sources)`: how many untapped sources CAN make each\n"
-              + "color right now (dual lands count in BOTH colors but can only make one at a time — a deliberate\n"
-              + "over-count), and the count of distinct untapped mana permanents. Use it to check you can pay a\n"
-              + "line before committing.\n"
+              + "`mana available: {U:2 R:1 C:3} up to N mana (K untapped sources; Ancient Tomb makes 2)`: the mana\n"
+              + "your untapped sources can make right now, as the engine counts it, per colour (dual lands count in\n"
+              + "BOTH colours but make one at a time, so colours over-count), the total N, and any source that\n"
+              + "makes more than one mana. Use it to check you can pay a line before committing.\n"
               + "`yard(n): ...`: your graveyard (reanimator/delve/flashback fuel; dredge/escape enablers).\n"
               + "`exile(n): ...`: exiled cards (delve fuel gone; adventure/impulse cards may still be playable).\n"
               + "`OPP [name] life L ...`: the opponent's public state — board, lands, `mana available`, yard, and\n"
@@ -2173,40 +2174,46 @@ public final class LlmSpikeGui {
             return untapped + " untapped / " + total + " total"
                     + (kinds.length() == 0 ? "" : " (" + kinds + ")");
         }
-        /** [0]=W [1]=U [2]=B [3]=R [4]=G [5]=C untapped-source counts, [6]=count of distinct untapped
-         *  permanents that produce ANY mana. Best-effort: basic land types (including on non-basic
-         *  "true duals" like Volcanic Island, which carry Island+Mountain per rule 305.6) map directly
-         *  to color; any other declared mana ability (Wasteland's {C}, a mana dork's Combo/Any) is read
-         *  from its raw Produced$ string, NEVER simulated/paid — this is prompt context, not a mana
-         *  solver, so it can never trigger a chosen-color/filter-land side effect from a read-only
-         *  render path. A dual land counts in both its colors' buckets (it can only actually make one
-         *  at a time) — an intentional, documented over-count, not a payment guarantee. */
-        static int[] untappedManaTally(Player pl) {
-            int[] t = new int[7];
+        /** One permanent's mana right now, read from the engine the way Forge's own AI reads it
+         *  ({@code ComputerUtilMana.getAvailableManaEstimate}): each mana ability the engine says can be
+         *  activated now ({@code canPlay}: untapped, not summoning sick, not suppressed), with the amount
+         *  the engine computes for one activation ({@code amountOfManaGenerated}: Ancient Tomb 2, Urza's
+         *  Tower 3 beside a Mine and a Power Plant), less any mana it costs to activate. The source makes
+         *  the largest of its abilities' amounts (one activation, it taps), in any colour one of them makes
+         *  (a filter's colours included, as its ability turns one mana into them). Mana that can be spent only on
+         *  some spells (Great Hall of the Biblioplex's any colour, for instants and sorceries) is kept apart, in
+         *  the card's own words. Nothing is paid or chosen: this is a read. */
+        static final class ManaSource {
+            final String name; final int amount; final boolean[] colors = new boolean[6];
+            /** Mana abilities whose mana can be spent only on some things (Great Hall: instants and sorceries),
+             *  in the card's own words; they are not in the amount or the colours. */
+            final List<String> restricted = new ArrayList<>();
+            ManaSource(String name, int amount) { this.name = name; this.amount = amount; }
+        }
+        static boolean canActivateNow(SpellAbility ab, Player pl) {
+            try { ab.setActivatingPlayer(pl); return ab.canPlay(); } catch (Exception e) { return false; }
+        }
+        static List<ManaSource> manaSources(Player pl) {
+            List<ManaSource> out = new ArrayList<>();
             for (Card card : pl.getCardsIn(ZoneType.Battlefield)) {
-                if (card.isTapped()) continue;
-                // Per-CARD color SET, then each color bucket +1 once per card.
-                // The old code incremented per-signal instead: a basic Mountain
-                // counted once for its Mountain SUBTYPE and again for its
-                // intrinsic {T}: add {R} mana ABILITY, so 2 untapped Mountains
-                // rendered "{R:4}" — arithmetically wrong state in 50/65 rows
-                // of frozen puz-v2.1 (found by an external prompt review
-                // 2026-08-02; suites annotated in known_limits). Duals still
-                // rightly add BOTH their colors (one card, two colors — the
-                // documented over-count vs "sources" stays).
-                boolean[] can = new boolean[6];
-                try {
-                    var ty = card.getType();
-                    if (ty.hasSubtype("Plains"))   can[0] = true;
-                    if (ty.hasSubtype("Island"))   can[1] = true;
-                    if (ty.hasSubtype("Swamp"))    can[2] = true;
-                    if (ty.hasSubtype("Mountain")) can[3] = true;
-                    if (ty.hasSubtype("Forest"))   can[4] = true;
-                } catch (Exception ignore) { }
+                int best = 0; boolean[] can = new boolean[6];
+                List<String> restricted = new ArrayList<>();
                 try {
                     for (SpellAbility ab : card.getManaAbilities()) {
                         forge.game.spellability.AbilityManaPart mp = ab.getManaPart();
                         if (mp == null) continue;
+                        if (!canActivateNow(ab, pl)) continue;
+                        String rule = mp.getManaRestrictions(), extra = mp.getExtraManaRestriction();
+                        if ((rule != null && !rule.isEmpty()) || (extra != null && !extra.isEmpty())) {
+                            restricted.add(flat(ab.getDescription()));
+                            continue;
+                        }
+                        int cost = ab.getPayCosts() != null && ab.getPayCosts().getCostMana() != null
+                                ? ab.getPayCosts().getCostMana().convertAmount() : 0;
+                        int made = ab.amountOfManaGenerated(true) - cost;
+                        // A filter ({1},{T}: two colours) adds no mana but changes its colour: its colours count, its 0 does not.
+                        if (made < 0) continue;
+                        best = Math.max(best, made);
                         String produced = mp.getOrigProduced();
                         if (produced == null) continue;
                         for (String tok : produced.toUpperCase(Locale.ROOT).split("\\s+")) {
@@ -2218,21 +2225,37 @@ public final class LlmSpikeGui {
                                 case "G": can[4] = true; break;
                                 case "C": can[5] = true; break;
                                 case "ANY": can[0] = can[1] = can[2] = can[3] = can[4] = true; break;
-                                default: break; // COMBO/CHOSEN/SPECIAL/COLORIDENTITY etc. — no single color to name, safe undercount
+                                default: break; // COMBO is followed by its colours; CHOSEN/SPECIAL name no colour until made
                             }
                         }
                     }
                 } catch (Exception ignore) { }
-                boolean any = false;
-                for (int i = 0; i < 6; i++) {
-                    if (can[i]) { t[i]++; any = true; }
-                }
-                if (any) t[6]++;
+                if (best == 0 && restricted.isEmpty()) continue;
+                ManaSource m = new ManaSource(card.getName(), best);
+                if (best > 0) System.arraycopy(can, 0, m.colors, 0, 6);
+                m.restricted.addAll(restricted);
+                out.add(m);
             }
+            return out;
+        }
+        /** [0]=W [1]=U [2]=B [3]=R [4]=G [5]=C: the mana the untapped sources can make in that colour (a
+         *  source counts its whole amount under every colour it can make, so the colours add up to more than
+         *  can be spent); [6] the number of sources; [7] the total mana they make, plus the mana pool. */
+        static int[] untappedManaTally(Player pl) {
+            int[] t = new int[8];
+            for (ManaSource m : manaSources(pl)) {
+                if (m.amount == 0) continue;   // only restricted mana
+                for (int i = 0; i < 6; i++) if (m.colors[i]) t[i] += m.amount;
+                t[6]++;
+                t[7] += m.amount;
+            }
+            try { t[7] += pl.getManaPool().totalMana(); } catch (Exception ignore) { }
             return t;
         }
-        /** "{U:2 R:1 C:1} (3 untapped sources)" — colors with zero sources are omitted. */
+        /** "{U:2 R:1 C:4} up to 5 mana (4 untapped sources; Ancient Tomb makes 2)": colours with nothing are
+         *  omitted, and a source that makes more than one mana is named with its amount. */
         static String manaAvailable(Player pl) {
+            List<ManaSource> srcs = manaSources(pl);
             int[] t = untappedManaTally(pl);
             String[] label = {"W", "U", "B", "R", "G", "C"};
             StringBuilder b = new StringBuilder("{");
@@ -2241,7 +2264,25 @@ public final class LlmSpikeGui {
                 if (b.length() > 1) b.append(' ');
                 b.append(label[i]).append(':').append(t[i]);
             }
-            return b.append('}').append(" (").append(t[6]).append(" untapped sources)").toString();
+            b.append("} up to ").append(t[7]).append(" mana (").append(t[6]).append(" untapped sources");
+            int pool = 0;
+            try { pool = pl.getManaPool().totalMana(); } catch (Exception ignore) { }
+            if (pool > 0) b.append("; ").append(pool).append(" already in the mana pool");
+            StringBuilder big = new StringBuilder();
+            for (ManaSource m : srcs) {
+                if (m.amount < 2) continue;
+                big.append(big.length() == 0 ? "; " : ", ").append(m.name).append(" makes ").append(m.amount);
+            }
+            // Restricted mana, once per kind of card: "Great Hall of the Biblioplex x2: {T}, Pay 1 life: Add ...".
+            java.util.LinkedHashMap<String, Integer> kinds = new java.util.LinkedHashMap<>();
+            for (ManaSource m : srcs) for (String r : m.restricted) kinds.merge(m.name + "\u0000" + r, 1, Integer::sum);
+            StringBuilder lim = new StringBuilder();
+            for (java.util.Map.Entry<String, Integer> e : kinds.entrySet()) {
+                String[] nr = e.getKey().split("\u0000", 2);
+                lim.append(lim.length() == 0 ? "; also mana only for some spells, not counted above: " : "; ")
+                        .append(nr[0]).append(e.getValue() > 1 ? " x" + e.getValue() : "").append(": ").append(nr[1]);
+            }
+            return b.append(big).append(lim).append(')').toString();
         }
         /** Hand listing with mana cost + P/T + a compact affordability tag ("(castable)" /
          *  "(need 1 more B)") reusing the SAME ComputerUtilMana.canPayManaCost check that pre-filters
@@ -2307,6 +2348,8 @@ public final class LlmSpikeGui {
                         }
                     }
                 }
+                if (simple && why.length() == 0 && tally.length > 7 && mc.getCMC() > tally[7])
+                    why.append("need ").append(mc.getCMC() - tally[7]).append(" more mana");
                 return why.length() > 0 ? "(" + why + ")" : "(not castable now)";
             } catch (Exception e) { return "(not castable now)"; }
         }
@@ -4009,8 +4052,10 @@ public final class LlmSpikeGui {
                 if (plan == null || plan.isEmpty()) return none;
                 List<Card> sources = new ArrayList<>();
                 for (Card c : me.getCardsIn(ZoneType.Battlefield)) {
-                    if (c.isTapped() || c == sa.getHostCard()) continue;
-                    if (c.getManaAbilities().anyMatch(ma -> ma.getPayCosts() != null && ma.getPayCosts().hasTapCost())) sources.add(c);
+                    if (c == sa.getHostCard()) continue;
+                    // A source the engine can tap for mana now (untapped, not summoning sick), as manaSources reads it.
+                    if (c.getManaAbilities().anyMatch(ma -> ma.getPayCosts() != null && ma.getPayCosts().hasTapCost()
+                            && canActivateNow(ma, me))) sources.add(c);
                 }
                 int spare = sources.size() - plan.size();
                 java.util.Set<String> kinds = new java.util.HashSet<>();
@@ -4569,7 +4614,10 @@ public final class LlmSpikeGui {
             // saw the order: in runs/loop/g10 it answered YES to Ponder's shuffle and undid the order the
             // smart tier had just chosen. State the order it would undo; consumed by this ask either way.
             String undoes = "";
-            if (lastTopOrderSa != null && lastTopOrderSa == sa && message != null && message.toLowerCase().contains("shuffle"))
+            // Which question this is comes from the ability (MayShuffle on the rearrange, or a Shuffle effect), not
+            // from the wording of the engine's message.
+            if (lastTopOrderSa != null && lastTopOrderSa == sa
+                    && (sa.hasParam("MayShuffle") || sa.getApi() == forge.game.ability.ApiType.Shuffle))
                 undoes = " You just put these on top of that library, top first: " + lastTopOrder
                         + ". Shuffling randomizes the whole library, those cards included.";
             lastTopOrderSa = null;
