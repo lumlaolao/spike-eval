@@ -2399,6 +2399,12 @@ public final class LlmSpikeGui {
          *  with an answer instead of adding bloat. The color-shortfall breakdown only fires for plain
          *  colored/generic/colorless costs (hybrid/Phyrexian/X costs fall back to a plain
          *  "(not castable now)" — naming a single missing color there would be a guess, not a fact). */
+        /** Hand-pricing marker while {@link #affordability} runs: its canPayManaCost check goes through
+         *  CostAdjustment.adjust, whose cost-reduction pick re-enters the controller — an ask inside the
+         *  pricing walk builds another snapshot and overflows the stack. Hooks that see this are pricing
+         *  a display hint, not paying a card: no model ask, and no fallback row — the human controller
+         *  takes the first legal option without prompting here (full control off), so the seat does too. */
+        private static volatile boolean PRICING_FOR_SNAPSHOT = false;
         private static String handList(Player pl, Iterable<Card> cards) {
             int[] tally = untappedManaTally(pl);
             StringBuilder b = new StringBuilder(); int i = 0;
@@ -2431,7 +2437,9 @@ public final class LlmSpikeGui {
                 SpellAbility sa = c.getFirstSpellAbility();
                 if (sa == null) return null;
                 if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(pl);
-                if (ComputerUtilMana.canPayManaCost(sa, pl, 0, false)) return "(castable)";
+                PRICING_FOR_SNAPSHOT = true;
+                try { if (ComputerUtilMana.canPayManaCost(sa, pl, 0, false)) return "(castable)"; }
+                finally { PRICING_FOR_SNAPSHOT = false; }
             } catch (Exception e) { return null; }
             try {
                 forge.card.mana.ManaCost mc = c.getManaCost();
@@ -5332,8 +5340,15 @@ public final class LlmSpikeGui {
         /** Which of several static abilities applies (as replacement order, for statics). */
         @Override
         public forge.game.staticability.StaticAbility chooseSingleStaticAbility(List<forge.game.staticability.StaticAbility> possible) {
+            if (PRICING_FOR_SNAPSHOT) {
+                return possible == null || possible.isEmpty() ? null : possible.get(0);   // display pricing, not a payment: above
+            }
             clearLast();
             if (possible == null || possible.isEmpty()) return null;
+            // One candidate left in the cost-reduction loop: the engine's human controller takes it
+            // without prompting (no full control), so the seat does too — silently, never an auto row
+            // and never a one-option ask the model has no decision inside.
+            if (possible.size() == 1) return possible.get(0);
             List<String> labels = new ArrayList<>();
             for (forge.game.staticability.StaticAbility st : possible)
                 labels.add(safeName(st.getHostCard()) + ": " + fit(String.valueOf(st)));
@@ -7197,7 +7212,17 @@ public final class LlmSpikeGui {
         static boolean offerable(SpellAbility sa, Player me, boolean alt) {
             if (sa.isLandAbility() || sa.isManaAbility()) return false;
             if (!sa.canPlay()) return false;
-            if (alt ? !ComputerUtilCost.canPayCost(sa, me, false) : !ComputerUtilMana.canPayManaCost(sa, me, 0, false)) return false;
+            // The cost check prices the menu and the hand tags (SeatObservation.handList's castTag):
+            // its adjust consults the controller on cost reductions (CostAdjustment's reduction loop),
+            // and an ask inside a snapshot build re-enters renderSnapshot forever. See PRICING_FOR_SNAPSHOT.
+            PRICING_FOR_SNAPSHOT = true;
+            boolean payable;
+            try {
+                payable = alt ? ComputerUtilCost.canPayCost(sa, me, false) : ComputerUtilMana.canPayManaCost(sa, me, 0, false);
+            } finally {
+                PRICING_FOR_SNAPSHOT = false;
+            }
+            if (!payable) return false;
             // Skip a targeted spell that currently has NO legal target — casting it just fizzles
             // ("Couldn't add to stack, failed to target"), e.g. Animate Dead with an empty graveyard.
             if (sa.usesTargeting()) {
