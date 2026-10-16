@@ -67,6 +67,15 @@ def read_printings(forge):
     return printings
 
 
+# The formats with real top-8 lists in eval/decks, each deck named "<format>-<archetype>.txt" (SOURCES.md). A
+# deck with one of these prefixes is not in the original 16-deck Legacy eval pool, legacy- included.
+FORMAT_PREFIXES = ("legacy", "modern", "pioneer", "standard", "pauper", "vintage")
+
+
+def is_format_deck(stem):
+    return stem.split("-", 1)[0] in FORMAT_PREFIXES
+
+
 def read_deck(path):
     """[(count, name)] of the main deck; a 'Sideboard' line ends it."""
     out = []

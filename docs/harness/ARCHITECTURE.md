@@ -295,8 +295,9 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 
 ## 12. The eval layer
 
-**Formats and decks.** The Legacy pool (16 decks) is the original benchmark; Modern, Standard and Pauper decks
-are real MTGO Challenge top-8 lists (`eval/decks/SOURCES.md`), run with `run_batch.py --format <f>`.
+**Formats and decks.** The Legacy pool (16 decks) is the original benchmark. Beside it, real MTGO Challenge top-8
+lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval/decks/SOURCES.md`), named
+`<format>-<archetype>.txt` (`deck_legality.FORMAT_PREFIXES`), run with `run_batch.py --format <f>`.
 - The engine plays any deck, so the format is what the seat is told (`GAME_FORMAT`, in the system prompt)
   and what the game line records (`game_format`, an experiment condition: formats never pool).
 - `eval/deck_legality.py` checks a deck against the pinned engine's own format data (legal sets, ban lists,
@@ -381,6 +382,8 @@ are real MTGO Challenge top-8 lists (`eval/decks/SOURCES.md`), run with `run_bat
     the engine does for a human: exactly as many new targets, each taking an old portion the seat assigns.
   - The colour an any-colour source makes for a generic shard during payment is the seat's through the
     first engine patch (`ComputerUtilMana`); a coloured shard forces its colour.
+  - Whether to reveal a companion is the seat's (an optional choice); a declined companion is no companion, through
+    the second engine patch (`Player.assignCompanion` crashed on it).
   - **Mechanics no deck in the pool reaches:** dice, stickers, contraptions.
 - **Mana payment:** the engine maps the chosen sources to the cost. The seat decides which sources stay
   untapped when it matters (`keep_untapped`, or the mana-sources ask).

@@ -17,6 +17,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+import deck_legality  # noqa: E402
 import panel_score as ps  # noqa: E402
 import sanity_arms  # noqa: E402
 import seed_policy  # noqa: E402
@@ -86,7 +87,7 @@ class TestFrozenPanelsFile(unittest.TestCase):
     def test_the_mirror_panel_is_every_archetype_against_itself(self):
         # The Legacy pool: every deck but the hook test decks and the other formats' decks (prefixed by format).
         decks = sorted(p.stem for p in (HERE / "decks").glob("*.txt")
-                       if not p.stem.startswith(("hook-", "modern-", "standard-", "pauper-")))
+                       if not p.stem.startswith("hook-") and not deck_legality.is_format_deck(p.stem))
         self.assertEqual(len(decks), 16)
         self.assertEqual([d["name"] for d in DOC["deck_pool"]], decks)
         cells = DOC["panels"]["mirror"]["cells"]
