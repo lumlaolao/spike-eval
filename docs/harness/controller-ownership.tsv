@@ -1,6 +1,6 @@
 signature	impl	kind	ownership	legacy_reach	notes
 addKeywordCost[class forge.game.spellability.SpellAbility, class forge.game.cost.Cost, interface forge.game.keyword.KeywordInterface, class java.lang.String]	LLM	strategic	model	rare	Model-routed via chooseNumberForKeywordCost (0..1). No answer takes a fixed legal option, recorded; never Forge AI (2026-10-15).
-announceRequirements[class forge.game.spellability.SpellAbility, int, int, class java.lang.String]	LLM	strategic	model	core	Model-routed via chooseNumber (ChooseAnyNumber, BidLife). Mana-cost X is announced by the play loop (announceX) before modes and targets.
+announceRequirements[class forge.game.spellability.SpellAbility, int, int, class java.lang.String]	LLM	strategic	model	core	Model-routed via chooseNumber (ChooseAnyNumber, BidLife). On the seat's own casts the play loop announces instead (announceX, after PlaySpellAbility.announceValuesLikeX): each Announce$ variable, then X in any cost part (2026-10-16).
 applyManaToCost[class forge.game.mana.ManaCostBeingPaid, class forge.game.spellability.SpellAbility, class java.lang.String, class forge.game.mana.ManaConversionMatrix, boolean]	AI	payment	ai-inherited	none	Engine placeholder (assert false); AI path never calls it.
 arrangeForScry[class forge.game.card.CardCollection]	LLM	strategic	model	core	Model-routed; deterministic fallback (keep on top).
 arrangeForSurveil[class forge.game.card.CardCollection]	LLM	strategic	model	core	Model-routed; deterministic fallback.

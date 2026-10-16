@@ -84,6 +84,16 @@ notes. Identical items (a batch of storm copies, whose targets come after) have 
 (harness-epoch-33). *Why:* Luna read "1 pending" as a choice it was owed, and was asked to order ten storm copies
 labelled like the card in hand (C3 ANT).
 
+**Targets on the stack and announced values (2026-10-16, harness-epoch-34):** when the stack is a spell's only target
+zone ("counter target spell", Stifle), its choices are the spells and abilities on the stack themselves, as the human
+path offers them (`targetCandidates`); an ability is named "ability of <card>: <what it does>". Values a cast announces
+are asked as the engine's human path asks them (`announceX`, after `PlaySpellAbility.announceValuesLikeX`): each
+`Announce$` variable (a Shoal's X), then an X in any cost part (Toxic Deluge's life), mana X up to what the seat can
+pay. A cast at another cost than the card's basic spell (a pitch spell) is labelled with that cost. *Why:* the surface
+checks found Luna's Force of Will "countering" a Dark Ritual that then resolved (the target was the card, and Forge
+counters only targeted spell abilities), Disrupting Shoal's pitch failing at X = 0, and the pitch labelled with the
+mana cost it replaces.
+
 **When the model gives no usable answer:** a fixed legal option (the first, or decline; no attack for
 attackers), recorded on the decision row with why. Never Forge's AI, and never an option read out of the
 model's plan text (the "plan-named" fallbacks went in harness-epoch-30, review M2).

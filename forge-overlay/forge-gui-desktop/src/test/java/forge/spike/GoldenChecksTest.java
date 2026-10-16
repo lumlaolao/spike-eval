@@ -358,6 +358,108 @@ public class GoldenChecksTest {
         return r.substring(at, r.indexOf('\n', at));
     }
 
+    /** A counterspell counters: its target is the spell on the stack, not the spell's card. Luna's Force of Will
+     *  "countered" a Dark Ritual that then resolved (C3 Doomsday, whole-game arm, T8): getAllCandidates gives the
+     *  card, and Forge's counter effect reads only targeted spell abilities. */
+    @Test
+    public void aCounterspellCountersTheSpell() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Island", me, ZoneType.Battlefield);
+        card("Island", me, ZoneType.Battlefield);
+        card("Counterspell", me, ZoneType.Hand);
+        LineFindingProbeTest.rivalCasts(g, "Ponder", null);
+        Script model = new Script("CHOICE: 1").on("You have priority", choice("CAST Counterspell"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "Counterspell was offered");
+        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)));
+        Assert.assertTrue(g.getStack().peekAbility().getTargets().getFirstTargetedSpell() != null, "it targets the spell itself");
+        g.getStack().resolveStack();
+        Assert.assertTrue(g.getStack().isEmpty(), "Ponder did not stay on the stack");
+        Assert.assertTrue(rival.getCardsIn(ZoneType.Graveyard).stream().anyMatch(c -> c.getName().equals("Ponder")), "Ponder was countered");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** Stifle's target is an ability on the stack, named as one: it was never offered (no card is a legal target). */
+    @Test
+    public void stifleCountersAnAbilityItNames() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Island", me, ZoneType.Battlefield);
+        card("Stifle", me, ZoneType.Hand);
+        g.getPhaseHandler().devModeSet(PhaseType.MAIN1, rival);
+        Card delta = card("Polluted Delta", rival, ZoneType.Battlefield);
+        SpellAbility fetch = delta.getSpellAbilities().stream().filter(SpellAbility::isActivatedAbility).findFirst().get();
+        fetch.setActivatingPlayer(rival);
+        forge.ai.ComputerUtil.playStack(fetch, rival, g);
+        Assert.assertEquals(g.getStack().size(), 1, "fixture: the fetch ability is on the stack");
+        Script model = new Script("CHOICE: 1").on("You have priority", choice("CAST Stifle"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "Stifle was offered");
+        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)));
+        SpellAbility aimed = g.getStack().peekAbility().getTargets().getFirstTargetedSpell();
+        Assert.assertTrue(aimed != null && aimed.isActivatedAbility() && aimed.getHostCard().getName().equals("Polluted Delta"),
+                "Stifle targets the fetch ability: " + aimed);
+        Assert.assertTrue(model.prompts.stream().noneMatch(q -> q.contains("Choose the TARGET")) || model.prompts.stream()
+                .anyMatch(q -> q.contains("ability of Polluted Delta")), "the target is named as an ability");
+        int lands = rival.getCardsIn(ZoneType.Battlefield).size();
+        g.getStack().resolveStack();
+        Assert.assertTrue(g.getStack().isEmpty(), "the fetch ability was countered, not left on the stack");
+        Assert.assertEquals(rival.getCardsIn(ZoneType.Battlefield).size(), lands, "no land was fetched");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** A number the cast announces (Announce$ X): Disrupting Shoal's pitch cost exiles a blue card with mana value X and
+     *  counters a spell with mana value X. The seat says X when it casts it (announceRequirements, surface S3). */
+    @Test
+    public void aShoalsXIsAnnouncedByTheSeat() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Disrupting Shoal", me, ZoneType.Hand);
+        card("Brainstorm", me, ZoneType.Hand);
+        LineFindingProbeTest.rivalCasts(g, "Ponder", null);
+        g.getAction().checkStaticAbilities();
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choice("CAST Disrupting Shoal"))
+                .on("Every integer", p -> "NUMBER: 1")
+                .on("Choose the TARGET", choice("Ponder"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "the pitch was offered");
+        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)), "the Shoal was cast");
+        Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.substring(q.lastIndexOf("DECISION:")).startsWith("DECISION: Choose X for CAST Disrupting Shoal")),
+                "the seat was asked X");
+        Assert.assertTrue(me.getCardsIn(ZoneType.Exile).stream().anyMatch(c -> c.getName().equals("Brainstorm")), "Brainstorm was pitched");
+        Assert.assertEquals(g.getStack().peekAbility().getXManaCostPaid(), Integer.valueOf(1), "X is on the spell");
+        g.getStack().resolveStack();
+        Assert.assertTrue(rival.getCardsIn(ZoneType.Graveyard).stream().anyMatch(c -> c.getName().equals("Ponder")), "Ponder was countered");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** X in a cost other than mana (Toxic Deluge: pay X life) is the seat's: the play loop announced only mana X, so it
+     *  was cast at X=0 and killed nothing. */
+    @Test
+    public void toxicDelugesLifeIsTheSeats() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        for (int i = 0; i < 3; i++) card("Swamp", me, ZoneType.Battlefield);
+        card("Toxic Deluge", me, ZoneType.Hand);
+        card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("You have priority", choice("CAST Toxic Deluge"))
+                .on("Choose X for CAST Toxic Deluge", p -> p.contains("Every integer") ? "NUMBER: 2" : "CHOICE: " + opt(p, "2"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "Toxic Deluge was offered");
+        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)));
+        Assert.assertEquals(me.getLife(), 18, "X = 2 life was paid");
+        g.getStack().resolveStack();
+        g.getAction().checkStateEffects(true);
+        Assert.assertTrue(rival.getCardsIn(ZoneType.Battlefield).isEmpty(), "the Bears got -2/-2");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
     /** ANT's line: cast Infernal Tutor, then crack Lion's Eye Diamond in response so the hand is empty when the Tutor
      *  resolves (hellbent). The menu never offered a mana ability, so LED was usable only as payment (owner,
      *  2026-10-16: combo lines must play out). A mana ability with a cost beyond tapping (sacrifice, discard, exile
