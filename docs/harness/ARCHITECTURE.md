@@ -175,6 +175,15 @@ model's plan text (the "plan-named" fallbacks went in harness-epoch-30, review M
   asked that what comes from the Forge log never be confused with agent output.
 - Legacy profiles keep their bytes; only the faithful profile carries the labels (`GameHistoryTest`).
 
+**Every public facet of the state is shown (2026-10-16, observation-faithful-v35).** Probed facet by facet against the
+engine's state (`SeatObservationTest.everyPublicStateFacetIsShown`, `whatAPermanentRemembersIsShown`,
+`aSuspendedCardShowsItsTimeCounters`): counters, damage, attachments, loyalty, tapped, summoning sickness, face-down and
+phased-out permanents (a phased-out one used to vanish), poison and other player counters, the monarch, the initiative,
+the city's blessing, day or night; what a permanent remembers (Pithing Needle's named card, Cavern of Souls' type, a
+chosen colour, player or number, Chrome Mox's imprint, a token), also on lands; counters and waiting states off the
+battlefield (a suspended card's time counters, an adventure, foretold, plotted). *Why:* a Needle naming Jace read
+"Pithing Needle [untapped]", and a suspended Ancestral Vision showed no countdown.
+
 **How to read the state is explained once, in the system prompt (`SeatObservation.GUIDE`).**
 - *Why:* the per-message legend cost about 200 tokens a call outside the cache. It also disagreed with an
   older one in the system prompt (`docs/harness/PROMPT-AUDIT.md`, A1).
