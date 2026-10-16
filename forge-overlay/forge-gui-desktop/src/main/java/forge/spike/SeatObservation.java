@@ -28,6 +28,8 @@ import forge.game.card.CounterEnumType;
 import forge.game.card.CounterType;
 import forge.game.combat.Combat;
 import forge.game.event.GameEventCardChangeZone;
+import forge.game.event.GameEventLandPlayed;
+import forge.game.event.GameEventSpellAbilityCast;
 import forge.game.keyword.Keyword;
 import forge.game.keyword.KeywordInterface;
 import forge.game.phase.PhaseHandler;
@@ -78,7 +80,7 @@ final class SeatObservation {
      *  the menu), merged with v24.
      *  v26: nothing the observation shows is cut (docs/harness/MODEL-LIMITS.md): whole event, stack and card
      *  text, every seen opponent card and every reveal, and uncapped known-in-hidden-zones and zone trails. */
-    static final String VERSION = "observation-faithful-v30";
+    static final String VERSION = "observation-faithful-v31";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
      *  Every section named here is one {@link #render} prints. */
@@ -115,7 +117,15 @@ final class SeatObservation {
             + "- FACTS is the engine's arithmetic (the next combat's damage, the mana they can make at instant speed): "
             + "estimates, not guarantees.\n"
             + "- YOUR PLAN, YOUR OPPONENT PROFILE and YOUR CARD INTERACTIONS are notes you wrote yourself earlier, with the turn "
-            + "you wrote them. They are not verified; replace them when they are out of date.\n";
+            + "you wrote them. They are not verified; replace them when they are out of date.\n"
+            + "Where each part comes from, so nothing is mistaken for someone's message: the state (YOU, OPP, STACK, COMBAT, "
+            + "FACTS, the hand tags, mana available) is read from the Forge engine. GAME HISTORY, SINCE YOUR LAST DECISION and "
+            + "REVEALS TO YOU are lines of Forge's game log, in the engine's own words, about what each player did, you included: "
+            + "a line naming your player is the engine recording your own action. Lines marked [private reveal to you] or "
+            + "[notice to you] are what the engine showed only you. OPPONENT CARDS YOU HAVE SEEN is printed card text from the "
+            + "card database. KNOWN IN HIDDEN ZONES, CAST THIS GAME, LANDS PLAYED and SPENT THIS TURN are the harness's record "
+            + "of what you saw and did. Only YOUR PLAN, YOUR OPPONENT PROFILE and YOUR CARD INTERACTIONS are your own words. No "
+            + "other model's words appear anywhere: your opponent is known only through the engine.\n";
 
     /** Log types narrated. The legacy set plus INFORMATION, which carries public reveal notices
      *  (CostReveal) the legacy filter silently dropped. PHASE and MANA remain noise. */
@@ -445,7 +455,7 @@ final class SeatObservation {
         for (KnownLoc k : knownHidden.values()) {
             groups.computeIfAbsent(k.owner.getName() + "'s " + zoneWord(k.zone), x -> new ArrayList<>()).add(k);
         }
-        StringBuilder b = new StringBuilder("KNOWN IN HIDDEN ZONES (you SAW these move there, or they were "
+        StringBuilder b = new StringBuilder("KNOWN IN HIDDEN ZONES (harness record: you SAW these move there, or they were "
                 + "revealed to you — this is your knowledge, not engine truth; you may be able to act on it, "
                 + "and it is dropped once you see the card leave):\n");
         for (Map.Entry<String, List<KnownLoc>> e : groups.entrySet()) {
@@ -847,39 +857,53 @@ final class SeatObservation {
 
     List<String> reveals() { return reveals; }
 
-    /** Opponent's casts / land drops this game, aggregated from the SEAT STREAM (already redacted),
-     *  byte-compatible in output with {@code PlayerControllerLLM.castHistory} on public data. That
-     *  legacy helper reads the raw engine log and strips only a trailing engine id, so it bypasses
-     *  redaction and can leak a hidden caster's real name (a "cast" line carries a name, not an id);
-     *  this path can only ever see what the viewer may see. */
-    /** "<Name> -> count" for one player's plays of one log type, over the seat stream. */
-    private LinkedHashMap<String, Integer> castCounts(Player p, GameLogEntryType type, String verb) {
-        String prefix = p.getName() + verb;
+    /** One spell cast or land played, from the engine's own event. */
+    private record Play(Player who, boolean land, String name) {}
+    private final List<Play> plays = new ArrayList<>();
+
+    /** A spell cast, from the engine's event rather than from the wording of the log line it also writes
+     *  ("Rival cast X targeting Y" was split on " cast " and " targeting"). A copy is not cast (CR 707.10);
+     *  a face-down spell is named only as one, unless its face may be shown to the seat. */
+    @Subscribe
+    public void onCast(GameEventSpellAbilityCast ev) {
+        try {
+            if (ev == null || ev.sa() == null || ev.si() == null || !ev.sa().isSpell()) return;
+            Player who = playerFromView(ev.si().getActivatingPlayer());
+            CardView host = ev.sa().getHostCard();
+            if (who == null || host == null) return;
+            Card c = game.findById(host.getId());
+            if (c != null && c.isCopiedSpell()) return;
+            boolean hidden = c != null ? !faceKnown(c) : host.isFaceDown();
+            plays.add(new Play(who, false, hidden ? "a face-down spell" : host.getName()));
+        } catch (Exception ignore) { }
+    }
+
+    /** A land played, from the engine's event. */
+    @Subscribe
+    public void onLandPlayed(GameEventLandPlayed ev) {
+        try {
+            if (ev == null || ev.land() == null) return;
+            Player who = playerFromView(ev.player());
+            if (who == null) return;
+            Card c = game.findById(ev.land().getId());
+            boolean hidden = c != null ? !faceKnown(c) : ev.land().isFaceDown();
+            plays.add(new Play(who, true, hidden ? "a face-down land" : ev.land().getName()));
+        } catch (Exception ignore) { }
+    }
+
+    /** "<Name> -> count" for one player's casts or land drops this game. */
+    private LinkedHashMap<String, Integer> castCounts(Player p, boolean land) {
         LinkedHashMap<String, Integer> counts = new LinkedHashMap<>();
-        for (GameHistory.Ev e : stream) {
-            if (e.type != type) continue;
-            String msg = e.msg == null ? "" : e.msg;
-            if (!msg.startsWith(prefix)) continue;
-            String name = msg.substring(prefix.length());
-            int cut = name.indexOf(" targeting");
-            if (cut >= 0) name = name.substring(0, cut);
-            name = name.trim();
-            if (name.endsWith(".")) name = name.substring(0, name.length() - 1);
-            // Redaction replaced a visible object's engine id with its seat handle (" @N") and left
-            // "(was @k)" on a cross-zone link; strip both so same-named plays aggregate by name.
-            name = name.replaceAll("\\s*\\(was @\\d+\\)", "").replaceAll("\\s*@\\d+", "").trim();
-            if (name.isEmpty()) continue;
-            counts.merge(name, 1, Integer::sum);
-        }
+        for (Play pl : plays) if (pl.who() == p && pl.land() == land) counts.merge(pl.name(), 1, Integer::sum);
         return counts;
     }
 
     /** Names this opponent has played TWO OR MORE times — their RECURRING plays, which a human notices
      *  ("they keep casting Entomb") and which the model otherwise has to re-derive from a long log.
      *  This is the deterministic half of opponent modelling: facts, not an inference. */
-    private String streamCastRepeats(Player p, GameLogEntryType type, String verb, int cap) {
+    private String streamCastRepeats(Player p, boolean land, int cap) {
         List<Map.Entry<String, Integer>> es = new ArrayList<>();
-        for (Map.Entry<String, Integer> e : castCounts(p, type, verb).entrySet())
+        for (Map.Entry<String, Integer> e : castCounts(p, land).entrySet())
             if (e.getValue() >= 2) es.add(e);
         if (es.isEmpty()) return "";
         es.sort((a, b) -> b.getValue() - a.getValue());
@@ -893,8 +917,8 @@ final class SeatObservation {
         return b.toString();
     }
 
-    private String streamCastHistory(Player p, GameLogEntryType type, String verb, int cap) {
-        LinkedHashMap<String, Integer> counts = castCounts(p, type, verb);
+    private String streamCastHistory(Player p, boolean land, int cap) {
+        LinkedHashMap<String, Integer> counts = castCounts(p, land);
         if (counts.isEmpty()) return "";
         List<Map.Entry<String, Integer>> es = new ArrayList<>(counts.entrySet());
         es.sort((a, b) -> b.getValue() - a.getValue());
@@ -949,21 +973,22 @@ final class SeatObservation {
                  .append(zoneList(opp.getCardsIn(ZoneType.Exile), ctx.exileCap)).append('\n');
                 String cmd = zoneList(opp.getCardsIn(ZoneType.Command), ctx.exileCap);
                 if (!"(none)".equals(cmd)) s.append("  command: ").append(cmd).append('\n');
-                String casts = streamCastHistory(opp, GameLogEntryType.STACK_ADD, " cast ", ctx.castHistoryCap);
+                String casts = streamCastHistory(opp, false, ctx.castHistoryCap);
                 if (!casts.isEmpty()) s.append("  CAST THIS GAME: ").append(casts).append('\n');
-                String repeats = streamCastRepeats(opp, GameLogEntryType.STACK_ADD, " cast ", ctx.castHistoryCap);
+                String repeats = streamCastRepeats(opp, false, ctx.castHistoryCap);
                 if (!repeats.isEmpty()) s.append("  RECURRING (cast 2+ times): ").append(repeats).append('\n');
-                String landsPlayed = streamCastHistory(opp, GameLogEntryType.LAND, " played ", ctx.castHistoryCap);
+                String landsPlayed = streamCastHistory(opp, true, ctx.castHistoryCap);
                 if (!landsPlayed.isEmpty()) s.append("  LANDS PLAYED: ").append(landsPlayed).append('\n');
             }
             s.append(opponentCardText());
 
-            s.append("STACK (top first): ").append(stack()).append('\n');
+            s.append("STACK (engine, top first): ").append(stack()).append('\n');
             s.append("COMBAT: ").append(combat()).append('\n');
             s.append("NOT VISIBLE: ").append(notVisible()).append('\n');
             s.append(history);
             if (!reveals.isEmpty()) {
-                s.append("REVEALS TO YOU (historical evidence, seat-local; ").append(reveals.size()).append(" total, oldest first):\n");
+                s.append("REVEALS TO YOU (Forge game log and the engine's notices to you, seat-local; ").append(reveals.size())
+                        .append(" total, oldest first):\n");
                 for (String r : reveals) s.append("  - ").append(staleLabel(r)).append('\n');
             }
             s.append(knownHiddenText());

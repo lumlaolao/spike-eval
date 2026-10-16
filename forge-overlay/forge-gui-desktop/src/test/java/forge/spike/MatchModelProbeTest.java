@@ -6,7 +6,6 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import forge.game.Game;
-import forge.game.GameLogEntryType;
 import forge.game.card.Card;
 import forge.game.player.Player;
 import forge.game.zone.ZoneType;
@@ -120,9 +119,10 @@ public class MatchModelProbeTest {
     public void recurringThreatsAreNamedExplicitly() {
         Game g = SeatObservationTest.world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
         SeatObservation o = SeatObservationTest.observerFor(g, 0);
-        g.getGameLog().add(GameLogEntryType.STACK_ADD, "Rival cast Entomb.");
-        g.getGameLog().add(GameLogEntryType.STACK_ADD, "Rival cast Entomb.");
-        g.getGameLog().add(GameLogEntryType.STACK_ADD, "Rival cast Careful Study.");
+        Player rival = g.getPlayers().get(1);
+        SeatObservationTest.cast(g, rival, "Entomb");
+        SeatObservationTest.cast(g, rival, "Entomb");
+        SeatObservationTest.cast(g, rival, "Careful Study");
         o.capture();
         String r = SeatObservationTest.render(o, "");
         Assert.assertTrue(r.contains("RECURRING (cast 2+ times): Entomb x2"), r);
@@ -136,7 +136,7 @@ public class MatchModelProbeTest {
         o.recordReveal("T1: they showed Force of Will");
         String r = SeatObservationTest.render(o, "GAME HISTORY (compacted; E<n> are canonical event ids):\n  T1 [E1]: x\n");
         // The past must be visibly the past, so it is never mistaken for what the seat can do now.
-        Assert.assertTrue(r.contains("REVEALS TO YOU (historical evidence, seat-local;"), r);
+        Assert.assertTrue(r.contains("REVEALS TO YOU (Forge game log and the engine's notices to you, seat-local;"), r);
         Assert.assertTrue(r.contains("GAME HISTORY (compacted"), r);
         Assert.assertTrue(r.contains("CURRENT OBSERVATION") || r.contains("== Turn "), r);
     }

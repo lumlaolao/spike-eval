@@ -109,6 +109,7 @@ decision row with why. Never Forge's AI.
     | lethal damage in a damage assignment | `ComputerUtilCombat.getEnoughDamageToKill` |
     | [sick], [tapped] | `Card.isSick()` / `isTapped()` |
     | the shuffle after a Ponder order | the ability (`MayShuffle`, or a Shuffle effect), not the message wording |
+    | CAST THIS GAME, LANDS PLAYED | the engine's `GameEventSpellAbilityCast` / `GameEventLandPlayed` (a copy is not a cast), not the log line's wording |
 
   - The one hint still worked out by the harness: "(need 1 more B)" compares the cost's coloured pips
     with the per-colour mana. It is shown only when the engine has already said the card cannot be
@@ -121,6 +122,20 @@ decision row with why. Never Forge's AI.
   internals and change between games.
 - *Why uncut:* the harness no longer truncates event text, card text, reveals or history
   (`docs/harness/MODEL-LIMITS.md`). Cuts were a harness limit on the model.
+
+**Every block says where it comes from.**
+- The header of each block names its source:
+  - engine state: YOU, OPP, `STACK (engine, ...)`, COMBAT, `FACTS (engine estimates ...)`;
+  - Forge's game log: `GAME HISTORY (Forge game log, ...)`, `SINCE YOUR LAST DECISION (Forge game log, ...)`,
+    REVEALS TO YOU;
+  - the card database: OPPONENT CARDS YOU HAVE SEEN;
+  - the harness's record of what the seat saw: `KNOWN IN HIDDEN ZONES (harness record: ...)`;
+  - the seat's own words: YOUR PLAN, YOUR OPPONENT PROFILE, YOUR CARD INTERACTIONS.
+- The guide repeats it in one paragraph, and says that no other model's words appear anywhere.
+- *Why:* the log is in the engine's words and names players. A line like "Rival scries 1", or one naming
+  the seat's own player, could be read as a message to the seat or as its own earlier output. The owner
+  asked that what comes from the Forge log never be confused with agent output.
+- Legacy profiles keep their bytes; only the faithful profile carries the labels (`GameHistoryTest`).
 
 **How to read the state is explained once, in the system prompt (`SeatObservation.GUIDE`).**
 - *Why:* the per-message legend cost about 200 tokens a call outside the cache. It also disagreed with an

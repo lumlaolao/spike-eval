@@ -1,4 +1,4 @@
-# Work plan: what is left (updated 2026-10-15, evening)
+# Work plan: what is left (updated 2026-10-16)
 
 The living to-do list for the "the model is the only bottleneck" work. Only open work is listed here;
 what is done is in git history, `docs/harness/GAME-LOOP-LOG.md` and the run reports. Update this file
@@ -90,6 +90,22 @@ anything for the seat. From `docs/harness/controller-ownership.tsv` and the reco
 Not engine fallback, and kept: a choice with exactly one legal option is taken without asking (forced),
 and a seat that has no model (floor, random arms) takes a fixed legal option. A model that fails to
 answer twice loses the decision to a fixed legal option (the first, or decline), never to Forge's AI.
+
+**C. Every observed fact from the engine, every block labelled by its source (owner, 2026-10-16).**
+"It wasnt realizing lands can make more than 1 mana ... look into the root cause ... how the forge default ai
+can do these"; "be clear what comes from the forge log ... shouldnt confuse it with like agent output".
+- Root cause: the harness re-derived facts the engine already knows, from card types and log wording, so the
+  seat was told less than Forge's AI computes. The audit (ARCHITECTURE section 4 has the table):
+  - mana available: **done (#202)**, now the engine's mana per source, restricted mana apart;
+  - the mana-source keep question's sources, the Ponder shuffle note: **done (#202)**;
+  - the opponent's casts and land drops (CAST THIS GAME, LANDS PLAYED): **done (provenance PR)**, from
+    `GameEventSpellAbilityCast` / `GameEventLandPlayed`, not split out of log sentences;
+  - already engine calls, checked: castable, X up to N, legal attackers and blockers, unblocked damage,
+    lethal damage in assignments, [sick], [tapped];
+  - left: "(need 1 more B)" compares pips with the per-colour mana (shown only after the engine said no);
+    the legacy profiles' `castHistory` still reads the log (kept for their bytes).
+- Provenance: **done (provenance PR)**. Each block's header names its source (engine, Forge game log, card
+  database, harness record, the seat's own notes), and the guide says so in one paragraph.
 
 **B. `docs/harness/ARCHITECTURE.md`:** **Done 2026-10-15 (#183).** the whole harness in one document, each part with the reason it is
 built that way.
