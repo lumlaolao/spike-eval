@@ -14,7 +14,20 @@ floor.turns=108
 # without a row). The floor arm reaches that window 4 times and takes its usual
 # play(no-budget)->PASS, so 4 more auto rows are written: 1064 -> 1068. Same winner, same turns,
 # no game action changed. Re-pinned deliberately: ai=0 rows, silent drops=0.
-floor.decisions=1068
+# 2026-10-16: epochs 33/34 (#216 "say a spell on the stack is not yet resolved", #218 "counterspells
+# counter, announced values are asked") widened the play-menu windows the seat is offered, and both
+# landed while the canary stage could not run at all (the #219 parse break: every stage list died
+# after classpath on this machine's bash 3.2). The floor arm's game line is IDENTICAL (winner A,
+# 108 turns); its deterministic policy now answers far more play windows: 1068 -> 1804 decision
+# rows (1722 of them play rows), all tier=auto, 0 Forge-AI rows (the substring hits "Faithless"
+# /"stained" are text matches only), 0 silent drops, game not capped. Same counts on two runs
+# (OUT=runs/harness-acceptance/pr220-183730 and runs/harness-acceptance/repin-confirm2-185550).
+# Re-pinned deliberately.
+# Attribution bound: the gate did not parse from 21c6b9ba (merge of #182, 2026-10-15) until
+# 74013565, so no canary measured anything in between; epochs 33/34 are the named movers the
+# twice-validated head-tree counts are consistent with, not the proven exclusives of the shift.
+# linux.floor.* below are STALE for #216/#218 still; no Linux environment is available here.
+floor.decisions=1804
 random.seed=42
 # 2026-09-07: model-owned optional confirmations expose four previously silent AI
 # trigger choices to the random policy (first divergence: confirm-trigger, turn 15, decision 61).
@@ -59,9 +72,12 @@ random.seed=42
 # now holds a random subset 26 times in the game ("mana: keep untapped" lines), so its walk re-rolls:
 # winner B, 70 turns / 438 decisions. Reproduced twice (/tmp/acc-mana2, /tmp/acc-mana3). Floor
 # unchanged (never asked). linux.* random STALE.
+# 2026-10-16: the same two epochs re-rolled the random walk again (same #219 blind spot): stable at
+# winner B, 70 turns; decisions 438 -> 450, all tier=auto, 0 Forge-AI rows, 0 silent drops, game not
+# capped (two runs as the floor re-pin above). linux.* random below are STALE for #216/#218 still.
 random.winner=B
 random.turns=70
-random.decisions=438
+random.decisions=450
 # Silent Forge-AI strategic/payment hooks reachable in Legacy play (ControllerOwnershipTest baseline).
 # 2026-10-15: trigger targets and modes are the seat's (orderAndPlaySimultaneousSa, playTrigger
 # overridden; Forge AI's doTrigger chose every trigger target before). 3 -> 1.
