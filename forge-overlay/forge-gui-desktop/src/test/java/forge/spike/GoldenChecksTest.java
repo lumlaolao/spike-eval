@@ -352,6 +352,8 @@ public class GoldenChecksTest {
         Assert.assertEquals(model.prompts.size(), 1, "the seat was asked");
         Assert.assertTrue(me.getCardsIn(ZoneType.Command).isEmpty(), "no companion");
         Assert.assertTrue(me.getCardsIn(ZoneType.Sideboard).contains(lurrus), "Lurrus stays in the sideboard");
+    }
+
     /** A five-card hand is the seat's to keep or mulligan: the harness kept it on its own (runs/luna-std/g13). */
     @Test
     public void aFiveCardHandIsStillTheSeatsMulligan() {
