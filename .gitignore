@@ -48,3 +48,7 @@ data/cards/raw/
 # per-machine settings and worktrees are not.
 .claude/settings.local.json
 .claude/worktrees/
+
+# Puzzle baseline rollouts (eval/puzzle_baselines.py): regenerable scratch, hundreds of MB; the frozen
+# suite is committed under eval/suites/.
+runs/puzzles/

@@ -218,7 +218,7 @@ Done 2026-10-15:
 
 Left:
 
-13. The puzzle suite: in progress on `feat/puzzle-suite-finish` (merged with main, `eval/PUZZLES.md`,
+13. The puzzle suite: landed (`feat/puzzle-suite-finish`, `eval/PUZZLES.md`,
     `eval/test_puzzle_suite.py`, `puzzle_solve.py` for a model run with `--budget-usd`).
     - Source: Forge's 368 built-in puzzles whose goal Forge enforces, read where Forge ships them
       (most are third-party works, so they are not copied).
@@ -229,8 +229,9 @@ Left:
       seat was never told the puzzle's goal.
     - The first random pass hit the two-hour background limit at 285 of 368 and wrote nothing;
       `run` now saves after every puzzle and `--resume` continues a killed run.
-    - Left: finish random, then Forge's AI and the full arms; freeze
-      `eval/suites/puzzles-forge-builtin-v1.json`, then a small Luna run (cost first).
+    - Frozen 2026-10-16: `eval/suites/puzzles-forge-builtin-v1.json`, 34 puzzles of which 26 are active
+      (the free arms pass, first, floor, random and ai were run on the 30 verified puzzles; 8 dropped).
+    - Left: a small Luna run on the open split (cost first).
 14. ~~Commit `runs/combo/`.~~ Done.
 
 ## Engine patches where the seat has no hook (owner approved 2026-10-15; built, `docs/harness/ENGINE-PATCHES.md`)

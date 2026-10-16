@@ -18,6 +18,7 @@ import forge.GuiDesktop;
 import forge.game.Game;
 import forge.game.GameEndReason;
 import forge.game.GameRules;
+import forge.game.GameState;
 import forge.game.GameType;
 import forge.game.Match;
 import forge.game.phase.PhaseHandler;
@@ -388,7 +389,11 @@ public final class LlmSpikeFork {
                         sb.append('"').append(LlmSpikeGui.jsonEscape(options.get(i))).append('"');
                     }
                 }
-                sb.append("],\"snapshot\":\"").append(LlmSpikeGui.jsonEscape(snapshot)).append("\"}");
+                sb.append("],\"snapshot\":\"").append(LlmSpikeGui.jsonEscape(snapshot)).append('"');
+                // The position as a Forge puzzle [state] section (eval/PUZZLES.md): what
+                // eval/puzzle_build.py turns into a .pzl. Taken before the decision is applied.
+                appendPuzzleState(sb, pl);
+                sb.append('}');
                 LlmSpikeGui.EvalLog.write(sb.toString());
                 hitDesc[0] = "type=" + type + " seat=" + seat + " n_options=" + nOptions;
             } catch (Throwable t) {
@@ -426,6 +431,25 @@ public final class LlmSpikeFork {
         LlmSpikeGui.writeGameSummary(r.game, r.seed, r.durMs, r.capMs, true);
         System.out.println("[FORK] enumerate OK: wrote fork_enumerate at index " + targetIndex + " (" + hitDesc[0] + ")");
         System.exit(0);
+    }
+
+    /** Additive fork_enumerate fields for the puzzle builder: Forge's own state dump of the game at
+     *  this decision ({@code GameState.initFromGame}, the format .pzl [state] sections use), which
+     *  player index decided (the builder makes that seat p0, the puzzle solver), and whether the
+     *  position is one a puzzle can start from (the decider's own turn, empty stack). */
+    static void appendPuzzleState(StringBuilder sb, Player pl) {
+        try {
+            Game game = pl.getGame();
+            GameState gs = new GameState();
+            gs.initFromGame(game);
+            PhaseHandler ph = game.getPhaseHandler();
+            sb.append(",\"pzl_state\":\"").append(LlmSpikeGui.jsonEscape(gs.toString())).append('"')
+                    .append(",\"solver_index\":").append(game.getPlayers().indexOf(pl))
+                    .append(",\"own_turn\":").append(ph.getPlayerTurn() == pl)
+                    .append(",\"stack_empty\":").append(game.getStack().isEmpty());
+        } catch (Throwable t) {
+            sb.append(",\"pzl_state_error\":\"").append(LlmSpikeGui.jsonEscape(String.valueOf(t))).append('"');
+        }
     }
 
     // ==================== rollout mode ====================

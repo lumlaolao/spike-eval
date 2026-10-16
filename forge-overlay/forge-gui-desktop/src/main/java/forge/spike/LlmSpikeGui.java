@@ -398,6 +398,11 @@ public final class LlmSpikeGui {
      *  Null outside puzzle mode, so every non-puzzle run is byte-identical to before. */
     static volatile LobbyPlayer puzzleSolverSeat = null;
 
+    /** PZL axis: the puzzle's goal as its author wrote it (Forge's goal description: goal, turn limit,
+     *  and what the solver is told, such as the top cards of the library), stated in the solver's system
+     *  prompt in place of "win the game". Null outside puzzle mode. */
+    static volatile String puzzleBrief = null;
+
     /** True only for the seat {@link #puzzleSolverSeat} names. Identity comparison, not name
      *  equality: two seats may share a display name. */
     static boolean isPuzzleSolver(LobbyPlayer lp) {
@@ -1110,7 +1115,9 @@ public final class LlmSpikeGui {
             this.seat = seat;
             this.deckPlan = deckPlan;
             this.mode = mode == null || mode.isEmpty() ? "llm" : mode;
-            this.rnd = "random".equals(this.mode) ? new java.util.Random(MyRandom.getRandom().nextLong()) : null;
+            // The random arm and the other zero-model puzzle arms (PuzzleArms: script, pass, first) share
+            // the random arm's decision paths; each draws the same one long from MyRandom here.
+            this.rnd = PuzzleArms.isArm(this.mode) ? PuzzleArms.forMode(this.mode, MyRandom.getRandom().nextLong()) : null;
             this.smart = smartBridge;
             this.fast  = fastBridge;
             this.ctx = profile();
@@ -1138,6 +1145,9 @@ public final class LlmSpikeGui {
 
         /** Non-null under a faithful profile; tests use it to drive the live observer directly. */
         SeatObservation observer() { return observer; }
+
+        /** The zero-model arm's draw source (null for llm/floor); LlmSpikePuzzle reads its tape. */
+        java.util.Random armRandom() { return rnd; }
 
         // ---------------- candidate labels: one seam, two renderers ----------------
         // Faithful profile: every menu option is rendered by the observer, so what the model can pick
@@ -1471,8 +1481,14 @@ public final class LlmSpikeGui {
             String tools = MEMORY_TOOLS ? (nativeTools ? NativeTools.instructions() : ContextMemory.instructions())
                     : "You have no lookup tools: everything you need is in the message.\n";
             String answers = answerTool ? AnswerTool.instructions() : TEXT_ANSWERS;
-            return "You are playing Magic: The Gathering, " + formatName(format) + " format, as the player \"" + seat + "\" against one "
-                    + "opponent. Your goal is to win the game.\n\n"
+            String puzzle = puzzleBrief;
+            String opening = puzzle != null
+                    ? "You are solving a Magic: The Gathering puzzle as the player \"" + seat + "\" against one opponent. "
+                      + "The position below was set up by the puzzle's author; meet its goal within its turn limit, or you lose.\n\n"
+                      + "<puzzle>\n" + puzzle.trim() + "\n</puzzle>\n\n"
+                    : "You are playing Magic: The Gathering, " + formatName(format) + " format, as the player \"" + seat
+                      + "\" against one opponent. Your goal is to win the game.\n\n";
+            return opening
                     // PLAN_A=""/PLAN_B="" (and DECKLIST=0) give an arm with no deck information.
                     + (plan == null || plan.isEmpty() ? "" : "<your_deck>\n" + plan.trim() + "\n</your_deck>\n\n")
                     + "<how_this_works>\n"
@@ -1483,8 +1499,10 @@ public final class LlmSpikeGui {
                     + tools + answers
                     + "</how_this_works>\n\n"
                     + "<reading_the_state>\n" + SeatObservation.GUIDE + "</reading_the_state>\n"
-                    // The reference describes the Legacy pool's archetypes; it is not shown for another format.
-                    + (coaching && "legacy".equals(format) ? "\n<legacy_reference>\n" + LEGACY_REFERENCE + "</legacy_reference>\n" : "");
+                    // The reference describes the Legacy pool's archetypes; it is not shown for another format, nor for a
+                    // puzzle's hand-built position.
+                    + (coaching && puzzle == null && "legacy".equals(format)
+                            ? "\n<legacy_reference>\n" + LEGACY_REFERENCE + "</legacy_reference>\n" : "");
         }
         /** How a decision is answered when it is answered in text (ANSWER_TOOL=0, or a backend without
          *  function calling). */
@@ -1680,7 +1698,7 @@ public final class LlmSpikeGui {
             if (rnd != null) {
                 int n = options.size() + (noneLabel != null ? 1 : 0);
                 if (n == 0) return -1;
-                int c = rnd.nextInt(n);
+                int c = PuzzleArms.pick(rnd, n, noneLabel != null);
                 int res = c >= options.size() ? -1 : c;
                 if (type != null) evalDec(type, options.size(), res, tierOf(b == smart), System.currentTimeMillis() - t0, null, options);
                 return res;
@@ -1750,10 +1768,10 @@ public final class LlmSpikeGui {
             if (rnd != null) {
                 List<Integer> all = new ArrayList<>();
                 for (int i = 0; i < options.size(); i++) all.add(i);
-                java.util.Collections.shuffle(all, rnd);
+                PuzzleArms.shuffle(all, rnd);
                 int lo = Math.max(0, min), hi = Math.min(max, options.size());
                 if (hi < lo) return null;
-                List<Integer> res = new ArrayList<>(all.subList(0, lo + (hi > lo ? rnd.nextInt(hi - lo + 1) : 0)));
+                List<Integer> res = new ArrayList<>(all.subList(0, PuzzleArms.subsetSize(rnd, lo, hi)));
                 lastPicks = res;
                 if (type != null) evalDec(type, options.size(), res.size(), tierOf(b == smart), System.currentTimeMillis() - t0, null, options);
                 return res;
@@ -3079,7 +3097,7 @@ public final class LlmSpikeGui {
                     return "LOOKAHEAD (option " + which + "): " + preview;
                 };
                 AnswerTool.Answer playAnswer = null;  // the tool answer, when the play was answered by a call
-                if (rnd != null) choice = 1 + rnd.nextInt(passIdx); // random arm: uniform incl. PASS
+                if (rnd != null) choice = 1 + PuzzleArms.pick(rnd, passIdx, true); // random arm: uniform incl. PASS (last)
                 for (int attempt = 0; rnd == null && attempt < 2 && choice < 1; attempt++) {
                     String prompt = (attempt == 0
                             ? playPromptPrefix(snapshot(), phh.getPhase(), ownMain, menuStr)
