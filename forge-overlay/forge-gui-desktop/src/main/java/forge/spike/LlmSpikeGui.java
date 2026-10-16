@@ -229,8 +229,9 @@ public final class LlmSpikeGui {
      *  Epoch 32 (2026-10-16, combo lines): a payment asked mid-way (an any-colour source) keeps the AI memory it uses, so
      *  the second Lotus Petal pays (Ad Nauseam); a mana ability with a cost beyond tapping (Lion's Eye Diamond, Spirit
      *  Guides) is on the menu; storm copies' new targets are the seat's and the copies are called copies; exile and an
-     *  unordered graveyard are not ordered; a preview plays an alternative cost and holds the stack (lookahead-preview-v8). */
-    static final String HARNESS_EPOCH = "harness-epoch-32";
+     *  unordered graveyard are not ordered; a preview plays an alternative cost and holds the stack (lookahead-preview-v8).
+     *  Epoch 33 (2026-10-16): the stack says "not yet resolved", not "pending" (observation-faithful-v33). */
+    static final String HARNESS_EPOCH = "harness-epoch-33";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats

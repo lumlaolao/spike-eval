@@ -82,7 +82,7 @@ final class SeatObservation {
      *  text, every seen opponent card and every reveal, and uncapped known-in-hidden-zones and zone trails.
      *  v32 (2026-10-16): mana available counts a colour the card decides (Chrome Mox's imprinted colours, a
      *  chosen colour) as the engine reads it; ability text names the card, not CARDNAME (runs/c3 T7, T11). */
-    static final String VERSION = "observation-faithful-v32";
+    static final String VERSION = "observation-faithful-v33";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
      *  Every section named here is one {@link #render} prints. */
@@ -1132,7 +1132,9 @@ final class SeatObservation {
         try {
             int n = game.getStack().size();
             if (n == 0) return "(empty)";
-            StringBuilder b = new StringBuilder(n + " pending: ");
+            // Not "pending": with its own Duress here, Luna read "1 pending" as a choice it was owed (C3 ANT, T3).
+            StringBuilder b = new StringBuilder(n + " not yet resolved (" + (n == 1 ? "it resolves" : "the top one resolves")
+                    + " when both players pass in a row): ");
             int idx = n;
             boolean first = true;
             for (SpellAbilityStackInstance si : game.getStack()) {
