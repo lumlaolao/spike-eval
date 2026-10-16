@@ -728,7 +728,7 @@ if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] in log")
 # Every decision goes through the call (owner, 2026-10-15): no tool ask may offer a text answer.
 import re
 TEXT_FORMAT=re.compile(r"\b(?:CHOICE|PICKS|BLOCKS|ALLOC|ATTACKS|ATTACKERS|SIMULATE|STEPS|YIELD|PROFILE|LINES|NUMBER|CARD):\s*<"
-    r"|`(?:PLAN|STEPS|YIELD|PROFILE|LINES|SIMULATE|CHOICE|PICKS|CARD|NUMBER):|(?:[Ee]nd|[Rr]eply|[Aa]nswer) with (?:EXACTLY|exactly)"
+    r"|\x60(?:PLAN|STEPS|YIELD|PROFILE|LINES|SIMULATE|CHOICE|PICKS|CARD|NUMBER):|(?:[Ee]nd|[Rr]eply|[Aa]nswer) with (?:EXACTLY|exactly)"
     r"|KEEP or MULLIGAN|instead of an action, you may reply")
 asks=[r for r in rows if r.get("t")=="context_call" and not r.get("round")]
 leaks=[m.group() for r in asks for m in [TEXT_FORMAT.search(r.get("prompt") or "")] if m]

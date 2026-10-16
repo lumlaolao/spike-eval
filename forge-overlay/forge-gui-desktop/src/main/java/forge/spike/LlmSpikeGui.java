@@ -4359,6 +4359,11 @@ public final class LlmSpikeGui {
         /** A trigger that resolves without using the stack: the same seat targeting, then the engine plays it. */
         @Override
         public boolean playTrigger(Card host, forge.game.trigger.WrappedAbility wrapperAbility, boolean isMandatory) {
+            // An optional one (isMandatory false: a decider exists, e.g. Snowfall's static TapsForMana) is
+            // a "may" the seat decides — asked here like confirmTrigger asks it when a normal trigger
+            // resolves, because a static trigger never reaches a stack item and WrappedAbility.resolve.
+            // The seat used to be handed every static as if it had already said yes.
+            if (!isMandatory && !confirmTrigger(wrapperAbility)) return false;
             if (!prepareTrigger(wrapperAbility)) return false;
             return playNoStack(wrapperAbility.getActivatingPlayer(), wrapperAbility, true);
         }
@@ -4748,6 +4753,15 @@ public final class LlmSpikeGui {
             // replacement internals or mutate the affected object while answering it.
             return optionalDecision("confirm-replacement", effectSA,
                     question == null ? "Apply this optional replacement effect?" : question);
+        }
+
+        /** BidLife's invitation to top the high bid (BidLifeEffect asks every player each round). The
+         *  human is asked (InputConfirm); not overridden, it inherited Forge's AI, whose rule
+         *  (!self, life > bid + 5) decided in the seat's place with no question. */
+        @Override
+        public boolean confirmBidAction(SpellAbility sa, PlayerActionConfirmMode mode, String message,
+                int bid, Player winner) {
+            return confirmAction(sa, mode, message, null, null, null);
         }
 
         @Override
