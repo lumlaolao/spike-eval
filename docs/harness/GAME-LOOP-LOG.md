@@ -482,3 +482,17 @@ on Elusive Otter through two counterspells.
 - WORKS  the mana-source keep question, 11 times; once the keep set could not pay {6}{W}{W}, was asked again,
   and the second set was trimmed to what could pay (logged as a fallback).
 - OPEN   two asks took 3 attempts; one provider stream cut off and was retried.
+
+### game of 2026-10-16  seed 91  Modern UrzaTron (GPT-6 Luna) vs Modern UR Cutter Prowess (Forge AI)  LOST T11  $0.03  harness-epoch-26
+
+`runs/luna-modern/g11`, on the merged #202/#204 build. 35 model decisions by `answer` call; TAKEN 0, LOST 0,
+SKIP 0; 0 Forge-AI decisions; analyzer PASS.
+- WORKS  the mana line from the engine: Tron read "{C:9} up to 9 mana ... Urza's Tower makes 3", Ugin's Labyrinth
+  "makes 2", Eldrazi Temple's mana listed apart as only for some spells; the seat cast Devourer "using the Eldrazi
+  Temple's restricted mana, then Karn with the remaining unrestricted mana".
+- FIXED  a question's title read "[Devourer of Destiny (48)'s Effect]" (T2, LEAK): the questions named cards by the
+  engine's raw name. One name function now serves every question. Test `aQuestionNamesAnEffectWithoutItsEngineId`.
+- FIXED  the seat announced X = 1 for Kozilek's Command (T6), then chose its modes "as X is 0": the mode and target
+  questions did not say X. They do now. Test `theModeAndTargetQuestionsSayTheAnnouncedX`.
+- OPEN   three asks took 2-3 attempts (T10, 67 s lost).
+

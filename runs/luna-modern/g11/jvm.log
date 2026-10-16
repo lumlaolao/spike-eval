@@ -1,0 +1,493 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=46097 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 34086 files in 0 ms (25 parts) using thread pool
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 857 files in 0 ms (8 parts) using thread pool
+[SEED] 91
+[EVAL] jsonl game-91-1792110722606.jsonl
+[PLAN] sidecar -> /tmp/claude-0/prov/eval/decks/modern-urzatron.plan
+[PLAN] sidecar -> /tmp/claude-0/prov/eval/decks/modern-ur-cutter-prowess.plan
+[DECK] loaded 'Seat': 60 main, 15 sideboard  (/tmp/claude-0/prov/eval/decks/modern-urzatron.txt)
+[DECK] loaded 'Rival': 60 main, 15 sideboard  (/tmp/claude-0/prov/eval/decks/modern-ur-cutter-prowess.txt)
+[SEATS] A=Seat(llm,openrouter:openai/gpt-6-luna) B=Rival(ai,openrouter:openai/gpt-6-luna)
+[Seat] [OBSERVATION] observation-faithful-v31 (profile v4-faithful/32000b031500)
+[HEADLESS] game starting (cap=45min)
+[Seat] [ROUTER] mulligan: 2/7 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10480 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: KEEP
+[OPENROUTER Seat/smart] replied in 4743 ms with 2 tool call(s)
+[Seat] [ROUTER] plan: GOAL: Assemble Tron or leverage Eldrazi Temple/Labyrinth acceleration into large colorless threats while disrupting the opponent. NEXT: Reveal Devourer; use its upkeep selection to find acceleration or a strong follow-up, then prioritize completing Tron or accelerating a threat.
+[OPENROUTER Seat/smart] replied in 12259 ms with 1 tool call(s)
+[Seat] [ROUTER] choose-entity: Expedition Map {1} @10 [Library, yours] [Devourer of Destiny (48)'s Effect]
+[Seat] [TALLY] smart=3 fast=0 auto=0 ai=0 textParses=0 avgSmart=9160ms avgFast=9160ms
+[Seat] [ROUTER] play(main): 0 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5760 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Assemble Tron or use Eldrazi acceleration for large colorless threats while disrupting the opponent. NEXT: Play Urza's Tower now; seek Mine and Power Plant, then leverage Karn, Sowing Mycospawn, or Ugin while holding interaction as needed.
+[OPENROUTER Seat/smart] replied in 2035 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Urza's Tower
+[Seat] [TALLY] smart=5 fast=0 auto=0 ai=0 textParses=0 avgSmart=7055ms avgFast=7055ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7248 ms with 2 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Assemble Tron quickly and deploy powerful colorless threats while disrupting the opponent. NEXT: Cast Expedition Map now. On turn 3, play Eldrazi Temple and use Tower plus Temple to activate Map for a missing Urza land; use remaining mana where possible.
+[Seat] [ROUTER] lines: Expedition Map + Urza's Tower -> find a missing Tron land. Ugin's Labyrinth + Ulamog, the Ceaseless Hunger -> exile Ulamog to make Labyrinth tap for two colorless, then recover Ulamog later. Karn, the Great Creator + Trinisphere -> fetch Trinisphere from outside the game to constrain cheap spells.
+[Seat] [ROUTER] play: casts Expedition Map @15 {1} [Expedition Map]
+Steam Vents Did not have activator set in SpellAbility_Condition.checkConditions()
+Steam Vents Did not have activator set in SpellAbility_Condition.checkConditions()
+Steam Vents Did not have activator set in SpellAbility_Condition.checkConditions()
+Steam Vents Did not have activator set in SpellAbility_Condition.checkConditions()
+Steam Vents Did not have activator set in SpellAbility_Condition.checkConditions()
+Steam Vents Did not have activator set in SpellAbility_Condition.checkConditions()
+Steam Vents Did not have activator set in SpellAbility_Condition.checkConditions()
+Steam Vents Did not have activator set in SpellAbility_Condition.checkConditions()
+Steam Vents Did not have activator set in SpellAbility_Condition.checkConditions()
+Steam Vents Did not have activator set in SpellAbility_Condition.checkConditions()
+Steam Vents Did not have activator set in SpellAbility_Condition.checkConditions()
+Steam Vents Did not have activator set in SpellAbility_Condition.checkConditions()
+[Seat] [TALLY] smart=6 fast=0 auto=0 ai=0 textParses=0 avgSmart=7087ms avgFast=7087ms
+[Seat] [ROUTER] play(main): 0 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8519 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Eldrazi Temple
+[Seat] [TALLY] smart=7 fast=0 auto=0 ai=0 textParses=0 avgSmart=7292ms avgFast=7292ms
+[Seat] [ROUTER] play(main): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8259 ms with 2 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Assemble Tron quickly, then deploy large colorless threats while stabilizing against Izzet prowess. NEXT: Activate Expedition Map for Urza's Mine now; play it next turn if possible, then find/play Urza's Power Plant and use Kozilek's Command or large threats to control the board.
+[Seat] [ROUTER] profile: Likely Izzet prowess/tempo: Swiftspear with cantrips and burn; respect fast damage and removal/burn spells.
+[Seat] [ROUTER] play: activates Expedition Map @23 [{2}, {T}, Sacrifice Expedition Map: Search your library for a land card, reveal it, put it into your hand, then shuffle.]
+[OPENROUTER Seat/smart] replied in 9608 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Assemble Tron quickly, then deploy large colorless threats while stabilizing against Izzet prowess. NEXT: Take Urza's Power Plant with Map and play it next turn; seek Urza's Mine afterward to complete Tron, then use Kozilek's Command or major threats to control the board.
+[OPENROUTER Seat/smart] replied in 1938 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: Urza's Power Plant @38 [Library, yours] -> Hand [Expedition Map]
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 14770 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Stabilize against Izzet prowess while completing Tron and deploying a major threat. NEXT: Cast Kozilek's Command for X=0 to draw a card; play Urza's Power Plant, then use available mana/removal to survive and develop Tron.
+[OPENROUTER Seat/smart] replied in 2751 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 7267 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Stabilize against Izzet prowess by removing a cheap attacker, then develop Tron and deploy a major threat. NEXT: Cast Kozilek's Command for X=1, choosing draw and exile the mana-value-1 Swiftspear; play Urza's Power Plant, then use available mana to advance or hold up interaction.
+[OPENROUTER Seat/smart] replied in 1962 ms with 1 tool call(s)
+[Seat] [ROUTER] X = 1 for Kozilek's Command @22 {X}{C}{C} [Choose two — • Target player creates X 0/1 colorless Eldrazi Spawn creature tokens with "Sacrifice this creature: Add {C}." • Target player scries X, then draws a card. • Exile target creature with mana value X or less. • Exile up to X target cards from graveyards.]
+[OPENROUTER Seat/smart] replied in 9010 ms with 1 tool call(s)
+[Seat] [ROUTER] modes: Target player creates X 0/1 colorless Eldrazi Spawn creature tokens with "Sacrifice this creature: Add {C}." + Target player scries X, then draws a card.
+[OPENROUTER Seat/smart] replied in 11660 ms with 1 tool call(s)
+[Seat] [ROUTER] target: you (Seat) <- Kozilek's Command @22 in your HAND [Target player creates X 0/1 colorless Eldrazi Spawn creature tokens with "Sacrifice this creature: Add {C}."]
+[OPENROUTER Seat/smart] replied in 5243 ms with 1 tool call(s)
+[Seat] [ROUTER] target: you (Seat) <- Kozilek's Command @22 in your HAND [Target player scries X, then draws a card.]
+[Seat] [ROUTER] play: casts Kozilek's Command @22 {X}{C}{C} [Choose two — • Target player creates X 0/1 colorless Eldrazi Spawn creature tokens with "Sacrifice this creature: Add {C}." • Target player scries X, then draws a card. • Exile target creature with mana value X or less. • Exile up to X target cards from graveyards.]
+[OPENROUTER Seat/smart] replied in 5705 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Stabilize against Izzet prowess while assembling Tron; the scryed Mine completes the missing land trio. NEXT: Keep Urza's Mine on top so Kozilek's Command draws it; play Urza's Power Plant this turn, then use Spawn mana/develop as possible. Next turn play Mine and leverage Tron for a threat or removal.
+[OPENROUTER Seat/smart] replied in 2167 ms with 1 tool call(s)
+[Seat] [ROUTER] scry: keep-on-top Urza's Mine; -> BOTTOM of your library x0
+[Seat] [TALLY] smart=19 fast=0 auto=0 ai=0 textParses=0 avgSmart=6914ms avgFast=6914ms
+[Seat] [ROUTER] play(main): 0 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5751 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Urza's Power Plant
+[Seat] [TALLY] smart=20 fast=0 auto=0 ai=0 textParses=0 avgSmart=6856ms avgFast=6856ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7224 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Stabilize against Izzet prowess while completing Tron and deploying a major threat. NEXT: Cast one Talisman using the untapped Power Plant and Spawn; then untap next turn, play the known-top Urza's Mine, and use Tron mana for Karn/removal or a threat based on the board.
+[OPENROUTER Seat/smart] replied in 1816 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Talisman of Resilience @4 {2} [Talisman of Resilience]
+[Seat] [TALLY] smart=22 fast=0 auto=0 ai=0 textParses=0 avgSmart=6644ms avgFast=6644ms
+[Seat] [ROUTER] play(main): 2 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 13856 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Complete Tron and use Karn to stabilize against the prowess flyers. NEXT: Play Urza's Mine, then cast Karn and animate the existing Talisman so it can block a ground attacker; preserve life against the incoming flying damage.
+[OPENROUTER Seat/smart] replied in 2276 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Urza's Mine
+[Seat] [TALLY] smart=24 fast=0 auto=0 ai=0 textParses=0 avgSmart=6762ms avgFast=6762ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 19856 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Devourer of Destiny 6/6 @1 5{C}{C} [Devourer of Destiny - Creature 6 / 6]
+[OPENROUTER Seat/smart] replied in 13151 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 1 for CAST Devourer of Destiny 6/6 @93 5{C}{C} [Devourer of Destiny - Creature 6 / 6]
+[OPENROUTER Seat/smart] replied in 5558 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Slickshot Show-Off 1/2 [tapped] [flying, haste] @78 [Battlefield, opponent's] <- Devourer of Destiny 6/6 @93 [When you cast this spell, exile target permanent that's one or more colors. [Card: Devourer of Destiny @93, Activator: Seat, SpellAbility: Devourer of Destiny - Creature 6 / 6]]
+[Seat] [TALLY] smart=27 fast=0 auto=0 ai=0 textParses=0 avgSmart=7439ms avgFast=7439ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8334 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Talisman of Resilience @5 {2} [Talisman of Resilience]
+[Seat] [ROUTER] blockers: 4 atk / 1 blk -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7667 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 6828 ms with 1 tool call(s)
+[Seat] [ROUTER] blockers: assigned 1
+[Seat] [ROUTER] damage-assign: all 6 -> Monastery Swiftspear (forced)
+[Seat] [TALLY] smart=30 fast=0 auto=0 ai=0 textParses=0 avgSmart=7456ms avgFast=7456ms
+[Seat] [ROUTER] play(main): 3 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 33278 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Izzet prowess/tempo with Slickshot Show-Off, Swiftspear, and likely burn/cantrips; respect flyers and direct damage.
+[Seat] [ROUTER] play: casts Ulamog, the Ceaseless Hunger 10/10 @7 {10} [Ulamog, the Ceaseless Hunger - Creature 10 / 10]
+[OPENROUTER Seat/smart] replied in 11271 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Resolve Ulamog to exile both Slickshot Show-Offs and survive the opponent's next turn; then use the large Eldrazi threat to close the game. NEXT: Keep Urza's Tower untapped through the payment if possible. Let Ulamog's cast trigger exile the two flying Show-Offs; next turn assess the board and attack with Ulamog.
+[OPENROUTER Seat/smart] replied in 2083 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 17167 ms with 2 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Resolve Ulamog, exile the two Slickshot Show-Offs with its cast trigger, and survive at 1 life. NEXT: Leave one Talisman untapped while paying for Ulamog. Use the cast trigger on both Slickshots; after resolution, assess whether the remaining Swiftspear presents lethal or whether another defense is needed.
+[Seat] [ROUTER] mana: keep untapped 1 for CAST Ulamog, the Ceaseless Hunger 10/10 @101 {10} [Ulamog, the Ceaseless Hunger - Creature 10 / 10]
+[OPENROUTER Seat/smart] replied in 5175 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Urza's Tower [tapped] @19 (was @6) [Battlefield, yours] <- Ulamog, the Ceaseless Hunger 10/10 @101 [When you cast this spell, exile two target permanents. [Card: Ulamog, the Ceaseless Hunger @101, Activator: Seat, SpellAbility: Ulamog, the Ceaseless Hunger - Creature 10 / 10]]
+[Seat] [TALLY] smart=35 fast=0 auto=0 ai=0 textParses=0 avgSmart=8362ms avgFast=8362ms
+[Seat] [ROUTER] play(main): 0 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 13105 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Ugin's Labyrinth
+[Seat] [TALLY] smart=36 fast=0 auto=0 ai=0 textParses=0 avgSmart=8493ms avgFast=8493ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] unparseable native turn: {"id":"gen-1792111031-PRJfsk57NaBZNJHIKuq0","error":{"message":"upstream connect error or...
+[Seat] [BRIDGE Seat/smart] no reply (attempt 2/3) -> restarting session, retrying in 500ms
+[OPENROUTER Seat/smart] replied in 51435 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Try to survive Rival's next turn and attack for lethal with Ulamog if possible. NEXT: Do not waste Ugin's Labyrinth's return ability; pass priority and retain the chance to respond if Rival casts a burn spell or other relevant spell. On their combat, block a ground attacker with Devourer if available.
+[OPENROUTER Seat/smart] replied in 2385 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[OPENROUTER Seat/smart] unparseable native turn: {"id":"gen-1792111102-Zoz7py2JPwKW5xlMvh9A","error":{"message":"upstream connect error or...
+[Seat] [BRIDGE Seat/smart] no reply (attempt 2/3) -> restarting session, retrying in 500ms
+[OPENROUTER Seat/smart] replied in 5006 ms with 1 tool call(s)
+[Seat] [ROUTER] confirm-trigger [Ugin's Labyrinth]: YES
+[OPENROUTER Seat/smart] replied in 14141 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: Ulamog, the Ceaseless Hunger {10} 10/10 @86 [Hand, yours] -> Exile [Ugin's Labyrinth]
+[Seat] [TALLY] smart=40 fast=0 auto=0 ai=0 textParses=0 avgSmart=9468ms avgFast=9468ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 20748 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] unparseable native turn: {"id":"gen-1792111167-KtfM8xUSEeAkAIv2AnD0","error":{"message":"upstream connect error or...
+[Seat] [BRIDGE Seat/smart] no reply (attempt 2/3) -> restarting session, retrying in 500ms
+[OPENROUTER Seat/smart] replied in 4009 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Devourer of Destiny
+[Seat] [TALLY] smart=42 fast=0 auto=0 ai=0 textParses=0 avgSmart=9607ms avgFast=9607ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7171 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 25745 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Survive Rival's turn at 1 life, then attack for lethal with Ulamog and Devourer if possible. NEXT: Pass upkeep priority; preserve Ugin's Labyrinth and respond to any spell that could change combat or deal damage. On combat, block a ground attacker with Devourer if that helps, while recognizing the two flyers are the immediate threat.
+[OPENROUTER Seat/smart] replied in 2061 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8204 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Ugin's Labyrinth @105 [{T}: Return the exiled card to its owner's hand.]
+========== GAME OVER ==========
+outcome: B after 11 turns (AllOpponentsLost) in 517s
+--- full game log ---
+  MULLIGAN: Rival has kept a hand of 7 cards
+  MULLIGAN: Seat has kept a hand of 7 cards
+  TURN: Turn 1 (Rival)
+  PHASE: Rival's Untap step
+  PHASE: Rival's Upkeep step
+  PHASE: Rival's Draw step
+  PHASE: Rival's Main phase, precombat
+  EFFECT_REPLACED: Thundering Falls enters tapped.
+  LAND: Rival played Thundering Falls (128)
+  STACK_ADD: Rival triggered Thundering Falls
+  STACK_RESOLVE: Rival surveiled 1 card(s) to the graveyard
+  STACK_RESOLVE: When Thundering Falls enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Thundering Falls (128)]
+  PHASE: Rival's Beginning of Combat Step
+  PHASE: Rival's Declare Attackers Step
+  PHASE: Rival's Declare Blockers Step
+  PHASE: Rival's First Strike Damage Step
+  PHASE: Rival's Combat Damage Step
+  PHASE: Rival's End of Combat Step
+  PHASE: Rival's Main phase, postcombat
+  PHASE: Rival's End step
+  PHASE: Rival's Cleanup step
+  TURN: Turn 2 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  STACK_ADD: Seat triggered Devourer of Destiny (48)'s Effect
+  STACK_RESOLVE: At the beginning of your first upkeep, look at the top four cards of your library. You may put one of those cards back on top of your library. Exile the rest. [Phase: Seat]
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Urza's Tower (6)
+  MANA: Urza's Tower (6) - {T}: Add {C}. If you control an Urza's Mine and an Urza's Power-Plant, add {C}{C}{C} instead.
+  STACK_ADD: Seat cast Expedition Map
+  STACK_RESOLVE: Expedition Map
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 3 (Rival)
+  PHASE: Rival's Untap step
+  PHASE: Rival's Upkeep step
+  PHASE: Rival's Draw step
+  PHASE: Rival's Main phase, precombat
+  LAND: Rival played Scalding Tarn (112)
+  LIFE: Life: Rival 20 > 19
+  ZONE_CHANGE: Scalding Tarn (112) was put into Graveyard from Battlefield.
+  STACK_ADD: Rival activated Scalding Tarn
+  EFFECT_REPLACED: As Steam Vents enters, you may pay 2 life. If you don't, it enters tapped.
+  STACK_RESOLVE: Scalding Tarn (112) - Rival searches their library for an Island or Mountain card, puts it onto the battlefield, then shuffles.
+  MANA: Thundering Falls (128) - {T}: Add {R}.
+  STACK_ADD: Rival cast Monastery Swiftspear
+  STACK_RESOLVE: Monastery Swiftspear - Creature 1 / 2
+  PHASE: Rival's Beginning of Combat Step
+  PHASE: Rival's Declare Attackers Step
+  COMBAT: Rival assigned Monastery Swiftspear (83) to attack Seat.
+  PHASE: Rival's Declare Blockers Step
+  COMBAT: Seat didn't block Monastery Swiftspear (83).
+  PHASE: Rival's First Strike Damage Step
+  PHASE: Rival's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (83) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 20 > 19
+  PHASE: Rival's End of Combat Step
+  PHASE: Rival's Main phase, postcombat
+  PHASE: Rival's End step
+  PHASE: Rival's Cleanup step
+  TURN: Turn 4 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Eldrazi Temple (2)
+  MANA: Eldrazi Temple (2) - {T}: Add {C}.
+  MANA: Urza's Tower (6) - {T}: Add {C}. If you control an Urza's Mine and an Urza's Power-Plant, add {C}{C}{C} instead.
+  ZONE_CHANGE: Expedition Map (40) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat activated Expedition Map
+  STACK_RESOLVE: Expedition Map (40) - Seat searches their library for a land card, reveals it, puts it into their hand, then shuffles.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 5 (Rival)
+  PHASE: Rival's Untap step
+  PHASE: Rival's Upkeep step
+  PHASE: Rival's Draw step
+  PHASE: Rival's Main phase, precombat
+  LAND: Rival played Arid Mesa (92)
+  LIFE: Life: Rival 19 > 18
+  ZONE_CHANGE: Arid Mesa (92) was put into Graveyard from Battlefield.
+  STACK_ADD: Rival activated Arid Mesa
+  EFFECT_REPLACED: As Steam Vents enters, you may pay 2 life. If you don't, it enters tapped.
+  STACK_RESOLVE: Arid Mesa (92) - Rival searches their library for a Mountain or Plains card, puts it onto the battlefield, then shuffles.
+  MANA: Thundering Falls (128) - {T}: Add {R}.
+  MANA: Steam Vents (117) - {T}: Add {R}.
+  STACK_ADD: Rival cast Slickshot Show-Off
+  STACK_RESOLVE: Slickshot Show-Off - Creature 1 / 2
+  PHASE: Rival's Beginning of Combat Step
+  PHASE: Rival's Declare Attackers Step
+  COMBAT: Rival assigned Monastery Swiftspear (83) and Slickshot Show-Off (87) to attack Seat.
+  PHASE: Rival's Declare Blockers Step
+  COMBAT: Seat didn't block Monastery Swiftspear (83).
+Seat didn't block Slickshot Show-Off (87).
+  LIFE: Life: Rival 18 > 16
+  STACK_ADD: Rival cast Mutagenic Growth targeting [Slickshot Show-Off (87)]
+  STACK_ADD: Rival triggered Monastery Swiftspear
+  STACK_ADD: Rival triggered Slickshot Show-Off
+  STACK_RESOLVE: Whenever you cast a noncreature spell, Slickshot Show-Off gets +2/+0 until end of turn. [Card: Mutagenic Growth (101), Activator: Rival, SpellAbility: Target creature gets +2/+2 until end of turn.]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Mutagenic Growth (101), Activator: Rival, SpellAbility: Target creature gets +2/+2 until end of turn.]
+  STACK_RESOLVE: Mutagenic Growth (101) - Slickshot Show-Off (87) gets +2/+2  until end of turn.
+  PHASE: Rival's First Strike Damage Step
+  PHASE: Rival's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (83) deals 2 combat damage to Seat.
+  DAMAGE: Slickshot Show-Off (87) deals 5 combat damage to Seat.
+  LIFE: Life: Seat 19 > 12
+  PHASE: Rival's End of Combat Step
+  PHASE: Rival's Main phase, postcombat
+  PHASE: Rival's End step
+  PHASE: Rival's Cleanup step
+  TURN: Turn 6 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  MANA: Eldrazi Temple (2) - {T}: Add {C}{C}. Spend this mana only to cast colorless Eldrazi spells or activate abilities of colorless Eldrazi.
+  MANA: Urza's Tower (6) - {T}: Add {C}. If you control an Urza's Mine and an Urza's Power-Plant, add {C}{C}{C} instead.
+  STACK_ADD: Seat cast Kozilek's Command
+  STACK_RESOLVE: Seat scried 1 card(s) to the top of the library
+  STACK_RESOLVE: Kozilek's Command (32) -  Target player creates X 0/1 colorless Eldrazi Spawn creature tokens with "Sacrifice this creature: Add {C}." (Targeting: Seat) Target player scries X, then draws a card. (Targeting: Seat) Seat draws a card. (X=1)
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Urza's Power Plant (23)
+  MANA: Urza's Power Plant (23) - {T}: Add {C}. If you control an Urza's Mine and an Urza's Tower, add {C}{C} instead.
+  ZONE_CHANGE: Eldrazi Spawn Token (153) was put into Graveyard from Battlefield.
+  MANA: Eldrazi Spawn Token (153) - Sacrifice Eldrazi Spawn Token: Add {C}.
+  STACK_ADD: Seat cast Talisman of Resilience
+  STACK_RESOLVE: Talisman of Resilience
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 7 (Rival)
+  PHASE: Rival's Untap step
+  PHASE: Rival's Upkeep step
+  PHASE: Rival's Draw step
+  PHASE: Rival's Main phase, precombat
+  MANA: Thundering Falls (128) - {T}: Add {R}.
+  MANA: Steam Vents (117) - {T}: Add {R}.
+  STACK_ADD: Rival cast Slickshot Show-Off
+  STACK_RESOLVE: Slickshot Show-Off - Creature 1 / 2
+  MANA: Steam Vents (118) - {T}: Add {U}.
+  STACK_ADD: Rival cast Preordain
+  STACK_ADD: Rival triggered Monastery Swiftspear
+  STACK_ADD: Rival triggered Slickshot Show-Off
+  STACK_ADD: Rival triggered Slickshot Show-Off
+  STACK_RESOLVE: Whenever you cast a noncreature spell, Slickshot Show-Off gets +2/+0 until end of turn. [Card: Preordain (121), Activator: Rival, SpellAbility: Scry 2, then draw a card. (To scry 2, look at the top two cards of your library, then put any number of them on the bottom and the rest on top in any order.) ]
+  STACK_RESOLVE: Whenever you cast a noncreature spell, Slickshot Show-Off gets +2/+0 until end of turn. [Card: Preordain (121), Activator: Rival, SpellAbility: Scry 2, then draw a card. (To scry 2, look at the top two cards of your library, then put any number of them on the bottom and the rest on top in any order.) ]
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Preordain (121), Activator: Rival, SpellAbility: Scry 2, then draw a card. (To scry 2, look at the top two cards of your library, then put any number of them on the bottom and the rest on top in any order.) ]
+  STACK_RESOLVE: Rival scried 2 card(s) to the bottom of the library
+  STACK_RESOLVE: Preordain (121) - Rival scries 2. Rival draws a card.
+  PHASE: Rival's Beginning of Combat Step
+  PHASE: Rival's Declare Attackers Step
+  COMBAT: Rival assigned Slickshot Show-Off (87), Slickshot Show-Off (88) and Monastery Swiftspear (83) to attack Seat.
+  PHASE: Rival's Declare Blockers Step
+  COMBAT: Seat didn't block Slickshot Show-Off (87).
+Seat didn't block Slickshot Show-Off (88).
+Seat didn't block Monastery Swiftspear (83).
+  PHASE: Rival's First Strike Damage Step
+  PHASE: Rival's Combat Damage Step
+  DAMAGE: Slickshot Show-Off (87) deals 3 combat damage to Seat.
+  DAMAGE: Slickshot Show-Off (88) deals 3 combat damage to Seat.
+  DAMAGE: Monastery Swiftspear (83) deals 2 combat damage to Seat.
+  LIFE: Life: Seat 12 > 4
+  PHASE: Rival's End of Combat Step
+  PHASE: Rival's Main phase, postcombat
+  PHASE: Rival's End step
+  PHASE: Rival's Cleanup step
+  TURN: Turn 8 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Urza's Mine (29)
+  MANA: Eldrazi Temple (2) - {T}: Add {C}{C}. Spend this mana only to cast colorless Eldrazi spells or activate abilities of colorless Eldrazi.
+  MANA: Talisman of Resilience (55) - {T}: Add {C}.
+  MANA: Urza's Power Plant (23) - {T}: Add {C}. If you control an Urza's Mine and an Urza's Tower, add {C}{C} instead.
+  MANA: Urza's Mine (29) - {T}: Add {C}. If you control an Urza's Power-Plant and an Urza's Tower, add {C}{C} instead.
+  STACK_ADD: Seat cast Devourer of Destiny
+  STACK_ADD: Seat triggered Devourer of Destiny targeting [Slickshot Show-Off (87)]
+  ZONE_CHANGE: Slickshot Show-Off (87) was put into Exile from Battlefield.
+  STACK_RESOLVE: When you cast this spell, exile target permanent that's one or more colors. (Targeting: [[Slickshot Show-Off (87)]]) [Card: Devourer of Destiny (48), Activator: Seat, SpellAbility: Devourer of Destiny - Creature 6 / 6]
+  STACK_RESOLVE: Devourer of Destiny - Creature 6 / 6
+  MANA: Urza's Tower (6) - {T}: Add {C}. If you control an Urza's Mine and an Urza's Power-Plant, add {C}{C}{C} instead.
+  STACK_ADD: Seat cast Talisman of Resilience
+  STACK_RESOLVE: Talisman of Resilience
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 9 (Rival)
+  PHASE: Rival's Untap step
+  PHASE: Rival's Upkeep step
+  PHASE: Rival's Draw step
+  PHASE: Rival's Main phase, precombat
+  MANA: Thundering Falls (128) - {T}: Add {R}.
+  MANA: Steam Vents (117) - {T}: Add {R}.
+  STACK_ADD: Rival cast Slickshot Show-Off
+  STACK_RESOLVE: Slickshot Show-Off - Creature 1 / 2
+  MANA: Steam Vents (118) - {T}: Add {R}.
+  STACK_ADD: Rival cast Monastery Swiftspear
+  STACK_RESOLVE: Monastery Swiftspear - Creature 1 / 2
+  PHASE: Rival's Beginning of Combat Step
+  PHASE: Rival's Declare Attackers Step
+  COMBAT: Rival assigned Monastery Swiftspear (83), Slickshot Show-Off (88), Slickshot Show-Off (89) and Monastery Swiftspear (85) to attack Seat.
+  PHASE: Rival's Declare Blockers Step
+  COMBAT: Seat assigned Devourer of Destiny (48) to block Monastery Swiftspear (83).
+Seat didn't block Slickshot Show-Off (88).
+Seat didn't block Slickshot Show-Off (89).
+Seat didn't block Monastery Swiftspear (85).
+  PHASE: Rival's First Strike Damage Step
+  PHASE: Rival's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (83) deals 1 damage to Devourer of Destiny (48).
+  DAMAGE: Slickshot Show-Off (88) deals 1 combat damage to Seat.
+  DAMAGE: Slickshot Show-Off (89) deals 1 combat damage to Seat.
+  DAMAGE: Monastery Swiftspear (85) deals 1 combat damage to Seat.
+  DAMAGE: Devourer of Destiny (48) deals 6 damage to Monastery Swiftspear (83).
+  LIFE: Life: Seat 4 > 1
+  ZONE_CHANGE: Monastery Swiftspear (83) was put into Graveyard from Battlefield.
+  PHASE: Rival's End of Combat Step
+  PHASE: Rival's Main phase, postcombat
+  PHASE: Rival's End step
+  PHASE: Rival's Cleanup step
+  TURN: Turn 10 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  MANA: Eldrazi Temple (2) - {T}: Add {C}{C}. Spend this mana only to cast colorless Eldrazi spells or activate abilities of colorless Eldrazi.
+  MANA: Urza's Tower (6) - {T}: Add {C}. If you control an Urza's Mine and an Urza's Power-Plant, add {C}{C}{C} instead.
+  MANA: Urza's Power Plant (23) - {T}: Add {C}. If you control an Urza's Mine and an Urza's Tower, add {C}{C} instead.
+  MANA: Urza's Mine (29) - {T}: Add {C}. If you control an Urza's Power-Plant and an Urza's Tower, add {C}{C} instead.
+  MANA: Talisman of Resilience (55) - {T}: Add {C}.
+  STACK_ADD: Seat cast Ulamog, the Ceaseless Hunger
+  STACK_ADD: Seat triggered Ulamog, the Ceaseless Hunger targeting [Urza's Tower (6), Eldrazi Temple (2)]
+  ZONE_CHANGE: Urza's Tower (6) was put into Exile from Battlefield.
+  ZONE_CHANGE: Eldrazi Temple (2) was put into Exile from Battlefield.
+  STACK_RESOLVE: When you cast this spell, exile two target permanents. (Targeting: [[Urza's Tower (6), Eldrazi Temple (2)]]) [Card: Ulamog, the Ceaseless Hunger (10), Activator: Seat, SpellAbility: Ulamog, the Ceaseless Hunger - Creature 10 / 10]
+  STACK_RESOLVE: Ulamog, the Ceaseless Hunger - Creature 10 / 10
+  LAND: Seat played Ugin's Labyrinth (11)
+  STACK_ADD: Seat triggered Ugin's Labyrinth
+  STACK_RESOLVE: Imprint — When Ugin's Labyrinth enters, you may exile a colorless card with mana value 7 or greater from your hand. [Zone Changer: Ugin's Labyrinth (11)]
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Devourer of Destiny (48) to attack Rival.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: Rival didn't block Devourer of Destiny (48).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Devourer of Destiny (48) deals 6 combat damage to Rival.
+  LIFE: Life: Rival 16 > 10
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 11 (Rival)
+  PHASE: Rival's Untap step
+  PHASE: Rival's Upkeep step
+  PHASE: Rival's Draw step
+  MANA: Thundering Falls (128) - {T}: Add {R}.
+  STACK_ADD: Rival cast Lava Dart targeting [Seat]
+  STACK_ADD: Rival triggered Slickshot Show-Off
+  STACK_ADD: Rival triggered Slickshot Show-Off
+  STACK_ADD: Rival triggered Monastery Swiftspear
+  STACK_ADD: Seat activated Ugin's Labyrinth
+  STACK_RESOLVE: Ugin's Labyrinth (11) - Put  in its owner's hand.
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Lava Dart (125), Activator: Rival, SpellAbility: Lava Dart deals 1 damage to any target.]
+  STACK_RESOLVE: Whenever you cast a noncreature spell, Slickshot Show-Off gets +2/+0 until end of turn. [Card: Lava Dart (125), Activator: Rival, SpellAbility: Lava Dart deals 1 damage to any target.]
+  STACK_RESOLVE: Whenever you cast a noncreature spell, Slickshot Show-Off gets +2/+0 until end of turn. [Card: Lava Dart (125), Activator: Rival, SpellAbility: Lava Dart deals 1 damage to any target.]
+  DAMAGE: Lava Dart (125) deals 1 non-combat damage to Seat.
+  LIFE: Life: Seat 1 > 0
+  STACK_RESOLVE: Lava Dart (125) - Lava Dart (125) deals 1 damage to Seat.
+  PLAYER_CONTROL: Seat has restored control over themself
+  PLAYER_CONTROL: Rival has restored control over themself
+  GAME_OUTCOME: Match Duration 8m : 21s
+  GAME_OUTCOME: Turn 6
+  GAME_OUTCOME: Seat has lost because life total reached 0
+  GAME_OUTCOME: Rival has won because all opponents have lost
+  MATCH_RESULTS: Seat: 0 Rival: 1 
+===============================

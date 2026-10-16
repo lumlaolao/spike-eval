@@ -215,8 +215,10 @@ public final class LlmSpikeGui {
      *  Epoch 24: a target question's trigger text is redacted; an optional target declined is the seat's decision.
      *  Epoch 25: mana available is the engine's mana per source, not a count of sources (observation-faithful-v30).
      *  Epoch 26: each block names its source (engine, Forge game log, the seat's notes); the opponent's casts and
-     *  land drops come from engine events, not log wording (observation-faithful-v31). */
-    static final String HARNESS_EPOCH = "harness-epoch-26";
+     *  land drops come from engine events, not log wording (observation-faithful-v31).
+     *  Epoch 27: questions name cards without engine ids (one name function); mode and target questions say the
+     *  announced X. */
+    static final String HARNESS_EPOCH = "harness-epoch-27";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -1185,14 +1187,25 @@ public final class LlmSpikeGui {
             try {
                 Card h = sa.getHostCard();
                 String text = flat(h.getOracleText());
-                return " [" + h.getName() + (text.isEmpty() ? "" : ": " + text) + "]" + targetNote(sa, getPlayer());
+                return " [" + safeName(h) + (text.isEmpty() ? "" : ": " + text) + "]" + targetNote(sa, getPlayer());
             } catch (Exception e) { return srcOf(sa); }
         }
         /** {@link #srcAsk} for an ask the engine hands a card instead of an ability. */
         private String cardAsk(Card h) {
             if (h == null) return "";
             String text = flat(h.getOracleText());
-            return " [" + h.getName() + (text.isEmpty() ? "" : ": " + text) + "]";
+            return " [" + safeName(h) + (text.isEmpty() ? "" : ": " + text) + "]";
+        }
+        /** " (you announced X = 1)" once X is announced for {@code sa}'s spell: the mode and target questions come
+         *  after X, and without it the seat chose Kozilek's Command's modes as if X were 0 (runs/luna-modern/g11, T6). */
+        static String xNote(SpellAbility sa) {
+            try {
+                SpellAbility root = sa.getRootAbility();
+                if (root.getPayCosts() == null || root.getPayCosts().getCostMana() == null
+                        || root.getPayCosts().getCostMana().getAmountOfX() == 0) return "";
+                Integer x = root.getXManaCostPaid();
+                return x == null ? "" : " (you announced X = " + x + ")";
+            } catch (Exception e) { return ""; }
         }
         String labelOf(SpellAbility sa) {
             if (observer == null || sa.getHostCard() == null) return saLabel(sa);
@@ -1346,7 +1359,7 @@ public final class LlmSpikeGui {
             try {
                 observer.recordNotice(forge.util.MessageUtil.formatNotificationMessage(sa, getPlayer(), relatedTarget, value));
             } catch (Exception e) {
-                try { observer.recordNotice((sa == null || sa.getHostCard() == null ? "" : sa.getHostCard().getName() + ": ") + value); }
+                try { observer.recordNotice((sa == null || sa.getHostCard() == null ? "" : safeName(sa.getHostCard()) + ": ") + value); }
                 catch (Exception ignore) { }
             }
         }
@@ -2136,7 +2149,7 @@ public final class LlmSpikeGui {
                     if (b.length() > 0) b.append(" | ");
                     b.append('#').append(idx--);
                     try {
-                        b.append(' ').append(sa.getHostCard() != null ? sa.getHostCard().getName() : String.valueOf(sa));
+                        b.append(' ').append(sa.getHostCard() != null ? safeName(sa.getHostCard()) : String.valueOf(sa));
                     } catch (Exception e) { b.append(" ?"); }
                     try {
                         Player who = sa.getActivatingPlayer();
@@ -3136,7 +3149,7 @@ public final class LlmSpikeGui {
                         if (askPlan && attempt == 0 && ta.steps != null)
                             for (int n : ta.steps) {
                                 String host = null;
-                                try { host = options.get(n - 1).getHostCard().getName(); } catch (Exception ignore) { }
+                                try { host = safeName(options.get(n - 1).getHostCard()); } catch (Exception ignore) { }
                                 if (host != null) planSteps.add(host);
                             }
                         if (askLines && attempt == 0) {
@@ -3496,7 +3509,7 @@ public final class LlmSpikeGui {
                     return true;
                 }
                 if (cands.size() > 1 && okFor("targets")) {
-                    String q = "Choose the TARGET for " + labelOf(sa) + " (the spell/ability resolves against whatever you pick).";
+                    String q = "Choose the TARGET for " + labelOf(sa) + xNote(sa) + " (the spell/ability resolves against whatever you pick).";
                     int c = decideOne(bridgeFor("targets"), "targets", q, labels, min == 0 ? "No target (decline)" : null);
                     // bridge dead -> the same deterministic path as an unparsed reply (decline when
                     // optional, else the plan-named or first candidate). It used to be Forge's AI.
@@ -3603,7 +3616,7 @@ public final class LlmSpikeGui {
                         // type=null here -> decideOne never logs internally (incl. its decline branch), so
                         // EVERY exit from this call, including the "optional -> no target" one below, must be
                         // logged by us or it vanishes with zero jsonl/log trace (the exact C5 double-failure shape).
-                        int c = decideOne(bridgeFor("target"), null, "Choose the TARGET for " + labelOf(sa)
+                        int c = decideOne(bridgeFor("target"), null, "Choose the TARGET for " + labelOf(sa) + xNote(sa)
                                 + " (the spell/ability resolves against whatever you pick).", labels,
                                 sa.getMinTargets() == 0 ? "No target" : null);
                         if (c == -1 && sa.getMinTargets() == 0) {
@@ -5055,11 +5068,11 @@ public final class LlmSpikeGui {
                     return defPick;
                 }
                 List<String> labels = new ArrayList<>();
-                String host = sa.getHostCard() == null ? "" : sa.getHostCard().getName();
+                String host = sa.getHostCard() == null ? "" : safeName(sa.getHostCard());
                 for (AbilitySub ab : possible)
                     labels.add(observer != null ? fit(ab.getDescription()).replace("CARDNAME", host).replace("NICKNAME", host) : oneLine(ab.getDescription()));
                 if (allowRepeat) {
-                    List<Integer> rp = decideModesRepeat(smart, "MODAL SPELL — choose mode(s) for " + labelOf(sa)
+                    List<Integer> rp = decideModesRepeat(smart, "MODAL SPELL — choose mode(s) for " + labelOf(sa) + xNote(sa)
                             + " (you may choose the same mode more than once).", labels, Math.max(0, min), num);
                     if (rp == null || rp.size() < min) {
                         List<AbilitySub> defPick = defaultModes(possible, min, num, true);
@@ -5072,7 +5085,7 @@ public final class LlmSpikeGui {
                     p("[ROUTER] modes(repeat): " + log);
                     return out;
                 }
-                List<Integer> picks = decideMany(smart, "modes", "MODAL SPELL — choose mode(s) for " + labelOf(sa) + ".",
+                List<Integer> picks = decideMany(smart, "modes", "MODAL SPELL — choose mode(s) for " + labelOf(sa) + xNote(sa) + ".",
                         labels, Math.max(0, min), Math.min(num, possible.size()));
                 // decideMany's null covers BOTH bridge-down and still-unparseable-after-retry — same
                 // deterministic legal default as the no-budget branch above, never Forge AI.
@@ -5560,8 +5573,10 @@ public final class LlmSpikeGui {
             catch (Exception ignore) { }
             return out;
         }
-        private static String safeName(Card c) {
-            try { return c == null ? "?" : c.getName(); } catch (Exception e) { return "?"; }
+        /** A card's name in a question: the engine's, without an engine id (Forge names an effect
+         *  "Devourer of Destiny (48)'s Effect", runs/luna-modern/g11). A face-down card keeps the engine's empty name. */
+        static String safeName(Card c) {
+            try { return c == null ? "?" : SeatObservation.withoutEngineId(c, c.getName()); } catch (Exception e) { return "?"; }
         }
         /** "A > B > C" summary of an ordered card sequence (null-safe). */
         private static String orderSummary(Iterable<Card> cards) {
@@ -6670,7 +6685,7 @@ public final class LlmSpikeGui {
             } catch (Exception e) { return ""; }
         }
         private static String srcOf(SpellAbility sa) {
-            try { return sa != null && sa.getHostCard() != null ? " [" + sa.getHostCard().getName() + "]" : ""; }
+            try { return sa != null && sa.getHostCard() != null ? " [" + safeName(sa.getHostCard()) + "]" : ""; }
             catch (Exception e) { return ""; }
         }
         /** Shared candidate label for EVERY target/entity option list (chooseSingleEntityForEffect,
@@ -6712,7 +6727,7 @@ public final class LlmSpikeGui {
             return e.getName();
         }
         private static String saLabel(SpellAbility sa) {
-            String host = sa.getHostCard() != null ? sa.getHostCard().getName() : "?";
+            String host = sa.getHostCard() != null ? safeName(sa.getHostCard()) : "?";
             String cost = "";
             try {
                 String mc = sa.getHostCard() != null ? costStr(sa.getHostCard()) : null;
@@ -6817,7 +6832,7 @@ public final class LlmSpikeGui {
             List<String> names = new ArrayList<>();
             for (SpellAbility sa : options) {
                 String n = null;
-                try { n = sa.getHostCard() == null ? null : sa.getHostCard().getName(); } catch (Exception ignore) { }
+                try { n = sa.getHostCard() == null ? null : safeName(sa.getHostCard()); } catch (Exception ignore) { }
                 names.add(n);
             }
             return planStepIndex(names, step);
@@ -7201,7 +7216,7 @@ public final class LlmSpikeGui {
         static String playKey(SpellAbility sa) {
             if (sa == null) return "|null|";
             String host = "?";
-            try { host = sa.getHostCard() != null ? sa.getHostCard().getName() : "?"; } catch (Exception ignore) { }
+            try { host = sa.getHostCard() != null ? safeName(sa.getHostCard()) : "?"; } catch (Exception ignore) { }
             String api = "?";
             try { api = sa.getApi() != null ? sa.getApi().toString() : "?"; } catch (Exception ignore) { }
             String desc = "";
