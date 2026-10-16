@@ -931,6 +931,38 @@ public class GoldenChecksTest {
         Assert.assertEquals(rival.getCardsIn(ZoneType.Hand).size(), 0, "the blue kicker it chose");
     }
 
+    /** Pay extra for flash (Rout): on the opponent's turn the sorcery is offered with that cost, and only with it. */
+    @Test
+    public void payingForFlashCastsASorceryOnTheOpponentsTurn() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Plains", "Plains", "Plains", "Plains", "Plains", "Plains", "Plains");
+        card("Rout", me, ZoneType.Hand);
+        card("Grizzly Bears", rival, ZoneType.Battlefield);
+        LineFindingProbeTest.rivalCasts(g, "Ponder", null);   // the rival's turn, with something to respond to
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Rout"));
+        playAndResolve(seat(g, model, model), g, "Rout with flash");
+        Assert.assertFalse(has(rival, ZoneType.Battlefield, "Grizzly Bears"), "Rout resolved on the opponent's turn");
+        Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.matches("(?s).*\\d\\) CAST Rout[^\\n]*\\(Flash\\).*")), "the option names the flash cost");
+    }
+
+    @Test
+    public void promisingAGiftIsTheSeats() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Island", "Island", "Island", "Island", "Island");
+        card("Archival Whorl", me, ZoneType.Hand);
+        for (int i = 0; i < 10; i++) { card("Island", me, ZoneType.Library); card("Island", rival, ZoneType.Library); }
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Archival Whorl"))
+                .on("optional additional costs", p -> "PICKS: 1");
+        playAndResolve(seat(g, model, model), g, "Archival Whorl, gift promised");
+        Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.contains("optional additional costs") && q.contains("Gift")), "the gift was offered");
+        // The promise reached the engine: the opponent got the gift. (The card's "if the gift wasn't promised" draw is
+        // Forge's script: ConditionPresent$ Card.PromisedGift counts the battlefield, where the spell never is, so that
+        // branch runs whatever is promised, for every player. Not the seat's; card scripts are not patched.)
+        Assert.assertTrue(has(rival, ZoneType.Battlefield, "Rhystic Study"), "the opponent got the gift: " + rival.getCardsIn(ZoneType.Battlefield));
+    }
+
     @Test
     public void impendingEntersAsANonCreature() {
         Game g = bareGame(PhaseType.MAIN1);
