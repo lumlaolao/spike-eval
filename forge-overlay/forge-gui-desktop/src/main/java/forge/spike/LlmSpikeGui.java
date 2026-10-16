@@ -217,8 +217,9 @@ public final class LlmSpikeGui {
      *  Epoch 26: each block names its source (engine, Forge game log, the seat's notes); the opponent's casts and
      *  land drops come from engine events, not log wording (observation-faithful-v31).
      *  Epoch 27: questions name cards without engine ids (one name function); mode and target questions say the
-     *  announced X. */
-    static final String HARNESS_EPOCH = "harness-epoch-27";
+     *  announced X.
+     *  Epoch 28: a mulligan at five cards or fewer is the seat's (the floor only with MULLIGAN_HEURISTIC=1). */
+    static final String HARNESS_EPOCH = "harness-epoch-28";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -2477,9 +2478,9 @@ public final class LlmSpikeGui {
             CardCollectionView hand = player.getCardsIn(ZoneType.Hand);
             int lands = CardLists.filter(hand, CardPredicates.LANDS).size();
             int size = hand.size();
-            // HARD FLOOR: never spiral below 5 cards. A functional 5-card hand beats mulliganing to oblivion —
-            // this is the guardrail against a model that likes to ship every imperfect hand.
-            if (size <= 5) {
+            // The 5-card floor is a harness shortcut like the land heuristic below: on only with MULLIGAN_HEURISTIC=1.
+            // By default a mulligan at any size is the seat's (runs/luna-std/g13: the harness kept a 1-land five).
+            if (MULL_HEURISTIC && size <= 5) {
                 p("[ROUTER] mulligan: FLOOR keep (" + lands + "/" + size + ")");
                 evalDec("mulligan", 2, 0, "auto", 0, "mulligan(floor-keep " + lands + "/" + size + ")",
                         java.util.Arrays.asList("KEEP", "MULLIGAN"));
@@ -2494,7 +2495,7 @@ public final class LlmSpikeGui {
                         java.util.Arrays.asList("KEEP", "MULLIGAN"));
                 return true;
             }
-            // Only the extremes (0-1 lands, or 5+ = flood) reach the model, and only above the 5-card floor.
+            // With MULLIGAN_HEURISTIC=1 only the extremes (0-1 lands, or 5+ = flood) above five cards reach the model.
             if (!smartOk()) { auto("mulligan(no-model)->KEEP"); return true; } // deterministic legal, not the AI
             StringBuilder n = new StringBuilder();
             for (Card c : hand) { if (n.length() > 0) n.append(", "); n.append(c.getName()); }

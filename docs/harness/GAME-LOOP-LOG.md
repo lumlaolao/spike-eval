@@ -496,3 +496,21 @@ SKIP 0; 0 Forge-AI decisions; analyzer PASS.
   questions did not say X. They do now. Test `theModeAndTargetQuestionsSayTheAnnouncedX`.
 - OPEN   three asks took 2-3 attempts (T10, 67 s lost).
 
+### game of 2026-10-16  seed 92  Pauper Mono-Blue Delver (GPT-6 Luna) vs Pauper Madness Burn (Forge AI)  WON T11  $0.02  harness-epoch-27
+
+`runs/luna-pauper/g12`. 44 model decisions by `answer` call; TAKEN 0, LOST 0, SKIP 0; 0 Forge-AI decisions;
+analyzer PASS.
+- WORKS  the known library top and the shuffle note: the seat declined Ponder's shuffle "to preserve Brainstorm as
+  the known top card", and later kept Lórien Revealed uncycled "rather than shuffle away" a known Deep Analysis.
+- noted  95 forced `static-order` rows (one legal order each): recorded, not decided for the seat.
+
+### game of 2026-10-16  seed 93  Standard Boros Dragons (GPT-6 Luna) vs Standard Mono-Green Landfall (Forge AI)  WON T14  $0.03  harness-epoch-27
+
+`runs/luna-std/g13`. 50 model decisions by `answer` call; TAKEN 0, LOST 0, SKIP 0; 0 Forge-AI decisions; analyzer
+PASS.
+- FIXED  after two mulligans the harness kept a one-land five on its own ("mulligan(floor-keep 1/5)"): a hard floor
+  that never asked the seat below six cards. It is now a measurement switch like the land heuristic
+  (`MULLIGAN_HEURISTIC=1`); by default the seat decides at any size. Test `aFiveCardHandIsStillTheSeatsMulligan`.
+  The README also said these switches default to on; they have been off since 2026-10-15.
+- clean  Sacred Foundry and Multiversal Passage life payments, warp, Burst Lightning double-up on a 4/4, attacks.
+

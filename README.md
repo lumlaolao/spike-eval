@@ -122,7 +122,7 @@ the classic instant-speed action window). `[TALLY]` prints running `avgSmart`/`a
 | `SMART_MODEL_A/B`, `FAST_MODEL_A/B` | inherit `SMART_MODEL`/`FAST_MODEL` | per-seat models for A/B comparisons |
 | `CONTROLLER_A/B` | `llm` | baseline arms: `random` (uniform over the same legal menus), `floor` (deterministic fallbacks only — measures the harness's own strength), `ai` (pure Forge AI) |
 | `EVAL_OUT` | off | directory for per-decision + game-summary JSONL (the eval dataset) |
-| `MULLIGAN_HEURISTIC` / `SKIP_HEURISTICS` | 1 | set `0` for confound-free eval runs (model owns all mulligans / no free-pass shortcuts) |
+| `MULLIGAN_HEURISTIC` / `SKIP_HEURISTICS` | 0 | `1` turns a harness shortcut back on, for measurement only: keep a 2-4 land opener and any hand of five or fewer without asking / free-pass shortcuts. Off, the model owns every mulligan and pass |
 | `GAME_CAP_MS` | 3h (headless) | wall-clock cap; a capped game is recorded **invalid**, never a draw |
 | `CHECKPOINT_SHA` | `unknown` | identity of the weights under test, stamped on the game line. Set it via `run_batch.py --checkpoint <path-or-tag>` rather than by hand |
 | `SEED_BANK` | `unregistered` | which declared band (`eval/seed_registry.json`) the seeds came from; `run_batch.py` sets it |
