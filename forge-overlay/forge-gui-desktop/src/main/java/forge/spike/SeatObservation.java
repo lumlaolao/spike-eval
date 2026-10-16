@@ -1150,7 +1150,7 @@ final class SeatObservation {
                 if (known) {
                     // Redacted like every engine message: "Aether Vial (4) - ..." carried the engine id 4, and
                     // the seat read it as four charge counters (runs/luna-v9/g5, T7).
-                    String d = redactIds(engineNotesOut(LlmSpikeGui.flat(si.getStackDescription())));
+                    String d = redactIds(LlmSpikeGui.flat(engineNotesOut(si.getStackDescription(), si.getSpellAbility())));
                     if (d != null && !d.isEmpty()) b.append(": ").append(d);
                     String copies = copiesMade(si);
                     if (!copies.isEmpty()) b.append(" -> ").append(copies);
@@ -1162,10 +1162,14 @@ final class SeatObservation {
         } catch (Exception e) { return "?"; }
     }
 
-    /** Forge's notes on a trigger, for its own debugging: "[Card: Tendrils of Agony (7), Activator: Seat,
-     *  SpellAbility: ...]", "[Zone Changer: Chrome Mox (18)]". The card and its text are already in the line. */
-    static String engineNotesOut(String d) {
-        return d == null ? null : d.replaceAll("\\s*\\[[A-Z][A-Za-z ]*: [^\\[\\]]*\\]", "").trim();
+    /** A trigger's text without the note Forge appends for its own debugging, " [" + the trigger's important stack
+     *  objects + "]" (WrappedAbility.getStackDescription): "[Card: Tendrils of Agony (7), Activator: Seat, SpellAbility:
+     *  ...]", "[Zone Changer: Chrome Mox (18)]". The card and its text are already in the line. */
+    static String engineNotesOut(String d, forge.game.spellability.SpellAbility sa) {
+        try {
+            String note = d == null || sa == null || sa.getTrigger() == null ? "" : sa.getTrigger().getImportantStackObjects(sa);
+            return note.isEmpty() ? d : d.replace(" [" + note + "]", "");
+        } catch (Exception e) { return d; }
     }
 
     /** "makes N copies" for a copy effect on the stack (storm, Twincast), N as the engine counts it now. */

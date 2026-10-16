@@ -309,6 +309,7 @@ public class GoldenChecksTest {
         card("Lotus Petal", me, ZoneType.Hand);
         card("Lotus Petal", me, ZoneType.Hand);
         card("Tendrils of Agony", me, ZoneType.Hand);
+        card("Dark Ritual", me, ZoneType.Hand);
         String[] next = {"CAST Lotus Petal"};
         Script model = new Script("CHOICE: 1")
                 .on("You have priority", p -> choice(next[0]).apply(p))
@@ -324,16 +325,20 @@ public class GoldenChecksTest {
             ctrl.playChosenSpellAbility(r.get(0));
             g.getTriggerHandler().runWaitingTriggers();
             g.getStack().addAllTriggeredAbilitiesToStack();
-            if (play.contains("Tendrils")) stackLine[0] = stackLineFor(g, me);
+            if (play.contains("Tendrils")) {
+                stackLine[0] = stackLineFor(g, me);
+                // The seat holds priority over its storm trigger (a Dark Ritual in hand): that ask's state is linted too.
+                next[0] = "PASS";
+                Assert.assertNull(ctrl.chooseSpellAbilityToPlay(), "the seat passed over its storm trigger");
+                Assert.assertTrue(model.prompts.get(model.prompts.size() - 1).contains("makes 2 copies"), "the ask shows the trigger");
+            }
             while (!g.getStack().isEmpty()) {
                 g.getStack().resolveStack();
                 g.getStack().addAllTriggeredAbilitiesToStack();
             }
         }
-        // The storm trigger says what it does, from the engine's own count, with no engine note in it.
+        // The storm trigger says what it does, from the engine's own count (AskContract keeps Forge's notes out of the ask).
         Assert.assertTrue(stackLine[0].contains("trigger of Tendrils of Agony") && stackLine[0].contains("makes 2 copies"), stackLine[0]);
-        for (String note : new String[] {"Activator:", "SpellAbility:", "Card:", "Zone Changer:"})
-            Assert.assertFalse(stackLine[0].contains(note), "an engine note on the stack: " + stackLine[0]);
         // The two copies are the same until each gets its target, so there is no order to choose.
         Assert.assertTrue(model.prompts.stream().noneMatch(q -> q.contains("go on the stack at the same time")),
                 "the seat was asked to order identical copies: " + model.prompts.stream().filter(q -> q.contains("go on the stack at the same time")).map(q -> q.substring(q.lastIndexOf("DECISION:"))).findFirst().orElse(""));

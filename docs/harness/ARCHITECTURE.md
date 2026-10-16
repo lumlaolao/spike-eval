@@ -383,6 +383,14 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
    - It never touches the Forge checkout.
 2. **Golden checks:** every decision type the seat owns, through the live controller, in both the text
    and the tool protocol.
+   - Every prompt a golden check asks is linted (`AskContract`): no CARDNAME, no engine card id, no Forge
+     debugging note on a trigger (the label words come from the engine's own localizer), no option cut short.
+   - Acceptance stage `surfaces` (2026-10-16): the Java tests record, for each decision row, the engine hooks
+     on its call stack (`-Dharness.surface.report`, off in play). Every hook the ledger marks as a decision
+     the seat answers (`controller-ownership.tsv`, kind strategic or payment) must have been reached with the
+     model asked. The ones not yet proven are listed in `eval/surface_gaps.txt`, which may only shrink.
+   - *Why measured, not listed by hand:* a hand-kept map says which test should reach a hook; the record says
+     which test did. A per-type list let a hook that only ever took forced picks look covered.
 3. **Optional live-model checks (`eval/test_live_answer_tool.py`, `LIVE_MODEL_TESTS=1`, about a cent):**
    - short real chats with the game model on fixed decisions, using the real `answer` function and the
      per-model `tool_choice`;
