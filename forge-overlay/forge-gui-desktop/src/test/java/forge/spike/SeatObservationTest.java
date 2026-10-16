@@ -229,14 +229,60 @@ public class SeatObservationTest {
     @Test
     public void repeatedOpponentPlayIsSurfacedAsRecurring() {
         Game g = world(new String[] {"Thoughtseize"}, new String[] {"Entomb"});
+        Player rival = g.getPlayers().get(1);
         SeatObservation o = observerFor(g, 0);
-        g.getGameLog().add(GameLogEntryType.STACK_ADD, "Rival cast Chain Lightning.");
-        g.getGameLog().add(GameLogEntryType.STACK_ADD, "Rival cast Chain Lightning.");
-        g.getGameLog().add(GameLogEntryType.STACK_ADD, "Rival cast Lava Spike.");
+        cast(g, rival, "Chain Lightning");
+        cast(g, rival, "Chain Lightning");
+        cast(g, rival, "Lava Spike");
         o.capture();
         String r = render(o, "");
         Assert.assertTrue(r.contains("RECURRING (cast 2+ times): Chain Lightning x2"), r);
         Assert.assertFalse(r.contains("Lava Spike x"), r);
+    }
+
+    /** The opponent's casts and land drops come from the engine's events, not from the log's wording: a log
+     *  line that says "cast" is not a cast, a copy is not cast (CR 707.10), and a face-down spell stays hidden. */
+    @Test
+    public void castsAndLandDropsComeFromEngineEventsNotLogWording() {
+        Game g = world(new String[0], new String[0]);
+        Player rival = g.getPlayers().get(1);
+        SeatObservation o = observerFor(g, 0);
+        g.getGameLog().add(GameLogEntryType.STACK_ADD, "Rival cast Lightning Bolt.");
+        cast(g, rival, "Brainstorm");
+        Card copy = cast(g, rival, "Brainstorm", true);
+        Card morph = onStack(g, rival, "Exalted Angel");
+        forge.game.spellability.SpellAbility msa = morph.getFirstSpellAbility();
+        msa.setActivatingPlayer(rival);
+        morph.turnFaceDown(true);
+        g.fireEvent(new forge.game.event.GameEventSpellAbilityCast(msa,
+                new forge.game.spellability.SpellAbilityStackInstance(msa), 0));
+        Card land = card("Mountain", rival, ZoneType.Battlefield);
+        g.fireEvent(new forge.game.event.GameEventLandPlayed(rival.getView(), land.getView()));
+        o.capture();
+        String r = render(o, "");
+        Assert.assertTrue(copy.isCopiedSpell());
+        Assert.assertTrue(r.contains("CAST THIS GAME: Brainstorm, a face-down spell"), r);
+        Assert.assertFalse(r.contains("Lightning Bolt") || r.contains("Exalted Angel"), r);
+        Assert.assertTrue(r.contains("LANDS PLAYED: Mountain"), r);
+    }
+
+    /** A card of {@code who}'s in the game's stack zone (the stack is not a player's zone). */
+    static Card onStack(Game g, Player who, String name) {
+        Card c = card(name, who, ZoneType.Hand);
+        who.getZone(ZoneType.Hand).remove(c);
+        g.getStackZone().add(c);
+        return c;
+    }
+
+    /** Puts {@code name} on the stack as {@code who}'s spell and fires the engine's cast event. */
+    static Card cast(Game g, Player who, String name) { return cast(g, who, name, false); }
+    static Card cast(Game g, Player who, String name, boolean copy) {
+        Card c = onStack(g, who, name);
+        if (copy) c.setGamePieceType(forge.card.GamePieceType.COPIED_SPELL);
+        forge.game.spellability.SpellAbility sa = c.getFirstSpellAbility();
+        sa.setActivatingPlayer(who);
+        g.fireEvent(new forge.game.event.GameEventSpellAbilityCast(sa, new forge.game.spellability.SpellAbilityStackInstance(sa), 0));
+        return c;
     }
 
     /** INSPECT answers "what happened to this?" — the object's zone history, which is the object-level
@@ -471,28 +517,6 @@ public class SeatObservationTest {
         Assert.assertTrue(h.contains("Rival casts a hidden card"), h);
     }
 
-    /**
-     * REVIEW DEFECT 2. render()'s CAST THIS GAME / LANDS PLAYED used the legacy raw-log castHistory,
-     * which bypasses redaction. It must come from the seat stream instead. The legacy path strips only
-     * a trailing engine id and would print the hidden card's name; the stream redacts it.
-     */
-    @Test
-    public void castHistoryIsSourcedFromTheRedactedStreamNotTheRawLog() {
-        Game g = world(new String[] {"Thoughtseize"}, new String[0]);
-        Player rival = g.getPlayers().get(1);
-        Card hidden = rival.getCardsIn(ZoneType.Hand).get(0);          // Thoughtseize, hidden
-        Card hiddenLand = card("Marsh Flats", rival, ZoneType.Hand);   // hidden, name matches its id
-        SeatObservation o = observerFor(g, 0);
-        g.getGameLog().add(GameLogEntryType.STACK_ADD, "Rival cast Thoughtseize (" + hidden.getId() + ")");
-        g.getGameLog().add(GameLogEntryType.LAND, "Rival played Marsh Flats (" + hiddenLand.getId() + ")");
-        o.capture();
-        String r = render(o, eventsText(o));
-        Assert.assertFalse(r.contains("Thoughtseize"), "cast history leaked a hidden card's name:\n" + r);
-        Assert.assertFalse(r.contains("Marsh Flats"), "land history leaked a hidden card's name:\n" + r);
-        Assert.assertTrue(r.contains("CAST THIS GAME: a hidden card"), r);
-        Assert.assertTrue(r.contains("LANDS PLAYED: a hidden card"), r);
-    }
-
     // ---- own visibility -----------------------------------------------------------------------
 
     @Test
@@ -692,7 +716,7 @@ public class SeatObservationTest {
         // Thoughtseize-style: the engine shows US the rival's hand through our controller's reveal hook.
         mine.reveal(new CardCollection(rival.getCardsIn(ZoneType.Hand)), ZoneType.Hand, rival, "Thoughtseize", true);
         String r = render(mine.observer(), "");
-        Assert.assertTrue(r.contains("REVEALS TO YOU (historical evidence"), r);
+        Assert.assertTrue(r.contains("REVEALS TO YOU (Forge game log"), r);
         Assert.assertTrue(r.contains("Daze") && r.contains("Reanimate"), r);
         Assert.assertTrue(r.contains("Rival's Hand"), r);
         Assert.assertTrue(r.contains("hand: 2 cards (hidden)"), "current state stays a count; the reveal is history: " + r);

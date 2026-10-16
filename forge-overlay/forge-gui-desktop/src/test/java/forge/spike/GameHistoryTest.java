@@ -164,6 +164,18 @@ public class GameHistoryTest {
 
     // ---- TIERED: the ladder --------------------------------------------------------------------
 
+    /** The faithful profile names the source of its history blocks: Forge's game log, so a line naming the seat's
+     *  player reads as the engine's record, not as anyone's message. Older profiles keep their bytes. */
+    @Test
+    public void theFaithfulHistorySaysItIsTheForgeGameLog() {
+        Rendered f = GameHistory.renderEvents(log(400), ContextProfile.V4_FAITHFUL, 390);
+        Assert.assertTrue(f.text.contains("GAME HISTORY (Forge game log, compacted;"), f.text);
+        Assert.assertTrue(f.text.contains("SINCE YOUR LAST DECISION (Forge game log, oldest->newest"), f.text);
+        Rendered v3 = GameHistory.renderEvents(log(400), ContextProfile.V3_COMPACT, 390);
+        Assert.assertFalse(v3.text.contains("Forge game log"), v3.text);
+        Assert.assertTrue(SeatObservation.GUIDE.contains("Where each part comes from"), SeatObservation.GUIDE);
+    }
+
     @Test
     public void tieredKeepsTheWholeGameInBoundedSpace() {
         Rendered r = GameHistory.renderEvents(log(400), ContextProfile.V3_COMPACT, 390);
