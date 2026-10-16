@@ -79,8 +79,10 @@ final class SeatObservation {
      *  v25: the golden checks (stack text redacted of engine ids; the hand's "(castable)" tag agrees with
      *  the menu), merged with v24.
      *  v26: nothing the observation shows is cut (docs/harness/MODEL-LIMITS.md): whole event, stack and card
-     *  text, every seen opponent card and every reveal, and uncapped known-in-hidden-zones and zone trails. */
-    static final String VERSION = "observation-faithful-v31";
+     *  text, every seen opponent card and every reveal, and uncapped known-in-hidden-zones and zone trails.
+     *  v32 (2026-10-16): mana available counts a colour the card decides (Chrome Mox's imprinted colours, a
+     *  chosen colour) as the engine reads it; ability text names the card, not CARDNAME (runs/c3 T7, T11). */
+    static final String VERSION = "observation-faithful-v32";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
      *  Every section named here is one {@link #render} prints. */

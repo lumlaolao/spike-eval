@@ -164,6 +164,65 @@ public class GoldenChecksTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** runs/c3/ant-storm-default T7 (2026-10-16): {B:3} floating and two Lotus Petals, Ad Nauseam (3BB) offered as
+     *  castable and chosen; the seat named a colour for one Petal, then "Didn't find what to pay for {1}" and nothing
+     *  was cast. Two any-colour sources paying generic shards must both pay. */
+    @Test
+    public void twoAnyColourSourcesBothPayTheGenericPart() {
+        for (boolean floating : new boolean[] {true, false}) {
+            Game g = bareGame(PhaseType.MAIN1);
+            Player me = g.getPlayers().get(0);
+            Card petal1 = card("Lotus Petal", me, ZoneType.Battlefield);
+            Card petal2 = card("Lotus Petal", me, ZoneType.Battlefield);
+            if (floating) {
+                Card src = card("Swamp", me, ZoneType.Battlefield);
+                for (int i = 0; i < 3; i++) me.getManaPool().addManaNoEvent(new forge.game.mana.Mana(forge.card.MagicColor.BLACK, src, null, me));
+                src.setTapped(true);
+            } else {
+                for (int i = 0; i < 3; i++) card("Swamp", me, ZoneType.Battlefield);
+            }
+            Card adn = card("Ad Nauseam", me, ZoneType.Hand);
+            Script model = new Script("CHOICE: 1")
+                    .on("You have priority", choice("CAST Ad Nauseam"))
+                    .on("Choose a color", choice("black"))
+                    .on("MANA:", p -> "PICKS: NONE");
+            LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+            List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+            Assert.assertNotNull(r, "Ad Nauseam is offered and chosen (floating=" + floating + ")");
+            boolean paid = ctrl.playChosenSpellAbility(r.get(0));
+            Assert.assertTrue(paid, "the cast was paid (floating=" + floating + ")");
+            Assert.assertTrue(adn.isInZone(ZoneType.Stack), "Ad Nauseam is on the stack (floating=" + floating + "), petals: "
+                    + petal1.getZone() + " " + petal2.getZone());
+        }
+    }
+
+    /** The same turn as it was played: Dark Ritual, then a Lotus Petal cast this turn, then Ad Nauseam paid with
+     *  the Ritual's mana and both Petals. */
+    @Test
+    public void ritualThenPetalThenAdNauseamIsPaid() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Swamp", me, ZoneType.Battlefield);
+        card("Lotus Petal", me, ZoneType.Battlefield);
+        card("Dark Ritual", me, ZoneType.Hand);
+        card("Lotus Petal", me, ZoneType.Hand);
+        Card adn = card("Ad Nauseam", me, ZoneType.Hand);
+        String[] next = {"CAST Dark Ritual"};
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", p -> choice(next[0]).apply(p))
+                .on("Choose a color", choice("black"))
+                .on("MANA:", picks("Lotus Petal"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        for (String play : new String[] {"CAST Dark Ritual", "CAST Lotus Petal", "CAST Ad Nauseam"}) {
+            next[0] = play;
+            List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+            Assert.assertNotNull(r, play + " offered");
+            Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)), play + " paid; pool " + me.getManaPool().totalMana());
+            if (!play.endsWith("Ad Nauseam")) { while (!g.getStack().isEmpty()) g.getStack().resolveStack(); }
+        }
+        Assert.assertTrue(adn.isInZone(ZoneType.Stack), "Ad Nauseam is on the stack");
+    }
+
     /** play -> target -> mana-sources: the menu pick, the target pick and the kept source are all used. */
     @Test
     public void aCastIsAskedAsPlayThenTargetThenWhichSourceStaysUp() {

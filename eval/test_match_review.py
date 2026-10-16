@@ -117,11 +117,13 @@ class MatchReviewTest(unittest.TestCase):
             p = os.path.join(d, "game-1-0.jsonl")
             rows = [dec("confirm", "smart", prompt="STACK: #1 ability of Aether Vial @9 (you): Aether Vial (4) - You may"),
                     dec("play", "smart", prompt="NOT VISIBLE: ForgeAI's hand (7 cards) and library (50); your library (48)"),
+                    dec("mana-sources", "smart", prompt="  2) Lotus Petal [untapped] @36 — {T}, Sacrifice CARDNAME: Add one mana"),
                     {"t": "game", "seed": 1, "swap": False, "winner": "A"}]
             with open(p, "w") as f:
                 f.write("".join(json.dumps(r) + "\n" for r in rows))
             r = mr.review(p)
-            self.assertEqual(r["counts"]["LEAK"], 1, "one leak, and the library counts are not ids")
+            self.assertEqual(r["counts"]["LEAK"], 2, "an id and a placeholder, and the library counts are not ids")
+            self.assertIn("Sacrifice CARDNAME", mr.render(r))
             self.assertIn("Vial (4)", mr.render(r))
 
     def test_a_pass_with_mana_floating_is_a_broken_line_not_a_harness_defect(self):

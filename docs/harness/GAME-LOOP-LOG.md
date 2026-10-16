@@ -514,3 +514,29 @@ PASS.
   The README also said these switches default to on; they have been off since 2026-10-15.
 - clean  Sacred Foundry and Multiversal Passage life payments, warp, Burst Lightning double-up on a 4/4, attacks.
 
+
+### C3 ANT Storm  2026-10-16  seed 4101  ANT Storm mirror (GPT-6 Luna vs Forge AI), three arms  $0.77 (+$0.07 killed)  harness-epoch-30
+
+`runs/c3/ant-storm-{default,turn,game}` (review C3: stateless default vs `--turn-chat` vs `--one-chat`, the same seed and
+decks). Default WON T59 (209 model decisions); turn window LOST T28 (118); whole-game chat WON T11 (74). TAKEN 0, LOST 0,
+SKIP 0 and 0 Forge-AI decisions in all three; no `LINE` (passing with mana floating) in any. One game per arm says nothing
+about win rates. A first default-arm game was killed at T19 by my shell's 30-minute background limit, not by the harness
+(`runs/c3/killed-ant-storm-default-t19`, kept as a record only).
+- FIXED  the mana-sources and restricted-mana texts showed the engine's placeholder: "{T}, Sacrifice CARDNAME: Add one
+  mana" for Lotus Petal (3 asks across the games). `named()` puts the card's name in; `match_review` now lists a placeholder
+  as LEAK. Found by the ask contract in a new golden check (`ritualThenPetalThenAdNauseamIsPaid`).
+- FIXED  Chrome Mox imprinting Brainstorm makes blue, the menu offered Ponder {U} as castable, but "mana available" said
+  {B:1}: a reflected or chosen colour was read as no colour. Now asked of the engine (`CardUtil.getReflectableManaColors`,
+  `canProduce`). Test `aReflectedColourIsCounted` (observation-faithful-v32).
+- FIXED  the same Ponder's preview said the copy could not pay: the engine's game copy drops imprinted cards. Imprints are
+  copied onto the preview copy. Test `aPreviewKeepsAnImprintedMoxsColour` (lookahead-preview-v7). Told twice it had no
+  blue, the seat cracked Polluted Delta instead of casting Ponder (default T11). The turn arm's Tendrils preview failed
+  the same way (T9, "Didn't find what to pay for {1}").
+- OPEN   default T7: {B:3} floating and two Lotus Petals, Ad Nauseam offered as castable and chosen, the seat named black
+  for one Petal, then "Didn't find what to pay for {1}" and nothing was cast. Not reproduced by
+  `twoAnyColourSourcesBothPayTheGenericPart` or the exact Ritual-Petal-Ad Nauseam sequence (both pay). Candidate: the
+  any-colour engine patch's open colour on the copy of a sacrificed Petal; needs a repro before a fix.
+- noted  turn arm T17: `simulate` asked during a fetchland's library choice, refused by design (no play menu). Watch whether
+  the turn window invites previews outside the play menu.
+- noted  provider: one dropped connection (`chunked transfer encoding`), retried in 16 s; one 300 s timeout on the
+  whole-game arm's first play.
