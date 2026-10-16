@@ -71,6 +71,14 @@ Anything new asks again: an opponent's spell or ability, every attack and block,
   fast tier) remain only as opt-in measurement switches (`MULLIGAN_HEURISTIC=1`, `SKIP_HEURISTICS=1`,
   `ONE_TIER=0`).
 
+**Combo lines (2026-10-16, harness-epoch-32):** every step of a combo turn is the seat's and can be taken when the rules
+allow: a mana ability that costs more than tapping (Lion's Eye Diamond, a Spirit Guide, Lotus Petal) is on the play menu,
+so LED can be cracked in response to the seat's own Infernal Tutor; Doomsday's five cards and their order, Ad Nauseam's
+every repeat, and each storm copy's target are asked. Golden checks play each line out (`GoldenChecksTest`:
+`doomsdaysPileAndItsOrderAreTheSeats`, `adNauseamRepeatsAsOftenAsTheSeatSays`,
+`tendrilsStormCopiesResolveAndTheirTargetsAreTheSeats`, `lionsEyeDiamondCanBeCrackedInResponseToInfernalTutor`,
+`ritualThenPetalThenAdNauseamIsPaid`).
+
 **When the model gives no usable answer:** a fixed legal option (the first, or decline; no attack for
 attackers), recorded on the decision row with why. Never Forge's AI, and never an option read out of the
 model's plan text (the "plan-named" fallbacks went in harness-epoch-30, review M2).
@@ -283,6 +291,10 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   - *Why latency routing:* Luna calls stalled for up to 6 minutes while answering in ordinary length (646
     output tokens in 352 s, against a median of 253 in 9 s). The time was the endpoint's, not the model's
     thinking. OpenRouter's default routing weighs price; the model is the same on every endpoint.
+  - a stalled connection is retried (`HttpDeadline`, `OPENROUTER_IDLE_MS`, default 90 s, 0 off): no headers, or
+    bytes and then silence, for that long, inside the ask's deadline.
+  - *Why:* in the C3 combo games some connections sent nothing for minutes and held the ask to its full
+    timeout, 15-25 minutes a game; a fresh connection answers in seconds.
 - **`ClaudeBridge`** (the Claude CLI lane): text only, kept for the CLI.
 - **Egress boundary:** an `openrouter:` model receives the game state. Nothing starts unless
   `OPENROUTER_ALLOW_EGRESS=1` is set by the owner, and no tool sets it.

@@ -443,6 +443,31 @@ public class LookaheadProbeTest {
         Assert.assertTrue(report.contains("Ponder"), report);
     }
 
+    /** runs/c3/doomsday-game T8, T19: a preview of Force of Will cast for its alternative cost (exile a blue card, pay 1
+     *  life) came back unavailable: the copy matched the ability by its text, found the hard cast, and could not pay
+     *  {3}{U}{U}. The preview plays the same alternative cost. */
+    @Test
+    public void aForceOfWillPitchIsPreviewed() {
+        Game g = LineFindingProbeTest.bareGame(forge.game.phase.PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        LineFindingProbeTest.card("Force of Will", me, forge.game.zone.ZoneType.Hand);
+        LineFindingProbeTest.card("Brainstorm", me, forge.game.zone.ZoneType.Hand);
+        LineFindingProbeTest.rivalCasts(g, "Show and Tell", null);
+        g.getAction().checkStaticAbilities();
+        forge.game.spellability.SpellAbility pitch = null;
+        for (forge.game.spellability.SpellAbility o : LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, false, true).spells)
+            if (o.getHostCard() != null && o.getHostCard().getName().equals("Force of Will") && o.getDescription().contains("rather than pay")) pitch = o;
+        Assert.assertNotNull(pitch, "fixture: Force of Will has its pitch cost");
+        pitch.setActivatingPlayer(me);
+        String report = PlayerLookahead.previewCast(g, me, pitch, 5L);
+        System.out.println("[LOOKAHEAD] " + report);
+        Assert.assertFalse(report.startsWith("(preview unavailable"), report);
+        Assert.assertTrue(report.contains("Force of Will"), report);
+        // The copy holds the stack: the response is previewed against the spell it answers (the engine's copy has no
+        // stack by default, so a counterspell's preview showed the opponent unchanged).
+        Assert.assertTrue(report.contains("Rival graveyard 0 -> 1"), "Show and Tell was countered on the copy: " + report);
+    }
+
     /** The model can aim the preview: a hint naming a legal target is honoured. */
     @Test
     public void previewCastHonoursATargetHint() {

@@ -189,15 +189,19 @@ public class GoldenChecksTest {
             LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
             List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
             Assert.assertNotNull(r, "Ad Nauseam is offered and chosen (floating=" + floating + ")");
-            boolean paid = ctrl.playChosenSpellAbility(r.get(0));
-            Assert.assertTrue(paid, "the cast was paid (floating=" + floating + ")");
+            ctrl.playChosenSpellAbility(r.get(0));
+            Assert.assertTrue(petal1.isInZone(ZoneType.Graveyard) || !petal1.isInZone(ZoneType.Battlefield), "Petal 1 paid (floating=" + floating + ")");
+            Assert.assertTrue(petal2.isInZone(ZoneType.Graveyard) || !petal2.isInZone(ZoneType.Battlefield), "Petal 2 paid (floating=" + floating + ")");
             Assert.assertTrue(adn.isInZone(ZoneType.Stack), "Ad Nauseam is on the stack (floating=" + floating + "), petals: "
                     + petal1.getZone() + " " + petal2.getZone());
         }
     }
 
-    /** The same turn as it was played: Dark Ritual, then a Lotus Petal cast this turn, then Ad Nauseam paid with
-     *  the Ritual's mana and both Petals. */
+    /** runs/c3/ant-storm-default T7, as it was played: Dark Ritual, Lotus Petal, then Ad Nauseam for {B:3} and both Petals.
+     *  Asked mid-payment which colour the first Petal makes (the engine patch), the seat's prompt test-paid Tendrils
+     *  for its "(castable)" tag; that test payment cleared and refilled the AI memory the real payment was using
+     *  (PAYS_TAP_COST), the second Petal read as already used, and Ad Nauseam's last {1} went unpaid. Tendrils in hand
+     *  is what makes the prompt test-pay something. */
     @Test
     public void ritualThenPetalThenAdNauseamIsPaid() {
         Game g = bareGame(PhaseType.MAIN1);
@@ -206,6 +210,7 @@ public class GoldenChecksTest {
         card("Lotus Petal", me, ZoneType.Battlefield);
         card("Dark Ritual", me, ZoneType.Hand);
         card("Lotus Petal", me, ZoneType.Hand);
+        card("Tendrils of Agony", me, ZoneType.Hand);
         Card adn = card("Ad Nauseam", me, ZoneType.Hand);
         String[] next = {"CAST Dark Ritual"};
         Script model = new Script("CHOICE: 1")
@@ -217,10 +222,160 @@ public class GoldenChecksTest {
             next[0] = play;
             List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
             Assert.assertNotNull(r, play + " offered");
-            Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)), play + " paid; pool " + me.getManaPool().totalMana());
+            ctrl.playChosenSpellAbility(r.get(0));
             if (!play.endsWith("Ad Nauseam")) { while (!g.getStack().isEmpty()) g.getStack().resolveStack(); }
         }
         Assert.assertTrue(adn.isInZone(ZoneType.Stack), "Ad Nauseam is on the stack");
+        Assert.assertEquals(me.getCardsIn(ZoneType.Graveyard).stream().filter(c -> c.getName().equals("Lotus Petal")).count(), 2L,
+                "both Petals paid for Ad Nauseam (3 floating + 2 Petals = 5)");
+        Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.contains("Choose a color") && q.contains("Ad Nauseam")),
+                "the colour was asked in the middle of the payment");
+    }
+
+    /** Doomsday's own decisions (owner, 2026-10-16: combo lines must play out). The five cards and their order are the
+     *  combo; in the C3 games Doomsday never resolved for the seat, so this was never seen. The seat picks the five from
+     *  library and graveyard, then stacks them; the library is exactly that pile, and Forge's AI decides nothing. */
+    @Test
+    public void doomsdaysPileAndItsOrderAreTheSeats() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Swamp", me, ZoneType.Battlefield);
+        Card dd = card("Doomsday", me, ZoneType.Hand);
+        String[] lib = {"Island", "Brainstorm", "Ponder", "Thassa's Oracle", "Gitaxian Probe", "Lion's Eye Diamond",
+                "Swamp", "Force of Will", "Daze", "Dark Ritual", "Cabal Ritual", "Preordain"};
+        for (String n : lib) card(n, me, ZoneType.Library);
+        card("Street Wraith", me, ZoneType.Graveyard);
+        String[] pile = {"Thassa's Oracle", "Ponder", "Lion's Eye Diamond", "Street Wraith", "Gitaxian Probe"};
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choice("CAST Doomsday"))
+                .on("MANA:", p -> "PICKS: NONE")
+                .on("in your preferred order", picks(pile))
+                .on("DECISION:", p -> {
+                    // A pick from library/graveyard: the next card of the pile still offered.
+                    String d = p.substring(Math.max(0, p.lastIndexOf("DECISION:")));
+                    for (String n : pile) {
+                        Matcher m = Pattern.compile("(?m)^\\s*(\\d+)\\) " + Pattern.quote(n)).matcher(d);
+                        if (m.find()) return "CHOICE: " + m.group(1);
+                    }
+                    return "CHOICE: 1";
+                });
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "Doomsday offered");
+        ctrl.playChosenSpellAbility(r.get(0));
+        while (!g.getStack().isEmpty()) g.getStack().resolveStack();
+        Assert.assertTrue(me.getCardsIn(ZoneType.Graveyard).stream().anyMatch(c -> c.getName().equals("Doomsday")), "Doomsday resolved");
+        List<String> library = new java.util.ArrayList<>();
+        for (Card c : me.getCardsIn(ZoneType.Library)) library.add(c.getName());
+        Assert.assertEquals(library.size(), 5, "the library is the pile: " + library);
+        Assert.assertEqualsNoOrder(library.toArray(), pile, "the five the seat picked: " + library);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "Forge's AI decided nothing");
+    }
+
+    /** Ad Nauseam's repeat is the seat's (owner, 2026-10-16: combo lines must play out): each "repeat?" is asked, and
+     *  the seat stops when it says so. */
+    @Test
+    public void adNauseamRepeatsAsOftenAsTheSeatSays() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 5; i++) card("Swamp", me, ZoneType.Battlefield);
+        card("Ad Nauseam", me, ZoneType.Hand);
+        for (String n : new String[] {"Dark Ritual", "Lotus Petal", "Brainstorm", "Ponder", "Duress", "Island"}) card(n, me, ZoneType.Library);
+        int[] repeats = {0};
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", choice("CAST Ad Nauseam"))
+                .on("MANA:", p -> "PICKS: NONE")
+                .on("Ad Nauseam", p -> ++repeats[0] <= 2 ? "CHOICE: 1" : "CHOICE: 2");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        int hand0 = me.getCardsIn(ZoneType.Hand).size();
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r);
+        ctrl.playChosenSpellAbility(r.get(0));
+        while (!g.getStack().isEmpty()) g.getStack().resolveStack();
+        List<String> asks = new java.util.ArrayList<>();
+        for (String q : model.prompts) if (q.contains("repeat this process again")) asks.add(q);
+        String second = asks.size() > 1 ? asks.get(1) : "";
+        System.out.println("[ADN-2ND] " + second.replaceAll("(?s).*?(YOU \\[Seat\\][^\n]*\n[^\n]*\n).*", "$1"));        Assert.assertTrue(repeats[0] >= 1, "the repeat was asked of the seat");
+        Assert.assertEquals(me.getCardsIn(ZoneType.Hand).size(), hand0 - 1 + 3, "one reveal plus the two repeats the seat chose");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** Tendrils with storm: the copies are made and resolve, and choosing new targets for them is the seat's. */
+    @Test
+    public void tendrilsStormCopiesResolveAndTheirTargetsAreTheSeats() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        for (int i = 0; i < 4; i++) card("Swamp", me, ZoneType.Battlefield);
+        card("Lotus Petal", me, ZoneType.Hand);
+        card("Lotus Petal", me, ZoneType.Hand);
+        card("Tendrils of Agony", me, ZoneType.Hand);
+        String[] next = {"CAST Lotus Petal"};
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", p -> choice(next[0]).apply(p))
+                .on("Choose the TARGET", choice("opponent"))
+                .on("MANA:", p -> "PICKS: NONE")
+                .on("go on the stack at the same time", p -> "PICKS: 1,2");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        for (String play : new String[] {"CAST Lotus Petal", "CAST Lotus Petal", "CAST Tendrils of Agony"}) {
+            next[0] = play;
+            List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+            Assert.assertNotNull(r, play + " offered");
+            ctrl.playChosenSpellAbility(r.get(0));
+            g.getTriggerHandler().runWaitingTriggers();
+            g.getStack().addAllTriggeredAbilitiesToStack();
+            while (!g.getStack().isEmpty()) {
+                g.getStack().resolveStack();
+                g.getStack().addAllTriggeredAbilitiesToStack();
+            }
+        }
+        long copyTargetAsks = model.prompts.stream().filter(q -> q.substring(q.lastIndexOf("DECISION:")).startsWith("DECISION: Choose the TARGET")).count();
+        Assert.assertEquals(copyTargetAsks, 3L, "the original's target and each copy's were the seat's");
+        Assert.assertEquals(model.prompts.stream().filter(q -> q.contains("Choose the TARGET for a copy of Tendrils")).count(), 2L,
+                "each copy's question says it is a copy");
+        Assert.assertTrue(model.prompts.stream().noneMatch(q -> q.contains("triggers go on the stack")), "the copies are called copies");
+        Assert.assertEquals(rival.getLife(), 20 - 6, "Tendrils and its two storm copies each drained 2");
+        Assert.assertEquals(me.getLife(), 20 + 6);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** ANT's line: cast Infernal Tutor, then crack Lion's Eye Diamond in response so the hand is empty when the Tutor
+     *  resolves (hellbent). The menu never offered a mana ability, so LED was usable only as payment (owner,
+     *  2026-10-16: combo lines must play out). A mana ability with a cost beyond tapping (sacrifice, discard, exile
+     *  from hand) is a decision: it is offered, its colour is the seat's, and its mana floats. */
+    @Test
+    public void lionsEyeDiamondCanBeCrackedInResponseToInfernalTutor() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Swamp", me, ZoneType.Battlefield);
+        card("Swamp", me, ZoneType.Battlefield);
+        card("Lion's Eye Diamond", me, ZoneType.Battlefield);
+        card("Infernal Tutor", me, ZoneType.Hand);
+        card("Brainstorm", me, ZoneType.Hand);
+        for (String n : new String[] {"Tendrils of Agony", "Island", "Ad Nauseam"}) card(n, me, ZoneType.Library);
+        String[] next = {"CAST Infernal Tutor"};
+        Script model = new Script("CHOICE: 1")
+                .on("You have priority", p -> choice(next[0]).apply(p))
+                .on("Choose a color", choice("black"))
+                .on("MANA:", p -> "PICKS: NONE")
+                .on("Tendrils of Agony", p -> {      // the Tutor's search: the payoff
+                    Matcher m = Pattern.compile("(?m)^\\s*(\\d+)\\) Tendrils of Agony").matcher(p.substring(p.lastIndexOf("DECISION:")));
+                    return m.find() ? "CHOICE: " + m.group(1) : "CHOICE: 1";
+                });
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "Infernal Tutor offered");
+        ctrl.playChosenSpellAbility(r.get(0));
+        Assert.assertFalse(g.getStack().isEmpty(), "the Tutor is on the stack");
+        next[0] = "ACTIVATE Lion's Eye Diamond";
+        List<SpellAbility> led = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(led, "Lion's Eye Diamond is offered with the Tutor on the stack");
+        ctrl.playChosenSpellAbility(led.get(0));
+        Assert.assertTrue(me.getCardsIn(ZoneType.Hand).isEmpty(), "LED discarded the hand: hellbent");
+        Assert.assertEquals(me.getManaPool().totalMana(), 3, "three mana floats");
+        while (!g.getStack().isEmpty()) g.getStack().resolveStack();
+        Assert.assertTrue(me.getCardsIn(ZoneType.Hand).stream().anyMatch(c -> c.getName().equals("Tendrils of Agony")),
+                "hellbent, the Tutor fetched the payoff");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
     /** play -> target -> mana-sources: the menu pick, the target pick and the kept source are all used. */
