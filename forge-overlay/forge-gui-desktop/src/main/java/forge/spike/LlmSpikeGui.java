@@ -5454,16 +5454,50 @@ public final class LlmSpikeGui {
                     + srcAsk(sa) + ".", labels, null, 0));
         }
 
-        /** How many times to pay a keyword cost (casualty and the like); 0..max. */
+        /** How many times to pay a keyword cost (casualty and the like); 0..max. The engine passes
+         *  Integer.MAX_VALUE for a pay-any-number cost (Multikicker, Replicate, Squad:
+         *  GameActionUtil.addExtraKeywordCost), so a huge range is stated like chooseNumber's, never
+         *  enumerated — building 0..2147483647 labels would exhaust the heap before any ask went out. */
         @Override
         public int chooseNumberForKeywordCost(SpellAbility sa, Cost cost, forge.game.keyword.KeywordInterface keyword, String prompt, int max) {
             clearLast();
             if (max <= 0) return 0;
+            if (max > 12) return chooseWideKeywordCost(sa, cost, prompt, max);
             List<String> labels = new ArrayList<>();
             for (int i = 0; i <= max; i++) labels.add(String.valueOf(i));
             int c = askOne("keyword-cost", (prompt == null || prompt.isEmpty() ? "How many times do you pay " + cost.toSimpleString() : fit(prompt))
                     + srcAsk(sa) + "?", labels, null, 0);
             return Math.max(0, c);
+        }
+
+        /** The 0..max "any number of times" ask when the engine's own range is bigger than the menu:
+         *  the range is stated (a legal domain, like the spinner the human controller shows and
+         *  chooseNumber's wide-number asks), the number a resource statement, answered NUMBER:. */
+        private int chooseWideKeywordCost(SpellAbility sa, Cost cost, String prompt, int max) {
+            if (!fastOk() && !smartOk()) { auto("keyword-cost(no-model)->0"); return 0; }
+            LLMBridge b = smartOk() ? smart : fast;
+            String base = snapshot() + (observer != null ? "\nDECISION: " : "\n")
+                    + (prompt == null || prompt.isEmpty() ? "How many times do you pay " + cost.toSimpleString() : fit(prompt))
+                    + srcAsk(sa) + "\nEvery integer from 0 through " + max
+                    + " inclusive is legal. Reply with exactly NUMBER: <integer>.";
+            try {
+                for (int attempt = 0; attempt < 2 && (b == smart ? smartOk() : fastOk()); attempt++) {
+                    offerAnswer(b, AnswerTool.Spec.number(0, max));
+                    String reply = ask(b, base + (attempt == 0 ? "" : "\nInvalid answer. Use exactly NUMBER: <integer> within the range."));
+                    noteAnswerVia(attempt);
+                    if (reply == null) break;
+                    AnswerTool.Answer ta = toolAnswer();
+                    Integer value = ta != null ? ta.number : parseNumberReply(reply, 0, max);
+                    if (value != null) {
+                        evalDec("keyword-cost", -1, value, tierOf(b == smart), 0, null,
+                                Lists.newArrayList("integer range [0, " + max + "]"));
+                        p("[ROUTER] keyword-cost: " + value);
+                        return Math.max(0, value);
+                    }
+                }
+            } catch (Exception e) { /* deterministic fallback below, never Forge AI */ }
+            auto("keyword-cost(unparsed)->0");
+            return 0;
         }
 
         /** Whether to pay an optional keyword cost (one time). */
