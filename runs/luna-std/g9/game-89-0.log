@@ -1,0 +1,483 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=39219 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 34086 files in 1 ms (25 parts) using thread pool
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 857 files in 0 ms (8 parts) using thread pool
+[SEED] 89
+[EVAL] jsonl game-89-1792107623591.jsonl
+[PLAN] sidecar -> /tmp/claude-0/fmt/eval/decks/standard-mono-green-landfall.plan
+[PLAN] sidecar -> /tmp/claude-0/fmt/eval/decks/standard-boros-dragons.plan
+[DECK] loaded 'Seat': 60 main, 15 sideboard  (/tmp/claude-0/fmt/eval/decks/standard-mono-green-landfall.txt)
+[DECK] loaded 'ForgeAI': 60 main, 15 sideboard  (/tmp/claude-0/fmt/eval/decks/standard-boros-dragons.txt)
+[SEATS] A=Seat(llm,openrouter:openai/gpt-6-luna) B=ForgeAI(ai,openrouter:openai/gpt-6-luna)
+[Seat] [OBSERVATION] observation-faithful-v29 (profile v4-faithful/0e68ca8ffe66)
+[HEADLESS] game starting (cap=45min)
+[OPENROUTER Seat/smart] replied in 5314 ms with 1 tool call(s)
+[Seat] [ROUTER] plan: GOAL: Develop a fast mono-green landfall board, using early mana creatures and land tutors to grow threats and overwhelm the opponent. NEXT: Keep a functional opening hand; prioritize Forest plus Llanowar Elves or a one-drop landfall creature, then maximize landfall triggers with fetch lands and Earthbender Ascension.
+[OPENROUTER Seat/smart] replied in 2570 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: 3/7 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5369 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: KEEP
+[Seat] [TALLY] smart=3 fast=0 auto=0 ai=0 textParses=0 avgSmart=4417ms avgFast=4417ms
+[Seat] [ROUTER] play(main): 0 castable + 3 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5704 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Forest
+[Seat] [TALLY] smart=4 fast=0 auto=0 ai=0 textParses=0 avgSmart=4739ms avgFast=4739ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 2785 ms with 2 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Develop a fast mono-green landfall board and leverage fetch lands to grow threats. NEXT: Cast Sazh's Chocobo now; next turn play Fabled Passage to trigger landfall, then develop additional mana/threats.
+[Seat] [ROUTER] lines: Sazh's Chocobo + Fabled Passage -> fetch a basic to trigger and grow Chocobo. Earthbender Ascension + fetch lands -> accelerate landfall counters and build a trampling threat. Icetill Explorer + fetch lands -> replay lands from the graveyard for repeated landfall.
+[Seat] [ROUTER] profile: Unknown opponent; assume a Standard strategy with removal or fast pressure, and protect the developing landfall threats.
+[Seat] [ROUTER] play: casts Sazh's Chocobo 0/1 @4 {G} [Sazh's Chocobo - Creature 0 / 1]
+[Seat] [TALLY] smart=5 fast=0 auto=0 ai=0 textParses=0 avgSmart=4348ms avgFast=4348ms
+[Seat] [ROUTER] play(main): 0 castable + 3 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7699 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Ba Sing Se
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [TALLY] smart=6 fast=0 auto=2 ai=0 textParses=0 avgSmart=4906ms avgFast=4906ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4155 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Build a fast mono-green landfall board, growing Sazh's Chocobo with fetch lands while adding threats. NEXT: Cast Keen-Eyed Curator now; next turn use a fetch land for landfall, then continue developing landfall threats.
+[OPENROUTER Seat/smart] replied in 2316 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Keen-Eyed Curator 3/3 @6 {G}{G} [Keen-Eyed Curator - Creature 3 / 3]
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 2913 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Sazh's Chocobo
+[Seat] [TALLY] smart=9 fast=0 auto=2 ai=0 textParses=0 avgSmart=4313ms avgFast=4313ms
+[Seat] [ROUTER] play(main): 1 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 2323 ms with 2 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Build a fast mono-green landfall board while preserving landfall triggers and developing threats. NEXT: Play Fabled Passage and crack it for a Forest to grow Chocobo; cast Llanowar Elves with the remaining mana, then attack.
+[Seat] [ROUTER] play: land Fabled Passage
+[Seat] [TALLY] smart=10 fast=0 auto=2 ai=0 textParses=0 avgSmart=4114ms avgFast=4114ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9114 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Exploit the available fetchland landfall triggers to grow Chocobo, then develop mana and threats. NEXT: Resolve the pending Chocobo trigger, crack Fabled Passage for a Forest to trigger it again, then use available mana to cast Llanowar Elves if possible.
+[OPENROUTER Seat/smart] replied in 1737 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Fabled Passage @17 [{T}, Sacrifice Fabled Passage: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle. Then if you control four or more lands, untap that land.]
+[OPENROUTER Seat/smart] replied in 4899 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: Forest @43 [Library, yours] -> Battlefield [Fabled Passage]
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [TALLY] smart=13 fast=0 auto=4 ai=0 textParses=0 avgSmart=4376ms avgFast=4376ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5711 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Llanowar Elves 1/1 @14 {G} [Llanowar Elves - Creature 1 / 1]
+[OPENROUTER Seat/smart] replied in 16111 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 1 for CAST Llanowar Elves 1/1 @73 {G} [Llanowar Elves - Creature 1 / 1]
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5409 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Sazh's Chocobo
+[Seat] [TALLY] smart=16 fast=0 auto=4 ai=0 textParses=0 avgSmart=5258ms avgFast=5258ms
+[Seat] [ROUTER] play(main): 5 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9414 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Exploit Elven Passage for two Chocobo landfall counters, then earthbend a Forest for an additional hasty attacker while Voice of Victory prevents casting spells this turn. NEXT: Play Elven Passage, sacrifice it while beholding Llanowar Elves to fetch an untapped Forest, then activate Ba Sing Se targeting a Forest. Attack with profitable threats.
+[OPENROUTER Seat/smart] replied in 2769 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Dragon-focused red-white deck; respect Voice of Victory shutting off our spells on our turn and the revealed Magmatic Hellkite threatening to destroy a nonbasic land.
+[Seat] [ROUTER] play: land Elven Passage
+[Seat] [TALLY] smart=18 fast=0 auto=4 ai=0 textParses=0 avgSmart=5350ms avgFast=5350ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5635 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Elven Passage @80 [{T}, Pay 1 life, Sacrifice this land: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle. You may behold an Elf. If you do, untap that land. (To behold an Elf, choose an Elf you control or reveal an Elf card from your hand.)]
+[OPENROUTER Seat/smart] replied in 18398 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: Forest @32 [Library, yours] -> Battlefield [Elven Passage]
+[OPENROUTER Seat/smart] replied in 5767 ms with 1 tool call(s)
+[Seat] [ROUTER] prevent-effect: paid Behold an Elf -> true
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [TALLY] smart=21 fast=0 auto=6 ai=0 textParses=0 avgSmart=6005ms avgFast=6005ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 11654 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 5648 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Forest [untapped] @8 (was @2) [Battlefield, yours] <- Ba Sing Se @12 [{2}{G}, {T}: Earthbend 2. Activate only as a sorcery. (Target land you control becomes a 0/0 creature with haste that's still a land. Put two +1/+1 counters on it. When it dies or is exiled, return it to the battlefield tapped.)]
+[Seat] [ROUTER] play: activates Ba Sing Se @12 [{2}{G}, {T}: Earthbend 2. Activate only as a sorcery. (Target land you control becomes a 0/0 creature with haste that's still a land. Put two +1/+1 counters on it. When it dies or is exiled, return it to the battlefield tapped.)]
+[OPENROUTER Seat/smart] replied in 11661 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 1 for ACTIVATE Ba Sing Se @12 [{2}{G}, {T}: Earthbend 2. Activate only as a sorcery. (Target land you control becomes a 0/0 creature with haste that's still a land. Put two +1/+1 counters on it. When it dies or is exiled, return it to the battlefield tapped.)]
+[Seat] [ROUTER] attackers: 2 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7648 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Sazh's Chocobo, Llanowar Elves
+[Seat] [ROUTER] damage-assign: all 1 -> Voice of Victory (forced)
+[Seat] [TALLY] smart=25 fast=0 auto=6 ai=0 textParses=0 avgSmart=6508ms avgFast=6508ms
+[Seat] [ROUTER] play(main): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8624 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Pressure the tapped opponent with Chocobo and a hasty earthbent land, while maximizing landfall. NEXT: Earthbend a Forest now; play a fetch land for another Chocobo counter, sacrifice it if useful, then attack with Chocobo and the animated land.
+[OPENROUTER Seat/smart] error: java.io.IOException: chunked transfer encoding, state: READING_LENGTH
+[Seat] [BRIDGE Seat/smart] no reply (attempt 2/3) -> restarting session, retrying in 500ms
+[OPENROUTER Seat/smart] replied in 2155 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 5174 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Forest [untapped] @72 [Battlefield, yours] <- Ba Sing Se @12 [{2}{G}, {T}: Earthbend 2. Activate only as a sorcery. (Target land you control becomes a 0/0 creature with haste that's still a land. Put two +1/+1 counters on it. When it dies or is exiled, return it to the battlefield tapped.)]
+[Seat] [ROUTER] play: activates Ba Sing Se @12 [{2}{G}, {T}: Earthbend 2. Activate only as a sorcery. (Target land you control becomes a 0/0 creature with haste that's still a land. Put two +1/+1 counters on it. When it dies or is exiled, return it to the battlefield tapped.)]
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6096 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Sazh's Chocobo
+[Seat] [TALLY] smart=29 fast=0 auto=6 ai=0 textParses=0 avgSmart=6371ms avgFast=6371ms
+[Seat] [ROUTER] play(main): 6 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 1626 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Use the board's immediate lethal pressure to end the game before the opponent's next turn. NEXT: Play Ba Sing Se for an extra landfall counter, then use Ba Sing Se to earthbend an untapped Forest into a 2/2 haste land; attack with the Chocobo and animated land.
+[OPENROUTER Seat/smart] replied in 16915 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Ba Sing Se
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [TALLY] smart=31 fast=0 auto=8 ai=0 textParses=0 avgSmart=6558ms avgFast=6558ms
+[Seat] [ROUTER] play(main): 7 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8305 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 19939 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Forest [untapped] @84 [Battlefield, yours] <- Ba Sing Se @12 [{2}{G}, {T}: Earthbend 2. Activate only as a sorcery. (Target land you control becomes a 0/0 creature with haste that's still a land. Put two +1/+1 counters on it. When it dies or is exiled, return it to the battlefield tapped.)]
+[Seat] [ROUTER] play: activates Ba Sing Se @12 [{2}{G}, {T}: Earthbend 2. Activate only as a sorcery. (Target land you control becomes a 0/0 creature with haste that's still a land. Put two +1/+1 counters on it. When it dies or is exiled, return it to the battlefield tapped.)]
+[OPENROUTER Seat/smart] replied in 9949 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Convert the existing and newly animated lands plus Chocobo into lethal this turn. NEXT: Finish paying for the Ba Sing Se earthbend activation; target an untapped Forest if prompted, then attack with Chocobo and all hasty animated Forests.
+[OPENROUTER Seat/smart] replied in 2220 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: 2 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8523 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Forest, Sazh's Chocobo
+[Seat] [ROUTER] damage-assign: all 6 -> Voice of Victory (forced)
+========== GAME OVER ==========
+outcome: B after 12 turns (AllOpponentsLost) in 259s
+--- full game log ---
+  MULLIGAN: Seat has kept a hand of 7 cards
+  MULLIGAN: ForgeAI has kept a hand of 7 cards
+  TURN: Turn 1 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Forest (47)
+  MANA: Forest (47) - {T}: Add {G}.
+  STACK_ADD: Seat cast Sazh's Chocobo
+  STACK_RESOLVE: Sazh's Chocobo - Creature 0 / 1
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 2 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Maelstrom of the Spirit Dragon (81)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 3 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  EFFECT_REPLACED: This land enters tapped unless you control a basic land.
+  LAND: Seat played Ba Sing Se (34)
+  STACK_ADD: Seat triggered Sazh's Chocobo
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a +1/+1 counter on this creature. [Zone Changer: Ba Sing Se (34)]
+  MANA: Forest (47) - {T}: Add {G}.
+  MANA: Ba Sing Se (34) - {T}: Add {G}.
+  STACK_ADD: Seat cast Keen-Eyed Curator
+  STACK_RESOLVE: Keen-Eyed Curator - Creature 3 / 3
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Sazh's Chocobo (7) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Sazh's Chocobo (7).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Sazh's Chocobo (7) deals 1 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 20 > 19
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 4 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Maelstrom of the Spirit Dragon (79)
+  MANA: Maelstrom of the Spirit Dragon (81) - {T}: Add one mana of any color. Spend this mana only to cast a Dragon or Omen spell.
+  MANA: Maelstrom of the Spirit Dragon (79) - {T}: Add {C}.
+  STACK_ADD: ForgeAI cast Charring Bite targeting [Keen-Eyed Curator (31)]
+  DAMAGE: Charring Bite (121) deals 5 damage to Keen-Eyed Curator (31).
+  STACK_RESOLVE: Charring Bite (121) - Charring Bite (121) deals 5 damage to Keen-Eyed Curator (31).
+  EFFECT_REPLACED: Omen
+  ZONE_CHANGE: Keen-Eyed Curator (31) was put into Graveyard from Battlefield.
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 5 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Fabled Passage (2)
+  STACK_ADD: Seat triggered Sazh's Chocobo
+  ZONE_CHANGE: Fabled Passage (2) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat activated Fabled Passage
+  STACK_RESOLVE: Fabled Passage (2) - Search your library for a basic land card, put it onto the battlefield tapped, then shuffle. Then if you control four or more lands, untap that land.  
+  STACK_ADD: Seat triggered Sazh's Chocobo
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a +1/+1 counter on this creature. [Zone Changer: Forest (45)]
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a +1/+1 counter on this creature. [Zone Changer: Fabled Passage (2)]
+  MANA: Ba Sing Se (34) - {T}: Add {G}.
+  STACK_ADD: Seat cast Llanowar Elves
+  STACK_RESOLVE: Llanowar Elves - Creature 1 / 1
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Sazh's Chocobo (7) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Sazh's Chocobo (7).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Sazh's Chocobo (7) deals 3 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 19 > 16
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 6 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  EFFECT_REPLACED: Inspiring Vantage enters tapped unless you control two or fewer other lands.
+  LAND: ForgeAI played Inspiring Vantage (103)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Inspiring Vantage (103) - {T}: Add {R} or {W}.
+  MANA: Maelstrom of the Spirit Dragon (81) - {T}: Add {C}.
+  STACK_ADD: ForgeAI cast Sarkhan, Dragon Ascendant
+  STACK_RESOLVE: Sarkhan, Dragon Ascendant - Creature 2 / 2
+  STACK_ADD: ForgeAI triggered Sarkhan, Dragon Ascendant
+  STACK_RESOLVE: When Sarkhan enters, you may behold a Dragon. If you do, create a Treasure token. (To behold a Dragon, choose a Dragon you control or reveal a Dragon card from your hand.) [Zone Changer: Sarkhan, Dragon Ascendant (113)]
+  ZONE_CHANGE: Treasure Token (154) was put into Graveyard from Battlefield.
+  MANA: Treasure Token (154) - {T}, Sacrifice this token: Add one mana of any color.
+  MANA: Maelstrom of the Spirit Dragon (79) - {T}: Add {C}.
+  STACK_ADD: ForgeAI cast Voice of Victory
+  STACK_RESOLVE: Voice of Victory - Creature 1 / 3
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 7 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Elven Passage (16)
+  STACK_ADD: Seat triggered Sazh's Chocobo
+  LIFE: Life: Seat 20 > 19
+  ZONE_CHANGE: Elven Passage (16) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat activated Elven Passage
+  STACK_RESOLVE: Elven Passage (16) - Seat searches their library for a basic land card, puts it onto the battlefield tapped, then shuffles. Untap . 
+  STACK_ADD: Seat triggered Sazh's Chocobo
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a +1/+1 counter on this creature. [Zone Changer: Forest (46)]
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a +1/+1 counter on this creature. [Zone Changer: Elven Passage (16)]
+  MANA: Forest (47) - {T}: Add {G}.
+  MANA: Forest (45) - {T}: Add {G}.
+  MANA: Forest (46) - {T}: Add {G}.
+  STACK_ADD: Seat activated Ba Sing Se targeting [Forest (47)]
+  STACK_RESOLVE: Ba Sing Se (34) - Earthbend 2. (Target land you control becomes a 0/0 creature with haste that's still a land. Put  two +1/+1 counters on it. When it dies or is exiled, return it to the battlefield tapped under your control.)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Sazh's Chocobo (7) and Llanowar Elves (21) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Sazh's Chocobo (7).
+ForgeAI assigned Voice of Victory (95) to block Llanowar Elves (21).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Sazh's Chocobo (7) deals 5 combat damage to ForgeAI.
+  DAMAGE: Llanowar Elves (21) deals 1 damage to Voice of Victory (95).
+  DAMAGE: Voice of Victory (95) deals 1 damage to Llanowar Elves (21).
+  LIFE: Life: ForgeAI 16 > 11
+  ZONE_CHANGE: Llanowar Elves (21) was put into Graveyard from Battlefield.
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 8 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  EFFECT_REPLACED: As this land enters, choose a basic land type. Then you may pay 2 life. If you don't, it enters tapped.
+  LAND: ForgeAI played Multiversal Passage (133)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Voice of Victory (95) and Sarkhan, Dragon Ascendant (113) to attack Seat.
+  STACK_ADD: ForgeAI triggered Voice of Victory
+  STACK_RESOLVE: Mobilize 2 (When this creature attacks, create two tapped and attacking 1/1 red Warrior creature tokens. Sacrifice them at the beginning of the next end step.) [Attacker: Voice of Victory (95)]
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Voice of Victory (95).
+Seat didn't block Sarkhan, Dragon Ascendant (113).
+Seat didn't block Warrior Token (157).
+Seat didn't block Warrior Token (158).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Voice of Victory (95) deals 1 combat damage to Seat.
+  DAMAGE: Sarkhan, Dragon Ascendant (113) deals 2 combat damage to Seat.
+  DAMAGE: Warrior Token (157) deals 1 combat damage to Seat.
+  DAMAGE: Warrior Token (158) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 19 > 14
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  STACK_ADD: ForgeAI triggered Voice of Victory
+  ZONE_CHANGE: Warrior Token (157) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Warrior Token (158) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Sacrifice Warrior Token (157) and Warrior Token (158) at the beginning of the next end step. ([Warrior Token (157), Warrior Token (158)]) [Phase: ForgeAI]
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 9 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  MANA: Forest (45) - {T}: Add {G}.
+  MANA: Forest (46) - {T}: Add {G}.
+  MANA: Forest (47) - {T}: Add {G}.
+  STACK_ADD: Seat activated Ba Sing Se targeting [Forest (45)]
+  STACK_RESOLVE: Ba Sing Se (34) - Earthbend 2. (Target land you control becomes a 0/0 creature with haste that's still a land. Put  two +1/+1 counters on it. When it dies or is exiled, return it to the battlefield tapped under your control.)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Sazh's Chocobo (7) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Sazh's Chocobo (7).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Sazh's Chocobo (7) deals 5 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 11 > 6
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 10 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  EFFECT_REPLACED: As this land enters, choose a basic land type. Then you may pay 2 life. If you don't, it enters tapped.
+  LAND: ForgeAI played Multiversal Passage (134)
+  MANA: Inspiring Vantage (103) - {T}: Add {R} or {W}.
+  MANA: Maelstrom of the Spirit Dragon (81) - {T}: Add one mana of any color. Spend this mana only to cast a Dragon or Omen spell.
+  MANA: Multiversal Passage (133) - {T}: Add {U}.
+  MANA: Maelstrom of the Spirit Dragon (79) - {T}: Add {C}.
+  STACK_ADD: ForgeAI cast Smaug the Magnificent
+  STACK_RESOLVE: Smaug the Magnificent - Creature 4 / 3
+  STACK_ADD: ForgeAI triggered Sarkhan, Dragon Ascendant
+  STACK_RESOLVE: Whenever a Dragon you control enters, put a +1/+1 counter on Sarkhan. Until end of turn, Sarkhan becomes a Dragon in addition to its other types and gains flying. [Zone Changer: Smaug the Magnificent (119)]
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Smaug the Magnificent (119) and Sarkhan, Dragon Ascendant (113) to attack Seat.
+  STACK_ADD: ForgeAI triggered Smaug the Magnificent targeting [Seat]
+  STACK_RESOLVE: Whenever Smaug attacks, he deals damage equal to the number of Treasures you control to any target. (Targeting: [[Seat]]) [Attacker: Smaug the Magnificent (119)]
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Smaug the Magnificent (119).
+Seat didn't block Sarkhan, Dragon Ascendant (113).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Smaug the Magnificent (119) deals 4 combat damage to Seat.
+  DAMAGE: Sarkhan, Dragon Ascendant (113) deals 3 combat damage to Seat.
+  LIFE: Life: Seat 14 > 7
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 11 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  EFFECT_REPLACED: This land enters tapped unless you control a basic land.
+  LAND: Seat played Ba Sing Se (32)
+  STACK_ADD: Seat triggered Sazh's Chocobo
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a +1/+1 counter on this creature. [Zone Changer: Ba Sing Se (32)]
+  MANA: Forest (46) - {T}: Add {G}.
+  MANA: Ba Sing Se (32) - {T}: Add {G}.
+  MANA: Forest (45) - {T}: Add {G}.
+  STACK_ADD: Seat activated Ba Sing Se targeting [Forest (46)]
+  STACK_RESOLVE: Ba Sing Se (34) - Earthbend 2. (Target land you control becomes a 0/0 creature with haste that's still a land. Put  two +1/+1 counters on it. When it dies or is exiled, return it to the battlefield tapped under your control.)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Forest (47) and Sazh's Chocobo (7) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Forest (47).
+ForgeAI assigned Voice of Victory (95) to block Sazh's Chocobo (7).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Forest (47) deals 2 combat damage to ForgeAI.
+  DAMAGE: Sazh's Chocobo (7) deals 6 damage to Voice of Victory (95).
+  DAMAGE: Voice of Victory (95) deals 1 damage to Sazh's Chocobo (7).
+  LIFE: Life: ForgeAI 6 > 4
+  ZONE_CHANGE: Voice of Victory (95) was put into Graveyard from Battlefield.
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 12 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  STACK_ADD: ForgeAI triggered Smaug the Magnificent
+  STACK_RESOLVE: At the beginning of your upkeep, create a Treasure token. [Phase: ForgeAI]
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  EFFECT_REPLACED: As this land enters, choose a basic land type. Then you may pay 2 life. If you don't, it enters tapped.
+  LAND: ForgeAI played Multiversal Passage (131)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Smaug the Magnificent (119) and Sarkhan, Dragon Ascendant (113) to attack Seat.
+  STACK_ADD: ForgeAI triggered Smaug the Magnificent targeting [Seat]
+  DAMAGE: Smaug the Magnificent (119) deals 1 non-combat damage to Seat.
+  LIFE: Life: Seat 7 > 6
+  STACK_RESOLVE: Whenever Smaug attacks, he deals damage equal to the number of Treasures you control to any target. (Targeting: [[Seat]]) [Attacker: Smaug the Magnificent (119)]
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Smaug the Magnificent (119).
+Seat didn't block Sarkhan, Dragon Ascendant (113).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Smaug the Magnificent (119) deals 4 combat damage to Seat.
+  DAMAGE: Sarkhan, Dragon Ascendant (113) deals 3 combat damage to Seat.
+  LIFE: Life: Seat 6 > -1
+  PLAYER_CONTROL: Seat has restored control over themself
+  PLAYER_CONTROL: ForgeAI has restored control over themself
+  GAME_OUTCOME: Match Duration 4m : 05s
+  GAME_OUTCOME: Turn 6
+  GAME_OUTCOME: Seat has lost because life total reached 0
+  GAME_OUTCOME: ForgeAI has won because all opponents have lost
+  MATCH_RESULTS: Seat: 0 ForgeAI: 1 
+===============================
