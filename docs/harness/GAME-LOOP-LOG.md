@@ -449,4 +449,36 @@ decisions; analyzer PASS.
   answer that could not be used does. Test `anOptionalTargetTheSeatDeclinesIsItsDecisionNotAFallback`.
 - FIXED  the target question pasted the trigger's engine text "[Card: Cityscape Leveler (70), Activator: Seat, ...]"
   (also Devourer of Destiny (50), T6); ability labels are now redacted like the stack.
-- checked  "announce-x(forced)->0" twice for Kozilek's Command: two colourless sources, {X}{C}{C}, so X could only be 0.
+- checked  "announce-x(forced)->0" twice for Kozilek's Command: the engine's own payment check (canPayManaCost at
+  each X) allowed only 0, so the X was right.
+- FIXED  (#202, found after the game, owner: "it wasnt realizing lands can make more than 1 mana") the mana line
+  counted untapped sources, not mana: Tron read 3 instead of 7, Ancient Tomb 1, a summoning-sick dork 1. It is now
+  the engine's mana per source (canPlay, amountOfManaGenerated), as Forge's AI reads it.
+
+### game of 2026-10-15  seed 88  Pauper Madness Burn (GPT-6 Luna) vs Pauper Mono-Blue Delver (Forge AI)  WON T11  $0.02  harness-epoch-24
+
+`runs/luna-pauper/g8`: the first Pauper game. 38 model decisions by `answer` call; TAKEN 0, LOST 0, SKIP 0; 0
+Forge-AI decisions; analyzer PASS.
+- clean  mulligan, burn targets, madness discards, attacks.
+
+### game of 2026-10-15  seed 89  Standard Mono-Green Landfall (GPT-6 Luna) vs Standard Boros Dragons (Forge AI)  LOST T12  $0.02  harness-epoch-24
+
+`runs/luna-std/g9`. 29 model decisions by `answer` call, 10 forced; TAKEN 0, LOST 0, SKIP 0; 0 Forge-AI decisions;
+analyzer PASS.
+- OPEN   one ask took 3 attempts (T9 play); the log's one exception is a provider's cut-off stream
+  ("chunked transfer encoding"), retried.
+- clean  plays, attacks, blocks.
+
+### game of 2026-10-15  seed 90  Standard UW Control (GPT-6 Luna) vs Standard UR Aggro (Forge AI)  LOST T35  $0.13  harness-epoch-24
+
+`runs/luna-std/g10`. 148 model decisions by `answer` call, 38 forced; TAKEN 0, LOST 0, SKIP 0; 0 Forge-AI
+decisions; analyzer PASS. Luna stabilised at 2 life with Jace and Pinnacle Starcage, then lost to a Grove's Bounty
+on Elusive Otter through two counterspells.
+- FIXED  (#202) two Great Halls of the Biblioplex read "{W:2 U:2 B:2 R:2 G:2 C:2}": their any colour costs 1 life
+  and is for instants and sorceries only. Restricted mana is now listed apart, in the card's words.
+- FIXED  (provenance PR) the opponent's player name in these games was "ForgeAI" (set by the game script), so engine
+  log lines like "ForgeAI scries 1" could read as a harness or AI message. The script names it "Rival" now, and every
+  block of the prompt names its source.
+- WORKS  the mana-source keep question, 11 times; once the keep set could not pay {6}{W}{W}, was asked again,
+  and the second set was trimmed to what could pay (logged as a fallback).
+- OPEN   two asks took 3 attempts; one provider stream cut off and was retried.
