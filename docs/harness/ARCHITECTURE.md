@@ -242,7 +242,11 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 
 - **The archive (`ContextMemory`):** every event the seat saw, searchable with `memory_search`. Each ask
   starts with a short brief of what is there.
-- **The plan:** `set_plan` (goal and next steps), shown back on later asks.
+- **The plan:** `set_plan` (goal and next steps), shown back on later asks as "a note, not a commitment".
+  - *Why a note:* every decision is re-made on the state then. The agent guides of Anthropic, OpenAI, Google and
+    xAI all describe a loop in which the model sees the environment's result before each step. A plan carried out
+    without asking again (`PLAN_EXECUTE`, opt-in for measurement only) is a predefined workflow, and Magic has
+    hidden information and an opponent acting in between (WORK-PLAN item 16).
 - **The opponent read and the card lines:** fields of the play answer.
 - *Why an archive and not a growing transcript:* a full transcript grows without bound and drowns the
   current state. The archive keeps everything, retrievable, while the prompt stays current

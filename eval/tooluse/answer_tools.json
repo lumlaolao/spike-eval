@@ -104,7 +104,7 @@
     "type": "function",
     "function": {
       "name": "set_plan",
-      "description": "State or replace YOUR plan: it is shown back to you on every later decision with the turn you set it. Call it whenever your plan changes, at any decision, alongside your answer. It does not answer the decision.",
+      "description": "State or replace YOUR plan, a note and not a commitment: it is shown back to you on every later decision with the turn you set it, and each decision is still yours on the state then. Call it whenever the plan no longer fits, at any decision, alongside your answer. It does not answer the decision.",
       "parameters": {
         "type": "object",
         "properties": {

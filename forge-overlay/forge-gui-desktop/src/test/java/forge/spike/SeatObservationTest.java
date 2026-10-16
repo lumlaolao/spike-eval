@@ -201,7 +201,7 @@ public class SeatObservationTest {
         String sameTurn = o.render("seat", ContextProfile.V4_FAITHFUL, "", "hold up UU, counter their payoff", now);
         Assert.assertTrue(sameTurn.contains("\nYOUR PLAN (yours, stated at T" + now), sameTurn);
         Assert.assertTrue(sameTurn.contains(", this turn;"), sameTurn);
-        Assert.assertTrue(sameTurn.contains("at any decision, write a new `PLAN: GOAL:"), "it says the plan can change: " + sameTurn);
+        Assert.assertTrue(sameTurn.contains("It is a note, not a commitment: check it against the state above at this decision"), "it says the plan can change: " + sameTurn);
         String previous = o.render("seat", ContextProfile.V4_FAITHFUL, "", "hold up UU, counter their payoff", now - 1);
         Assert.assertTrue(previous.contains(", an earlier turn;"), previous);
         Assert.assertTrue(previous.contains("hold up UU"), previous);

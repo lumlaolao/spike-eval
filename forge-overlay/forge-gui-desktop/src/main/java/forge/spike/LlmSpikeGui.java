@@ -218,8 +218,9 @@ public final class LlmSpikeGui {
      *  land drops come from engine events, not log wording (observation-faithful-v31).
      *  Epoch 27: questions name cards without engine ids (one name function); mode and target questions say the
      *  announced X.
-     *  Epoch 28: a mulligan at five cards or fewer is the seat's (the floor only with MULLIGAN_HEURISTIC=1). */
-    static final String HARNESS_EPOCH = "harness-epoch-28";
+     *  Epoch 28: a mulligan at five cards or fewer is the seat's (the floor only with MULLIGAN_HEURISTIC=1).
+     *  Epoch 29: the plan is a note, not a commitment: every decision is re-made on the state then (answer-tool-v10). */
+    static final String HARNESS_EPOCH = "harness-epoch-29";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -830,8 +831,8 @@ public final class LlmSpikeGui {
         static String playToolAsks(boolean askPlan, boolean askLines, boolean askProfile) {
             StringBuilder b = new StringBuilder();
             if (askPlan) b.append("First set your plan with `set_plan` (goal: what you are working toward; next: the steps you ")
-                    .append("intend, in order, e.g. <land>, cast <card>, hold <card> for their turn); you can replace it at any later ")
-                    .append("decision. ");
+                    .append("intend, in order, e.g. <land>, cast <card>, hold <card> for their turn). It is a note, not a commitment: ")
+                    .append("every later decision is yours on the state then, and you replace the plan when it no longer fits. ");
             // Steps are offered only where PLAN_EXECUTE carries them out; otherwise the offer would be false.
             if (askPlan && PLAN_EXECUTE) b.append("If (and only if) you want the harness to cast steps of that plan for you without ")
                     .append("asking again this turn, give `steps` in your `answer`: ONLY the CAST/ACTIVATE option numbers you intend ")
@@ -2021,7 +2022,8 @@ public final class LlmSpikeGui {
             if (turnPlan == null || turnPlan.isEmpty()) return "";
             return "YOUR PLAN (yours, stated " + (planWhen == null || planWhen.isEmpty() ? "at T" + planTurn : "at " + planWhen)
                     + (planTurn == nowTurn ? ", this turn" : ", an earlier turn")
-                    + "; events after that happened since. It stands until you change it: at any decision, write a new "
+                    + "; events after that happened since. It is a note, not a commitment: check it against the state above at "
+                    + "this decision, and when it no longer fits, write a new "
                     + "`PLAN: GOAL: <what you are working toward> NEXT: <the steps>` line before your answer): "
                     + turnPlan + "\n";
         }
@@ -3014,7 +3016,8 @@ public final class LlmSpikeGui {
                         ? (observer != null
                            // Faithful (v22): a goal and the steps toward it, replaceable at any decision.
                            ? "First state your plan as `PLAN: GOAL: <what you are working toward> NEXT: <the steps you intend, in order, "
-                             + "e.g. <land>, cast <card>, hold <card> for their turn>`; you can replace it at any later decision. "
+                             + "e.g. <land>, cast <card>, hold <card> for their turn>`. It is a note, not a commitment: every later decision is "
+                             + "yours on the state then, and you replace the plan when it no longer fits. "
                            // The example named one eval deck's line (Grixis Reanimator) in every deck's prompt.
                            : "First state your plan for THIS TURN as `PLAN: <one short line>` (the sequence you intend, e.g. "
                              + "'ritual into Reanimate on Griselbrand, hold Petal'). ")
