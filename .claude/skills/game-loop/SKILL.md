@@ -39,22 +39,23 @@ SEED=<a seed not used in runs/loop yet; not in a reserved block (eval/seed_polic
 python3 eval/run_batch.py --seeds $SEED --exploratory --jobs 1 --budget-usd 0.40 \
   --deck $PWD/eval/decks/<deck>.txt --name-a Seat --name-b ForgeAI \
   --controller-a llm --controller-b ai \
-  --smart-a openrouter:deepseek/deepseek-v4.1-flash --fast-a openrouter:deepseek/deepseek-v4.1-flash \
-  --context-profile v4-faithful --memory-tools --lookahead --one-tier --env MULLIGAN_HEURISTIC=0 --env SKIP_HEURISTICS=0 \
+  --smart-a openrouter:openai/gpt-6-luna --fast-a openrouter:openai/gpt-6-luna \
+  --memory-tools --lookahead \
   --out $PWD/runs/loop/g$N --cap-minutes 120
 ```
 
 Vary the deck and the seating between games (`--deck-a/--deck-b`, add `--pairs` only when you want
-both seatings of one seed): a defect usually belongs to a card type, and one deck shows few.
-`MULLIGAN_HEURISTIC=0` so the mulligan is the model's decision too. `SKIP_HEURISTICS=0` so the harness
-does not guess which priority windows matter: every window with something usable is asked, and the seat
-may answer a PASS with `YIELD: end-of-turn` / `YIELD: my-next-turn` to stop being asked until then
-(the opponent's spells always ask). Passed windows are `t:"window"` rows; `yield:` ones were the seat's.
+both seatings of one seed): a defect usually belongs to a card type, and one deck shows few. The game
+model is GPT-6 Luna (owner, 2026-10-15). Play through `run_batch.py`, not a hand-rolled launcher: it
+stamps provenance (`overlay_sha`, `run_discipline`, `seed_bank`) that a direct JVM launch leaves
+`unknown` (independent review 2026-10-16, H3).
 
-`--one-tier`: every decision goes to the same model with its reasoning on. The two-tier split sent
-58% of real decisions in runs/loop g01-g07 (every target, most instant-speed plays) to a tier with
-reasoning disabled; how hard the model may think is not the harness's call. A separate condition
-(stamped `one_tier`): compare it with two-tier games only as two arms.
+The defaults are the condition: the faithful profile (`v4-faithful`), one tier with reasoning on every
+decision, the mulligan and every priority window with something usable asked of the seat (no
+`MULLIGAN_HEURISTIC` or `SKIP_HEURISTICS`), answers by the `answer` call. The seat may stop being asked
+until a point with the call's `yield` field (`end-of-turn`, `my-next-turn`); the opponent's spells always
+ask. Passed windows are `t:"window"` rows; yielded ones were the seat's. `--two-tier` and the heuristic
+switches are measurement arms only, each its own condition.
 
 ## 2. The sheet (mechanical, never skip)
 

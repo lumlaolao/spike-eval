@@ -37,21 +37,7 @@ items below stay as the longer backlog.
 **0. Every decision goes through a tool call: no text alternative anywhere.** **Done 2026-10-15 (#182,
 answer-tool-v7, harness-epoch-13).** A reply that calls nothing is reminded twice, then lost; prose is never
 read. `[TEXT-FORMAT-LEAK]` counts any text format left in a tool ask; `GoldenChecksToolTest` runs every golden
-check on the tool protocol. What follows is the plan as written. "Everything goes through
-the tool calls" (owner). If a prompt offers another way, a model will use it. Today, on the default
-protocol (an `openrouter:` model), the decision prompts already offer only `answer`; 0 text formats in
-the recorded Luna prompts. What still lets text in:
-- a reply that calls nothing gets one reminder, and a second such reply is still read as text
-  (`answer_via: "text"`). That last resort goes: no answer is read out of prose on a tool ask. A reply
-  that calls nothing is reminded (bounded), and only then is the decision lost, which is counted as a
-  defect on the row;
-- every decision site must offer `answer` (audit each `ask(` for a missing `offerAnswer`), including
-  the new damage-order and mana-keep corrections, and no site may add a text instruction to a tool ask
-  (`SIMULATE:` lines, `End with`, `CARD:`, `STEPS:`);
-- an acceptance check: in a default-protocol game, no prompt holds a text answer format and no row has
-  `answer_via` other than `tool`/`nudged`;
-- left as is, and stated: the text grammar for a backend with no function calling (the Claude CLI
-  lane), and the `ANSWER_TOOL=0` / `NATIVE_TOOLS=0` measurement arms.
+check on the tool protocol.
 
 **A. No engine fallback.** "I would like no engine fallback if able" (owner). **Done 2026-10-15
 (#184, #185, #187, #188, harness-epoch-17).** Since #187 and #188 the seat also owns retargeting of
@@ -70,28 +56,7 @@ of interacting").** Researched and measured (`PROMPT-CRAFT.md` rule 2): `tool_ch
 models (Luna keeps its reasoning), "auto" with reminders elsewhere (Anthropic 5.5 refuses forcing; forcing
 skips thinking). The same probe found Luna filling every optional field with defaults, which yielded 24 of
 48 passes to end of turn in the recorded games: fixed in answer-tool-v8 ("none" first, empty means not
-said). Next: one Luna game to confirm, read end to end (about $0.02).
-
-The plan for A as written: Forge's AI must not decide
-anything for the seat. From `docs/harness/controller-ownership.tsv` and the recorded games:
-- in progress (`fix/no-engine-fallback`):
-  - blocker and attacker damage order (`orderBlockers`, `orderBlocker`, `orderAttackers`) was Forge's
-    `AiBlockController`, only logged: now asked of the seat;
-  - the mana-keep question: a keep set the rest cannot pay went back to the engine's plan (fired 729
-    times, 5 on model seats): now the reason is given and the seat asked once more, then the longest
-    payable prefix of its own picks is kept;
-- next: `aiDelegate` sites (card naming with no pool or an error, modes with an error);
-  `chooseTargetsFor`'s `super` safety nets; the cost decisions' `fellBack` paths (`LlmCostDecision`);
-  `playChosenSpellAbility` for an ability that is not the seat's;
-- then the never-overridden choices Forge's AI makes outright (rare in the pool): Fact or Fiction piles
-  (`chooseCardsPile`), opening-hand Leylines (`chooseSaToActivateFromOpeningHand`), colours, counter
-  types, replacement-effect order, edict-style destroy, multiple-category picks, keyword for a pump,
-  spell for an effect, clash, optional statics, discard-unless, retargeting, redirect target, card face
-  and state, static ability, keyword-cost count, attack and block taxes (`payCombatCost`), convoke and
-  improvise, cost-reduction count, cost order, mana combination, mana from pool;
-- last: mechanics no deck in the pool can reach (dice, stickers, contraptions, attractions), each left
-  documented in the ledger;
-- every change updates `controller-ownership.tsv`, so the acceptance `[OWNERSHIP]` count can only fall.
+said). Confirmed in the Luna games since (`docs/harness/GAME-LOOP-LOG.md`, g1-g13).
 
 Not engine fallback, and kept: a choice with exactly one legal option is taken without asking (forced),
 and a seat that has no model (floor, random arms) takes a fixed legal option. A model that fails to
@@ -154,7 +119,7 @@ built that way.
    - answer tool: reach 60%, correct 67%, 69 of 69 answers through the tool, none lost;
    - restraint and ceiling were 100% in both arms.
 
-   Left: one cheap Luna game read end to end.
+   Read end to end in the Luna games since (`docs/harness/GAME-LOOP-LOG.md`).
 4. **Rewrite the prompts from the audit.** First pass done 2026-10-15 (`harness-epoch-8`, observation v24,
    seat-tools-v8), closing these `PROMPT-AUDIT.md` findings:
    - A1: one correct state guide, in the system prompt only;
@@ -181,7 +146,8 @@ built that way.
    **Confounded (found 2026-10-15, `runs/luna-v8/g3`):** a yield passed the seat's own main phases until
    answer-tool-v9, so both arms lost land drops and plays to it (`runs/prompt-ab/*` up to 17 main phases a
    game, `runs/compare/*` up to 27; `match_review.py` now counts them as SKIP). This block, and the
-   one-tier against two-tier comparison, must be re-run on harness-epoch-19 before any conclusion.
+   one-tier against two-tier comparison, must be re-run on the frozen measurement epoch (review E5) before
+   any conclusion.
 
    Next: a larger block. The remaining prompt work (D1, card naming) is in (epoch 11). At about $0.02
    a Luna game, 20 games per arm is about $0.80; waiting on the owner's go-ahead to spend it.
@@ -265,13 +231,11 @@ Built: 36 real MTGO Challenge top-8 lists (7 Standard, 6 Modern, 6 Pauper, and s
 5 Vintage, `eval/decks/SOURCES.md`), each legal by the pinned engine's format data and each played once on the random
 arm (all load 60+15, finish, analyzer PASS). The Vintage decks found an engine crash: a declined companion (engine
 patch, `docs/harness/ENGINE-PATCHES.md`).
-Next: Luna games on them through the game loop. **Owner decision:** the legality check finds three decks of the
+Luna games on them through the game loop: g11-g13 so far (`GAME-LOOP-LOG.md`). **Owner decision** (review E1): the legality check finds three decks of the
 Legacy eval pool illegal under the pinned engine's Legacy list: Miracles (Sensei's Divining Top), Painter (The
 Fantasticar), UR Delver (Ragavan, Nimble Pilferer). Replacing them changes the pool's results (deck_sha).
 
 ## Priority 3: later
-
-- Finish the puzzle suite (see 13).
 
 15. The first real scoring-panel run (cost stated first, small block).
 16. ~~Compound actions (`PLAN_EXECUTE`).~~ **Settled 2026-10-16 (owner): off; it stays an opt-in measurement

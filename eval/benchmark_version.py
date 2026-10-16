@@ -11,19 +11,20 @@ What the id hashes:
 
   engine         FORGE_COMMIT (and every game line's engine_sha must equal it)
   overlay        the game lines' overlay_sha; without games, the same hash run_batch.py computes
-                 (sha256[:12] of LlmSpikeGui.java + LlmSpikeHeadless.java) over this checkout's overlay
+                 (overlay_tree_sha: every file under forge-overlay/*/src/main/, path and bytes, the
+                 harness classes and the engine patches) over this checkout's overlay
   deck_pool      sha12 of each panel deck file; a file that no longer matches its pin in the panels
                  file is an error, not a new version
   seed_registry  sha12 of eval/seed_registry.json
   panels         sha12 of the panels file (eval/suites/panels-v1.json)
-  puzzle_suites  sha12 of each frozen puzzle suite (eval/suites/puzzles-*.json); none exist yet
+  puzzle_suites  sha12 of each frozen puzzle suite (eval/suites/puzzles-*.json)
   tools          sha12 of eval/tooluse/tools.json (the native tool definitions)
   anchors        the panels file's `anchors` block (Forge AI = 1500, the rating prior, WR_AImirror)
   observed       context_profile, context_sha and harness_epoch as the game lines recorded them
 
-What it cannot see: the overlay_sha stamp covers only the two spike files, so a change to another
-overlay class (NativeTools.java, SeatObservation.java) moves the id only through harness_epoch,
-context_sha or the tool definitions. Model identity is not part of the version: it is what a score
+Since 2026-10-16 (independent review H3) the overlay_sha covers every overlay source, so a change to
+AnswerTool.java, SeatObservation.java or an engine patch moves the id; before, it covered only the two
+spike files (LlmSpikeGui, LlmSpikeHeadless), and game lines from then carry that older hash. Model identity is not part of the version: it is what a score
 is ABOUT, not the condition it was measured under.
 
 Usage:
@@ -41,9 +42,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_PANELS = REPO_ROOT / "eval" / "suites" / "panels-v1.json"
 SCHEME = "bv1"
-OVERLAY_SPIKE = Path("forge-overlay/forge-gui-desktop/src/main/java/forge/spike")
-# Must match run_batch.SPIKE_FILES (order included): the game line's overlay_sha is that hash.
-OVERLAY_FILES = ("LlmSpikeGui.java", "LlmSpikeHeadless.java")
+OVERLAY_ROOT = Path("forge-overlay")
 PUZZLE_SUITE_GLOB = "puzzles-*.json"
 # Game-line fields that describe the observation and the harness interface. Each must hold one value
 # across every game a report covers.
@@ -78,14 +77,31 @@ def load_panels(path=None):
         raise VersionError("unreadable panels file %s: %s" % (p, e))
 
 
-def overlay_sha_of_checkout(repo=REPO_ROOT):
-    blobs = []
-    for name in OVERLAY_FILES:
+def overlay_files(repo=REPO_ROOT):
+    """Every harness source the overlay installs: each file under forge-overlay/<module>/src/main/,
+    as a sorted path relative to forge-overlay (the same path under FORGE_HOME once installed)."""
+    root = Path(repo) / OVERLAY_ROOT
+    return sorted(p.relative_to(root).as_posix() for p in root.glob("*/src/main/**/*") if p.is_file())
+
+
+def overlay_tree_sha(base, rels):
+    """sha256[:12] over each file's path and bytes, in the given order; 'unknown' when a file is
+    unreadable or there are none. `base` is forge-overlay in a checkout, or FORGE_HOME once installed,
+    so the two agree exactly when the installed harness is this checkout's."""
+    if not rels:
+        return "unknown"
+    h = hashlib.sha256()
+    for rel in rels:
         try:
-            blobs.append((Path(repo) / OVERLAY_SPIKE / name).read_bytes())
+            b = (Path(base) / rel).read_bytes()
         except OSError:
             return "unknown"
-    return _sha12(b"".join(blobs))
+        h.update(rel.encode("utf-8") + b"\0" + str(len(b)).encode("ascii") + b"\0" + b)
+    return h.hexdigest()[:12]
+
+
+def overlay_sha_of_checkout(repo=REPO_ROOT):
+    return overlay_tree_sha(Path(repo) / OVERLAY_ROOT, overlay_files(repo))
 
 
 def deck_pool_shas(panels, repo=REPO_ROOT):

@@ -219,8 +219,11 @@ public final class LlmSpikeGui {
      *  Epoch 27: questions name cards without engine ids (one name function); mode and target questions say the
      *  announced X.
      *  Epoch 28: a mulligan at five cards or fewer is the seat's (the floor only with MULLIGAN_HEURISTIC=1).
-     *  Epoch 29: the plan is a note, not a commitment: every decision is re-made on the state then (answer-tool-v10). */
-    static final String HARNESS_EPOCH = "harness-epoch-29";
+     *  Epoch 29: the plan is a note, not a commitment: every decision is re-made on the state then (answer-tool-v10).
+     *  Epoch 30 (2026-10-16 independent review): no reasoning cap and one answer line on a tool ask (answer-tool-v11);
+     *  a dead bridge takes the fixed legal option, never one read from the plan's prose; a lookahead preview
+     *  re-deals the opponent's hand first, so it reveals no hidden card (lookahead-preview-v6). */
+    static final String HARNESS_EPOCH = "harness-epoch-30";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -1514,10 +1517,9 @@ public final class LlmSpikeGui {
                     + tools + answers
                     + "</how_this_works>\n\n"
                     + "<reading_the_state>\n" + SeatObservation.GUIDE + "</reading_the_state>\n"
-                    // The reference describes the Legacy pool's archetypes; it is not shown for another format, nor for a
-                    // puzzle's hand-built position.
-                    + (coaching && puzzle == null && "legacy".equals(format)
-                            ? "\n<legacy_reference>\n" + LEGACY_REFERENCE + "</legacy_reference>\n" : "");
+                    // Terms and keywords, the same for every format and for a puzzle (2026-10-16 review: the Legacy-only
+                    // reference also named the eval pool's archetypes, which no other format's seat was told).
+                    + (coaching ? "\n<reference>\n" + TERMS_REFERENCE + "</reference>\n" : "");
         }
         /** How a decision is answered when it is answered in text (ANSWER_TOOL=0, or a backend without
          *  function calling). */
@@ -1527,8 +1529,9 @@ public final class LlmSpikeGui {
               + "...` (or `BLOCKS: NONE`), `KEEP` or `MULLIGAN`, `NUMBER: <n>` or `CARD: <name>`. The harness reads only "
               + "that last line. If it cannot read it, it asks once more; after that it takes the decline or pass "
               + "option.\n";
-        /** Terms and the archetypes of the eval pool: what they are, not how to play against them. */
-        static final String LEGACY_REFERENCE =
+        /** Terms and keywords: what they mean, not how to play. No list of the eval pool's archetypes: that
+         *  told a Legacy seat which decks it could face, which a seat in any other format was not told. */
+        static final String TERMS_REFERENCE =
                 "Terms: tempo (mana efficiency and board presence); card advantage (more resources than the opponent); "
               + "cantrip (a cheap spell that replaces itself, such as Brainstorm, Ponder or Preordain); combo (a specific "
               + "set of cards that wins outside combat); prison or lock (denying the opponent resources).\n"
@@ -1537,20 +1540,7 @@ public final class LlmSpikeGui {
               + "as poison counters; 10 poison loses); energy (a counter resource); reanimation (putting a creature from "
               + "a graveyard onto the battlefield, as with Animate Dead or Reanimate); miracle (cast a card for a cheaper "
               + "cost the turn you draw it). Cascade, prowess, flash, flying, trample, deathtouch, lifelink, hexproof "
-              + "and shroud work as printed.\n"
-              + "Archetypes in this pool:\n"
-              + "- ANT / Storm: fast mana and rituals into Ad Nauseam and a lethal storm count.\n"
-              + "- Burn: cheap creatures (Goblin Guide, Monastery Swiftspear) and direct damage.\n"
-              + "- Death & Taxes: small disruptive creatures (Thalia, Mother of Runes) with Wasteland and Rishadan Port.\n"
-              + "- Elves: mana creatures that build to an overrun such as Craterhoof Behemoth.\n"
-              + "- Goblins: Goblin Lackey and Goblin Ringleader; a wide tribal board.\n"
-              + "- Grixis Reanimator: discard a large creature (Atraxa, Archon) and reanimate it early.\n"
-              + "- Infect: Glistener Elf and Blighted Agent with pump spells.\n"
-              + "- Lands: Wasteland, Rishadan Port and The Tabernacle at Pendrell Vale, winning with Marit Lage.\n"
-              + "- Mardu Energy: aggressive creatures with energy payoffs.\n"
-              + "- Miracles: Brainstorm and Ponder setting up Terminus and Entreat the Angels; control.\n"
-              + "- Sneak & Show: Show and Tell or Sneak Attack putting a huge creature such as Emrakul into play.\n"
-              + "- UR Delver: Delver of Secrets with cantrips, burn and counterspells; tempo.\n";
+              + "and shroud work as printed.\n";
         /** {@link #STATIC_REFERENCE} with its answer contract describing the `answer` call. */
         static String toolReference() {
             int a = STATIC_REFERENCE.indexOf("=== ANSWER CONTRACT"), b = STATIC_REFERENCE.indexOf("=== WORKED EXAMPLES");
@@ -2642,16 +2632,9 @@ public final class LlmSpikeGui {
                                 attackersCeiling(legal, defender, combat)),
                         labels, 0, legal.size());
                 if (picks == null) {
-                    // Bridge dead -> the creatures the model's OWN stated turn plan named (e.g. "attack
-                    // with Blighted Agent alone"), deterministic and never the AI.
-                    List<Integer> named = planNamedIndices(legal);
-                    if (!named.isEmpty()) {
-                        for (int i : named) combat.addAttacker(legal.get(i), defender);
-                        auto("attackers(bridge-down)->plan-named x" + named.size());
-                        return;
-                    }
-                    // Otherwise no attack. The prior-turn set and the all-in default were the harness
-                    // attacking for a seat that did not answer (acceptance `gaming`).
+                    // Bridge dead -> no attack, the fixed legal option. Reading attackers out of the plan's
+                    // prose, the prior-turn set and the all-in default were each the harness attacking for a
+                    // seat that did not answer (acceptance `gaming`; 2026-10-16 review M2).
                     auto("attackers(bridge-down)->none");
                     return;
                 }
@@ -3516,7 +3499,7 @@ public final class LlmSpikeGui {
                     String q = "Choose the TARGET for " + labelOf(sa) + xNote(sa) + " (the spell/ability resolves against whatever you pick).";
                     int c = decideOne(bridgeFor("targets"), "targets", q, labels, min == 0 ? "No target (decline)" : null);
                     // bridge dead -> the same deterministic path as an unparsed reply (decline when
-                    // optional, else the plan-named or first candidate). It used to be Forge's AI.
+                    // optional, else the first candidate). It used to be Forge's AI.
                     if (c < 0) {
                         // decideOne's -1 also covers "still unparseable after retry", which decideOne does NOT
                         // log itself (only an explicit decline does, flagged via lastDeclineLogged) — never drop it silently.
@@ -3524,16 +3507,9 @@ public final class LlmSpikeGui {
                             if (!lastDeclineLogged) evalDec("targets", cands.size(), -1, tierOf(smartTierFor("targets")), 0, "targets(unparsed)->decline", labels);
                             sa.resetTargets(); return true;
                         }
-                        // required + unparsed -> intent-aware fallback (report C3): prefer a candidate the
-                        // model's own stated turn PLAN already named over a blind first-candidate default;
-                        // make the fallback VISIBLE to the gate either way.
-                        List<Integer> named = planNamedIndices(cands);
-                        if (!named.isEmpty()) {
-                            pick = named.get(0);
-                            evalDec("targets", cands.size(), pick, tierOf(smartTierFor("targets")), 0, "targets(unparsed)->plan-named", labels);
-                        } else {
-                            evalDec("targets", cands.size(), 0, tierOf(smartTierFor("targets")), 0, "targets(unparsed)->first", labels);
-                        }
+                        // required + unanswered -> the first legal candidate, a fixed option and VISIBLE to the
+                        // gate (no candidate read out of the plan's prose: 2026-10-16 review M2).
+                        evalDec("targets", cands.size(), 0, tierOf(smartTierFor("targets")), 0, "targets(unparsed)->first", labels);
                     } else pick = c;                                          // decideOne logged the success line
                 } else if (cands.size() > 1) {
                     // real choice existed but no model consulted (floor arm / budget exhausted)
@@ -3635,12 +3611,7 @@ public final class LlmSpikeGui {
                             return false;
                         }
                         if (c >= 0) pick = c;
-                        else { // -2/unparsed -> intent-aware fallback (report C3): prefer a plan-named
-                               // candidate over a blind first-candidate default; VISIBLE either way.
-                            List<Integer> named = planNamedIndices(cands);
-                            if (!named.isEmpty()) { pick = named.get(0); fb = "target(unparsed-or-dead)->plan-named"; }
-                            else fb = "target(unparsed-or-dead)->first";
-                        }
+                        else fb = "target(unparsed-or-dead)->first"; // the fixed legal option, never the plan's prose
                     } else if (cands.size() > 1) {
                         fb = "target(no-model)->first";                    // floor arm / budget exhausted
                     } else {
@@ -6009,6 +5980,10 @@ public final class LlmSpikeGui {
                 // A decision site that did not offer `answer` on a backend that calls: a text ask, the same defect.
                 textFormatLeaks++;
                 p("[TEXT-FORMAT-LEAK] a text ask on a tool backend (no offerAnswer before it)");
+            } else if (observer != null) {
+                // The faithful text lane caps no reasoning either (2026-10-16 review M1); the shared question
+                // builders keep their bytes for the legacy profiles and the ai-teacher pairing.
+                prompt = prompt.replace("Reason briefly, then end with", "End with");
             }
             java.util.function.Consumer<String> tap = TEST_ASK_TAP;
             if (tap != null) tap.accept(prompt);
@@ -6260,15 +6235,26 @@ public final class LlmSpikeGui {
             return at < 0 ? prompt + block : prompt.substring(0, at) + block + prompt.substring(at);
         }
 
-        /** Life, hand, battlefield and graveyard sizes of every player: a creature that resolved in the
-         *  same phase makes a new spot even when the stack and the menu look the same again. */
+        /** What makes a new spot even when the stack top and the menu look the same again: every player's
+         *  life, poison, zone sizes and mana pool, the stack's size, and each permanent by id with its tapped
+         *  state, counters and power/toughness. Sizes alone (until 2026-10-16, review LOW) missed an untap,
+         *  a counter or a pump between two windows, and the second window was passed for the seat. */
         static String boardDigest(Game g) {
             StringBuilder b = new StringBuilder();
             try {
-                for (Player pl : g.getPlayers())
-                    b.append(pl.getLife()).append(',').append(pl.getCardsIn(ZoneType.Hand).size()).append(',')
-                     .append(pl.getCardsIn(ZoneType.Battlefield).size()).append(',')
-                     .append(pl.getCardsIn(ZoneType.Graveyard).size()).append(';');
+                b.append(g.getStack().size()).append(';');
+                for (Player pl : g.getPlayers()) {
+                    b.append(pl.getLife()).append(',').append(pl.getPoisonCounters()).append(',')
+                     .append(pl.getCardsIn(ZoneType.Hand).size()).append(',')
+                     .append(pl.getCardsIn(ZoneType.Graveyard).size()).append(',')
+                     .append(pl.getCardsIn(ZoneType.Exile).size()).append(',')
+                     .append(pl.getCardsIn(ZoneType.Library).size()).append(',')
+                     .append(pl.getManaPool().totalMana()).append('[');
+                    for (Card c : pl.getCardsIn(ZoneType.Battlefield))
+                        b.append(c.getId()).append(c.isTapped() ? "t" : "u").append(c.getCounters())
+                         .append(c.isCreature() ? c.getNetPower() + "/" + c.getNetToughness() : "").append(' ');
+                    b.append("];");
+                }
             } catch (Exception ignore) { }
             return b.toString();
         }
@@ -6810,12 +6796,6 @@ public final class LlmSpikeGui {
             for (Card c : cards) if (upperSeg.contains(c.getName().toUpperCase())) return c;
             return null;
         }
-        /** Indices (menu order) of every candidate the stated turn PLAN names by card name — the
-         *  intent-aware bridge-down fallback (report C3): tokenizing the model's own already-captured
-         *  plan and matching it against the live legal candidates turns a dead-bridge default from
-         *  "blindly override whatever the model just said" into "do what it already told us it wanted".
-         *  Empty when there's no plan yet this turn, or the plan doesn't name anything on offer here.
-         *  Thin wrapper over the pure, unit-testable {@link #namedIndices}. */
         /** Opponent-side signature: the facts whose change means our plan was interrupted. Our OWN
          *  plays change our own side, so they are deliberately excluded -- otherwise the first executed
          *  step would invalidate the plan that ordered it. */
@@ -6856,26 +6836,6 @@ public final class LlmSpikeGui {
             return -1;
         }
 
-        private List<Integer> planNamedIndices(List<? extends GameEntity> cands) {
-            List<String> names = new ArrayList<>();
-            for (GameEntity ge : cands) {
-                try { names.add(ge.getName()); } catch (Exception e) { names.add(null); }
-            }
-            return namedIndices(names, turnPlan);
-        }
-        /** Pure core of {@link #planNamedIndices}: indices (list order) of every name in
-         *  `candidateNames` that appears (case-insensitive substring) in `planText`. State-free and
-         *  Game-object-free so it's directly unit-testable. Empty when `planText` is null/blank. */
-        static List<Integer> namedIndices(List<String> candidateNames, String planText) {
-            List<Integer> out = new ArrayList<>();
-            if (planText == null || planText.isEmpty()) return out;
-            String upper = planText.toUpperCase();
-            for (int i = 0; i < candidateNames.size(); i++) {
-                String n = candidateNames.get(i);
-                if (n != null && upper.contains(n.toUpperCase())) out.add(i);
-            }
-            return out;
-        }
         /** Pure trample-split math used by assignCombatDamage's single-blocker/trample menu: how much
          *  of `damageDealt` is lethal-to-the-blocker vs. tramples over to the defender. `killDamage` is
          *  whatever ComputerUtilCombat.getEnoughDamageToKill reports (may exceed damageDealt when the

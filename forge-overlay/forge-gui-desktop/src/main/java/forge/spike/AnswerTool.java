@@ -48,8 +48,9 @@ final class AnswerTool {
      *  v8: a model's filled-in defaults do nothing: `yield` has "none" as its first value, and an empty
      *  `keep_untapped` means not said (Luna filled every field: 175 of 189 answers yielded to end of turn).
      *  v10: `set_plan` says the plan is a note, not a commitment: each decision is re-made on the state then (Anthropic,
-     *  OpenAI, Google and xAI agent guides: the model gets the environment's result at every step). */
-    static final String VERSION = "answer-tool-v10";
+     *  OpenAI, Google and xAI agent guides: the model gets the environment's result at every step).
+     *  v11: a tool ask carries no "Reason briefly" and one answer line, the appended ANSWER line (review M1). */
+    static final String VERSION = "answer-tool-v11";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -724,10 +725,12 @@ final class AnswerTool {
                 + " Lookups do not count against the answer.\n";
     }
 
-    /** The text-format instructions in a decision text, replaced by the tool's. The question builders
-     *  are shared with the ai-teacher seat and stay byte-identical; only this ask's wire text changes. */
+    /** The text-format instructions in a decision text, removed from a tool ask: its one answer line is the
+     *  `ANSWER:` line the ask appends ({@link #instruction}). The question builders are shared with the
+     *  ai-teacher seat and the text lane and stay byte-identical; only this ask's wire text changes. Their
+     *  "Reason briefly" goes with them: no reasoning cap on a tool ask (2026-10-16 review M1). */
     private static final Pattern TAIL = Pattern.compile(
-            "(?:Reason briefly, then |Then |Now |[Tt]hen )?(?:end|End|reply|Reply) with (?:EXACTLY|exactly)[^\\n]*");
+            " ?(?:Reason briefly, then |Then |Now |[Tt]hen )?(?:end|End|reply|Reply) with (?:EXACTLY|exactly)[^\\n]*");
     private static final Pattern RETRY = Pattern.compile(
             "\\(?(?:Your previous reply had no|Your previous reply contained no|Answer with ONE line only|That reply contained neither"
             + "|That was not a legal or recognizable card name|Invalid answer\\. Use exactly)[^\\n]*");
@@ -745,9 +748,7 @@ final class AnswerTool {
         if (prompt == null) return null;
         prompt = prompt.replace(PLAN_LINE_HINT, plan ? "call `set_plan` with a new goal and next steps"
                 : "call `set_plan` at a decision that offers it");
-        String call = "Reason briefly, then call `answer` (" + instruction(s, false).replaceFirst("^ANSWER: call `answer` with ", "")
-                .replaceFirst("\\. Lookups do not count against the answer\\.\\n$", "") + ").";
-        String out = TAIL.matcher(prompt).replaceAll(java.util.regex.Matcher.quoteReplacement(call));
+        String out = TAIL.matcher(prompt).replaceAll("");
         out = INLINE_FORMAT.matcher(out).replaceAll("");
         return RETRY.matcher(out).replaceAll("(Your previous reply did not call `answer` with a legal value. Call `answer` now.)");
     }

@@ -44,6 +44,15 @@ def load_secrets():
             os.environ.setdefault(k.strip(), v.strip())
 
 
+def is_loopback(url):
+    """True when url names this machine (LlmSpikeGui.LLMBridgeFactory.isLoopback)."""
+    from urllib.parse import urlparse
+    try:
+        return (urlparse(url).hostname or "") in ("localhost", "127.0.0.1", "::1")
+    except ValueError:
+        return False
+
+
 def spent(out_root):
     prices = cost_report.load_prices()
     return sum(cost_report.report_dir(str(d), prices)["usd"] for d in Path(out_root).glob("*") if d.is_dir())
@@ -66,7 +75,7 @@ def solve_puzzle(build, rec, model, k, out_root, suite_sha, cond):
     env = dict(cond, PUZZLE=str(pf.pzl_path(rec)), CONTROLLER_A="llm", CONTROLLER_B="ai",
                PZL_SEEDS="%d..%d" % (ATTEMPT_BASE, ATTEMPT_BASE + k - 1), PZL_SUITE_SHA256=suite_sha,
                SMART_MODEL_A=model, FAST_MODEL_A=model, GAME_CAP_MS="1800000")
-    for key in ("OPENROUTER_API_KEY", "OPENROUTER_ALLOW_EGRESS"):
+    for key in ("OPENROUTER_API_KEY", "OPENROUTER_ALLOW_EGRESS", "OPENROUTER_BASE_URL"):
         if os.environ.get(key):
             env[key] = os.environ[key]
     rc = build.run(env, out, timeout_s=4 * 3600, keep_model_env=True)
@@ -96,7 +105,9 @@ def main(argv=None):
     if problems or not manifest.get("frozen"):
         raise SystemExit("suite does not validate or is not frozen: %s" % "; ".join(problems[:5]))
     load_secrets()
-    if a.model.startswith("openrouter:") and os.environ.get("OPENROUTER_ALLOW_EGRESS") != "1":
+    # A loopback endpoint (the acceptance fake model) sends nothing off the machine, as the JVM's own check says.
+    if (a.model.startswith("openrouter:") and os.environ.get("OPENROUTER_ALLOW_EGRESS") != "1"
+            and not is_loopback(os.environ.get("OPENROUTER_BASE_URL", ""))):
         raise SystemExit("OPENROUTER_ALLOW_EGRESS=1 is not set: an openrouter: model sends each position to "
                          "openrouter.ai, and that needs the owner's opt-in (secrets.env)")
     ids = set(a.ids.split(",")) if a.ids else None

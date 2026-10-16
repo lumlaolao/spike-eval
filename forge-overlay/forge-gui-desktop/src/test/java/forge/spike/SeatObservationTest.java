@@ -424,18 +424,14 @@ public class SeatObservationTest {
         Assert.assertTrue(system.contains(SeatObservation.GUIDE), "the system prompt lost the guide to the state");
         Assert.assertFalse(system.contains("PRINCIPLES") || system.contains("WORKED EXAMPLES") || system.contains("at most two"),
                 "the faithful system prompt states facts, not coaching (PROMPT-AUDIT.md C1, C2, C5)");
-        // The format is the one the decks are built for; the Legacy archetype reference is for Legacy only.
-        Assert.assertTrue(system.contains("Legacy format") && system.contains("<legacy_reference>"), "the default is Legacy");
+        // The format is the one the decks are built for; the reference is the same terms in every format, and
+        // names no eval-pool archetype (2026-10-16 review).
+        Assert.assertTrue(system.contains("Legacy format") && system.contains("<reference>"), "the default is Legacy");
         String modernSystem = LlmSpikeGui.PlayerControllerLLM.seatFraming("modern", "Seat", "GAME PLAN: x", true, true, true);
         Assert.assertTrue(modernSystem.contains("Magic: The Gathering, Modern format"), modernSystem.substring(0, 120));
-        Assert.assertFalse(modernSystem.contains("<legacy_reference>"), "a Modern game was given the Legacy pool's archetypes");
-        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.gameFormat(" Pauper "), "pauper");
-        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.gameFormat(null), "legacy");
-        // The format is the one the decks are built for; the Legacy archetype reference is for Legacy only.
-        Assert.assertTrue(system.contains("Legacy format") && system.contains("<legacy_reference>"), "the default is Legacy");
-        String modern = LlmSpikeGui.PlayerControllerLLM.seatFraming("modern", "Seat", "GAME PLAN: x", true, true, true);
-        Assert.assertTrue(modern.contains("Magic: The Gathering, Modern format"), modern.substring(0, 120));
-        Assert.assertFalse(modern.contains("<legacy_reference>"), "a Modern game was given the Legacy pool's archetypes");
+        Assert.assertEquals(modernSystem.substring(modernSystem.indexOf("<reference>")), system.substring(system.indexOf("<reference>")),
+                "a Legacy and a Modern seat get one reference");
+        Assert.assertFalse(system.contains("Archetypes in this pool") || system.contains("Sneak & Show"), "the eval pool is named");
         Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.gameFormat(" Pauper "), "pauper");
         Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.gameFormat(null), "legacy");
 
@@ -452,8 +448,8 @@ public class SeatObservationTest {
         Assert.assertEquals(ref, ob.inspect("Daze"));
     }
 
-    /** A puzzle solver is told the author's goal in place of "win the game", and gets no eval-pool
-     *  archetype reference; outside puzzle mode the framing is unchanged. */
+    /** A puzzle solver is told the author's goal in place of "win the game"; outside puzzle mode the framing
+     *  is unchanged. Both get the same terms reference. */
     @Test
     public void aPuzzleSolverIsToldTheGoalAsTheAuthorWroteIt() {
         String game = LlmSpikeGui.PlayerControllerLLM.seatFraming("Seat", "", true, true, true);
@@ -461,11 +457,12 @@ public class SeatObservationTest {
             LlmSpikeGui.puzzleBrief = "Goal: Play the Specified Permanent\nTurns Limit: 1\nYou know the top card is Channel.";
             String pz = LlmSpikeGui.PlayerControllerLLM.seatFraming("Solver", "", true, true, true);
             Assert.assertTrue(pz.contains("<puzzle>\nGoal: Play the Specified Permanent") && pz.contains("top card is Channel"), pz);
-            Assert.assertFalse(pz.contains("Your goal is to win the game") || pz.contains("<legacy_reference>"), pz);
+            Assert.assertFalse(pz.contains("Your goal is to win the game"), pz);
+            Assert.assertTrue(pz.contains("<reference>"), pz);
         } finally {
             LlmSpikeGui.puzzleBrief = null;
         }
-        Assert.assertTrue(game.contains("Your goal is to win the game") && game.contains("<legacy_reference>"));
+        Assert.assertTrue(game.contains("Your goal is to win the game") && game.contains("<reference>"));
         Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.seatFraming("Seat", "", true, true, true), game);
     }
 

@@ -15,7 +15,7 @@ measured and opted into as a separate condition.
 ## 1. The shape of it
 
 ```
- Forge rules engine (pinned commit, unmodified)
+ Forge rules engine (pinned commit; two marked patches, ENGINE-PATCHES.md)
    │  asks the seat's PlayerController for every decision
    ▼
  PlayerControllerLLM  (forge-overlay/.../spike/LlmSpikeGui.java)
@@ -39,14 +39,15 @@ them and refuses to pool what is not comparable.
   judge one.
 - *Why pinned:* results are only comparable within one engine version. The benchmark version
   (`eval/benchmark_version.py`) includes the commit, and every game line records it.
-- *Why unmodified:* a forked rules engine could drift from the one it claims to be. Everything we add
-  lives in `forge-overlay/` and is copied in by `install.sh`. The overlay is the source of truth; files in
+- *Why unmodified except for listed patches:* a forked rules engine could drift from the one it claims to
+  be. Everything we add lives in `forge-overlay/` and is copied in by `install.sh`. The overlay is the source of truth; files in
   the Forge checkout get overwritten.
 - *Engine patches (owner, 2026-10-15), only where the seat has no hook:* a patched copy of an engine file at
   its own path in the overlay, every change marked `HARNESS PATCH`, the upstream original's sha256 recorded
   in `docs/harness/ENGINE-PATCHES.md` and checked by `eval/test_engine_patches.py`, so a re-pin forces a
-  re-diff. Why: "truly let agents have control" (owner) where no `PlayerController` call exists. One so far:
-  the colour an any-colour source makes for a generic shard.
+  re-diff. Why: "truly let agents have control" (owner) where no `PlayerController` call exists. Two so far:
+  the colour an any-colour source makes for a generic shard (`ComputerUtilMana`), and a companion the seat
+  declines is no companion rather than a crash (`Player.assignCompanion`).
 
 ## 3. The seat: `PlayerControllerLLM`
 
@@ -70,8 +71,9 @@ Anything new asks again: an opponent's spell or ability, every attack and block,
   fast tier) remain only as opt-in measurement switches (`MULLIGAN_HEURISTIC=1`, `SKIP_HEURISTICS=1`,
   `ONE_TIER=0`).
 
-**When the model gives no usable answer:** a fixed legal option (the first, or decline), recorded on the
-decision row with why. Never Forge's AI.
+**When the model gives no usable answer:** a fixed legal option (the first, or decline; no attack for
+attackers), recorded on the decision row with why. Never Forge's AI, and never an option read out of the
+model's plan text (the "plan-named" fallbacks went in harness-epoch-30, review M2).
 - *Why fixed and recorded:* a fallback that chooses well would hide a broken ask; a fixed one keeps the
   defect visible in the numbers (`eval/defect_analyzer.py` counts them).
 
@@ -150,7 +152,8 @@ decision row with why. Never Forge's AI.
 - `<your_deck>`: the deck's plan and list;
 - `<how_this_works>`: the engine, the tools, answering by call;
 - `<reading_the_state>`: the guide;
-- `<legacy_reference>`: what the archetypes in the pool are, as information, not advice.
+- `<reference>`: terms and keywords, the same in every format and in a puzzle. It named the Legacy eval pool's
+  archetypes until harness-epoch-30, which told only a Legacy seat what it could face (review 2026-10-16).
 
 A puzzle replaces the role with `<puzzle>`: the author's goal and what the solver is told.
 
@@ -176,6 +179,11 @@ A puzzle replaces the role with `<puzzle>`: the author's goal and what the solve
 
 Each call is validated against the decision it answers. An illegal call gets the reason and one more
 round in the same conversation; a second illegal call loses the decision.
+
+A tool ask's decision text comes from the question builders the text lane and the ai-teacher seat share.
+`AnswerTool.rephrase` removes their text answer line ("Reason briefly, then end with EXACTLY: ..."), and the
+ask's one answer line is the `ANSWER:` line appended after it; no reasoning cap is left in (answer-tool-v11).
+A text format that survives is logged as `[TEXT-FORMAT-LEAK]` and fails acceptance.
 - *Why a call:* text parsing is where most harness defects came from. Models wrote `CHOICE` and `PICKS`
   together, put the answer mid-prose, or wrote tool markup as text. A schema makes the answer structured,
   and validation makes a wrong one explainable.
@@ -223,7 +231,7 @@ lookahead seat, declared on every ask. A call that does not apply gets an error 
 | `memory_search`, `memory_read` | the evidence archive of this game, which the brief summarises |
 | `memory_note` | the seat's own notebook |
 | `rules_lookup` | the comprehensive rules, effective date stated (`docs/harness/RULES-TOOL.md`) |
-| `simulate` | the lookahead: what an option resolves to, on a copy of the game (`LOOKAHEAD-DESIGN.md`) |
+| `simulate` | the lookahead: what an option resolves to, on a copy of the game (`LOOKAHEAD-DESIGN.md`). The copy shuffles every library and re-deals each opponent's hand from its hand and library, so a preview reveals no hidden card (lookahead-preview-v6, `LookaheadProbeTest.hiddenCardsDoNotChangeThePreview`) |
 | `report_unclear_decision` | the model reports a confusing ask, which feeds the defect backlog |
 
 Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
@@ -311,6 +319,9 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
 
 - **`run_batch.py`** launches games:
   - it pins every condition explicitly (ambient environment is scrubbed) and records provenance;
+  - provenance: `overlay_sha` hashes every overlay source (`forge-overlay/*/src/main/**`: the harness
+    classes and the engine patches), and cited mode refuses when any installed file differs from the
+    checkout (`benchmark_version.overlay_tree_sha`; it covered two files until 2026-10-16, review H3);
   - unset `--context-profile` is the faithful seat (`v4-faithful`), as in the play scripts; the legacy
     `v1-compat` (coaching, a reasoning cap, a 25-decision turn cap) runs only as a named arm;
   - it resumes;
@@ -339,7 +350,9 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
    - an isolated compile;
    - every Java and Python test, with a declared-vs-run count;
    - the pinned canaries, with a class-load proof that the new build ran;
-   - loopback fake-model games for tools, answers, the faithful profile, lookahead and rules.
+   - loopback fake-model games for tools, answers, the faithful profile, lookahead and rules;
+   - `scoring`: a puzzle and a panel cell played through the launchers a paid run uses and scored by
+     `puzzle_score.py` and `panel_score.py` (since 2026-10-16, review M4).
    - It never touches the Forge checkout.
 2. **Golden checks:** every decision type the seat owns, through the live controller, in both the text
    and the tool protocol.

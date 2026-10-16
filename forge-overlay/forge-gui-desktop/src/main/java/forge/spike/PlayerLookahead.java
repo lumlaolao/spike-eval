@@ -40,8 +40,10 @@ final class PlayerLookahead {
      *  v3 (2026-10-13): a previewed line may start with (or include) a land drop, so "play the land,
      *  then the spell it pays for" can be asked; the tool's option numbers are the decision's own
      *  menu numbers (see LlmSpikeGui's simulate handler).
-     *  v5 (2026-10-15): a line is no longer capped at three plays (docs/harness/MODEL-LIMITS.md). */
-    static final String VERSION = "lookahead-preview-v5";
+     *  v5 (2026-10-15): a line is no longer capped at three plays (docs/harness/MODEL-LIMITS.md).
+     *  v6 (2026-10-16): the opponent's hand is re-dealt from hand and library before the preview, so a
+     *  preview no longer reveals hidden cards (review H2). */
+    static final String VERSION = "lookahead-preview-v6";
 
     private PlayerLookahead() { }
 
@@ -86,6 +88,38 @@ final class PlayerLookahead {
         } finally {
             MyRandom.setRandom(liveRandom);
             exit();
+        }
+    }
+
+    /**
+     * Hide from the copy what the seat cannot see: every library is shuffled, and each opponent's hand is
+     * re-dealt, at its real size, from that opponent's hand and library together. Before this only the
+     * libraries were shuffled and the opponent's real hand stayed in the copy (2026-10-16 review H2): a
+     * Show and Tell preview named the card the opponent would put in, and a discard preview's hand delta
+     * said whether they held a legal card. The pool is put in name order before the seeded shuffle, so two
+     * states that differ only in hidden cards give the same copy, and so the same preview.
+     */
+    static void determinize(Game copy, Player copySeat) {
+        for (Player p : copy.getPlayers()) {
+            Zone lib = p.getZone(ZoneType.Library);
+            Zone hand = p.getZone(ZoneType.Hand);
+            boolean opponent = copySeat != null && p != copySeat && p.isOpponentOf(copySeat);
+            if (opponent && lib != null && hand != null && hand.size() > 0) {
+                java.util.List<forge.game.card.Card> pool = new java.util.ArrayList<>();
+                for (forge.game.card.Card c : hand.getCards()) pool.add(c);
+                for (forge.game.card.Card c : lib.getCards()) pool.add(c);
+                pool.sort(java.util.Comparator.comparing(forge.game.card.Card::getName));
+                java.util.Collections.shuffle(pool, MyRandom.getRandom());
+                int n = hand.size();
+                hand.setCards(new java.util.ArrayList<>(pool.subList(0, n)));
+                lib.setCards(new java.util.ArrayList<>(pool.subList(n, pool.size())));
+            } else if (lib != null && lib.size() >= 2) {
+                java.util.List<forge.game.card.Card> order = new java.util.ArrayList<>();
+                for (forge.game.card.Card c : lib.getCards()) order.add(c);
+                order.sort(java.util.Comparator.comparing(forge.game.card.Card::getName));
+                java.util.Collections.shuffle(order, MyRandom.getRandom());
+                lib.setCards(order);
+            }
         }
     }
 
@@ -138,7 +172,8 @@ final class PlayerLookahead {
      *  <p>It refuses mana abilities, and never reports hidden identities —
      *  this is a *rules preview* of the immediate resolution, not a win-probability rollout (see
      *  docs/harness/LOOKAHEAD-DESIGN.md). The opponent is played by the engine AI, and only
-     *  libraries are determinized (the opponent's hand is not), so it is partial determinization. */
+     *  libraries are shuffled and each opponent's hand is re-dealt from its hand and library
+     *  ({@link #determinize}), so nothing the seat cannot see shapes the preview. */
     static String previewCast(Game live, Player seat, forge.game.spellability.SpellAbility liveOption, long seed) {
         return previewCast(live, seat, liveOption, seed, null);
     }
@@ -213,11 +248,8 @@ final class PlayerLookahead {
             } finally { stale.restore(); parked.restore(); }
             Game simGame = sim.getSimulatedGameState();
             if (simGame == null) return "(preview unavailable)";
-            // Determinize BEFORE anything resolves so the preview cannot depend on the real hidden order.
-            for (Player p : simGame.getPlayers()) {
-                Zone lib = p.getZone(ZoneType.Library);
-                if (lib != null && lib.size() >= 2) lib.shuffle();
-            }
+            // Determinize BEFORE anything resolves so the preview cannot depend on what the seat cannot see.
+            determinize(simGame, (Player) sim.getGameCopier().find(seat));
             StringBuilder b = new StringBuilder("if you ");
             String stopped = null, delta = "";
             boolean sacrifice = false;

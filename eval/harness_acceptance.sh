@@ -40,6 +40,9 @@
 #   rules      a loopback game with RULES_TOOL=1 + MEMORY_TOOLS=1: the real RulesTool lookup runs end to
 #              end (fake server asks `RULES SEARCH`), the game stamps rules_tool provenance, every prompt
 #              carries the RULES grammar, and no single result exceeds the page cap (context-bound)
+#   scoring    end to end: one open puzzle on the loopback model through puzzle_solve.py, scored as a pilot by
+#              puzzle_score.py; one mirror panel cell (random pilot) through run_batch.py --panel, scored by
+#              panel_score.py with no version, condition, deck-pin or gate problem
 #
 # SCRIPTING RULES (a broken gate reports PASS, which is worse than no gate): absolute paths; no `declare -A`
 # (macOS bash 3.2); never `grep -c X f || echo 0`; assert the build under test is the build that ran.
@@ -58,7 +61,7 @@ fi
 JAVA="$JAVA_HOME/bin/java"; JAVAC="$JAVA_HOME/bin/javac"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="${OUT:-$REPO/runs/harness-acceptance/$STAMP}"
-ALL_STAGES="preflight classpath compile javatests pytests canary gaming faketool faithful lookahead nativetool nativerefuse answertool rules"
+ALL_STAGES="preflight classpath compile javatests pytests canary gaming faketool faithful lookahead nativetool nativerefuse answertool rules scoring"
 STAGES="${STAGES:-$ALL_STAGES}"
 EXPECTED="$REPO/eval/harness_acceptance.expected"
 OVERLAY="$REPO/forge-overlay/forge-gui-desktop/src"
@@ -526,7 +529,7 @@ else:
     if game.get("native_tools") is not True: problems.append("native_tools=%r not stamped"%game.get("native_tools"))
     if game.get("native_tools_version")!="seat-tools-v9": problems.append("native_tools_version=%r (expected seat-tools-v9; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
     if game.get("memory_tools_version")!="evidence-tools-v3": problems.append("memory_tools_version=%r (expected evidence-tools-v3; move this pin WITH ContextMemory.VERSION)"%game.get("memory_tools_version"))
-    if game.get("lookahead_version")!="lookahead-preview-v5" or game.get("lookahead") is not True: problems.append("lookahead=%r lookahead_version=%r (expected True, lookahead-preview-v5; move this pin WITH PlayerLookahead.VERSION)"%(game.get("lookahead"),game.get("lookahead_version")))
+    if game.get("lookahead_version")!="lookahead-preview-v6" or game.get("lookahead") is not True: problems.append("lookahead=%r lookahead_version=%r (expected True, lookahead-preview-v6; move this pin WITH PlayerLookahead.VERSION)"%(game.get("lookahead"),game.get("lookahead_version")))
     if game.get("native_tools_seats")!="A/smart,A/fast": problems.append("native_tools_seats=%r"%game.get("native_tools_seats"))
 calls=[r for r in rows if r.get("t")=="context_call"]
 tools=[r for r in rows if r.get("t")=="context_tool"]
@@ -672,9 +675,9 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 else:
     if game.get("answer_tool") is not True: problems.append("answer_tool=%r not stamped"%game.get("answer_tool"))
-    if game.get("answer_tool_version")!="answer-tool-v10": problems.append("answer_tool_version=%r (move this pin WITH AnswerTool.VERSION)"%game.get("answer_tool_version"))
+    if game.get("answer_tool_version")!="answer-tool-v11": problems.append("answer_tool_version=%r (move this pin WITH AnswerTool.VERSION)"%game.get("answer_tool_version"))
     if game.get("answer_tool_seats")!="A/smart,A/fast": problems.append("answer_tool_seats=%r"%game.get("answer_tool_seats"))
-    if game.get("harness_epoch")!="harness-epoch-29": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-30": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
 dec=[r for r in rows if r.get("t")=="decision"]
 model=[r for r in dec if r.get("tier") in ("smart","fast")]
 via=collections.Counter(r.get("answer_via") for r in model)
@@ -767,7 +770,7 @@ if game is None: problems.append("no game row")
 else:
     if game.get("context_profile")!="v4-faithful": problems.append("context_profile=%s"%game.get("context_profile"))
     if game.get("memory_tools") is not True: problems.append("memory_tools not stamped")
-    if game.get("harness_epoch")!="harness-epoch-29": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-30": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
     facts.append("winner=%s turns=%s context_sha=%s"%(game.get("winner"),game.get("turns"),game.get("context_sha")))
 if ai_rows: problems.append("%d tier=ai rows"%ai_rows)
 if model_rows<5: problems.append("only %d model-tier rows"%model_rows)
@@ -875,6 +878,82 @@ print(("FAIL " if problems else "PASS ")+"; ".join(problems+facts))
 EOF
 )"
         case "$VERDICT" in PASS*) pass rules "${VERDICT#PASS }";; *) fail rules "${VERDICT#FAIL }";; esac
+      fi
+    fi
+  fi
+fi
+
+# ---------------------------------------------------------------- scoring (end to end)
+# A puzzle and a panel cell, each played on THIS build through the launcher a paid run uses and scored by
+# the scorer a report uses. Until 2026-10-16 (independent review M4) no stage scored anything, and the
+# puzzle hash mismatch (the result and the frozen suite hashed a puzzle file differently, a0f4698)
+# surfaced only in a paid run. Fails if: puzzle_solve.py does not run the seat on the loopback model;
+# puzzle_score.py refuses the result (suite or puzzle hash, solver, attempts); run_batch.py --panel does
+# not stamp a game line panel_score.py accepts (deck pin, engine, overlay, benchmark version, condition,
+# gates); or the overlay the launcher ran is not this checkout (drift). The panel launcher is a stand-in
+# Forge home that runs the isolated classes from the real checkout, which is never written.
+if has_stage scoring; then
+  if [ ! -f "$CLASSES/forge/spike/LlmSpikePuzzle.class" ]; then fail scoring "no compiled classes"; else
+    dir="$OUT/scoring"; rm -rf "$dir"; mkdir -p "$dir/forge-home"
+    : > "$dir/fake_requests.jsonl"
+    python3 "$REPO/eval/fake_model_server.py" --port 0 --policy first --answer-tool \
+        --log "$dir/fake_requests.jsonl" >"$dir/fake_server.out" 2>&1 &
+    FAKE_PID=$!
+    PORT=""; for i in 1 2 3 4 5 6 7 8 9 10; do PORT="$(awk '/^LISTENING/{print $2}' "$dir/fake_server.out" 2>/dev/null)"; [ -n "$PORT" ] && break; sleep 0.5; done
+    if [ -z "$PORT" ]; then fail scoring "fake model server did not start"; kill $FAKE_PID 2>/dev/null; else
+      say "scoring: one open puzzle on the loopback model through puzzle_solve.py, scored as a pilot"
+      ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" \
+          python3 eval/puzzle_solve.py --suite eval/suites/puzzles-forge-builtin-v1.json --split open --ids forge-PP20 \
+          --k 1 --model openrouter:fake/harness-model --budget-usd 0.01 --out "$dir/puzzle" --build "$OUT" --forge "$FORGE" -j 1 ) \
+          >"$dir/puzzle_solve.log" 2>&1; PRC=$?
+      kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
+      ( cd "$REPO" && python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json --split open --k 1 \
+          --ids forge-PP20 --json "$dir/puzzle_score.json" "$dir/puzzle" ) >"$dir/puzzle_score.log" 2>&1; SRC=$?
+      say "scoring: one mirror panel cell (random pilot, one seed, both seats) through run_batch.py --panel"
+      cp -R "$REPO/forge-overlay/." "$dir/forge-home/"
+      ln -s "$FORGE/.git" "$dir/forge-home/.git"
+      cat > "$dir/forge-home/run-llm-headless.sh" <<EOF
+#!/bin/bash
+cd "$FORGE/forge-gui-desktop"
+exec "$JAVA" $ADDOPENS -Xmx2048m -Dio.netty.tryReflectionSetAccessible=true -Dfile.encoding=UTF-8 \
+  -Djava.util.Arrays.useLegacyMergeSort=true -Dsun.java2d.d3d=false -Dapple.awt.UIElement=true -Djava.awt.headless=true \
+  -Xlog:class+load=info:file="$dir/panel-classload.log" -cp "$CLASSES:$(cat "$CP_FILE")" forge.spike.LlmSpikeHeadless
+EOF
+      ( cd "$REPO" && python3 eval/run_batch.py --panel mirror --panel-cells ant-storm --seeds 7800 --exploratory --jobs 1 \
+          --budget-usd 0.01 --controller-a random --forge-home "$dir/forge-home" --out "$dir/panel" --cap-minutes 10 --retries 0 ) \
+          >"$dir/panel_batch.log" 2>&1; BRC=$?
+      ( cd "$REPO" && python3 eval/panel_score.py "$dir/panel" --panel mirror --json ) >"$dir/panel_score.json" 2>"$dir/panel_score.err"
+      if ! grep -Fq "forge.spike.LlmSpikeGui source: file:$CLASSES/" "$dir/panel-classload.log" 2>/dev/null; then
+        fail scoring "the panel launcher did not load LlmSpikeGui from $CLASSES"
+      else
+        VERDICT="$(python3 - "$dir" "$PRC" "$SRC" "$BRC" <<'EOF'
+import json,sys
+d,prc,src,brc=sys.argv[1],int(sys.argv[2]),int(sys.argv[3]),int(sys.argv[4]); problems=[]; facts=[]
+if prc!=0: problems.append("puzzle_solve rc=%d"%prc)
+if src!=0: problems.append("puzzle_score refused or failed rc=%d: %s"%(src,open(d+"/puzzle_score.log").read()[-300:]))
+else:
+    rep=json.load(open(d+"/puzzle_score.json"))
+    if not rep.get("pilot"): problems.append("a one-puzzle score was not marked PILOT")
+    if rep["aggregate"]["n_puzzles"]!=1: problems.append("pilot scored %d puzzles"%rep["aggregate"]["n_puzzles"])
+    facts.append("puzzle forge-PP20 scored as pilot (solver %s)"%rep.get("solver"))
+reqs=[l for l in open(d+"/fake_requests.jsonl") if l.strip()]
+if not reqs: problems.append("the puzzle seat never asked the loopback model")
+if brc!=0: problems.append("run_batch --panel rc=%d"%brc)
+try:
+    pr=json.load(open(d+"/panel_score.json"))
+except Exception as e:
+    pr=None; problems.append("panel_score wrote no report: %s %s"%(e,open(d+"/panel_score.err").read()[-300:]))
+if pr:
+    if pr.get("benchmark_version_problem"): problems.append("benchmark version: %s"%pr["benchmark_version_problem"])
+    if pr.get("condition_problems"): problems.append("condition: %s"%pr["condition_problems"])
+    if pr.get("problems"): problems.append("panel problems: %s"%pr["problems"])
+    if pr.get("gate_failures"): problems.append("gates: %s"%pr["gate_failures"])
+    if len(pr.get("missing",[]))!=15: problems.append("missing=%d cells (expected the 15 not played)"%len(pr.get("missing",[])))
+    bv=pr.get("benchmark_version"); facts.append("panel cell ant-storm scored, benchmark version %s"%(bv.get("id") if isinstance(bv,dict) else bv))
+print(("FAIL " if problems else "PASS ")+"; ".join(problems+facts))
+EOF
+)"
+        case "$VERDICT" in PASS*) pass scoring "${VERDICT#PASS }";; *) fail scoring "${VERDICT#FAIL }";; esac
       fi
     fi
   fi

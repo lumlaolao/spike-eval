@@ -59,6 +59,26 @@ def write_game(d, name, *lines):
             f.write(json.dumps(ln) + "\n")
 
 
+class TestOverlayIdentity(unittest.TestCase):
+    """OVERLAY_SHA and the drift refusal covered only LlmSpikeGui/LlmSpikeHeadless (2026-10-16 review H3):
+    a stale AnswerTool or engine patch was invisible. Every overlay source counts now."""
+
+    def test_an_installed_copy_hashes_like_the_checkout_and_drift_names_any_stale_file(self):
+        import shutil
+        with tempfile.TemporaryDirectory() as home:
+            shutil.copytree(run_batch.REPO_ROOT / "forge-overlay", home, dirs_exist_ok=True)
+            self.assertEqual(run_batch._overlay_sha(home),
+                             run_batch.benchmark_version.overlay_sha_of_checkout(run_batch.REPO_ROOT))
+            self.assertNotEqual(run_batch._overlay_sha(home), "unknown")
+            self.assertEqual(run_batch._spike_drift(home), [])
+            patch = "forge-game/src/main/java/forge/game/player/Player.java"
+            self.assertIn(patch, run_batch.benchmark_version.overlay_files())
+            Path(home, patch).write_text("// stale\n")
+            self.assertEqual(run_batch._spike_drift(home), [patch])
+            self.assertNotEqual(run_batch._overlay_sha(home),
+                                run_batch.benchmark_version.overlay_sha_of_checkout(run_batch.REPO_ROOT))
+
+
 class TestCheckpointSha(unittest.TestCase):
     def test_missing_spec_is_unknown(self):
         self.assertEqual(run_batch._checkpoint_sha(None), "unknown")

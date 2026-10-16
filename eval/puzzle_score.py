@@ -88,8 +88,9 @@ def load_rows(paths):
     return rows
 
 
-def group_attempts(manifest, rows, split, k, solver=None):
-    """{puzzle_id: [rows]} for the active puzzles of `split`, after every refusal check."""
+def group_attempts(manifest, rows, split, k, solver=None, ids=None):
+    """{puzzle_id: [rows]} for the active puzzles of `split` (only `ids` when given: a pilot), after every
+    refusal check."""
     if split not in pf.SPLITS:
         raise Refused("--split must be one of %s; open and held-out puzzles are never pooled" % (pf.SPLITS,))
     suite_sha = manifest.get("suite_sha256")
@@ -132,7 +133,13 @@ def group_attempts(manifest, rows, split, k, solver=None):
             continue
         out[rec["id"]].append(r)
 
-    wanted = [r["id"] for r in manifest["puzzles"] if r["split"] == split and r["status"] == "active"]
+    wanted = [r["id"] for r in manifest["puzzles"] if r["split"] == split and r["status"] == "active"
+              and (ids is None or r["id"] in ids)]
+    if ids is not None:
+        unknown = sorted(set(ids) - set(wanted))
+        if unknown:
+            raise Refused("--ids names no active %s puzzle: %s" % (split, ", ".join(unknown)))
+        out = {pid: att for pid, att in out.items() if pid in ids}
     if not wanted:
         raise Refused("suite %s has no active %s puzzles" % (manifest.get("suite"), split))
     missing = [pid for pid in wanted if len(out.get(pid, [])) < k]
@@ -253,14 +260,15 @@ def _solved_block(sub, k, n_boot, seed):
     }
 
 
-def score(manifest, rows, split, k=4, solver=None, n_boot=2000, seed=0):
-    attempts = group_attempts(manifest, rows, split, k, solver)
+def score(manifest, rows, split, k=4, solver=None, n_boot=2000, seed=0, ids=None):
+    attempts = group_attempts(manifest, rows, split, k, solver, ids)
     puzzles = per_puzzle(manifest, attempts, k)
     solvers = sorted({solver_of(r) for att in attempts.values() for r in att})
     return {
         "suite": manifest.get("suite"), "suite_version": manifest.get("version"),
         "suite_sha256": manifest.get("suite_sha256"), "split": split, "solver": solvers[0] if solvers else None,
-        "pilot": bool(manifest.get("pilot")),
+        # A subset (--ids) is a pilot: it proves the chain, and is never the split's PUZ score.
+        "pilot": bool(manifest.get("pilot")) or ids is not None,
         "aggregate": aggregate(puzzles, k, n_boot, seed),
         "puzzles": sorted(puzzles, key=lambda r: r["id"]),
     }
@@ -309,6 +317,8 @@ def main(argv=None):
     ap.add_argument("--bootstrap", type=int, default=2000)
     ap.add_argument("--seed", type=int, default=0, help="bootstrap RNG seed")
     ap.add_argument("--json", default=None, help="write the full report here")
+    ap.add_argument("--ids", default=None,
+                    help="score only these puzzle ids (comma-separated): a PILOT that proves the chain, not a score")
     ap.add_argument("results", nargs="+")
     a = ap.parse_args(argv)
     if a.k < 1:
@@ -318,7 +328,8 @@ def main(argv=None):
         problems = pf.validate_suite(manifest)
         if problems:
             raise Refused("suite does not validate: " + "; ".join(problems[:5]))
-        rep = score(manifest, load_rows(a.results), a.split, a.k, a.solver, a.bootstrap, a.seed)
+        ids = set(a.ids.split(",")) if a.ids else None
+        rep = score(manifest, load_rows(a.results), a.split, a.k, a.solver, a.bootstrap, a.seed, ids)
     except Refused as e:
         print("REFUSED: %s" % e, file=sys.stderr)
         return 2

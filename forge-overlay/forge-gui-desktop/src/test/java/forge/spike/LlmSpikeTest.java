@@ -702,40 +702,6 @@ public class LlmSpikeTest {
     // Group 4 (Mechanics routing) pure-helper coverage.
     // ================================================================================
 
-    // namedIndices() backs the intent-aware bridge-down fallback (HARNESS-ANALYSIS.md C3): when the
-    // bridge dies mid-decision, prefer whatever the model's OWN stated turn plan already named over a
-    // blind default (attackers all-in / first-candidate targeting).
-    @Test
-    public void namedIndices_matchesPlanNamedCandidateCaseInsensitively() {
-        List<String> cands = Lists.newArrayList("Blighted Agent", "Noble Hierarch");
-        List<Integer> hit = LlmSpikeGui.PlayerControllerLLM.namedIndices(cands,
-                "attack with blighted agent alone, Hierarch is unnecessary");
-        Assert.assertEquals(hit, Lists.newArrayList(0),
-                "plan names only the first candidate (case-insensitively) -> only index 0 should match");
-    }
-
-    @Test
-    public void namedIndices_matchesMultipleNamedCandidatesInMenuOrder() {
-        List<String> cands = Lists.newArrayList("Tabernacle", "Tranquil Thicket", "Grove of the Burnwillows");
-        List<Integer> hit = LlmSpikeGui.PlayerControllerLLM.namedIndices(cands,
-                "PLAN: Life from the Loam back Tabernacle, Grove of the Burnwillows, and Tranquil Thicket");
-        Assert.assertEquals(hit, Lists.newArrayList(0, 1, 2),
-                "all three plan-named lands should match, in MENU order (not plan-mention order)");
-    }
-
-    @Test
-    public void namedIndices_emptyWhenNoPlanYet() {
-        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.namedIndices(Lists.newArrayList("Anything"), "").isEmpty());
-        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.namedIndices(Lists.newArrayList("Anything"), null).isEmpty());
-    }
-
-    @Test
-    public void namedIndices_emptyWhenPlanNamesNothingOnOffer() {
-        List<Integer> hit = LlmSpikeGui.PlayerControllerLLM.namedIndices(
-                Lists.newArrayList("Blighted Agent"), "PLAN: durdle around and pass");
-        Assert.assertTrue(hit.isEmpty());
-    }
-
     // trampleSplit() backs assignCombatDamage's single-blocker/trample menu (HARNESS-ANALYSIS.md C1):
     // routing this decision through the LLM pipeline instead of Forge's built-in AI still needs
     // correct lethal-vs-overflow math for the two menu options it offers.
