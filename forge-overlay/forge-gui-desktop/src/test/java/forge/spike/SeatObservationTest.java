@@ -900,6 +900,28 @@ public class SeatObservationTest {
         Assert.assertTrue(line.startsWith("{U:1 B:1} up to 2 mana (2 untapped sources"), line);
     }
 
+    /** A spell on the stack is said to be waiting to resolve, not "pending": with its own Duress on the stack,
+     *  Luna read "1 pending" as a Duress choice it was owed and reported the menu as wrong (C3 ANT, T3). */
+    @Test
+    public void aSpellOnTheStackIsSaidToBeUnresolved() {
+        Game g = LineFindingProbeTest.bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        g.getPhaseHandler().devModeSet(PhaseType.MAIN1, rival);
+        forge.game.card.Card duress = card("Duress", rival, ZoneType.Hand);
+        forge.game.spellability.SpellAbility sa = duress.getFirstSpellAbility();
+        sa.setActivatingPlayer(rival);
+        sa.getTargets().add(me);
+        sa.setHostCard(g.getAction().moveToStack(duress, sa));
+        g.getStack().add(sa);
+        String r = render(observerFor(g, 0), "");
+        int at = r.indexOf("STACK (engine, top first): ");
+        Assert.assertTrue(at >= 0, r);
+        String line = r.substring(at, r.indexOf('\n', at));
+        Assert.assertTrue(line.startsWith("STACK (engine, top first): 1 not yet resolved (it resolves when both players"
+                + " pass in a row): #1 spell Duress"), line);
+        Assert.assertFalse(line.contains("pending"), line);
+    }
+
     /** Mana only for some spells is kept apart, in the card's words: two Great Halls make {C:2} for anything;
      *  their any colour is for instants and sorceries only (std-g10 showed it as five colours for anything). */
     @Test

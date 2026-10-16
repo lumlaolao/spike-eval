@@ -574,3 +574,20 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
 - clean  Ad Nauseam: every repeat is asked, with current life and the cards drawn so far
   (`adNauseamRepeatsAsOftenAsTheSeatSays`).
 - noted  `simulate` asked during non-play decisions twice more (turn T13, game T3), refused by design.
+- FIXED  the one `report_unclear_decision` in the C3 games (killed ANT default game, T3): with its own Duress on the stack,
+  Luna read the faithful stack line "1 pending: ..." as a Duress choice it was owed, and reported a menu of only Cabal
+  Ritual and PASS as wrong. The line now says "1 not yet resolved (it resolves when both players pass in a row)"
+  (observation-faithful-v33). Test `aSpellOnTheStackIsSaidToBeUnresolved` (fails on main).
+- explained, all fixed  the 4 previews "the engine could not pay for or play": 2 a Chrome Mox's imprint lost on the copy
+  (Ponder off a Brainstorm-imprinted Mox; Tendrils with a Dark Ritual-imprinted Mox; epoch 31), 2 a Force of Will pitch
+  (epoch 32).
+- clean  the 13 `color(forced)` picks (a Petal or Mox paying a one-colour cost: the engine offers one colour), the 7
+  forced replacement orders, the forced discards and reveals; both logged exceptions are provider transport errors
+  (no headers, broken chunking) retried by the bridge; the ~30 s losses are OpenRouter HTTP 502s, retried; the 300 s
+  losses are the stalls now cut at 90 s (`OPENROUTER_IDLE_MS`).
+- FIXED  (owner: "labels should say what they are") the whole-game ANT arm, T11: ten storm copies were put to the seat to
+  order, "These 10 triggers", each labelled `Tendrils of Agony @149 2{B}{B} [...]` like the card in hand; the copies are
+  identical until each gets its target, so the order is no choice and is not asked. The stack line carried Forge's debug
+  notes ("[Card: ..., Activator: Seat, SpellAbility: ...]", "[Zone Changer: Chrome Mox @18]") and did not say how many
+  copies storm makes; now "-> makes N copies" from the engine's count, no notes. `tendrilsStormCopiesResolveAndTheirTargetsAreTheSeats`.
+- Result: every defect found in the recorded C3 games is fixed. No LINE, TAKEN, LOST or SKIP in any of them.

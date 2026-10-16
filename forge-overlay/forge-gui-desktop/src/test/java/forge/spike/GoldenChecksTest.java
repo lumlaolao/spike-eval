@@ -316,6 +316,7 @@ public class GoldenChecksTest {
                 .on("MANA:", p -> "PICKS: NONE")
                 .on("go on the stack at the same time", p -> "PICKS: 1,2");
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        String[] stackLine = {""};
         for (String play : new String[] {"CAST Lotus Petal", "CAST Lotus Petal", "CAST Tendrils of Agony"}) {
             next[0] = play;
             List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
@@ -323,19 +324,33 @@ public class GoldenChecksTest {
             ctrl.playChosenSpellAbility(r.get(0));
             g.getTriggerHandler().runWaitingTriggers();
             g.getStack().addAllTriggeredAbilitiesToStack();
+            if (play.contains("Tendrils")) stackLine[0] = stackLineFor(g, me);
             while (!g.getStack().isEmpty()) {
                 g.getStack().resolveStack();
                 g.getStack().addAllTriggeredAbilitiesToStack();
             }
         }
+        // The storm trigger says what it does, from the engine's own count, with no engine note in it.
+        Assert.assertTrue(stackLine[0].contains("trigger of Tendrils of Agony") && stackLine[0].contains("makes 2 copies"), stackLine[0]);
+        for (String note : new String[] {"Activator:", "SpellAbility:", "Card:", "Zone Changer:"})
+            Assert.assertFalse(stackLine[0].contains(note), "an engine note on the stack: " + stackLine[0]);
+        // The two copies are the same until each gets its target, so there is no order to choose.
+        Assert.assertTrue(model.prompts.stream().noneMatch(q -> q.contains("go on the stack at the same time")),
+                "the seat was asked to order identical copies: " + model.prompts.stream().filter(q -> q.contains("go on the stack at the same time")).map(q -> q.substring(q.lastIndexOf("DECISION:"))).findFirst().orElse(""));
         long copyTargetAsks = model.prompts.stream().filter(q -> q.substring(q.lastIndexOf("DECISION:")).startsWith("DECISION: Choose the TARGET")).count();
         Assert.assertEquals(copyTargetAsks, 3L, "the original's target and each copy's were the seat's");
         Assert.assertEquals(model.prompts.stream().filter(q -> q.contains("Choose the TARGET for a copy of Tendrils")).count(), 2L,
                 "each copy's question says it is a copy");
-        Assert.assertTrue(model.prompts.stream().noneMatch(q -> q.contains("triggers go on the stack")), "the copies are called copies");
         Assert.assertEquals(rival.getLife(), 20 - 6, "Tendrils and its two storm copies each drained 2");
         Assert.assertEquals(me.getLife(), 20 + 6);
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** The STACK line the seat's faithful state shows now. */
+    static String stackLineFor(Game g, Player viewer) {
+        String r = new SeatObservation(g, viewer).render("seat", LlmSpikeGui.ContextProfile.V4_FAITHFUL, "", null, 0);
+        int at = r.indexOf("STACK (engine, top first): ");
+        return r.substring(at, r.indexOf('\n', at));
     }
 
     /** ANT's line: cast Infernal Tutor, then crack Lion's Eye Diamond in response so the hand is empty when the Tutor
