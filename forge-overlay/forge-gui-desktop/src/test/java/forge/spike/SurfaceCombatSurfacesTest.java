@@ -157,7 +157,9 @@ public class SurfaceCombatSurfacesTest {
      *  attacker its damage hits first (GameRules.orderCombatants on, the way PhaseHandler drives
      *  orderBlockers/orderAttackers back to back). The seat declares one pair (the text grammar
      *  assigns each candidate once) and the Guard's extra block joins mechanically; the split
-     *  follows the model's order: lethal to the Lions (1) before touching the Wurm. */
+     *  follows the model's order: lethal to the Lions (1) before touching the Wurm. The assignment
+     *  itself is NOT asked again with an order on file (the #224 fix on main, epoch 36) — pinned
+     *  here, so a reverted repair cannot quietly re-ask a choice the seat already made. */
     @Test
     public void aDoubleBlockByTheGuardIsOrderedByTheModel() {
         Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
@@ -168,8 +170,7 @@ public class SurfaceCombatSurfacesTest {
         Card wurm = card("Craw Wurm", rival, ZoneType.Battlefield);
         g.getAction().checkStateEffects(true); // the Guard's CanBlockAmount is a continuous effect
         Script model = new Script("BLOCKS: Night Market Guard->Savannah Lions")
-                .on("COMBAT DAMAGE ORDER", picks("Savannah Lions", "Craw Wurm"))
-                .on("COMBAT DAMAGE ASSIGNMENT", picks("Savannah Lions", "Craw Wurm"));
+                .on("COMBAT DAMAGE ORDER", picks("Savannah Lions", "Craw Wurm"));
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         Combat combat = new Combat(rival);
         combat.addAttacker(lions, me);
@@ -191,6 +192,8 @@ public class SurfaceCombatSurfacesTest {
         Assert.assertNotNull(onLions, "the Guard never assigned against the Lions: " + lions.getAssignedDamageMap());
         Assert.assertEquals(onLions.intValue(), 1, "lethal to the Lions is dealt first when the model's order is used");
         Assert.assertEquals(onWurm.intValue(), 2, "the rest of the Guard's 3 damage goes to the Wurm");
+        Assert.assertFalse(model.asked("COMBAT DAMAGE ASSIGNMENT"),
+                "the assignment is not asked again once the order was declared (the #224 fix on main: a re-ask here is a reverted repair)");
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
@@ -198,7 +201,9 @@ public class SurfaceCombatSurfacesTest {
 
     /** A second blocker joins an attacker whose blocker order already exists: Flash Foliage resolved
      *  on the stack (real card, real target) puts a Saproling token on the Craw Wurm's blocking list
-     *  mid-combat, and Combat.addBlocker asks the ATTACKING seat where the newcomer slots. */
+     *  mid-combat, and Combat.addBlocker asks the ATTACKING seat where the newcomer slots. The
+     *  Wurm's damage assignment is then not asked again (the #224 fix on main, epoch 36): it
+     *  follows the stored order mechanically — pinned like the Guard fixture's. */
     @Test
     public void aBlockerThatJoinsMidCombatIsOrderedByTheModel() {
         Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
@@ -209,8 +214,7 @@ public class SurfaceCombatSurfacesTest {
         Card wurm = card("Craw Wurm", me, ZoneType.Battlefield);
         Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
         Script model = new Script("CHOICE: 1")
-                .on("now also blocks", picks("Saproling Token", "Grizzly Bears"))
-                .on("COMBAT DAMAGE ASSIGNMENT", picks("Saproling Token", "Grizzly Bears"));
+                .on("now also blocks", picks("Saproling Token", "Grizzly Bears"));
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         Combat combat = new Combat(me);
         combat.addAttacker(wurm, rival);
@@ -234,6 +238,8 @@ public class SurfaceCombatSurfacesTest {
         Assert.assertNotNull(onBears, "the Bears were not assigned any damage");
         Assert.assertEquals(onBears.intValue(), 5,
                 "Bears take lethal 2 plus the Wurm's no-trample excess of 3, after the token's 1");
+        Assert.assertFalse(model.asked("COMBAT DAMAGE ASSIGNMENT"),
+                "the assignment is not asked again once the order was stored (the #224 fix on main: a re-ask here is a reverted repair)");
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
@@ -253,6 +259,38 @@ public class SurfaceCombatSurfacesTest {
         Assert.assertEquals(order.size(), 2);
         Assert.assertEquals(order.get(0), goyf, "the model's newcomer goes first: " + order);
         Assert.assertEquals(order.get(1), bears);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    // ------------------------------------------------------------------ assignCombatDamage
+
+    /** A trample attacker blocked ONCE is the split no declared order can answer on main (epoch
+     *  36): one blocker, enough damage to kill it and trample over = a genuine choice, so
+     *  LlmSpikeGui.assignCombatDamage asks it (decideOne) whatever the ordering rules hold — the
+     *  multi-blocker path answers from the seat's declared order instead (the fixtures above pin
+     *  that). The model picks ALL TO BLOCKER, the outcome the silent max-trample default would
+     *  not produce, so if the ask ever stops going out (a reverted repair routing this to auto)
+     *  the damage assert turns red without a live endpoint. */
+    @Test
+    public void aTrampleAttackerBlockedOnceIsAskedHowToSplitItsDamage() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card wurm = card("Pelakka Wurm", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1")
+                .on("COMBAT DAMAGE ASSIGNMENT", choice("ALL TO BLOCKER"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Combat combat = new Combat(me);
+        combat.addAttacker(wurm, rival);
+        combat.addBlocker(wurm, bears);
+        combat.orderBlockersForDamageAssignment(); // one blocker: recorded, no ask
+        g.getPhaseHandler().setCombat(combat);
+
+        combat.assignCombatDamage(false);
+        Integer onBears = bears.getAssignedDamageMap().get(wurm);
+        Assert.assertTrue(model.asked("COMBAT DAMAGE ASSIGNMENT"), "the split was not asked of the model");
+        Assert.assertEquals(onBears, Integer.valueOf(7),
+                "the model put all 7 into the Bears: the split the silent max-trample default would not pick");
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
