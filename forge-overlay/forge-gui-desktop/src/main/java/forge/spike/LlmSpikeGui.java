@@ -213,8 +213,10 @@ public final class LlmSpikeGui {
      *  Epoch 22: stack text redacted of engine ids, card text without literal \\n (observation-faithful-v28).
      *  Epoch 23: no engine id inside a name (an effect named after its source; observation-faithful-v29).
      *  Epoch 24: a target question's trigger text is redacted; an optional target declined is the seat's decision.
-     *  Epoch 25: mana available is the engine's mana per source, not a count of sources (observation-faithful-v30). */
-    static final String HARNESS_EPOCH = "harness-epoch-25";
+     *  Epoch 25: mana available is the engine's mana per source, not a count of sources (observation-faithful-v30).
+     *  Epoch 26: each block names its source (engine, Forge game log, the seat's notes); the opponent's casts and
+     *  land drops come from engine events, not log wording (observation-faithful-v31). */
+    static final String HARNESS_EPOCH = "harness-epoch-26";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats

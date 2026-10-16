@@ -21,7 +21,7 @@ harness-side answer.
 | `RECURRING (cast 2+ times)` | what the opponent keeps doing | the seat's cast stream |
 | `YOUR PLAN` | the model's own goal and next steps, kept across the turn boundary; a `PLAN:` line at ANY decision replaces it (v22); says when it was stated, so what happened since is readable | model-authored |
 | `YOUR OPPONENT PROFILE` | the model's own read of them (labelled unverified) | model-authored |
-| `GAME HISTORY (compacted)` | verbatim recent + per-turn digests, each citing `[E<n>]` | `GameHistory.Mode.TIERED` |
+| `GAME HISTORY (Forge game log, compacted)` | verbatim recent + per-turn digests, each citing `[E<n>]` | `GameHistory.Mode.TIERED` |
 | `INSPECT @N` → `history:` | where an object has been | the per-object trail |
 | `YOUR CARD INTERACTIONS` | the model's own statement of how its cards combine (labelled unverified) | model-authored, asked at most twice |
 | option labels | what each option costs and which zone it is cast from | the ability's own cost (`getPayCosts`) |

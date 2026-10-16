@@ -258,14 +258,17 @@ final class GameHistory {
                 }
             }
             if (!lines.isEmpty()) {
-                s.append("GAME HISTORY (compacted; E<n> are canonical event ids):\n");
+                // The faithful profile says where the lines come from: the engine's log, not anyone's words to the seat.
+                s.append(ctx.faithfulObservation ? "GAME HISTORY (Forge game log, compacted; E<n> are canonical event ids):\n"
+                                                 : "GAME HISTORY (compacted; E<n> are canonical event ids):\n");
                 for (String ln : lines) if (!ln.isEmpty()) s.append("  ").append(ln).append('\n');
             }
         }
         if (verbatim > 0) {
+            String src = ctx.faithfulObservation ? "Forge game log, " : "";
             s.append(gap > verbatim
-                    ? "SINCE YOUR LAST DECISION (oldest->newest; older ones are in the compacted block above):\n"
-                    : "SINCE YOUR LAST DECISION (oldest->newest):\n");
+                    ? "SINCE YOUR LAST DECISION (" + src + "oldest->newest; older ones are in the compacted block above):\n"
+                    : "SINCE YOUR LAST DECISION (" + src + "oldest->newest):\n");
             for (int i = splitAt; i < evs.size(); i++) {
                 s.append("  - [E").append(evs.get(i).id).append("] ").append(evs.get(i).msg).append('\n');
             }
