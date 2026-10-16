@@ -66,7 +66,7 @@ them and refuses to pool what is not comparable.
 
 Anything new asks again: an opponent's spell or ability, every attack and block, a trigger, a new option.
 - *Why:* skipping a window the model could act in, keeping a hand for it, or picking its play is a
-  heuristic standing in for the model. The old shortcuts (mulligan heuristic, skip heuristics, a cheap
+  heuristic standing in for the model. The old shortcuts (mulligan heuristic and five-card floor, skip heuristics, a cheap
   fast tier) remain only as opt-in measurement switches (`MULLIGAN_HEURISTIC=1`, `SKIP_HEURISTICS=1`,
   `ONE_TIER=0`).
 
