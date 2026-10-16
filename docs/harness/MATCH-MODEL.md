@@ -49,7 +49,9 @@ The **engine** default stays `v1-compat`, deliberately: `ContextProfileTest` pin
 
 The **eval runner** (`run_batch.py`) therefore **pins every condition key explicitly**
 (`CONTEXT_PROFILE`, `MEMORY_TOOLS`, `RULES_TOOL`) rather than relying on "unset → JVM default", so a
-batch can never inherit the play scripts' always-on defaults into a baseline arm. Deck paths are
+batch never inherits the ambient environment. Unset `--context-profile` is `v4-faithful`
+(`DEFAULT_CONTEXT_PROFILE`, 2026-10-16 review B1): `v1-compat` carries coaching, a two-sentence reasoning
+cap and a 25-decision turn cap, so it runs only as a named arm (`--context-profile v1-compat`). Deck paths are
 resolved to absolute paths up front: the game runs from the Forge tree, so a relative path fails to
 load and — because Forge starts an AWT thread — the JVM lingers and burns the whole `--cap-minutes`
 instead of exiting.

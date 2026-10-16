@@ -45,8 +45,11 @@ def game_line(seed, swap, **kw):
     g = {"t": "game", "seed": seed, "swap": swap, "winner": "A",
          "deck_a": "Identity-A", "deck_b": "Identity-B",
          "controller_a": "llm", "controller_b": "random",
-         "smart_a": "haiku", "smart_b": None, "fast_a": "haiku", "fast_b": None}
+         "smart_a": "haiku", "smart_b": None, "fast_a": "haiku", "fast_b": None,
+         "context_profile": run_batch.DEFAULT_CONTEXT_PROFILE}
     g.update(kw)
+    if g["context_profile"] is None:  # a pre-profile line
+        del g["context_profile"]
     return g
 
 
@@ -156,7 +159,7 @@ class TestSeedGuardWiring(unittest.TestCase):
 class TestConditionEnv(unittest.TestCase):
     """--context-profile / --memory-tools are the only route to
     CONTEXT_PROFILE / MEMORY_TOOLS; the ambient environment is scrubbed so
-    the historical baseline (unset -> v1-compat, tools off) is the default."""
+    the faithful seat (unset -> v4-faithful, tools off) is the default."""
 
     def test_flags_set_env_and_ambient_is_scrubbed(self):
         ambient = {"CONTEXT_PROFILE": "v3-compact", "MEMORY_TOOLS": "1",
@@ -164,11 +167,10 @@ class TestConditionEnv(unittest.TestCase):
         with mock.patch.dict(os.environ, ambient, clear=False):
             with tempfile.TemporaryDirectory() as d:
                 env = run_batch.build_env(make_args(), 7100, False, Path(d))
-                # The runner PINS the baseline explicitly. It must NOT inherit the play scripts'
-                # always-on match-model defaults (run-llm-headless.sh defaults CONTEXT_PROFILE=
-                # v4-faithful, MEMORY_TOOLS=1, RULES_TOOL=1), or a baseline arm would silently stamp
-                # the match model and be either refused as a condition mismatch or pooled wrongly.
-                self.assertEqual(env["CONTEXT_PROFILE"], "v1-compat")
+                # The runner PINS every condition key explicitly and never inherits the ambient
+                # environment. Unset is the faithful seat (2026-10-16 review B1: v1-compat carries
+                # coaching, a reasoning cap and a 25-decision turn cap, and is only a named arm).
+                self.assertEqual(env["CONTEXT_PROFILE"], "v4-faithful")
                 self.assertEqual(env["MEMORY_TOOLS"], "0")
                 self.assertEqual(env["RULES_TOOL"], "0")
                 self.assertNotIn("CTX_RECENT_EVENTS", env)
@@ -485,9 +487,14 @@ class TestResumeIdentity(unittest.TestCase):
 
     def test_expectation_matches_baseline_and_legacy_lines(self):
         exp = run_batch.resume_expectation(make_args())
-        self.assertTrue(run_batch.game_line_matches(game_line(1, False), exp))  # legacy
-        self.assertTrue(run_batch.game_line_matches(
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False), exp))
+        # Unset is v4-faithful: a v1-compat line or a pre-profile line is a different condition.
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False, context_profile=None), exp))
+        self.assertFalse(run_batch.game_line_matches(
             game_line(1, False, context_profile="v1-compat", memory_tools=False), exp))
+        v1 = run_batch.resume_expectation(make_args(context_profile="v1-compat"))
+        self.assertTrue(run_batch.game_line_matches(
+            game_line(1, False, context_profile="v1-compat", memory_tools=False), v1))
         self.assertFalse(run_batch.game_line_matches(
             game_line(1, False, context_profile="v2-memory", memory_tools=False), exp))
         self.assertFalse(run_batch.game_line_matches(
@@ -535,7 +542,7 @@ class TestResumeIdentity(unittest.TestCase):
             write_game(d, "game-7100-1000.jsonl",
                        game_line(7100, False, context_profile="v2-memory", memory_tools=True))
             write_game(d, "game-7100-1001.jsonl",
-                       game_line(7100, True, context_profile="v1-compat", memory_tools=False))
+                       game_line(7100, True, context_profile="v4-faithful", memory_tools=False))
             write_game(d, "game-7101-1000.jsonl", {"t": "decision", "seat": "Identity-A"})
             combos = [(7100, False), (7100, True), (7101, False)]
             baseline = run_batch.resume_expectation(make_args())

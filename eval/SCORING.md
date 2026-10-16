@@ -41,9 +41,13 @@ first-player prior N(0, 1) in logits, WR_AImirror = 0.5, and the random arm's 5-
 python3 eval/cost_report.py --plan 96 runs/compare/two-tier
 # the mirror panel, a 3-seed block per cell (96 games), with its free sanity arms
 python3 eval/run_batch.py --panel mirror --seeds 7800..7802 --sanity-arms --budget-usd 15 \
-    --controller-a llm --smart-a openrouter:deepseek/deepseek-v4.1-flash \
-    --fast-a openrouter:deepseek/deepseek-v4.1-flash --out runs/panel-mirror-deepseek
+    --controller-a llm --smart-a openrouter:openai/gpt-6-luna \
+    --fast-a openrouter:openai/gpt-6-luna --out runs/panel-mirror-luna
 ```
+
+- The seat plays the faithful profile (`v4-faithful`) unless `--context-profile` names another; that
+  is `run_batch.py`'s default (`DEFAULT_CONTEXT_PROFILE`). `v1-compat` is the historical baseline and
+  runs only as a named arm.
 
 - `--panel mirror|cross` plays every cell under `--out` (`--panel-cells a,b` for a subset, which is
   not scored as valid). Identity A is the pilot you give; identity B is the panel's opponent, so

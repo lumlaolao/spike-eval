@@ -4,6 +4,12 @@ The living to-do list for the "the model is the only bottleneck" work. Only open
 what is done is in git history, `docs/harness/GAME-LOOP-LOG.md` and the run reports. Update this file
 when an item is finished or a new one is agreed, so the next session can pick up from it.
 
+## Now (2026-10-16): the independent review
+
+**[REVIEW-2026-10-16.md](REVIEW-2026-10-16.md) is the current to-do list and its progress record.** Owner order:
+make the harness entirely bug-free first (phase 1, R1-R7), then the eval work (phase 2, E1-E7). The
+items below stay as the longer backlog.
+
 ## Owner decisions this list rests on (2026-10-15)
 
 - **Tool calls, not text parsing.** Every decision and every note the seat makes should come back as
