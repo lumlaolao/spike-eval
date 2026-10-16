@@ -548,10 +548,12 @@ about win rates. A first default-arm game was killed at T19 by my shell's 30-min
 `runs/c3/doomsday-{default,turn,game}`. Default LOST T24 (106 model decisions). The turn-window and whole-game-chat games
 were cut off at my shell's two-hour ceiling (T37 with 112 decisions, T32 with 81), so they have no result; their decisions
 are read for coherence only. TAKEN 0, LOST 0, SKIP 0, 0 Forge-AI decisions, no `LINE` in any.
-- OPEN   provider stalls: 3 to 5 calls a game got no reply until the 300 s deadline ("wall-clock timeout after 300000 ms",
-  once "header parser received no bytes"), then were retried: 15-25 minutes of every game. The harness cannot tell a dead
-  connection from a model still reasoning. Fix: request with `stream: true` and treat a connection that sends nothing,
-  not even OpenRouter's keep-alive comments, for about 60 s as dead (retry then), keeping the 300 s budget for reasoning.
+- FIXED  (2026-10-16) provider stalls: 3 to 5 calls a game got no reply until the 300 s deadline ("wall-clock timeout after
+  300000 ms", once "header parser received no bytes"), then were retried: 15-25 minutes of every game. `HttpDeadline` now
+  gives up early on a silent connection: no response headers for 90 s (OpenRouter sends them at once for a live request),
+  or keep-alive bytes seen and then none for 90 s (`OPENROUTER_IDLE_MS`). A reply that sends nothing until it is done is
+  never cut (the second rule waits for a first keep-alive). The 300 s budget stays for reasoning. Tests in
+  `OpenRouterTimeoutTest` (four servers: no headers, keep-alives that stop, keep-alives throughout, silent until done).
 - FIXED  (2026-10-16) a preview of Force of Will cast for its alternative cost was "unavailable": the copy matched the
   hard cast. The copy's alternative cost is found and played; and the copy now holds the stack, so a counterspell is
   previewed against the spell it answers (the engine's copy has none: the report said the opponent was unchanged).

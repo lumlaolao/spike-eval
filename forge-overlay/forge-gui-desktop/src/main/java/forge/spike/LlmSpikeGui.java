@@ -8934,8 +8934,13 @@ public final class LlmSpikeGui {
             HttpResponse<String> resp = HttpDeadline.send(
                     client, req, HttpResponse.BodyHandlers.ofString(), remaining);
             if (resp == null) {
-                System.out.println("[OPENROUTER " + label + "] wall-clock timeout after " + remaining
-                        + " ms (deadline " + timeoutMs + " ms)");
+                String why = HttpDeadline.LAST_STOP.get();
+                if ("no-headers".equals(why) || "silent".equals(why))
+                    System.out.println("[OPENROUTER " + label + "] stalled connection (" + why + " for " + HttpDeadline.IDLE_MS
+                            + " ms) -> retrying instead of waiting out the " + timeoutMs + " ms deadline");
+                else
+                    System.out.println("[OPENROUTER " + label + "] wall-clock timeout after " + remaining
+                            + " ms (deadline " + timeoutMs + " ms)");
                 return null;
             }
             if (resp.statusCode() != 200) {

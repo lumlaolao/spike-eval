@@ -31,6 +31,19 @@ import java.util.concurrent.TimeoutException;
 final class HttpDeadline {
     private HttpDeadline() { }
 
+    /** How long a connection may stay silent before it is treated as stalled (OPENROUTER_IDLE_MS, 0 turns it off).
+     *  3 to 5 calls in each C3 game (2026-10-16) got nothing back until the 300 s deadline, once "header parser
+     *  received no bytes": 15-25 minutes of every game spent waiting on dead connections. */
+    static final long IDLE_MS = idleFromEnv();
+
+    private static long idleFromEnv() {
+        try { return Math.max(0, Long.parseLong(System.getenv().getOrDefault("OPENROUTER_IDLE_MS", "90000"))); }
+        catch (NumberFormatException e) { return 90000; }
+    }
+
+    /** Why the last {@link #send} on this thread returned null: "deadline", "no-headers" or "silent", or null. */
+    static final ThreadLocal<String> LAST_STOP = new ThreadLocal<>();
+
     /**
      * Sends {@code req} and returns the response, or {@code null} if {@code remainingMs} elapses
      * first (the in-flight exchange is cancelled). A transport failure is rethrown unwrapped, so
@@ -39,15 +52,62 @@ final class HttpDeadline {
     static <T> HttpResponse<T> send(HttpClient client, HttpRequest req,
                                     HttpResponse.BodyHandler<T> handler, long remainingMs)
             throws Exception {
-        CompletableFuture<HttpResponse<T>> pending = client.sendAsync(req, handler);
-        try {
-            return pending.get(remainingMs, TimeUnit.MILLISECONDS);
-        } catch (TimeoutException te) {
-            pending.cancel(true);
-            return null;
-        } catch (ExecutionException ee) {
-            Throwable cause = ee.getCause();
-            throw (cause instanceof Exception) ? (Exception) cause : new RuntimeException(cause);
+        return send(client, req, handler, remainingMs, IDLE_MS);
+    }
+
+    /**
+     * As above, and also gives up early on a connection that has gone silent, so the caller can retry at once instead
+     * of waiting out the whole deadline. Two signs, each safe for a model that reasons for minutes:
+     * <ul>
+     *   <li>no response headers after {@code idleMs}: OpenRouter sends them at once for a live request;</li>
+     *   <li>body bytes arrived (OpenRouter's keep-alive whitespace) and then none for {@code idleMs}. A reply that sends
+     *       nothing until it is done is never cut by this: the rule waits for a first keep-alive byte.</li>
+     * </ul>
+     */
+    static <T> HttpResponse<T> send(HttpClient client, HttpRequest req,
+                                    HttpResponse.BodyHandler<T> handler, long remainingMs, long idleMs)
+            throws Exception {
+        LAST_STOP.remove();
+        final long start = System.currentTimeMillis();
+        final java.util.concurrent.atomic.AtomicLong last = new java.util.concurrent.atomic.AtomicLong(start);
+        final java.util.concurrent.atomic.AtomicBoolean headers = new java.util.concurrent.atomic.AtomicBoolean();
+        final java.util.concurrent.atomic.AtomicBoolean bytes = new java.util.concurrent.atomic.AtomicBoolean();
+        HttpResponse.BodyHandler<T> tracking = info -> {
+            headers.set(true);
+            last.set(System.currentTimeMillis());
+            HttpResponse.BodySubscriber<T> inner = handler.apply(info);
+            return new HttpResponse.BodySubscriber<T>() {
+                @Override public java.util.concurrent.CompletionStage<T> getBody() { return inner.getBody(); }
+                @Override public void onSubscribe(java.util.concurrent.Flow.Subscription s) { inner.onSubscribe(s); }
+                @Override public void onNext(java.util.List<java.nio.ByteBuffer> item) {
+                    bytes.set(true);
+                    last.set(System.currentTimeMillis());
+                    inner.onNext(item);
+                }
+                @Override public void onError(Throwable t) { inner.onError(t); }
+                @Override public void onComplete() { inner.onComplete(); }
+            };
+        };
+        CompletableFuture<HttpResponse<T>> pending = client.sendAsync(req, tracking);
+        final long deadline = start + remainingMs;
+        while (true) {
+            long now = System.currentTimeMillis();
+            long left = deadline - now;
+            if (left <= 0) { pending.cancel(true); LAST_STOP.set("deadline"); return null; }
+            try {
+                return pending.get(Math.min(left, 250), TimeUnit.MILLISECONDS);
+            } catch (TimeoutException te) {
+                now = System.currentTimeMillis();
+                if (idleMs > 0 && !headers.get() && now - start > idleMs) {
+                    pending.cancel(true); LAST_STOP.set("no-headers"); return null;
+                }
+                if (idleMs > 0 && bytes.get() && now - last.get() > idleMs) {
+                    pending.cancel(true); LAST_STOP.set("silent"); return null;
+                }
+            } catch (ExecutionException ee) {
+                Throwable cause = ee.getCause();
+                throw (cause instanceof Exception) ? (Exception) cause : new RuntimeException(cause);
+            }
         }
     }
 }

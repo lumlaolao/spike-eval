@@ -77,6 +77,28 @@ public class OpenRouterTimeoutTest {
         server.createContext("/dribble", OpenRouterTimeoutTest::dribble);
         // A whole OpenRouter-shaped base whose completions endpoint always dribbles.
         server.createContext("/slow/chat/completions", ex -> { drain(ex); dribble(ex); });
+        // Stalled connections (C3 games, 2026-10-16): no headers at all; keep-alives that stop; and the long-thinking
+        // reply that sends headers and then nothing until it is done, which must never be cut early.
+        server.createContext("/noheaders", ex -> { drain(ex); sleep(5000); respond(ex, "{\"late\":true}"); });
+        server.createContext("/pause", ex -> {
+            drain(ex);
+            try {
+                ex.sendResponseHeaders(200, 0);
+                try (OutputStream os = ex.getResponseBody()) {
+                    for (int i = 0; i < 4; i++) { os.write(' '); os.flush(); sleep(100); }
+                    sleep(5000);
+                    os.write("{\"late\":true}".getBytes(StandardCharsets.UTF_8));
+                }
+            } catch (Exception ignore) { }
+        });
+        server.createContext("/quiet", ex -> {
+            drain(ex);
+            try {
+                ex.sendResponseHeaders(200, 0);
+                sleep(2500);
+                try (OutputStream os = ex.getResponseBody()) { os.write("{\"thought\":true}".getBytes(StandardCharsets.UTF_8)); }
+            } catch (Exception ignore) { }
+        });
         server.createContext("/prompt", ex -> {
             byte[] b = "{\"ok\":true}".getBytes(StandardCharsets.UTF_8);
             ex.sendResponseHeaders(200, b.length);
@@ -110,6 +132,16 @@ public class OpenRouterTimeoutTest {
     @AfterClass(alwaysRun = true)
     public void stopServer() {
         if (server != null) server.stop(0);
+    }
+
+    private static void sleep(long ms) { try { Thread.sleep(ms); } catch (InterruptedException ignore) { } }
+
+    private static void respond(HttpExchange ex, String body) {
+        try {
+            byte[] b = body.getBytes(StandardCharsets.UTF_8);
+            ex.sendResponseHeaders(200, b.length);
+            try (OutputStream os = ex.getResponseBody()) { os.write(b); }
+        } catch (Exception ignore) { }
     }
 
     /** The request body must be consumed or the exchange never completes cleanly. */
@@ -185,6 +217,54 @@ public class OpenRouterTimeoutTest {
                 "the plain send was expected to run past the " + DEADLINE_MS + " ms deadline that"
                         + " bounds HttpDeadline, but returned in " + elapsed + " ms -- if this ever"
                         + " passes trivially, the test above has stopped proving anything");
+    }
+
+    private static final long IDLE = 800, LONG_DEADLINE = 10_000;
+
+    private long timed(String path, String[] stop, boolean[] answered) throws Exception {
+        String base = "http://127.0.0.1:" + server.getAddress().getPort();
+        long t0 = System.currentTimeMillis();
+        HttpResponse<String> r = HttpDeadline.send(client(), get(base + path, NO_REQUEST_BOUND_MS),
+                HttpResponse.BodyHandlers.ofString(), LONG_DEADLINE, IDLE);
+        stop[0] = HttpDeadline.LAST_STOP.get();
+        answered[0] = r != null;
+        return System.currentTimeMillis() - t0;
+    }
+
+    /** No headers within the idle window: a dead connection, given up on long before the deadline. */
+    @Test
+    public void aConnectionThatNeverAnswersIsGivenUpEarly() throws Exception {
+        String[] stop = new String[1]; boolean[] ok = new boolean[1];
+        long ms = timed("/noheaders", stop, ok);
+        Assert.assertFalse(ok[0]);
+        Assert.assertEquals(stop[0], "no-headers");
+        Assert.assertTrue(ms < 3000, "given up in " + ms + " ms");
+    }
+
+    /** Keep-alive bytes, then silence: stalled mid-generation, given up early. */
+    @Test
+    public void keepAlivesThatStopAreGivenUpEarly() throws Exception {
+        String[] stop = new String[1]; boolean[] ok = new boolean[1];
+        long ms = timed("/pause", stop, ok);
+        Assert.assertFalse(ok[0]);
+        Assert.assertEquals(stop[0], "silent");
+        Assert.assertTrue(ms < 3000, "given up in " + ms + " ms");
+    }
+
+    /** A reply that keeps sending keep-alives is never cut by the idle rule, however long it runs. */
+    @Test
+    public void aReplyThatKeepsSendingIsNotCut() throws Exception {
+        String[] stop = new String[1]; boolean[] ok = new boolean[1];
+        timed("/dribble", stop, ok);
+        Assert.assertTrue(ok[0], "the dribbling reply completed: " + stop[0]);
+    }
+
+    /** Headers and then nothing until it is done (a model reasoning for minutes with no keep-alives): never cut early. */
+    @Test
+    public void aReplyThatSendsNothingUntilDoneIsNotCut() throws Exception {
+        String[] stop = new String[1]; boolean[] ok = new boolean[1];
+        timed("/quiet", stop, ok);
+        Assert.assertTrue(ok[0], "the quiet reply completed: " + stop[0]);
     }
 
     /** A prompt reply is returned untouched -- the deadline must not cost a normal call anything. */
