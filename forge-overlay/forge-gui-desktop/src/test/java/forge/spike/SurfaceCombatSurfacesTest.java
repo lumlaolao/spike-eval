@@ -7,6 +7,11 @@ import static forge.spike.LineFindingProbeTest.bareGame;
 import static forge.spike.LineFindingProbeTest.card;
 import static forge.spike.LineFindingProbeTest.seat;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Set;
+import java.util.TreeSet;
+
 import org.testng.Assert;
 import org.testng.ITestResult;
 import org.testng.annotations.AfterMethod;
@@ -29,8 +34,19 @@ import forge.game.zone.ZoneType;
  * blocking several attackers, a late blocker joining an already-ordered attacker) are the seat's
  * choice, made through the real engine paths (PhaseHandler's declare step, Combat ordering, and a
  * real Flash Foliage resolving on the stack). Every hook ends "asked" in the surface report.
+ * The payCombatCost prompt renders through seatText(...): a reverted repair would leak the
+ * engine-side card id into the model's menu, and AskContract.check's ENGINE_ID rule fails
+ * exactly such a prompt on every test here (pr-review 2026-10-16).
  */
 public class SurfaceCombatSurfacesTest {
+
+    /** The ask types this wave puts on the seat's surface; the gate below fails until the model
+     *  has answered each through the live controller. */
+    static final Set<String> HOOKS = new TreeSet<>(Arrays.asList("combat-cost", "damage-order", "damage-assign"));
+
+    /** Types a model answered in this class (tier smart or fast), across every test. */
+    static final Set<String> ANSWERED = Collections.synchronizedSet(new TreeSet<>());
+
     private final java.util.List<String> asked = java.util.Collections.synchronizedList(new java.util.ArrayList<>());
 
     @BeforeClass
@@ -41,8 +57,13 @@ public class SurfaceCombatSurfacesTest {
         LlmSpikeGui.PlayerControllerLLM.TEST_PROFILE_OVERRIDE = LlmSpikeGui.ContextProfile.V4_FAITHFUL;
         asked.clear();
         LlmSpikeGui.PlayerControllerLLM.TEST_ASK_TAP = asked::add;
+        // This class owns its types the way the effects family does (the gate below): taps land
+        // in this class's set only. GoldenChecksTest.ANSWERED stays untouched — the single acceptance
+        // JVM runs the classes alphabetically, so golden's gate always runs BEFORE these tests and its
+        // OWNED list cannot name types answered here (measured 2026-10-16: priorities do not reorder
+        // across classes); golden's everyOwnedDecisionTypeIsExercisedHere guards its own class only.
         LlmSpikeGui.PlayerControllerLLM.TEST_DECISION_TAP = (type, tier) -> {
-            if ("smart".equals(tier) || "fast".equals(tier)) GoldenChecksTest.ANSWERED.add(type);
+            if ("smart".equals(tier) || "fast".equals(tier)) ANSWERED.add(type);
         };
     }
 
@@ -233,6 +254,17 @@ public class SurfaceCombatSurfacesTest {
         Assert.assertEquals(order.get(0), goyf, "the model's newcomer goes first: " + order);
         Assert.assertEquals(order.get(1), bears);
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    // ------------------------------------------------------------------ the gate
+
+    /** Runs last: a model has answered every surface hook this class owns through the live controller. */
+    @Test(priority = 1000)
+    public void theSurfaceHooksAreAskedAndAnsweredByTheModel() {
+        Set<String> missing = new TreeSet<>(HOOKS);
+        missing.removeAll(ANSWERED);
+        Assert.assertTrue(missing.isEmpty(),
+                "surface hooks no test here drives through the live controller: " + missing);
     }
 
     // ------------------------------------------------------------------ fixtures

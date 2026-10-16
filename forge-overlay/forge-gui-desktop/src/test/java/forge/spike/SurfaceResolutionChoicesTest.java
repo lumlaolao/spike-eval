@@ -1,9 +1,11 @@
 package forge.spike;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -22,6 +24,9 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
+import static forge.spike.GoldenChecksTest.Script;
+import static forge.spike.GoldenChecksTest.choice;
+import static forge.spike.GoldenChecksTest.opt;
 import static forge.spike.LineFindingProbeTest.bareGame;
 import static forge.spike.LineFindingProbeTest.card;
 import static forge.spike.LineFindingProbeTest.seat;
@@ -34,6 +39,15 @@ import static forge.spike.LineFindingProbeTest.seat;
  * play is the seat's may.
  */
 public class SurfaceResolutionChoicesTest {
+
+    /** The ask types this wave puts on the seat's surface; the gate below fails until the model
+     *  has answered each through the live controller. */
+    static final Set<String> HOOKS = new TreeSet<>(Arrays.asList(
+            "replacement-order", "mana-from-pool", "confirm-trigger", "confirm", "number-value"));
+
+    /** Types a model answered in this class (tier smart or fast), across every test. */
+    static final Set<String> ANSWERED = Collections.synchronizedSet(new TreeSet<>());
+
     private final List<String> asked = new ArrayList<>();
     /** The source every ask of the current test must name with its rules text, when it has one. */
     private String sourceName, sourceText;
@@ -47,7 +61,14 @@ public class SurfaceResolutionChoicesTest {
         asked.clear();
         sourceName = null; sourceText = null;
         LlmSpikeGui.PlayerControllerLLM.TEST_ASK_TAP = asked::add;
-        LlmSpikeGui.PlayerControllerLLM.TEST_DECISION_TAP = (type, tier) -> { };
+        // This class owns its types the way the effects family does (the gate below): taps land
+        // in this class's set only. GoldenChecksTest.ANSWERED stays untouched — the single acceptance
+        // JVM runs the classes alphabetically, so golden's gate always runs BEFORE these tests and its
+        // OWNED list cannot name types answered here (measured 2026-10-16: priorities do not reorder
+        // across classes); golden's everyOwnedDecisionTypeIsExercisedHere guards its own class only.
+        LlmSpikeGui.PlayerControllerLLM.TEST_DECISION_TAP = (type, tier) -> {
+            if ("smart".equals(tier) || "fast".equals(tier)) ANSWERED.add(type);
+        };
     }
 
     @AfterMethod(alwaysRun = true)
@@ -61,30 +82,6 @@ public class SurfaceResolutionChoicesTest {
     }
 
     // ------------------------------------------------------------------ helpers
-
-    /** A scripted model: the first rule whose needle the prompt's DECISION contains answers; else default. */
-    static class Script extends LineFindingProbeTest.Recorder {
-        final Map<String, Function<String, String>> rules = new java.util.LinkedHashMap<>();
-        private final String dflt;
-        Script(String dflt) { super(dflt); this.dflt = dflt; }
-        Script on(String needle, Function<String, String> reply) { rules.put(needle, reply); return this; }
-        @Override public String ask(String prompt) {
-            prompts.add(prompt);
-            String decision = prompt.substring(Math.max(0, prompt.lastIndexOf("DECISION:")));
-            for (Map.Entry<String, Function<String, String>> r : rules.entrySet())
-                if (decision.contains(r.getKey())) return r.getValue().apply(prompt);
-            return dflt;
-        }
-    }
-
-    static int opt(String prompt, String label) {
-        String decision = prompt.substring(Math.max(0, prompt.lastIndexOf("DECISION:")));
-        Matcher m = Pattern.compile("(?m)^\\s*(\\d+)\\) " + Pattern.quote(label)).matcher(decision);
-        Assert.assertTrue(m.find(), "no option " + label + ":\n" + decision);
-        return Integer.parseInt(m.group(1));
-    }
-
-    static Function<String, String> choice(String label) { return p -> "CHOICE: " + opt(p, label); }
 
     private static final Pattern OPTION_LINE = Pattern.compile("(?m)^\\s*(\\d+)\\) (.*)$");
     /** Labels of one ask's numbered option lines (the observations and options the seat reads). */
@@ -366,5 +363,16 @@ public class SurfaceResolutionChoicesTest {
         Assert.assertEquals(snowfallMana, accept, "the extra {U} the seat " + (accept ? "declined" : "played"));
         Assert.assertEquals(me.getManaPool().totalMana(), accept ? 2 : 1, "the pool: " + poolOf(me));
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    // ------------------------------------------------------------------ the gate
+
+    /** Runs last: a model has answered every surface hook this class owns through the live controller. */
+    @Test(priority = 1000)
+    public void theSurfaceHooksAreAskedAndAnsweredByTheModel() {
+        Set<String> missing = new TreeSet<>(HOOKS);
+        missing.removeAll(ANSWERED);
+        Assert.assertTrue(missing.isEmpty(),
+                "surface hooks no test here drives through the live controller: " + missing);
     }
 }
