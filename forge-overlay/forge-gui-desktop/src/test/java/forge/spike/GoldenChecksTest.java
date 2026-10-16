@@ -60,9 +60,7 @@ public class GoldenChecksTest {
             "color-colorless", "some-type", "protection", "card-name",
             // 2026-10-15: choices Forge's AI made outright until then (work plan priority 0, A).
             "pile", "opening-hand", "colors", "counter-type", "destroy", "keyword", "spell-for-effect", "clash",
-            "confirm-static", "card-face", "keyword-cost", "cost-reduction", "discard-unless", "convoke", "new-targets",
-            // 2026-10-16 wave-combat: the Ghostly Prison-style attack/block tax ask (payCombatCost).
-            "combat-cost"));
+            "confirm-static", "card-face", "keyword-cost", "cost-reduction", "discard-unless", "convoke", "new-targets"));
 
     /** Types a model answered in this class (tier smart or fast), across every test. */
     static final Set<String> ANSWERED = Collections.synchronizedSet(new TreeSet<>());
