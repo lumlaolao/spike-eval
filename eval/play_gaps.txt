@@ -3,17 +3,14 @@
 # kind<TAB>what proving it needs
 play:alt:BeamMeUp	not yet played by a golden check (newer or Universes Beyond mechanic; not in the eval pool)
 play:alt:Freerunning	needs combat damage by an Assassin or commander this turn
-play:alt:Harmonize	cast from the graveyard, tapping a creature to reduce the cost
-play:alt:Impending	a card with impending (Overlord of the Hauntwoods): cast for impending, enters with time counters, not a creature
+play:alt:Harmonize	the tap reduction (tap a creature, reduce by its power) is chosen at payment; the menu prices the full cost, so harmonize is offered only when that is payable (Channeled Dragonfire with 4 Mountains: not offered)
 play:alt:MTMtE	not yet played by a golden check (newer or Universes Beyond mechanic; not in the eval pool)
 play:alt:Mayhem	not yet played by a golden check (newer or Universes Beyond mechanic; not in the eval pool)
 play:alt:Prowl	prowl needs combat damage by a Rogue this turn (a combat step before the cast)
 play:alt:Sneak	not yet played by a golden check (newer or Universes Beyond mechanic; not in the eval pool)
-play:alt:Warp	not yet played by a golden check (newer or Universes Beyond mechanic; not in the eval pool)
 play:alt:WebSlinging	not yet played by a golden check (newer or Universes Beyond mechanic; not in the eval pool)
 play:opt:Flash	pay extra for flash (Rout): cast at instant speed for the extra cost
 play:opt:Generic	a pseudo-kicker (Dragon Presence cards)
-play:opt:Kicker2	a card with two kicker costs (Archangel of Wrath)
 play:opt:PromiseGift	a gift card (Into the Flood Maw): promise the gift to an opponent
 play:opt:ReduceB	not yet played by a golden check (newer or Universes Beyond mechanic; not in the eval pool)
 play:opt:ReduceG	not yet played by a golden check (newer or Universes Beyond mechanic; not in the eval pool)

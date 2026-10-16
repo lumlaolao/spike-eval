@@ -244,8 +244,9 @@ public final class LlmSpikeGui {
      *  "up to" cost reduction is asked only in the real payment.
      *  Epoch 37 (2026-10-16, state facets): the initiative, city's blessing, day/night, phased-out permanents, what a
      *  permanent remembers (named card, chosen type, imprint, token) and counters off the battlefield are shown
-     *  (observation-faithful-v35). */
-    static final String HARNESS_EPOCH = "harness-epoch-37";
+     *  (observation-faithful-v35).
+     *  Epoch 38 (2026-10-16): optional costs picked together are checked together (two kickers payable alone, not both). */
+    static final String HARNESS_EPOCH = "harness-epoch-38";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -3953,6 +3954,17 @@ public final class LlmSpikeGui {
             } catch (Exception e) { p("[ROUTER] optional-costs: " + e + " -> none"); return sa; }
         }
 
+        /** Whether {@code sa} with the picked optional costs together can be paid now. */
+        private boolean payableWith(SpellAbility sa, List<OptionalCostValue> offer, List<Integer> picks) {
+            try {
+                List<OptionalCostValue> set = new ArrayList<>();
+                for (int i : picks) set.add(offer.get(i));
+                SpellAbility with = GameActionUtil.addOptionalCosts(sa, set);
+                with.setActivatingPlayer(getPlayer());
+                return ComputerUtilCost.canPayCost(with, getPlayer(), false);
+            } catch (Exception e) { return true; }
+        }
+
         /** Optional additional costs — kicker / buyback / entwine. The model chooses which to pay;
          *  only costs the seat can actually afford are offered, so a chosen cost cannot fizzle the
          *  cast. Deterministic fallback: decline all (always legal). */
@@ -3980,6 +3992,14 @@ public final class LlmSpikeGui {
                         String q = "This spell offers optional additional costs (kicker/buyback/entwine)" + srcAsk(chosen)
                                 + ". Pick the ones worth paying for your plan; PICKS: NONE declines them all.";
                         List<Integer> picks = decideMany(smart, "optional-costs", q, labels, 0, offer.size());
+                        // Each cost was offered as payable with the spell alone; several together can still be more
+                        // than the seat can pay (Ana Battlemage's two kickers, 8 mana from 6 lands, and the cast failed).
+                        // The set is checked, re-asked once with the reason, then declined.
+                        for (int attempt = 0; picks != null && picks.size() > 1 && !payableWith(chosen, offer, picks); attempt++) {
+                            if (attempt == 1) { auto("optional-costs(together unpayable)->decline-all"); return new ArrayList<>(); }
+                            picks = decideMany(smart, "optional-costs", q + " Those together cost more than you can pay now;"
+                                    + " pick a set you can pay.", labels, 0, offer.size());
+                        }
                         if (picks != null) {
                             List<OptionalCostValue> out = new ArrayList<>();
                             for (int i : picks) out.add(offer.get(i));

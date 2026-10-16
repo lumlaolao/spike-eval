@@ -896,6 +896,66 @@ public class GoldenChecksTest {
         Assert.assertEquals(free.get(second), Integer.valueOf(1), "the seat put its 1 damage on the Elves: " + free);
     }
 
+    @Test
+    public void bothKickerCostsAreTheSeats() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Tropical Island", "Tropical Island", "Bayou", "Bayou", "Bayou", "Bayou", "Bayou", "Bayou");
+        card("Ana Battlemage", me, ZoneType.Hand);
+        card("Grizzly Bears", rival, ZoneType.Battlefield);
+        for (int i = 0; i < 3; i++) card("Ponder", rival, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Ana Battlemage"))
+                .on("optional additional costs", p -> "PICKS: 1,2")
+                .on("Choose the TARGET", p -> p.contains("Tap target untapped creature") ? choiceWith("Grizzly Bears").apply(p) : choiceWith("Rival").apply(p));
+        playAndResolve(seat(g, model, model), g, "Ana Battlemage, kicked twice");
+        Assert.assertTrue(has(me, ZoneType.Battlefield, "Ana Battlemage"));
+        Assert.assertEquals(rival.getCardsIn(ZoneType.Hand).size(), 0, "the blue kicker: three discarded");
+        Assert.assertEquals(rival.getLife(), 18, "the black kicker: the tapped Bears dealt 2 to its controller");
+    }
+
+    /** Two kickers each payable alone but not together: the set is refused with the reason and asked again. */
+    @Test
+    public void optionalCostsTheSeatCannotPayTogetherAreAskedAgain() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Tropical Island", "Tropical Island", "Bayou", "Bayou", "Bayou", "Bayou");
+        card("Ana Battlemage", me, ZoneType.Hand);
+        for (int i = 0; i < 3; i++) card("Ponder", rival, ZoneType.Hand);
+        int[] asks = {0};
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Ana Battlemage"))
+                .on("optional additional costs", p -> ++asks[0] == 1 ? "PICKS: 1,2" : "PICKS: 1").on("Choose the TARGET", choiceWith("Rival"));
+        playAndResolve(seat(g, model, model), g, "Ana Battlemage, one kicker");
+        Assert.assertEquals(asks[0], 2, "the unpayable pair was asked again");
+        Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.contains("Those together cost more than you can pay")));
+        Assert.assertTrue(has(me, ZoneType.Battlefield, "Ana Battlemage"), "cast with the one kicker it could pay");
+        Assert.assertEquals(rival.getCardsIn(ZoneType.Hand).size(), 0, "the blue kicker it chose");
+    }
+
+    @Test
+    public void impendingEntersAsANonCreature() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Island", "Island", "Island", "Island");
+        card("Lurker in the Deep", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("(Impending)"));
+        playAndResolve(seat(g, model, model), g, "Lurker in the Deep, impending");
+        Card l = me.getCardsIn(ZoneType.Battlefield).stream().filter(c -> c.getName().equals("Lurker in the Deep")).findFirst().orElse(null);
+        Assert.assertNotNull(l, "it was cast");
+        Assert.assertFalse(l.isCreature(), "impending: not a creature yet");
+        Assert.assertEquals(l.getCounters(forge.game.card.CounterEnumType.TIME), 3, "three time counters");
+    }
+
+    @Test
+    public void warpCastsForTheWarpCost() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Plains", "Plains");
+        card("All-Fates Stalker", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("(Warp)"));
+        playAndResolve(seat(g, model, model), g, "All-Fates Stalker, warped");
+        Assert.assertTrue(has(me, ZoneType.Battlefield, "All-Fates Stalker"), "warped onto the battlefield");
+    }
+
     /** ANT's line: cast Infernal Tutor, then crack Lion's Eye Diamond in response so the hand is empty when the Tutor
      *  resolves (hellbent). The menu never offered a mana ability, so LED was usable only as payment (owner,
      *  2026-10-16: combo lines must play out). A mana ability with a cost beyond tapping (sacrifice, discard, exile
