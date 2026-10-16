@@ -60,6 +60,46 @@ public class ChatSessionTest {
         Assert.assertTrue(c.history().endsWith("\"content\":\"" + LlmSpikeGui.jsonEscape(ChatSessionBridge.NOTE) + "\"}"));
     }
 
+    /** TURN_CHAT: the conversation holds this game turn's decisions and starts over when the turn changes. */
+    @Test
+    public void aTurnScopedConversationStartsOverEachTurn() {
+        ChatSessionBridge c = new ChatSessionBridge(new Messages("CHOICE: 1"), true);
+        c.atTurn(5);
+        c.remember("DECISION: cast Dark Ritual", "CHOICE: 1");
+        c.atTurn(5);
+        c.remember("DECISION: cast Tendrils", "CHOICE: 1");
+        Assert.assertEquals(c.size(), 2, "the same turn keeps both steps of the line");
+        Assert.assertTrue(c.history().endsWith("\"content\":\"" + LlmSpikeGui.jsonEscape(ChatSessionBridge.TURN_NOTE) + "\"}"));
+        c.atTurn(6);
+        Assert.assertEquals(c.size(), 0, "a new turn starts a new conversation");
+        Assert.assertEquals(c.history(), "");
+        ChatSessionBridge game = new ChatSessionBridge(new Messages("CHOICE: 1"), false);
+        game.remember("DECISION: q", "CHOICE: 1");
+        game.atTurn(9);
+        Assert.assertEquals(game.size(), 1, "ONE_CHAT keeps the whole game");
+    }
+
+    /** A decision answered by a call is replayed as it happened: the question cut to its DECISION part, the
+     *  model's assistant message byte for byte (its reasoning_details included), and the tool results. */
+    @Test
+    public void aCallAnsweredDecisionIsReplayedWithItsReasoning() {
+        ChatSessionBridge c = new ChatSessionBridge(new Messages("x"), true);
+        com.google.gson.JsonArray tr = new com.google.gson.JsonArray();
+        tr.add(NativeTools.message("user", "== Turn 4 MAIN1 ==\nBATTLEFIELD: Swamp\nDECISION: You have priority\n  1) CAST Dark Ritual"));
+        String assistant = "{\"role\":\"assistant\",\"content\":null,\"tool_calls\":[{\"id\":\"c9\",\"type\":\"function\","
+                + "\"function\":{\"name\":\"answer\",\"arguments\":\"{\\\"option\\\":1}\"}}],"
+                + "\"reasoning_details\":[{\"type\":\"reasoning.encrypted\",\"data\":\"opaque\"}]}";
+        tr.add(com.google.gson.JsonParser.parseString(assistant));
+        tr.add(NativeTools.toolResult("c9", "Answer recorded: CHOICE: 1"));
+        c.atTurn(4);
+        c.rememberAsk(tr);
+        String h = c.history();
+        Assert.assertTrue(h.contains(com.google.gson.JsonParser.parseString(assistant).toString()), "the assistant message is kept unchanged: " + h);
+        Assert.assertTrue(h.contains("\"tool_call_id\":\"c9\""), h);
+        Assert.assertFalse(h.contains("BATTLEFIELD"), "the old state is dropped: " + h);
+        Assert.assertTrue(h.contains("DECISION: You have priority"), h);
+    }
+
     /** Through the live controller: the target ask after a play is in the same conversation as the
      *  play, with the model's own reply to it, and the first ask has no history. */
     @Test

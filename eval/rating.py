@@ -76,7 +76,7 @@ PLAYER_FIELDS = (
     "memory_tools", "memory_tools_version", "native_tools", "native_tools_seats",
     "native_tools_version", "native_tools_downgraded", "rules_tool", "rules_tool_version",
     "rules_effective", "lookahead", "lookahead_version", "one_tier", "no_coaching", "one_chat",
-    "one_chat_version",
+    "one_chat_version", "turn_chat", "turn_chat_version",
 )
 PLAYER_FIELDS_BY_IDENT = {ident: SERVED_BY_IDENT[ident] + ("temperature_" + ident,)
                           for ident in ("a", "b")}

@@ -773,6 +773,8 @@ final class AnswerTool {
 
     /** One decision's answer session: what is offered, and what came back. */
     static final class Ask {
+        /** The ask's messages once answered by a call, ending in the answer's tool result (null otherwise). */
+        JsonArray transcript;
         final Spec spec;
         final boolean plan;
         /** Receives "GOAL: ... NEXT: ..." from `set_plan`. */
@@ -936,6 +938,15 @@ final class AnswerTool {
                     ask.via = ask.nudged ? "nudged" : "tool";
                     ask.content = turn.content;
                     audit.accept(c.render(), "ANSWER ACCEPTED");
+                    // The whole ask as it went, for a seat that keeps its conversation (ChatSessionBridge): the
+                    // answering message is already in `messages`; a result for every call it made follows, so
+                    // the history is a valid tool-call sequence with the model's reasoning in place.
+                    for (int j = 0; j < results.length; j++) {
+                        String res = j == i ? "Answer recorded: " + ask.render()
+                                : results[j] != null ? results[j] : "Not run: the decision was answered in this reply.";
+                        messages.add(NativeTools.toolResult(turn.calls.get(j).id, res));
+                    }
+                    ask.transcript = messages;
                     return ask.render();
                 }
                 ask.invalid++;

@@ -11,7 +11,7 @@ written to <out>/batch-manifest.json on first launch; a later invocation with a
 different condition against the same --out is refused, so one directory is
 always one experiment. --context-profile, --memory-tools, --rules-tool,
 --text-tools, --text-answers, --answer-tool-strict, --lookahead, --one-tier/--two-tier, --no-coaching,
---one-chat, --plan-execute and --tier-fast-types are the only way to set CONDITION_ENV_KEYS (ambient
+--one-chat, --turn-chat, --plan-execute and --tier-fast-types are the only way to set CONDITION_ENV_KEYS (ambient
 values are scrubbed, --env is refused for them); unset means the JVM's historical baseline.
 
 Two modes:
@@ -82,7 +82,7 @@ CITED_FORCED_KEYS = ("MULLIGAN_HEURISTIC", "SKIP_HEURISTICS", "PLAN_A", "PLAN_B"
 DEFAULT_CONTEXT_PROFILE = "v4-faithful"
 CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD", "ONE_TIER", "NO_COACHING",
                       "ANSWER_TOOL", "ANSWER_TOOL_STRICT",
-                      "ONE_CHAT", "PLAN_EXECUTE", "TIER_FAST_TYPES", "GAME_FORMAT")
+                      "ONE_CHAT", "TURN_CHAT", "PLAN_EXECUTE", "TIER_FAST_TYPES", "GAME_FORMAT")
 # Condition env keys that a pre-flag manifest could only have recorded as an --env override. The
 # resume comparison folds them out of `env_overrides` and back into their own condition field, so a
 # directory made with `--env LOOKAHEAD=1` (or PLAN_EXECUTE / TIER_FAST_TYPES) resumes under the flag.
@@ -120,7 +120,7 @@ CONDITION_KEYS = (
     "discipline", "deck_a", "deck_b", "name_a", "name_b",
     "controller_a", "controller_b", "smart_a", "smart_b", "fast_a", "fast_b",
     "plan_a", "plan_b", "context_profile", "memory_tools", "rules_tool", "native_tools", "answer_tool", "answer_tool_strict",
-    "lookahead", "one_tier", "no_coaching", "one_chat",
+    "lookahead", "one_tier", "no_coaching", "one_chat", "turn_chat",
     "plan_execute", "tier_fast_types",
     "ctx_overrides", "checkpoint_sha", "engine_sha", "overlay_sha", "deck_sha",
     "cap_minutes", "shadow_ai", "env_overrides", "fake_policy",
@@ -270,6 +270,7 @@ def build_env(args, seed, swap, out_dir):
     env["ONE_TIER"] = "1" if getattr(args, "one_tier", False) else "0"
     env["NO_COACHING"] = "1" if getattr(args, "no_coaching", False) else "0"
     env["ONE_CHAT"] = "1" if getattr(args, "one_chat", False) else "0"
+    env["TURN_CHAT"] = "1" if getattr(args, "turn_chat", False) else "0"
     env["PLAN_EXECUTE"] = "1" if getattr(args, "plan_execute", False) else "0"
     env["TIER_FAST_TYPES"] = normalize_tier_fast_types(getattr(args, "tier_fast_types", None))
     # Explicitly clear SWAP_SEATS when not swapping so an inherited value
@@ -462,6 +463,7 @@ def resume_expectation(args):
     expect["one_tier"] = [True] if getattr(args, "one_tier", False) else [False, ABSENT]
     expect["no_coaching"] = [True] if getattr(args, "no_coaching", False) else [False, ABSENT]
     expect["one_chat"] = [True] if getattr(args, "one_chat", False) else [False, ABSENT]
+    expect["turn_chat"] = [True] if getattr(args, "turn_chat", False) else [False, ABSENT]
     # The two opt-in play switches (issue #117). A line with no stamp is read as what a pre-flag
     # manifest recorded (an --env override), else off, so a batch run with `--env TIER_FAST_TYPES=...`
     # before the flag resumes instead of replaying its finished games as "a DIFFERENT condition".
@@ -545,6 +547,7 @@ def batch_condition(args, cited):
         "one_tier": bool(getattr(args, "one_tier", False)),
         "no_coaching": bool(getattr(args, "no_coaching", False)),
         "one_chat": bool(getattr(args, "one_chat", False)),
+        "turn_chat": bool(getattr(args, "turn_chat", False)),
         "plan_execute": bool(getattr(args, "plan_execute", False)),
         "tier_fast_types": normalize_tier_fast_types(getattr(args, "tier_fast_types", None)),
         "ctx_overrides": ctx,
@@ -666,7 +669,7 @@ def condition_diff_norm(m, k):
     """A condition field as compared on resume. A manifest written before native_tools existed ran
     without it; one written before a flag recorded its env key, if at all, as an --env override."""
     env = m.get("env_overrides") or {}
-    if k in ("native_tools", "answer_tool", "answer_tool_strict", "one_tier", "no_coaching", "one_chat"):
+    if k in ("native_tools", "answer_tool", "answer_tool_strict", "one_tier", "no_coaching", "one_chat", "turn_chat"):
         return bool(m.get(k))
     if k == "lookahead":
         return bool(m.get(k)) or env.get("LOOKAHEAD") == "1"
@@ -1263,6 +1266,11 @@ def build_parser():
                     help="ONE_CHAT=1: one conversation per seat (OpenRouter lane): each ask follows the seat's "
                          "earlier decisions, shortened to question and answer. Use with --one-tier for one "
                          "mind. A separate condition (stamped one_chat); its own --out.")
+    ap.add_argument("--turn-chat", action="store_true",
+                    help="TURN_CHAT=1: the seat's conversation holds this game turn's decisions (each kept "
+                         "as its calls, results and reasoning) and starts over each turn, so a multi-step "
+                         "line stays in one train of thought. A separate condition (stamped turn_chat); "
+                         "its own --out.")
     ap.add_argument("--lookahead", action="store_true",
                     help="LOOKAHEAD=1: LLM seats may preview a play option (`simulate`) before "
                          "choosing. Default off; a separate condition from unassisted play and must "
@@ -1312,7 +1320,7 @@ def main(argv=None):
         if k in CONDITION_ENV_KEYS:
             raise SystemExit("run_batch: --env %s is not allowed in any mode; use "
                              "--context-profile / --memory-tools / --rules-tool / --text-tools / --text-answers / --answer-tool-strict / "
-                             "--lookahead / --one-tier / --two-tier / --no-coaching / --one-chat / --plan-execute / "
+                             "--lookahead / --one-tier / --two-tier / --no-coaching / --one-chat / --turn-chat / --plan-execute / "
                              "--tier-fast-types / --format so the condition is recorded and guarded." % k)
     if args.seeds is None and not args.panel:
         ap.error("--seeds is required (except with --panel)")

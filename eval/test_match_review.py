@@ -124,6 +124,23 @@ class MatchReviewTest(unittest.TestCase):
             self.assertEqual(r["counts"]["LEAK"], 1, "one leak, and the library counts are not ids")
             self.assertIn("Vial (4)", mr.render(r))
 
+    def test_a_pass_with_mana_floating_is_a_broken_line_not_a_harness_defect(self):
+        # Review C2: a ritual cast, then the seat passed with its mana still in the pool.
+        menu = "YOU [Seat] life 20 | mana pool {B:3} | spells cast this turn 1\nDECISION: You have priority\n  1) CAST Tendrils of Agony\n  2) PASS (do nothing)"
+        empty = menu.replace("{B:3}", "empty")
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "game-1-0.jsonl")
+            rows = [dec("play", "smart", prompt=menu, choice=1, n_options=2),      # passed, floating: a broken line
+                    dec("play", "smart", prompt=menu, choice=0, n_options=2),      # cast: fine
+                    dec("play", "smart", prompt=empty, choice=1, n_options=2),     # passed with nothing made: fine
+                    {"t": "game", "seed": 1, "swap": False, "winner": "A"}]
+            with open(p, "w") as f:
+                f.write("".join(json.dumps(r) + "\n" for r in rows))
+            r = mr.review(p)
+            self.assertEqual(r["counts"]["LINE"], 1)
+            self.assertIn("mana floating {B:3}", mr.render(r))
+            self.assertEqual(mr.defects(r), 0, "a broken line is the model's to answer for until a read says otherwise")
+
     def test_a_reply_that_was_not_the_option_used_is_lost(self):
         with tempfile.TemporaryDirectory() as d:
             p = os.path.join(d, "game-1-0.jsonl")

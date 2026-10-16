@@ -130,6 +130,9 @@ PROVENANCE_FIELDS = (
     # One conversation per seat (ONE_CHAT) vs a stateless ask per decision.
     ("one_chat", MISSING),
     ("one_chat_version", MISSING),
+    # The conversation bounded by the game turn (TURN_CHAT).
+    ("turn_chat", MISSING),
+    ("turn_chat_version", MISSING),
     # The interface the model plays through, as one number (docs/STANDARDS.md section 8).
     ("harness_epoch", MISSING),
     # Prompt caching (Anthropic models): changes what a run costs, not what the model answers.

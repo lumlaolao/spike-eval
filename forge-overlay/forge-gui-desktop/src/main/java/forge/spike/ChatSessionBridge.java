@@ -5,6 +5,9 @@ import java.util.Deque;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+
 /**
  * ONE_CHAT=1: one conversation per seat instead of a stateless call per question. Each ask goes out
  * after the seat's earlier decisions this game, each shortened to its question and the model's own
@@ -19,6 +22,17 @@ import java.util.regex.Pattern;
  * <p>A condition, stamped `one_chat` on the game line; off by default. Wraps the OpenRouter lane only
  * (the Claude CLI lane already keeps its own session). The controller records each final reply with
  * {@link #remember}, so a tool round or a retry is not mistaken for an answer.
+ *
+ * <p>TURN_CHAT=1 (`turn-chat-v1`, stamped `turn_chat`) is the same conversation bounded by the game turn:
+ * this turn's earlier decisions, cleared when the turn changes, so the steps of one line (ritual, ritual,
+ * tutor, cast) stay in one train of thought without stale boards from earlier turns building up
+ * (docs/harness/REVIEW-2026-10-16.md, C1).
+ *
+ * <p>A decision answered by a call is kept as it happened (v3): the question's DECISION part, then the
+ * model's own assistant messages unchanged, with their tool calls and `reasoning_details`, and a tool
+ * result for every call, in order. OpenRouter's reasoning guide asks for exactly that (pass
+ * `reasoning_details` back unchanged and in order, so the model continues its earlier reasoning), and a
+ * past answer rendered as text taught a tool-answering model that text answers were the form.
  */
 final class ChatSessionBridge implements LLMBridge {
     /** A backend that can answer over a whole message list (the OpenRouter lane; tests fake it). */
@@ -27,18 +41,35 @@ final class ChatSessionBridge implements LLMBridge {
     }
 
     static final boolean ON = "1".equals(System.getenv("ONE_CHAT"));
-    /** v2 (2026-10-15): the whole game's decisions, not the last 20 (docs/harness/MODEL-LIMITS.md). */
-    static final String VERSION = "one-chat-v2";
+    /** TURN_CHAT=1: the conversation holds this game turn's decisions only. */
+    static final boolean TURN = "1".equals(System.getenv("TURN_CHAT"));
+    /** v2 (2026-10-15): the whole game's decisions, not the last 20 (docs/harness/MODEL-LIMITS.md).
+     *  v3 (2026-10-16): a decision answered by a call is kept as its calls, results and reasoning. */
+    static final String VERSION = "one-chat-v3";
+    static final String TURN_VERSION = "turn-chat-v1";
     static final int MAX_PAIRS = intEnv("ONE_CHAT_TURNS", 10000);
     /** Said before the current question whenever there is history. Part of the one-chat prompt bytes. */
     static final String NOTE = "(The earlier messages in this conversation are your own past decisions in this game, "
             + "each shortened to its question and your answer; the states they were asked in are no longer "
             + "current. The next message holds the current state.)";
+    /** The same note for a turn-bounded conversation. */
+    static final String TURN_NOTE = "(The earlier messages in this conversation are your own decisions earlier this turn, "
+            + "each shortened to its question, with your calls and their results; the states they were asked in are no "
+            + "longer current. The next message holds the current state.)";
 
     private final MessagesBridge inner;
-    private final Deque<String[]> pairs = new ArrayDeque<>();
+    private final boolean turnScoped;
+    /** Each kept decision as its message objects, in order. */
+    private final Deque<JsonArray> asks = new ArrayDeque<>();
+    private int turn = Integer.MIN_VALUE;
 
-    ChatSessionBridge(MessagesBridge inner) { this.inner = inner; }
+    ChatSessionBridge(MessagesBridge inner) { this(inner, TURN); }
+    ChatSessionBridge(MessagesBridge inner, boolean turnScoped) { this.inner = inner; this.turnScoped = turnScoped; }
+
+    /** Under TURN_CHAT the conversation starts over when the game turn changes. */
+    void atTurn(int gameTurn) {
+        if (turnScoped && gameTurn != turn) { asks.clear(); turn = gameTurn; }
+    }
 
     private static int intEnv(String k, int dflt) {
         try { return Math.max(1, Integer.parseInt(System.getenv().getOrDefault(k, String.valueOf(dflt)))); }
@@ -59,22 +90,44 @@ final class ChatSessionBridge implements LLMBridge {
     /** The conversation so far as message objects (comma-separated, no brackets), or "". */
     String history() {
         StringBuilder b = new StringBuilder();
-        for (String[] p : pairs) {
+        for (JsonArray a : asks) for (JsonElement m : a) {
             if (b.length() > 0) b.append(',');
-            b.append(msg("user", p[0])).append(',').append(msg("assistant", p[1]));
+            b.append(m.toString());
         }
-        if (b.length() > 0) b.append(',').append(msg("user", NOTE));
+        if (b.length() > 0) b.append(',').append(msg("user", turnScoped ? TURN_NOTE : NOTE));
         return b.toString();
     }
 
-    int size() { return pairs.size(); }
+    int size() { return asks.size(); }
 
-    /** Records one answered decision. Called by the controller with the prompt it asked and the
+    /** Records one decision answered in text. Called by the controller with the prompt it asked and the
      *  final reply it used. */
     void remember(String prompt, String reply) {
         if (prompt == null || reply == null || reply.trim().isEmpty()) return;
-        pairs.addLast(new String[] {stub(prompt), reply.trim()});
-        while (pairs.size() > MAX_PAIRS) pairs.removeFirst();
+        JsonArray a = new JsonArray();
+        a.add(NativeTools.message("user", stub(prompt)));
+        a.add(NativeTools.message("assistant", reply.trim()));
+        keep(a);
+    }
+
+    /** Records one decision answered by a call: its whole conversation as it was sent and returned, the
+     *  first message cut to its DECISION part. Assistant messages are kept byte for byte (their
+     *  `reasoning_details` included); every tool call has its result. */
+    void rememberAsk(JsonArray transcript) {
+        if (transcript == null || transcript.size() == 0) return;
+        JsonArray a = new JsonArray();
+        for (int i = 0; i < transcript.size(); i++) {
+            JsonElement m = transcript.get(i);
+            if (i == 0 && m.isJsonObject() && m.getAsJsonObject().has("content")) {
+                a.add(NativeTools.message("user", stub(m.getAsJsonObject().get("content").getAsString())));
+            } else a.add(m.deepCopy());
+        }
+        keep(a);
+    }
+
+    private void keep(JsonArray a) {
+        asks.addLast(a);
+        while (asks.size() > MAX_PAIRS) asks.removeFirst();
     }
 
     private static String msg(String role, String content) {
@@ -95,7 +148,7 @@ final class ChatSessionBridge implements LLMBridge {
         return inner.chat("[" + h + (body.isEmpty() ? "" : "," + body) + "]", toolsJson, allowCalls);
     }
 
-    @Override public void restart() { pairs.clear(); inner.restart(); }
+    @Override public void restart() { asks.clear(); inner.restart(); }
     @Override public String getLabel() { return inner.getLabel(); }
     @Override public String getModel() { return inner.getModel(); }
     @Override public long getTotalMs() { return inner.getTotalMs(); }
