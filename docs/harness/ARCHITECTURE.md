@@ -291,6 +291,10 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   - *Why latency routing:* Luna calls stalled for up to 6 minutes while answering in ordinary length (646
     output tokens in 352 s, against a median of 253 in 9 s). The time was the endpoint's, not the model's
     thinking. OpenRouter's default routing weighs price; the model is the same on every endpoint.
+  - a stalled connection is retried (`HttpDeadline`, `OPENROUTER_IDLE_MS`, default 90 s, 0 off): no headers, or
+    bytes and then silence, for that long, inside the ask's deadline.
+  - *Why:* in the C3 combo games some connections sent nothing for minutes and held the ask to its full
+    timeout, 15-25 minutes a game; a fresh connection answers in seconds.
 - **`ClaudeBridge`** (the Claude CLI lane): text only, kept for the CLI.
 - **Egress boundary:** an `openrouter:` model receives the game state. Nothing starts unless
   `OPENROUTER_ALLOW_EGRESS=1` is set by the owner, and no tool sets it.
