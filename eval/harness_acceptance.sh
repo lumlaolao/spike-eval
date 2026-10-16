@@ -52,7 +52,8 @@
 # (macOS bash 3.2); never `grep -c X f || echo 0`; assert the build under test is the build that ran.
 # ALSO: the verdict heredocs live inside `$( ... )`, and bash 3.2 scans for the closing paren BEFORE it
 # parses the heredoc, so an unbalanced quote — including one apostrophe in a body comment — breaks the
-# WHOLE file. Keep heredoc bodies free of `'`. (Cost me a debugging session; do not "fix" it by quoting.)
+# WHOLE file. Keep heredoc bodies free of `'` and backticks (a pattern backtick escapes as \x60,
+# per issue #219). (Cost me a debugging session; do not "fix" it by quoting.)
 set -u
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
