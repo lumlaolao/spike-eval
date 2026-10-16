@@ -73,8 +73,8 @@ random.seed=42
 # winner B, 70 turns / 438 decisions. Reproduced twice (/tmp/acc-mana2, /tmp/acc-mana3). Floor
 # unchanged (never asked). linux.* random STALE.
 # 2026-10-16: the random walk re-rolled on macOS (same #219 blind spot; not epochs 33/34, see above): stable at
-# winner B, 70 turns; decisions 438 -> 450, all tier=auto, 0 Forge-AI rows, game not capped (same
-# two runs as the floor re-pin above). Same correction: the Linux random pin did not move on #216/#218.
+# winner B, 70 turns; decisions 438 -> 450, all tier=auto, 0 Forge-AI rows, 0 silent drops, game not
+# capped (same two runs as the floor re-pin above). Same correction: the Linux random pin did not move on #216/#218.
 random.winner=B
 random.turns=70
 random.decisions=450

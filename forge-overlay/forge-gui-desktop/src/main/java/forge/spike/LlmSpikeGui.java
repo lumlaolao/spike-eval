@@ -2399,6 +2399,12 @@ public final class LlmSpikeGui {
          *  with an answer instead of adding bloat. The color-shortfall breakdown only fires for plain
          *  colored/generic/colorless costs (hybrid/Phyrexian/X costs fall back to a plain
          *  "(not castable now)" — naming a single missing color there would be a guess, not a fact). */
+        /** Hand-pricing marker while {@link #affordability} runs: its canPayManaCost check goes through
+         *  CostAdjustment.adjust, whose cost-reduction pick re-enters the controller — an ask inside the
+         *  pricing walk builds another snapshot and overflows the stack. Hooks that see this are pricing
+         *  a display hint, not paying a card: no model ask, and no fallback row — the human controller
+         *  takes the first legal option without prompting here (full control off), so the seat does too. */
+        private static volatile boolean PRICING_FOR_SNAPSHOT = false;
         private static String handList(Player pl, Iterable<Card> cards) {
             int[] tally = untappedManaTally(pl);
             StringBuilder b = new StringBuilder(); int i = 0;
@@ -2431,7 +2437,9 @@ public final class LlmSpikeGui {
                 SpellAbility sa = c.getFirstSpellAbility();
                 if (sa == null) return null;
                 if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(pl);
-                if (ComputerUtilMana.canPayManaCost(sa, pl, 0, false)) return "(castable)";
+                PRICING_FOR_SNAPSHOT = true;
+                try { if (ComputerUtilMana.canPayManaCost(sa, pl, 0, false)) return "(castable)"; }
+                finally { PRICING_FOR_SNAPSHOT = false; }
             } catch (Exception e) { return null; }
             try {
                 forge.card.mana.ManaCost mc = c.getManaCost();
@@ -4359,6 +4367,11 @@ public final class LlmSpikeGui {
         /** A trigger that resolves without using the stack: the same seat targeting, then the engine plays it. */
         @Override
         public boolean playTrigger(Card host, forge.game.trigger.WrappedAbility wrapperAbility, boolean isMandatory) {
+            // An optional one (isMandatory false: a decider exists, e.g. Snowfall's static TapsForMana) is
+            // a "may" the seat decides — asked here like confirmTrigger asks it when a normal trigger
+            // resolves, because a static trigger never reaches a stack item and WrappedAbility.resolve.
+            // The seat used to be handed every static as if it had already said yes.
+            if (!isMandatory && !confirmTrigger(wrapperAbility)) return false;
             if (!prepareTrigger(wrapperAbility)) return false;
             return playNoStack(wrapperAbility.getActivatingPlayer(), wrapperAbility, true);
         }
@@ -4748,6 +4761,15 @@ public final class LlmSpikeGui {
             // replacement internals or mutate the affected object while answering it.
             return optionalDecision("confirm-replacement", effectSA,
                     question == null ? "Apply this optional replacement effect?" : question);
+        }
+
+        /** BidLife's invitation to top the high bid (BidLifeEffect asks every player each round). The
+         *  human is asked (InputConfirm); not overridden, it inherited Forge's AI, whose rule
+         *  (!self, life > bid + 5) decided in the seat's place with no question. */
+        @Override
+        public boolean confirmBidAction(SpellAbility sa, PlayerActionConfirmMode mode, String message,
+                int bid, Player winner) {
+            return confirmAction(sa, mode, message, null, null, null);
         }
 
         @Override
@@ -5318,8 +5340,15 @@ public final class LlmSpikeGui {
         /** Which of several static abilities applies (as replacement order, for statics). */
         @Override
         public forge.game.staticability.StaticAbility chooseSingleStaticAbility(List<forge.game.staticability.StaticAbility> possible) {
+            if (PRICING_FOR_SNAPSHOT) {
+                return possible == null || possible.isEmpty() ? null : possible.get(0);   // display pricing, not a payment: above
+            }
             clearLast();
             if (possible == null || possible.isEmpty()) return null;
+            // One candidate left in the cost-reduction loop: the engine's human controller takes it
+            // without prompting (no full control), so the seat does too — silently, never an auto row
+            // and never a one-option ask the model has no decision inside.
+            if (possible.size() == 1) return possible.get(0);
             List<String> labels = new ArrayList<>();
             for (forge.game.staticability.StaticAbility st : possible)
                 labels.add(safeName(st.getHostCard()) + ": " + fit(String.valueOf(st)));
@@ -5454,16 +5483,50 @@ public final class LlmSpikeGui {
                     + srcAsk(sa) + ".", labels, null, 0));
         }
 
-        /** How many times to pay a keyword cost (casualty and the like); 0..max. */
+        /** How many times to pay a keyword cost (casualty and the like); 0..max. The engine passes
+         *  Integer.MAX_VALUE for a pay-any-number cost (Multikicker, Replicate, Squad:
+         *  GameActionUtil.addExtraKeywordCost), so a huge range is stated like chooseNumber's, never
+         *  enumerated — building 0..2147483647 labels would exhaust the heap before any ask went out. */
         @Override
         public int chooseNumberForKeywordCost(SpellAbility sa, Cost cost, forge.game.keyword.KeywordInterface keyword, String prompt, int max) {
             clearLast();
             if (max <= 0) return 0;
+            if (max > 12) return chooseWideKeywordCost(sa, cost, prompt, max);
             List<String> labels = new ArrayList<>();
             for (int i = 0; i <= max; i++) labels.add(String.valueOf(i));
             int c = askOne("keyword-cost", (prompt == null || prompt.isEmpty() ? "How many times do you pay " + cost.toSimpleString() : fit(prompt))
                     + srcAsk(sa) + "?", labels, null, 0);
             return Math.max(0, c);
+        }
+
+        /** The 0..max "any number of times" ask when the engine's own range is bigger than the menu:
+         *  the range is stated (a legal domain, like the spinner the human controller shows and
+         *  chooseNumber's wide-number asks), the number a resource statement, answered NUMBER:. */
+        private int chooseWideKeywordCost(SpellAbility sa, Cost cost, String prompt, int max) {
+            if (!fastOk() && !smartOk()) { auto("keyword-cost(no-model)->0"); return 0; }
+            LLMBridge b = smartOk() ? smart : fast;
+            String base = snapshot() + (observer != null ? "\nDECISION: " : "\n")
+                    + (prompt == null || prompt.isEmpty() ? "How many times do you pay " + cost.toSimpleString() : fit(prompt))
+                    + srcAsk(sa) + "\nEvery integer from 0 through " + max
+                    + " inclusive is legal. Reply with exactly NUMBER: <integer>.";
+            try {
+                for (int attempt = 0; attempt < 2 && (b == smart ? smartOk() : fastOk()); attempt++) {
+                    offerAnswer(b, AnswerTool.Spec.number(0, max));
+                    String reply = ask(b, base + (attempt == 0 ? "" : "\nInvalid answer. Use exactly NUMBER: <integer> within the range."));
+                    noteAnswerVia(attempt);
+                    if (reply == null) break;
+                    AnswerTool.Answer ta = toolAnswer();
+                    Integer value = ta != null ? ta.number : parseNumberReply(reply, 0, max);
+                    if (value != null) {
+                        evalDec("keyword-cost", -1, value, tierOf(b == smart), 0, null,
+                                Lists.newArrayList("integer range [0, " + max + "]"));
+                        p("[ROUTER] keyword-cost: " + value);
+                        return Math.max(0, value);
+                    }
+                }
+            } catch (Exception e) { /* deterministic fallback below, never Forge AI */ }
+            auto("keyword-cost(unparsed)->0");
+            return 0;
         }
 
         /** Whether to pay an optional keyword cost (one time). */
@@ -5648,12 +5711,14 @@ public final class LlmSpikeGui {
             return out;
         }
 
-        /** An attack or block tax (Propaganda, Ghostly Prison): whether to pay it. Paying is the engine's mechanics. */
+        /** An attack or block tax (Propaganda, Ghostly Prison): whether to pay it. Paying is the engine's mechanics.
+         *  The engine's prompt carries raw engine ids ("declare Grizzly Bears (2) an attacker"); the faithful ask
+         *  renders them as seat handles (seatText), the release keeps their profile bytes. */
         @Override
         public boolean payCombatCost(Card card, Cost cost, SpellAbility sa, String prompt) {
             clearLast();
             if (!ComputerUtilCost.canPayCost(sa, getPlayer(), sa != null && sa.isTrigger())) { auto("combat-cost(cannot-pay)->no"); return false; }
-            int c = askOne("combat-cost", (prompt == null || prompt.isEmpty() ? "Pay " + cost.toSimpleString() : fit(prompt))
+            int c = askOne("combat-cost", (prompt == null || prompt.isEmpty() ? "Pay " + cost.toSimpleString() : seatText(prompt))
                     + " for " + labelOf(card) + "? If you do not pay, it does not attack or block.",
                     java.util.Arrays.asList("Pay", "Do not pay"), null, 0);
             return c == 0 && super.payCombatCost(card, cost, sa, prompt);
@@ -7147,7 +7212,17 @@ public final class LlmSpikeGui {
         static boolean offerable(SpellAbility sa, Player me, boolean alt) {
             if (sa.isLandAbility() || sa.isManaAbility()) return false;
             if (!sa.canPlay()) return false;
-            if (alt ? !ComputerUtilCost.canPayCost(sa, me, false) : !ComputerUtilMana.canPayManaCost(sa, me, 0, false)) return false;
+            // The cost check prices the menu and the hand tags (SeatObservation.handList's castTag):
+            // its adjust consults the controller on cost reductions (CostAdjustment's reduction loop),
+            // and an ask inside a snapshot build re-enters renderSnapshot forever. See PRICING_FOR_SNAPSHOT.
+            PRICING_FOR_SNAPSHOT = true;
+            boolean payable;
+            try {
+                payable = alt ? ComputerUtilCost.canPayCost(sa, me, false) : ComputerUtilMana.canPayManaCost(sa, me, 0, false);
+            } finally {
+                PRICING_FOR_SNAPSHOT = false;
+            }
+            if (!payable) return false;
             // Skip a targeted spell that currently has NO legal target — casting it just fizzles
             // ("Couldn't add to stack, failed to target"), e.g. Animate Dead with an empty graveyard.
             if (sa.usesTargeting()) {
