@@ -133,6 +133,10 @@ most log questions).
   number on that OS at the commit where the plain pin was set, or at the base of the change that
   adds the OS pin). A change that moves a canary re-pins it on
   every OS that has a pin, or names the OS left stale in the expectations file and the PR.
+  The naming is script-checked (`eval/test_os_pin_staleness.py`, stdlib only): it fails when a
+  re-pinned plain key's `<os>.<key>` siblings are neither re-pinned with a date at or after
+  the plain re-pin nor named STALE with the movers (an issue ref, an epoch, or a dated line).
+  The check reads this file's shape only; the PR-side half of the naming is off its sight.
 - `bash eval/harness_acceptance.sh` is the whole-harness gate; it must pass on the PR's head.
 - The acceptance compile rejects what the Forge checkout build is known to reject: unused and
   duplicate imports in `forge-overlay/` fail the `compile` stage (`eval/java_imports.py`). When the
