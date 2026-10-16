@@ -887,6 +887,19 @@ public class SeatObservationTest {
                 SeatObservation.manaLine(me));
     }
 
+    /** runs/c3/ant-storm-default T11: Chrome Mox with Brainstorm imprinted makes blue, the menu offered Ponder {U} as
+     *  castable, and the line said {B:1}: a reflected or chosen colour was read as no colour. */
+    @Test
+    public void aReflectedColourIsCounted() {
+        Game g = LineFindingProbeTest.bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        LineFindingProbeTest.card("Swamp", me, ZoneType.Battlefield);
+        forge.game.card.Card mox = LineFindingProbeTest.card("Chrome Mox", me, ZoneType.Battlefield);
+        mox.addImprintedCard(LineFindingProbeTest.card("Brainstorm", me, ZoneType.Exile));
+        String line = PlayerControllerLLM.manaAvailable(me);
+        Assert.assertTrue(line.startsWith("{U:1 B:1} up to 2 mana (2 untapped sources"), line);
+    }
+
     /** Mana only for some spells is kept apart, in the card's words: two Great Halls make {C:2} for anything;
      *  their any colour is for instants and sorceries only (std-g10 showed it as five colours for anything). */
     @Test

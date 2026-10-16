@@ -63,7 +63,10 @@ final class AskContract {
         // The question is read whole: nothing in it is cut short, it names no engine id, and it coaches no deck.
         String question = p.substring(d, questionEnd(p, d));
         Assert.assertFalse(CUT_TEXT.matcher(question).find(), test + ": the question is cut short: " + question);
-        for (String w : COACHING) Assert.assertFalse(question.contains(w), test + ": the question coaches a deck's line (" + w + "): " + question);
+        // A card the decision is about is quoted in brackets with its text ("[Lotus Petal: {T}, Sacrifice ...]"):
+        // naming the source is not coaching. Only the harness's own words are checked.
+        String own = question.replaceAll("\\[[^\\]]*\\]", "[]");
+        for (String w : COACHING) Assert.assertFalse(own.contains(w), test + ": the question coaches a deck's line (" + w + "): " + question);
         Assert.assertFalse(decision.contains("CARDNAME") || decision.contains("NICKNAME"), test + ": an engine placeholder is shown instead of the card's name: " + decision);
 
         // Options: numbered 1..n in order, no label twice, no engine id.

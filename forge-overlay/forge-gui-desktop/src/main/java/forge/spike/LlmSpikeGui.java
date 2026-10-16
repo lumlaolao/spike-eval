@@ -222,8 +222,11 @@ public final class LlmSpikeGui {
      *  Epoch 29: the plan is a note, not a commitment: every decision is re-made on the state then (answer-tool-v10).
      *  Epoch 30 (2026-10-16 independent review): no reasoning cap and one answer line on a tool ask (answer-tool-v11);
      *  a dead bridge takes the fixed legal option, never one read from the plan's prose; a lookahead preview
-     *  re-deals the opponent's hand first, so it reveals no hidden card (lookahead-preview-v6). */
-    static final String HARNESS_EPOCH = "harness-epoch-30";
+     *  re-deals the opponent's hand first, so it reveals no hidden card (lookahead-preview-v6).
+     *  Epoch 31 (2026-10-16, C3 ANT Storm games): a colour the card decides (Chrome Mox) counts in mana available, ability
+     *  text names the card (no CARDNAME), and a preview keeps imprinted cards (observation-faithful-v32,
+     *  lookahead-preview-v7). */
+    static final String HARNESS_EPOCH = "harness-epoch-31";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -1257,6 +1260,14 @@ public final class LlmSpikeGui {
          *      name, and the cost it actually pays;
          *  <li>an ability: no mana cost of the card; its own cost is the "cost:" part of its text.</ul>
          *  {@code CARDNAME}/{@code NICKNAME} placeholders are replaced with the card's name. */
+        /** An ability's text with the engine's {@code CARDNAME}/{@code NICKNAME} placeholders replaced by the card's
+         *  name. The mana-sources question showed "Sacrifice CARDNAME" for Lotus Petal (runs/c3/ant-storm-default T7). */
+        static String named(String text, Card host) {
+            if (text == null || host == null) return text;
+            String name = host.getName();
+            return text.replace("CARDNAME", name).replace("NICKNAME", name);
+        }
+
         static String faithfulSaLabel(SpellAbility sa, String hostRef) {
             Card host = sa.getHostCard();
             String name = host == null ? "?" : host.getName();
@@ -2232,7 +2243,7 @@ public final class LlmSpikeGui {
                         if (!canActivateNow(ab, pl)) continue;
                         String rule = mp.getManaRestrictions(), extra = mp.getExtraManaRestriction();
                         if ((rule != null && !rule.isEmpty()) || (extra != null && !extra.isEmpty())) {
-                            restricted.add(flat(ab.getDescription()));
+                            restricted.add(named(flat(ab.getDescription()), ab.getHostCard()));
                             continue;
                         }
                         int cost = ab.getPayCosts() != null && ab.getPayCosts().getCostMana() != null
@@ -2254,6 +2265,15 @@ public final class LlmSpikeGui {
                                 case "ANY": can[0] = can[1] = can[2] = can[3] = can[4] = true; break;
                                 default: break; // COMBO is followed by its colours; CHOSEN/SPECIAL name no colour until made
                             }
+                        }
+                        // A colour the card decides (Chrome Mox: the imprinted card's colours; a chosen colour) is asked of
+                        // the engine, as its own payment code does (runs/c3 T11: Chrome Mox imprinting Brainstorm read as no colour).
+                        String[] shorts = {"W", "U", "B", "R", "G", "C"};
+                        if (ab.getApi() == forge.game.ability.ApiType.ManaReflected) {
+                            java.util.Set<String> refl = forge.game.card.CardUtil.getReflectableManaColors(ab);
+                            for (int i = 0; i < 6; i++) if (refl.contains(shorts[i]) || refl.contains(MagicColor.toLongString(MagicColor.fromName(shorts[i])))) can[i] = true;
+                        } else {
+                            for (int i = 0; i < 6; i++) if (!can[i] && mp.canProduce(shorts[i], ab)) can[i] = true;
                         }
                     }
                 } catch (Exception ignore) { }
@@ -4093,7 +4113,7 @@ public final class LlmSpikeGui {
                 List<String> labels = new ArrayList<>();
                 for (Card c : sources) {
                     StringBuilder m = new StringBuilder();
-                    c.getManaAbilities().forEach(ma -> { if (m.length() > 0) m.append("; "); m.append(flat(ma.getDescription())); });
+                    c.getManaAbilities().forEach(ma -> { if (m.length() > 0) m.append("; "); m.append(named(flat(ma.getDescription()), c)); });
                     labels.add(labelOf(c) + " — " + m);
                 }
                 String what = sa.getHostCard() == null ? "this" : verbOf(sa) + " " + labelOf(sa);
@@ -5175,7 +5195,7 @@ public final class LlmSpikeGui {
             if (possible == null || possible.isEmpty()) return null;
             List<String> labels = new ArrayList<>();
             for (forge.game.replacement.ReplacementEffect re : possible)
-                labels.add(safeName(re.getHostCard()) + ": " + fit(String.valueOf(re.getDescription())));
+                labels.add(safeName(re.getHostCard()) + ": " + named(fit(String.valueOf(re.getDescription())), re.getHostCard()));
             return possible.get(askOne("replacement-order", "Several replacement effects apply to the same event. "
                     + "Choose which applies first.", labels, null, 0));
         }

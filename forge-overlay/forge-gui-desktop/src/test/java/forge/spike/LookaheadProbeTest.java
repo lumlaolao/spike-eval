@@ -425,6 +425,24 @@ public class LookaheadProbeTest {
         Assert.assertEquals(reports[1], reports[0], "the preview depends on the opponent's hidden hand");
     }
 
+    /** runs/c3/ant-storm-default T11: Chrome Mox imprinting Brainstorm pays {U} in the real game, and the preview
+     *  of Ponder said the copy could not pay: the engine's copy drops imprinted cards. */
+    @Test
+    public void aPreviewKeepsAnImprintedMoxsColour() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0);
+        forge.game.card.Card mox = SeatObservationTest.card("Chrome Mox", me, forge.game.zone.ZoneType.Battlefield);
+        mox.addImprintedCard(SeatObservationTest.card("Brainstorm", me, forge.game.zone.ZoneType.Exile));
+        forge.game.card.Card ponder = SeatObservationTest.card("Ponder", me, forge.game.zone.ZoneType.Hand);
+        for (int i = 0; i < 4; i++) SeatObservationTest.card("Island", me, forge.game.zone.ZoneType.Library);
+        forge.game.spellability.SpellAbility sa = spellOn(ponder);
+        sa.setActivatingPlayer(me);
+        String report = PlayerLookahead.previewCast(g, me, sa, 5L);
+        System.out.println("[LOOKAHEAD] " + report);
+        Assert.assertFalse(report.startsWith("(preview unavailable"), report);
+        Assert.assertTrue(report.contains("Ponder"), report);
+    }
+
     /** The model can aim the preview: a hint naming a legal target is honoured. */
     @Test
     public void previewCastHonoursATargetHint() {

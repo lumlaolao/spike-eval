@@ -42,8 +42,9 @@ final class PlayerLookahead {
      *  menu numbers (see LlmSpikeGui's simulate handler).
      *  v5 (2026-10-15): a line is no longer capped at three plays (docs/harness/MODEL-LIMITS.md).
      *  v6 (2026-10-16): the opponent's hand is re-dealt from hand and library before the preview, so a
-     *  preview no longer reveals hidden cards (review H2). */
-    static final String VERSION = "lookahead-preview-v6";
+     *  preview no longer reveals hidden cards (review H2).
+     *  v7 (2026-10-16): imprinted cards are copied, so a Chrome Mox pays on the copy as in the game. */
+    static final String VERSION = "lookahead-preview-v7";
 
     private PlayerLookahead() { }
 
@@ -79,7 +80,9 @@ final class PlayerLookahead {
             Game copy;
             UncopiedEffects parked = UncopiedEffects.park(live);
             StaleEffectCards stale = StaleEffectCards.park(live);
-            try { copy = new GameCopier(live).makeCopy(); } finally { stale.restore(); parked.restore(); }
+            GameCopier copier = new GameCopier(live);
+            try { copy = copier.makeCopy(); } finally { stale.restore(); parked.restore(); }
+            copyImprints(live, copier);
             for (Player p : copy.getPlayers()) {
                 Zone lib = p.getZone(ZoneType.Library);
                 if (lib != null && lib.size() >= 2) lib.shuffle();
@@ -88,6 +91,25 @@ final class PlayerLookahead {
         } finally {
             MyRandom.setRandom(liveRandom);
             exit();
+        }
+    }
+
+    /** The engine's copier leaves imprinted cards behind, so a Chrome Mox on the copy makes no mana and the preview
+     *  of a spell it pays for came back unavailable (runs/c3/ant-storm-default T11, Ponder off a Mox imprinting
+     *  Brainstorm). Each live card's imprints are set on its copy. */
+    static void copyImprints(Game live, GameCopier copier) {
+        for (Player p : live.getPlayers()) {
+            for (forge.game.card.Card c : p.getCardsIn(ZoneType.Battlefield)) {
+                if (!c.hasImprintedCard()) continue;
+                try {
+                    forge.game.card.Card copy = (forge.game.card.Card) copier.find(c);
+                    if (copy == null) continue;
+                    for (forge.game.card.Card i : c.getImprintedCards()) {
+                        Object ci = copier.find(i);
+                        if (ci instanceof forge.game.card.Card) copy.addImprintedCard((forge.game.card.Card) ci);
+                    }
+                } catch (RuntimeException ignore) { }
+            }
         }
     }
 
@@ -248,6 +270,7 @@ final class PlayerLookahead {
             } finally { stale.restore(); parked.restore(); }
             Game simGame = sim.getSimulatedGameState();
             if (simGame == null) return "(preview unavailable)";
+            copyImprints(live, sim.getGameCopier());
             // Determinize BEFORE anything resolves so the preview cannot depend on what the seat cannot see.
             determinize(simGame, (Player) sim.getGameCopier().find(seat));
             StringBuilder b = new StringBuilder("if you ");
