@@ -231,8 +231,11 @@ public final class LlmSpikeGui {
      *  Guides) is on the menu; storm copies' new targets are the seat's and the copies are called copies; exile and an
      *  unordered graveyard are not ordered; a preview plays an alternative cost and holds the stack (lookahead-preview-v8).
      *  Epoch 33 (2026-10-16): the stack says "not yet resolved", not "pending", carries no Forge debug note, and a copy
-     *  effect says how many copies it makes; identical storm copies are not ordered (observation-faithful-v33). */
-    static final String HARNESS_EPOCH = "harness-epoch-33";
+     *  effect says how many copies it makes; identical storm copies are not ordered (observation-faithful-v33).
+     *  Epoch 34 (2026-10-16, surface checks): a counterspell targets the spell on the stack, not its card (it countered
+     *  nothing), and Stifle's abilities are offered; values a cast announces (a Shoal's X, X in a life cost) are the
+     *  seat's; a cast at another cost than the card's basic spell is labelled with that cost. */
+    static final String HARNESS_EPOCH = "harness-epoch-34";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -333,7 +336,7 @@ public final class LlmSpikeGui {
                 if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(activator);
                 TargetRestrictions tr = sa.getTargetRestrictions();
                 if (tr == null) continue;
-                List<GameEntity> cands = tr.getAllCandidates(sa, false);
+                List<forge.game.GameObject> cands = PlayerControllerLLM.targetCandidates(sa, tr);
                 if (cands == null || cands.isEmpty()) continue; // no legal target -> let engine cancel/handle
                 int min = Math.max(1, sa.getMinTargets());
                 sa.resetTargets();
@@ -1178,6 +1181,43 @@ public final class LlmSpikeGui {
         /** Engine-formatted text ("Spell Pierce (93) - Counter Umezawa's Jitte (40)") with each engine
          *  card id mapped to the seat's handle under the faithful profile, as the narration is. */
         private String seatText(String s) { return observer != null ? observer.redactIds(flat(s)) : s; }
+        /** The legal targets of {@code sa} as the engine targets them. When the stack is its only target zone ("counter
+         *  target spell", Stifle), the choices are the spells and abilities on the stack themselves, top first, as the
+         *  human path offers them (TargetSelection.chooseCardFromStack); otherwise the engine's players and cards.
+         *  {@code getAllCandidates} gives a spell's CARD, and a counterspell aimed at the card counters nothing: Luna's
+         *  Force of Will "countered" a Dark Ritual that then resolved (C3 Doomsday, whole-game arm, T8). */
+        static List<forge.game.GameObject> targetCandidates(SpellAbility sa, TargetRestrictions tr) {
+            List<ZoneType> zones = tr.getZone();
+            if (zones != null && zones.size() == 1 && zones.get(0) == ZoneType.Stack) {
+                List<forge.game.GameObject> out = new ArrayList<>();
+                for (forge.game.spellability.SpellAbilityStackInstance si : sa.getHostCard().getGame().getStack())
+                    if (sa.canTargetSpellAbility(si.getSpellAbility())) out.add(si.getSpellAbility());
+                return out;
+            }
+            return new ArrayList<>(tr.getAllCandidates(sa, false));
+        }
+
+        /** A target as the seat reads it: a spell on the stack as its card (the text it had before), an ability on the
+         *  stack as "ability of" its source with what it does. */
+        String targetLabel(forge.game.GameObject o) {
+            if (o instanceof SpellAbility) {
+                SpellAbility t = (SpellAbility) o;
+                if (t.isSpell()) return labelOf(t.getHostCard());
+                String what = observer != null ? observer.redactIds(flat(t.getStackDescription())) : oneLine(t.getStackDescription());
+                return "ability of " + labelOf(t.getHostCard()) + (what == null || what.isEmpty() ? "" : ": " + what);
+            }
+            return labelOf((GameEntity) o);
+        }
+
+        /** {@link #targetLabel} for the static, profile-free labels the ai-teacher prompt uses. */
+        static String targetEntityLabel(forge.game.GameObject o) {
+            if (o instanceof SpellAbility) {
+                SpellAbility t = (SpellAbility) o;
+                return t.isSpell() ? entityLabel(t.getHostCard()) : "ability of " + entityLabel(t.getHostCard()) + ": " + oneLine(t.getStackDescription());
+            }
+            return entityLabel((GameEntity) o);
+        }
+
         String labelOf(GameEntity e) {
             if (observer != null && e instanceof Card) {
                 Card c = (Card) e;
@@ -1301,7 +1341,12 @@ public final class LlmSpikeGui {
             if (!spell) return hostRef + (zone.isEmpty() ? "" : " in " + zone) + body;
             String alt = "";
             try { if (sa.getAlternativeCost() != null) alt = String.valueOf(sa.getAlternativeCost()); } catch (Exception ignore) { }
-            if (zone.isEmpty() && alt.isEmpty()) {
+            // A cast that is not the card's basic spell pays another cost (a pitch spell's static alternative cost has no
+            // AlternativeCost, so alt is empty): say that cost, not the mana cost it replaces. Disrupting Shoal's pitch read
+            // "CAST Disrupting Shoal {X}{U}{U} [...rather than pay this spell's mana cost.]".
+            boolean basic;
+            try { basic = sa.isBasicSpell(); } catch (Exception e) { basic = true; }
+            if (zone.isEmpty() && alt.isEmpty() && basic) {
                 String mc = null;
                 try { mc = costStr(host); } catch (Exception ignore) { }
                 return hostRef + (mc == null ? "" : " " + mc) + body;
@@ -3473,7 +3518,7 @@ public final class LlmSpikeGui {
                 }
                 TargetRestrictions tr = sa.getTargetRestrictions();
                 if (tr == null) return firstLegalTargets(sa, "targets(no-restrictions)");
-                List<GameEntity> cands = tr.getAllCandidates(sa, false);
+                List<forge.game.GameObject> cands = targetCandidates(sa, tr);
                 int min = sa.getMinTargets();
                 if (cands == null || cands.isEmpty()) {           // truly no target: the ability cannot be targeted
                     auto("targets(no-candidate)->cannot target " + labelOf(sa));
@@ -3481,7 +3526,7 @@ public final class LlmSpikeGui {
                 }
                 int pick = 0; // default: the (only, or first) legal candidate — beats an AI decline
                 List<String> labels = new ArrayList<>();
-                for (GameEntity ge : cands) labels.add(labelOf(ge));
+                for (forge.game.GameObject ge : cands) labels.add(targetLabel(ge));
                 // Multi-target abilities ("up to two target creatures") used to bail to the Forge AI
                 // for the whole target set; a DIVIDED spell ("distribute 5 damage", 132 cards) also
                 // needs an allocation per target. Both route through the same menu (#124); the
@@ -3560,7 +3605,7 @@ public final class LlmSpikeGui {
                 sa.resetTargets();
                 boolean added = sa.getTargets().add(cands.get(pick));
                 if (!added || sa.getTargets().size() < Math.max(1, min)) return firstLegalTargets(sa, "targets(not-added)"); // safety net
-                p("[ROUTER] target: " + labelOf(cands.get(pick)) + " <- " + labelOf(sa)
+                p("[ROUTER] target: " + targetLabel(cands.get(pick)) + " <- " + labelOf(sa)
                         + (cands.size() == 1 ? " (only legal)" : ""));
                 return true;
             } catch (Exception e) {
@@ -3576,9 +3621,9 @@ public final class LlmSpikeGui {
                 for (SpellAbility s = sa; s != null; s = s.getSubAbility()) {
                     if (!s.usesTargeting() || s.getTargets().size() >= Math.max(1, s.getMinTargets())) continue;
                     TargetRestrictions tr = s.getTargetRestrictions();
-                    List<GameEntity> cands = tr == null ? null : tr.getAllCandidates(s, false);
+                    List<forge.game.GameObject> cands = tr == null ? null : targetCandidates(s, tr);
                     if (cands == null) continue;
-                    for (GameEntity ge : cands) {
+                    for (forge.game.GameObject ge : cands) {
                         if (s.getTargets().size() >= Math.max(1, s.getMinTargets())) break;
                         if (!s.getTargets().contains(ge) && s.canTarget(ge)) s.getTargets().add(ge);
                     }
@@ -3622,14 +3667,14 @@ public final class LlmSpikeGui {
                     if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(getPlayer());
                     TargetRestrictions tr = sa.getTargetRestrictions();
                     if (tr == null) continue;
-                    List<GameEntity> cands = tr.getAllCandidates(sa, false);
+                    List<forge.game.GameObject> cands = targetCandidates(sa, tr);
                     if (cands == null || cands.isEmpty()) continue; // no legal target -> let engine cancel/handle
                     int min = Math.max(1, sa.getMinTargets());
                     int pick = 0; // first legal candidate beats leaving it untargeted (which fizzles)
                     String fb = null; // non-null when the pick is a deterministic fallback, not a model choice
                     if (cands.size() > 1 && okFor("target")) {
                         List<String> labels = new ArrayList<>();
-                        for (GameEntity ge : cands) labels.add(labelOf(ge));
+                        for (forge.game.GameObject ge : cands) labels.add(targetLabel(ge));
                         if (cancellable) labels.add(CANCEL_LABEL);
                         // type=null here -> decideOne never logs internally (incl. its decline branch), so
                         // EVERY exit from this call, including the "optional -> no target" one below, must be
@@ -3670,7 +3715,7 @@ public final class LlmSpikeGui {
                             && !sa.getTargets().isEmpty()) {
                         int dt = sa.getDividedValue();
                         List<String> tl = new ArrayList<>();
-                        for (forge.game.GameObject ge : sa.getTargets()) tl.add(labelOf((GameEntity) ge));
+                        for (forge.game.GameObject ge : sa.getTargets()) tl.add(targetLabel(ge));
                         List<Integer> alloc = decideAllocation(bridgeFor("target"), "Split " + dt + " for "
                                 + labelOf(sa) + " among the chosen targets, in order.", tl, dt);
                         if (alloc == null || alloc.size() != tl.size()
@@ -3680,9 +3725,9 @@ public final class LlmSpikeGui {
                         for (forge.game.GameObject ge : sa.getTargets()) sa.addDividedAllocation(ge, alloc.get(k++));
                     }
                     List<String> tgtOpts = new ArrayList<>();
-                    for (GameEntity ge : cands) tgtOpts.add(labelOf(ge));
+                    for (forge.game.GameObject ge : cands) tgtOpts.add(targetLabel(ge));
                     evalDec("target", cands.size(), pick, fb == null ? tierOf(smartTierFor("target")) : "auto", 0, fb, tgtOpts);
-                    p("[ROUTER] target: " + labelOf(cands.get(pick)) + " <- " + labelOf(sa)
+                    p("[ROUTER] target: " + targetLabel(cands.get(pick)) + " <- " + labelOf(sa)
                             + (cands.size() == 1 ? " (only legal)" : ""));
                 } catch (Exception e) { /* leave targeting to the engine for this ability */ }
             }
@@ -5464,15 +5509,15 @@ public final class LlmSpikeGui {
             TargetRestrictions tr = sa.getTargetRestrictions();
             if (tr == null || old.isEmpty()) return null;
             if (old.size() > 1 || sa.getMaxTargets() > 1) return chooseNewTargetSet(sa, tr, old, filter);
-            Object current = old.get(0);
-            List<GameEntity> cands = new ArrayList<>();
-            for (GameEntity ge : tr.getAllCandidates(sa, false))
+            forge.game.GameObject current = old.get(0);
+            List<forge.game.GameObject> cands = new ArrayList<>();
+            for (forge.game.GameObject ge : targetCandidates(sa, tr))
                 if (ge != current && (filter == null || filter.test(ge)) && sa.canTarget(ge)) cands.add(ge);
             if (cands.isEmpty()) { auto("new-targets(none-legal)->unchanged"); return null; }
             List<String> labels = new ArrayList<>();
-            for (GameEntity ge : cands) labels.add(labelOf(ge));
+            for (forge.game.GameObject ge : cands) labels.add(targetLabel(ge));
             int c = askOne("new-targets", "CHANGE TARGET: " + labelOf(sa) + " targets "
-                    + labelOf(current instanceof GameEntity ? (GameEntity) current : null) + ". Choose its new target"
+                    + targetLabel(current) + ". Choose its new target"
                     + (optional ? ", or keep it" : "") + ".", labels, optional ? "Keep the current target" : null, optional ? -1 : 0);
             if (c < 0) return null;
             int portion = old.getTotalDividedValue();
@@ -5891,26 +5936,58 @@ public final class LlmSpikeGui {
             } catch (Exception e) { return "?"; }
         }
 
-        /** X for a spell or ability with {X} in its mana cost: the seat's choice, from XMin up to the most
-         *  it can pay. The AI cast path never announces X (PlaySpellAbility.announceValuesLikeX is the
-         *  human path), so the engine paid whatever X the ability happened to hold: Green Sun's Zenith
-         *  resolved at X=1..3 with no question, and a planned Kozilek's Command at X=1 failed. */
+        /** Values the cast announces, the seat's choices, as the human cast path announces them
+         *  (PlaySpellAbility.announceValuesLikeX; RE-DIFF on every engine re-pin): first each {@code Announce$} variable
+         *  (a Shoal's X, a multikicker count), then an X in any cost part. The AI cast path announces nothing, so the
+         *  engine paid whatever X the ability happened to hold: Green Sun's Zenith resolved at X=1..3 with no question,
+         *  a planned Kozilek's Command at X=1 failed, and Disrupting Shoal's pitch and Toxic Deluge's life payment ran
+         *  at X=0 (surface check, 2026-10-16). Mana X is offered up to the most the seat can pay; any other X over the
+         *  engine's bounds. */
         private void announceX(SpellAbility sa) {
             try {
-                if (sa.getPayCosts() == null || sa.getPayCosts().getCostMana() == null
-                        || sa.getPayCosts().getCostMana().getAmountOfX() == 0) return;
-                int min = Math.max(0, sa.getPayCosts().getCostMana().getXMin());
-                // The most X the engine says it can pay. ComputerUtilMana.determineLeftoverMana answered 0
-                // and 1 with three Forests for Green Sun's Zenith while canPayManaCost(X=2) is true.
-                int max = min;
-                while (max < 99 && forge.ai.ComputerUtilMana.canPayManaCost(sa, getPlayer(), max + 1, false)) max++;
-                int x = min == max ? min : !smartOk() && !fastOk() ? min
-                        : chooseNumber(sa, "Choose X for " + verbOf(sa) + " " + labelOf(sa)
-                            + " (you can pay for X up to " + max + ")", min, max);
-                if (min == max) auto("announce-x(forced)->" + x);
-                sa.setXManaCostPaid(x);
-                p("[ROUTER] X = " + x + " for " + labelOf(sa));
+                if (sa.isCopied() || sa.isWrapper() || sa.getPayCosts() == null) return;
+                boolean needX = true;
+                String announce = sa.getParam("Announce");
+                if (announce != null) {
+                    for (String v : announce.split(",")) {
+                        String var = v.trim();
+                        org.apache.commons.lang3.Range<Integer> range = forge.game.ability.AbilityUtils.getAnnouncementBounds(sa, var);
+                        int value = announced(sa, var, range.getMinimum(), range.getMaximum(),
+                                range.getMaximum() < 99 ? " (up to " + range.getMaximum() + ")" : "");
+                        if ("X".equalsIgnoreCase(var)) { needX = false; sa.setXManaCostPaid(value); }
+                        else { sa.setSVar(var, Integer.toString(value)); sa.getHostCard().setSVar(var, Integer.toString(value)); }
+                    }
+                }
+                if (!needX || !sa.getPayCosts().hasXInAnyCostPart()) return;
+                String xVar = sa.getParamOrDefault("XAlternative", sa.getSVar("X"));
+                boolean replacedXshard = sa.isSpell() && sa.getHostCard().getManaCost().countX() > 0 && !sa.getPayCosts().hasXInAnyCostPart();
+                if (!(("Count$xPaid".equals(xVar) && !replacedXshard) || xVar.isEmpty())) return;
+                forge.game.cost.CostPartMana mana = sa.getPayCosts().getCostMana();
+                int min, max;
+                String note;
+                if (mana != null && mana.getAmountOfX() > 0) {
+                    min = Math.max(0, mana.getXMin());
+                    // The most X the engine says it can pay. ComputerUtilMana.determineLeftoverMana answered 0
+                    // and 1 with three Forests for Green Sun's Zenith while canPayManaCost(X=2) is true.
+                    max = min;
+                    while (max < 99 && forge.ai.ComputerUtilMana.canPayManaCost(sa, getPlayer(), max + 1, false)) max++;
+                    note = " (you can pay for X up to " + max + ")";
+                } else {
+                    org.apache.commons.lang3.Range<Integer> range = forge.game.ability.AbilityUtils.getAnnouncementBounds(sa, "X");
+                    min = range.getMinimum(); max = range.getMaximum();
+                    note = max < 99 ? " (up to " + max + ")" : "";
+                }
+                sa.setXManaCostPaid(announced(sa, "X", min, max, note));
             } catch (Exception e) { p("[ROUTER] X: " + e + " -> engine default"); }
+        }
+
+        /** One announced value: forced when the range is one number, else the seat's ({@link #chooseNumber}). */
+        private int announced(SpellAbility sa, String var, int min, int max, String note) {
+            int x = min >= max ? min : !smartOk() && !fastOk() ? min
+                    : chooseNumber(sa, "Choose " + var + " for " + verbOf(sa) + " " + labelOf(sa) + note, min, max);
+            if (min >= max) auto("announce-" + var.toLowerCase() + "(forced)->" + x);
+            p("[ROUTER] " + var + " = " + x + " for " + labelOf(sa));
+            return x;
         }
 
         /** X / Multikicker / BidLife announcement. VALUE semantics: choice carries the announced
@@ -7077,7 +7154,7 @@ public final class LlmSpikeGui {
                 try {
                     if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(me);
                     TargetRestrictions tr = sa.getTargetRestrictions();
-                    if (tr != null && tr.getAllCandidates(sa, false).size() < Math.max(1, sa.getMinTargets())) return false;
+                    if (tr != null && targetCandidates(sa, tr).size() < Math.max(1, sa.getMinTargets())) return false;
                 } catch (Exception ignore) { /* can't evaluate -> offer it, prior behavior */ }
             }
             return true;
@@ -7667,7 +7744,7 @@ public final class LlmSpikeGui {
 
         @Override
         public boolean chooseTargetsFor(SpellAbility sa) {
-            List<GameEntity> cands = null; List<String> labels = null; String prompt = null;
+            List<forge.game.GameObject> cands = null; List<String> labels = null; String prompt = null;
             try {
                 if (sa != null && sa.usesTargeting() && sa.getMaxTargets() == 1) {
                     boolean subTargets = false;
@@ -7675,12 +7752,12 @@ public final class LlmSpikeGui {
                         if (sub.usesTargeting()) { subTargets = true; break; }
                     if (!subTargets) {
                         TargetRestrictions tr = sa.getTargetRestrictions();
-                        if (tr != null) cands = tr.getAllCandidates(sa, false);
+                        if (tr != null) cands = PlayerControllerLLM.targetCandidates(sa, tr);
                     }
                 }
                 if (cands != null && cands.size() > 1) {
                     labels = new ArrayList<>();
-                    for (GameEntity ge : cands) labels.add(PlayerControllerLLM.entityLabel(ge));
+                    for (forge.game.GameObject ge : cands) labels.add(PlayerControllerLLM.targetEntityLabel(ge));
                     String q = "Choose the TARGET for " + PlayerControllerLLM.saLabel(sa)
                             + " (the spell/ability resolves against whatever you pick).";
                     prompt = PlayerControllerLLM.buildDecideOnePrompt(snap(), q, labels,

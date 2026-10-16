@@ -590,4 +590,12 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
   identical until each gets its target, so the order is no choice and is not asked. The stack line carried Forge's debug
   notes ("[Card: ..., Activator: Seat, SpellAbility: ...]", "[Zone Changer: Chrome Mox @18]") and did not say how many
   copies storm makes; now "-> makes N copies" from the engine's count, no notes. `tendrilsStormCopiesResolveAndTheirTargetsAreTheSeats`.
+- FIXED  (found by the surface checks, then confirmed in the record) the seat's counterspells countered nothing. Doomsday
+  whole-game arm, T8: `Seat cast Force of Will targeting [Dark Ritual @58]`, `Force of Will @59 - Counter.`, then
+  `Dark Ritual @58 - ForgeAI adds {B}{B}{B}`. The target was the spell's card (`getAllCandidates`); Forge counters only
+  targeted spell abilities. Stack targets are now the stack's spell abilities (`targetCandidates`), so Stifle's abilities
+  are offered too. Tests `aCounterspellCountersTheSpell` (failed before the fix), `stifleCountersAnAbilityItNames`.
+- FIXED  values a cast announces were not asked: Disrupting Shoal's pitch ran at X = 0 and failed to pay, Toxic Deluge's
+  life X was 0. The pitch option was labelled with the mana cost it replaces (`Disrupting Shoal {X}{U}{U}`; Force of Will
+  likewise). Tests `aShoalsXIsAnnouncedByTheSeat`, `toxicDelugesLifeIsTheSeats` (harness-epoch-34).
 - Result: every defect found in the recorded C3 games is fixed. No LINE, TAKEN, LOST or SKIP in any of them.
