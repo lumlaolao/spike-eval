@@ -69,7 +69,8 @@ def modern_line(seed, swap, winner, **kw):
          "native_tools_downgraded": "", "answer_tool": False, "answer_tool_seats": "",
          "answer_tool_version": "answer-tool-v1", "rules_tool": False, "rules_tool_version": "rules-tool-v1",
          "rules_effective": "n/a", "lookahead": False, "lookahead_version": "lookahead-preview-v4",
-         "one_tier": False, "no_coaching": False, "one_chat": False, "one_chat_version": "one-chat-v1", "harness_epoch": "harness-epoch-2",
+         "one_tier": False, "no_coaching": False, "one_chat": False, "one_chat_version": "one-chat-v1",
+         "turn_chat": False, "turn_chat_version": "turn-chat-v1", "harness_epoch": "harness-epoch-2",
          "plan_execute": False, "tier_fast_types": ""}
     g.update(kw)
     return g

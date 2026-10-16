@@ -71,6 +71,9 @@ def classify_auto(row):
 
 # An engine card id in what the seat reads: a count follows a lower-case word ("library (50)"), an id follows a
 # card name ("Aether Vial (4)"; runs/luna-v9/g5 read it as four charge counters).
+# The seat's own state line names its mana pool; anything but "empty" is mana it made and has not spent.
+FLOATING = re.compile(r"(?m)^YOU \[[^\]]*\][^\n]*\| mana pool (\{[^}]+\})")
+PASS_OPTION = re.compile(r"(?m)^\s*(\d+)\) PASS\b")
 ENGINE_ID = re.compile(r"\b[A-Z][A-Za-z']* \((\d+)\)")
 
 
@@ -110,6 +113,16 @@ def review(path):
                 if said and isinstance(ch, int) and ch >= 0 and n > 1 and r.get("type") != "attackers" \
                         and int(said[-1]) - 1 != ch and int(said[-1]) <= n:
                     add("LOST", r, "%s: the reply said CHOICE %s but option %d was used" % (r.get("type"), said[-1], ch + 1))
+                # Coherence of a line (review C2): the seat passed its priority while mana it made sat in its
+                # pool, so the ritual or the land tapped for it was spent for nothing. Usually the model losing
+                # its line between decisions; read the decision to tell that from a missing menu option (a
+                # harness defect). Not counted as a harness defect here.
+                if r.get("type") == "play":
+                    p = str(r.get("prompt") or "")
+                    pool = FLOATING.search(p)
+                    pas = PASS_OPTION.findall(p)
+                    if pool and pas and isinstance(ch, int) and ch == int(pas[-1]) - 1:
+                        add("LINE", r, "passed with mana floating %s" % pool.group(1))
                 # A model row with a failure fallback: asked, and the answer (or part of it) not used
                 # (an unparsed play read as PASS, a block pair that named no legal block).
                 if LOST.search(str(r.get("fallback") or "")):

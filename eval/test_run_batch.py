@@ -355,6 +355,28 @@ class TestOneChat(unittest.TestCase):
         self.assertEqual(run_batch.condition_diff(base, bare), [("one_chat", False, True)])
 
 
+class TestTurnChat(unittest.TestCase):
+    """TURN_CHAT (the conversation bounded by the game turn) is its own condition: set only by --turn-chat,
+    recorded, and never pooled with stateless or whole-game-chat games."""
+
+    def test_only_the_flag_sets_it_and_lines_keep_it_apart(self):
+        with mock.patch.dict(os.environ, {"TURN_CHAT": "1"}, clear=False), tempfile.TemporaryDirectory() as d:
+            self.assertEqual(run_batch.build_env(make_args(), 7100, False, Path(d))["TURN_CHAT"], "0")
+            self.assertEqual(run_batch.build_env(make_args(turn_chat=True), 7100, False, Path(d))["TURN_CHAT"], "1")
+        p = subprocess.run([sys.executable, str(RUN_BATCH), "--seeds", "7100", "--exploratory",
+                            "--env", "TURN_CHAT=1", "--forge-home", "/nonexistent"], capture_output=True, text=True)
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("--turn-chat", p.stderr)
+        off = run_batch.resume_expectation(make_args())
+        on = run_batch.resume_expectation(make_args(turn_chat=True))
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False, turn_chat=True), off))
+        self.assertTrue(run_batch.game_line_matches(game_line(1, False, turn_chat=True), on))
+        self.assertFalse(run_batch.game_line_matches(game_line(1, False), on))
+        base = run_batch.batch_condition(make_args(), cited=False)
+        turn = run_batch.batch_condition(make_args(turn_chat=True), cited=False)
+        self.assertEqual(run_batch.condition_diff(base, turn), [("turn_chat", False, True)])
+
+
 class TestLookahead(unittest.TestCase):
     """LOOKAHEAD changes what the seat can do (the `simulate` preview), so it is a condition like
     --rules-tool: set only by --lookahead, scrubbed from the ambient environment, recorded in the

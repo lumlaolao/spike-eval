@@ -40,6 +40,8 @@
 #   rules      a loopback game with RULES_TOOL=1 + MEMORY_TOOLS=1: the real RulesTool lookup runs end to
 #              end (fake server asks `RULES SEARCH`), the game stamps rules_tool provenance, every prompt
 #              carries the RULES grammar, and no single result exceeds the page cap (context-bound)
+#   turnchat   a loopback game with TURN_CHAT=1: every request a valid tool-call sequence, the turn's earlier
+#              decisions carried as their calls, results and reasoning, never as text
 #   scoring    end to end: one open puzzle on the loopback model through puzzle_solve.py, scored as a pilot by
 #              puzzle_score.py; one mirror panel cell (random pilot) through run_batch.py --panel, scored by
 #              panel_score.py with no version, condition, deck-pin or gate problem
@@ -61,7 +63,7 @@ fi
 JAVA="$JAVA_HOME/bin/java"; JAVAC="$JAVA_HOME/bin/javac"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="${OUT:-$REPO/runs/harness-acceptance/$STAMP}"
-ALL_STAGES="preflight classpath compile javatests pytests canary gaming faketool faithful lookahead nativetool nativerefuse answertool rules scoring"
+ALL_STAGES="preflight classpath compile javatests pytests canary gaming faketool faithful lookahead nativetool nativerefuse answertool turnchat rules scoring"
 STAGES="${STAGES:-$ALL_STAGES}"
 EXPECTED="$REPO/eval/harness_acceptance.expected"
 OVERLAY="$REPO/forge-overlay/forge-gui-desktop/src"
@@ -878,6 +880,64 @@ print(("FAIL " if problems else "PASS ")+"; ".join(problems+facts))
 EOF
 )"
         case "$VERDICT" in PASS*) pass rules "${VERDICT#PASS }";; *) fail rules "${VERDICT#FAIL }";; esac
+      fi
+    fi
+  fi
+fi
+
+# ---------------------------------------------------------------- turnchat (TURN_CHAT)
+# A loopback game with TURN_CHAT=1: the seat keeps this turn's decisions in its conversation, each as its
+# calls, results and reasoning (OpenRouter: pass reasoning_details back unchanged and in order). Fails if a
+# request is not a valid tool-call sequence (a call without its result before the next message: the bug
+# the first run of this stage found), if no ask carries the turn's earlier decisions, if an earlier answer
+# comes back as text instead of its call, if any decision is not answered by the tool, or if the game line
+# does not stamp turn_chat.
+if has_stage turnchat; then
+  if [ ! -f "$CLASSES/forge/spike/ChatSessionBridge.class" ]; then fail turnchat "no compiled classes"; else
+    dir="$OUT/turnchat"; sdir="$OUT/turnchat-server"; mkdir -p "$dir" "$sdir"
+    : > "$sdir/fake_requests.jsonl"
+    python3 "$REPO/eval/fake_model_server.py" --port 0 --policy first --answer-tool --native-calls 3 \
+        --log "$sdir/fake_requests.jsonl" >"$sdir/fake_server.out" 2>&1 &
+    FAKE_PID=$!
+    PORT=""; for i in 1 2 3 4 5 6 7 8 9 10; do PORT="$(awk '/^LISTENING/{print $2}' "$sdir/fake_server.out" 2>/dev/null)"; [ -n "$PORT" ] && break; sleep 0.5; done
+    if [ -z "$PORT" ]; then fail turnchat "fake model server did not start"; kill $FAKE_PID 2>/dev/null; else
+      say "turnchat: LLM seat A on loopback fake model, TURN_CHAT=1 ANSWER_TOOL=1 MEMORY_TOOLS=1 under v4-faithful"
+      play turnchat 42 CONTROLLER_A=llm CONTROLLER_B=floor SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
+          OPENROUTER_BASE_URL="http://127.0.0.1:$PORT/v1" ANSWER_TOOL=1 MEMORY_TOOLS=1 CONTEXT_PROFILE=v4-faithful TURN_CHAT=1 \
+          SMART_BUDGET=150 FAST_BUDGET=150 GAME_CAP_MS=180000
+      kill $FAKE_PID 2>/dev/null; wait $FAKE_PID 2>/dev/null
+      if ! check_build_loaded "$dir"; then fail turnchat "JVM did not load LlmSpikeGui from $CLASSES"; else
+        VERDICT="$(python3 - "$dir" "$sdir" <<'EOF'
+import collections,glob,json,sys
+d,sdir=sys.argv[1],sys.argv[2]; problems=[]
+rows=[]
+for f in glob.glob(d+"/game-*.jsonl"):
+    for line in open(f):
+        try: rows.append(json.loads(line))
+        except Exception: pass
+game=next((r for r in rows if r.get("t")=="game"),None)
+if not game: problems.append("no game line")
+elif game.get("turn_chat") is not True or game.get("turn_chat_version")!="turn-chat-v1":
+    problems.append("turn_chat=%r version=%r"%(game.get("turn_chat"),game.get("turn_chat_version")))
+model=[r for r in rows if r.get("t")=="decision" and r.get("tier") in ("smart","fast")]
+via=collections.Counter(r.get("answer_via") for r in model)
+if len(model)<10: problems.append("only %d model decisions"%len(model))
+if via.get("tool",0)!=len(model): problems.append("not every decision answered by the tool: %s"%dict(via))
+reqs=[json.loads(l) for l in open(sdir+"/fake_requests.jsonl") if l.strip()]
+seq=[r["sequence_problems"] for r in reqs if r.get("sequence_problems")]
+if seq: problems.append("%d requests are not valid tool-call sequences, e.g. %s"%(len(seq),seq[0][:2]))
+carried=[r for r in reqs if r.get("earlier_turn_note")]
+if not carried: problems.append("no request carried the earlier decisions of its turn")
+text=sum(r.get("assistant_text_only",0) for r in reqs)
+if text: problems.append("%d earlier answers came back as text, not as their calls"%text)
+log=open(d+"/game.log",errors="replace").read()
+for bad in ("[FALLBACK->AI]","[TEXT-PARSE]","[TEXT-FORMAT-LEAK]"):
+    if bad in log: problems.append(bad+" in the log")
+facts="requests=%d carried_turn_history=%d max_assistant_msgs=%d decisions=%d"%(len(reqs),len(carried),max([r.get("assistant_messages",0) for r in reqs] or [0]),len(model))
+print(("FAIL " if problems else "PASS ")+"; ".join(problems+[facts]))
+EOF
+)"
+        case "$VERDICT" in PASS*) pass turnchat "${VERDICT#PASS }";; *) fail turnchat "${VERDICT#FAIL }";; esac
       fi
     fi
   fi

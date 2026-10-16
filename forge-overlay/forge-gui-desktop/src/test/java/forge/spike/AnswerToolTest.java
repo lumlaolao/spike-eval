@@ -1,6 +1,7 @@
 package forge.spike;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.testng.Assert;
@@ -119,6 +120,32 @@ public class AnswerToolTest {
         JsonArray second = JsonParser.parseString(lastMessages.get(1)).getAsJsonArray();
         String last = second.get(second.size() - 1).getAsJsonObject().get("content").getAsString();
         Assert.assertTrue(last.startsWith("ERROR: option 7 is not on the list"), last);
+    }
+
+    /** A seat that keeps its conversation (ONE_CHAT, TURN_CHAT) replays an answered ask as it happened. Every tool
+     *  call in it needs its result, or the next request is not a valid tool-call sequence; the answering
+     *  message with its reasoning must be there (OpenRouter: pass reasoning_details back unchanged, in order). */
+    @Test
+    public void anAnsweredAskKeepsItsCallsResultsAndReasoning() {
+        AnswerTool.Ask ask = new AnswerTool.Ask(AnswerTool.Spec.one(4), true);
+        ask.planSink = p -> { };
+        NativeTools.Turn t = calls(new NativeTools.Call("c1", "set_plan", "{\"goal\":\"win\",\"next\":\"storm\"}"),
+                new NativeTools.Call("c2", "answer", "{\"option\":2}"));
+        JsonObject withReasoning = JsonParser.parseString(t.messageJson).getAsJsonObject();
+        withReasoning.add("reasoning_details", JsonParser.parseString("[{\"type\":\"reasoning.encrypted\",\"data\":\"abc\"}]"));
+        NativeTools.Turn turn = new NativeTools.Turn(null, withReasoning.toString(), t.calls);
+        Assert.assertEquals(AnswerTool.converse("DECISION", ask, (u, m, tools, allow, r) -> turn, null, (a, b) -> { }), "CHOICE: 2");
+        JsonArray tr = ask.transcript;
+        Assert.assertNotNull(tr);
+        Assert.assertEquals(tr.get(1).toString(), withReasoning.toString(), "the answering message is kept byte for byte");
+        Assert.assertEquals(tr.size(), 4, "question, the answering message once, then one result per call: " + tr);
+        Assert.assertEquals(tr.get(2).getAsJsonObject().get("role").getAsString(), "tool");
+        Assert.assertEquals(tr.get(3).getAsJsonObject().get("role").getAsString(), "tool");
+        java.util.Set<String> results = new java.util.HashSet<>();
+        for (JsonElement m : tr) if (m.getAsJsonObject().has("tool_call_id")) results.add(m.getAsJsonObject().get("tool_call_id").getAsString());
+        Assert.assertEquals(results, java.util.Set.of("c1", "c2"), "a result for every call");
+        Assert.assertTrue(tr.get(tr.size() - 1).getAsJsonObject().get("content").getAsString().startsWith("Answer recorded: CHOICE: 2")
+                || tr.get(tr.size() - 2).getAsJsonObject().get("content").getAsString().startsWith("Answer recorded: CHOICE: 2"), tr.toString());
     }
 
     @Test

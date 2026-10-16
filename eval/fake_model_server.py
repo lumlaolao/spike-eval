@@ -310,6 +310,25 @@ class Handler(BaseHTTPRequestHandler):
             entry["tools_offered"] = [t.get("function", {}).get("name") for t in body.get("tools") or []]
             entry["tool_choice"] = body.get("tool_choice")
             entry["tool_results"] = sum(1 for m in msgs if m.get("role") == "tool")
+            # Is the list a valid tool-call sequence (every call answered by its result before anything
+            # else), and how much earlier conversation does it carry? (TURN_CHAT / ONE_CHAT checks)
+            pending, seq = set(), []
+            for m in msgs:
+                role = m.get("role")
+                if role == "tool":
+                    pending.discard(m.get("tool_call_id"))
+                    continue
+                if pending:
+                    seq.append("%s message before the results of %s" % (role, sorted(pending)))
+                    pending = set()
+                if role == "assistant":
+                    pending = {tc.get("id") for tc in m.get("tool_calls") or []}
+            if pending:
+                seq.append("no result for %s" % sorted(pending))
+            entry["sequence_problems"] = seq
+            entry["assistant_messages"] = sum(1 for m in msgs if m.get("role") == "assistant")
+            entry["assistant_text_only"] = sum(1 for m in msgs if m.get("role") == "assistant" and not m.get("tool_calls"))
+            entry["earlier_turn_note"] = any("your own decisions earlier this turn" in str(m.get("content", "")) for m in msgs)
             entry["model"] = body.get("model")
             entry["prompt_chars"] = len(prompt)
             entry["max_tokens"] = body.get("max_tokens")

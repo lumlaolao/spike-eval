@@ -1105,7 +1105,8 @@ public final class LlmSpikeGui {
         /** The smart and fast bridges: one shared smart bridge under ONE_TIER, else one per tier. */
         private static LLMBridge[] oneTierPair(String seat, String deckPlan, String smartModel, String fastModel) {
             LLMBridge smartB = LLMBridgeFactory.create(seat + "/smart", smartModel, framingFor(seat, deckPlan, false, smartModel));
-            if (ChatSessionBridge.ON && smartB instanceof OpenRouterBridge) smartB = new ChatSessionBridge((OpenRouterBridge) smartB);
+            if ((ChatSessionBridge.ON || ChatSessionBridge.TURN) && smartB instanceof OpenRouterBridge)
+                smartB = new ChatSessionBridge((OpenRouterBridge) smartB, !ChatSessionBridge.ON);
             if (ONE_TIER) return new LLMBridge[] {smartB, smartB};
             return new LLMBridge[] {smartB,
                     LLMBridgeFactory.create(seat + "/fast", fastModel, framingFor(seat, deckPlan, true, fastModel))};
@@ -5967,6 +5968,9 @@ public final class LlmSpikeGui {
 
         private String ask(LLMBridge b, String prompt, java.util.function.Function<String, String> simulate) {
             prompt = withIntent(prompt);
+            if (b instanceof ChatSessionBridge) {
+                try { ((ChatSessionBridge) b).atTurn(getPlayer().getGame().getPhaseHandler().getTurn()); } catch (Exception ignore) { }
+            }
             AnswerTool.Ask answer = nextAnswer;
             nextAnswer = null;
             lastAnswer = answer;
@@ -5990,8 +5994,13 @@ public final class LlmSpikeGui {
             String reply = answer != null ? askAnswer(b, prompt, simulate, answer) : askOnce(b, prompt, simulate);
             // PLAN and note lines are read from a TEXT reply only; a tool answer's plan came through set_plan.
             if (observer != null && b == smart && reply != null && (answer == null || !answer.answered())) { adoptPlan(reply); adoptNotes(reply); }
-            // ONE_CHAT: the conversation keeps each answered decision (a tool round or a dead bridge is not one).
-            if (b instanceof ChatSessionBridge) ((ChatSessionBridge) b).remember(prompt, reply);
+            // ONE_CHAT / TURN_CHAT: the conversation keeps each answered decision (a tool round or a dead bridge is
+            // not one); one answered by a call is kept as its calls, results and reasoning.
+            if (b instanceof ChatSessionBridge) {
+                ChatSessionBridge chat = (ChatSessionBridge) b;
+                if (answer != null && answer.transcript != null) chat.rememberAsk(answer.transcript);
+                else if (answer == null) chat.remember(prompt, reply);
+            }
             return reply;
         }
 
@@ -9221,6 +9230,8 @@ public final class LlmSpikeGui {
                 + ",\"no_coaching\":" + PlayerControllerLLM.NO_COACHING
                 + ",\"one_chat\":" + ChatSessionBridge.ON
                 + ",\"one_chat_version\":\"" + ChatSessionBridge.VERSION + "\""
+                + ",\"turn_chat\":" + (ChatSessionBridge.TURN && !ChatSessionBridge.ON)
+                + ",\"turn_chat_version\":\"" + ChatSessionBridge.TURN_VERSION + "\""
                 + ",\"harness_epoch\":\"" + HARNESS_EPOCH + "\""
                 + ",\"lookahead\":" + PlayerControllerLLM.lookaheadEnabled()
                 + ",\"lookahead_version\":\"" + PlayerLookahead.VERSION + "\""
