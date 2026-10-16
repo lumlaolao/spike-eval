@@ -28,8 +28,9 @@ import static forge.spike.LineFindingProbeTest.card;
 import static forge.spike.LineFindingProbeTest.seat;
 
 /**
- * The last S3 surface (docs/harness/GOLDEN-CHECKS.md queue, S3-13): the engine asks the seat which
- * cost reduction applies when MORE THAN ONE hits one cast (CostAdjustment.java:230, the
+ * The last S3 surface (REVIEW-2026-10-16.md row S3, fixed by this wave; the 13-hook queue lived in
+ * eval/surface_gaps.txt, now pruned to zero): the engine asks the seat which cost reduction
+ * applies when MORE THAN ONE hits one cast (CostAdjustment.java:230, the
  * reduceAbilities loop, engine file forge-game/src/main/java/forge/game/cost/CostAdjustment.java).
  * The fixture is the real pair from the queue brief: Foundry Inspector
  * (forge-gui/res/cardsfolder/f/foundry_inspector.txt) and Cloud Key
@@ -127,10 +128,15 @@ public class SurfaceStaticAbilityChoicesTest {
         Card jugg = card("Juggernaut", me, ZoneType.Hand);                      // {4} artifact creature
         Script model = new Script("CHOICE: 1").on("You have priority", choice("CAST Juggernaut"));
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        int autos = ctrl.autoPicksCount();
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
         Assert.assertNotNull(r, "the seat cast Juggernaut");
         ctrl.playChosenSpellAbility(r.get(0));
 
+        Assert.assertEquals(ctrl.autoPicksCount() - autos, 0,
+                "a single-candidate ask regressed to an auto row; the engine's human controller picks "
+                + "one cost reduction silently (LlmSpikeGui chooseSingleStaticAbility), so a silent "
+                + "auto here is the exact defect this class names: " + decisions(model));
         Assert.assertTrue(model.prompts.stream().noneMatch(q -> q.contains("Several static abilities apply")),
                 "one candidate is not a question: " + decisions(model));
         long tapped = me.getCardsIn(ZoneType.Battlefield).stream()
