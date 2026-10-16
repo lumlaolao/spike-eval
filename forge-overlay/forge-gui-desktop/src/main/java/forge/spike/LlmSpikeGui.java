@@ -241,8 +241,11 @@ public final class LlmSpikeGui {
      *  the set; a creature spell's option shows its rules text; no face-down 2/2 off the battlefield
      *  (observation-faithful-v34).
      *  Epoch 36 (2026-10-16, issues #224/#225): a declared damage assignment order is followed, not asked again; an
-     *  "up to" cost reduction is asked only in the real payment. */
-    static final String HARNESS_EPOCH = "harness-epoch-36";
+     *  "up to" cost reduction is asked only in the real payment.
+     *  Epoch 37 (2026-10-16, state facets): the initiative, city's blessing, day/night, phased-out permanents, what a
+     *  permanent remembers (named card, chosen type, imprint, token) and counters off the battlefield are shown
+     *  (observation-faithful-v35). */
+    static final String HARNESS_EPOCH = "harness-epoch-37";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats

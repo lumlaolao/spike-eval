@@ -922,6 +922,84 @@ public class SeatObservationTest {
         Assert.assertFalse(line.contains("pending"), line);
     }
 
+    /** Every kind of public game state the engine keeps is in the seat's state: counters, damage, attachments,
+     *  loyalty, tapped, face-down, phased out, poison, energy, monarch, initiative, city's blessing, day/night. */
+    @Test
+    public void everyPublicStateFacetIsShown() {
+        Game g = LineFindingProbeTest.bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        forge.game.card.Card bears = LineFindingProbeTest.card("Grizzly Bears", me, ZoneType.Battlefield);
+        bears.addCounterInternal(forge.game.card.CounterEnumType.P1P1, 2, me, false, null, null);
+        bears.setDamage(1);
+        forge.game.card.Card aura = LineFindingProbeTest.card("Rancor", me, ZoneType.Battlefield);
+        aura.attachToEntity(bears, null, true);
+        forge.game.card.Card sword = LineFindingProbeTest.card("Bonesplitter", me, ZoneType.Battlefield);
+        sword.attachToEntity(bears, null, true);
+        forge.game.card.Card walker = LineFindingProbeTest.card("Jace, the Mind Sculptor", rival, ZoneType.Battlefield);
+        walker.addCounterInternal(forge.game.card.CounterEnumType.LOYALTY, 3, rival, false, null, null);
+        forge.game.card.Card phased = LineFindingProbeTest.card("Llanowar Elves", rival, ZoneType.Battlefield);
+        phased.setPhasedOut(rival);
+        forge.game.card.Card morph = LineFindingProbeTest.card("Willbender", rival, ZoneType.Battlefield);
+        morph.turnFaceDown(true);
+        forge.game.card.Card tapped = LineFindingProbeTest.card("Craw Wurm", rival, ZoneType.Battlefield);
+        tapped.setTapped(true);
+        forge.game.GameEntityCounterTable table = new forge.game.GameEntityCounterTable();
+        me.addPoisonCounters(3, rival, table);
+        table.replaceCounterEffect(g, null);
+        g.getAction().checkStaticAbilities();
+        me.addCounterInternal(forge.game.card.CounterEnumType.ENERGY, 4, me, false, null, null);
+        g.setMonarch(me);
+        g.setHasInitiative(rival);
+        g.setDayTime(Boolean.FALSE);   // Forge: false is day, true is night
+        rival.setBlessing(true, null);
+        String r = SeatObservationTest.render(SeatObservationTest.observerFor(g, 0), "");
+        String head = r.substring(0, r.indexOf('\n'));
+        String you = r.substring(r.indexOf("YOU ["), r.indexOf('\n', r.indexOf("YOU [")));
+        String opp = r.substring(r.indexOf("OPP ["), r.indexOf("OPPONENT CARDS") < 0 ? r.indexOf("STACK") : r.indexOf("OPPONENT CARDS"));
+        Assert.assertTrue(head.contains("it is day"), head);
+        Assert.assertTrue(you.contains("poison 3/10") && you.contains("energy 4") && you.contains("monarch"), you);
+        Assert.assertTrue(opp.contains("has the initiative") && opp.contains("has the city's blessing"), opp);
+        Assert.assertTrue(opp.contains("Llanowar Elves") && opp.contains("[phased out]"), "a phased-out permanent is shown: " + opp);
+        Assert.assertTrue(r.contains("[+1/+1 x2]") && r.contains("[damage 1]") && r.contains("[loyalty 3]") && r.contains("[tapped]")
+                && r.contains("attached to Grizzly Bears") && r.contains("face-down Creature 2/2"), r);
+    }
+
+    /** What a permanent remembers is shown: Pithing Needle's named card, Cavern's type, Chrome Mox's imprint, a token. */
+    @Test
+    public void whatAPermanentRemembersIsShown() {
+        Game g = LineFindingProbeTest.bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        forge.game.card.Card needle = LineFindingProbeTest.card("Pithing Needle", rival, ZoneType.Battlefield);
+        needle.addNamedCard("Jace, the Mind Sculptor");
+        forge.game.card.Card cavern = LineFindingProbeTest.card("Cavern of Souls", me, ZoneType.Battlefield);
+        cavern.setChosenType("Human");
+        forge.game.card.Card mox = LineFindingProbeTest.card("Chrome Mox", me, ZoneType.Battlefield);
+        mox.addImprintedCard(LineFindingProbeTest.card("Brainstorm", me, ZoneType.Exile));
+        forge.game.card.Card sick = LineFindingProbeTest.card("Grizzly Bears", me, ZoneType.Battlefield);
+        sick.setSickness(true);
+        forge.game.card.Card tok = LineFindingProbeTest.card("Grizzly Bears", rival, ZoneType.Battlefield);
+        tok.setGamePieceType(forge.card.GamePieceType.TOKEN);
+        g.getAction().checkStaticAbilities();
+        String r = SeatObservationTest.render(SeatObservationTest.observerFor(g, 0), "");
+        Assert.assertTrue(r.contains("Pithing Needle [untapped] [named: Jace, the Mind Sculptor]"), r);
+        Assert.assertTrue(r.contains("[chosen type: Human]"), r);
+        Assert.assertTrue(r.contains("Chrome Mox [untapped] [imprinted: Brainstorm @"), r);
+        Assert.assertTrue(r.contains("Grizzly Bears 2/2 [untapped] [token]"), r);
+    }
+
+    /** A card waiting outside the battlefield shows how: a suspended card its time counters. */
+    @Test
+    public void aSuspendedCardShowsItsTimeCounters() {
+        Game g = LineFindingProbeTest.bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        forge.game.card.Card av = LineFindingProbeTest.card("Ancestral Vision", me, ZoneType.Exile);
+        av.addCounterInternal(forge.game.card.CounterEnumType.TIME, 3, me, false, null, null);
+        String r = SeatObservationTest.render(SeatObservationTest.observerFor(g, 0), "");
+        int at = r.indexOf("Ancestral Vision");
+        String line = r.substring(at, r.indexOf('\n', at));
+        Assert.assertTrue(line.contains("[suspended]") && line.toLowerCase().matches(".*\\[time[^\\]]*3\\].*"), line);
+    }
+
     /** Mana only for some spells is kept apart, in the card's words: two Great Halls make {C:2} for anything;
      *  their any colour is for instants and sorceries only (std-g10 showed it as five colours for anything). */
     @Test

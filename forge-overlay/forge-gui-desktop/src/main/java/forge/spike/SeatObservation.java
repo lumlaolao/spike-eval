@@ -82,7 +82,7 @@ final class SeatObservation {
      *  text, every seen opponent card and every reveal, and uncapped known-in-hidden-zones and zone trails.
      *  v32 (2026-10-16): mana available counts a colour the card decides (Chrome Mox's imprinted colours, a
      *  chosen colour) as the engine reads it; ability text names the card, not CARDNAME (runs/c3 T7, T11). */
-    static final String VERSION = "observation-faithful-v34";
+    static final String VERSION = "observation-faithful-v35";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
      *  Every section named here is one {@link #render} prints. */
@@ -626,6 +626,7 @@ final class SeatObservation {
             if (known) {
                 String kw = keywords(c);
                 if (!kw.isEmpty()) s.append(" [").append(kw).append(']');
+                s.append(chosen(c));
             }
             try {
                 GameEntity to = c.getEntityAttachedTo();
@@ -641,10 +642,42 @@ final class SeatObservation {
             } catch (Exception ignore) { }
         } else if (c.isCreature() && !known && onStack) {
             // nothing more: a face-down spell shows only what a face-down spell shows
+        } else if (known && (zt == ZoneType.Exile || zt == ZoneType.Graveyard || zt == ZoneType.Command)) {
+            // Counters and the way a card waits outside the battlefield, all public: a suspended Ancestral Vision's time
+            // counters were not shown, so neither player could see when it resolves (surface check).
+            String cts = counters(c);
+            if (!cts.isEmpty()) s.append(" [").append(cts).append(']');
+            try { if (zt == ZoneType.Exile && c.hasSuspend() && c.getCounters(CounterEnumType.TIME) > 0) s.append(" [suspended]"); } catch (Exception ignore) { }
+            try { if (c.isOnAdventure()) s.append(" [on an adventure: may be cast as the creature]"); } catch (Exception ignore) { }
+            try { if (c.isForetold()) s.append(" [foretold]"); } catch (Exception ignore) { }
+            try { if (c.isPlotted()) s.append(" [plotted]"); } catch (Exception ignore) { }
         }
         s.append(" @").append(t.handle);
         if (t.predecessor > 0) s.append(" (was @").append(t.predecessor).append(')');
         return s.toString();
+    }
+
+    /** What a permanent was made to remember, all public: a token; the card it names (Pithing Needle); the type, colour,
+     *  player or number chosen as it entered (Cavern of Souls); the cards it imprinted (Chrome Mox's colour). None of
+     *  it was shown: a Needle on Jace read "Pithing Needle [untapped]" (surface check). */
+    private String chosen(Card c) {
+        StringBuilder b = new StringBuilder();
+        try { if (c.isToken()) b.append(" [token]"); } catch (Exception ignore) { }
+        try { List<String> n = c.getNamedCards(); if (n != null && !n.isEmpty()) b.append(" [named: ").append(String.join(", ", n)).append(']'); } catch (Exception ignore) { }
+        try { String t = c.getChosenType(); if (t != null && !t.isEmpty()) b.append(" [chosen type: ").append(t).append(']'); } catch (Exception ignore) { }
+        try {
+            List<String> cols = new ArrayList<>();
+            for (String col : c.getChosenColors()) cols.add(col);
+            if (!cols.isEmpty()) b.append(" [chosen colour: ").append(String.join(", ", cols)).append(']');
+        } catch (Exception ignore) { }
+        try { Player p = c.getChosenPlayer(); if (p != null) b.append(" [chosen player: ").append(p == viewer ? "you" : p.getName()).append(']'); } catch (Exception ignore) { }
+        try { Integer n = c.getChosenNumber(); if (n != null) b.append(" [chosen number: ").append(n).append(']'); } catch (Exception ignore) { }
+        try {
+            List<String> imp = new ArrayList<>();
+            for (Card i : c.getImprintedCards()) imp.add(identityKnown(i) ? shortRef(i) : "a face-down card");
+            if (!imp.isEmpty()) b.append(" [imprinted: ").append(String.join(", ", imp)).append(']');
+        } catch (Exception ignore) { }
+        return b.toString();
     }
 
     /** Compact reference for cross-references (attachments, targets, combat): identity + P/T + handle. */
@@ -954,8 +987,10 @@ final class SeatObservation {
             Player prio = ph.getPriorityPlayer();
             s.append("== Turn ").append(ph.getTurn()).append(' ').append(ph.getPhase())
              .append(" (active: ").append(active == null ? "?" : active.getName())
-             .append(" | priority: ").append(prio == null ? "?" : (prio == viewer ? "you" : prio.getName()))
-             .append(") ==\n");
+             .append(" | priority: ").append(prio == null ? "?" : (prio == viewer ? "you" : prio.getName()));
+            // Day/night once it has begun (daybound, nightbound): it was nowhere in the state (surface check).
+            try { if (game.isDay()) s.append(" | it is day"); else if (game.isNight()) s.append(" | it is night"); } catch (Exception ignore) { }
+            s.append(") ==\n");
 
             s.append("YOU [").append(seatLabel).append("] ").append(playerLine(viewer)).append('\n');
             s.append("  hand(").append(viewer.getCardsIn(ZoneType.Hand).size()).append("): ").append(handList()).append('\n');
@@ -1041,6 +1076,9 @@ final class SeatObservation {
         b.append(" | mana pool ").append(manaPool(p));
         try { b.append(" | spells cast this turn ").append(p.getSpellsCastThisTurn()); } catch (Exception ignore) { }
         try { if (p.isMonarch()) b.append(" | monarch"); } catch (Exception ignore) { }
+        // The initiative and the city's blessing were not shown, though the monarch was (surface check).
+        try { if (p.hasInitiative()) b.append(" | has the initiative"); } catch (Exception ignore) { }
+        try { if (p.hasBlessing()) b.append(" | has the city's blessing"); } catch (Exception ignore) { }
         try { if (p.hasLost()) b.append(" | HAS LOST"); } catch (Exception ignore) { }
         return b.toString();
     }
@@ -1080,8 +1118,11 @@ final class SeatObservation {
 
     private String perms(Player p) {
         StringBuilder b = new StringBuilder();
-        for (Card c : p.getCardsIn(ZoneType.Battlefield)) {
-            if (c.isLand()) continue;
+        // Phased-out permanents too, tagged "[phased out]": the engine's default battlefield list leaves them out, and
+        // a phased-out creature vanished from the state though everyone knows it returns (surface check). A phased-out
+        // land is listed here, not among the lands that make mana.
+        for (Card c : p.getCardsIn(ZoneType.Battlefield, false)) {
+            if (c.isLand() && !c.isPhasedOut()) continue;
             if (b.length() > 0) b.append(", ");
             b.append(describe(c, false));
         }
@@ -1106,6 +1147,17 @@ final class SeatObservation {
             Tracked t = sight(c, identityKnown(c));
             tgt.append('@').append(t.handle);
             if (t.predecessor > 0) tgt.append("(was @").append(t.predecessor).append(')');
+            // What sets this copy apart, beside its handle: an animated or awakened land's P/T and counters, damage, what
+            // it remembers (Cavern of Souls' type). The grouped summary dropped all of it (surface check).
+            if (identityKnown(c)) {
+                StringBuilder x = new StringBuilder();
+                if (c.isCreature()) x.append(' ').append(c.getNetPower()).append('/').append(c.getNetToughness());
+                String cts = counters(c);
+                if (!cts.isEmpty()) x.append(" [").append(cts).append(']');
+                try { int dmg = c.getDamage(); if (dmg > 0) x.append(" [damage ").append(dmg).append(']'); } catch (Exception ignore) { }
+                x.append(chosen(c));
+                if (x.length() > 0) tgt.append(" (").append(x.toString().trim()).append(')');
+            }
         }
         StringBuilder kinds = new StringBuilder();
         for (Map.Entry<String, int[]> e : byName.entrySet()) {
