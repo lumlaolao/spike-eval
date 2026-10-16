@@ -239,8 +239,10 @@ public final class LlmSpikeGui {
      *  pick, from the menu and from effects; a spell playable only with one (retrace, jump-start, offering) is offered
      *  with it; emerge is offered and its sacrifice is the seat's; a spell or trigger with several targets is asked for
      *  the set; a creature spell's option shows its rules text; no face-down 2/2 off the battlefield
-     *  (observation-faithful-v34). */
-    static final String HARNESS_EPOCH = "harness-epoch-35";
+     *  (observation-faithful-v34).
+     *  Epoch 36 (2026-10-16, issues #224/#225): a declared damage assignment order is followed, not asked again; an
+     *  "up to" cost reduction is asked only in the real payment. */
+    static final String HARNESS_EPOCH = "harness-epoch-36";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -5614,6 +5616,9 @@ public final class LlmSpikeGui {
         /** How much a cost reduction reduces by (min..max). */
         @Override
         public int chooseNumberForCostReduction(SpellAbility sa, int min, int max) {
+            // Pricing (the menu, the hand tags, an affordability test) takes the whole reduction without asking: an ask
+            // there builds a snapshot, whose pricing reaches this ask again (Mana Matrix: StackOverflowError, #225).
+            if (PRICING_FOR_SNAPSHOT || !payingForReal || askingConvoke) return max;
             clearLast();
             if (max <= min) return min;
             List<String> labels = new ArrayList<>();
@@ -5997,7 +6002,7 @@ public final class LlmSpikeGui {
                     return r;
                 }
                 if (blockers != null && blockers.size() > 1) {
-                    return assignMultiBlockerDamage(attacker, blockers, damageDealt, defender);
+                    return assignMultiBlockerDamage(attacker, blockers, damageDealt, defender, overrideOrder);
                 }
             } catch (Exception ignore) {
                 // fall through to the deterministic no-blockers/unexpected-shape default below
@@ -6015,11 +6020,17 @@ public final class LlmSpikeGui {
          *  Returns a lethal-first assignment in the model's (or, on failure, the engine's) blocker
          *  order — every path deterministic Java, never Forge's combat AI. */
         private Map<Card, Integer> assignMultiBlockerDamage(Card attacker, CardCollectionView blockers,
-                int damageDealt, GameEntity defender) {
+                int damageDealt, GameEntity defender, boolean overrideOrder) {
             List<Card> opts = new ArrayList<>(blockers);
             List<String> labels = cardLabels(opts);
             List<Integer> order = null;
-            if (fastOk()) {
+            // overrideOrder false: the damage assignment order was declared already (legacy ordering; the engine passes
+            // the blockers in it), so damage follows it and is not asked again (issue #224).
+            if (!overrideOrder) {
+                order = new ArrayList<>();
+                for (int i = 0; i < opts.size(); i++) order.add(i);
+                auto("damage-assign(forced: the declared damage order)");
+            } else if (fastOk()) {
                 String q = "COMBAT DAMAGE ASSIGNMENT: " + safeName(attacker) + " deals " + damageDealt
                         + " damage and is blocked by " + opts.size() + " creatures. List ALL " + opts.size()
                         + " of them in the ORDER you want damage assigned — the first gets lethal damage "

@@ -448,7 +448,11 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   - nor do the twenty choices it used to make outright: Fact or Fiction piles, opening-hand abilities,
     colours, counter kinds, replacement order, edicts, clash, combat taxes and others.
   - Delve is asked the same way: in the real payment, how many cards (any number up to the generic part)
-    and which; an affordability test counts every card, unasked.
+    and which; an affordability test counts every card, unasked. So are an "up to" cost reduction (Mana
+    Matrix: the whole reduction while pricing; asked inside the menu it re-entered the snapshot and overflowed,
+    #225) and an emerge or offering sacrifice.
+  - A damage assignment order already declared (legacy ordering, `overrideOrder` false) is followed, not asked
+    again (#224); a free split is the seat's.
   - Convoke and improvise, retargeting, redirection and mana from the pool are the seat's too. A convoke
     choice asked from an affordability test is answered as "every helper could pay" without asking; the
     engine does not say which calls are tests, so the seat's real payment marks its own window.

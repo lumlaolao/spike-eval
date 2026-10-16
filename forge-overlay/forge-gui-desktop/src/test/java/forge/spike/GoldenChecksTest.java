@@ -854,6 +854,48 @@ public class GoldenChecksTest {
         Assert.assertTrue(has(me, ZoneType.Battlefield, "Aloe Alchemist"), "cast from exile without paying");
     }
 
+    /** An "up to" cost reduction (Mana Matrix) is the seat's choice when it pays, and is not asked while the menu and
+     *  the hand are priced: an ask inside a snapshot build re-enters the snapshot (issue #225). */
+    @Test
+    public void anUpToCostReductionIsAskedWhenPayingNotWhilePricing() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Island", "Island");
+        card("Mana Matrix", me, ZoneType.Battlefield);
+        card("Fact or Fiction", me, ZoneType.Hand);
+        for (int i = 0; i < 5; i++) card("Island", me, ZoneType.Library);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Fact or Fiction"))
+                .on("reduce the cost by", choice("2"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "Fact or Fiction was offered at the reduced cost");
+        Assert.assertTrue(model.prompts.stream().noneMatch(q -> q.contains("reduce the cost by")), "a reduction was asked while pricing");
+        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)), "it was cast");
+        Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.contains("reduce the cost by")), "the reduction was the seat's when paying");
+        Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).stream().filter(Card::isLand).allMatch(Card::isTapped), "paid with the two Islands");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** A damage assignment order already declared (overrideOrder false: the legacy order) is followed, not asked again:
+     *  an answer in another order would assign damage against the order the engine holds (issue #224). */
+    @Test
+    public void aDeclaredDamageOrderIsFollowedNotAskedAgain() {
+        Game g = bareGame(PhaseType.COMBAT_DAMAGE);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card attacker = card("Craw Wurm", me, ZoneType.Battlefield);
+        Card first = card("Grizzly Bears", rival, ZoneType.Battlefield), second = card("Llanowar Elves", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("COMBAT DAMAGE ASSIGNMENT", p -> "PICKS: 2,1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Map<Card, Integer> r = ctrl.assignCombatDamage(attacker, new CardCollection(java.util.Arrays.asList(first, second)), null, 6, rival, false);
+        Assert.assertTrue(model.prompts.stream().noneMatch(q -> q.contains("COMBAT DAMAGE ASSIGNMENT")), "the declared order was asked again");
+        Assert.assertTrue(r.get(first) >= 2, "lethal to the first in the declared order: " + r);
+        Assert.assertEquals(r.values().stream().mapToInt(Integer::intValue).sum(), 6);
+        // With the order free (overrideOrder true), the split is the seat's.
+        Map<Card, Integer> free = ctrl.assignCombatDamage(attacker, new CardCollection(java.util.Arrays.asList(first, second)), null, 1, rival, true);
+        Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.contains("COMBAT DAMAGE ASSIGNMENT")), "a free split is asked");
+        Assert.assertEquals(free.get(second), Integer.valueOf(1), "the seat put its 1 damage on the Elves: " + free);
+    }
+
     /** ANT's line: cast Infernal Tutor, then crack Lion's Eye Diamond in response so the hand is empty when the Tutor
      *  resolves (hellbent). The menu never offered a mana ability, so LED was usable only as payment (owner,
      *  2026-10-16: combo lines must play out). A mana ability with a cost beyond tapping (sacrifice, discard, exile
@@ -1687,7 +1729,9 @@ public class GoldenChecksTest {
             faces.add(FModel.getMagicDb().getCommonCards().getCard(n).getRules().getMainPart());
         Assert.assertEquals(ctrl.chooseSingleCardFace(sa, faces, "Choose a card face").getName(), "Thoughtseize");
         Assert.assertEquals(ctrl.chooseNumberForKeywordCost(sa, new forge.game.cost.Cost("Sac<1/Creature>", false), null, null, 2), 1);
-        Assert.assertEquals(ctrl.chooseNumberForCostReduction(sa, 0, 2), 1);
+        // A cost reduction is the seat's when it pays; pricing takes the whole reduction without asking (#225).
+        Assert.assertEquals((int) ctrl.inRealPaymentForTest(() -> ctrl.chooseNumberForCostReduction(sa, 0, 2)), 1);
+        Assert.assertEquals(ctrl.chooseNumberForCostReduction(sa, 0, 2), 2, "pricing asks nothing");
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
