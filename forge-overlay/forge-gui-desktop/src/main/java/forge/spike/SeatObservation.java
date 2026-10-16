@@ -82,7 +82,7 @@ final class SeatObservation {
      *  text, every seen opponent card and every reveal, and uncapped known-in-hidden-zones and zone trails.
      *  v32 (2026-10-16): mana available counts a colour the card decides (Chrome Mox's imprinted colours, a
      *  chosen colour) as the engine reads it; ability text names the card, not CARDNAME (runs/c3 T7, T11). */
-    static final String VERSION = "observation-faithful-v33";
+    static final String VERSION = "observation-faithful-v34";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
      *  Every section named here is one {@link #render} prints. */
@@ -658,7 +658,10 @@ final class SeatObservation {
         } else {
             s.append("face-down ").append(typeLine(c));
         }
-        if (c.isCreature()) s.append(' ').append(c.getNetPower()).append('/').append(c.getNetToughness());
+        // A face-down card off the battlefield (foretold, plotted, a hidden exile) is a 2/2 only in Forge's face-down
+        // state: "Saw It Coming 2/2" named a counterspell as a creature (surface check).
+        boolean faceDownAway = c.isFaceDown() && !c.isInZone(ZoneType.Battlefield);
+        if (c.isCreature() && !faceDownAway) s.append(' ').append(c.getNetPower()).append('/').append(c.getNetToughness());
         s.append(" @").append(t.handle);
         return s.toString();
     }

@@ -234,8 +234,13 @@ public final class LlmSpikeGui {
      *  effect says how many copies it makes; identical storm copies are not ordered (observation-faithful-v33).
      *  Epoch 34 (2026-10-16, surface checks): a counterspell targets the spell on the stack, not its card (it countered
      *  nothing), and Stifle's abilities are offered; values a cast announces (a Shoal's X, X in a life cost) are the
-     *  seat's; a cast at another cost than the card's basic spell is labelled with that cost. */
-    static final String HARNESS_EPOCH = "harness-epoch-34";
+     *  seat's; a cast at another cost than the card's basic spell is labelled with that cost.
+     *  Epoch 35 (2026-10-16, ways to play a card): optional costs (kicker, buyback, entwine, bargain) are asked after the
+     *  pick, from the menu and from effects; a spell playable only with one (retrace, jump-start, offering) is offered
+     *  with it; emerge is offered and its sacrifice is the seat's; a spell or trigger with several targets is asked for
+     *  the set; a creature spell's option shows its rules text; no face-down 2/2 off the battlefield
+     *  (observation-faithful-v34). */
+    static final String HARNESS_EPOCH = "harness-epoch-35";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -1321,10 +1326,19 @@ public final class LlmSpikeGui {
             if (desc == null || desc.isEmpty()) desc = String.valueOf(sa);
             // Not cut (it was at 160): the option is the one place the ability's whole text is read
             // when it is chosen (Green Sun's Zenith lost "into its owner's library").
+            // Forge's debugging note on a trigger, removed exactly as the engine builds it (Elder Deep-Fiend's cast
+            // trigger kept "[Card: ..., Activator: Seat, SpellAbility: ...]": the pattern below needs an id at its end).
+            desc = SeatObservation.engineNotesOut(desc, sa);
             desc = desc.replace("CARDNAME", name).replace("NICKNAME", name).replaceAll("\\s+", " ").trim();
             // A trigger's description carries the engine's own note with its card id ("[Zone Changer:
             // Orcish Bowmasters (37)]", runs/loop/g08): an engine id the faithful profile never shows.
             desc = desc.replaceAll("\\s*\\[[A-Za-z ]+: [^\\]]*\\(\\d+\\)\\]", "").trim();
+            // A permanent spell's description is Forge's "Fury - Creature 3 / 3", which says nothing of what it does:
+            // the option shows the card's rules text instead (Fury's damage was nowhere on the menu).
+            try {
+                if (host != null && desc.startsWith(name + " - ") && host.getOracleText() != null && !host.getOracleText().isEmpty())
+                    desc = host.getOracleText().replace("\\n", " ").replaceAll("\\s+", " ").trim();
+            } catch (Exception ignore) { }
             String body = desc.isEmpty() ? "" : " [" + desc + "]";
             boolean spell;
             try { spell = sa.isSpell(); } catch (Exception e) { spell = true; }
@@ -1341,6 +1355,14 @@ public final class LlmSpikeGui {
             if (!spell) return hostRef + (zone.isEmpty() ? "" : " in " + zone) + body;
             String alt = "";
             try { if (sa.getAlternativeCost() != null) alt = String.valueOf(sa.getAlternativeCost()); } catch (Exception ignore) { }
+            // An option offered with an optional cost (retrace from the graveyard) names it.
+            try {
+                if (alt.isEmpty()) {
+                    List<String> names = new ArrayList<>();
+                    for (forge.game.spellability.OptionalCost o : sa.getOptionalCosts()) names.add(o.getName());
+                    alt = String.join(", ", names);
+                }
+            } catch (Exception ignore) { }
             // A cast that is not the card's basic spell pays another cost (a pitch spell's static alternative cost has no
             // AlternativeCost, so alt is empty): say that cost, not the mana cost it replaces. Disrupting Shoal's pitch read
             // "CAST Disrupting Shoal {X}{U}{U} [...rather than pay this spell's mana cost.]".
@@ -2399,6 +2421,12 @@ public final class LlmSpikeGui {
          *  with an answer instead of adding bloat. The color-shortfall breakdown only fires for plain
          *  colored/generic/colorless costs (hybrid/Phyrexian/X costs fall back to a plain
          *  "(not castable now)" — naming a single missing color there would be a guess, not a fact). */
+        /** Hand-pricing marker while {@link #affordability} runs: its canPayManaCost check goes through
+         *  CostAdjustment.adjust, whose cost-reduction pick re-enters the controller — an ask inside the
+         *  pricing walk builds another snapshot and overflows the stack. Hooks that see this are pricing
+         *  a display hint, not paying a card: no model ask, and no fallback row — the human controller
+         *  takes the first legal option without prompting here (full control off), so the seat does too. */
+        private static volatile boolean PRICING_FOR_SNAPSHOT = false;
         private static String handList(Player pl, Iterable<Card> cards) {
             int[] tally = untappedManaTally(pl);
             StringBuilder b = new StringBuilder(); int i = 0;
@@ -2431,7 +2459,9 @@ public final class LlmSpikeGui {
                 SpellAbility sa = c.getFirstSpellAbility();
                 if (sa == null) return null;
                 if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(pl);
-                if (ComputerUtilMana.canPayManaCost(sa, pl, 0, false)) return "(castable)";
+                PRICING_FOR_SNAPSHOT = true;
+                try { if (ComputerUtilMana.canPayManaCost(sa, pl, 0, false)) return "(castable)"; }
+                finally { PRICING_FOR_SNAPSHOT = false; }
             } catch (Exception e) { return null; }
             try {
                 forge.card.mana.ManaCost mc = c.getManaCost();
@@ -2773,10 +2803,14 @@ public final class LlmSpikeGui {
                 if (c != 0) { if (c < 0) auto("play-from-effect(unparsed)->decline"); return false; }
             }
             if (tgtSA.getActivatingPlayer() == null) tgtSA.setActivatingPlayer(getPlayer());
+            forge.game.zone.Zone from = tgtSA.getHostCard() == null ? null : tgtSA.getHostCard().getZone();
+            tgtSA = withOptionalCosts(tgtSA);   // a spell cast by an effect may still be kicked (CR 601.2b)
             announceX(tgtSA);
             if (tgtSA.getApi() == ApiType.Charm && !forge.game.ability.effects.CharmEffect.makeChoices(tgtSA)) return false;
             ensureTargetsSet(tgtSA);
-            return forge.ai.ComputerUtil.playStack(tgtSA, getPlayer(), getGame());
+            boolean played = forge.ai.ComputerUtil.playStack(tgtSA, getPlayer(), getGame());
+            if (played) playSeen(tgtSA, from);
+            return played;
         }
 
         /** Where one declared attacker attacks: the player, or a planeswalker or battle it can attack.
@@ -3379,6 +3413,7 @@ public final class LlmSpikeGui {
                 // mode's targets exist when targets are asked. Modes used to be chosen in
                 // playChosenSpellAbility AFTER targeting, so a targeted mode never got one: Kozilek's
                 // Command "Couldn't add to stack, failed to target" 26 times in recorded logs.
+                chosen = withOptionalCosts(chosen);
                 announceX(chosen);
                 if (chosen.getApi() == ApiType.Charm) {
                     if (!forge.game.ability.effects.CharmEffect.makeChoices(chosen)) {
@@ -3531,53 +3566,7 @@ public final class LlmSpikeGui {
                 // for the whole target set; a DIVIDED spell ("distribute 5 damage", 132 cards) also
                 // needs an allocation per target. Both route through the same menu (#124); the
                 // division is the model's, with an even split as the deterministic legal fallback.
-                int max = sa.getMaxTargets();
-                boolean divided = sa.isDividedAsYouChoose();
-                if (max > 1 || divided) {
-                    int lo = Math.max(divided ? 1 : 0, min), hi = Math.min(Math.max(max, 1), cands.size());
-                    List<Integer> tp;
-                    if (cands.size() <= Math.max(1, min)) {         // forced: all candidates are needed
-                        tp = new ArrayList<>();
-                        for (int i = 0; i < cands.size(); i++) tp.add(i);
-                        evalDec("targets", cands.size(), tp.size(), "auto", 0, "forced(multi)", labels);
-                    } else if (okFor("targets")) {
-                        tp = decideMany(bridgeFor("targets"), "targets", "Choose TARGETS for " + labelOf(sa)
-                                + " (pick " + lo + " to " + hi + " from the list).", labels, lo, hi);
-                        if (tp == null || tp.size() < lo) {
-                            tp = new ArrayList<>();
-                            for (int i = 0; i < lo && i < cands.size(); i++) tp.add(i);
-                            evalDec("targets", cands.size(), tp.size(), tierOf(smartTierFor("targets")), 0, "targets(multi,unparsed)->first", labels);
-                        }
-                    } else {
-                        tp = new ArrayList<>();
-                        for (int i = 0; i < lo && i < cands.size(); i++) tp.add(i);
-                        evalDec("targets", cands.size(), tp.size(), "auto", 0, "targets(no-model)->first", labels);
-                    }
-                    // clearTargets() (not resetTargets()) is what also computes a divided spell's
-                    // total from its param, so getDividedValue() is non-null below (#124).
-                    if (divided) sa.clearTargets(); else sa.resetTargets();
-                    // Read only now: before clearTargets() a fresh divided spell's total is null, so the
-                    // split was never asked and the targets had no allocation (GoldenChecksTest).
-                    int divideTotal = divided && sa.getDividedValue() != null ? sa.getDividedValue() : 0;
-                    for (int i : tp) sa.getTargets().add(cands.get(i));
-                    if (min > 0 && sa.getTargets().size() < min) return firstLegalTargets(sa, "targets(multi,short)"); // safety net
-                    StringBuilder split = new StringBuilder();
-                    if (divided && divideTotal > 0 && !tp.isEmpty()) {
-                        List<String> tl = new ArrayList<>();
-                        for (int i : tp) tl.add(labels.get(i));
-                        List<Integer> alloc = decideAllocation(bridgeFor("targets"), "Split " + divideTotal
-                                + " for " + labelOf(sa) + " among the chosen targets, in order.", tl, divideTotal);
-                        if (alloc == null || alloc.size() != tp.size()
-                                || alloc.stream().mapToInt(Integer::intValue).sum() != divideTotal)
-                            alloc = evenSplit(divideTotal, tp.size());
-                        for (int k = 0; k < tp.size(); k++) {
-                            sa.addDividedAllocation(cands.get(tp.get(k)), alloc.get(k));
-                            split.append(' ').append(alloc.get(k));
-                        }
-                    }
-                    p("[ROUTER] targets: " + tp.size() + (split.length() > 0 ? " divided [" + split.toString().trim() + "]" : "") + " -> " + labelOf(sa));
-                    return true;
-                }
+                if (sa.getMaxTargets() > 1 || sa.isDividedAsYouChoose()) return chooseManyTargets(sa, cands, labels, min);
                 if (cands.size() > 1 && okFor("targets")) {
                     String q = "Choose the TARGET for " + copyOf(sa) + labelOf(sa) + xNote(sa) + " (the spell/ability resolves against whatever you pick).";
                     int c = decideOne(bridgeFor("targets"), "targets", q, labels, min == 0 ? "No target (decline)" : null);
@@ -3611,6 +3600,58 @@ public final class LlmSpikeGui {
             } catch (Exception e) {
                 return firstLegalTargets(sa, "targets(err:" + e.getClass().getSimpleName() + ")");
             }
+        }
+
+        /** Several targets for one ability ("up to two target creatures", "any number of target creatures") or a
+         *  divided one ("4 damage divided as you choose"): the seat picks the set, and a division is the seat's, with an
+         *  even split as the legal fallback (#124). Both targeting paths use it: the play loop and triggers went through
+         *  a one-target ask, so Fury's trigger could take one creature, and the default took Fury itself (surface check). */
+        private boolean chooseManyTargets(SpellAbility sa, List<forge.game.GameObject> cands, List<String> labels, int min) {
+            int max = sa.getMaxTargets();
+            boolean divided = sa.isDividedAsYouChoose();
+                int lo = Math.max(divided ? 1 : 0, min), hi = Math.min(Math.max(max, 1), cands.size());
+                List<Integer> tp;
+                if (cands.size() <= Math.max(1, min)) {         // forced: all candidates are needed
+                    tp = new ArrayList<>();
+                    for (int i = 0; i < cands.size(); i++) tp.add(i);
+                    evalDec("targets", cands.size(), tp.size(), "auto", 0, "forced(multi)", labels);
+                } else if (okFor("targets")) {
+                    tp = decideMany(bridgeFor("targets"), "targets", "Choose TARGETS for " + labelOf(sa)
+                            + " (pick " + lo + " to " + hi + " from the list).", labels, lo, hi);
+                    if (tp == null || tp.size() < lo) {
+                        tp = new ArrayList<>();
+                        for (int i = 0; i < lo && i < cands.size(); i++) tp.add(i);
+                        evalDec("targets", cands.size(), tp.size(), tierOf(smartTierFor("targets")), 0, "targets(multi,unparsed)->first", labels);
+                    }
+                } else {
+                    tp = new ArrayList<>();
+                    for (int i = 0; i < lo && i < cands.size(); i++) tp.add(i);
+                    evalDec("targets", cands.size(), tp.size(), "auto", 0, "targets(no-model)->first", labels);
+                }
+                // clearTargets() (not resetTargets()) is what also computes a divided spell's
+                // total from its param, so getDividedValue() is non-null below (#124).
+                if (divided) sa.clearTargets(); else sa.resetTargets();
+                // Read only now: before clearTargets() a fresh divided spell's total is null, so the
+                // split was never asked and the targets had no allocation (GoldenChecksTest).
+                int divideTotal = divided && sa.getDividedValue() != null ? sa.getDividedValue() : 0;
+                for (int i : tp) sa.getTargets().add(cands.get(i));
+                if (min > 0 && sa.getTargets().size() < min) return firstLegalTargets(sa, "targets(multi,short)"); // safety net
+                StringBuilder split = new StringBuilder();
+                if (divided && divideTotal > 0 && !tp.isEmpty()) {
+                    List<String> tl = new ArrayList<>();
+                    for (int i : tp) tl.add(labels.get(i));
+                    List<Integer> alloc = decideAllocation(bridgeFor("targets"), "Split " + divideTotal
+                            + " for " + labelOf(sa) + " among the chosen targets, in order.", tl, divideTotal);
+                    if (alloc == null || alloc.size() != tp.size()
+                            || alloc.stream().mapToInt(Integer::intValue).sum() != divideTotal)
+                        alloc = evenSplit(divideTotal, tp.size());
+                    for (int k = 0; k < tp.size(); k++) {
+                        sa.addDividedAllocation(cands.get(tp.get(k)), alloc.get(k));
+                        split.append(' ').append(alloc.get(k));
+                    }
+                }
+                p("[ROUTER] targets: " + tp.size() + (split.length() > 0 ? " divided [" + split.toString().trim() + "]" : "") + " -> " + labelOf(sa));
+                return true;
         }
 
         /** The deterministic legal default for targets the routed path could not set: the first candidates the
@@ -3669,6 +3710,12 @@ public final class LlmSpikeGui {
                     if (tr == null) continue;
                     List<forge.game.GameObject> cands = targetCandidates(sa, tr);
                     if (cands == null || cands.isEmpty()) continue; // no legal target -> let engine cancel/handle
+                    if (sa.getMaxTargets() > 1 || sa.isDividedAsYouChoose()) {
+                        List<String> many = new ArrayList<>();
+                        for (forge.game.GameObject ge : cands) many.add(targetLabel(ge));
+                        chooseManyTargets(sa, cands, many, sa.getMinTargets());
+                        continue;
+                    }
                     int min = Math.max(1, sa.getMinTargets());
                     int pick = 0; // first legal candidate beats leaving it untargeted (which fizzles)
                     String fb = null; // non-null when the pick is a deterministic fallback, not a model choice
@@ -3883,6 +3930,24 @@ public final class LlmSpikeGui {
             return false;
         }
 
+        /** The optional additional costs the seat pays on the play it chose (kicker, buyback, entwine, bargain), first of
+         *  the values a cast announces (CR 601.2b), as the human path asks them (PlaySpellAbility, then
+         *  GameActionUtil.addOptionalCosts). Forge's AI asks them while listing its options
+         *  (ComputerUtilAbility.getOriginalAndAltCostAbilities), which this menu does not use, so no kicker, buyback
+         *  or entwine was ever paid (surface check). A cost already on the play (the retrace it was offered with) is
+         *  not asked again. */
+        private SpellAbility withOptionalCosts(SpellAbility sa) {
+            try {
+                if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(getPlayer());
+                List<OptionalCostValue> list = new ArrayList<>(GameActionUtil.getOptionalCostValues(sa));
+                List<forge.game.spellability.OptionalCost> on = Lists.newArrayList(sa.getOptionalCosts());
+                list.removeIf(v -> on.contains(v.getType()));
+                if (list.isEmpty()) return sa;
+                List<OptionalCostValue> picked = chooseOptionalCosts(sa, list);
+                return picked == null || picked.isEmpty() ? sa : GameActionUtil.addOptionalCosts(sa, picked);
+            } catch (Exception e) { p("[ROUTER] optional-costs: " + e + " -> none"); return sa; }
+        }
+
         /** Optional additional costs — kicker / buyback / entwine. The model chooses which to pay;
          *  only costs the seat can actually afford are offered, so a chosen cost cannot fizzle the
          *  cast. Deterministic fallback: decline all (always legal). */
@@ -3896,7 +3961,12 @@ public final class LlmSpikeGui {
                     List<OptionalCostValue> offer = new ArrayList<>();
                     for (OptionalCostValue v : optionalCostValues) {
                         try {
-                            if (v == null || v.getCost() == null || ComputerUtilCost.canPayCost(v.getCost(), chosen, getPlayer(), true)) offer.add(v);
+                            // The whole cast with this cost must stay payable: the cost alone was checked, so Rude
+                            // Awakening's entwine was offered with 7 lands for 8 mana and the cast failed (surface check).
+                            if (v == null || v.getCost() == null) { offer.add(v); continue; }
+                            SpellAbility with = GameActionUtil.addOptionalCosts(chosen, Lists.newArrayList(v));
+                            with.setActivatingPlayer(getPlayer());
+                            if (ComputerUtilCost.canPayCost(with, getPlayer(), false)) offer.add(v);
                         } catch (Exception ignore) { }
                     }
                     if (!offer.isEmpty()) {
@@ -3941,7 +4011,12 @@ public final class LlmSpikeGui {
             } catch (Exception e) { ours = false; }
             boolean modesChosen = sa == modesChosenFor;
             modesChosenFor = null;
-            if (!ours) return super.playChosenSpellAbility(sa);
+            if (!ours) {
+                forge.game.zone.Zone from = sa.getHostCard() == null ? null : sa.getHostCard().getZone();
+                boolean played = super.playChosenSpellAbility(sa);
+                if (played) playSeen(sa, from);
+                return played;
+            }
 
             final Player ai = getPlayer();
             final Card source = sa.getHostCard();
@@ -3969,6 +4044,7 @@ public final class LlmSpikeGui {
             costCancelled = false;
             if (pay.payComputerCosts(decision)) {
                 game.getStack().addAndUnfreeze(sa);
+                playSeen(sa, hz);
                 if (sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty())
                     game.getAction().reveal(sa.getSplicedCards(), ai, true, "Computer reveals spliced cards from ");
                 return true;
@@ -4295,6 +4371,11 @@ public final class LlmSpikeGui {
                 need.setXManaCostPaid(forge.game.ability.AbilityUtils.calculateAmount(sa.getHostCard(),
                         sa.getParamOrDefault("XAlternative", "X"), sa), sa.getXColor() == null ? "1" : sa.getXColor());
             forge.game.cost.CostAdjustment.adjust(need, sa, getPlayer(), null, true, effect);
+            // Only the amount is wanted here: the adjustment also records an emerge or offering sacrifice and marks it
+            // used, and the real payment then adjusts again over that record and fails (Elder Deep-Fiend, surface check).
+            Card emerged = sa.isEmerge() ? sa.getSacrificedAsEmerge() : null, offered = sa.isOffering() ? sa.getSacrificedAsOffering() : null;
+            if (emerged != null) { emerged.setUsedToPay(false); sa.resetSacrificedAsEmerge(); }
+            if (offered != null) { offered.setUsedToPay(false); sa.resetSacrificedAsOffering(); }
             return need;
         }
 
@@ -4359,6 +4440,11 @@ public final class LlmSpikeGui {
         /** A trigger that resolves without using the stack: the same seat targeting, then the engine plays it. */
         @Override
         public boolean playTrigger(Card host, forge.game.trigger.WrappedAbility wrapperAbility, boolean isMandatory) {
+            // An optional one (isMandatory false: a decider exists, e.g. Snowfall's static TapsForMana) is
+            // a "may" the seat decides — asked here like confirmTrigger asks it when a normal trigger
+            // resolves, because a static trigger never reaches a stack item and WrappedAbility.resolve.
+            // The seat used to be handed every static as if it had already said yes.
+            if (!isMandatory && !confirmTrigger(wrapperAbility)) return false;
             if (!prepareTrigger(wrapperAbility)) return false;
             return playNoStack(wrapperAbility.getActivatingPlayer(), wrapperAbility, true);
         }
@@ -4748,6 +4834,15 @@ public final class LlmSpikeGui {
             // replacement internals or mutate the affected object while answering it.
             return optionalDecision("confirm-replacement", effectSA,
                     question == null ? "Apply this optional replacement effect?" : question);
+        }
+
+        /** BidLife's invitation to top the high bid (BidLifeEffect asks every player each round). The
+         *  human is asked (InputConfirm); not overridden, it inherited Forge's AI, whose rule
+         *  (!self, life > bid + 5) decided in the seat's place with no question. */
+        @Override
+        public boolean confirmBidAction(SpellAbility sa, PlayerActionConfirmMode mode, String message,
+                int bid, Player winner) {
+            return confirmAction(sa, mode, message, null, null, null);
         }
 
         @Override
@@ -5318,8 +5413,15 @@ public final class LlmSpikeGui {
         /** Which of several static abilities applies (as replacement order, for statics). */
         @Override
         public forge.game.staticability.StaticAbility chooseSingleStaticAbility(List<forge.game.staticability.StaticAbility> possible) {
+            if (PRICING_FOR_SNAPSHOT) {
+                return possible == null || possible.isEmpty() ? null : possible.get(0);   // display pricing, not a payment: above
+            }
             clearLast();
             if (possible == null || possible.isEmpty()) return null;
+            // One candidate left in the cost-reduction loop: the engine's human controller takes it
+            // without prompting (no full control), so the seat does too — silently, never an auto row
+            // and never a one-option ask the model has no decision inside.
+            if (possible.size() == 1) return possible.get(0);
             List<String> labels = new ArrayList<>();
             for (forge.game.staticability.StaticAbility st : possible)
                 labels.add(safeName(st.getHostCard()) + ": " + fit(String.valueOf(st)));
@@ -5454,16 +5556,50 @@ public final class LlmSpikeGui {
                     + srcAsk(sa) + ".", labels, null, 0));
         }
 
-        /** How many times to pay a keyword cost (casualty and the like); 0..max. */
+        /** How many times to pay a keyword cost (casualty and the like); 0..max. The engine passes
+         *  Integer.MAX_VALUE for a pay-any-number cost (Multikicker, Replicate, Squad:
+         *  GameActionUtil.addExtraKeywordCost), so a huge range is stated like chooseNumber's, never
+         *  enumerated — building 0..2147483647 labels would exhaust the heap before any ask went out. */
         @Override
         public int chooseNumberForKeywordCost(SpellAbility sa, Cost cost, forge.game.keyword.KeywordInterface keyword, String prompt, int max) {
             clearLast();
             if (max <= 0) return 0;
+            if (max > 12) return chooseWideKeywordCost(sa, cost, prompt, max);
             List<String> labels = new ArrayList<>();
             for (int i = 0; i <= max; i++) labels.add(String.valueOf(i));
             int c = askOne("keyword-cost", (prompt == null || prompt.isEmpty() ? "How many times do you pay " + cost.toSimpleString() : fit(prompt))
                     + srcAsk(sa) + "?", labels, null, 0);
             return Math.max(0, c);
+        }
+
+        /** The 0..max "any number of times" ask when the engine's own range is bigger than the menu:
+         *  the range is stated (a legal domain, like the spinner the human controller shows and
+         *  chooseNumber's wide-number asks), the number a resource statement, answered NUMBER:. */
+        private int chooseWideKeywordCost(SpellAbility sa, Cost cost, String prompt, int max) {
+            if (!fastOk() && !smartOk()) { auto("keyword-cost(no-model)->0"); return 0; }
+            LLMBridge b = smartOk() ? smart : fast;
+            String base = snapshot() + (observer != null ? "\nDECISION: " : "\n")
+                    + (prompt == null || prompt.isEmpty() ? "How many times do you pay " + cost.toSimpleString() : fit(prompt))
+                    + srcAsk(sa) + "\nEvery integer from 0 through " + max
+                    + " inclusive is legal. Reply with exactly NUMBER: <integer>.";
+            try {
+                for (int attempt = 0; attempt < 2 && (b == smart ? smartOk() : fastOk()); attempt++) {
+                    offerAnswer(b, AnswerTool.Spec.number(0, max));
+                    String reply = ask(b, base + (attempt == 0 ? "" : "\nInvalid answer. Use exactly NUMBER: <integer> within the range."));
+                    noteAnswerVia(attempt);
+                    if (reply == null) break;
+                    AnswerTool.Answer ta = toolAnswer();
+                    Integer value = ta != null ? ta.number : parseNumberReply(reply, 0, max);
+                    if (value != null) {
+                        evalDec("keyword-cost", -1, value, tierOf(b == smart), 0, null,
+                                Lists.newArrayList("integer range [0, " + max + "]"));
+                        p("[ROUTER] keyword-cost: " + value);
+                        return Math.max(0, value);
+                    }
+                }
+            } catch (Exception e) { /* deterministic fallback below, never Forge AI */ }
+            auto("keyword-cost(unparsed)->0");
+            return 0;
         }
 
         /** Whether to pay an optional keyword cost (one time). */
@@ -5648,12 +5784,14 @@ public final class LlmSpikeGui {
             return out;
         }
 
-        /** An attack or block tax (Propaganda, Ghostly Prison): whether to pay it. Paying is the engine's mechanics. */
+        /** An attack or block tax (Propaganda, Ghostly Prison): whether to pay it. Paying is the engine's mechanics.
+         *  The engine's prompt carries raw engine ids ("declare Grizzly Bears (2) an attacker"); the faithful ask
+         *  renders them as seat handles (seatText), the release keeps their profile bytes. */
         @Override
         public boolean payCombatCost(Card card, Cost cost, SpellAbility sa, String prompt) {
             clearLast();
             if (!ComputerUtilCost.canPayCost(sa, getPlayer(), sa != null && sa.isTrigger())) { auto("combat-cost(cannot-pay)->no"); return false; }
-            int c = askOne("combat-cost", (prompt == null || prompt.isEmpty() ? "Pay " + cost.toSimpleString() : fit(prompt))
+            int c = askOne("combat-cost", (prompt == null || prompt.isEmpty() ? "Pay " + cost.toSimpleString() : seatText(prompt))
                     + " for " + labelOf(card) + "? If you do not pay, it does not attack or block.",
                     java.util.Arrays.asList("Pay", "Do not pay"), null, 0);
             return c == 0 && super.payCombatCost(card, cost, sa, prompt);
@@ -6017,6 +6155,28 @@ public final class LlmSpikeGui {
             if (validTargets == null || validTargets.isEmpty())
                 return super.choosePermanentsToSacrifice(sa, min, max, validTargets, message);
             List<Card> opts = new ArrayList<>(validTargets);
+            // Emerge and offering: the engine asks for the creature while it works out the cost (CostAdjustment), 0 or 1.
+            // The sacrifice is what lets the spell be cast that way (no creature, no emerge: the payment refuses), so the
+            // seat names one. An affordability test is answered with the one that lowers the cost most, without asking,
+            // as Delve's is: answering "none" there kept Elder Deep-Fiend's emerge off the menu (surface check).
+            if (sa != null && (sa.isEmerge() || sa.isOffering()) && max == 1) {
+                Card most = opts.get(0);
+                for (Card c : opts) if (c.getCMC() > most.getCMC()) most = c;
+                if (!payingForReal || askingConvoke) return new CardCollection(most);
+                // Only a creature that leaves the rest payable: a smaller one can make the cast fail at payment.
+                int left = availableMana() - (sa.getPayCosts() == null || sa.getPayCosts().getTotalMana() == null ? 0 : sa.getPayCosts().getTotalMana().getCMC());
+                List<Card> keep = new ArrayList<>();
+                for (Card c : opts) if (left + c.getCMC() >= 0) keep.add(c);
+                if (!keep.isEmpty()) opts = keep;
+                if (opts.size() == 1) return firstN(opts, 1, "sacrifice(forced, " + (sa.isEmerge() ? "emerge" : "offering") + ")" + srcOf(sa));
+                List<String> labels = new ArrayList<>();
+                for (Card c : opts) labels.add(cardLabel(c));
+                List<Integer> pick = decideCost("sacrifice", "COST: to cast " + labelOf(sa) + " you SACRIFICE one of these; the cost is"
+                        + " reduced by its mana value" + (sa.isOffering() ? " (offering)" : " (emerge)") + ". Choose which.", labels, 1, 1, false);
+                Card c = pick != null && pick.size() == 1 ? opts.get(pick.get(0)) : most;
+                if (pick == null || pick.size() != 1) auto("sacrifice(unparsed, emerge)->the largest reduction");
+                return new CardCollection(c);
+            }
             if (opts.size() <= min) return firstN(opts, min, "sacrifice(forced)" + srcOf(sa)); // whole set forced, no real choice
             try {
                 if (!smartOk()) return firstN(opts, min, "sacrifice(no-budget)");
@@ -6080,8 +6240,29 @@ public final class LlmSpikeGui {
         private static java.util.Set<String> hookNames;
         static {
             if (SURFACE_REPORT != null) Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                // The engine's own lists of ways to play a card, so the gate compares with the engine, not a copy of it.
+                for (forge.game.spellability.AlternativeCost a : forge.game.spellability.AlternativeCost.values()) SURFACES.add("known\tplay:alt:" + a);
+                for (forge.game.spellability.OptionalCost o : forge.game.spellability.OptionalCost.values()) SURFACES.add("known\tplay:opt:" + o);
                 try { java.nio.file.Files.write(java.nio.file.Paths.get(SURFACE_REPORT), SURFACES); } catch (Exception ignore) { }
             }));
+        }
+
+        /** Test runs only: how the seat's chosen play was played ("play:alt:Flashback", "play:opt:Kicker1",
+         *  "play:zone:Graveyard", "play:state:Secondary", "play:land", "play:ability", "play:other-cost"), so each way
+         *  the engine lets a card be played is proven by a test that played it from the menu. */
+        private static void playSeen(SpellAbility sa, forge.game.zone.Zone from) {
+            if (SURFACE_REPORT == null || sa == null) return;
+            try {
+                List<String> k = new ArrayList<>();
+                k.add(sa.isLandAbility() ? "land" : sa.isSpell() ? "spell" : "ability");
+                if (sa.getAlternativeCost() != null) k.add("alt:" + sa.getAlternativeCost());
+                else if (sa.isSpell() && !sa.isBasicSpell()) k.add("other-cost");
+                for (forge.game.spellability.OptionalCost o : sa.getOptionalCosts()) k.add("opt:" + o);
+                if (from != null && !from.is(ZoneType.Hand) && !from.is(ZoneType.Battlefield)) k.add("zone:" + from.getZoneType());
+                forge.card.CardStateName st = sa.getCardStateName();
+                if (st != null && st != forge.card.CardStateName.Original) k.add("state:" + st);
+                for (String x : k) SURFACES.add("play:" + x + "\tasked");
+            } catch (Exception ignore) { }
         }
 
         private static void surfaceSeen(String tier) {
@@ -7099,6 +7280,21 @@ public final class LlmSpikeGui {
                     }
                 } catch (Exception ignore) { /* the base spell is still offered */ }
             }
+            // A spell playable only WITH an optional cost is offered with it: retrace and jump-start cast from the
+            // graveyard (SpellAbility.canPlayWithOptionalCost), an offering lowers a cost the seat cannot otherwise pay.
+            // Its plain cast is not on the menu, so the cost asked after the pick (withOptionalCosts) never came up.
+            for (SpellAbility sa : new ArrayList<>(candidates)) {
+                if (!sa.isSpell() || altCosts.contains(sa)) continue;
+                try {
+                    sa.setActivatingPlayer(me);
+                    if (offerable(sa, me, false)) continue;
+                    for (OptionalCostValue v : GameActionUtil.getOptionalCostValues(sa)) {
+                        SpellAbility with = GameActionUtil.addOptionalCosts(sa, Lists.newArrayList(v));
+                        with.setActivatingPlayer(me);
+                        if (offerable(with, me, true)) { candidates.add(with); altCosts.add(with); }
+                    }
+                } catch (Exception ignore) { /* not offered */ }
+            }
             for (SpellAbility sa : candidates) {
                 // Every castable entry is offered: a cap here hides spells from the seat without a log
                 // line (issue #106).
@@ -7147,7 +7343,17 @@ public final class LlmSpikeGui {
         static boolean offerable(SpellAbility sa, Player me, boolean alt) {
             if (sa.isLandAbility() || sa.isManaAbility()) return false;
             if (!sa.canPlay()) return false;
-            if (alt ? !ComputerUtilCost.canPayCost(sa, me, false) : !ComputerUtilMana.canPayManaCost(sa, me, 0, false)) return false;
+            // The cost check prices the menu and the hand tags (SeatObservation.handList's castTag):
+            // its adjust consults the controller on cost reductions (CostAdjustment's reduction loop),
+            // and an ask inside a snapshot build re-enters renderSnapshot forever. See PRICING_FOR_SNAPSHOT.
+            PRICING_FOR_SNAPSHOT = true;
+            boolean payable;
+            try {
+                payable = alt ? ComputerUtilCost.canPayCost(sa, me, false) : ComputerUtilMana.canPayManaCost(sa, me, 0, false);
+            } finally {
+                PRICING_FOR_SNAPSHOT = false;
+            }
+            if (!payable) return false;
             // Skip a targeted spell that currently has NO legal target — casting it just fizzles
             // ("Couldn't add to stack, failed to target"), e.g. Animate Dead with an empty graveyard.
             if (sa.usesTargeting()) {
@@ -7168,6 +7374,7 @@ public final class LlmSpikeGui {
         static String castTag(Player pl, Card c, int[] tally) {
             String base = affordability(pl, c, tally);
             boolean normal = false, alt = false;
+            String optionalName = null;
             try {
                 for (SpellAbility sa : ComputerUtilAbility.getSpellAbilities(new CardCollection(c), pl)) {
                     if (!sa.isSpell()) continue;
@@ -7178,10 +7385,18 @@ public final class LlmSpikeGui {
                     if (offerable(sa, pl, false)) { normal = true; break; }
                     for (SpellAbility a : GameActionUtil.getAlternativeCosts(sa, pl, false))
                         if (offerable(a, pl, true)) alt = true;
+                    // The menu also offers the cast with an optional cost that makes it playable (an offering):
+                    // the tag says which, or the hand reads "need 3 more mana" beside a castable option.
+                    for (OptionalCostValue v : GameActionUtil.getOptionalCostValues(sa)) {
+                        SpellAbility with = GameActionUtil.addOptionalCosts(sa, Lists.newArrayList(v));
+                        with.setActivatingPlayer(pl);
+                        if (optionalName == null && offerable(with, pl, true)) optionalName = v.getType().getName();
+                    }
                 }
             } catch (Exception e) { return base; }
             if (normal) return "(castable)";
             if (alt) return "(castable by an alternative cost)";
+            if (optionalName != null) return "(castable only with " + optionalName + ")";
             return "(castable)".equals(base) ? "(payable, not castable now)" : base;
         }
 
