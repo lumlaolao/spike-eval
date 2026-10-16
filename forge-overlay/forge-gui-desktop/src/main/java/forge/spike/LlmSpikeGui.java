@@ -225,8 +225,12 @@ public final class LlmSpikeGui {
      *  re-deals the opponent's hand first, so it reveals no hidden card (lookahead-preview-v6).
      *  Epoch 31 (2026-10-16, C3 ANT Storm games): a colour the card decides (Chrome Mox) counts in mana available, ability
      *  text names the card (no CARDNAME), and a preview keeps imprinted cards (observation-faithful-v32,
-     *  lookahead-preview-v7). */
-    static final String HARNESS_EPOCH = "harness-epoch-31";
+     *  lookahead-preview-v7).
+     *  Epoch 32 (2026-10-16, combo lines): a payment asked mid-way (an any-colour source) keeps the AI memory it uses, so
+     *  the second Lotus Petal pays (Ad Nauseam); a mana ability with a cost beyond tapping (Lion's Eye Diamond, Spirit
+     *  Guides) is on the menu; storm copies' new targets are the seat's and the copies are called copies; exile and an
+     *  unordered graveyard are not ordered; a preview plays an alternative cost and holds the stack (lookahead-preview-v8). */
+    static final String HARNESS_EPOCH = "harness-epoch-32";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -1973,7 +1977,18 @@ public final class LlmSpikeGui {
 
         // ---------------- full-context serializer ----------------
 
+        /** The state for a prompt. Asked in the middle of a real payment (the colour an any-colour source makes, the
+         *  engine patch), rendering it test-pays other spells for their "(castable)" tags, and each test payment
+         *  clears and refills the AI memory the real payment is using (PAYS_TAP_COST): the second Lotus Petal was
+         *  then skipped and Ad Nauseam's last {1} went unpaid (runs/c3/ant-storm-default T7). The memory is put
+         *  back as it was. */
         private String snapshot() {
+            if (!payingForReal) return renderSnapshot();
+            java.util.Map<AiCardMemory.MemorySet, java.util.List<Card>> mem = snapshotAiMemory();
+            try { return renderSnapshot(); } finally { restoreAiMemory(mem); }
+        }
+
+        private String renderSnapshot() {
             if (observer != null) {
                 // Faithful path: capture the engine log into the seat stream (redacted, with private
                 // reveals interleaved), render history from THAT stream, then the viewer-aware state.
@@ -3517,7 +3532,7 @@ public final class LlmSpikeGui {
                     return true;
                 }
                 if (cands.size() > 1 && okFor("targets")) {
-                    String q = "Choose the TARGET for " + labelOf(sa) + xNote(sa) + " (the spell/ability resolves against whatever you pick).";
+                    String q = "Choose the TARGET for " + copyOf(sa) + labelOf(sa) + xNote(sa) + " (the spell/ability resolves against whatever you pick).";
                     int c = decideOne(bridgeFor("targets"), "targets", q, labels, min == 0 ? "No target (decline)" : null);
                     // bridge dead -> the same deterministic path as an unparsed reply (decline when
                     // optional, else the first candidate). It used to be Forge's AI.
@@ -3617,7 +3632,7 @@ public final class LlmSpikeGui {
                         // type=null here -> decideOne never logs internally (incl. its decline branch), so
                         // EVERY exit from this call, including the "optional -> no target" one below, must be
                         // logged by us or it vanishes with zero jsonl/log trace (the exact C5 double-failure shape).
-                        int c = decideOne(bridgeFor("target"), null, "Choose the TARGET for " + labelOf(sa) + xNote(sa)
+                        int c = decideOne(bridgeFor("target"), null, "Choose the TARGET for " + copyOf(sa) + labelOf(sa) + xNote(sa)
                                 + " (the spell/ability resolves against whatever you pick).", labels,
                                 sa.getMinTargets() == 0 ? "No target" : null);
                         if (c == -1 && sa.getMinTargets() == 0) {
@@ -4249,16 +4264,48 @@ public final class LlmSpikeGui {
          *  targets and modes. The inherited version set them with {@code brains.doTrigger}, so Forge's
          *  AI chose every trigger target: Orcish Bowmasters' ping, Snapcaster Mage's card, Fury's
          *  damage, and whether an "up to one" trigger (Solitude, Skyclave Apparition) targets at all.
-         *  A copied spell keeps the engine's path (the AI may re-target a copy of our own spell). */
+         *  A copy that may take new targets (storm, Twincast) gets them from the seat too: the engine path let Forge's AI
+         *  pick them ({@code brains.doTrigger}), so it chose where every Tendrils, Grapeshot or Brain Freeze copy went. */
         @Override
         public void orderAndPlaySimultaneousSa(List<SpellAbility> activePlayerSAs) {
             for (final SpellAbility sa : orderSimultaneousSa(activePlayerSAs)) {
                 if (sa.isTrigger() && !sa.isCopied()) {
                     if (prepareTrigger(sa)) forge.ai.ComputerUtil.playStack(sa, getPlayer(), getGame());
                     else p("[ROUTER] trigger: " + safeName(sa.getHostCard()) + " has no legal target -> not put on the stack");
+                } else if (sa.isCopied() && sa.isSpell() && sa.isMayChooseNewTargets() && choosesOwnColours()
+                        && !sa.hasParam("TargetingPlayer")) {
+                    if (!sa.getHostCard().isInZone(ZoneType.Stack)) sa.setHostCard(getGame().getAction().moveToStack(sa.getHostCard(), sa));
+                    else getGame().getStackZone().add(sa.getHostCard());
+                    retargetCopy(sa);
+                    getGame().getStack().add(sa);
                 } else {
                     super.orderAndPlaySimultaneousSa(java.util.Collections.singletonList(sa));
                 }
+            }
+        }
+
+        /** "a copy of " for a copied spell under the faithful profile (a storm copy is not the card it copies), else "". */
+        private String copyOf(SpellAbility sa) {
+            return observer != null && sa != null && sa.isCopied() ? "a copy of " : "";
+        }
+
+        /** New targets for a copy, chosen by the seat (it may name the same ones); the old targets stay when its choice is
+         *  not a legal set, as the engine's own path does. */
+        private void retargetCopy(SpellAbility copy) {
+            List<forge.game.spellability.TargetChoices> old = new ArrayList<>();
+            for (SpellAbility s = copy; s != null; s = s.getSubAbility()) old.add(s.getTargets());
+            boolean ok;
+            try {
+                for (SpellAbility s = copy; s != null; s = s.getSubAbility()) if (s.usesTargeting()) s.resetTargets();
+                if (copy.getActivatingPlayer() == null) copy.setActivatingPlayer(getPlayer());
+                ensureTargetsSet(copy);
+                ok = true;
+                for (SpellAbility s = copy; s != null; s = s.getSubAbility()) if (s.usesTargeting() && !s.isTargetNumberValid()) ok = false;
+            } catch (Exception e) { ok = false; }
+            if (!ok) {
+                int i = 0;
+                for (SpellAbility s = copy; s != null; s = s.getSubAbility()) s.setTargets(old.get(i++));
+                auto("copy-targets(no legal choice)->kept the original's targets");
             }
         }
 
@@ -4329,10 +4376,15 @@ public final class LlmSpikeGui {
                     // characters) and carries no engine card id; the legacy profiles keep saLabel.
                     for (SpellAbility sa : activePlayerSAs) labels.add(labelOf(sa));
                     int n = activePlayerSAs.size();
-                    List<Integer> picks = decideMany(smart, "trigger-order",
-                            "These " + n + " triggers go on the stack at the same time. List them in the order you want them to "
-                            + "RESOLVE — the FIRST number you name resolves FIRST (it goes on the stack last). Order them so your "
-                            + "plan works out.", labels, n, n);
+                    // Storm makes copies, not triggers; the faithful question says which (and gives no advice).
+                    boolean copies = activePlayerSAs.stream().allMatch(SpellAbility::isCopied);
+                    String q = observer == null
+                            ? "These " + n + " triggers go on the stack at the same time. List them in the order you want them to "
+                              + "RESOLVE — the FIRST number you name resolves FIRST (it goes on the stack last). Order them so your "
+                              + "plan works out."
+                            : "These " + n + (copies ? " copies" : " triggers") + " go on the stack at the same time. List them in "
+                              + "the order you want them to RESOLVE — the FIRST number you name resolves FIRST (it goes on the stack last).";
+                    List<Integer> picks = decideMany(smart, "trigger-order", q, labels, n, n);
                     if (picks != null && picks.size() == n) {
                         List<SpellAbility> play = new ArrayList<>(n);
                         for (int i = n - 1; i >= 0; i--) play.add(activePlayerSAs.get(picks.get(i)));
@@ -4500,6 +4552,15 @@ public final class LlmSpikeGui {
             if (cards == null || cards.size() <= 1) return cards; // nothing to order, no real choice
             try {
                 if (!smartOk()) { auto("order(no-model)->as-is"); return cards; }
+                // No order exists to choose: exile has none, and a graveyard's matters only when the engine says a card
+                // cares (isGraveyardOrdered), as Forge's own human controller decides. Doomsday asked the seat to order
+                // the eight cards it exiles, mid-combo (GoldenChecksTest.doomsdaysPileAndItsOrderAreTheSeats).
+                if (rnd == null && (source == null || source.getApi() != ApiType.ReorderZone)
+                        && (destinationZone == ZoneType.Exile
+                            || (destinationZone == ZoneType.Graveyard && !getGame().isGraveyardOrdered(getPlayer())))) {
+                    auto("order(forced: " + destinationZone + " has no order to choose)->as-is");
+                    return cards;
+                }
                 List<Card> opts = new ArrayList<>(cards);
                 List<String> labels = new ArrayList<>();
                 for (Card c : opts) labels.add(cardLabel(c));
@@ -6924,6 +6985,7 @@ public final class LlmSpikeGui {
                 // Every castable entry is offered: a cap here hides spells from the seat without a log
                 // line (issue #106).
                 if (offerable(sa, me, altCosts.contains(sa))) options.add(sa);
+                else if (everyLand && costlyManaAbility(sa, me)) options.add(sa);
             }
             // Distinct lands we could play this main phase (by name), each offered as its own option so the
             // model chooses WHICH land — colored sources, fetchlands, painlands all matter for sequencing.
@@ -6949,6 +7011,21 @@ public final class LlmSpikeGui {
          *  a legal target when it targets. {@code alt}: an alternative cost, which is rarely mana alone
          *  (exile a card, pay life, return an Island), so it is checked as a whole cost; the normal cast
          *  keeps its historical mana check. */
+        /** A mana ability whose cost is more than tapping (Lion's Eye Diamond's sacrifice and discard, Lotus Petal's
+         *  sacrifice, a Spirit Guide exiled from hand) is a decision a combo turns on: crack LED in response to your own
+         *  Infernal Tutor to be hellbent when it resolves. Offered on the faithful seat's menu when it can be activated
+         *  now; one that only taps stays the payment's (asking it would flood the menu with floating mana). */
+        static boolean costlyManaAbility(SpellAbility sa, Player me) {
+            if (!sa.isManaAbility() || sa.getPayCosts() == null) return false;
+            forge.game.cost.Cost c = sa.getPayCosts();
+            boolean beyondTap = c.hasSpecificCostType(forge.game.cost.CostSacrifice.class)
+                    || c.hasSpecificCostType(forge.game.cost.CostDiscard.class)
+                    || c.hasSpecificCostType(forge.game.cost.CostExile.class);
+            if (!beyondTap) return false;
+            try { sa.setActivatingPlayer(me); return sa.canPlay() && forge.ai.ComputerUtilCost.canPayCost(sa, me, false); }
+            catch (Exception e) { return false; }
+        }
+
         static boolean offerable(SpellAbility sa, Player me, boolean alt) {
             if (sa.isLandAbility() || sa.isManaAbility()) return false;
             if (!sa.canPlay()) return false;

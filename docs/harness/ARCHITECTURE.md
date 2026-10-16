@@ -71,6 +71,14 @@ Anything new asks again: an opponent's spell or ability, every attack and block,
   fast tier) remain only as opt-in measurement switches (`MULLIGAN_HEURISTIC=1`, `SKIP_HEURISTICS=1`,
   `ONE_TIER=0`).
 
+**Combo lines (2026-10-16, harness-epoch-32):** every step of a combo turn is the seat's and can be taken when the rules
+allow: a mana ability that costs more than tapping (Lion's Eye Diamond, a Spirit Guide, Lotus Petal) is on the play menu,
+so LED can be cracked in response to the seat's own Infernal Tutor; Doomsday's five cards and their order, Ad Nauseam's
+every repeat, and each storm copy's target are asked. Golden checks play each line out (`GoldenChecksTest`:
+`doomsdaysPileAndItsOrderAreTheSeats`, `adNauseamRepeatsAsOftenAsTheSeatSays`,
+`tendrilsStormCopiesResolveAndTheirTargetsAreTheSeats`, `lionsEyeDiamondCanBeCrackedInResponseToInfernalTutor`,
+`ritualThenPetalThenAdNauseamIsPaid`).
+
 **When the model gives no usable answer:** a fixed legal option (the first, or decline; no attack for
 attackers), recorded on the decision row with why. Never Forge's AI, and never an option read out of the
 model's plan text (the "plan-named" fallbacks went in harness-epoch-30, review M2).

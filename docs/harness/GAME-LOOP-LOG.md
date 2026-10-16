@@ -532,10 +532,12 @@ about win rates. A first default-arm game was killed at T19 by my shell's 30-min
   copied onto the preview copy. Test `aPreviewKeepsAnImprintedMoxsColour` (lookahead-preview-v7). Told twice it had no
   blue, the seat cracked Polluted Delta instead of casting Ponder (default T11). The turn arm's Tendrils preview failed
   the same way (T9, "Didn't find what to pay for {1}").
-- OPEN   default T7: {B:3} floating and two Lotus Petals, Ad Nauseam offered as castable and chosen, the seat named black
-  for one Petal, then "Didn't find what to pay for {1}" and nothing was cast. Not reproduced by
-  `twoAnyColourSourcesBothPayTheGenericPart` or the exact Ritual-Petal-Ad Nauseam sequence (both pay). Candidate: the
-  any-colour engine patch's open colour on the copy of a sacrificed Petal; needs a repro before a fix.
+- FIXED  (2026-10-16, after the read) default T7: {B:3} floating and two Lotus Petals, Ad Nauseam chosen, then "Didn't
+  find what to pay for {1}" and nothing was cast: the seat's turn-4 kill, and why the game lasted 59 turns. Cause: the
+  engine patch asks the seat mid-payment which colour a Petal makes; rendering that prompt test-paid Tendrils for its
+  "(castable)" tag, and the test payment cleared and refilled the AI memory the real payment used (PAYS_TAP_COST), so the
+  second Petal read as already used. The prompt is rendered with that memory saved and restored. Test
+  `ritualThenPetalThenAdNauseamIsPaid` (fails without the fix).
 - noted  turn arm T17: `simulate` asked during a fetchland's library choice, refused by design (no play menu). Watch whether
   the turn window invites previews outside the play menu.
 - noted  provider: one dropped connection (`chunked transfer encoding`), retried in 16 s; one 300 s timeout on the
@@ -550,6 +552,23 @@ are read for coherence only. TAKEN 0, LOST 0, SKIP 0, 0 Forge-AI decisions, no `
   once "header parser received no bytes"), then were retried: 15-25 minutes of every game. The harness cannot tell a dead
   connection from a model still reasoning. Fix: request with `stream: true` and treat a connection that sends nothing,
   not even OpenRouter's keep-alive comments, for about 60 s as dead (retry then), keeping the 300 s budget for reasoning.
-- OPEN   a preview of Force of Will cast for its alternative cost (exile a blue card) is "unavailable": the copy tries to
-  pay {U} ("Didn't find what to pay for {U}", whole-game arm T8 and T19). The preview should play the same alternative cost.
+- FIXED  (2026-10-16) a preview of Force of Will cast for its alternative cost was "unavailable": the copy matched the
+  hard cast. The copy's alternative cost is found and played; and the copy now holds the stack, so a counterspell is
+  previewed against the spell it answers (the engine's copy has none: the report said the opponent was unchanged).
+  Test `aForceOfWillPitchIsPreviewed` (lookahead-preview-v8).
+
+### Combo-line review of the C3 games, 2026-10-16 (no new games; owner: exhaust the recorded games first)
+
+Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so each was played out in a golden check:
+- FIXED  the menu offered no mana ability, so Lion's Eye Diamond was usable only as payment: no LED in response to the
+  seat's own Infernal Tutor (hellbent), no Spirit Guide. A mana ability with a cost beyond tapping is offered on the faithful
+  menu (`costlyManaAbility`). Test `lionsEyeDiamondCanBeCrackedInResponseToInfernalTutor`.
+- FIXED  storm copies' new targets were Forge's AI's (`brains.doTrigger` on the engine path): each copy's target is now the
+  seat's ("Choose the TARGET for a copy of ..."), and the order question calls them copies, without the old "Order them so
+  your plan works out" advice. Test `tendrilsStormCopiesResolveAndTheirTargetsAreTheSeats`.
+- FIXED  Doomsday asked the seat to order the eight cards it exiles. Exile, and a graveyard whose order cannot matter, have
+  no order: recorded as forced, as Forge's own human controller does for the graveyard. Test
+  `doomsdaysPileAndItsOrderAreTheSeats` (the five, their order top-down, the library exactly that pile).
+- clean  Ad Nauseam: every repeat is asked, with current life and the cards drawn so far
+  (`adNauseamRepeatsAsOftenAsTheSeatSays`).
 - noted  `simulate` asked during non-play decisions twice more (turn T13, game T3), refused by design.

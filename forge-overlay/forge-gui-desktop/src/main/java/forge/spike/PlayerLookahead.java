@@ -43,8 +43,10 @@ final class PlayerLookahead {
      *  v5 (2026-10-15): a line is no longer capped at three plays (docs/harness/MODEL-LIMITS.md).
      *  v6 (2026-10-16): the opponent's hand is re-dealt from hand and library before the preview, so a
      *  preview no longer reveals hidden cards (review H2).
-     *  v7 (2026-10-16): imprinted cards are copied, so a Chrome Mox pays on the copy as in the game. */
-    static final String VERSION = "lookahead-preview-v7";
+     *  v7 (2026-10-16): imprinted cards are copied, so a Chrome Mox pays on the copy as in the game.
+     *  v8 (2026-10-16): an option cast for an alternative cost (Force of Will's pitch) is previewed with that cost, and
+     *  the copy holds the stack, so a response is previewed against the spell it answers. */
+    static final String VERSION = "lookahead-preview-v8";
 
     private PlayerLookahead() { }
 
@@ -92,6 +94,73 @@ final class PlayerLookahead {
             MyRandom.setRandom(liveRandom);
             exit();
         }
+    }
+
+    /** Puts the live stack's spells on the copy, bottom first, with their targets (the engine's own copyStack, which its
+     *  simulator leaves off). Without it a response was previewed against an empty stack: a counterspell's report
+     *  showed the opponent unchanged (LookaheadProbeTest.aForceOfWillPitchIsPreviewed). Abilities on the stack are not
+     *  copied (the engine cannot either). True when anything was put on the copy's stack. */
+    static boolean copyStack(Game live, Game copy, GameCopier copier) {
+        if (live.getStack().isEmpty() || !copy.getStack().isEmpty()) return false;
+        java.util.List<forge.game.spellability.SpellAbilityStackInstance> bottomFirst = new java.util.ArrayList<>();
+        for (forge.game.spellability.SpellAbilityStackInstance si : live.getStack()) bottomFirst.add(0, si);
+        boolean any = false;
+        for (forge.game.spellability.SpellAbilityStackInstance si : bottomFirst) {
+            try {
+                forge.game.spellability.SpellAbility orig = si.getSpellAbility();
+                if (orig == null || !orig.isSpell()) continue;
+                forge.game.card.Card host = (forge.game.card.Card) copier.find(orig.getHostCard());
+                if (host == null) continue;
+                forge.game.spellability.SpellAbility match = null;
+                for (forge.game.spellability.SpellAbility c : host.getSpellAbilities()) {
+                    if (!c.isSpell()) continue;
+                    if (match == null || java.util.Objects.equals(c.getDescription(), orig.getDescription())) match = c;
+                }
+                if (match == null) continue;
+                match.setActivatingPlayer((Player) copier.find(orig.getActivatingPlayer()));
+                if (orig.usesTargeting() && orig.getTargets() != null)
+                    for (forge.game.GameObject t : orig.getTargets()) {
+                        Object ct = copier.find(t);
+                        if (ct instanceof forge.game.GameObject) match.getTargets().add((forge.game.GameObject) ct);
+                    }
+                copy.getStack().add(match);
+                any = true;
+            } catch (RuntimeException ignore) { }
+        }
+        return any;
+    }
+
+    /** The copy's version of a live option cast for an alternative cost (Force of Will's pitch: pay 1 life and exile a
+     *  blue card). The simulator matches an ability by its text among the card's own abilities, where the alternative
+     *  is not, and fell back to the hard cast, which the copy could not pay (runs/c3/doomsday-game T8, T19). Any other
+     *  option is returned as it is, for the simulator to map. Targets set on the live option are carried over. */
+    static forge.game.spellability.SpellAbility alternativeOnCopy(forge.game.spellability.SpellAbility live, GameSimulator sim, Player seat) {
+        try {
+            forge.game.card.Card host = live.getHostCard();
+            if (host == null || !live.isSpell() || host.getSpellAbilities().contains(live)) return live;
+            forge.game.card.Card copyHost = (forge.game.card.Card) sim.getGameCopier().find(host);
+            Player copySeat = (Player) sim.getGameCopier().find(seat);
+            if (copyHost == null || copySeat == null) return live;
+            for (forge.game.spellability.SpellAbility base : copyHost.getSpellAbilities()) {
+                if (!base.isSpell()) continue;
+                base.setActivatingPlayer(copySeat);
+                for (forge.game.spellability.SpellAbility alt : forge.game.GameActionUtil.getAlternativeCosts(base, copySeat, false)) {
+                    if (!java.util.Objects.equals(alt.getDescription(), live.getDescription())) continue;
+                    alt.setActivatingPlayer(copySeat);
+                    forge.game.spellability.SpellAbility a = alt, l = live;
+                    for (; a != null && l != null; a = a.getSubAbility(), l = l.getSubAbility()) {
+                        if (l.getTargets() == null) continue;
+                        for (forge.game.GameObject t : l.getTargets()) {
+                            Object ct = t instanceof forge.game.GameEntity || t instanceof forge.game.spellability.SpellAbility
+                                    ? sim.getGameCopier().find(t) : null;
+                            if (ct instanceof forge.game.GameObject) a.getTargets().add((forge.game.GameObject) ct);
+                        }
+                    }
+                    return alt;
+                }
+            }
+        } catch (RuntimeException ignore) { }
+        return live;
     }
 
     /** The engine's copier leaves imprinted cards behind, so a Chrome Mox on the copy makes no mana and the preview
@@ -271,6 +340,7 @@ final class PlayerLookahead {
             Game simGame = sim.getSimulatedGameState();
             if (simGame == null) return "(preview unavailable)";
             copyImprints(live, sim.getGameCopier());
+            boolean stackBelow = copyStack(live, simGame, sim.getGameCopier());
             // Determinize BEFORE anything resolves so the preview cannot depend on what the seat cannot see.
             determinize(simGame, (Player) sim.getGameCopier().find(seat));
             StringBuilder b = new StringBuilder("if you ");
@@ -309,7 +379,7 @@ final class PlayerLookahead {
                     // means it is on the copy's stack; the engine can report success for an option whose
                     // card an earlier step already moved, with nothing put on the stack, and that is not
                     // a play and must not be reported as one.
-                    GameStateEvaluator.Score played = sim.simulateSpellAbility(o, false);
+                    GameStateEvaluator.Score played = sim.simulateSpellAbility(alternativeOnCopy(o, sim, seat), false);
                     ok = simGame.getStack().size() > 0 && (played == null || played.value != Integer.MIN_VALUE);
                 }
                 if (!ok) {
@@ -330,6 +400,7 @@ final class PlayerLookahead {
                 delta = d.toString();
             }
             b.append(delta);
+            if (stackBelow) b.append(". What was already on the stack resolved after it, in order, with no other responses");
             if (stopped != null)
                 b.append(". After that the engine could NOT pay for or play ").append(stopped)
                  .append(" on the copy, so the line stops there");
