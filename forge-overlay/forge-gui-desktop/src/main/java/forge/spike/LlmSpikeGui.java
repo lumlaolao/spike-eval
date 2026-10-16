@@ -5648,12 +5648,14 @@ public final class LlmSpikeGui {
             return out;
         }
 
-        /** An attack or block tax (Propaganda, Ghostly Prison): whether to pay it. Paying is the engine's mechanics. */
+        /** An attack or block tax (Propaganda, Ghostly Prison): whether to pay it. Paying is the engine's mechanics.
+         *  The engine's prompt carries raw engine ids ("declare Grizzly Bears (2) an attacker"); the faithful ask
+         *  renders them as seat handles (seatText), the release keeps their profile bytes. */
         @Override
         public boolean payCombatCost(Card card, Cost cost, SpellAbility sa, String prompt) {
             clearLast();
             if (!ComputerUtilCost.canPayCost(sa, getPlayer(), sa != null && sa.isTrigger())) { auto("combat-cost(cannot-pay)->no"); return false; }
-            int c = askOne("combat-cost", (prompt == null || prompt.isEmpty() ? "Pay " + cost.toSimpleString() : fit(prompt))
+            int c = askOne("combat-cost", (prompt == null || prompt.isEmpty() ? "Pay " + cost.toSimpleString() : seatText(prompt))
                     + " for " + labelOf(card) + "? If you do not pay, it does not attack or block.",
                     java.util.Arrays.asList("Pay", "Do not pay"), null, 0);
             return c == 0 && super.payCombatCost(card, cost, sa, prompt);
