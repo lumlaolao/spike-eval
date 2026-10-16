@@ -52,7 +52,8 @@
 # (macOS bash 3.2); never `grep -c X f || echo 0`; assert the build under test is the build that ran.
 # ALSO: the verdict heredocs live inside `$( ... )`, and bash 3.2 scans for the closing paren BEFORE it
 # parses the heredoc, so an unbalanced quote — including one apostrophe in a body comment — breaks the
-# WHOLE file. Keep heredoc bodies free of `'`. (Cost me a debugging session; do not "fix" it by quoting.)
+# WHOLE file. Keep heredoc bodies free of `'` and backticks (a pattern backtick escapes as \x60,
+# per issue #219). (Cost me a debugging session; do not "fix" it by quoting.)
 set -u
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
@@ -63,6 +64,8 @@ if [ ! -x "$JAVA_HOME/bin/javac" ] && command -v javac >/dev/null 2>&1; then
   JAVA_HOME="$(dirname "$(dirname "$(readlink -f "$(command -v javac)")")")"
 fi
 JAVA="$JAVA_HOME/bin/java"; JAVAC="$JAVA_HOME/bin/javac"
+# Exported: python children (eval/puzzle_baselines.py launches the JVM via os.environ["JAVA"]; #221).
+export JAVA_HOME JAVA
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="${OUT:-$REPO/runs/harness-acceptance/$STAMP}"
 ALL_STAGES="preflight classpath compile javatests surfaces pytests canary gaming faketool faithful lookahead nativetool nativerefuse answertool turnchat rules scoring"
@@ -728,7 +731,7 @@ if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] in log")
 # Every decision goes through the call (owner, 2026-10-15): no tool ask may offer a text answer.
 import re
 TEXT_FORMAT=re.compile(r"\b(?:CHOICE|PICKS|BLOCKS|ALLOC|ATTACKS|ATTACKERS|SIMULATE|STEPS|YIELD|PROFILE|LINES|NUMBER|CARD):\s*<"
-    r"|`(?:PLAN|STEPS|YIELD|PROFILE|LINES|SIMULATE|CHOICE|PICKS|CARD|NUMBER):|(?:[Ee]nd|[Rr]eply|[Aa]nswer) with (?:EXACTLY|exactly)"
+    r"|\x60(?:PLAN|STEPS|YIELD|PROFILE|LINES|SIMULATE|CHOICE|PICKS|CARD|NUMBER):|(?:[Ee]nd|[Rr]eply|[Aa]nswer) with (?:EXACTLY|exactly)"
     r"|KEEP or MULLIGAN|instead of an action, you may reply")
 asks=[r for r in rows if r.get("t")=="context_call" and not r.get("round")]
 leaks=[m.group() for r in asks for m in [TEXT_FORMAT.search(r.get("prompt") or "")] if m]
