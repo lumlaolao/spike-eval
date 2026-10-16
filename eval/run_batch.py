@@ -78,6 +78,10 @@ SPIKE_FILES = ("LlmSpikeGui.java", "LlmSpikeHeadless.java")
 # Env keys cited mode owns; a user --env override of these is refused.
 CITED_FORCED_KEYS = ("MULLIGAN_HEURISTIC", "SKIP_HEURISTICS", "PLAN_A", "PLAN_B")
 # Set only by their dedicated flags (listed in the module docstring).
+# The condition a batch runs when --context-profile is not given: the faithful seat, the same default as
+# run-llm-headless.sh. v1-compat (the JVM's own unset default, kept byte-identical for old artifacts)
+# carries coaching, a two-sentence reasoning cap and a 25-decision turn cap; it is only ever a named arm.
+DEFAULT_CONTEXT_PROFILE = "v4-faithful"
 CONDITION_ENV_KEYS = ("CONTEXT_PROFILE", "MEMORY_TOOLS", "RULES_TOOL", "NATIVE_TOOLS", "LOOKAHEAD", "ONE_TIER", "NO_COACHING",
                       "ANSWER_TOOL", "ANSWER_TOOL_STRICT",
                       "ONE_CHAT", "PLAN_EXECUTE", "TIER_FAST_TYPES", "GAME_FORMAT")
@@ -259,7 +263,7 @@ def build_env(args, seed, swap, out_dir):
     # mismatch or, worse, pooled with a different measurement. Every condition key is set here,
     # always, to the requested value or its documented baseline. (This was a real bug: the always-on
     # play defaults leaked into a v1-compat arm.)
-    env["CONTEXT_PROFILE"] = args.context_profile or "v1-compat"
+    env["CONTEXT_PROFILE"] = args.context_profile or DEFAULT_CONTEXT_PROFILE
     env["MEMORY_TOOLS"] = "1" if getattr(args, "memory_tools", False) else "0"
     env["RULES_TOOL"] = "1" if getattr(args, "rules_tool", False) else "0"
     # The answer tool is a function call too: NATIVE_TOOLS stays on for it even without --memory-tools.
@@ -443,9 +447,7 @@ def resume_expectation(args):
     if getattr(args, "context_profile", None):
         expect["context_profile"] = [args.context_profile]
     else:
-        # Runner unset -> JVM default profile. A pre-profile line is accepted
-        # only because it can only have run the (then unnamed) v1 shape.
-        expect["context_profile"] = ["v1-compat", ABSENT]
+        expect["context_profile"] = [DEFAULT_CONTEXT_PROFILE]
     if getattr(args, "memory_tools", False):
         expect["memory_tools"] = [True]
     else:
@@ -799,7 +801,7 @@ def check_resume_condition(out_dir, condition, cited):
     for key, vals in legacy["fields"].items():
         want = condition.get(key)
         if key == "context_profile" and want is None:
-            want = "v1-compat"
+            want = DEFAULT_CONTEXT_PROFILE
         if key in ("memory_tools", "rules_tool", "native_tools", "answer_tool"):
             want = bool(want)
         if key in ("controller_a", "controller_b", "smart_a", "smart_b",
@@ -1015,7 +1017,7 @@ def finalize_provenance_and_cap(args, cited):
     log("[provenance] checkpoint=%s seed_bank=%s"
         % (forced["CHECKPOINT_SHA"], forced["SEED_BANK"]))
     log("[condition] context_profile=%s memory_tools=%s"
-        % (args.context_profile or "(unset: JVM default v1-compat)",
+        % (args.context_profile or "(unset: default " + DEFAULT_CONTEXT_PROFILE + ")",
            "1" if args.memory_tools else "off"))
     if forced["CHECKPOINT_SHA"] == "unknown":
         log("[warn] no --checkpoint given: the game line will not say which weights "
@@ -1221,9 +1223,10 @@ def build_parser():
                          "whenever the model spec is an alias the endpoint resolves.")
     ap.add_argument("--context-profile", metavar="NAME",
                     help="CONTEXT_PROFILE for every game (a registered name such "
-                         "as v1-compat, v2-memory, v3-compact; the JVM refuses an "
-                         "unknown one at launch). Unset = JVM default v1-compat, "
-                         "the historical baseline. Stamped as context_profile/"
+                         "as v4-faithful, v1-compat, v3-compact; the JVM refuses an "
+                         "unknown one at launch). Unset = v4-faithful, the faithful "
+                         "seat; v1-compat is the historical baseline and only a named "
+                         "arm. Stamped as context_profile/"
                          "context_sha on each game line and in the batch manifest.")
     ap.add_argument("--memory-tools", action="store_true",
                     help="MEMORY_TOOLS=1: give LLM seats the evidence-archive tools "

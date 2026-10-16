@@ -311,6 +311,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
 
 - **`run_batch.py`** launches games:
   - it pins every condition explicitly (ambient environment is scrubbed) and records provenance;
+  - unset `--context-profile` is the faithful seat (`v4-faithful`), as in the play scripts; the legacy
+    `v1-compat` (coaching, a reasoning cap, a 25-decision turn cap) runs only as a named arm;
   - it resumes;
   - it plays a crashed game once more and sets the failed attempt aside (`--retries`);
   - it enforces the budget.
