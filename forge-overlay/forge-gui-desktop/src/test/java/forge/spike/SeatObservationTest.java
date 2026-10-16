@@ -827,4 +827,99 @@ public class SeatObservationTest {
         String hist = o.inspect("@" + h);
         Assert.assertEquals(hist.split("battlefield -> graveyard", -1).length - 1, 12, hist);
     }
+
+    /** Mana available is the mana the engine says each source makes, not a count of sources: the three Tron lands
+     *  make seven, Ancient Tomb two (g7: Kozilek's Command looked forced at X=0 while the line said 2 sources). */
+    @Test
+    public void manaAvailableIsTheEnginesManaNotACountOfSources() {
+        Game g = LineFindingProbeTest.bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        LineFindingProbeTest.card("Urza's Tower", me, ZoneType.Battlefield);
+        LineFindingProbeTest.card("Urza's Mine", me, ZoneType.Battlefield);
+        LineFindingProbeTest.card("Urza's Power Plant", me, ZoneType.Battlefield);
+        String tron = PlayerControllerLLM.manaAvailable(me);
+        Assert.assertTrue(tron.startsWith("{C:7} up to 7 mana (3 untapped sources;"), tron);
+        Assert.assertTrue(tron.contains("Urza's Tower makes 3") && tron.contains("Urza's Mine makes 2"), tron);
+        LineFindingProbeTest.card("Ancient Tomb", me, ZoneType.Battlefield);
+        LineFindingProbeTest.card("Volcanic Island", me, ZoneType.Battlefield);
+        String more = PlayerControllerLLM.manaAvailable(me);
+        Assert.assertTrue(more.startsWith("{U:1 R:1 C:9} up to 10 mana (5 untapped sources;"), more);
+        Assert.assertTrue(more.contains("Ancient Tomb makes 2"), more);
+        Assert.assertTrue(SeatObservation.manaLine(me).contains("5 untapped sources; each counts its mana under every colour"),
+                SeatObservation.manaLine(me));
+    }
+
+    /** Mana only for some spells is kept apart, in the card's words: two Great Halls make {C:2} for anything;
+     *  their any colour is for instants and sorceries only (std-g10 showed it as five colours for anything). */
+    @Test
+    public void restrictedManaIsKeptApart() {
+        Game g = LineFindingProbeTest.bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        LineFindingProbeTest.card("Great Hall of the Biblioplex", me, ZoneType.Battlefield);
+        LineFindingProbeTest.card("Great Hall of the Biblioplex", me, ZoneType.Battlefield);
+        String line = PlayerControllerLLM.manaAvailable(me);
+        Assert.assertTrue(line.startsWith("{C:2} up to 2 mana (2 untapped sources; also mana only for some spells, not counted"
+                + " above: Great Hall of the Biblioplex x2: "), line);
+        Assert.assertTrue(line.contains("instant or sorcery"), line);
+    }
+
+    /** A filter adds no mana, but its colours count: Sunken Ruins makes {C}, or turns one mana into U/B mana. */
+    @Test
+    public void aFilterCountsItsColoursButNotExtraMana() {
+        Game g = LineFindingProbeTest.bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        LineFindingProbeTest.card("Sunken Ruins", me, ZoneType.Battlefield);
+        Assert.assertEquals(PlayerControllerLLM.manaAvailable(me), "{U:1 B:1 C:1} up to 1 mana (1 untapped sources)");
+    }
+
+    /** A source the engine cannot activate now makes no mana: a tapped land, a summoning-sick creature. */
+    @Test
+    public void aSourceThatCannotBeActivatedMakesNoMana() {
+        Game g = LineFindingProbeTest.bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        LineFindingProbeTest.card("Forest", me, ZoneType.Battlefield);
+        LineFindingProbeTest.card("Mountain", me, ZoneType.Battlefield).setTapped(true);
+        LineFindingProbeTest.card("Llanowar Elves", me, ZoneType.Battlefield).setSickness(true);
+        Assert.assertEquals(PlayerControllerLLM.manaAvailable(me), "{G:1} up to 1 mana (1 untapped sources)");
+        int[] t = PlayerControllerLLM.untappedManaTally(me);
+        Assert.assertEquals(t[6], 1);
+        Assert.assertEquals(t[7], 1);
+    }
+
+    /** The hand tag names a total shortfall the colours do not explain: two Forests for Craw Wurm ({4}{G}{G}). */
+    @Test
+    public void theHandTagNamesATotalShortfall() {
+        Game g = LineFindingProbeTest.bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        LineFindingProbeTest.card("Forest", me, ZoneType.Battlefield);
+        LineFindingProbeTest.card("Forest", me, ZoneType.Battlefield);
+        Card wurm = LineFindingProbeTest.card("Craw Wurm", me, ZoneType.Hand);
+        Assert.assertEquals(PlayerControllerLLM.affordability(me, wurm, PlayerControllerLLM.untappedManaTally(me)),
+                "(need 4 more mana)");
+    }
+
+    /** The "may shuffle" after a Ponder order states the order it would undo, known from the ability (MayShuffle),
+     *  not from the engine message's wording: a message that never says "shuffle" still gets the note. */
+    @Test
+    public void theShuffleAfterAnOrderIsKnownFromTheAbility() {
+        PlayerControllerLLM.TEST_PROFILE_OVERRIDE = ContextProfile.V4_FAITHFUL;
+        try {
+            Game g = LineFindingProbeTest.bareGame(PhaseType.MAIN1);
+            Player me = g.getPlayers().get(0);
+            Card ponder = LineFindingProbeTest.card("Ponder", me, ZoneType.Hand);
+            CardCollection top = new CardCollection();
+            for (String n : new String[]{"Island", "Forest", "Mountain"}) top.add(LineFindingProbeTest.card(n, me, ZoneType.Library));
+            LineFindingProbeTest.Recorder r = new LineFindingProbeTest.Recorder("PICKS: 1, 2, 3");
+            PlayerControllerLLM ctrl = new PlayerControllerLLM(g, me, new LobbyPlayerAi("Seat", null), "Seat", "", r, r, "llm");
+            me.dangerouslySetController(ctrl);
+            forge.game.spellability.SpellAbility sa = ponder.getFirstSpellAbility();
+            sa.setActivatingPlayer(me);
+            ctrl.orderMoveToZoneList(top, ZoneType.Library, sa);
+            ctrl.confirmAction(sa, null, "Bibliothek mischen?", null, null, null);
+            String last = r.prompts.get(r.prompts.size() - 1);
+            Assert.assertTrue(last.contains("You just put these on top of that library, top first"), last);
+        } finally {
+            PlayerControllerLLM.TEST_PROFILE_OVERRIDE = null;
+        }
+    }
 }

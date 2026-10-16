@@ -78,7 +78,7 @@ final class SeatObservation {
      *  the menu), merged with v24.
      *  v26: nothing the observation shows is cut (docs/harness/MODEL-LIMITS.md): whole event, stack and card
      *  text, every seen opponent card and every reveal, and uncapped known-in-hidden-zones and zone trails. */
-    static final String VERSION = "observation-faithful-v29";
+    static final String VERSION = "observation-faithful-v30";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
      *  Every section named here is one {@link #render} prints. */
@@ -92,8 +92,11 @@ final class SeatObservation {
             + "what is missing, such as \"(need 1 more B)\", or \"(not castable now)\". The opponent's hand is only a count.\n"
             + "- board lists nonland permanents; lands lists lands, with [tapped] or [untapped] for each. [sick] marks a "
             + "creature that came under its controller's control this turn and cannot attack or use tap abilities yet.\n"
-            + "- mana available counts the untapped sources that can make each colour. A dual land is counted under both of "
-            + "its colours, so the colours add up to more mana than can actually be spent.\n"
+            + "- mana available is the mana your untapped sources can make right now, as the engine counts it (Ancient Tomb "
+            + "makes 2; a summoning-sick creature makes none). Per colour it is the mana that can be made in that colour; a "
+            + "dual land counts under both of its colours, so the colours add up to more than can be spent. \"up to N mana\" "
+            + "is the total, and a source that makes more than one mana is named with its amount. Mana that can be spent only on "
+            + "some spells is listed apart, in the card's own words, and not counted in the total.\n"
             + "- @N is your handle for one object, given when you first see it, and used the same way in the options. When an "
             + "object changes zone it becomes a new object with a new handle; \"(was @k)\" links the two when you saw the whole "
             + "move. \"face-down <type>\" is an object whose identity is hidden from you. Zones list every card unless a "
@@ -173,10 +176,12 @@ final class SeatObservation {
 
     /** The colour tally plus what it means (observation v23): a source is counted under every colour
      *  it can make, so `{W:3 U:1 B:1 R:1 G:1 C:1} (3 untapped sources)` from two Plains and a Cavern
-     *  of Souls read to a judge as nine mana from four sources (runs/frontier/opus, T8). */
+     *  of Souls read to a judge as nine mana from four sources (runs/frontier/opus, T8). Since v30 the amounts
+     *  are mana, not sources, and the total is stated ("up to 3 mana"), so Tron's seven mana reads as seven. */
     static String manaLine(Player p) {
-        return LlmSpikeGui.PlayerControllerLLM.manaAvailable(p).replace(" untapped sources)",
-                " untapped sources; each is counted under every colour it can make, so the colours add up to more than can be spent)");
+        return LlmSpikeGui.PlayerControllerLLM.manaAvailable(p).replace(" untapped sources",
+                " untapped sources; each counts its mana under every colour it can make, so the colours add up to more than can"
+                + " be spent");
     }
 
     void setProfile(String p) { this.profile = p == null ? "" : p; }

@@ -92,6 +92,28 @@ decision row with why. Never Forge's AI.
     it may never claim more than the seat knows. Drawn cards drop off, a shuffle (the controller's
     `cheatShuffle` hook, delegated unchanged) forgets it, and anything that stops matching is forgotten.
 - Objects are named by handles (`@12`), never by engine ids.
+- **Every fact in it is asked of the engine, the way Forge's own AI asks, never re-derived by the
+  harness.** Re-deriving is how the seat came to be told less than Forge AI knows.
+  - *Why:* the mana line used to count untapped sources per colour from card types. The three Tron
+    lands read as 3 mana instead of 7, Ancient Tomb as 1, and a summoning-sick Llanowar Elves as 1.
+    The seat was told it was short of mana that Forge's payment code knew it had (g7, Kozilek's Command).
+  - Where each fact comes from:
+
+    | Fact | Engine source |
+    |---|---|
+    | mana available, per source and in total | each mana ability's `canPlay()` and `amountOfManaGenerated`, as in `ComputerUtilMana.getAvailableManaEstimate`; plus the mana pool; mana with a spend restriction (`AbilityManaPart.getManaRestrictions`) listed apart |
+    | "(castable)" | `ComputerUtilMana.canPayManaCost`, and the play menu's own offer check |
+    | X up to N | `canPayManaCost` at each X |
+    | which sources are spare in a payment | `ComputerUtilMana.getManaSourcesToPayCost`, and `canPlay()` on each source |
+    | legal attackers and blockers, unblocked damage | `CombatUtil.canAttack` / `canBlock`, `ComputerUtilCombat.sumDamageIfUnblocked` |
+    | lethal damage in a damage assignment | `ComputerUtilCombat.getEnoughDamageToKill` |
+    | [sick], [tapped] | `Card.isSick()` / `isTapped()` |
+    | the shuffle after a Ponder order | the ability (`MayShuffle`, or a Shuffle effect), not the message wording |
+
+  - The one hint still worked out by the harness: "(need 1 more B)" compares the cost's coloured pips
+    with the per-colour mana. It is shown only when the engine has already said the card cannot be
+    paid, and only for plain costs.
+  - Tested in `SeatObservationTest` (Tron 7, Ancient Tomb 2, a sick dork 0, a shortfall named in mana).
 - *Why faithful:* hidden information must stay hidden, or the benchmark measures something else.
   `SeatObservationTest` renders two games that differ only in hidden state and requires identical
   observations.
