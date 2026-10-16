@@ -94,6 +94,17 @@ checks found Luna's Force of Will "countering" a Dark Ritual that then resolved 
 counters only targeted spell abilities), Disrupting Shoal's pitch failing at X = 0, and the pitch labelled with the
 mana cost it replaces.
 
+**Ways to play a card (2026-10-16, harness-epoch-35):** every way the engine lists (Forge's `AlternativeCost` and
+`OptionalCost`) is offered and paid as the human path does it. Optional costs (kicker, multikicker, buyback, entwine,
+bargain) are asked after the seat picks the play (`withOptionalCosts`, CR 601.2b), from the menu and from effects
+(cascade, madness), and only when the whole cast stays payable. A spell playable only with one of them (retrace and
+jump-start from the graveyard, an offering that lowers a cost the seat cannot otherwise pay) is offered with it, and
+the hand tag says so. Emerge and offering sacrifices are the seat's, offering only creatures that leave the rest
+payable. A spell or trigger with several targets ("any number of target creatures", divided damage) is asked for the
+set on every path (`chooseManyTargets`). A creature spell's option shows its rules text. *Why:* Forge's AI asks
+optional costs while listing its options, a step this menu does not use, so no kicker, buyback or entwine was ever paid;
+Fury's trigger could take one target and the default took Fury itself; Elder Deep-Fiend's emerge was never offered.
+
 **When the model gives no usable answer:** a fixed legal option (the first, or decline; no attack for
 attackers), recorded on the decision row with why. Never Forge's AI, and never an option read out of the
 model's plan text (the "plan-named" fallbacks went in harness-epoch-30, review M2).
@@ -399,6 +410,9 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
      on its call stack (`-Dharness.surface.report`, off in play). Every hook the ledger marks as a decision
      the seat answers (`controller-ownership.tsv`, kind strategic or payment) must have been reached with the
      model asked. The ones not yet proven are listed in `eval/surface_gaps.txt`, which may only shrink.
+   - The same stage checks the ways to play a card: each play the seat makes records how it was played
+     (`play:alt:Evoke`, `play:opt:Kicker1`, from which zone, which face), and every kind the engine lists must be
+     played by a golden check or listed in `eval/play_gaps.txt` (may only shrink).
    - *Why measured, not listed by hand:* a hand-kept map says which test should reach a hook; the record says
      which test did. A per-type list let a hook that only ever took forced picks look covered.
 3. **Optional live-model checks (`eval/test_live_answer_tool.py`, `LIVE_MODEL_TESTS=1`, about a cent):**

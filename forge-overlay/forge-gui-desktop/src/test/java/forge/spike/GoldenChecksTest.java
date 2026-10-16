@@ -460,6 +460,400 @@ public class GoldenChecksTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    // ------------------------------------------------------------------ ways to play a card (phase 1c, S3)
+    // Each way the engine lets a card be played (Forge's AlternativeCost and OptionalCost), chosen from the seat's real
+    // menu, paid through its real payment and resolved; the board is checked. The `surfaces` stage counts them.
+
+    /** The option of the seat's menu whose text contains {@code needle}. */
+    static Function<String, String> choiceWith(String needle) {
+        return p -> {
+            String d = p.substring(p.lastIndexOf("DECISION:"));
+            Matcher m = Pattern.compile("(?m)^\\s*(\\d+)\\) [^\\n]*" + Pattern.quote(needle)).matcher(d);
+            Assert.assertTrue(m.find(), "no option with " + needle + ": " + d);
+            return "CHOICE: " + m.group(1);
+        };
+    }
+
+    /** Plays what the seat picks from its menu, then resolves the stack and its triggers and checks state. */
+    static void playAndResolve(LlmSpikeGui.PlayerControllerLLM ctrl, Game g, String what) {
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, what + " was offered");
+        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)), what + " was played");
+        resolveAll(g);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    static void resolveAll(Game g) {
+        for (int i = 0; i < 50; i++) {
+            g.getTriggerHandler().runWaitingTriggers();
+            g.getStack().addAllTriggeredAbilitiesToStack();
+            if (g.getStack().isEmpty()) break;
+            g.getStack().resolveStack();
+        }
+        g.getAction().checkStateEffects(true);
+    }
+
+    static boolean has(Player p, ZoneType z, String name) {
+        return p.getCardsIn(z).stream().anyMatch(c -> c.getName().equals(name));
+    }
+
+    static void lands(Player me, String... names) { for (String n : names) card(n, me, ZoneType.Battlefield); }
+
+    @Test
+    public void evokeFuryPitchesARedCardAndIsSacrificed() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Fury", me, ZoneType.Hand);
+        card("Lightning Bolt", me, ZoneType.Hand);
+        card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("(Evoke)"))
+                .on("go on the stack at the same time", p -> "PICKS: 1,2")
+                .on("Choose TARGETS", picks("Grizzly Bears"));
+        playAndResolve(seat(g, model, model), g, "Fury's evoke");
+        Assert.assertTrue(has(me, ZoneType.Exile, "Lightning Bolt"), "Bolt was pitched");
+        Assert.assertTrue(has(me, ZoneType.Graveyard, "Fury"), "Fury was sacrificed");
+        Assert.assertFalse(has(rival, ZoneType.Battlefield, "Grizzly Bears"), "Fury's damage killed the Bears");
+    }
+
+    @Test
+    public void overloadBouncesEach() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Island", "Island", "Island", "Island", "Island", "Island", "Island");
+        card("Cyclonic Rift", me, ZoneType.Hand);
+        card("Grizzly Bears", rival, ZoneType.Battlefield);
+        card("Llanowar Elves", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("(Overload)"));
+        playAndResolve(seat(g, model, model), g, "Cyclonic Rift's overload");
+        Assert.assertTrue(has(rival, ZoneType.Hand, "Grizzly Bears") && has(rival, ZoneType.Hand, "Llanowar Elves"), "both bounced");
+    }
+
+    @Test
+    public void dashGivesHaste() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Mountain", "Mountain", "Mountain");
+        card("Goblin Heelcutter", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("(Dash)"));
+        playAndResolve(seat(g, model, model), g, "Heelcutter's dash");
+        Card h = me.getCardsIn(ZoneType.Battlefield).stream().filter(c -> c.getName().equals("Goblin Heelcutter")).findFirst().orElse(null);
+        Assert.assertNotNull(h, "Heelcutter is on the battlefield");
+        Assert.assertTrue(h.hasKeyword(forge.game.keyword.Keyword.HASTE), "dashed: it has haste");
+    }
+
+    @Test
+    public void bestowMakesAnAura() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Forest", "Forest", "Forest", "Forest", "Forest");
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Boon Satyr", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("(Bestow)"));
+        playAndResolve(seat(g, model, model), g, "Boon Satyr's bestow");
+        Assert.assertEquals(bears.getNetPower(), 2 + 4, "the Satyr is attached to the Bears");
+        Assert.assertTrue(bears.isEnchanted());
+    }
+
+    @Test
+    public void blitzPaysLifeAndGivesHaste() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Swamp", "Swamp", "Swamp", "Swamp");
+        card("Tenacious Underdog", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("(Blitz)"));
+        playAndResolve(seat(g, model, model), g, "Underdog's blitz");
+        Assert.assertEquals(me.getLife(), 18, "2 life paid");
+        Card u = me.getCardsIn(ZoneType.Battlefield).stream().filter(c -> c.getName().equals("Tenacious Underdog")).findFirst().orElse(null);
+        Assert.assertTrue(u != null && u.hasKeyword(forge.game.keyword.Keyword.HASTE), "blitzed: on the battlefield with haste");
+    }
+
+    @Test
+    public void emergeSacrificesTheCreatureTheSeatNames() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Island", "Island", "Island", "Island", "Island", "Island");
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Llanowar Elves", me, ZoneType.Battlefield);
+        card("Elder Deep-Fiend", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("(Emerge)"))
+                .on("you SACRIFICE one of these", picks("Llanowar Elves"));
+        playAndResolve(seat(g, model, model), g, "Elder Deep-Fiend's emerge");
+        Assert.assertTrue(has(me, ZoneType.Battlefield, "Elder Deep-Fiend"), "it was cast");
+        Assert.assertTrue(has(me, ZoneType.Graveyard, "Llanowar Elves") && has(me, ZoneType.Battlefield, "Grizzly Bears"),
+                "the creature the seat named was sacrificed");
+    }
+
+    @Test
+    public void awakenAnimatesALand() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Island", "Island", "Island", "Island", "Island", "Island");
+        for (int i = 0; i < 3; i++) card("Island", me, ZoneType.Library);
+        card("Coastal Discovery", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("(Awaken)"));
+        playAndResolve(seat(g, model, model), g, "Coastal Discovery's awaken");
+        Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).stream().anyMatch(c -> c.isLand() && c.isCreature()
+                && c.getCounters(forge.game.card.CounterEnumType.P1P1) == 4), "a land got four +1/+1 counters");
+        Assert.assertEquals(me.getCardsIn(ZoneType.Hand).size(), 2, "two cards drawn");
+    }
+
+    @Test
+    public void escapeExilesFiveOthersFromTheGraveyard() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Tropical Island", "Tropical Island", "Tropical Island", "Tropical Island");
+        card("Uro, Titan of Nature's Wrath", me, ZoneType.Graveyard);
+        for (int i = 0; i < 5; i++) card("Ponder", me, ZoneType.Graveyard);
+        for (int i = 0; i < 3; i++) card("Island", me, ZoneType.Library);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("(Escape)"));
+        playAndResolve(seat(g, model, model), g, "Uro's escape");
+        Assert.assertTrue(has(me, ZoneType.Battlefield, "Uro, Titan of Nature's Wrath"), "Uro escaped");
+        Assert.assertEquals(me.getCardsIn(ZoneType.Exile).size(), 5, "five other cards exiled");
+    }
+
+    @Test
+    public void disturbCastsTheBackFace() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Plains", "Plains");
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Lunarch Veteran", me, ZoneType.Graveyard);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("(Disturb)"));
+        playAndResolve(seat(g, model, model), g, "Lunarch Veteran's disturb");
+        Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).stream().anyMatch(c -> c.getName().equals("Luminous Phantom")),
+                "its back face is on the battlefield: " + me.getCardsIn(ZoneType.Battlefield));
+    }
+
+    @Test
+    public void kickerIsTheSeatsOptionalCost() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Mountain", "Mountain", "Mountain", "Mountain", "Mountain");
+        card("Burst Lightning", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Burst Lightning"))
+                .on("optional additional costs", p -> "PICKS: 1").on("Choose the TARGET", choiceWith("Rival"));
+        playAndResolve(seat(g, model, model), g, "Burst Lightning, kicked");
+        Assert.assertEquals(rival.getLife(), 20 - 4, "kicked: 4 damage");
+    }
+
+    @Test
+    public void buybackReturnsTheSpell() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Island", "Island", "Island", "Island", "Island", "Island");
+        card("Capsize", me, ZoneType.Hand);
+        card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Capsize"))
+                .on("optional additional costs", p -> "PICKS: 1").on("Choose the TARGET", choiceWith("Grizzly Bears"));
+        playAndResolve(seat(g, model, model), g, "Capsize with buyback");
+        Assert.assertTrue(has(rival, ZoneType.Hand, "Grizzly Bears"), "the Bears were bounced");
+        Assert.assertTrue(has(me, ZoneType.Hand, "Capsize"), "bought back");
+    }
+
+    /** Entwine is offered only when the whole cast stays payable: with 7 lands for 8 mana it is not asked at all. */
+    @Test
+    public void entwineIsNotOfferedWhenTheWholeCastIsUnaffordable() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Forest", "Forest", "Forest", "Forest", "Forest", "Forest", "Forest");
+        card("Rude Awakening", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Rude Awakening"))
+                .on("optional additional costs", p -> "PICKS: 1");
+        playAndResolve(seat(g, model, model), g, "Rude Awakening, unentwined");
+        Assert.assertTrue(model.prompts.stream().noneMatch(q -> q.contains("optional additional costs")), "entwine was offered");
+        Assert.assertTrue(has(me, ZoneType.Graveyard, "Rude Awakening"), "it was cast");
+    }
+
+    @Test
+    public void entwineChoosesBothModes() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Forest", "Forest", "Forest", "Forest", "Forest", "Forest", "Forest", "Forest");
+        card("Rude Awakening", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Rude Awakening"))
+                .on("optional additional costs", p -> "PICKS: 1");
+        playAndResolve(seat(g, model, model), g, "Rude Awakening, entwined");
+        long untapped = me.getCardsIn(ZoneType.Battlefield).stream().filter(c -> c.isLand() && !c.isTapped()).count();
+        long animated = me.getCardsIn(ZoneType.Battlefield).stream().filter(c -> c.isLand() && c.isCreature()).count();
+        Assert.assertEquals(untapped, 8, "untap mode");
+        Assert.assertEquals(animated, 8, "animate mode");
+    }
+
+    @Test
+    public void retraceCastsFromTheGraveyardByDiscardingALand() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Swamp");
+        card("Raven's Crime", me, ZoneType.Graveyard);
+        card("Swamp", me, ZoneType.Hand);
+        card("Ponder", rival, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Raven's Crime")).on("Choose the TARGET", choiceWith("Rival"));
+        playAndResolve(seat(g, model, model), g, "Raven's Crime by retrace");
+        Assert.assertTrue(has(me, ZoneType.Graveyard, "Swamp"), "a land was discarded to retrace");
+        Assert.assertTrue(has(rival, ZoneType.Graveyard, "Ponder"), "the rival discarded");
+    }
+
+    @Test
+    public void jumpStartCastsFromTheGraveyardByDiscarding() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Island", "Island", "Island", "Island");
+        card("Chemister's Insight", me, ZoneType.Graveyard);
+        card("Ponder", me, ZoneType.Hand);
+        for (int i = 0; i < 3; i++) card("Island", me, ZoneType.Library);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Chemister's Insight"));
+        playAndResolve(seat(g, model, model), g, "Chemister's Insight by jump-start");
+        Assert.assertTrue(has(me, ZoneType.Exile, "Chemister's Insight"), "jump-started: exiled after");
+        Assert.assertEquals(me.getCardsIn(ZoneType.Hand).size(), 2, "discarded one, drew two");
+    }
+
+    @Test
+    public void spectacleAfterTheRivalLostLife() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Mountain");
+        card("Skewer the Critics", me, ZoneType.Hand);
+        rival.loseLife(1, false, false, null);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("(Spectacle)")).on("Choose the TARGET", choiceWith("Rival"));
+        playAndResolve(seat(g, model, model), g, "Skewer's spectacle");
+        Assert.assertEquals(rival.getLife(), 19 - 3);
+    }
+
+    @Test
+    public void madnessCastsTheDiscardedCard() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Mountain");
+        card("Wild Mongrel", me, ZoneType.Battlefield);
+        card("Fiery Temper", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Wild Mongrel"))
+                .on("Choose the TARGET", choiceWith("Rival"));
+        playAndResolve(seat(g, model, model), g, "Wild Mongrel's discard");
+        Assert.assertEquals(rival.getLife(), 17, "Fiery Temper was cast for its madness cost: " + model.prompts.stream()
+                .map(q -> q.substring(q.lastIndexOf("DECISION:"), Math.min(q.length(), q.lastIndexOf("DECISION:") + 200))).collect(java.util.stream.Collectors.toList()));
+        Assert.assertTrue(has(me, ZoneType.Graveyard, "Fiery Temper"));
+    }
+
+    @Test
+    public void mutateMergesOntoTheSeatsCreature() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Forest", "Forest", "Forest");
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Gemrazer", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("(Mutate)"))
+                .on("Choose the TARGET", choiceWith("Grizzly Bears"));
+        playAndResolve(seat(g, model, model), g, "Gemrazer's mutate");
+        Assert.assertEquals(me.getCreaturesInPlay().size(), 1, "one merged creature");
+        Assert.assertEquals(me.getCreaturesInPlay().get(0).getMergedCards().size(), 2, "Gemrazer merged with the Bears");
+    }
+
+    @Test
+    public void surgeAfterAnotherSpell() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Mountain", "Mountain", "Mountain");
+        card("Lightning Bolt", me, ZoneType.Hand);
+        card("Boulder Salvo", me, ZoneType.Hand);
+        card("Grizzly Bears", rival, ZoneType.Battlefield);
+        card("Craw Wurm", rival, ZoneType.Battlefield);
+        String[] next = {"Lightning Bolt"};
+        Script model = new Script("CHOICE: 1").on("You have priority", p -> choiceWith(next[0]).apply(p))
+                .on("Choose the TARGET for Lightning Bolt", choiceWith("Grizzly Bears"))
+                .on("Choose the TARGET for Boulder Salvo", choiceWith("Craw Wurm"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        playAndResolve(ctrl, g, "Lightning Bolt");
+        next[0] = "(Surge)";
+        playAndResolve(ctrl, g, "Boulder Salvo's surge");
+        Assert.assertFalse(has(rival, ZoneType.Battlefield, "Craw Wurm"), "the surged Salvo dealt 4 to the Wurm");
+    }
+
+    @Test
+    public void multikickerCountIsTheSeats() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Plains", "Plains", "Plains", "Plains", "Plains", "Plains", "Plains");
+        card("Apex Hawks", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Apex Hawks"))
+                .on("How many times", p -> p.contains("Every integer") ? "NUMBER: 2" : "CHOICE: " + opt(p, "2"))
+                .on("Every integer", p -> "NUMBER: 2");
+        playAndResolve(seat(g, model, model), g, "Apex Hawks, kicked twice");
+        Card h = me.getCardsIn(ZoneType.Battlefield).stream().filter(c -> c.getName().equals("Apex Hawks")).findFirst().orElse(null);
+        Assert.assertNotNull(h, "Apex Hawks was cast");
+        Assert.assertEquals(h.getCounters(forge.game.card.CounterEnumType.P1P1), 2, "kicked twice: two counters");
+    }
+
+    @Test
+    public void bargainSacrificesAnArtifact() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Mountain");
+        card("Ornithopter", me, ZoneType.Battlefield);
+        card("Torch the Tower", me, ZoneType.Hand);
+        card("Hill Giant", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Torch the Tower"))
+                .on("optional additional costs", p -> "PICKS: 1").on("Choose the TARGET", choiceWith("Hill Giant"));
+        playAndResolve(seat(g, model, model), g, "Torch the Tower, bargained");
+        Assert.assertTrue(has(me, ZoneType.Graveyard, "Ornithopter"), "bargained: the Ornithopter was sacrificed");
+        Assert.assertFalse(has(rival, ZoneType.Battlefield, "Hill Giant"), "bargained: 3 damage killed the 3/3");
+    }
+
+    @Test
+    public void offeringSacrificesAnArtifact() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Mountain", "Mountain", "Mountain", "Mountain", "Mountain", "Mountain");
+        card("Wurmcoil Engine", me, ZoneType.Battlefield);
+        card("Blast-Furnace Hellkite", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("(Offering)"));
+        playAndResolve(seat(g, model, model), g, "Hellkite by offering");
+        Assert.assertTrue(has(me, ZoneType.Battlefield, "Blast-Furnace Hellkite"), "cast by offering");
+        Assert.assertTrue(has(me, ZoneType.Graveyard, "Wurmcoil Engine"), "the artifact was sacrificed");
+    }
+
+    /** Foretell from hand (the special action), then on a later turn the foretold cast from exile. The later turn is
+     *  stood in for by marking the exile as one turn earlier (the engine's rule is enteredThisTurn). */
+    @Test
+    public void foretellThenCastTheForetoldCard() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Island", "Island", "Island", "Island");
+        card("Saw It Coming", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Saw It Coming"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        playAndResolve(ctrl, g, "foretelling Saw It Coming");
+        Card foretold = me.getCardsIn(ZoneType.Exile).stream().filter(Card::isForetold).findFirst().orElse(null);
+        Assert.assertNotNull(foretold, "foretold: exiled face down");
+        for (Card l : me.getCardsIn(ZoneType.Battlefield)) l.setTapped(false);
+        foretold.setTurnInZone(g.getPhaseHandler().getTurn() - 1);
+        LineFindingProbeTest.rivalCasts(g, "Ponder", null);
+        Script cast = new Script("CHOICE: 1").on("You have priority", choiceWith("(Foretold)"));
+        LlmSpikeGui.PlayerControllerLLM ctrl2 = seat(g, cast, cast);
+        playAndResolve(ctrl2, g, "the foretold Saw It Coming");
+        Assert.assertTrue(cast.prompts.stream().noneMatch(q -> q.contains("Saw It Coming 2/2")), "a face-down counterspell named as a 2/2");
+        Assert.assertTrue(has(rival, ZoneType.Graveyard, "Ponder"), "Ponder was countered");
+        Assert.assertTrue(has(me, ZoneType.Graveyard, "Saw It Coming"));
+    }
+
+    /** Plot from hand (the special action), then on a later turn the plotted cast, free, at sorcery speed. */
+    @Test
+    public void plotThenCastThePlottedCardFree() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Forest", "Forest");
+        card("Aloe Alchemist", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("ACTIVATE Aloe Alchemist"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        playAndResolve(ctrl, g, "plotting Aloe Alchemist");
+        Card plotted = me.getCardsIn(ZoneType.Exile).stream().filter(c -> c.getName().equals("Aloe Alchemist")).findFirst().orElse(null);
+        Assert.assertNotNull(plotted, "plotted: exiled");
+        for (Card l : me.getCardsIn(ZoneType.Battlefield)) l.setTapped(true);   // free: no mana needed
+        plotted.setTurnInZone(g.getPhaseHandler().getTurn() - 1);
+        Script cast = new Script("CHOICE: 1").on("You have priority", choiceWith("Aloe Alchemist"));
+        playAndResolve(seat(g, cast, cast), g, "the plotted Aloe Alchemist");
+        Assert.assertTrue(has(me, ZoneType.Battlefield, "Aloe Alchemist"), "cast from exile without paying");
+    }
+
     /** ANT's line: cast Infernal Tutor, then crack Lion's Eye Diamond in response so the hand is empty when the Tutor
      *  resolves (hellbent). The menu never offered a mana ability, so LED was usable only as payment (owner,
      *  2026-10-16: combo lines must play out). A mana ability with a cost beyond tapping (sacrifice, discard, exile

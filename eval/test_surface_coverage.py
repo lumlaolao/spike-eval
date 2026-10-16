@@ -44,5 +44,19 @@ class SurfaceCoverageTest(unittest.TestCase):
         self.assertEqual(problems, ["UNKNOWN GAP: reveal is not a decision hook in the ledger"])
 
 
+    def test_every_known_way_to_play_is_played_or_a_listed_gap(self):
+        report = sc.read_report(write("known\tplay:alt:Evoke\nknown\tplay:alt:Flashback\nknown\tplay:opt:Kicker1\n"
+                                      "play:alt:Flashback\tasked\n"))
+        problems, played, open_gaps = sc.check_plays(report, {"play:opt:Kicker1": "x", "play:alt:Dash": "x"})
+        self.assertEqual(played, ["play:alt:Flashback"])
+        self.assertEqual(open_gaps, ["play:opt:Kicker1"])
+        self.assertEqual(problems, ["UNPROVEN: play:alt:Evoke is a way to play a card that no test played from the menu",
+                                    "UNKNOWN GAP: play:alt:Dash is not a way to play a card the engine lists"])
+
+    def test_a_played_gap_is_stale(self):
+        report = sc.read_report(write("known\tplay:alt:Evoke\nplay:alt:Evoke\tasked\n"))
+        self.assertEqual(sc.check_plays(report, {"play:alt:Evoke": "x"})[0],
+                         ["STALE GAP: play:alt:Evoke is now played by a test; remove it from the play gap file"])
+
 if __name__ == "__main__":
     unittest.main()
