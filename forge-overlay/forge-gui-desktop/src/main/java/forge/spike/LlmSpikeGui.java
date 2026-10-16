@@ -5568,7 +5568,7 @@ public final class LlmSpikeGui {
             if (max <= 0) return 0;
             // The menu cut: a numbered option line per candidate keeps the ask inside the readable
             // card-decision shape the model already answers (two digits of menu, like the other asks);
-            // past 12 the enumeration is both unreadable and the OOM path the wide branch avoids.
+            // past 12 the enumeration is unreadable (the OOM why is the javadoc's above).
             if (max > 12) return chooseWideKeywordCost(sa, cost, prompt, max);
             List<String> labels = new ArrayList<>();
             for (int i = 0; i <= max; i++) labels.add(String.valueOf(i));

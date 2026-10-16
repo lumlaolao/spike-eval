@@ -35,10 +35,8 @@ import static forge.spike.LineFindingProbeTest.seat;
  * every prompt of every test here keeps the ask contract (AskContract). addKeywordCost /
  * chooseNumberForKeywordCost ask the "keyword-cost" type; the sacrifice shape the Casualty
  * payment adds asks "sacrifice" through LlmCostDecision as Goblin Bombardment does.
- * The wide NUMBER ask's why: the old enumerated ask tried to list every integer in
- * chooseNumberForKeywordCost's range (e.g. 0..Integer.MAX_VALUE for Multikicker), which died
- * filling the menu (OOM); chooseWideKeywordCost re-asks as a parsed number with a bounded menu
- * instead (LlmSpikeGui), so a reverted repair re-enumerates and the JVM dies (pr-review 2026-10-16).
+ * The wide NUMBER ask (LlmSpikeGui chooseWideKeywordCost) is the repair this class repros:
+ * a reverted repair re-enumerates and the JVM dies filling the menu (pr-review 2026-10-16).
  */
 public class SurfaceCostChoicesTest {
 
