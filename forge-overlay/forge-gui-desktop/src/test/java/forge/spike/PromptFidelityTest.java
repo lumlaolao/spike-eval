@@ -598,6 +598,38 @@ public class PromptFidelityTest {
         Assert.assertTrue(ref.contains("The Wondrous Wasp's Effect"), ref);
     }
 
+    /** runs/luna-modern/g11, T2: a question's title read "[Devourer of Destiny (48)'s Effect]": the questions named
+     *  cards with the engine's raw name, not the observation's. Every card name in a question now goes through one
+     *  function, which drops the id and reveals nothing (a face-down card keeps its empty name). */
+    @Test
+    public void aQuestionNamesAnEffectWithoutItsEngineId() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card devourer = card("Devourer of Destiny", me, ZoneType.Battlefield);
+        Card effect = card("Lightning Bolt", me, ZoneType.Command);
+        effect.setName(devourer + "'s Effect");
+        effect.setEffectSource(devourer);
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.safeName(effect), "Devourer of Destiny's Effect");
+        Card morph = card("Exalted Angel", rival, ZoneType.Battlefield);
+        morph.turnFaceDown(true);
+        Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.safeName(morph).contains("Exalted"),
+                "a face-down card's name was revealed");
+    }
+
+    /** runs/luna-modern/g11, T6: the seat announced X = 1 for Kozilek's Command, then chose its modes "as X is 0":
+     *  the mode and target questions did not say what X was. They do once it is announced. */
+    @Test
+    public void theModeAndTargetQuestionsSayTheAnnouncedX() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        forge.game.spellability.SpellAbility cmd = card("Kozilek's Command", me, ZoneType.Hand).getFirstSpellAbility();
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.xNote(cmd), "", "nothing before X is announced");
+        cmd.setXManaCostPaid(1);
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.xNote(cmd), " (you announced X = 1)");
+        forge.game.spellability.SpellAbility bolt = card("Lightning Bolt", me, ZoneType.Hand).getFirstSpellAbility();
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.xNote(bolt), "", "no X in the cost");
+    }
+
     /** runs/luna-v9/g5, T7: the stack read "Aether Vial (4) - You may put a creature card ...", the engine id 4
      *  unredacted, and the seat answered "Vial is at four counters" with three on it. Card text also showed a
      *  literal "\n" ("...on Aether Vial.\n{T}: ..."). */

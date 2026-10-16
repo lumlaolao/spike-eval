@@ -681,14 +681,20 @@ final class SeatObservation {
             if ((n == null || n.isEmpty()) && c.isFaceDown()) {
                 try { n = c.getState(CardStateName.Original).getName(); } catch (Exception ignore) { }
             }
-            if (n == null) return "";
-            // Forge names an effect `hostCard + "'s Effect"`, and a card prints as "Name (id)" ("The Wondrous Wasp
-            // (53)'s Effect", runs/luna-std/g6). The name is rebuilt from the source card itself; the id filter is
-            // only the fallback for a name whose source is gone (no card name holds "(digits)": test_deck_legality).
+            return n == null ? "" : withoutEngineId(c, n);
+        } catch (Exception e) { return "?"; }
+    }
+
+    /** {@code n}, the name of {@code c}, without an engine id. Forge names an effect `hostCard + "'s Effect"`, and a
+     *  card prints as "Name (id)" ("The Wondrous Wasp (53)'s Effect", runs/luna-std/g6). The name is rebuilt from
+     *  the source card itself; the id filter is only the fallback for a name whose source is gone (no card name
+     *  holds "(digits)": test_deck_legality). Reveals nothing: it only removes. */
+    static String withoutEngineId(Card c, String n) {
+        try {
             Card src = c.getEffectSource();
             if (src != null && n.startsWith(src.toString())) return src.getName() + n.substring(src.toString().length());
-            return ENGINE_ID.matcher(n).replaceAll("");
-        } catch (Exception e) { return "?"; }
+        } catch (Exception ignore) { }
+        return ENGINE_ID.matcher(n).replaceAll("");
     }
 
     private static String typeLine(Card c) {

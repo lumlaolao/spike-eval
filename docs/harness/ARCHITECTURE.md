@@ -109,6 +109,8 @@ decision row with why. Never Forge's AI.
     | lethal damage in a damage assignment | `ComputerUtilCombat.getEnoughDamageToKill` |
     | [sick], [tapped] | `Card.isSick()` / `isTapped()` |
     | the shuffle after a Ponder order | the ability (`MayShuffle`, or a Shuffle effect), not the message wording |
+    | X in the mode and target questions | the announced `getXManaCostPaid` of the spell |
+    | a card's name in a question | the engine's name, with an effect's engine id removed (one function, `safeName`) |
     | CAST THIS GAME, LANDS PLAYED | the engine's `GameEventSpellAbilityCast` / `GameEventLandPlayed` (a copy is not a cast), not the log line's wording |
 
   - The one hint still worked out by the harness: "(need 1 more B)" compares the cost's coloured pips
