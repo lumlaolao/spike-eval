@@ -30,6 +30,36 @@ final class AskContract {
     static final Pattern RANGE = Pattern.compile("Choose between (\\d+) and (\\d+) of these");
     static final Pattern NUMBER_RANGE = Pattern.compile("Every integer from (-?\\d+) through (-?\\d+) inclusive is legal");
     static final Pattern HAND_TAG = Pattern.compile("@(\\d+) \\((castable[^)]*|payable, not castable now|need [^)]*|not castable now)\\)");
+    /** The labels Forge's triggers use in the note they append to their text for debugging, "[Zone Changer: ...]",
+     *  "[Card: ..., Activator: ..., SpellAbility: ...]" (Trigger.getImportantStackObjects): every
+     *  getMessage("lbl...").append(": ") under forge-game/.../game/trigger at the pinned engine. */
+    static final String[] TRIGGER_NOTE_KEYS = {
+            "lblActivator", "lblAdapt", "lblAddedOnce", "lblAmount", "lblAttachee", "lblAttachment",
+            "lblAttacker", "lblAttackers", "lblAttackingPlayer", "lblBlocker", "lblBlockers", "lblCard",
+            "lblCause", "lblChampioned", "lblChangedController", "lblCountered", "lblCrew", "lblCycled",
+            "lblDamageSource", "lblDamageTarget", "lblDamaged", "lblDefenders", "lblDestroyed", "lblDestroyer",
+            "lblDevoured", "lblDiscarded", "lblEnlisted", "lblEvolved", "lblExerted", "lblExploited",
+            "lblExploiter", "lblExplored", "lblExplorer", "lblFighter", "lblGainedAmount", "lblLandPlayed",
+            "lblLostAmount", "lblMana", "lblMentor", "lblMentored", "lblMonstrous", "lblNumberAttackers",
+            "lblNumberBlockers", "lblObject", "lblOppVotedDiff", "lblOppVotedSame", "lblPaidAmount", "lblPhase",
+            "lblPhasedIn", "lblPhasedOut", "lblPlaneswalkedFrom", "lblPlaneswalkedTo", "lblPlayer",
+            "lblPlotted", "lblRemovedFrom", "lblRenowned", "lblRoller", "lblSaddled", "lblSaddledBy",
+            "lblScryer", "lblSearcher", "lblShuffler", "lblSource", "lblSpecialized", "lblSpellAbility",
+            "lblTapped", "lblTarget", "lblTargets", "lblTrains", "lblTransformed", "lblTurnFaceUp",
+            "lblUntapped", "lblVehicle", "lblZoneChanger"
+    };
+    private static Pattern triggerNote;
+
+    /** "[" + one of Forge's trigger-note labels + ": ", as the engine words it. */
+    static Pattern triggerNote() {
+        if (triggerNote == null) {
+            List<String> words = new ArrayList<>();
+            for (String k : TRIGGER_NOTE_KEYS) words.add(Pattern.quote(forge.util.Localizer.getInstance().getMessage(k)));
+            triggerNote = Pattern.compile("\\[(?:" + String.join("|", words) + "): ");
+        }
+        return triggerNote;
+    }
+
     /** Words of one eval deck's line (noAskCoachesOneDecksLine); no question may carry them. */
     static final String[] COACHING = {"Griselbrand", "reanimat", "Reanimat", "Petal", "Grixis", "Entomb", "Force of Will"};
 
@@ -82,6 +112,10 @@ final class AskContract {
         Matcher id = ENGINE_ID.matcher(asked);
         if (id.find()) Assert.fail(test + ": an engine card id is shown ('" + id.group() + "'): " + asked);
         // Nor anywhere else the seat reads: the state's stack and event lines carried them (runs/luna-v9/g4, g5).
+        // Nor Forge's debugging note on a trigger (the C3 stack carried "[Card: Tendrils of Agony @293, Activator: Seat, ...]").
+        Matcher note = triggerNote().matcher(p);
+        if (note.find()) Assert.fail(test + ": an engine note is shown ('" + note.group() + "'): ..."
+                + p.substring(Math.max(0, note.start() - 120), Math.min(p.length(), note.end() + 80)) + "...");
         Matcher anywhere = STATE_ENGINE_ID.matcher(p.substring(0, d));
         if (anywhere.find()) Assert.fail(test + ": an engine card id is shown in the state ('" + anywhere.group() + "'): ..."
                 + p.substring(Math.max(0, anywhere.start() - 120), Math.min(d, anywhere.end() + 60)) + "...");

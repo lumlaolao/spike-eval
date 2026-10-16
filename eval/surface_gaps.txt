@@ -1,0 +1,16 @@
+# Decision hooks the seat answers that no test yet proves asked (eval/surface_coverage.py). This list may only
+# shrink: when a golden check asks one of these, the checker fails until its line is removed. Phase 1c, S3.
+# hook<TAB>what proving it needs
+addKeywordCost	a keyword cost choice (0..1), e.g. a card with an optional keyword cost paid on cast
+announceRequirements	a ChooseAnyNumber or BidLife announcement through the engine
+chooseCardsForEffectMultiple	an effect that chooses several groups of cards at once
+chooseManaFromPool	paying from a pool holding more than one colour, where the colour spent matters
+chooseSingleCardState	a card with two states to choose between (a double-faced or split choice)
+chooseSingleReplacementEffect	two replacement effects on one event, so the order is a real choice
+chooseSingleStaticAbility	two static abilities to choose between on one event
+chooseSpellAbilitiesForEffect	an effect that chooses among abilities (a modal choice made by an effect)
+chooseTarget	a single target chosen by an effect, not by casting
+orderAttackers	attackers to order for a blocker's damage
+orderBlocker	one blocker placed among blockers already ordered
+payCombatCost	an attack or block tax (Propaganda, Ghostly Prison)
+playTrigger	a trigger that resolves without using the stack, with a target to choose

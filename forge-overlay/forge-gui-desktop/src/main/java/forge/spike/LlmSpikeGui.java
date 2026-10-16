@@ -5994,6 +5994,37 @@ public final class LlmSpikeGui {
         /** Test seam: sees the type and tier of every decision row (GoldenChecksTest's per-type coverage). */
         static volatile java.util.function.BiConsumer<String, String> TEST_DECISION_TAP = null;
 
+        /** Test runs only ({@code -Dharness.surface.report=<file>}): the engine hooks each decision row came through,
+         *  "hook<TAB>asked" or "hook<TAB>auto", written when the JVM exits. Acceptance's `surfaces` stage compares it
+         *  with the ownership ledger, so a hook the seat answers is proven by a test that reached it (owner,
+         *  2026-10-16: every surface of the engine tested). Off in play: one null check per decision row. */
+        static final String SURFACE_REPORT = System.getProperty("harness.surface.report");
+        static final java.util.Set<String> SURFACES = new java.util.concurrent.ConcurrentSkipListSet<>();
+        private static java.util.Set<String> hookNames;
+        static {
+            if (SURFACE_REPORT != null) Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                try { java.nio.file.Files.write(java.nio.file.Paths.get(SURFACE_REPORT), SURFACES); } catch (Exception ignore) { }
+            }));
+        }
+
+        private static void surfaceSeen(String tier) {
+            if (hookNames == null) {
+                java.util.Set<String> names = new java.util.HashSet<>();
+                for (java.lang.reflect.Method m : forge.game.player.PlayerController.class.getMethods()) names.add(m.getName());
+                hookNames = names;
+            }
+            String kind = "smart".equals(tier) || "fast".equals(tier) ? "asked" : "auto";
+            String me = PlayerControllerLLM.class.getName();
+            StackWalker.getInstance().forEach(f -> {
+                // A cost choice (which creature to sacrifice) is made in the cost decision maker the hook hands out.
+                if (f.getClassName().equals(LlmCostDecision.class.getName())) { SURFACES.add("getCostDecisionMaker\t" + kind); return; }
+                if (!f.getClassName().equals(me)) return;
+                String m = f.getMethodName();
+                if (m.startsWith("lambda$")) m = m.substring(7, Math.max(7, m.indexOf('$', 7)));
+                if (hookNames.contains(m)) SURFACES.add(m + "\t" + kind);
+            });
+        }
+
         // ---------------- the answer tool (AnswerTool) ----------------
         /** The answer session the NEXT ask() offers, set by a decision site through {@link #offerAnswer};
          *  ask() takes it. Null: the ask is answered in text. */
@@ -6414,6 +6445,7 @@ public final class LlmSpikeGui {
         private void evalDec(String type, int nOptions, int choice, String tier, long ms, String fallback, List<String> options) {
             java.util.function.BiConsumer<String, String> decTap = TEST_DECISION_TAP;
             if (decTap != null) decTap.accept(type, tier);
+            if (SURFACE_REPORT != null) surfaceSeen(tier);
             if (!EvalLog.on()) return;
             // Log choke point: several callers log their own labels list after decideOne/decideMany
             // disambiguated only its local copy — dedupe HERE so the logged options always match the

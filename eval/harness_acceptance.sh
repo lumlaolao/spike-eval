@@ -12,6 +12,8 @@
 #   javatests  every *Test.java in the overlay via TestNG, MEMORY_TOOLS=1; fails on any failure OR skip, and
 #              when the number of tests RUN differs from the number DECLARED (a runner that matches no tests
 #              reports a green nothing -- that happened once with `make jtest`)
+#   surfaces   every engine hook the seat answers (ledger kind strategic/payment) was reached by a test that asked
+#              the model (the javatests JVM records each decision row's hooks); eval/surface_gaps.txt may only shrink
 #   pytests    python3 -m unittest discover -s eval; eval/test_script_suites.py runs the script-style files
 #              (module-level test_ functions, no TestCase: test_aggregate, test_make_sft_data, ...) in it
 #   canary     seed-42 floor/floor and random/random games on the freshly compiled classes; asserts the JVM
@@ -63,7 +65,7 @@ fi
 JAVA="$JAVA_HOME/bin/java"; JAVAC="$JAVA_HOME/bin/javac"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 OUT="${OUT:-$REPO/runs/harness-acceptance/$STAMP}"
-ALL_STAGES="preflight classpath compile javatests pytests canary gaming faketool faithful lookahead nativetool nativerefuse answertool turnchat rules scoring"
+ALL_STAGES="preflight classpath compile javatests surfaces pytests canary gaming faketool faithful lookahead nativetool nativerefuse answertool turnchat rules scoring"
 STAGES="${STAGES:-$ALL_STAGES}"
 EXPECTED="$REPO/eval/harness_acceptance.expected"
 OVERLAY="$REPO/forge-overlay/forge-gui-desktop/src"
@@ -219,7 +221,7 @@ print(sum(total(n) for n in count))
 PYEOF
 )"
     ( cd "$FORGE/forge-gui-desktop" && MEMORY_TOOLS=1 "$JAVA" -Dapple.awt.UIElement=true \
-        -Dharness.ownership.tsv="$LEDGER" -Dharness.rules.file="$REPO/data/rules/MagicCompRules.txt" -Dharness.decks.dir="$REPO/eval/decks" -Dharness.tooluse.json="$REPO/eval/tooluse/tools.json" -cp "$CLASSES:$(cat "$CP_FILE")" \
+        -Dharness.ownership.tsv="$LEDGER" -Dharness.surface.report="$OUT/surfaces.tsv" -Dharness.rules.file="$REPO/data/rules/MagicCompRules.txt" -Dharness.decks.dir="$REPO/eval/decks" -Dharness.tooluse.json="$REPO/eval/tooluse/tools.json" -cp "$CLASSES:$(cat "$CP_FILE")" \
         org.testng.TestNG -testclass "$TCLASSES" -d "$OUT/testng" ) >"$OUT/javatests.log" 2>&1
     RES="$(python3 - "$OUT/testng/testng-results.xml" <<'EOF'
 import re,sys
@@ -249,6 +251,19 @@ EOF
     elif [ -n "$OWN_EXP" ] && [ "$OWN_N" != "$OWN_EXP" ]; then
       fail javatests "ownership count $OWN_N != pinned $OWN_EXP (update harness_acceptance.expected AND ControllerOwnershipTest deliberately)"
     else pass javatests "$T/$DECLARED declared tests passed, 0 skipped. $OWN"; fi
+  fi
+fi
+
+# ---------------------------------------------------------------- surfaces
+# Every engine hook the seat answers is proven by a test that asked the model through it (owner, 2026-10-16).
+# The javatests JVM recorded the hooks each decision row came through; the gap list may only shrink.
+if has_stage surfaces; then
+  if [ ! -s "$OUT/surfaces.tsv" ]; then fail surfaces "no surface report (javatests did not run, or recorded nothing)"
+  else
+    SURF="$(python3 "$REPO/eval/surface_coverage.py" "$OUT/surfaces.tsv" "$LEDGER" "$REPO/eval/surface_gaps.txt")"; RC=$?
+    echo "$SURF" > "$OUT/surfaces.summary"
+    if [ $RC -eq 0 ]; then pass surfaces "$(echo "$SURF" | head -1)"
+    else fail surfaces "$(echo "$SURF" | tr '\n' ' ' | cut -c1-600)"; fi
   fi
 fi
 
