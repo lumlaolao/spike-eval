@@ -134,6 +134,8 @@ PROVENANCE_FIELDS = (
     ("harness_epoch", MISSING),
     # Prompt caching (Anthropic models): changes what a run costs, not what the model answers.
     ("prompt_cache", MISSING),
+    # The format the decks are built for (GAME_FORMAT). A line without it was Legacy: the only format then.
+    ("game_format", "legacy"),
     # Two opt-in switches that change how the seat plays (issue #117): PLAN_EXECUTE makes the harness
     # play steps of the model's own stated turn plan, TIER_FAST_TYPES moves decision types off the
     # reasoning tier. Neither was stamped, keyed or pinned, so games played with them on and off pooled
@@ -159,7 +161,7 @@ CONDITION_ARM_FIELDS = ("deck_a", "deck_b", "controller_a", "controller_b",
                         "smart_a", "smart_b", "fast_a", "fast_b")
 # prompt_cache is recorded but does not split experiments: the provider returns the same output
 # with or without its cache, so caching on and off are one measurement at two prices.
-NON_BEHAVIORAL_PROVENANCE = ("discipline", "seed_bank", "prompt_cache")
+NON_BEHAVIORAL_PROVENANCE = ("discipline", "seed_bank", "prompt_cache", "openrouter_provider_sort")
 # What the endpoint said answered, keyed by deck identity and tier. These are
 # OBSERVATIONS and partition experiments exactly as recorded (2026-09-07): a
 # game whose endpoint named nothing ("unknown") is a different measurement from

@@ -97,11 +97,28 @@ public class LineFindingProbeTest {
         return c;
     }
 
+    /** Seats answer by function call (ToolAnswerBridge) instead of text: GoldenChecksToolTest runs the golden
+     *  checks on the default protocol this way. Each wrapped bridge is kept, so its leaks can be read. */
+    static volatile boolean TOOL_MODE = false;
+    static final List<ToolAnswerBridge> TOOL_BRIDGES = java.util.Collections.synchronizedList(new ArrayList<>());
+    /** The seats built in tool mode, so GoldenChecksToolTest can check none read a decision from text. */
+    static final List<LlmSpikeGui.PlayerControllerLLM> TOOL_SEATS = java.util.Collections.synchronizedList(new ArrayList<>());
+
+    private static LLMBridge maybeTool(Recorder r) {
+        if (!TOOL_MODE || r == null) return r;
+        ToolAnswerBridge t = new ToolAnswerBridge(r);
+        TOOL_BRIDGES.add(t);
+        return t;
+    }
+
     static LlmSpikeGui.PlayerControllerLLM seat(Game g, Recorder smart, Recorder fast) {
         Player me = g.getPlayers().get(0);
+        LLMBridge s = maybeTool(smart);
+        LLMBridge f = fast == smart ? s : maybeTool(fast);
         LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(g, me,
-                new LobbyPlayerAi("Seat", null), "Seat", "", smart, fast, "llm");
+                new LobbyPlayerAi("Seat", null), "Seat", "", s, f, "llm");
         me.dangerouslySetController(ctrl);
+        if (TOOL_MODE) TOOL_SEATS.add(ctrl);
         return ctrl;
     }
 
@@ -343,6 +360,42 @@ public class LineFindingProbeTest {
             }
         } finally {
             LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR = was;
+        }
+    }
+
+    /** Modern game mod-g7, T10: the seat chose "No target" for an up-to-one target; the row carried the fallback
+     *  "target(optional-decline-or-unparsed)" and the review sheet called the answer lost. A decline is the
+     *  seat's decision: no fallback on its row. */
+    @Test
+    public void anOptionalTargetTheSeatDeclinesIsItsDecisionNotAFallback() throws Exception {
+        java.nio.file.Path dir = java.nio.file.Files.createTempDirectory("decline-rows");
+        LlmSpikeGui.EvalLog.closeForTest();
+        LlmSpikeGui.EvalLog.initToDir(dir.toString(), 7);
+        try {
+            Game g = bareGame(PhaseType.MAIN1);
+            Player me = g.getPlayers().get(0);
+            card("Ornithopter", me, ZoneType.Battlefield);
+            card("Ornithopter", g.getPlayers().get(1), ZoneType.Battlefield);
+            card("Plains", me, ZoneType.Battlefield);
+            card("Plains", me, ZoneType.Battlefield);
+            card("Banishing Slash", me, ZoneType.Hand);                    // up to one target
+            // The cast path: play -> target. CHOICE 1 casts it; on the target ask, 3) is "No target".
+            Recorder model = new Recorder("CHOICE: 1") {
+                @Override public String ask(String prompt) {
+                    prompts.add(prompt);
+                    return prompt.contains("Choose the TARGET") ? "CHOICE: 3" : "CHOICE: 1";
+                }
+            };
+            LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+            java.util.List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+            Assert.assertNotNull(r, "the seat cast Banishing Slash: " + model.prompts);
+            Assert.assertTrue(r.get(0).getTargets().isEmpty(), "the seat chose no target");
+            String rows = new String(java.nio.file.Files.readAllBytes(LlmSpikeGui.EvalLog.currentFile().toPath()));
+            Assert.assertTrue(rows.contains("\"type\":\"target\""), rows);
+            Assert.assertFalse(rows.contains("optional-decline-or-unparsed") || rows.contains("target(unanswered)"),
+                    "a decline recorded as a fallback: " + rows);
+        } finally {
+            LlmSpikeGui.EvalLog.closeForTest();
         }
     }
 

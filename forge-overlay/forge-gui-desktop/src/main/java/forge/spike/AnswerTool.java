@@ -41,8 +41,13 @@ final class AnswerTool {
      *  decision discarded the cache on every call (docs/harness/PROMPT-CRAFT.md rule 19).
      *  v3: an optional `why` (one sentence, for the record), and readable reasoning kept on the row.
      *  v4: a reply that calls nothing is asked once, in the same conversation, for the call (`nudged`).
-     *  v5: a play's `keep_untapped` says which mana sources stay untapped when it is paid (work plan item 6). */
-    static final String VERSION = "answer-tool-v5";
+     *  v5: a play's `keep_untapped` says which mana sources stay untapped when it is paid (work plan item 6).
+     *  v6: `steps` promises nothing a decision does not offer; a play offers it only under PLAN_EXECUTE.
+     *  v7: no text alternative: a reply that calls nothing is reminded up to MAX_NUDGES times, then the decision
+     *  is lost; prose is never parsed as the answer. A text format left in a tool ask is logged and counted.
+     *  v8: a model's filled-in defaults do nothing: `yield` has "none" as its first value, and an empty
+     *  `keep_untapped` means not said (Luna filled every field: 175 of 189 answers yielded to end of turn). */
+    static final String VERSION = "answer-tool-v9";
     static final String NAME = "answer";
     static final String SET_PLAN = "set_plan";
     /** Model rounds one answer ask may take: the lookup rounds, the answer, one correction, one reminder. */
@@ -65,7 +70,32 @@ final class AnswerTool {
     static boolean usedBy(String modelSpec) { return enabled() && NativeTools.usedBy(modelSpec); }
 
     /** The version stamped on the game line: what a tool-answer game was played under. */
-    static String protocolVersion() { return VERSION + (perDecision() ? "+per-decision" : "") + (strict() ? "+strict" : ""); }
+    static String protocolVersion() {
+        String env = System.getenv("ANSWER_TOOL_CHOICE");
+        return VERSION + (perDecision() ? "+per-decision" : "") + (strict() ? "+strict" : "")
+                + (env == null || env.trim().isEmpty() ? "" : "+choice=" + env.trim());
+    }
+
+    /**
+     * The `tool_choice` an answer ask sends to {@code model} (an OpenRouter id such as "openai/gpt-6-luna"):
+     * "required" where forcing a call is measured to keep the model's reasoning, so the call is the only way
+     * to reply; "auto" elsewhere. Constant per model, so the cache prefix holds (PROMPT-CRAFT.md rule 19).
+     * <ul>
+     *   <li>OpenAI models: "required". Probe of 2026-10-15 on GPT-6 Luna, one decision, two calls each:
+     *       auto 23-24 reasoning tokens, required 18-66, a named function 0 (naming the tool skips the
+     *       reasoning, so it is never used).</li>
+     *   <li>Anthropic models: "auto". Opus 5.5, Sonnet 5.5 and Fable 5.1 reject forced tool use with a 400, and
+     *       on the models that accept it a forced call skips thinking (platform.claude.com, Define tools).</li>
+     *   <li>Others: "auto" until measured the same way.</li>
+     * </ul>
+     * ANSWER_TOOL_CHOICE=auto|required overrides it for every model (stamped in {@link #protocolVersion}).
+     */
+    static String toolChoiceFor(String model) {
+        String env = System.getenv("ANSWER_TOOL_CHOICE");
+        if ("auto".equals(env) || "required".equals(env)) return env;
+        String m = model == null ? "" : model.replaceFirst("^openrouter:", "");
+        return m.startsWith("openai/") ? "required" : "auto";
+    }
 
     /** Which tiers of which model-driven seats answer through the tool, e.g. "A/smart,B/fast". */
     static String seats(String controllerA, String smartA, String fastA, String controllerB, String smartB, String fastB) {
@@ -139,7 +169,7 @@ final class AnswerTool {
          *  otherwise leaves no trace of why it chose). */
         String why;
         /** `keep_untapped`: handles of mana sources to leave untapped when the chosen play is paid; null
-         *  when not given (the seat is asked when there is a choice), empty for "the engine chooses". */
+         *  when not given or empty (the seat is asked when there is a choice). */
         List<Integer> keepUntapped;
         /** 0-based picks, for the sites that index their own lists. */
         List<Integer> zeroBased() {
@@ -211,15 +241,18 @@ final class AnswerTool {
         props.add("number", obj("type", "integer", "description", "For a decision that asks for a number (X, a count): an integer in "
                 + "the range the decision states."));
         props.add("card", obj("type", "string", "description", "For a decision that asks you to name a card: its exact English name."));
-        JsonObject steps = obj("type", "array", "description", "Optional, on a play decision only, if you want the harness to cast "
-                + "steps of your plan for you without asking again this turn: the CAST/ACTIVATE option numbers you intend to use, "
-                + "in order. Omit anything you are holding.");
+        JsonObject steps = obj("type", "array", "description", "Optional, only on a play decision that says it takes `steps`: "
+                + "the CAST/ACTIVATE option numbers of your plan, in order, for the harness to cast without asking again this "
+                + "turn. Omit anything you are holding. Elsewhere it is ignored.");
         steps.add("items", obj("type", "integer"));
         props.add("steps", steps);
-        JsonObject y = obj("type", "string", "description", "Optional, only with PASS on a play decision: until then you are not "
-                + "asked in windows where nothing of your opponent's is on the stack (anything they cast or activate always asks you).");
+        JsonObject y = obj("type", "string", "description", "Optional, only with PASS on a play decision. \"none\" (the default): "
+                + "you are asked at every window as usual. \"end-of-turn\" or \"my-next-turn\": until then you are not asked in "
+                + "windows where nothing of your opponent's is on the stack (anything they cast or activate always asks you; "
+                + "your own main phases always ask too).");
         JsonArray e = new JsonArray();
-        e.add("end-of-turn"); e.add("my-next-turn");
+        // "none" first: a model that fills every field takes the first value (Luna did, 175 of 189 answers).
+        e.add("none"); e.add("end-of-turn"); e.add("my-next-turn");
         y.add("enum", e);
         props.add("yield", y);
         props.add("profile", obj("type", "string", "description", "Optional, when the decision asks for it: your read of the "
@@ -228,8 +261,8 @@ final class AnswerTool {
                 + "deck combine, in one or two short lines."));
         JsonObject keep = obj("type", "array", "description", "Optional, on a play decision whose choice casts or activates "
                 + "something with a mana cost: the mana sources to leave UNTAPPED when it is paid, by handle (\"@12\"), for "
-                + "example to keep blue up for a counterspell. An empty list lets the engine choose the sources. Omit it "
-                + "and you are asked when the choice matters.");
+                + "example to keep blue up for a counterspell. Omit it, or leave it empty, and you are asked when the choice "
+                + "matters.");
         keep.add("items", obj("type", "string"));
         props.add("keep_untapped", keep);
         props.add("why", obj("type", "string", "description", "Optional: one sentence on why you chose this, kept in the "
@@ -365,10 +398,11 @@ final class AnswerTool {
             props.add("steps", arr);
         }
         if (s.yield) {
-            JsonObject y = obj("type", "string", "description", "Optional, with PASS only: until then you are not asked in windows "
-                    + "where nothing of your opponent's is on the stack (anything they cast or activate always asks you).");
+            JsonObject y = obj("type", "string", "description", "Optional, with PASS only. \"none\" (the default): you are asked "
+                    + "as usual. Otherwise, until then you are not asked in windows where nothing of your opponent's is on the stack "
+                    + "(anything they cast or activate always asks you; your own main phases always ask too).");
             JsonArray e = new JsonArray();
-            e.add("end-of-turn"); e.add("my-next-turn");
+            e.add("none"); e.add("end-of-turn"); e.add("my-next-turn");
             y.add("enum", e);
             props.add("yield", y);
         }
@@ -589,8 +623,12 @@ final class AnswerTool {
         }
         if (s.yield && !absent(a, "yield")) {
             String y = str(a, "yield");
-            if (!"end-of-turn".equals(y) && !"my-next-turn".equals(y)) return Result.bad("the `yield` value is end-of-turn or my-next-turn.");
-            out.yieldUntil = y;
+            // "none", or a blank value, is the default a model fills in when it fills every field: no yield.
+            if (y != null && !"none".equals(y)) {
+                if (!"end-of-turn".equals(y) && !"my-next-turn".equals(y))
+                    return Result.bad("the `yield` value is none, end-of-turn or my-next-turn.");
+                out.yieldUntil = y;
+            }
         }
         if (s.profile) out.profile = str(a, "profile");
         if (s.lines) out.lines = str(a, "lines");
@@ -602,7 +640,8 @@ final class AnswerTool {
                 if (m == null || !m.find()) return Result.bad("`keep_untapped` is a list of handles such as \"@12\".");
                 hs.add(Integer.parseInt(m.group(1)));
             }
-            out.keepUntapped = hs;
+            // An empty list is what a model that fills every field sends: not said, so the seat is asked when it matters.
+            out.keepUntapped = hs.isEmpty() ? null : hs;
         }
         out.why = str(a, "why");
         // The fixed schema names every field; another decision kind's field beside the right one is ignored.
@@ -645,7 +684,6 @@ final class AnswerTool {
         if (a.lines != null) b.append("\nLINES: ").append(a.lines);
         if (a.keepUntapped != null) {
             b.append("\nKEEP UNTAPPED: ");
-            if (a.keepUntapped.isEmpty()) b.append("(the engine chooses)");
             for (int i = 0; i < a.keepUntapped.size(); i++) b.append(i == 0 ? "@" : ", @").append(a.keepUntapped.get(i));
         }
         return b.toString();
@@ -711,6 +749,24 @@ final class AnswerTool {
         return RETRY.matcher(out).replaceAll("(Your previous reply did not call `answer` with a legal value. Call `answer` now.)");
     }
 
+    /** A text answer format left in a tool ask: a way to answer other than `answer`, which a model will take
+     *  (owner, 2026-10-15). Tags the text grammar reads (`CHOICE: 2`, `PICKS:`, `STEPS:` ...), "end with
+     *  exactly", "KEEP or MULLIGAN", and the text tool grammar. */
+    private static final Pattern TEXT_FORMAT = Pattern.compile(
+            "\\b(?:CHOICE|PICKS|BLOCKS|ALLOC|ATTACKS|ATTACKERS|SIMULATE|STEPS|YIELD|PROFILE|LINES|NUMBER|CARD):\\s*<"
+            + "|`(?:PLAN|STEPS|YIELD|PROFILE|LINES|SIMULATE|CHOICE|PICKS|CARD|NUMBER):"
+            + "|(?:[Ee]nd|[Rr]eply|[Aa]nswer) with (?:EXACTLY|exactly)"
+            + "|KEEP or MULLIGAN|instead of an action, you may reply");
+
+    /** The first text answer format in {@code prompt}, or null when the only way to answer is a call. */
+    static String textFormatLeak(String prompt) {
+        if (prompt == null) return null;
+        java.util.regex.Matcher m = TEXT_FORMAT.matcher(prompt);
+        if (!m.find()) return null;
+        int a = Math.max(0, m.start() - 60), b = Math.min(prompt.length(), m.end() + 60);
+        return prompt.substring(a, b).replace('\n', ' ');
+    }
+
     /** One decision's answer session: what is offered, and what came back. */
     static final class Ask {
         final Spec spec;
@@ -724,6 +780,7 @@ final class AnswerTool {
         String via;
         /** The reply called nothing once and was asked, in the same conversation, for the call. */
         boolean nudged;
+        int nudges;
         int invalid;
         boolean lost;
         /** Text the model wrote alongside its answer call: its reasoning, kept for the row and the
@@ -804,15 +861,20 @@ final class AnswerTool {
     }
 
     static final String CALL_ANSWER = "No lookups are available for this decision any more. Answer it now by calling `answer`.";
-    /** The one nudge for a reply that called nothing. */
+    /** Reminders for replies that call nothing, before the decision is lost. Text is never read as an answer on
+     *  a tool ask (owner, 2026-10-15: every decision goes through the tool call). */
+    static final int MAX_NUDGES = 2;
+    /** The reminder for a reply that called nothing. */
     static final String ANSWER_BY_CALL = "You did not call `answer`, so nothing was done. Call `answer` now with your choice; "
             + "the decision's last line says which field it takes.";
 
     /**
      * One decision over native function calling, answered by `answer`. Notes are applied first, then the
      * answer (the first `answer` call in a turn; a valid one ends the ask), then lookups. Returns the
-     * answer rendered as text, the text of a reply that called nothing (for the text parser, counted as
-     * "text"), or null (no reply, two invalid calls, or no answer within {@link #MAX_ROUNDS}).
+     * answer rendered as text, or null: no reply, two invalid calls, {@link #MAX_NUDGES} reminders that
+     * still called nothing, or no answer within {@link #MAX_ROUNDS}. A reply's prose is never parsed as the
+     * answer; a decision lost for want of a call is {@code lost}, so the caller takes its fixed legal
+     * option and does not ask the whole decision again.
      */
     static String converse(String user, Ask ask, ContextMemory.NativeModel model, Lookups lookups,
                            BiConsumer<String, String> audit) {
@@ -836,18 +898,21 @@ final class AnswerTool {
                     messages.add(NativeTools.message("user", CALL_ANSWER));
                     continue;
                 }
-                // A reply that explains its choice but calls nothing ("I choose option 5") used to go to the text
-                // parser, which found no answer line, and the caller asked the whole decision again (9 of 151
-                // asks in runs/prompt-ab/old). Ask once, in this conversation, for the call instead.
-                if (!ask.nudged) {
+                // A reply that explains its choice but calls nothing ("I choose option 5") is asked, in this
+                // conversation, for the call. Its prose is never read as the answer: a text alternative is one a
+                // model will take (owner, 2026-10-15), so after the reminders the decision is lost, not parsed.
+                if (ask.nudges < MAX_NUDGES) {
+                    ask.nudges++;
                     ask.nudged = true;
                     messages.add(JsonParser.parseString(turn.messageJson));
                     messages.add(NativeTools.message("user", ANSWER_BY_CALL));
                     audit.accept(turn.content, "NUDGE: no `answer` call; asked for one in the same conversation.");
                     continue;
                 }
-                ask.via = "text";
-                return turn.content;
+                audit.accept(turn.content, "LOST: no `answer` call after " + MAX_NUDGES + " reminders.");
+                ask.lost = true;
+                ask.via = "lost";
+                return null;
             }
             messages.add(JsonParser.parseString(turn.messageJson));
             String[] results = new String[turn.calls.size()];

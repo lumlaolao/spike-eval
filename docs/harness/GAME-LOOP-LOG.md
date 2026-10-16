@@ -365,3 +365,88 @@ First game with the answer tool (`answer-tool-v2`) and prompt caching, on the ne
   on turn 9. A fair loss; nothing for the harness to fix.
 - OPEN  Luna writes no visible text beside its calls, so `raw_reply` holds only the rendered
   answer. Its reasoning is not recorded anywhere, which makes misplays hard to read.
+
+### game of 2026-10-15  seed 81  Sneak and Show (GPT-6 Luna) vs UR Delver (Forge AI)  lost T9  $0.018  answer-tool-v8
+
+First game with no text alternative (`answer-tool-v8`, `tool_choice` "required" on Luna). `runs/luna-v8/g1`.
+
+- Harness: 24 of 24 model decisions came back as `answer` calls, 0 nudges, 0 filler yields, 0 Forge-AI
+  decisions.
+- The game: Show and Tell was Spell Pierced; Delver won on turn 9. A fair loss.
+- FIXED  an unless cost the seat could not pay ("Pay {2}", "Pay {R}{R}") was offered as a choice; it is
+  now a forced decline, not asked.
+- FIXED  each answer to an unless cost was recorded twice (the answer row and an auto row).
+
+### game of 2026-10-15  seed 82  UR Delver (GPT-6 Luna) vs Sneak and Show (Forge AI)  CRASHED T6  $0.03  harness-epoch-17
+
+`runs/luna-v8/g2`, the build of #188. 43 model decisions, all by `answer` call; 0 taken, lost or skipped;
+0 Forge-AI decisions. The seat was ahead (opponent at 12, two Dragon's Rage Channelers) when the game
+thread died.
+- FIXED  StackOverflowError on turn 6: six cards in the graveyard, more than Murktide Regent's generic
+  5, so delve asked the seat inside an affordability test, and the ask's snapshot tested Murktide
+  again. Test `delveWithMurktideInHandDoesNotRecurse` fails on main with the same error.
+- FIXED  delve was not the seat's: every affordability test wrote an auto row exiling the whole
+  graveyard (17 by turn 4), a real payment exiled all of it unasked, and a larger graveyard forced
+  exactly the generic amount. The seat now chooses how many and which, in the real payment only.
+- FIXED  the crash was one log line, a game line with winner "draw" and exit 0, and the sheet passed.
+  Now: 80 stack frames, `game_error` with winner "invalid", exit 3 (run_batch replays it), and
+  `defect_analyzer.py` fails on `game_crash_count`.
+- OPEN   one Luna call hit the 300 s deadline and was retried twice (T4 play, 300 s lost).
+- clean  mulligan, plays, targets, surveil (each answer took effect), the fetch, attacks.
+
+### game of 2026-10-15  seed 83  UR Delver (GPT-6 Luna) vs Sneak and Show (Forge AI)  lost T24  $0.07  harness-epoch-18
+
+`runs/luna-v8/g3`, the build of #189. 73 model decisions by `answer` call, 0 taken or lost, 0 Forge-AI
+decisions, no delve noise (the affordability tests are silent now). The sheet read clean, and was wrong.
+- FIXED  a yield passed the seat's own main phases: 15 of them in 12 turns, the first main phase on
+  turns 3, 7, 9, 11, 13 and 21. The seat yielded at its own upkeep to keep its mana open ("keep both
+  Volcanics open") and lost its land drop and every sorcery-speed play with it: 6 lands in 12 turns, two
+  discards to hand size. A yield now never passes the seat's own main phase (answer-tool-v9).
+  Test `aYieldAtTheSeatsOwnUpkeepStillAsksInItsMainPhase`.
+- FIXED  `match_review.py` counted those windows as the seat's yields; each is now a SKIP (15 here).
+- OPEN   recorded runs were hit the same way: `runs/compare/*` up to 27 own main phases a game,
+  `runs/prompt-ab/*` up to 17. Their comparisons are confounded by it.
+- OPEN   a second 300 s Luna timeout (T23 play), retried.
+
+### game of 2026-10-15  seed 84  UR Delver (GPT-6 Luna) vs Sneak and Show (Forge AI)  lost T13  $0.07  harness-epoch-19
+
+`runs/luna-v9/g4`, the build of #191 (answer-tool-v9). 68 model decisions by `answer` call; TAKEN 0,
+LOST 0, SKIP 0; 0 Forge-AI decisions; analyzer PASS.
+- WORKS  the yield fix: 16 yielded windows, none of them the seat's own main phase; every seat turn with
+  something usable had a main-phase ask (turn 12 had no land and nothing castable).
+- OPEN   one Luna ask took 3 attempts (T8 play, 31 s lost).
+- clean  mulligan, plays, targets, attacks.
+
+### game of 2026-10-15  seed 85  Death and Taxes (GPT-6 Luna) vs Grixis Reanimator (Forge AI)  WON T13  $0.06  harness-epoch-21
+
+`runs/luna-v9/g5`, the build of #195. 80 model decisions by `answer` call; TAKEN 0, LOST 0, SKIP 0; 0 Forge-AI
+decisions; analyzer PASS. The first Luna win in these games (Thalia, Stoneforge into Batterskull, Vial).
+- FIXED  engine ids in the state: the stack read "Aether Vial (4) - You may put a creature card ...", and on
+  T7 the seat answered "Vial is at four counters" with three on it. Also "[Zone Changer: Stoneforge Mystic
+  (30)]" in trigger lines and "[notice to you] Lotus Petal (111) picked {U}" in events (g4). The stack and
+  the notices are now redacted like every other engine message. Test
+  `theStackShowsNoEngineIdAndCardTextNoEscapes`; the ask contract checks the whole prompt; the sheet
+  reports LEAK (19 here).
+- FIXED  card text showed the oracle's literal "\n" ("...on Aether Vial.\n{T}: ...", 34 prompts).
+- clean  mulligan, Vial counters (asked every upkeep), Stoneforge and Recruiter searches, Wasteland target,
+  attacks.
+
+### game of 2026-10-15  seed 86  Standard Dimir Aggro (GPT-6 Luna) vs Standard UW Control (Forge AI)  WON T25  $0.09  harness-epoch-22
+
+`runs/luna-std/g6`: the first Standard game (MTGO Challenge top-8 lists, #198), on the build with latency routing
+(#197). 120 model decisions by `answer` call; TAKEN 0, LOST 0, SKIP 0; 0 Forge-AI decisions; analyzer PASS.
+- WORKS  latency routing: 153 calls, p50 6.7 s, p99 26 s, max 28 s, all served by Azure (before: p50 8.6 s, max 352 s).
+- FIXED  "The Wondrous Wasp (53)'s Effect" in the command zone (22 prompts): an effect named after its source with
+  the engine id inside the name. Names drop it. Test `anEffectsNameCarriesNoEngineId`.
+- clean  mulligan, plays, Kaito emblems, attacks; format named in the system prompt; decks loaded 60+15.
+
+### game of 2026-10-15  seed 87  Modern UrzaTron (GPT-6 Luna) vs Modern Rakdos Delirium (Forge AI)  WON T14  $0.04  harness-epoch-23
+
+`runs/luna-modern/g7`: the first Modern game. 64 model decisions by `answer` call; TAKEN 0, SKIP 0; 0 Forge-AI
+decisions; analyzer PASS.
+- FIXED  the seat's "No target" for Cityscape Leveler's up-to-one target (T10) was logged with the fallback
+  "target(optional-decline-or-unparsed)", and the sheet called it LOST. A decline now carries no fallback; only an
+  answer that could not be used does. Test `anOptionalTargetTheSeatDeclinesIsItsDecisionNotAFallback`.
+- FIXED  the target question pasted the trigger's engine text "[Card: Cityscape Leveler (70), Activator: Seat, ...]"
+  (also Devourer of Destiny (50), T6); ability labels are now redacted like the stack.
+- checked  "announce-x(forced)->0" twice for Kozilek's Command: two colourless sources, {X}{C}{C}, so X could only be 0.

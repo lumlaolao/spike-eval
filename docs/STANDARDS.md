@@ -167,6 +167,8 @@ most log questions).
 - Say what was not determined.
 - A doc does not record the acceptance run of the PR that edits it: that belongs in the PR's
   `## Evidence`, or recording it would need a commit that invalidates it.
+- `docs/harness/ARCHITECTURE.md` stays true: a change that alters how the harness works (a decision path,
+  a tool, the prompt, a bridge, a default, an eval rule) updates it in the same PR.
 
 ## 8. The model is the only bottleneck (the harness contract)
 

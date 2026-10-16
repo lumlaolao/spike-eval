@@ -1,6 +1,7 @@
 # mtg-forge-llm-agent — LLM agents playing Magic: The Gathering on the Forge engine
 
-> **Open work lives in [docs/harness/WORK-PLAN.md](docs/harness/WORK-PLAN.md); read it first.** September 2026 continuation: see [Player harness direction and status](docs/harness/PLAYER-HARNESS.md). Newer Java sources were recovered from the adjacent Forge checkout; older status claims below may be superseded. `MEMORY_TOOLS=1` enables experimental evidence retrieval and a seat-local strategy notebook.
+> **Open work lives in [docs/harness/WORK-PLAN.md](docs/harness/WORK-PLAN.md); read it first.** The whole harness, each part
+> with the reason it is built that way: [docs/harness/ARCHITECTURE.md](docs/harness/ARCHITECTURE.md). September 2026 continuation: see [Player harness direction and status](docs/harness/PLAYER-HARNESS.md). Newer Java sources were recovered from the adjacent Forge checkout; older status claims below may be superseded. `MEMORY_TOOLS=1` enables experimental evidence retrieval and a seat-local strategy notebook.
 
 Claude models pilot full Legacy games inside the real Forge rules engine. A custom
 `PlayerControllerLLM` routes ~15 decision types (plays, targets, combat, discards,
@@ -65,6 +66,10 @@ bash install.sh                                   # 2. copy overlay into $FORGE_
 cd ~/code/forge && mvn -q -pl forge-gui-desktop -am compile -o   # 3. compile (offline is fine)
 ```
 
+**Engine patches (owner, 2026-10-15):** where the seat has no `PlayerController` hook, a patched copy of
+the engine file goes in `forge-overlay/` at its own path, every change marked `HARNESS PATCH`, listed in
+`docs/harness/ENGINE-PATCHES.md` with its upstream sha256 (`eval/test_engine_patches.py` checks both).
+
 The Forge checkout is pinned: `FORGE_COMMIT` records the engine version everything was
 validated against (`install.sh` warns on drift). Don't bump it casually — eval results
 are only comparable within one engine version.
@@ -108,14 +113,30 @@ mess" (owner, 2026-10-15).
   lookahead seat) `simulate` are declared on every ask. A call that does not apply to this decision
   gets an error saying why. The `nativetool` acceptance stage fails if the tool list changes between
   requests.
-- `tool_choice` stays "auto". Forcing a tool skips thinking, and Opus/Sonnet 5.5 refuse it.
+- `tool_choice` is per model (`AnswerTool.toolChoiceFor`, researched and measured 2026-10-15,
+  `docs/harness/PROMPT-CRAFT.md` rule 2):
+  - "required" for OpenAI models: Luna keeps its reasoning, and a text-only reply becomes impossible;
+  - "auto" elsewhere: Opus/Sonnet 5.5 and Fable 5.1 refuse forcing, and a forced call skips thinking on
+    the other Claude models;
+  - never the answer function by name, which skips the reasoning.
+  - `ANSWER_TOOL_CHOICE=auto|required` overrides it, for measurement only.
+- Every optional field's first enum value and its empty value mean "nothing": a model may fill every
+  field, as Luna does (answer-tool-v8).
 - The definitions are mirrored in `eval/tooluse/answer_tools.json` (pinned by
   `AnswerToolTest.theFixedFunctionsMatchTheToolUseSuite`).
+- **Zero text parsing (owner, 2026-10-15):** on a tool ask a decision reads the typed answer only. The text
+  parsers sit behind a guard that refuses there and logs `[TEXT-PARSE]`, which fails acceptance and
+  `GoldenChecksToolTest`.
 - Opt-outs, for measurement only:
   - `ANSWER_TOOL=0` returns to the text grammar;
   - `ANSWER_SCHEMA=per-decision` builds a schema from each decision's legal values (the v1 arm);
   - `ANSWER_TOOL_STRICT=1` sends `strict: true`.
-  - A text reply in a tool ask is still read, and counted as `answer_via: "text"` on the row.
+- **No text alternative on a tool ask** (owner, 2026-10-15: "everything goes through the tool calls"). A reply
+  that calls nothing is reminded, in the same conversation, at most `AnswerTool.MAX_NUDGES` times; then the
+  decision is lost (`answer_via: "lost"`, the caller's fixed legal option). Its prose is never parsed. A tool ask
+  that still carries a text answer format, or a text ask on a backend that calls, logs `[TEXT-FORMAT-LEAK]` and
+  counts on `[TALLY]`; `GoldenChecksToolTest` runs every golden check with the seat answering by calls and fails
+  on either, and the `answertool` acceptance stage checks every ask of its game.
 
 ## Key files
 
@@ -240,6 +261,9 @@ day came to about $8. So:
   `eval/pricing/prices.json` (`--plan N` says what N more games would cost).
 - `run_batch.py --budget-usd X` stops starting games when the directory's spend reaches X, and every
   batch log ends with a `[cost]` line. Always pass it.
+- A game whose JVM crashes, writes no game line or hangs is played once more (`--retries N`, default 1;
+  0 turns it off). The failed attempt's files move to `<out>/crashed/`: still priced and counted against
+  the budget, never aggregated, and the batch log says `[retry]`.
 - **Start with a small block** (about six games per arm), read the result and the cost, then decide
   on the next block. Never launch hundreds of games in one go, and say the expected cost first.
 
@@ -286,6 +310,12 @@ The skills in `.claude/skills/` are not optional helpers. They are how work is d
 Run the three review skills as fresh subagents where the runtime has them, so the reviewer is
 not the author. Recording verdicts and the merge gate: `docs/STANDARDS.md` section 1. Once per
 clone: `bash scripts/install_hooks.sh`.
+
+## Keep the architecture document true
+
+`docs/harness/ARCHITECTURE.md` describes every part of the harness and why it is built that way. A change
+that alters how the harness works (a decision path, a tool, the prompt, a bridge, a default, an eval rule)
+updates that document in the same PR. A PR that changes behaviour and leaves it stale is not done.
 
 ## Before committing
 

@@ -69,6 +69,11 @@ def classify_auto(row):
     return "other"
 
 
+# An engine card id in what the seat reads: a count follows a lower-case word ("library (50)"), an id follows a
+# card name ("Aether Vial (4)"; runs/luna-v9/g5 read it as four charge counters).
+ENGINE_ID = re.compile(r"\b[A-Z][A-Za-z']* \((\d+)\)")
+
+
 def review(path):
     rows = []
     with open(path, errors="replace") as f:
@@ -91,6 +96,9 @@ def review(path):
             tier = r.get("tier")
             if tier in ("smart", "fast"):
                 out["counts"]["model decisions"] += 1
+                leak = ENGINE_ID.search(str(r.get("prompt") or ""))
+                if leak:
+                    add("LEAK", r, "an engine id is shown: '%s'" % leak.group())
                 # The answer must be the one used: the last CHOICE in the reply against the recorded
                 # pick (9,570 replies checked over runs/loop and runs/lines: 2 differed, both attackers).
                 # Only a single-pick question has a CHOICE to compare: on a PICKS (subset) question the
@@ -118,7 +126,13 @@ def review(path):
                 if kind in ("TAKEN", "LOST"):
                     add(kind, r, "%s: %s" % (r.get("type"), r.get("fallback")))
         elif t == "window":
-            if str(r.get("reason") or "").startswith("yield:"):
+            if (str(r.get("reason") or "").startswith("yield:") and r.get("active")
+                    and r.get("phase") in ("MAIN1", "MAIN2") and not r.get("stack")):
+                # A yield never covers the seat's own main phase (runs/luna-v8/g3 lost 15 of them, and
+                # with them its land drops): a harness pass, not the seat's.
+                add("SKIP", r, "own %s passed by a yield (%s) with %d usable" % (
+                    r.get("phase"), r.get("reason"), r.get("castable") or 0))
+            elif str(r.get("reason") or "").startswith("yield:"):
                 out["counts"]["windows the seat yielded"] += 1      # a pass the model asked for
             elif r.get("reason") == "last-sig":
                 # The same turn, phase, stack, board and menu the seat just passed on (its key covers all
@@ -176,7 +190,7 @@ def review(path):
 def defects(r):
     """The findings that mean the harness got in the way, as opposed to cost or noise."""
     c = r["counts"]
-    return c["TAKEN"] + c["LOST"] + c["SKIP"] + c["tool FAILED"] + c["tool REFUSED"]
+    return c["TAKEN"] + c["LOST"] + c["SKIP"] + c["LEAK"] + c["tool FAILED"] + c["tool REFUSED"]
 
 
 def render(r):
@@ -187,14 +201,14 @@ def render(r):
         g.get("win_condition", "")),
         "   model decisions %d | forced picks %d | tool requests %d | TAKEN %d  LOST %d  SKIP %d  TOOL %d  SLOW %d" % (
             c["model decisions"], c["forced picks"], c["tool requests"], c["TAKEN"], c["LOST"], c["SKIP"], c["TOOL"],
-            c["SLOW"]) + ("  REPORT %d" % c["REPORT"] if c["REPORT"] else "")]
+            c["SLOW"]) + ("  LEAK %d" % c["LEAK"] if c["LEAK"] else "") + ("  REPORT %d" % c["REPORT"] if c["REPORT"] else "")]
     grouped = Counter()
     first = {}
     for kind, line, turn, text in r["findings"]:
         key = (kind, re.sub(r"@?\d+", "#", text))
         grouped[key] += 1
         first.setdefault(key, (line, turn, text))
-    order = {"LOST": 0, "TAKEN": 1, "SKIP": 2, "REPORT": 3, "TOOL": 4, "LOG": 5, "SLOW": 6}
+    order = {"LOST": 0, "TAKEN": 1, "SKIP": 2, "LEAK": 3, "REPORT": 4, "TOOL": 5, "LOG": 6, "SLOW": 7}
     for (kind, _), n in sorted(grouped.items(), key=lambda kv: (order.get(kv[0][0], 9), -kv[1])):
         line, turn, text = first[(kind, _)]
         where = (" line %d" % line if line else "") + (" T%s" % turn if turn is not None else "")

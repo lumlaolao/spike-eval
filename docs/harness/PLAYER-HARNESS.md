@@ -558,7 +558,10 @@ Now every decision is answered by calling `answer` (`AnswerTool.java`), and the 
   ask (`answer_via: "lost"`) and the caller takes its deterministic fallback.
 - **A constant tool list.** `set_plan` is offered on every ask. A lookahead seat declares `simulate` on
   every ask, and refuses it on a decision with no play menu (`NativeTools.NO_PREVIEW`).
-- **Rows.** `answer_via` is `tool`, `text`, `reask` or `lost`. `answer_invalid` counts the corrected
+- **No text alternative.** A reply that calls nothing is reminded up to `MAX_NUDGES` (2) times in the same
+  conversation, then the decision is lost; its prose is never read as the answer (answer-tool-v7). A text
+  format left in a tool ask is a `[TEXT-FORMAT-LEAK]` (`AnswerTool.textFormatLeak`).
+- **Rows.** `answer_via` is `tool`, `nudged`, `reask` or `lost` (`text` only on rows recorded before v7). `answer_invalid` counts the corrected
   calls. `raw_reply` holds the answer rendered in the old line format, so existing readers still work.
 - **Measure** with `python3 eval/tool_use_suite.py --arms native,native-answer` before games. A
   per-decision arm (`ANSWER_SCHEMA=per-decision`) is kept for a side-by-side measurement of

@@ -84,7 +84,9 @@ ZERO_ARMS = {"floor": 0, "random": 0, "empty": 0, "garbage": 0}
 
 class TestFrozenPanelsFile(unittest.TestCase):
     def test_the_mirror_panel_is_every_archetype_against_itself(self):
-        decks = sorted(p.stem for p in (HERE / "decks").glob("*.txt") if not p.stem.startswith("hook-"))
+        # The Legacy pool: every deck but the hook test decks and the other formats' decks (prefixed by format).
+        decks = sorted(p.stem for p in (HERE / "decks").glob("*.txt")
+                       if not p.stem.startswith(("hook-", "modern-", "standard-", "pauper-")))
         self.assertEqual(len(decks), 16)
         self.assertEqual([d["name"] for d in DOC["deck_pool"]], decks)
         cells = DOC["panels"]["mirror"]["cells"]

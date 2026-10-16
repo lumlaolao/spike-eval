@@ -791,3 +791,68 @@ class TestSanityArmLaunch(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TestCrashRerun(unittest.TestCase):
+    """A game whose JVM crashes, writes no game line or hangs is played again; the failed attempt's files
+    are set aside under crashed/, still priced, never aggregated."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.out = Path(self.tmp.name)
+        (self.out / "batch-manifest.json").write_text(json.dumps({"condition": {"smart_a": "openrouter:x/y"}}))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def crash(self, seed, swap, name):
+        (self.out / ("game-%d-%d.log" % (seed, swap))).write_text("boot\n[EVAL] jsonl %s\nException\n" % name)
+        (self.out / name).write_text(json.dumps({"t": "context_call", "tier": "smart", "prompt_tokens": 10}) + "\n")
+
+    def test_only_the_crashed_attempts_files_are_set_aside(self):
+        self.crash(7, 1, "game-7-200.jsonl")
+        (self.out / "game-7-100.jsonl").write_text("{}\n")  # the other swap's game, running at the same time
+        moved = run_batch.set_aside(self.out, 7, True, 1)
+        self.assertEqual(sorted(moved), ["attempt1-swap1-game-7-1.log", "attempt1-swap1-game-7-200.jsonl"])
+        self.assertTrue((self.out / "game-7-100.jsonl").is_file())
+        self.assertTrue((self.out / "crashed" / "batch-manifest.json").is_file())
+        self.assertFalse(list(self.out.glob("game-7-200*")))
+
+    def test_a_retryable_failure_is_played_again_and_a_mismatch_is_not(self):
+        calls = []
+
+        def play(results):
+            def f():
+                calls.append(1)
+                r = results[len(calls) - 1]
+                if r != "ok":
+                    self.crash(5, 0, "game-5-%d.jsonl" % len(calls))
+                return (5, False, r, 1 if r != "ok" else 0)
+            return f
+
+        with mock.patch.object(run_batch, "log"):
+            r = run_batch.play_with_retries(play(["no-game-line", "ok"]), 5, False, self.out, 1, lambda: False)
+            self.assertEqual((r[2], len(calls)), ("ok", 2))
+            self.assertEqual(len(list((self.out / "crashed").glob("attempt1-*"))), 2)
+            calls.clear()
+            r = run_batch.play_with_retries(play(["condition-mismatch", "ok"]), 5, False, self.out, 1, lambda: False)
+            self.assertEqual((r[2], len(calls)), ("condition-mismatch", 1))
+            calls.clear()
+            r = run_batch.play_with_retries(play(["timeout", "timeout"]), 5, False, self.out, 1, lambda: False)
+            self.assertEqual((r[2], len(calls)), ("timeout", 2))  # the last failure is reported, not hidden
+            calls.clear()
+            budget = iter([False, True])
+            r = run_batch.play_with_retries(play(["nonzero-exit", "ok"]), 5, False, self.out, 1, lambda: next(budget))
+            self.assertEqual((r[2], len(calls)), ("nonzero-exit", 1))  # the budget stops the retry
+            self.assertEqual(run_batch.play_with_retries(play(["ok"]), 5, False, self.out, 1, lambda: True)[2], "budget")
+
+    def test_a_set_aside_attempt_still_counts_against_the_budget_once(self):
+        self.crash(3, 0, "game-3-1.jsonl")
+        prices = {"x/y": {"prompt": 1.0, "completion": 1.0}}
+        with mock.patch.object(run_batch.cost_report, "load_prices", return_value=prices):
+            before = run_batch.spent_usd(self.out)
+            run_batch.set_aside(self.out, 3, False, 1)
+            self.assertAlmostEqual(run_batch.spent_usd(self.out), before)
+            self.assertGreater(before, 0)
+            self.assertAlmostEqual(run_batch.spent_usd_tree(self.out), before)
+            self.assertEqual(run_batch.attempt_jsonl(self.out / "crashed" / "attempt1-swap0-game-3-0.log"), "game-3-1.jsonl")

@@ -119,6 +119,59 @@ public class AnswerToolTest {
         Assert.assertEquals(ask.via, "lost");
     }
 
+    /** `steps` asks the harness to cast the plan's steps without asking again, which only PLAN_EXECUTE
+     *  does. Without it the play ask must not offer steps: the offer would be a promise the harness breaks. */
+    @Test
+    public void stepsAreOfferedOnlyWhereTheyAreCarriedOut() {
+        boolean was = LlmSpikeGui.PlayerControllerLLM.PLAN_EXECUTE;
+        try {
+            LlmSpikeGui.PlayerControllerLLM.PLAN_EXECUTE = false;
+            String off = LlmSpikeGui.PlayerControllerLLM.playToolAsks(true, false, false);
+            Assert.assertTrue(off.contains("set_plan") && !off.contains("`steps`"), off);
+            LlmSpikeGui.PlayerControllerLLM.PLAN_EXECUTE = true;
+            Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.playToolAsks(true, false, false).contains("`steps`"));
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.PLAN_EXECUTE = was;
+        }
+        // A play decision that does not offer steps ignores them rather than losing the answer.
+        Assert.assertEquals(AnswerTool.validate(AnswerTool.Spec.one(3), "{\"option\":1,\"steps\":[1]}").answer.steps, null);
+    }
+
+    /** Luna fills every optional field with a default (the probe of 2026-10-15, and 175 of 189 recorded answers):
+     *  "yield":"end-of-turn", "keep_untapped":[], "keep":false, "number":0. Those defaults must do nothing: no
+     *  yield (it took the seat out of its own windows), and no "the engine chooses" for the lands. */
+    @Test
+    public void aModelsFilledInDefaultsDoNothing() {
+        String filled = "{\"option\":%d,\"options\":[],\"blocks\":[],\"amounts\":[],\"keep\":false,\"number\":0,\"card\":\"\","
+                + "\"steps\":[],\"yield\":\"%s\",\"profile\":\"\",\"lines\":\"\",\"keep_untapped\":[],\"why\":\"Bolt is lethal.\"}";
+        AnswerTool.Spec play = AnswerTool.Spec.one(3);
+        play.yield = true;
+        play.keep = true;
+        AnswerTool.Answer cast = AnswerTool.validate(play, String.format(filled, 1, "none")).answer;
+        Assert.assertEquals(cast.option, Integer.valueOf(1));
+        Assert.assertNull(cast.yieldUntil);
+        Assert.assertNull(cast.keepUntapped, "an empty keep_untapped is not said: the seat is asked when it matters");
+        Assert.assertNull(cast.profile);
+        Assert.assertEquals(AnswerTool.validate(play, String.format(filled, 3, "none")).answer.yieldUntil, null, "PASS with none");
+        Assert.assertEquals(AnswerTool.validate(play, String.format(filled, 3, "end-of-turn")).answer.yieldUntil, "end-of-turn");
+        // The schema's first yield value is the neutral one a model that fills every field takes.
+        com.google.gson.JsonArray e = new AnswerTool.Ask(play, false).definitions().get(0).getAsJsonObject()
+                .getAsJsonObject("function").getAsJsonObject("parameters").getAsJsonObject("properties")
+                .getAsJsonObject("yield").getAsJsonArray("enum");
+        Assert.assertEquals(e.get(0).getAsString(), "none");
+    }
+
+    /** A call is forced (tool_choice "required") only where that is measured to keep the model's reasoning:
+     *  OpenAI models. Anthropic's 5.5 models refuse forcing with a 400, and a forced call skips thinking. */
+    @Test
+    public void aCallIsForcedOnlyWhereForcingKeepsTheReasoning() {
+        if (System.getenv("ANSWER_TOOL_CHOICE") != null) throw new org.testng.SkipException("ANSWER_TOOL_CHOICE is set");
+        Assert.assertEquals(AnswerTool.toolChoiceFor("openai/gpt-6-luna"), "required");
+        Assert.assertEquals(AnswerTool.toolChoiceFor("openrouter:openai/gpt-6-luna"), "required");
+        Assert.assertEquals(AnswerTool.toolChoiceFor("anthropic/claude-opus-5.5"), "auto");
+        Assert.assertEquals(AnswerTool.toolChoiceFor("deepseek/deepseek-v4.1-flash"), "auto");
+    }
+
     /** A seat with the lookahead preview declares `simulate` on every ask, so a decision without a play
      *  menu has the same tools as one with; a preview there is refused with the reason. */
     @Test
@@ -148,8 +201,8 @@ public class AnswerToolTest {
                 + "[{\"type\":\"reasoning.encrypted\",\"data\":\"gAAAA\"}]}"));
     }
 
-    /** A reply that explains its choice in text but calls nothing is asked once, in the same conversation,
-     *  for the call; the caller's full re-ask is no longer needed. */
+    /** A reply that explains its choice in text but calls nothing is asked, in the same conversation, for the
+     *  call; its prose is never parsed as the answer. */
     @Test
     public void aReplyThatCallsNothingIsAskedForTheCallInTheSameConversation() {
         AnswerTool.Ask ask = new AnswerTool.Ask(AnswerTool.Spec.one(5), false);
@@ -166,17 +219,22 @@ public class AnswerToolTest {
         Assert.assertEquals(second.get(1).getAsJsonObject().get("content").getAsString(), "I choose option 5.");
         Assert.assertEquals(second.get(2).getAsJsonObject().get("content").getAsString(), AnswerTool.ANSWER_BY_CALL);
 
-        // A second reply that calls nothing goes to the text parser, as before.
-        AnswerTool.Ask twice = new AnswerTool.Ask(AnswerTool.Spec.one(5), false);
-        String text = AnswerTool.converse("DECISION", twice, (user, messages, tools, allow, r) ->
-                new NativeTools.Turn("CHOICE: 2", "{\"role\":\"assistant\",\"content\":\"CHOICE: 2\"}", new ArrayList<>()),
-                null, (req, res) -> { });
-        Assert.assertEquals(text, "CHOICE: 2");
-        Assert.assertEquals(twice.via, "text");
+        // Text is never read as the answer: replies that keep calling nothing are reminded MAX_NUDGES times,
+        // then the decision is lost (the caller's fixed legal option), even when the prose looks like one.
+        AnswerTool.Ask never = new AnswerTool.Ask(AnswerTool.Spec.one(5), false);
+        int[] rounds = {0};
+        String text = AnswerTool.converse("DECISION", never, (user, messages, tools, allow, r) -> {
+            rounds[0]++;
+            return new NativeTools.Turn("CHOICE: 2", "{\"role\":\"assistant\",\"content\":\"CHOICE: 2\"}", new ArrayList<>());
+        }, null, (req, res) -> { });
+        Assert.assertNull(text);
+        Assert.assertTrue(never.lost);
+        Assert.assertEquals(never.via, "lost");
+        Assert.assertEquals(rounds[0], 1 + AnswerTool.MAX_NUDGES);
     }
 
-    /** A play can say which mana sources stay untapped when it is paid, by handle; an empty list leaves it
-     *  to the engine; not giving it means the seat is asked when the choice matters. */
+    /** A play can say which mana sources stay untapped when it is paid, by handle; an empty list or no list
+     *  means the seat is asked when the choice matters. */
     @Test
     public void aPlaySaysWhichManaSourcesStayUntapped() {
         AnswerTool.Spec play = AnswerTool.Spec.one(3);
@@ -184,7 +242,8 @@ public class AnswerToolTest {
         AnswerTool.Answer a = AnswerTool.validate(play, "{\"option\":1,\"keep_untapped\":[\"@12\",\"Volcanic Island @16\"]}").answer;
         Assert.assertEquals(a.keepUntapped, List.of(12, 16));
         Assert.assertTrue(AnswerTool.render(play, a).endsWith("KEEP UNTAPPED: @12, @16"), AnswerTool.render(play, a));
-        Assert.assertEquals(AnswerTool.validate(play, "{\"option\":1,\"keep_untapped\":[]}").answer.keepUntapped, List.of());
+        // Empty is not said (v8): the seat is asked when the choice matters, never "the engine chooses".
+        Assert.assertNull(AnswerTool.validate(play, "{\"option\":1,\"keep_untapped\":[]}").answer.keepUntapped);
         Assert.assertNull(AnswerTool.validate(play, "{\"option\":1}").answer.keepUntapped);
         Assert.assertNotNull(AnswerTool.validate(play, "{\"option\":1,\"keep_untapped\":\"@12\"}").error);
         // Not a play: the field is ignored, as the other decision kinds' notes are.

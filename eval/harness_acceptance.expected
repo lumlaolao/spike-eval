@@ -65,7 +65,8 @@ random.decisions=438
 # Silent Forge-AI strategic/payment hooks reachable in Legacy play (ControllerOwnershipTest baseline).
 # 2026-10-15: trigger targets and modes are the seat's (orderAndPlaySimultaneousSa, playTrigger
 # overridden; Forge AI's doTrigger chose every trigger target before). 3 -> 1.
-ownership.silent_ai_strategic_max=1
+# 2026-10-15: the any-colour shard colour is the seat's (engine patch, docs/harness/ENGINE-PATCHES.md). 1 -> 0.
+ownership.silent_ai_strategic_max=0
 # 2026-10-14: LINUX pins (PR #95). The same commit plays seed 42 differently on Linux (Debian
 # container, Xvfb) than on the reference Mac, so the canaries are pinned per OS; a "linux." key wins
 # over the plain key there, and the plain keys stay the Mac's. Floor is A/108/1081 on Linux at every
@@ -85,7 +86,12 @@ linux.floor.turns=108
 # to pass silently. Measured: with SKIP_HEURISTICS=1 MULLIGAN_HEURISTIC=1 ONE_TIER=0 the same build
 # plays A/108/1081, the old pin, so the default flip is the whole change. Random is unchanged (A/45/368;
 # its arm bypasses the heuristics). The Mac floor pin is STALE until measured there.
-linux.floor.decisions=1824
+# 2026-10-15 (fix/no-engine-fallback-rare): chooseSingleReplacementEffect and chooseCounterType are the
+# seat's now (they were Forge AI's, with no row). Floor reaches four replacement-effect choices with one
+# legal option each, now recorded as replacement-order(forced-only-legal): A/108/1828. Every other row,
+# the winner and the turns are unchanged (diffed per type against fix/no-engine-fallback's run). The Mac
+# floor pin is STALE until measured there.
+linux.floor.decisions=1828
 # 2026-10-15: Linux random re-measured at the head of the #143-#156 stack (fix/engine-id-leak) in a
 # Debian cloud container (JDK 17, engine 34a8662b), where the stack's Mac-only re-pins had left it STALE:
 # A/45/368, reproduced three times with the same class-load build. Floor unchanged on Linux (A/108/1081).
@@ -93,4 +99,7 @@ linux.floor.decisions=1824
 # that moves the random walk re-pins the OS it was measured on and marks the other STALE until measured.
 linux.random.winner=A
 linux.random.turns=45
-linux.random.decisions=368
+# 2026-10-15 (fix/no-engine-fallback-rare): six replacement-order and two counter-type choices with one
+# legal option each are now recorded (forced-only-legal): A/45/376, the same game otherwise (diffed per
+# type). The Mac random pin is STALE until measured there.
+linux.random.decisions=376

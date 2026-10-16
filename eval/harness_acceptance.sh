@@ -181,7 +181,9 @@ if has_stage compile; then
   if [ ! -f "$CP_FILE" ]; then fail compile "no classpath file ($CP_FILE)"; else
     rm -rf "$CLASSES"; mkdir -p "$CLASSES"
     "$JAVAC" --release 17 -encoding UTF-8 -proc:none -nowarn -cp "$(cat "$CP_FILE")" -d "$CLASSES" \
-      "$OVERLAY"/main/java/forge/spike/*.java "$OVERLAY"/test/java/forge/spike/*.java >"$OUT/javac.log" 2>&1
+      "$OVERLAY"/main/java/forge/spike/*.java "$OVERLAY"/test/java/forge/spike/*.java \
+      $(find "$REPO/forge-overlay" -path '*/src/main/java/*' -name '*.java' -not -path '*/forge/spike/*') \
+      >"$OUT/javac.log" 2>&1
     RC=$?
     NC="$(find "$CLASSES" -name '*.class' | wc -l | tr -d ' ')"
     # The checkout build (checkstyle) rejects unused and duplicate imports; this javac does not.
@@ -196,7 +198,21 @@ fi
 if has_stage javatests; then
   if [ ! -f "$CLASSES/forge/spike/LlmSpikeGui.class" ]; then fail javatests "no compiled classes"; else
     TCLASSES="$(ls "$OVERLAY"/test/java/forge/spike/*Test.java | xargs -n1 basename | sed 's/\.java$//;s/^/forge.spike./' | paste -sd, -)"
-    DECLARED="$(grep -h -E '^[[:space:]]+@Test' "$OVERLAY"/test/java/forge/spike/*Test.java | wc -l | tr -d ' ')"
+    # A test class that extends another runs the parent's tests too (GoldenChecksToolTest reruns every golden
+    # check on the tool protocol), so its parent's @Test methods are declared once more for it.
+    DECLARED="$(python3 - "$OVERLAY"/test/java/forge/spike/*Test.java <<'PYEOF'
+import re,sys,os
+count={}; parent={}
+for f in sys.argv[1:]:
+    t=open(f,encoding="utf-8").read(); n=os.path.basename(f)[:-5]
+    count[n]=len(re.findall(r"(?m)^[ \t]+@Test", t))
+    m=re.search(r"class "+n+r" extends (\w+Test)\b", t)
+    if m: parent[n]=m.group(1)
+def total(n, seen=()):
+    return count.get(n,0)+(total(parent[n], seen+(n,)) if n in parent and parent[n] not in seen else 0)
+print(sum(total(n) for n in count))
+PYEOF
+)"
     ( cd "$FORGE/forge-gui-desktop" && MEMORY_TOOLS=1 "$JAVA" -Dapple.awt.UIElement=true \
         -Dharness.ownership.tsv="$LEDGER" -Dharness.rules.file="$REPO/data/rules/MagicCompRules.txt" -Dharness.decks.dir="$REPO/eval/decks" -Dharness.tooluse.json="$REPO/eval/tooluse/tools.json" -cp "$CLASSES:$(cat "$CP_FILE")" \
         org.testng.TestNG -testclass "$TCLASSES" -d "$OUT/testng" ) >"$OUT/javatests.log" 2>&1
@@ -656,9 +672,9 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 else:
     if game.get("answer_tool") is not True: problems.append("answer_tool=%r not stamped"%game.get("answer_tool"))
-    if game.get("answer_tool_version")!="answer-tool-v5": problems.append("answer_tool_version=%r (move this pin WITH AnswerTool.VERSION)"%game.get("answer_tool_version"))
+    if game.get("answer_tool_version")!="answer-tool-v9": problems.append("answer_tool_version=%r (move this pin WITH AnswerTool.VERSION)"%game.get("answer_tool_version"))
     if game.get("answer_tool_seats")!="A/smart,A/fast": problems.append("answer_tool_seats=%r"%game.get("answer_tool_seats"))
-    if game.get("harness_epoch")!="harness-epoch-11": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-24": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
 dec=[r for r in rows if r.get("t")=="decision"]
 model=[r for r in dec if r.get("tier") in ("smart","fast")]
 via=collections.Counter(r.get("answer_via") for r in model)
@@ -689,9 +705,19 @@ if any(r.get("reply") for r in reqs): problems.append("the fake model answered i
 if any(r.get("has_authorization") for r in reqs): problems.append("authorization header sent to loopback")
 log=open(d+"/game.log",errors="replace").read()
 if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] in log")
+# Every decision goes through the call (owner, 2026-10-15): no tool ask may offer a text answer.
+import re
+TEXT_FORMAT=re.compile(r"\b(?:CHOICE|PICKS|BLOCKS|ALLOC|ATTACKS|ATTACKERS|SIMULATE|STEPS|YIELD|PROFILE|LINES|NUMBER|CARD):\s*<"
+    r"|`(?:PLAN|STEPS|YIELD|PROFILE|LINES|SIMULATE|CHOICE|PICKS|CARD|NUMBER):|(?:[Ee]nd|[Rr]eply|[Aa]nswer) with (?:EXACTLY|exactly)"
+    r"|KEEP or MULLIGAN|instead of an action, you may reply")
+asks=[r for r in rows if r.get("t")=="context_call" and not r.get("round")]
+leaks=[m.group() for r in asks for m in [TEXT_FORMAT.search(r.get("prompt") or "")] if m]
+if leaks: problems.append("%d tool asks offer a text answer, e.g. %r"%(len(leaks),leaks[0]))
+if "[TEXT-FORMAT-LEAK]" in log: problems.append("[TEXT-FORMAT-LEAK] in log")
+if "[TEXT-PARSE]" in log: problems.append("[TEXT-PARSE] in log: a decision read text on a tool ask")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)
-facts="model_decisions=%d via=%s types=%s answer_calls=%d invalid=%d corrected_rows=%d fake_requests=%d"%(
-    len(model),dict(via),",".join(types),len(answers),len(bad),len(corrected),len(reqs))
+facts="model_decisions=%d via=%s types=%s answer_calls=%d invalid=%d corrected_rows=%d fake_requests=%d asks_checked=%d text_formats=0"%(
+    len(model),dict(via),",".join(types),len(answers),len(bad),len(corrected),len(reqs),len(asks))
 print(("FAIL "+"; ".join(problems)+" | "+facts) if problems else "PASS "+facts)
 EOF
 )"
@@ -741,7 +767,7 @@ if game is None: problems.append("no game row")
 else:
     if game.get("context_profile")!="v4-faithful": problems.append("context_profile=%s"%game.get("context_profile"))
     if game.get("memory_tools") is not True: problems.append("memory_tools not stamped")
-    if game.get("harness_epoch")!="harness-epoch-11": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-24": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
     facts.append("winner=%s turns=%s context_sha=%s"%(game.get("winner"),game.get("turns"),game.get("context_sha")))
 if ai_rows: problems.append("%d tier=ai rows"%ai_rows)
 if model_rows<5: problems.append("only %d model-tier rows"%model_rows)
@@ -772,7 +798,7 @@ if rules_leak: problems.append("%d faithful prompts advertised RULES TOOL withou
 ok_tools=[x for x in tools if not str(x.get("result","")).startswith("ERROR")]
 if len(ok_tools)<2: problems.append("successful tool rows %d (<2)"%len(ok_tools))
 log=open(d+"/game.log",errors="replace").read()
-if "[OBSERVATION] observation-faithful-v26" not in log: problems.append("observer never announced itself in the log")
+if "[OBSERVATION] observation-faithful-v29" not in log: problems.append("observer never announced itself in the log")
 if "state unavailable" in log or "state unavailable" in "".join((r.get("prompt") or "") for r in calls): problems.append("renderer threw (state unavailable)")
 if "[FALLBACK->AI]" in log: problems.append("[FALLBACK->AI] present")
 if arc!=0: problems.append("defect_analyzer rc=%d"%arc)

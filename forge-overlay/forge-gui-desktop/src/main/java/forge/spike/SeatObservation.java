@@ -78,7 +78,7 @@ final class SeatObservation {
      *  the menu), merged with v24.
      *  v26: nothing the observation shows is cut (docs/harness/MODEL-LIMITS.md): whole event, stack and card
      *  text, every seen opponent card and every reveal, and uncapped known-in-hidden-zones and zone trails. */
-    static final String VERSION = "observation-faithful-v26";
+    static final String VERSION = "observation-faithful-v29";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
      *  Every section named here is one {@link #render} prints. */
@@ -104,6 +104,8 @@ final class SeatObservation {
             + "blockers; NOT VISIBLE names what is hidden from you.\n"
             + "- SINCE YOUR LAST DECISION is the engine's log of what happened since you last chose, oldest first; [E<n>] ids "
             + "can be searched in your archive. REVEALS TO YOU are hidden cards you were shown.\n"
+            + "- \"library top (known to you)\" under your hand lists the cards you put or saw on top of your library, top "
+            + "first; it is dropped as they are drawn and when the library is shuffled.\n"
             + "- KNOWN IN HIDDEN ZONES is what you saw go into an opponent's hidden zone (it is dropped once you see it leave). "
             + "SPENT THIS TURN states what you have already used (land drop, spells, attackers), so nothing has to be inferred "
             + "from a missing option.\n"
@@ -397,6 +399,39 @@ final class SeatObservation {
         return zt == ZoneType.Hand ? "hand" : zt == ZoneType.Library ? "library" : zt.name().toLowerCase(Locale.ROOT);
     }
 
+    /** Names of the cards on top of the seat's own library that the seat placed or saw there (scry, surveil,
+     *  Ponder, Brainstorm), top first, as a player keeps track of them (MTGA shows the same). Checked against
+     *  the library on every render: cards drawn or milled from the top drop off, anything that no longer
+     *  matches is forgotten, and a shuffle forgets it all ({@link #forgetOwnTop}), so it never claims more
+     *  than the seat knows. */
+    private final List<String> ownTop = new ArrayList<>();
+
+    /** The seat now knows these cards are on top of its library, top first, above the {@code keepBelow} known
+     *  cards it already had there (0 when the new cards replace the old top, as a Ponder does). */
+    void learnOwnTop(List<String> topFirst, boolean keepOld, int replaced) {
+        List<String> below = new ArrayList<>();
+        if (keepOld) below.addAll(ownTop.subList(Math.min(replaced, ownTop.size()), ownTop.size()));
+        ownTop.clear();
+        ownTop.addAll(topFirst);
+        ownTop.addAll(below);
+    }
+
+    void forgetOwnTop() { ownTop.clear(); }
+
+    /** The line under the seat's hand, or "" when it knows nothing about its library's order. */
+    String ownTopText() {
+        if (ownTop.isEmpty()) return "";
+        List<Card> lib = new ArrayList<>(viewer.getCardsIn(ZoneType.Library));
+        while (!ownTop.isEmpty() && (lib.isEmpty() || !ownTop.get(0).equals(lib.get(0).getName()))) ownTop.remove(0);
+        int k = 0;
+        while (k < ownTop.size() && k < lib.size() && ownTop.get(k).equals(lib.get(k).getName())) k++;
+        ownTop.subList(k, ownTop.size()).clear();
+        if (ownTop.isEmpty()) return "";
+        StringBuilder b = new StringBuilder("  library top (known to you, top first): ");
+        for (int i = 0; i < ownTop.size(); i++) b.append(i == 0 ? "" : ", ").append(i + 1).append(") ").append(ownTop.get(i));
+        return b.append('\n').toString();
+    }
+
     /** The KNOWN IN HIDDEN ZONES block. Empty when nothing is known, so a seat that has learned
      *  nothing sees no extra line (and the section cannot be mistaken for engine truth). */
     private String knownHiddenText() {
@@ -631,7 +666,13 @@ final class SeatObservation {
             if ((n == null || n.isEmpty()) && c.isFaceDown()) {
                 try { n = c.getState(CardStateName.Original).getName(); } catch (Exception ignore) { }
             }
-            return n == null ? "" : n;
+            if (n == null) return "";
+            // Forge names an effect `hostCard + "'s Effect"`, and a card prints as "Name (id)" ("The Wondrous Wasp
+            // (53)'s Effect", runs/luna-std/g6). The name is rebuilt from the source card itself; the id filter is
+            // only the fallback for a name whose source is gone (no card name holds "(digits)": test_deck_legality).
+            Card src = c.getEffectSource();
+            if (src != null && n.startsWith(src.toString())) return src.getName() + n.substring(src.toString().length());
+            return ENGINE_ID.matcher(n).replaceAll("");
         } catch (Exception e) { return "?"; }
     }
 
@@ -787,7 +828,8 @@ final class SeatObservation {
      *  not, so a named card or chosen colour reached the model only if the game log happened to say it. */
     int recordNotice(String text) {
         int turn = safeTurn();
-        stream.add(new GameHistory.Ev(stream.size() + 1, turn, GameLogEntryType.INFORMATION, "[notice to you] " + LlmSpikeGui.flat(text)));
+        // Redacted: the engine's own text carries ids ("Lotus Petal (111) picked {U}", runs/luna-v9/g4).
+        stream.add(new GameHistory.Ev(stream.size() + 1, turn, GameLogEntryType.INFORMATION, "[notice to you] " + redactIds(LlmSpikeGui.flat(text))));
         return stream.size();
     }
 
@@ -877,6 +919,7 @@ final class SeatObservation {
 
             s.append("YOU [").append(seatLabel).append("] ").append(playerLine(viewer)).append('\n');
             s.append("  hand(").append(viewer.getCardsIn(ZoneType.Hand).size()).append("): ").append(handList()).append('\n');
+            s.append(ownTopText());
             s.append("  board: ").append(perms(viewer)).append('\n');
             s.append("  lands: ").append(lands(viewer)).append('\n');
             s.append("  mana available: ").append(manaLine(viewer)).append('\n');
@@ -1065,7 +1108,9 @@ final class SeatObservation {
                 Player who = si.getActivatingPlayer();
                 b.append(" (").append(who == null ? "?" : (who == viewer ? "you" : who.getName())).append(')');
                 if (known) {
-                    String d = LlmSpikeGui.flat(si.getStackDescription());
+                    // Redacted like every engine message: "Aether Vial (4) - ..." carried the engine id 4, and
+                    // the seat read it as four charge counters (runs/luna-v9/g5, T7).
+                    String d = redactIds(LlmSpikeGui.flat(si.getStackDescription()));
                     if (d != null && !d.isEmpty()) b.append(": ").append(d);
                 }
                 String t = targets(si);

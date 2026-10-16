@@ -580,6 +580,86 @@ public class PromptFidelityTest {
         Assert.assertTrue(mountain.isTapped(), "the other source paid");
     }
 
+    /** runs/luna-std/g6, T15: the command zone listed "The Wondrous Wasp (53)'s Effect": Forge names an effect
+     *  object after its source with the source's engine id inside the name. */
+    @Test
+    public void anEffectsNameCarriesNoEngineId() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card wasp = card("Lightning Bolt", me, ZoneType.Battlefield);
+        wasp.setName("The Wondrous Wasp");
+        Card effect = card("Lightning Bolt", me, ZoneType.Command);
+        effect.setName(wasp + "'s Effect");                  // how Forge names it: "The Wondrous Wasp (N)'s Effect"
+        effect.setEffectSource(wasp);
+        Assert.assertTrue(effect.getName().matches("The Wondrous Wasp \\(\\d+\\)'s Effect"), effect.getName());
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        String ref = ctrl.observer().shortRef(effect);
+        Assert.assertFalse(ref.contains("(53)"), "an engine id in a name: " + ref);
+        Assert.assertTrue(ref.contains("The Wondrous Wasp's Effect"), ref);
+    }
+
+    /** runs/luna-v9/g5, T7: the stack read "Aether Vial (4) - You may put a creature card ...", the engine id 4
+     *  unredacted, and the seat answered "Vial is at four counters" with three on it. Card text also showed a
+     *  literal "\n" ("...on Aether Vial.\n{T}: ..."). */
+    @Test
+    public void theStackShowsNoEngineIdAndCardTextNoEscapes() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card vial = card("Aether Vial", me, ZoneType.Battlefield);
+        vial.addCounterInternal(forge.game.card.CounterEnumType.CHARGE, 3, me, false, null, null);
+        forge.game.spellability.SpellAbility tap = null;
+        for (forge.game.spellability.SpellAbility sa : vial.getSpellAbilities()) if (!sa.isTrigger() && sa.getPayCosts() != null && sa.getPayCosts().hasTapCost()) tap = sa;
+        Assert.assertNotNull(tap, "Aether Vial's {T} ability");
+        tap.setActivatingPlayer(me);
+        g.getStack().add(tap);
+        String raw = g.getStack().peek().getStackDescription();
+        Assert.assertTrue(raw.contains("(" + vial.getId() + ")"), "the engine's own text carries the id: " + raw);
+        Recorder model = new Recorder("CHOICE: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        String stack = ctrl.observer().stack();
+        Assert.assertFalse(stack.matches("(?s).*Aether Vial \\(\\d+\\).*"), "an engine id in the stack: " + stack);
+        Assert.assertTrue(stack.contains("Aether Vial @"), "the id became the seat's handle: " + stack);
+        Assert.assertFalse(LlmSpikeGui.flat("on Aether Vial.\\n{T}: You may").contains("\\n"));
+    }
+
+    /** runs/luna-v8/g2: the seat kept Chain Lightning on top with a surveil, and the next prompt said nothing about
+     *  its library; only a history of 53 "engine presented ... for a choice" lines. A player knows what it put on
+     *  top: the state shows it, drops a drawn card, follows a Ponder's new order and forgets it all on a shuffle. */
+    @Test
+    public void theSeatKnowsWhatItPutOnTopOfItsLibrary() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Chain Lightning", me, ZoneType.Library);   // index 0 is the top
+        card("Island", me, ZoneType.Library);
+        card("Lightning Bolt", me, ZoneType.Library);
+        card("Mountain", me, ZoneType.Library);
+        Card ponder = card("Ponder", me, ZoneType.Hand);
+        Recorder model = new Recorder("PICKS: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        SeatObservation obs = ctrl.observer();
+        Assert.assertEquals(obs.ownTopText(), "", "nothing is known before the seat looks");
+
+        forge.game.card.CardCollection top1 = new forge.game.card.CardCollection(me.getCardsIn(ZoneType.Library).get(0));
+        ctrl.arrangeForSurveil(top1);
+        Assert.assertEquals(obs.ownTopText(), "  library top (known to you, top first): 1) Chain Lightning\n");
+
+        // Ponder: the seat orders the top three, top first: Bolt, Island, Chain Lightning.
+        Recorder order = new Recorder("PICKS: 3,2,1");
+        LlmSpikeGui.PlayerControllerLLM ctrl2 = seat(g, order, order);
+        forge.game.card.CardCollection three = new forge.game.card.CardCollection(me.getCardsIn(ZoneType.Library).subList(0, 3));
+        forge.game.card.CardCollectionView placed = ctrl2.orderMoveToZoneList(three, ZoneType.Library, ponder.getFirstSpellAbility());
+        for (Card c : three) me.getZone(ZoneType.Library).remove(c);
+        for (Card c : placed) me.getZone(ZoneType.Library).add(c, 0);   // what the engine does with the reply
+        Assert.assertEquals(ctrl2.observer().ownTopText(),
+                "  library top (known to you, top first): 1) Lightning Bolt, 2) Island, 3) Chain Lightning\n");
+
+        me.drawCard();
+        Assert.assertEquals(ctrl2.observer().ownTopText(),
+                "  library top (known to you, top first): 1) Island, 2) Chain Lightning\n", "the drawn Bolt is gone");
+        me.shuffle(null);
+        Assert.assertEquals(ctrl2.observer().ownTopText(), "", "a shuffle forgets the order");
+    }
+
     /** With the harness's shortcuts off, the seat says when it does not want to be asked: a PASS with
      *  YIELD: end-of-turn passes later empty-stack windows that turn, and an opponent's spell still asks. */
     @Test
@@ -604,6 +684,34 @@ public class PromptFidelityTest {
             g.getPhaseHandler().devModeSet(PhaseType.MAIN1, me);
             ctrl.chooseSpellAbilityToPlay();
             Assert.assertEquals(model.prompts.size(), 2, "the opponent's spell did not break the yield");
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR = was;
+        }
+    }
+
+    /** runs/luna-v8/g3, turns 9 and 11: the seat passed at its own upkeep with YIELD: end-of-turn ("keep both
+     *  Volcanics open"), and the yield passed its own main phases too: no land drop, no spell, a discard to hand
+     *  size. A yield never passes the seat's own main phase; its other quiet windows stay passed. */
+    @Test
+    public void aYieldAtTheSeatsOwnUpkeepStillAsksInItsMainPhase() {
+        boolean was = LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR;
+        LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR = false;
+        try {
+            Game g = bareGame(PhaseType.UPKEEP);
+            Player me = g.getPlayers().get(0);
+            card("Mountain", me, ZoneType.Battlefield);
+            card("Lightning Bolt", me, ZoneType.Hand);
+            card("Mountain", me, ZoneType.Hand);
+            Recorder model = new Recorder("Keep mana open.\nCHOICE: 99\nYIELD: end-of-turn");
+            LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+            Assert.assertNull(ctrl.chooseSpellAbilityToPlay());
+            Assert.assertEquals(model.prompts.size(), 1);
+            g.getPhaseHandler().devModeSet(PhaseType.MAIN1, me);
+            ctrl.chooseSpellAbilityToPlay();
+            Assert.assertEquals(model.prompts.size(), 2, "the seat's own main phase was passed by its yield");
+            g.getPhaseHandler().devModeSet(PhaseType.END_OF_TURN, me);
+            ctrl.chooseSpellAbilityToPlay();
+            Assert.assertEquals(model.prompts.size(), 2, "its end step is still inside the yield");
         } finally {
             LlmSpikeGui.PlayerControllerLLM.SKIP_HEUR = was;
         }

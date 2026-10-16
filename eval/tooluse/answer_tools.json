@@ -61,15 +61,16 @@
           },
           "steps": {
             "type": "array",
-            "description": "Optional, on a play decision only, if you want the harness to cast steps of your plan for you without asking again this turn: the CAST/ACTIVATE option numbers you intend to use, in order. Omit anything you are holding.",
+            "description": "Optional, only on a play decision that says it takes `steps`: the CAST/ACTIVATE option numbers of your plan, in order, for the harness to cast without asking again this turn. Omit anything you are holding. Elsewhere it is ignored.",
             "items": {
               "type": "integer"
             }
           },
           "yield": {
             "type": "string",
-            "description": "Optional, only with PASS on a play decision: until then you are not asked in windows where nothing of your opponent's is on the stack (anything they cast or activate always asks you).",
+            "description": "Optional, only with PASS on a play decision. \"none\" (the default): you are asked at every window as usual. \"end-of-turn\" or \"my-next-turn\": until then you are not asked in windows where nothing of your opponent's is on the stack (anything they cast or activate always asks you; your own main phases always ask too).",
             "enum": [
+              "none",
               "end-of-turn",
               "my-next-turn"
             ]
@@ -84,7 +85,7 @@
           },
           "keep_untapped": {
             "type": "array",
-            "description": "Optional, on a play decision whose choice casts or activates something with a mana cost: the mana sources to leave UNTAPPED when it is paid, by handle (\"@12\"), for example to keep blue up for a counterspell. An empty list lets the engine choose the sources. Omit it and you are asked when the choice matters.",
+            "description": "Optional, on a play decision whose choice casts or activates something with a mana cost: the mana sources to leave UNTAPPED when it is paid, by handle (\"@12\"), for example to keep blue up for a counterspell. Omit it, or leave it empty, and you are asked when the choice matters.",
             "items": {
               "type": "string"
             }
