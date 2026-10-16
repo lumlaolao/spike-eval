@@ -1150,14 +1150,35 @@ final class SeatObservation {
                 if (known) {
                     // Redacted like every engine message: "Aether Vial (4) - ..." carried the engine id 4, and
                     // the seat read it as four charge counters (runs/luna-v9/g5, T7).
-                    String d = redactIds(LlmSpikeGui.flat(si.getStackDescription()));
+                    String d = redactIds(engineNotesOut(LlmSpikeGui.flat(si.getStackDescription())));
                     if (d != null && !d.isEmpty()) b.append(": ").append(d);
+                    String copies = copiesMade(si);
+                    if (!copies.isEmpty()) b.append(" -> ").append(copies);
                 }
                 String t = targets(si);
                 if (!t.isEmpty()) b.append(" -> targets: ").append(t);
             }
             return b.toString();
         } catch (Exception e) { return "?"; }
+    }
+
+    /** Forge's notes on a trigger, for its own debugging: "[Card: Tendrils of Agony (7), Activator: Seat,
+     *  SpellAbility: ...]", "[Zone Changer: Chrome Mox (18)]". The card and its text are already in the line. */
+    static String engineNotesOut(String d) {
+        return d == null ? null : d.replaceAll("\\s*\\[[A-Z][A-Za-z ]*: [^\\[\\]]*\\]", "").trim();
+    }
+
+    /** "makes N copies" for a copy effect on the stack (storm, Twincast), N as the engine counts it now. */
+    private static String copiesMade(SpellAbilityStackInstance si) {
+        try {
+            forge.game.spellability.SpellAbility sa = si.getSpellAbility();
+            for (forge.game.spellability.SpellAbility part = sa; part != null; part = part.getSubAbility()) {
+                if (part.getApi() != forge.game.ability.ApiType.CopySpellAbility) continue;
+                int n = forge.game.ability.AbilityUtils.calculateAmount(part.getHostCard(), part.getParamOrDefault("Amount", "1"), part);
+                return "makes " + n + (n == 1 ? " copy" : " copies");
+            }
+        } catch (Exception ignore) { }
+        return "";
     }
 
     private String targets(SpellAbilityStackInstance root) {

@@ -585,4 +585,9 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
   forced replacement orders, the forced discards and reveals; both logged exceptions are provider transport errors
   (no headers, broken chunking) retried by the bridge; the ~30 s losses are OpenRouter HTTP 502s, retried; the 300 s
   losses are the stalls now cut at 90 s (`OPENROUTER_IDLE_MS`).
+- FIXED  (owner: "labels should say what they are") the whole-game ANT arm, T11: ten storm copies were put to the seat to
+  order, "These 10 triggers", each labelled `Tendrils of Agony @149 2{B}{B} [...]` like the card in hand; the copies are
+  identical until each gets its target, so the order is no choice and is not asked. The stack line carried Forge's debug
+  notes ("[Card: ..., Activator: Seat, SpellAbility: ...]", "[Zone Changer: Chrome Mox @18]") and did not say how many
+  copies storm makes; now "-> makes N copies" from the engine's count, no notes. `tendrilsStormCopiesResolveAndTheirTargetsAreTheSeats`.
 - Result: every defect found in the recorded C3 games is fixed. No LINE, TAKEN, LOST or SKIP in any of them.

@@ -78,6 +78,11 @@ every repeat, and each storm copy's target are asked. Golden checks play each li
 `doomsdaysPileAndItsOrderAreTheSeats`, `adNauseamRepeatsAsOftenAsTheSeatSays`,
 `tendrilsStormCopiesResolveAndTheirTargetsAreTheSeats`, `lionsEyeDiamondCanBeCrackedInResponseToInfernalTutor`,
 `ritualThenPetalThenAdNauseamIsPaid`).
+The stack says what each item is and does: a spell or ability "not yet resolved", a copy effect with the number of
+copies the engine will make ("trigger of Tendrils of Agony: Storm (...) -> makes 9 copies"), and none of Forge's debug
+notes. Identical items (a batch of storm copies, whose targets come after) have no order to choose and are not asked
+(harness-epoch-33). *Why:* Luna read "1 pending" as a choice it was owed, and was asked to order ten storm copies
+labelled like the card in hand (C3 ANT).
 
 **When the model gives no usable answer:** a fixed legal option (the first, or decline; no attack for
 attackers), recorded on the decision row with why. Never Forge's AI, and never an option read out of the

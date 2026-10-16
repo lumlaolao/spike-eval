@@ -230,7 +230,8 @@ public final class LlmSpikeGui {
      *  the second Lotus Petal pays (Ad Nauseam); a mana ability with a cost beyond tapping (Lion's Eye Diamond, Spirit
      *  Guides) is on the menu; storm copies' new targets are the seat's and the copies are called copies; exile and an
      *  unordered graveyard are not ordered; a preview plays an alternative cost and holds the stack (lookahead-preview-v8).
-     *  Epoch 33 (2026-10-16): the stack says "not yet resolved", not "pending" (observation-faithful-v33). */
+     *  Epoch 33 (2026-10-16): the stack says "not yet resolved", not "pending", carries no Forge debug note, and a copy
+     *  effect says how many copies it makes; identical storm copies are not ordered (observation-faithful-v33). */
     static final String HARNESS_EPOCH = "harness-epoch-33";
 
     static final class EvalLog {
@@ -4377,6 +4378,13 @@ public final class LlmSpikeGui {
                     // characters) and carries no engine card id; the legacy profiles keep saLabel.
                     for (SpellAbility sa : activePlayerSAs) labels.add(labelOf(sa));
                     int n = activePlayerSAs.size();
+                    // Ten storm copies are the same until each gets its target, which comes after the order: an order
+                    // of identical items changes nothing, so it is not a choice (as exile has no order).
+                    // Compared without the "@n" handles: each copy is its own card object, with its own handle.
+                    if (observer != null && labels.stream().map(l -> l.replaceAll(" @\\d+", "")).distinct().count() == 1) {
+                        auto("trigger-order(forced: " + n + " identical, any order is the same)->as-is");
+                        return new ArrayList<>(activePlayerSAs);
+                    }
                     // Storm makes copies, not triggers; the faithful question says which (and gives no advice).
                     boolean copies = activePlayerSAs.stream().allMatch(SpellAbility::isCopied);
                     String q = observer == null
