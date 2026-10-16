@@ -540,3 +540,16 @@ about win rates. A first default-arm game was killed at T19 by my shell's 30-min
   the turn window invites previews outside the play menu.
 - noted  provider: one dropped connection (`chunked transfer encoding`), retried in 16 s; one 300 s timeout on the
   whole-game arm's first play.
+
+### C3 Doomsday  2026-10-16  seed 4102  Doomsday mirror (GPT-6 Luna vs Forge AI), three arms  $0.67  harness-epoch-31
+
+`runs/c3/doomsday-{default,turn,game}`. Default LOST T24 (106 model decisions). The turn-window and whole-game-chat games
+were cut off at my shell's two-hour ceiling (T37 with 112 decisions, T32 with 81), so they have no result; their decisions
+are read for coherence only. TAKEN 0, LOST 0, SKIP 0, 0 Forge-AI decisions, no `LINE` in any.
+- OPEN   provider stalls: 3 to 5 calls a game got no reply until the 300 s deadline ("wall-clock timeout after 300000 ms",
+  once "header parser received no bytes"), then were retried: 15-25 minutes of every game. The harness cannot tell a dead
+  connection from a model still reasoning. Fix: request with `stream: true` and treat a connection that sends nothing,
+  not even OpenRouter's keep-alive comments, for about 60 s as dead (retry then), keeping the 300 s budget for reasoning.
+- OPEN   a preview of Force of Will cast for its alternative cost (exile a blue card) is "unavailable": the copy tries to
+  pay {U} ("Didn't find what to pay for {U}", whole-game arm T8 and T19). The preview should play the same alternative cost.
+- noted  `simulate` asked during non-play decisions twice more (turn T13, game T3), refused by design.
