@@ -333,6 +333,27 @@ public class GoldenChecksTest {
 
     // ------------------------------------------------------------------ the game's start
 
+    /** A companion is the seat's to reveal or not: a declined companion is no companion, not a crash (engine patch in
+     *  Player.assignCompanion; four Vintage top-8 decks crashed at game start, 2026-10-16). */
+    @Test
+    public void aCompanionTheSeatDeclinesIsNoCompanionNotACrash() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card lurrus = card("Lurrus of the Dream-Den", me, ZoneType.Sideboard);
+        for (int i = 0; i < 10; i++) card("Grizzly Bears", me, ZoneType.Library);
+        Script model = new Script("CHOICE: 1") {
+            @Override public String ask(String prompt) {
+                prompts.add(prompt);
+                return "CHOICE: " + opt(prompt, "Decline / none");
+            }
+        };
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        me.assignCompanion(g, ctrl);
+        Assert.assertEquals(model.prompts.size(), 1, "the seat was asked");
+        Assert.assertTrue(me.getCardsIn(ZoneType.Command).isEmpty(), "no companion");
+        Assert.assertTrue(me.getCardsIn(ZoneType.Sideboard).contains(lurrus), "Lurrus stays in the sideboard");
+    }
+
     /** A five-card hand is the seat's to keep or mulligan: the harness kept it on its own (runs/luna-std/g13). */
     @Test
     public void aFiveCardHandIsStillTheSeatsMulligan() {

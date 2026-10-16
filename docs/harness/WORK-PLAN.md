@@ -255,8 +255,10 @@ approval: `ComputerUtilMana`, golden check `theColourAnAnyColourSourceMakesForGe
 
 ## Formats beyond Legacy (owner, 2026-10-15: "start using modern standard and pauper decks")
 
-Built: 19 real MTGO Challenge top-8 lists (7 Standard, 6 Modern, 6 Pauper, `eval/decks/SOURCES.md`), each legal by
-the pinned engine's format data and each played once on the random arm (all load 60+15, finish, analyzer PASS).
+Built: 36 real MTGO Challenge top-8 lists (7 Standard, 6 Modern, 6 Pauper, and since 2026-10-16 7 Legacy, 5 Pioneer,
+5 Vintage, `eval/decks/SOURCES.md`), each legal by the pinned engine's format data and each played once on the random
+arm (all load 60+15, finish, analyzer PASS). The Vintage decks found an engine crash: a declined companion (engine
+patch, `docs/harness/ENGINE-PATCHES.md`).
 Next: Luna games on them through the game loop. **Owner decision:** the legality check finds three decks of the
 Legacy eval pool illegal under the pinned engine's Legacy list: Miracles (Sensei's Divining Top), Painter (The
 Fantasticar), UR Delver (Ragavan, Nimble Pilferer). Replacing them changes the pool's results (deck_sha).

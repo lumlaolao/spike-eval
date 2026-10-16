@@ -30,7 +30,7 @@ class DeckLegalityTest(unittest.TestCase):
         return dl.problems(deck, dl.read_format(FORGE, fmt), self.printings)
 
     def test_every_format_deck_is_legal_in_its_format(self):
-        for prefix in ("modern", "standard", "pauper"):
+        for prefix in dl.FORMAT_PREFIXES:
             decks = sorted((HERE / "decks").glob(prefix + "-*.txt"))
             self.assertTrue(decks, "no %s decks" % prefix)
             for d in decks:

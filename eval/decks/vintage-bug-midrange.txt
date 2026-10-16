@@ -1,0 +1,41 @@
+1 Mox Emerald
+1 Gitaxian Probe
+1 Mental Misstep
+1 Dig Through Time
+1 Demonic Tutor
+1 Black Lotus
+1 Ancestral Recall
+1 Mox Jet
+1 Mox Sapphire
+1 Abrupt Decay
+1 Treasure Cruise
+1 Time Walk
+1 Life from the Loam
+2 Fatal Push
+2 Spell Pierce
+3 Force of Negation
+4 Force of Will
+2 Orcish Bowmasters
+3 Kishla Skimmer
+4 Collector Ouphe
+4 Deathrite Shaman
+4 Psychic Frog
+1 Hedge Maze
+1 Verdant Catacombs
+1 Bayou
+1 Strip Mine
+2 Tropical Island
+3 Underground Sea
+3 Misty Rainforest
+3 Polluted Delta
+4 Wasteland
+Sideboard
+3 Grafdigger's Cage
+2 Consign to Memory
+2 Dismember
+2 Force of Vigor
+2 Nihil Spellbomb
+1 Lurrus of the Dream-Den
+1 The Tabernacle at Pendrell Vale
+1 Fatal Push
+1 Spell Pierce

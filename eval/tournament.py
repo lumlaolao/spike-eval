@@ -45,6 +45,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import deck_legality  # noqa: E402
 from run_batch import (  # noqa: E402  provenance helpers, reused verbatim
     REPO_ROOT, SPIKE_REL, _engine_sha, _overlay_sha, _spike_drift,
 )
@@ -86,8 +87,8 @@ def load_pool():
     """Every eval/decks/*.txt with its one-line .plan blurb (blurb '' if absent)."""
     pool = []
     for txt in sorted(DECKS_DIR.glob("*.txt")):
-        if txt.stem.startswith(("modern-", "standard-", "pauper-")):
-            continue   # other formats' decks (eval/decks/SOURCES.md); the tournament is Legacy
+        if deck_legality.is_format_deck(txt.stem):
+            continue   # the top-8 format lists (eval/decks/SOURCES.md); the tournament is the Legacy eval pool
         plan = txt.with_suffix(".plan")
         blurb = plan.read_text(encoding="utf-8").strip() if plan.is_file() else ""
         # first clause of the blurb keeps the draft menu compact
