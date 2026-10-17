@@ -665,3 +665,16 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
   "available" then used, Vial at three counters, Mother of Runes). Coherence, not a harness defect. T14 the model
   activated a four-counter Vial meaning to put in Thalia (mana value 2), then declined the search: a puzzle candidate.
 - (fake model) the random gauntlet policy now previews targets of a play as well.
+
+### g04  2026-10-17  seed 4104  Goblins (seat) vs Miracles (Forge AI)  WON T11  $0.06  harness-epoch-45
+- Time: 12 min, all in 94 model answers; no waits to the deadline, no provider errors.
+- clean  TAKEN 0, LOST 0, SKIP 0, ai=0; plans 11, hold violations 0; tools REFUSED 0.
+- FIXED  the new target preview was offered for a triggered ability's target (T5, a cycling trigger aiming at Goblin
+  Lackey or Goblin Matron) and came back "preview unavailable": a trigger cannot be replayed on the copy. The preview
+  is offered only while aiming a play from the priority menu; elsewhere `simulate` is refused with the reason
+  (lookahead-preview-v11).
+
+### epoch-45 gauntlets  2026-10-17
+- `first` 28 games, random (s5) 28 games, random with lookups (t3) 28 games: 0 defect lines each.
+- FIXED  (script) the gauntlet run without `FORGE_HOME` played 28 games that all exited 1; it now stops at once when
+  the checkout is missing.

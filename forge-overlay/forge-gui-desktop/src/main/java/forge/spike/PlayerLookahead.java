@@ -49,7 +49,9 @@ final class PlayerLookahead {
      *  v9 (2026-10-17): the attack outlook's damage for an attacker no creature could block says "damage". */
     // v10 (2026-10-17): a preview restores the targets of every ability of the chain (Arc Trail's second target
     // stayed aimed, and the real cast never asked for it), and a target choice of a play can be previewed.
-    static final String VERSION = "lookahead-preview-v10";
+    // v11 (2026-10-17): the target preview is offered only while aiming a play from the priority menu; a trigger's
+    // target cannot be replayed on the copy (runs/loop/g04 T5 got "unavailable").
+    static final String VERSION = "lookahead-preview-v11";
 
     private PlayerLookahead() { }
 
