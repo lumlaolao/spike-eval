@@ -98,6 +98,8 @@ PROVENANCE_FIELDS = (
     ("seed_bank", MISSING),
     ("context_profile", MISSING),
     ("context_sha", MISSING),
+    # The faithful observation's version (SeatObservation.VERSION): what the seat reads is a condition.
+    ("observation_version", MISSING),
     ("memory_tools", MISSING),
     ("memory_tools_version", MISSING),
     # Reasoning effort is part of the player's identity, like temperature.

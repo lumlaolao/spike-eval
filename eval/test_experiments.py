@@ -63,7 +63,7 @@ def modern_line(seed, swap, winner, **kw):
          "temperature_a": "0.7", "temperature_b": "n/a",
          "memory_tools": False, "memory_tools_version": "evidence-tools-v3",
          "seed_bank": "stage3-holdout",
-         "context_profile": "v1-compat", "context_sha": "1111",
+         "context_profile": "v1-compat", "context_sha": "1111", "observation_version": "observation-faithful-v37",
          "claude_effort_smart": "n/a", "claude_effort_fast": "n/a",
          "native_tools": False, "native_tools_seats": "", "native_tools_version": "seat-tools-v4",
          "native_tools_downgraded": "", "answer_tool": False, "answer_tool_seats": "",
@@ -130,6 +130,7 @@ class GroupingTest(unittest.TestCase):
     def test_two_models_and_memory_toggle_partition(self):
         for field, other in (("smart_a", "openrouter:teacher"), ("memory_tools", True),
                              ("checkpoint_sha", "f" * 12), ("context_sha", "9999"),
+                             ("observation_version", "observation-faithful-v38"),
                              ("game_cap_ms", 60000), ("claude_effort_smart", "max"),
                              # The tool protocol and the opt-in tools are conditions (CLAUDE.md:
                              # "Native and text runs are different conditions. Never pool them").
