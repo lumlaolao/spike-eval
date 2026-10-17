@@ -105,6 +105,31 @@ class PlanAuditTest(unittest.TestCase):
         self.assertEqual(res["plays"], 2)                    # the pass and the land are not plays
         self.assertEqual([v["card"] for v in res["hold_violations"]], ["Fireblast"])
 
+    def test_a_clause_that_says_now_is_not_a_hold(self):
+        self.assertIsNone(pa.held_in("Crack Windswept Heath for an untapped Forest now to improve next turn's mana",
+                                     "Windswept Heath"))
+        self.assertIsNotNone(pa.held_in("Hold Fireblast for next turn", "Fireblast"))
+
+    def test_a_set_plan_call_is_a_plan(self):
+        # The answer tool's plan: a context_call row (turn as a string) before the play's decision row.
+        rows = [
+            {"t": "context_call", "seat": "A", "turn": "3",
+             "raw_reply": 'TOOL CALL set_plan {"goal":"Burn them out.","next":"Lava Spike now, hold Fireblast for lethal."}'},
+            {"t": "decision", "type": "play", "seat": "A", "turn": 3, "tier": "smart", "choice": 0,
+             "options": ["CAST Lava Spike @7 {R} [..]", "CAST Fireblast @9 [..]", "PASS (do nothing)"], "raw_reply": "CHOICE: 1"},
+            {"t": "decision", "type": "play", "seat": "A", "turn": 3, "tier": "smart", "choice": 0,
+             "options": ["CAST Fireblast @9 [..]", "PASS (do nothing)"], "raw_reply": "CHOICE: 1"},
+        ]
+        with tempfile.NamedTemporaryFile("w", suffix=".jsonl", delete=False) as f:
+            for r in rows:
+                f.write(json.dumps(r) + "\n")
+        try:
+            res = pa.audit_events(pa.events_from_jsonl(f.name))
+        finally:
+            os.unlink(f.name)
+        self.assertEqual((res["plans"], res["plays"]), (1, 2))
+        self.assertEqual([v["card"] for v in res["hold_violations"]], ["Fireblast"])
+
     def test_plan_segment_stops_at_the_next_tag(self):
         self.assertEqual(pa.last_segment("PLAN: bolt face\nSTEPS: Lightning Bolt\nCHOICE: 1", "PLAN:"), "bolt face")
 

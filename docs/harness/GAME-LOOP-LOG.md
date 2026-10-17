@@ -599,3 +599,17 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
   life X was 0. The pitch option was labelled with the mana cost it replaces (`Disrupting Shoal {X}{U}{U}`; Force of Will
   likewise). Tests `aShoalsXIsAnnouncedByTheSeat`, `toxicDelugesLifeIsTheSeats` (harness-epoch-34).
 - Result: every defect found in the recorded C3 games is fixed. No LINE, TAKEN, LOST or SKIP in any of them.
+
+### g01  2026-10-17  seed 4101  Elves (seat) vs Elves (Forge AI)  won T11  $0.05  harness-epoch-43
+- Time: 91 min. 48 min model answers (70 decisions, median 11 s, longest 4.4 min), 40 min in 8 provider stalls (OpenRouter
+  kept the connection open with keepalives and no answer until the 300 s deadline; each retry answered in about 10 s),
+  3 HTTP 5xx retried. Elves asks many questions: 29 decisions on T5 alone.
+- clean  TAKEN 0, LOST 0, SKIP 0, ai=0, tools 10/10 served. Forced: 5 trigger orders of two identical Nettle Sentinel
+  untap triggers, 3 damage assignments with one legal split. One malformed `answer` (not JSON), corrected in the same
+  conversation.
+- clean  floating mana from the menu: T5 Gaea's Cradle tapped before Green Sun's Zenith for X=2.
+- FIXED  (setup) the Forge checkout build refused an unused import of ComputerUtilCost left by #240; `java_imports.py`
+  counted its mention in a javadoc sentence as a use. It now blanks comments and strings as checkstyle does.
+- FIXED  (sheet) `plan_audit.py` read plans only from the text grammar's PLAN: line, so it reported plans=0 for every
+  answer-tool game; it reads `set_plan` calls now (17 here). A clause that says "now" is no longer read as a hold ("Crack
+  Windswept Heath ... now to improve next turn's mana" was flagged).
