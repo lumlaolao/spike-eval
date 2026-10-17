@@ -92,7 +92,7 @@ def load_pool():
         plan = txt.with_suffix(".plan")
         blurb = plan.read_text(encoding="utf-8").strip() if plan.is_file() else ""
         # first clause of the blurb keeps the draft menu compact
-        short = re.split(r"[.:]", blurb, 1)[0].strip() if blurb else txt.stem
+        short = re.split(r"[.:]", blurb, maxsplit=1)[0].strip() if blurb else txt.stem
         pool.append({"key": txt.stem, "path": str(txt), "blurb": short})
     return pool
 

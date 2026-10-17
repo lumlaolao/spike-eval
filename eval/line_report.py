@@ -40,7 +40,7 @@ def chosen(r):
 
 def name_of(label):
     s = re.sub(r"^(CAST|ACTIVATE|PLAY LAND)\s+", "", label or "")
-    return re.split(r"\s+@\d+|\s+\[|\s+\d*\{|\s+from |\s+in your |\s+—", s, 1)[0].strip()
+    return re.split(r"\s+@\d+|\s+\[|\s+\d*\{|\s+from |\s+in your |\s+—", s, maxsplit=1)[0].strip()
 
 
 def report(paths):

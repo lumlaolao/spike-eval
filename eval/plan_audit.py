@@ -50,7 +50,7 @@ LOG_PLAY = re.compile(r"^\[(?P<seat>[^\]]+)\] \[ROUTER\] play: (?P<how>casts|pla
 def card_name(label):
     """The card a menu option or log label refers to: 'CAST Shallow Grave @6 1{B} [..]' -> Shallow Grave."""
     s = re.sub(r"^(CAST|ACTIVATE|PLAY LAND)\s+", "", (label or "").strip())
-    s = re.split(r"\s+@\d+|\s+\[|\s+\d*\{|\s+\(from |\s+—", s, 1)[0]
+    s = re.split(r"\s+@\d+|\s+\[|\s+\d*\{|\s+\(from |\s+—", s, maxsplit=1)[0]
     s = re.sub(r"\s+\d+/\d+$", "", s)          # creature P/T
     return s.strip()
 
