@@ -75,9 +75,17 @@ random.seed=42
 # 2026-10-16: the random walk re-rolled on macOS (same #219 blind spot; not epochs 33/34, see above): stable at
 # winner B, 70 turns; decisions 438 -> 450, all tier=auto, 0 Forge-AI rows, 0 silent drops, game not
 # capped (same two runs as the floor re-pin above). Same correction: the Linux random pin did not move on #216/#218.
+# 2026-10-17: main's merged #243-246 stack re-rolled the random walk: the #245 offer-path change
+# reached the random seat (offer only payable counts/modes/targets, forge-overlay 77fae8b7) and
+# #246's GAUNTLET_SEED salt changes the salted replay set; neither merge re-pinned the canary and
+# neither carried its own acceptance (see #248), so the pin has been stale on main since that
+# stack landed. Observed stable at winner B, 50 turns / 273 decisions, seed 42 on the merged
+# classes. Red-first run = runs/harness-acceptance/20261017T213054Z (pinned 70/450 vs observed
+# 50/273); this branch's acceptance is the reproducing run. Floor unchanged (never asked).
+# linux.* random STALE.
 random.winner=B
-random.turns=70
-random.decisions=450
+random.turns=50
+random.decisions=273
 # Silent Forge-AI strategic/payment hooks reachable in Legacy play (ControllerOwnershipTest baseline).
 # 2026-10-15: trigger targets and modes are the seat's (orderAndPlaySimultaneousSa, playTrigger
 # overridden; Forge AI's doTrigger chose every trigger target before). 3 -> 1.
