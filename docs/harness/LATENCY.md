@@ -172,7 +172,8 @@ the paired design and enough seeds that the per-decision distribution is stable:
 
 ```bash
 python3 eval/run_batch.py --seeds 42..51 --pairs --jobs 1 --deck eval/decks/burn.txt \
-  --smart-a openrouter:deepseek/deepseek-v4.1-flash --context-profile v4-faithful --memory-tools \
+  --smart-a openrouter:deepseek/deepseek-v4.1-flash --fast-a openrouter:deepseek/deepseek-v4.1-flash \
+  --controller-b ai --context-profile v4-faithful --memory-tools \
   --out runs/perf/<arm> --cap-minutes 8
 ```
 
