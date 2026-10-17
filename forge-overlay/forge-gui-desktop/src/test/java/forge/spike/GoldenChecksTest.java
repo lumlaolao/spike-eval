@@ -60,7 +60,8 @@ public class GoldenChecksTest {
             "color-colorless", "some-type", "protection", "card-name",
             // 2026-10-15: choices Forge's AI made outright until then (work plan priority 0, A).
             "pile", "opening-hand", "colors", "counter-type", "destroy", "keyword", "spell-for-effect", "clash",
-            "confirm-static", "card-face", "keyword-cost", "cost-reduction", "discard-unless", "convoke", "new-targets"));
+            "confirm-static", "card-face", "keyword-cost", "cost-reduction", "discard-unless", "convoke", "new-targets",
+            "harmonize"));
 
     /** Types a model answered in this class (tier smart or fast), across every test. */
     static final Set<String> ANSWERED = Collections.synchronizedSet(new TreeSet<>());
@@ -611,6 +612,163 @@ public class GoldenChecksTest {
         Assert.assertEquals(me.getCardsIn(ZoneType.Exile).size(), 5, "five other cards exiled");
     }
 
+    /** Harmonize {5}{R}{R} with five Mountains: only tapping a creature makes it payable, so the menu offers it, and
+     *  the seat chooses among the powers that leave it payable (the 2-power Bears leave {5}, the 3-power Giant {4}). */
+    @Test
+    public void harmonizeTapsACreatureToReduceItsCost() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Mountain", "Mountain", "Mountain", "Mountain", "Mountain");
+        Card giant = card("Hill Giant", me, ZoneType.Battlefield);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Channeled Dragonfire", me, ZoneType.Graveyard);
+        String[] asked = new String[1];
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Harmonize"))
+                .on("HARMONIZE", p -> { asked[0] = p; return choiceWith("power 3").apply(p); })
+                .on("Choose the TARGET", choiceWith("Rival"));
+        playAndResolve(seat(g, model, model), g, "Channeled Dragonfire's harmonize");
+        Assert.assertNotNull(asked[0], "the power to tap was the seat's");
+        Assert.assertTrue(asked[0].contains("{X} less if you tap a creature"), "the menu says how harmonize is paid: " + asked[0]);
+        Assert.assertTrue(asked[0].contains("power 2") && asked[0].contains("power 3") && !asked[0].contains("0: tap no creature"),
+                "only the payable powers are offered: " + asked[0]);
+        Assert.assertEquals(rival.getLife(), 18, "it dealt 2");
+        Assert.assertTrue(has(me, ZoneType.Exile, "Channeled Dragonfire"), "a harmonized spell is exiled");
+        Assert.assertTrue(giant.isTapped(), "the Giant was tapped for harmonize");
+        Assert.assertEquals(me.getCardsIn(ZoneType.Battlefield).stream().filter(c -> c.isLand() && !c.isTapped()).count(), 1L,
+                "it cost {4}: one Mountain left");
+    }
+
+    /** Combat damage dealt this turn, recorded where combat records it (CardDamageHistory.registerDamage): the
+     *  state prowl and freerunning read. */
+    static void dealtCombatDamage(Card source, Player to, int n) {
+        source.getDamageHistory().registerDamage(n, true, source, to, new java.util.HashMap<>());
+    }
+
+    /** Prowl {1}{B} after a Rogue dealt combat damage: the only way to cast Morsel Theft with two Swamps. */
+    @Test
+    public void prowlCastsAfterARogueDealtCombatDamage() {
+        Game g = bareGame(PhaseType.MAIN2);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Swamp", "Swamp");
+        dealtCombatDamage(card("Auntie's Snitch", me, ZoneType.Battlefield), rival, 3);
+        card("Morsel Theft", me, ZoneType.Hand);
+        card("Island", me, ZoneType.Library);
+        int life = rival.getLife();
+        String[] menu = new String[1];
+        Script model = new Script("CHOICE: 1").on("You have priority", p -> { menu[0] = p; return choiceWith("(Prowl)").apply(p); })
+                .on("Choose the TARGET", choiceWith("Rival"));
+        playAndResolve(seat(g, model, model), g, "Morsel Theft by prowl");
+        Assert.assertTrue(menu[0].contains("loses 3 life"), "the prowl option says what the spell does: " + menu[0]);
+        Assert.assertEquals(rival.getLife(), life - 3, "the rival lost 3");
+        Assert.assertTrue(has(me, ZoneType.Hand, "Island"), "prowled: it drew a card");
+    }
+
+    /** Freerunning {1}{B} after an Assassin dealt combat damage: Merciless Harlequin for two Swamps. */
+    @Test
+    public void freerunningCastsAfterAnAssassinDealtCombatDamage() {
+        Game g = bareGame(PhaseType.MAIN2);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Swamp", "Swamp");
+        dealtCombatDamage(card("Royal Assassin", me, ZoneType.Battlefield), rival, 1);
+        card("Merciless Harlequin", me, ZoneType.Hand);
+        card("Island", me, ZoneType.Library);
+        String[] menu = new String[1];
+        Script model = new Script("CHOICE: 1").on("You have priority", p -> { menu[0] = p; return choiceWith("(Freerunning)").apply(p); });
+        playAndResolve(seat(g, model, model), g, "Merciless Harlequin by freerunning");
+        Assert.assertTrue(menu[0].contains("you draw a card and you lose 1 life"), "the option says what the creature does: " + menu[0]);
+        Assert.assertTrue(has(me, ZoneType.Battlefield, "Merciless Harlequin"), "cast by freerunning");
+    }
+
+    /** Web-slinging {1}{G}{W}: returning a tapped creature is the only way to cast Spider-Man India with three lands. */
+    @Test
+    public void webSlingingReturnsATappedCreature() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Forest", "Plains", "Forest");
+        card("Grizzly Bears", me, ZoneType.Battlefield).setTapped(true);
+        card("Spider-Man India", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Spider-Man India"));
+        playAndResolve(seat(g, model, model), g, "Spider-Man India by web-slinging");
+        Assert.assertTrue(has(me, ZoneType.Battlefield, "Spider-Man India"), "cast by web-slinging");
+        Assert.assertTrue(has(me, ZoneType.Hand, "Grizzly Bears"), "the tapped creature returned");
+    }
+
+    /** Mayhem {1}{R}: a card discarded this turn is cast from the graveyard. */
+    @Test
+    public void mayhemCastsACardDiscardedThisTurn() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Mountain", "Mountain");
+        me.discard(card("Electro's Bolt", me, ZoneType.Hand), null, true, forge.game.ability.AbilityKey.newMap());
+        card("Hill Giant", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Electro's Bolt"))
+                .on("Choose the TARGET", choiceWith("Hill Giant"));
+        playAndResolve(seat(g, model, model), g, "Electro's Bolt by mayhem");
+        Assert.assertTrue(has(rival, ZoneType.Graveyard, "Hill Giant"), "4 damage killed the Giant");
+    }
+
+    /** More Than Meets the Eye {1}{W}: Ratchet is cast converted, its vehicle face. */
+    @Test
+    public void moreThanMeetsTheEyeCastsConverted() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Plains", "Plains");
+        card("Ratchet, Field Medic", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Ratchet"));
+        playAndResolve(seat(g, model, model), g, "Ratchet converted");
+        Assert.assertTrue(has(me, ZoneType.Battlefield, "Ratchet, Rescue Racer"), "it entered converted: " + me.getCardsIn(ZoneType.Battlefield));
+    }
+
+    /** Beam me up {2}{U}: cast from the graveyard, returning a creature, then exiled. */
+    @Test
+    public void beamMeUpCastsFromTheGraveyardReturningACreature() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Island", "Island", "Island");
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Open Communications", me, ZoneType.Graveyard);
+        card("Forest", me, ZoneType.Library);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Open Communications"));
+        playAndResolve(seat(g, model, model), g, "Open Communications beamed up");
+        Assert.assertTrue(has(me, ZoneType.Hand, "Grizzly Bears"), "the creature returned");
+        Assert.assertTrue(has(me, ZoneType.Hand, "Forest"), "it drew");
+        Assert.assertTrue(has(me, ZoneType.Exile, "Open Communications"), "then exiled");
+    }
+
+    /** Teamwork 1: tapping creatures with total power 1 is the seat's optional cost; paid, the target gets a counter. */
+    @Test
+    public void teamworkTapsCreaturesAsAnOptionalCost() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Forest", "Forest");
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", me, ZoneType.Battlefield);
+        card("Beast Mode", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Beast Mode"))
+                .on("optional additional costs", p -> "PICKS: 1").on("Choose the TARGET", choiceWith("Grizzly Bears"));
+        playAndResolve(seat(g, model, model), g, "Beast Mode with teamwork");
+        Assert.assertTrue(bears.isTapped() || lions.isTapped(), "a creature was tapped for teamwork");
+        Assert.assertEquals(bears.getCounters(forge.game.card.CounterEnumType.P1P1), 1, "teamwork paid: a +1/+1 counter");
+    }
+
+    /** Sneak {1}{B}: during combat, returning an unblocked attacker casts Oroku Saki for two Swamps. */
+    @Test
+    public void sneakReturnsAnUnblockedAttacker() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Swamp", "Swamp");
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Combat combat = new Combat(me);
+        combat.addAttacker(bears, rival);
+        combat.setBlocked(bears, false);
+        g.getPhaseHandler().setCombat(combat);
+        card("Oroku Saki, Shredder Rising", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Oroku Saki"));
+        playAndResolve(seat(g, model, model), g, "Oroku Saki by sneak");
+        Assert.assertTrue(has(me, ZoneType.Battlefield, "Oroku Saki, Shredder Rising"), "cast by sneak");
+        Assert.assertTrue(has(me, ZoneType.Hand, "Grizzly Bears"), "the unblocked attacker returned");
+    }
+
     @Test
     public void disturbCastsTheBackFace() {
         Game g = bareGame(PhaseType.MAIN1);
@@ -981,6 +1139,71 @@ public class GoldenChecksTest {
         // Forge's script: ConditionPresent$ Card.PromisedGift counts the battlefield, where the spell never is, so that
         // branch runs whatever is promised, for every player. Not the seat's; card scripts are not patched.)
         Assert.assertTrue(has(rival, ZoneType.Battlefield, "Rhystic Study"), "the opponent got the gift: " + rival.getCardsIn(ZoneType.Battlefield));
+    }
+
+    /** A Defiler's "pay 2 life, it costs one coloured mana less" for each colour: with no lands, the life payment is the
+     *  only way to cast the one-pip permanent, so the menu offers the cast with it and nothing else. Pricing that
+     *  variant once left the reduction on the plain spell (a copy shares the list), which was then offered and cast
+     *  for nothing. */
+    @Test
+    public void aDefilersLifePaymentReducesTheColour() {
+        String[][] pairs = {{"Defiler of Faith", "Savannah Lions"}, {"Defiler of Dreams", "Delver of Secrets"},
+                {"Defiler of Flesh", "Carrion Feeder"}, {"Defiler of Instinct", "Goblin Guide"}, {"Defiler of Vigor", "Llanowar Elves"}};
+        for (String[] pr : pairs) {
+            Game g = bareGame(PhaseType.MAIN1);
+            Player me = g.getPlayers().get(0);
+            card(pr[0], me, ZoneType.Battlefield);
+            card(pr[1], me, ZoneType.Hand);
+            for (int pass = 0; pass < 2; pass++) {
+                long offers = LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true).spells.stream()
+                        .filter(sa -> sa.getHostCard().getName().equals(pr[1])).count();
+                Assert.assertEquals(offers, 1L, pr[1] + ": only the cast with the life payment is offered (pass " + pass + ")");
+            }
+            String[] menu = new String[1];
+            Script model = new Script("CHOICE: 1").on("You have priority", p -> { menu[0] = p; return choiceWith(pr[1]).apply(p); });
+            playAndResolve(seat(g, model, model), g, pr[1] + " with " + pr[0]);
+            Assert.assertTrue(has(me, ZoneType.Battlefield, pr[1]), pr[1] + " was cast for 2 life");
+            // Defiler of Instinct's own trigger deals 1 damage to any target; the seat may pick itself.
+            Assert.assertTrue(me.getLife() == 18 || pr[0].equals("Defiler of Instinct") && me.getLife() == 17, pr[0] + ": life " + me.getLife());
+            Assert.assertTrue(menu[0].contains("cost: Pay 2 life ["), pr[0] + ": the option names the cost paid, no mana: " + menu[0]);
+        }
+    }
+
+    /** Declining a Defiler's life payment pays the mana: pricing the payment for the offer used to leave its {W}
+     *  reduction on the spell, so the declined cast was free. */
+    @Test
+    public void aDeclinedLifePaymentPaysTheMana() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Plains");
+        card("Defiler of Faith", me, ZoneType.Battlefield);
+        card("Savannah Lions", me, ZoneType.Hand);
+        boolean[] asked = {false};
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Savannah Lions"))
+                .on("optional additional costs", p -> { asked[0] = true; return "PICKS: NONE"; });
+        playAndResolve(seat(g, model, model), g, "Savannah Lions, life payment declined");
+        Assert.assertTrue(asked[0], "the life payment was the seat's to decline");
+        Assert.assertTrue(has(me, ZoneType.Battlefield, "Savannah Lions"), "cast for {W}");
+        Assert.assertEquals(me.getLife(), 20, "no life paid");
+        Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).stream().anyMatch(c -> c.getName().equals("Plains") && c.isTapped()),
+                "the Plains paid the {W} the declined payment would have taken off");
+    }
+
+    /** An optional additional cost a static gives (Analyze the Pollen's collect evidence 8) is the seat's. */
+    @Test
+    public void collectingEvidenceIsTheSeats() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Forest");
+        card("Griselbrand", me, ZoneType.Graveyard);
+        card("Craw Wurm", me, ZoneType.Library);
+        card("Forest", me, ZoneType.Library);
+        card("Analyze the Pollen", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Analyze the Pollen"))
+                .on("optional additional costs", p -> "PICKS: 1").on("Craw Wurm", choiceWith("Craw Wurm"));
+        playAndResolve(seat(g, model, model), g, "Analyze the Pollen, evidence collected");
+        Assert.assertTrue(has(me, ZoneType.Exile, "Griselbrand"), "evidence collected: Griselbrand exiled");
+        Assert.assertTrue(has(me, ZoneType.Hand, "Craw Wurm"), "with evidence it finds a creature");
     }
 
     @Test
