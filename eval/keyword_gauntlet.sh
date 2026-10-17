@@ -14,6 +14,7 @@
 #
 # GAUNTLET_POLICY=random answers every ask with a uniformly random legal answer instead (seeded per deck), so the
 # targets, picks, orders, splits, numbers, blocks and mulligans `first` never gives reach the harness too.
+# GAUNTLET_SEED=<salt> draws a different random game per deck (the seed is the salt plus the deck name).
 #
 # usage: bash eval/keyword_gauntlet.sh [out-dir] [parallel]   (needs a passing harness_acceptance.sh run's classes)
 set -u
@@ -28,10 +29,11 @@ CP_FILE="$RUN/classpath.txt"
 JAVA="${JAVA_HOME:+$JAVA_HOME/bin/}java"
 mkdir -p "$OUT" && OUT="$(cd "$OUT" && pwd)" # absolute: each game runs from the Forge checkout
 POLICY="${GAUNTLET_POLICY:-first}"
-export REPO FORGE OUT CLASSES CP_FILE JAVA POLICY
+SALT="${GAUNTLET_SEED:-}"
+export REPO FORGE OUT CLASSES CP_FILE JAVA POLICY SALT
 game() { # $1 deck A tag, $2 deck B tag
   local dir="$OUT/g-$1"; rm -rf "$dir"; mkdir -p "$dir"
-  python3 "$REPO/eval/fake_model_server.py" --port 0 --policy "$POLICY" --seed "$1" --answer-tool --log "$dir/fake_requests.jsonl" \
+  python3 "$REPO/eval/fake_model_server.py" --port 0 --policy "$POLICY" --seed "$SALT$1" --answer-tool --log "$dir/fake_requests.jsonl" \
       >"$dir/fake_server.out" 2>&1 &
   local fp=$! port=""
   for i in $(seq 1 20); do port="$(awk '/^LISTENING/{print $2}' "$dir/fake_server.out" 2>/dev/null)"; [ -n "$port" ] && break; sleep 0.5; done
