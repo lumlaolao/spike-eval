@@ -12,6 +12,9 @@
 # 1996 World Champion is left out: its "discard your hand: search for a card named 1996 World Champion" can be
 # activated with an empty hand forever, and the `first` policy does.
 #
+# GAUNTLET_POLICY=random answers every ask with a uniformly random legal answer instead (seeded per deck), so the
+# targets, picks, orders, splits, numbers, blocks and mulligans `first` never gives reach the harness too.
+#
 # usage: bash eval/keyword_gauntlet.sh [out-dir] [parallel]   (needs a passing harness_acceptance.sh run's classes)
 set -u
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
@@ -24,10 +27,11 @@ CP_FILE="$RUN/classpath.txt"
 [ -d "$CLASSES" ] && [ -f "$CP_FILE" ] || { echo "no acceptance build: run eval/harness_acceptance.sh first"; exit 2; }
 JAVA="${JAVA_HOME:+$JAVA_HOME/bin/}java"
 mkdir -p "$OUT" && OUT="$(cd "$OUT" && pwd)" # absolute: each game runs from the Forge checkout
-export REPO FORGE OUT CLASSES CP_FILE JAVA
+POLICY="${GAUNTLET_POLICY:-first}"
+export REPO FORGE OUT CLASSES CP_FILE JAVA POLICY
 game() { # $1 deck A tag, $2 deck B tag
   local dir="$OUT/g-$1"; rm -rf "$dir"; mkdir -p "$dir"
-  python3 "$REPO/eval/fake_model_server.py" --port 0 --policy first --answer-tool --log "$dir/fake_requests.jsonl" \
+  python3 "$REPO/eval/fake_model_server.py" --port 0 --policy "$POLICY" --seed "$1" --answer-tool --log "$dir/fake_requests.jsonl" \
       >"$dir/fake_server.out" 2>&1 &
   local fp=$! port=""
   for i in $(seq 1 20); do port="$(awk '/^LISTENING/{print $2}' "$dir/fake_server.out" 2>/dev/null)"; [ -n "$port" ] && break; sleep 0.5; done

@@ -18,6 +18,10 @@ Policies (--policy):
          pass; on a play prompt that advertises `SIMULATE: <n>` (LOOKAHEAD=1), or offers the
          `simulate` tool, it first asks for a lookahead preview, so the real preview round-trip is
          exercised end to end.
+  random takes a uniformly random legal answer on every answer-tool ask (needs --answer-tool): any option,
+         any number of picks within the bounds, a random split, a random number in range, keep or not,
+         random blocks (any pair the engine refuses is corrected once to no blocks). Seeded by --seed, so a
+         game replays. The keyword gauntlet's second pass: the answers `first` never gives.
   empty  answers every request with an empty message.
   garbage
          answers every request with text that holds no answer line in any format the harness asks
@@ -59,6 +63,7 @@ the reply, and whether it was stalled. Prints `LISTENING <port>` on stdout once 
 """
 import argparse
 import json
+import random
 import re
 import sys
 import threading
@@ -116,6 +121,8 @@ class Policy:
         if {"option", "options", "keep"} <= set(props):   # the fixed schema names every field
             props = self.decision_props(msgs)              # so the legal values come off the question
         first = self.args.policy in ("first", "simulate")
+        if self.args.policy == "random":
+            return self.random_answer(msgs, props, offered, call)
         correcting = any(m.get("role") == "tool" and str(m.get("content", "")).startswith("ERROR:") for m in msgs[-3:])
         with self.lock:
             self.answers = getattr(self, "answers", 0) + 1
@@ -160,6 +167,49 @@ class Policy:
             out.insert(0, call("set_plan", {"goal": "fake goal %d" % n, "next": "play a land, then pass"}))
         return out
 
+    def random_answer(self, msgs, props, offered, call):
+        """A uniformly random legal answer (--policy random). The draw is keyed on the seed and the answer
+        count, so a game replays; a correction round answers with the least that is always legal."""
+        with self.lock:
+            self.answers = getattr(self, "answers", 0) + 1
+            n = self.answers
+        rng = random.Random("%s/%d" % (self.args.seed, n))
+        correcting = any(m.get("role") == "tool" and str(m.get("content", "")).startswith("ERROR:") for m in msgs[-3:])
+        args = {}
+        if "option" in props:
+            args["option"] = rng.choice(props["option"]["enum"])
+        elif "options" in props:
+            arr = props["options"]
+            e, lo = arr["items"]["enum"], arr.get("minItems", 0)
+            hi = min(arr.get("maxItems", len(e)), len(e))
+            k = lo if correcting else rng.randint(lo, max(lo, hi))
+            args["options"] = rng.sample(e, k) if k <= len(e) else [rng.choice(e) for _ in range(k)]
+        elif "keep" in props:
+            args["keep"] = True if correcting else rng.random() < 0.7
+        elif "blocks" in props:
+            text = next((str(m.get("content", "")) for m in reversed(msgs) if m.get("role") == "user"), "")
+            count = lambda tag: len(re.findall(r"(?:^|; )\d+ = ", (re.search(r"(?m)^%s: (.*)$" % tag, text) or [None, ""])[1]))  # noqa: E731
+            atk, blk = count("ATTACKERS"), count("YOUR BLOCKERS")
+            args["blocks"] = [] if correcting or not atk else [
+                {"blocker": b, "attacker": rng.randint(1, atk)} for b in range(1, blk + 1) if rng.random() < 0.5]
+        elif "number" in props:
+            lo, hi = props["number"].get("minimum", 0), props["number"].get("maximum")
+            args["number"] = lo if correcting or hi is None else rng.randint(lo, hi)
+        elif "amounts" in props:
+            k = props["amounts"].get("minItems", 1)
+            total = int(re.search(r"summing to (-?\d+)", props["amounts"].get("description", "")).group(1))
+            if total > 0 and k > 1 and not correcting:
+                cuts = sorted(rng.randint(0, total) for _ in range(k - 1))
+                args["amounts"] = [b - a for a, b in zip([0] + cuts, cuts + [total])]
+            else:
+                args["amounts"] = [total] + [0] * (k - 1)
+        elif "card" in props:
+            args["card"] = rng.choice(["Lightning Bolt", "Force of Will", "Island", "Tarmogoyf"])
+        out = [call("answer", args)]
+        if "set_plan" in offered and n <= 3 and not correcting:
+            out.insert(0, call("set_plan", {"goal": "fake goal %d" % n, "next": "anything"}))
+        return out
+
     @staticmethod
     def decision_props(msgs):
         """Under the fixed `answer` schema the legal values are in the question, as for a real model: the
@@ -187,8 +237,11 @@ class Policy:
             k, total = (int(b.group(1)), b.group(2)) if b else (1, "0")
             return {"amounts": {"minItems": k, "description": "summing to %s" % total}}
         if field == "number":
-            b = re.search(r"`number`: an integer from (-?\d+)", text)
-            return {"number": {"minimum": int(b.group(1)) if b else 0}}
+            b = re.search(r"`number`: an integer from (-?\d+)(?: through (-?\d+))?", text)
+            out = {"minimum": int(b.group(1)) if b else 0}
+            if b and b.group(2):
+                out["maximum"] = int(b.group(2))
+            return {"number": out}
         return {field: {}}
 
     def lookup_calls(self, body, prompt, offered, call):
@@ -385,8 +438,9 @@ class Handler(BaseHTTPRequestHandler):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--port", type=int, default=0, help="0 = pick a free port (printed as LISTENING <port>)")
-    ap.add_argument("--policy", choices=["pass", "first", "simulate", "empty", "garbage"], default="pass")
+    ap.add_argument("--policy", choices=["pass", "first", "simulate", "random", "empty", "garbage"], default="pass")
     ap.add_argument("--log", help="JSONL request log")
+    ap.add_argument("--seed", default="0", help="--policy random: the seed its draws are keyed on")
     ap.add_argument("--stall-call", type=int, default=0)
     ap.add_argument("--stall-ms", type=int, default=0)
     ap.add_argument("--memory-call", type=int, default=0)

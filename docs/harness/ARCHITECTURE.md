@@ -73,6 +73,9 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   aims at).
 - Who crews, and which creatures that share a type tap, are the seat's.
 - Mana abilities are on the menu, one per card name and ability, so mana can be floated.
+- What a choice offers is also only what can be paid: a keyword cost's count (conspire, multikicker, squad,
+  replicate), escalate's modes and strive's targets stop at what the engine says the cast can pay, so no answer
+  the seat may give fails the cast (harness-epoch-43).
 - A creature that can block more than one attacker may: its label says how many, and the `answer` schema allows it.
 - The one exception: a window whose only option is floating mana that changes nothing passes unasked, as an empty
   one: a land's ability costing only {T} and mana that only adds mana, into a pool that empties without burn, with no
@@ -485,6 +488,14 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
      offered only when payable, and checked together), and a convoke payment one short (creatures that may
      convoke are not counted as mana when a land is kept untapped; a convoke that leaves the rest unpayable is
      asked again with the reason).
+     `GAUNTLET_POLICY=random` answers every ask with a uniformly random legal answer instead (seeded per deck, so a
+     game replays): the targets, picks, splits, numbers, blocks and mulligans `first` never gives. Its first run
+     found four more: a cost the cast could not pay offered as a count to pay (conspire with no creatures to tap;
+     escalate's second mode; Squad and Replicate "any number of times" answered 1.2 billion, which hung the payment
+     and ran out of heap). Keyword costs, escalate modes and strive targets are now offered only as many times as
+     the engine says the cast can pay (`payableKeywordTimes`, `escalateCost`, `keywordCost`). Its second run found
+     a CANCEL answer to a tap cost paid anyway: writing the decision row cleared the cancel before it was returned,
+     only with the game log on, which no golden check had; `GoldenChecksToolTest` now runs with the log on.
    - *Why measured, not listed by hand:* a hand-kept map says which test should reach a hook; the record says
      which test did. A per-type list let a hook that only ever took forced picks look covered.
 3. **Optional live-model checks (`eval/test_live_answer_tool.py`, `LIVE_MODEL_TESTS=1`, about a cent):**

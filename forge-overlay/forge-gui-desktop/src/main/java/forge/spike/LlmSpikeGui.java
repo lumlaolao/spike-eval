@@ -263,7 +263,7 @@ public final class LlmSpikeGui {
      *  legality test, not Forge AI's taste (legallyPayable); a cost may be paid with the ability's own target; casualty
      *  candidates are not filtered; who crews, and which creatures sharing a type tap, are the seat's; mana abilities
      *  are on the menu (floating mana); a creature that can block more attackers may. */
-    static final String HARNESS_EPOCH = "harness-epoch-42";
+    static final String HARNESS_EPOCH = "harness-epoch-43";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -1964,9 +1964,13 @@ public final class LlmSpikeGui {
                     }
                 }
                 if (cancelIdx >= 0 && picks.contains(cancelIdx)) {
-                    lastPicks = java.util.Collections.singletonList(cancelIdx);
+                    // Returned from a local: evalDec clears lastPicks once its row is written, so with the game
+                    // log on, `return lastPicks` handed the caller null and the cost was paid with the first
+                    // legal card (Station answered CANCEL and tapped a creature; random gauntlet).
+                    List<Integer> cancel = java.util.Collections.singletonList(cancelIdx);
+                    lastPicks = cancel;
                     if (type != null) evalDec(type, options.size(), cancelIdx, tierOf(b == smart), 0, null, options);
-                    return lastPicks;
+                    return cancel;
                 }
                 List<Integer> out = new ArrayList<>(picks);
                 if (out.size() > max) out = out.subList(0, max);
@@ -4018,6 +4022,15 @@ public final class LlmSpikeGui {
             int max = sa.getMaxTargets();
             boolean divided = sa.isDividedAsYouChoose();
                 int lo = Math.max(divided ? 1 : 0, min), hi = Math.min(Math.max(max, 1), cands.size());
+                // Strive adds its cost for each target beyond the first: as many targets as the cast can pay for.
+                Cost strive = keywordCost(sa, "Strive:");
+                String striveNote = "";
+                if (strive != null && sa.isSpell() && sa.getRootAbility() == sa && hi > 1) {
+                    int most = 1 + payableKeywordTimes(sa, strive, hi - 1);
+                    if (most < hi) p("[ROUTER] targets: strive can be paid for " + most + " target(s), not " + hi);
+                    hi = Math.max(lo, most);
+                    striveNote = "; each target beyond the first adds strive " + strive.toSimpleString();
+                }
                 List<Integer> tp;
                 if (cands.size() <= Math.max(1, min)) {         // forced: all candidates are needed
                     tp = new ArrayList<>();
@@ -4025,7 +4038,7 @@ public final class LlmSpikeGui {
                     evalDec("targets", cands.size(), tp.size(), "auto", 0, "forced(multi)", labels);
                 } else if (okFor("targets")) {
                     tp = decideMany(bridgeFor("targets"), "targets", "Choose TARGETS for " + labelOf(sa)
-                            + " (pick " + lo + " to " + hi + " from the list).", labels, lo, hi);
+                            + " (pick " + lo + " to " + hi + " from the list" + striveNote + ").", labels, lo, hi);
                     if (tp == null || tp.size() < lo) {
                         tp = new ArrayList<>();
                         for (int i = 0; i < lo && i < cands.size(); i++) tp.add(i);
@@ -5751,10 +5764,26 @@ public final class LlmSpikeGui {
             try {
                 Cost total = sa.getPayCosts().copy();
                 for (AbilitySub ab : modes) if (ab.hasParam("ModeCost")) total.add(new Cost(ab.getParam("ModeCost"), false));
+                Cost esc = escalateCost(sa);
+                if (esc != null) for (int i = 1; i < modes.size(); i++) total.add(esc);
                 boolean was = PRICING_FOR_SNAPSHOT;
                 PRICING_FOR_SNAPSHOT = true;
                 try { return legallyPayable(total, sa, me, false); } finally { PRICING_FOR_SNAPSHOT = was; }
             } catch (Exception e) { return false; }
+        }
+
+        /** Escalate's cost, paid once for each mode beyond the first (CostAdjustment's "Escalate" raise), or null. */
+        static Cost escalateCost(SpellAbility sa) { return keywordCost(sa, "Escalate:"); }
+
+        /** The cost of the host's keyword written {@code prefix}{cost} (Escalate:1 W, Strive:2 W), or null. */
+        static Cost keywordCost(SpellAbility sa, String prefix) {
+            Card host = sa == null ? null : sa.getHostCard();
+            if (host == null) return null;
+            for (forge.game.keyword.KeywordInterface ki : host.getKeywords()) {
+                String o = ki.getOriginal();
+                if (o.startsWith(prefix)) return new Cost(o.substring(prefix.length()), false);
+            }
+            return null;
         }
 
         /** Route modal spells ("choose one —") through the numbered menu. */
@@ -5770,11 +5799,19 @@ public final class LlmSpikeGui {
                 // Spree and tiered modes each add a cost (ModeCost, added at payment by CostAdjustment): only the modes
                 // the cast can pay with are offered, and the set is checked together (Dance of the Tumbleweeds' +{1}
                 // mode was chosen with two lands for its {1}{G} and the cast failed, keyword gauntlet).
-                final boolean priced = possible.stream().anyMatch(ab -> ab.hasParam("ModeCost"));
-                if (priced) {
+                final boolean priced = possible.stream().anyMatch(ab -> ab.hasParam("ModeCost")) || escalateCost(sa) != null;
+                if (possible.stream().anyMatch(ab -> ab.hasParam("ModeCost"))) {
                     possible = new ArrayList<>(possible);
                     possible.removeIf(ab -> !modesPayable(sa, List.of(ab)));
                     if (possible.isEmpty()) { auto("modes(none payable)->none"); return new ArrayList<>(); }
+                }
+                // Escalate adds its cost for each mode beyond the first: as many modes as the cast can pay for are offered
+                // (Borrowed Grace's both modes were chosen with mana for one, and the cast failed; random gauntlet).
+                if (escalateCost(sa) != null && !allowRepeat) {
+                    int most = Math.min(num, possible.size());
+                    while (most > Math.max(1, min) && !modesPayable(sa, possible.subList(0, most))) most--;
+                    if (most < num) p("[ROUTER] modes: escalate can be paid for " + most + " mode(s), not " + num);
+                    num = most;
                 }
                 if (possible.size() == 1 && min >= 1) { auto("modes(forced-only-legal)"); return repeated(possible.get(0), Math.max(min, Math.min(num, 1))); } // forced
                 // No budget: deterministic legal modes (distinct first, then repeats), never Forge AI.
@@ -5802,7 +5839,9 @@ public final class LlmSpikeGui {
                     p("[ROUTER] modes(repeat): " + log);
                     return out;
                 }
-                String mq = "MODAL SPELL — choose mode(s) for " + labelOf(sa) + xNote(sa) + (priced ? "; each mode adds its cost" : "") + ".";
+                String mq = "MODAL SPELL — choose mode(s) for " + labelOf(sa) + xNote(sa)
+                        + (escalateCost(sa) != null ? "; each mode beyond the first adds escalate " + escalateCost(sa).toSimpleString()
+                           : priced ? "; each mode adds its cost" : "") + ".";
                 List<Integer> picks = decideMany(smart, "modes", mq, labels, Math.max(0, min), Math.min(num, possible.size()));
                 for (int attempt = 0; priced && picks != null && picks.size() > 1 && !modesPayable(sa, pick(possible, picks)); attempt++) {
                     if (attempt == 1) { picks = List.of(0); auto("modes(together unpayable)->first payable"); break; }
@@ -6080,6 +6119,14 @@ public final class LlmSpikeGui {
         public int chooseNumberForKeywordCost(SpellAbility sa, Cost cost, forge.game.keyword.KeywordInterface keyword, String prompt, int max) {
             clearLast();
             if (max <= 0) return 0;
+            // Only the counts the cast can pay for are offered: conspire was answered "pay it" with no two creatures to
+            // tap, and the whole cast failed (random gauntlet). The engine's own test, every part of the cost.
+            int payable = payableKeywordTimes(sa, cost, max);
+            if (payable < max) {
+                p("[ROUTER] keyword-cost: " + cost.toSimpleString() + " can be paid " + payable + " time(s), not " + max);
+                max = payable;
+                if (max <= 0) { auto("keyword-cost(none payable)->0"); return 0; }
+            }
             // The menu cut: a numbered option line per candidate keeps the ask inside the readable
             // card-decision shape the model already answers (two digits of menu, like the other asks);
             // past 12 the enumeration is unreadable (the OOM why is the javadoc's above).
@@ -6089,6 +6136,32 @@ public final class LlmSpikeGui {
             int c = askOne("keyword-cost", (prompt == null || prompt.isEmpty() ? "How many times do you pay " + cost.toSimpleString() : fit(prompt))
                     + srcAsk(sa) + "?", labels, null, 0);
             return Math.max(0, c);
+        }
+
+        /** The most times, up to {@code max}, that {@code cost} can be added to {@code sa}'s cost and still be paid.
+         *  Each added copy only makes the total harder to pay, so the search doubles until a count fails and then
+         *  halves between: it costs about twice the answer, never the engine's range (Squad passes Integer.MAX_VALUE,
+         *  and a random answer of 1,212,328,817 squads hung the payment). A cost that is still payable 1024 times
+         *  adds nothing a payment can run out of, and the engine's range stands. */
+        static int payableKeywordTimes(SpellAbility sa, Cost cost, int max) {
+            if (sa == null || cost == null || sa.getPayCosts() == null || sa.getActivatingPlayer() == null) return max;
+            java.util.function.IntPredicate ok = n -> {
+                try {
+                    Cost total = sa.getPayCosts().copy();
+                    for (int i = 0; i < n; i++) total.add(cost);
+                    boolean was = PRICING_FOR_SNAPSHOT;
+                    PRICING_FOR_SNAPSHOT = true;
+                    try { return legallyPayable(total, sa, sa.getActivatingPlayer(), false); } finally { PRICING_FOR_SNAPSHOT = was; }
+                } catch (Exception e) { return true; }   // cannot price it: offer the engine's range
+            };
+            int lo = 0, hi = 1;     // ok(lo) is assumed (paying none adds nothing)
+            while (ok.test(hi)) {
+                if (hi >= max || hi >= 1024) return max;
+                lo = hi;
+                hi = (int) Math.min(max, 2L * hi);
+            }
+            while (hi - lo > 1) { int mid = (lo + hi) >>> 1; if (ok.test(mid)) lo = mid; else hi = mid; }
+            return lo;
         }
 
         /** The 0..max "any number of times" ask when the engine's own range is bigger than the menu:

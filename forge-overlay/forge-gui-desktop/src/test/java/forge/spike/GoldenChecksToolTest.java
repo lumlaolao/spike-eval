@@ -14,17 +14,21 @@ import org.testng.annotations.Test;
 /**
  * The golden checks again, on the default protocol: every seat answers by calling `answer`
  * (ToolAnswerBridge). Every decision goes through the call (owner, 2026-10-15), so beyond each check's own
- * assertions, no tool ask any decision type makes may offer a text answer format.
+ * assertions, no tool ask any decision type makes may offer a text answer format. The game log is on, as in a
+ * game: a cancelled cost was paid anyway only while decision rows were being written (random gauntlet), which no
+ * check saw with the log off.
  */
 public class GoldenChecksToolTest extends GoldenChecksTest {
 
     @BeforeClass
-    public void toolMode() {
+    public void toolMode() throws java.io.IOException {
         LineFindingProbeTest.TOOL_MODE = true;
+        LlmSpikeGui.EvalLog.initToDir(java.nio.file.Files.createTempDirectory("golden-tool-log").toString(), 7);
     }
 
     @AfterClass(alwaysRun = true)
     public void textMode() {
+        LlmSpikeGui.EvalLog.closeForTest();
         LineFindingProbeTest.TOOL_MODE = false;
         LineFindingProbeTest.TOOL_BRIDGES.clear();
         LineFindingProbeTest.TOOL_SEATS.clear();

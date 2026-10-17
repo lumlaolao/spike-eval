@@ -172,9 +172,9 @@ public class SurfaceCostChoicesTest {
                 .on("You have priority", choice("CAST Spell Contortion"))
                 .on("Choose the TARGET", choice("Ponder"))
                 .on("Multikicker", p -> {
-                    Assert.assertTrue(p.contains("Every integer from 0 through 2147483647 inclusive"),
-                            "the ask states the engine's own legal range: " + p);
-                    return "NUMBER: 1";
+                    // The engine's range is any number (Integer.MAX_VALUE); eight Islands pay {2}{U} and two {1}{U} kicks.
+                    Assert.assertTrue(p.contains("3) 2") && !p.contains("4) 3"), "only the payable kicks are offered: " + p);
+                    return choice("1").apply(p);
                 });
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
