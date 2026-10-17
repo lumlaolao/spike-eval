@@ -104,6 +104,15 @@ payable. A spell or trigger with several targets ("any number of target creature
 set on every path (`chooseManyTargets`). A creature spell's option shows its rules text. *Why:* Forge's AI asks
 optional costs while listing its options, a step this menu does not use, so no kicker, buyback or entwine was ever paid;
 Fury's trigger could take one target and the default took Fury itself; Elder Deep-Fiend's emerge was never offered.
+Since harness-epoch-39 all 44 are played by a golden check (`eval/play_gaps.txt` is empty):
+- **Pricing never touches the spell.** A probe copy gets its own pips-to-reduce list (`withOptional`): a Forge copy
+  shares that list with the original, so pricing a Defiler's "pay 2 life, {W} less" left {W} off the real spell and
+  the plain Savannah Lions was offered and cast with no land and no life paid.
+- **Harmonize is priced with its tap.** The menu checks each power the seat could tap (`harmonizePowers`, with the
+  card's cast spell set as the engine sets it), and the seat picks the power from the payable ones only.
+- **An option says what the card does.** A cast at another cost (prowl, surge, spectacle, overload, a pitch) shows
+  the text of the face being cast; the engine's description is only the cost and its reminder. The cost shown is the
+  cost paid (a Defiler's reduction taken off), and alternative costs keep their printed names (Web-slinging).
 
 **When the model gives no usable answer:** a fixed legal option (the first, or decline; no attack for
 attackers), recorded on the decision row with why. Never Forge's AI, and never an option read out of the

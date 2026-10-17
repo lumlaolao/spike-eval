@@ -1,18 +1,3 @@
 # Ways to play a card the engine lists (Forge's AlternativeCost and OptionalCost) that no test has played from the
 # seat's menu yet (eval/surface_coverage.py, acceptance stage `surfaces`). May only shrink. Phase 1c, S3.
 # kind<TAB>what proving it needs
-play:alt:BeamMeUp	not yet played by a golden check (newer or Universes Beyond mechanic; not in the eval pool)
-play:alt:Freerunning	needs combat damage by an Assassin or commander this turn
-play:alt:Harmonize	the tap reduction (tap a creature, reduce by its power) is chosen at payment; the menu prices the full cost, so harmonize is offered only when that is payable (Channeled Dragonfire with 4 Mountains: not offered)
-play:alt:MTMtE	not yet played by a golden check (newer or Universes Beyond mechanic; not in the eval pool)
-play:alt:Mayhem	not yet played by a golden check (newer or Universes Beyond mechanic; not in the eval pool)
-play:alt:Prowl	prowl needs combat damage by a Rogue this turn (a combat step before the cast)
-play:alt:Sneak	not yet played by a golden check (newer or Universes Beyond mechanic; not in the eval pool)
-play:alt:WebSlinging	not yet played by a golden check (newer or Universes Beyond mechanic; not in the eval pool)
-play:opt:Generic	a pseudo-kicker (Dragon Presence cards)
-play:opt:ReduceB	not yet played by a golden check (newer or Universes Beyond mechanic; not in the eval pool)
-play:opt:ReduceG	not yet played by a golden check (newer or Universes Beyond mechanic; not in the eval pool)
-play:opt:ReduceR	not yet played by a golden check (newer or Universes Beyond mechanic; not in the eval pool)
-play:opt:ReduceU	not yet played by a golden check (newer or Universes Beyond mechanic; not in the eval pool)
-play:opt:ReduceW	not yet played by a golden check (newer or Universes Beyond mechanic; not in the eval pool)
-play:opt:Teamwork	not a Legacy mechanic (Duel Decks); no card in the eval pool

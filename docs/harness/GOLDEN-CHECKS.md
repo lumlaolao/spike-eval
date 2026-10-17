@@ -65,6 +65,7 @@ under the legacy profile, where the contract does not run; they are not counted.
 | some-type | chooseSomeType | 12 / 8 | no | aTypeIsTheModels |
 | protection | chooseProtectionType | 1 / 6 | no | aProtectionIsTheModels |
 | card-name | chooseCardName (list and free name) | 6 / 3 | no | aNamedCardIsTheModels |
+| harmonize | chooseNumber (harmonize's power to tap; only payable powers) | 0 / 0 | no | harmonizeTapsACreatureToReduceItsCost |
 
 Before: 12 of the 42 types had a contract-checked live test; now all 42 do.
 

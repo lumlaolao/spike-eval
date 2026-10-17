@@ -245,8 +245,11 @@ public final class LlmSpikeGui {
      *  Epoch 37 (2026-10-16, state facets): the initiative, city's blessing, day/night, phased-out permanents, what a
      *  permanent remembers (named card, chosen type, imprint, token) and counters off the battlefield are shown
      *  (observation-faithful-v35).
-     *  Epoch 38 (2026-10-16): optional costs picked together are checked together (two kickers payable alone, not both). */
-    static final String HARNESS_EPOCH = "harness-epoch-38";
+     *  Epoch 38 (2026-10-16): optional costs picked together are checked together (two kickers payable alone, not both).
+     *  Epoch 39 (2026-10-17, every way to play): pricing an optional cost no longer leaves a Defiler's reduction on the
+     *  spell; harmonize is priced with its tap and its power asked from the payable ones; an alternative-cost option
+     *  shows the card's text and the cost it pays. */
+    static final String HARNESS_EPOCH = "harness-epoch-39";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -1325,6 +1328,17 @@ public final class LlmSpikeGui {
             return text.replace("CARDNAME", name).replace("NICKNAME", name);
         }
 
+        /** An alternative cost as the card prints it: Forge's enum names three of them by abbreviation or run-together
+         *  words ("WebSlinging", "MTMtE", "BeamMeUp"). */
+        static String altCostName(forge.game.spellability.AlternativeCost alt) {
+            switch (alt) {
+                case WebSlinging: return "Web-slinging";
+                case MTMtE: return "More Than Meets the Eye";
+                case BeamMeUp: return "Beam me up";
+                default: return String.valueOf(alt);
+            }
+        }
+
         static String faithfulSaLabel(SpellAbility sa, String hostRef) {
             Card host = sa.getHostCard();
             String name = host == null ? "?" : host.getName();
@@ -1345,6 +1359,16 @@ public final class LlmSpikeGui {
                 if (host != null && desc.startsWith(name + " - ") && host.getOracleText() != null && !host.getOracleText().isEmpty())
                     desc = host.getOracleText().replace("\\n", " ").replaceAll("\\s+", " ").trim();
             } catch (Exception ignore) { }
+            // A cast at another cost (prowl, surge, spectacle, overload, dash, a pitch...) is described by the engine as
+            // that cost and its reminder only: Morsel Theft's prowl never said the target loses 3 life, Skewer the
+            // Critics' spectacle never said it deals 3 damage. The option shows the text of the face being cast.
+            try {
+                if (sa.isSpell() && (sa.getAlternativeCost() != null || !sa.isBasicSpell())) {
+                    String face = sa.getCardState() != null ? sa.getCardState().getOracleText() : null;
+                    if (face == null || face.isEmpty()) face = host.getOracleText();
+                    if (face != null && !face.isEmpty()) desc = named(face, host).replace("\\n", " ").replaceAll("\\s+", " ").trim();
+                }
+            } catch (Exception ignore) { }
             String body = desc.isEmpty() ? "" : " [" + desc + "]";
             boolean spell;
             try { spell = sa.isSpell(); } catch (Exception e) { spell = true; }
@@ -1360,12 +1384,14 @@ public final class LlmSpikeGui {
             } catch (Exception ignore) { }
             if (!spell) return hostRef + (zone.isEmpty() ? "" : " in " + zone) + body;
             String alt = "";
-            try { if (sa.getAlternativeCost() != null) alt = String.valueOf(sa.getAlternativeCost()); } catch (Exception ignore) { }
+            try { if (sa.getAlternativeCost() != null) alt = altCostName(sa.getAlternativeCost()); } catch (Exception ignore) { }
             // An option offered with an optional cost (retrace from the graveyard) names it.
             try {
                 if (alt.isEmpty()) {
                     List<String> names = new ArrayList<>();
-                    for (forge.game.spellability.OptionalCost o : sa.getOptionalCosts()) names.add(o.getName());
+                    // A Defiler's payment is named "(to reduce white mana)": the label adds its own brackets.
+                    for (forge.game.spellability.OptionalCost o : sa.getOptionalCosts())
+                        names.add(o.getName().replaceAll("^\\((.*)\\)$", "$1"));
                     alt = String.join(", ", names);
                 }
             } catch (Exception ignore) { }
@@ -1380,9 +1406,29 @@ public final class LlmSpikeGui {
                 return hostRef + (mc == null ? "" : " " + mc) + body;
             }
             String cost = "";
-            try { if (sa.getPayCosts() != null) cost = sa.getPayCosts().toSimpleString().replace("CARDNAME", name).replaceFirst("^\\{0\\},?\\s*", "").trim(); } catch (Exception ignore) { }
+            try { if (sa.getPayCosts() != null) cost = paidCostString(sa).replace("CARDNAME", name).replaceFirst("^\\{0\\},?\\s*", "").trim(); } catch (Exception ignore) { }
             return hostRef + (zone.isEmpty() ? "" : " from " + zone) + (alt.isEmpty() ? "" : " (" + alt + ")")
                     + " — cost: " + (cost.isEmpty() ? "none" : cost) + body;
+        }
+        /** The cast's cost as it will be paid: the coloured mana a Defiler's life payment takes off (the spell's
+         *  pips to reduce, CostAdjustment) is left out. The menu read "cost: {W}, Pay 2 life" for a Savannah Lions
+         *  that cost 2 life and no mana. */
+        static String paidCostString(SpellAbility sa) {
+            // Harmonize's reduction is chosen during the cast: the label says it, or {5}{R}{R} beside four lands reads
+            // as unpayable.
+            if (sa.isHarmonize()) return sa.getPayCosts().toSimpleString() + ", {X} less if you tap a creature you control of power X";
+            List<String> pips = sa.getPipsToReduce();
+            if (pips.isEmpty() || !sa.isSpell()) return sa.getPayCosts().toSimpleString();
+            List<String> parts = new ArrayList<>();
+            for (forge.game.cost.CostPart part : sa.getPayCosts().getCostParts()) {
+                if (part instanceof forge.game.cost.CostPartMana pm) {
+                    forge.game.mana.ManaCostBeingPaid m = new forge.game.mana.ManaCostBeingPaid(pm.getMana());
+                    for (String pip : pips) m.decreaseShard(forge.card.mana.ManaCostShard.parseNonGeneric(pip), 1);
+                    forge.card.mana.ManaCost left = m.toManaCost();
+                    if (!left.isZero() && !left.isNoCost()) parts.add(left.toString());
+                } else parts.add(part.toString());
+            }
+            return String.join(", ", parts);
         }
         List<String> playLabels(List<SpellAbility> options, List<Card> landCards) {
             if (observer == null) return buildPlayLabels(options, landCards);
@@ -3945,12 +3991,15 @@ public final class LlmSpikeGui {
         private SpellAbility withOptionalCosts(SpellAbility sa) {
             try {
                 if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(getPlayer());
+                // Listing them clears the spell's reduced pips; a play offered with a Defiler's payment keeps its own.
+                List<String> pips = new ArrayList<>(sa.getPipsToReduce());
                 List<OptionalCostValue> list = new ArrayList<>(GameActionUtil.getOptionalCostValues(sa));
+                sa.getPipsToReduce().addAll(pips);
                 List<forge.game.spellability.OptionalCost> on = Lists.newArrayList(sa.getOptionalCosts());
                 list.removeIf(v -> on.contains(v.getType()));
                 if (list.isEmpty()) return sa;
                 List<OptionalCostValue> picked = chooseOptionalCosts(sa, list);
-                return picked == null || picked.isEmpty() ? sa : GameActionUtil.addOptionalCosts(sa, picked);
+                return picked == null || picked.isEmpty() ? sa : withOptional(sa, picked);
             } catch (Exception e) { p("[ROUTER] optional-costs: " + e + " -> none"); return sa; }
         }
 
@@ -3962,10 +4011,33 @@ public final class LlmSpikeGui {
             try {
                 List<OptionalCostValue> set = new ArrayList<>();
                 for (int i : picks) set.add(offer.get(i));
-                SpellAbility with = GameActionUtil.addOptionalCosts(sa, set);
+                SpellAbility with = withOptional(sa, set);
                 with.setActivatingPlayer(getPlayer());
                 return ComputerUtilCost.canPayCost(with, getPlayer(), false);
             } catch (Exception e) { p("[ROUTER] optional-costs: " + e + " -> decline"); return false; }
+        }
+
+        /** {@code sa} with the optional costs {@code set} added, as GameActionUtil.addOptionalCosts makes it, without
+         *  touching {@code sa}. A copy shares its pips-to-reduce list with the original (a memoized supplier the
+         *  shallow clone keeps), so pricing a Defiler's "pay 2 life, {W} less" left {W} off the real spell: the
+         *  plain Savannah Lions was offered and cast with no land and no life paid (surface check). The copy gets
+         *  its own list and the original's is put back. */
+        static SpellAbility withOptional(SpellAbility sa, List<OptionalCostValue> set) {
+            List<String> before = new ArrayList<>(sa.getPipsToReduce());
+            SpellAbility with = GameActionUtil.addOptionalCosts(sa, set);
+            if (with != sa) {
+                List<String> own = new ArrayList<>(with.getPipsToReduce());
+                try {
+                    java.lang.reflect.Field f = SpellAbility.class.getDeclaredField("pipsToReduce");
+                    f.setAccessible(true);
+                    f.set(with, com.google.common.base.Suppliers.memoize(() -> own));
+                } catch (ReflectiveOperationException | RuntimeException e) {
+                    throw new IllegalStateException("optional costs cannot be priced apart from the spell: " + e, e);
+                }
+            }
+            sa.getPipsToReduce().clear();
+            sa.getPipsToReduce().addAll(before);
+            return with;
         }
 
         /** Optional additional costs — kicker / buyback / entwine. The model chooses which to pay;
@@ -3984,14 +4056,14 @@ public final class LlmSpikeGui {
                             // The whole cast with this cost must stay payable: the cost alone was checked, so Rude
                             // Awakening's entwine was offered with 7 lands for 8 mana and the cast failed (surface check).
                             if (v == null || v.getCost() == null) { offer.add(v); continue; }
-                            SpellAbility with = GameActionUtil.addOptionalCosts(chosen, Lists.newArrayList(v));
+                            SpellAbility with = withOptional(chosen, Lists.newArrayList(v));
                             with.setActivatingPlayer(getPlayer());
                             if (ComputerUtilCost.canPayCost(with, getPlayer(), false)) offer.add(v);
                         } catch (Exception ignore) { }
                     }
                     if (!offer.isEmpty()) {
                         List<String> labels = new ArrayList<>();
-                        for (OptionalCostValue v : offer) labels.add(fit(v.toString()));
+                        for (OptionalCostValue v : offer) labels.add(fit(named(v.toString(), chosen.getHostCard())));
                         String q = "This spell offers optional additional costs (kicker/buyback/entwine)" + srcAsk(chosen)
                                 + ". Pick the ones worth paying for your plan; PICKS: NONE declines them all.";
                         List<Integer> picks = decideMany(smart, "optional-costs", q, labels, 0, offer.size());
@@ -4913,6 +4985,7 @@ public final class LlmSpikeGui {
             clearLast();
             if (max < min) throw new IllegalArgumentException("empty numeric range");
             if (max == min) { auto("number(forced)->" + min); return min; }
+            if (sa != null && sa.isHarmonize() && HARMONIZE_TITLE.equals(title)) return chooseHarmonizePower(sa, min, max);
             if (!fastOk()) { auto("number(no-model)->" + min); return min; }
             try {
                 if ((long) max - min <= 12) {
@@ -5632,9 +5705,37 @@ public final class LlmSpikeGui {
             return 0;
         }
 
+        /** Harmonize's power, from the powers the cast can be paid with (the engine offers 0 to the largest power,
+         *  and a power with no creature to tap, or one the mana cannot cover after it, fails the cast). The tap that
+         *  follows (addKeywordCost) is then this choice, not a second question. */
+        private int harmonizeChosen = -1;
+        private int chooseHarmonizePower(SpellAbility sa, int min, int max) {
+            harmonizeChosen = -1;
+            List<Integer> powers = harmonizePowers(sa, getPlayer());
+            powers.removeIf(n -> n < min || n > max);
+            if (powers.isEmpty()) { auto("harmonize(none payable)->" + min); return min; }
+            int pick;
+            if (powers.size() == 1) { auto("harmonize(only payable)->" + powers.get(0)); pick = powers.get(0); }
+            else {
+                List<String> labels = new ArrayList<>();
+                for (int n : powers) labels.add(n == 0 ? "0: tap no creature, pay the full cost"
+                        : n + ": tap a creature with power " + n + ", the spell costs {" + n + "} less");
+                pick = powers.get(askOne("harmonize", "HARMONIZE" + srcAsk(sa) + ": choose the power of the creature to tap.",
+                        labels, null, labels.size() - 1));
+            }
+            harmonizeChosen = pick;
+            return pick;
+        }
+
         /** Whether to pay an optional keyword cost (one time). */
         @Override
         public boolean addKeywordCost(SpellAbility sa, Cost cost, forge.game.keyword.KeywordInterface keyword, String prompt) {
+            if (sa != null && sa.isHarmonize() && harmonizeChosen >= 0) {
+                boolean tap = harmonizeChosen > 0;
+                harmonizeChosen = -1;
+                auto("harmonize(tap follows the power chosen)->" + (tap ? "YES" : "NO"));
+                return tap;
+            }
             return chooseNumberForKeywordCost(sa, cost, keyword, prompt, 1) == 1;
         }
 
@@ -7328,7 +7429,7 @@ public final class LlmSpikeGui {
                     sa.setActivatingPlayer(me);
                     if (offerable(sa, me, false)) continue;
                     for (OptionalCostValue v : GameActionUtil.getOptionalCostValues(sa)) {
-                        SpellAbility with = GameActionUtil.addOptionalCosts(sa, Lists.newArrayList(v));
+                        SpellAbility with = withOptional(sa, Lists.newArrayList(v));
                         with.setActivatingPlayer(me);
                         if (offerable(with, me, true)) { candidates.add(with); altCosts.add(with); }
                     }
@@ -7392,6 +7493,9 @@ public final class LlmSpikeGui {
             } finally {
                 PRICING_FOR_SNAPSHOT = false;
             }
+            // Harmonize's reduction (tap a creature, the spell costs that much less) is chosen during the cast: priced
+            // at full, Channeled Dragonfire's harmonize was never offered with four Mountains and a 3-power creature.
+            if (!payable && sa.isHarmonize()) payable = harmonizePowers(sa, me).stream().anyMatch(n -> n > 0);
             if (!payable) return false;
             // Skip a targeted spell that currently has NO legal target — casting it just fizzles
             // ("Couldn't add to stack, failed to target"), e.g. Animate Dead with an empty graveyard.
@@ -7403,6 +7507,44 @@ public final class LlmSpikeGui {
                 } catch (Exception ignore) { /* can't evaluate -> offer it, prior behavior */ }
             }
             return true;
+        }
+
+        /** The engine's harmonize step: the power chosen, the creature-tap cost it adds and the reduction it gives
+         *  (GameActionUtil.addKeywordCosts, CardFactoryUtil's Harmonize ReduceCost). */
+        static final String HARMONIZE_TITLE = "Choose power of creature to tap";
+        static SpellAbility harmonizedWith(SpellAbility sa, int n) {
+            SpellAbility with = sa.copy();
+            with.getPayCosts().add(new forge.game.cost.Cost("tapXType<1/Creature.powerEQ" + n + "/creature for Harmonize>", false));
+            with.setOptionalKeywordAmount(sa.getKeyword(), n);
+            return with;
+        }
+
+        /** The powers a harmonize cast can be paid with now, 0 (no creature tapped) included when the full cost is. */
+        static List<Integer> harmonizePowers(SpellAbility sa, Player me) {
+            List<Integer> out = new ArrayList<>();
+            boolean was = PRICING_FOR_SNAPSHOT;
+            PRICING_FOR_SNAPSHOT = true;
+            try {
+                if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(me);
+                if (ComputerUtilCost.canPayCost(sa, me, false)) out.add(0);
+                java.util.TreeSet<Integer> powers = new java.util.TreeSet<>();
+                for (Card c : me.getCreaturesInPlay()) if (c.getNetPower() > 0 && c.canTap()) powers.add(c.getNetPower());
+                // The reduction counts the power from the card's cast spell (Count$OptionalKeywordAmount reads
+                // getCastSA()), which the engine sets only once the card is on its way to the stack.
+                Card host = sa.getHostCard();
+                SpellAbility cast = host.getCastSA();
+                for (int n : powers) {
+                    try {
+                        SpellAbility with = harmonizedWith(sa, n);
+                        with.setActivatingPlayer(me);
+                        host.setCastSA(with);
+                        if (ComputerUtilCost.canPayCost(with, me, false)) out.add(n);
+                    } catch (Exception ignore) { /* not this power */ }
+                    finally { host.setCastSA(cast); }
+                }
+            } catch (Exception ignore) { /* nothing priced */ }
+            finally { PRICING_FOR_SNAPSHOT = was; }
+            return out;
         }
 
         /** The faithful hand tag: "(castable)" only when the play menu would offer the card now, so the
@@ -7427,7 +7569,7 @@ public final class LlmSpikeGui {
                     // The menu also offers the cast with an optional cost that makes it playable (an offering):
                     // the tag says which, or the hand reads "need 3 more mana" beside a castable option.
                     for (OptionalCostValue v : GameActionUtil.getOptionalCostValues(sa)) {
-                        SpellAbility with = GameActionUtil.addOptionalCosts(sa, Lists.newArrayList(v));
+                        SpellAbility with = withOptional(sa, Lists.newArrayList(v));
                         with.setActivatingPlayer(pl);
                         if (optionalName == null && offerable(with, pl, true)) optionalName = v.getType().getName();
                     }
