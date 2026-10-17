@@ -9,14 +9,16 @@ when an item is finished or a new one is agreed, so the next session can pick up
 - **Phase 1 (the review's R1-R7) and the surface work (S1-S6) are done.** Every decision hook and way to play is proven
   by a test (89/89, 44/44), every Forge keyword is swept, and three free gauntlets check the cards in full games:
   `eval/keyword_gauntlet.sh` with the `first` policy, `GAUNTLET_POLICY=random`, and `GAUNTLET_TOOLS=1` (lookups and
-  previews). They found 12 defects on 2026-10-17, all fixed.
+  previews). They found 15 defects on 2026-10-17, all fixed (the last three on harness-epoch-45).
 - **Now:** Luna games one at a time through the game loop (`docs/harness/GAME-LOOP-LOG.md`, g01 onward on
-  harness-epoch-43/44). A game costs $0.02 to $0.05; the time (22 to 91 minutes, about half of it provider waits) is
+  harness-epoch-43 to 45). A game costs $0.02 to $0.05; the time (22 to 91 minutes, about half of it provider waits) is
   on the sheet's TIME line.
 - **Phase 2, the eval ([REVIEW-2026-10-16.md](REVIEW-2026-10-16.md) E1-E9):** E1 settled; E2, E3, E8, E9 done (the panel's
   pilot condition is pinned in `panels-v1.json`). Waiting on the owner: E4 (the headline score's handling of
   unfinished games), E6 (STR-HELDOUT: held-out decks or private puzzles), E5 (freeze an epoch), then E7 (the first
   paid block, cost stated first). Also waiting: the Luna puzzle run and the C3 comparison (cost first).
+- **Open, needs design:** `simulate` inside a target choice. The model asks it there (g02, g03) after previewing the
+  same target from the priority menu; it is refused by design, since previews are of the priority menu.
 - The items below stay as the longer backlog.
 
 ## Owner decisions this list rests on (2026-10-15)
