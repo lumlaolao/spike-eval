@@ -45,6 +45,13 @@ class GauntletScanTest(unittest.TestCase):
                     "[kw00] [TALLY] smart=28 fast=0 auto=9 ai=2 textParses=0\n"):
             self.assertEqual(scan(run_dir({"kw00": (log, "0", "B")})), 1, log)
 
+    def test_a_broken_lookup_fails(self):
+        root = run_dir({"kw00": (CLEAN, "0", "B")})
+        with open(os.path.join(root, "g-kw00", "game-1.jsonl"), "a") as f:
+            f.write(json.dumps({"t": "context_tool", "request": 'TOOL CALL simulate {"option": 2}',
+                                "result": "ERROR: preview failed: java.lang.NullPointerException"}) + "\n")
+        self.assertEqual(scan(root), 1)
+
     def test_an_unfinished_game_fails(self):
         self.assertEqual(scan(run_dir({"kw00": (CLEAN, "0", "invalid")})), 1)
         self.assertEqual(scan(run_dir({"kw00": (CLEAN, "3", "B")})), 1)

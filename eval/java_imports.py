@@ -5,8 +5,8 @@ Why it exists: the Forge checkout build runs checkstyle and rejects both; the ac
 isolated `javac` accepts both. Twice a change passed acceptance and then failed `mvn install` in the
 checkout (PR #60, PR #80). This closes that gap for the two rules that bit.
 
-What it cannot see: anything else checkstyle checks. A name used only inside a comment or a string
-counts as used, so it can miss an unused import; it does not report a used one.
+What it cannot see: anything else checkstyle checks. As checkstyle's UnusedImports does, a name only in a comment
+or a string is not a use, but one in a javadoc {@link}, {@linkplain}, @see or @throws is.
 
   python3 eval/java_imports.py forge-overlay            # exit 1 and one line per problem
 """
@@ -15,11 +15,25 @@ import re
 import sys
 
 IMPORT = re.compile(r"^\s*import\s+(static\s+)?([\w.]+)(\.\*)?\s*;", re.M)
+# Comments and string or char literals, in one pass so a quote inside a comment (or "//" in a string) is read right.
+NOISE = re.compile(r'//[^\n]*|/\*.*?\*/|"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'', re.S)
+JAVADOC_REF = re.compile(r"\{@link(?:plain)?\s+([\w.#]+)|@(?:see|throws|exception)\s+([\w.#]+)")
+
+
+def code_and_doc_refs(body):
+    """The source with comments and literals blanked, plus the names javadoc references (which checkstyle counts)."""
+    refs = []
+    def blank(m):
+        t = m.group(0)
+        if t.startswith("/**"):
+            refs.extend(a or b for a, b in JAVADOC_REF.findall(t))
+        return " "
+    return NOISE.sub(blank, body) + "\n" + " ".join(refs)
 
 
 def problems(source):
     out, seen = [], set()
-    body = IMPORT.sub("", source)
+    body = code_and_doc_refs(IMPORT.sub("", source))
     for m in IMPORT.finditer(source):
         static, name, star = m.group(1), m.group(2), m.group(3)
         line = source.count("\n", 0, m.start()) + 1

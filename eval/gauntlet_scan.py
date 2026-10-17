@@ -2,8 +2,9 @@
 
 Per game: exit code, turns, winner and the seat's [TALLY] line. Then every line that marks a defect: a choice
 Forge's AI made (FALLBACK->AI, ai=N in the tally), an answer the seat could not read, a text parse or a text answer
-format on a tool ask, a play that failed to pay or to target, a decision lost, a crash. A game with no game line
-or a non-zero exit also counts. Exits 1 when anything is found.
+format on a tool ask, a play that failed to pay or to target, a decision lost, a crash, and (with GAUNTLET_TOOLS=1) a
+lookup the harness refused or that broke (tool_audit's REFUSED and FAILED). A game with no game line or a non-zero exit
+also counts. Exits 1 when anything is found.
 
 usage: python3 eval/gauntlet_scan.py <run dir>
 """
@@ -12,6 +13,8 @@ import glob
 import json
 import re
 import sys
+
+import tool_audit
 
 BAD = re.compile(r"FALLBACK->AI|\(unparsed|TEXT-PARSE|TEXT-FORMAT-LEAK|Couldn't add to stack|failed to target"
                  r"|FAILED to pay|Exception|Error\b|threw|AI looped")
@@ -36,6 +39,11 @@ def scan(root):
                     game = row
                 if row.get("answer_via") == "lost":
                     findings["decision lost: %s" % row.get("type")] += 1
+        tools = tool_audit.audit(glob.glob(d + "/game-*.jsonl"))
+        for kind in ("REFUSED", "FAILED"):
+            if tools["by_outcome"][kind]:
+                findings["%s: lookup %s x%d, e.g. %s" % (tag, kind, tools["by_outcome"][kind],
+                                                         tools["examples"].get(kind, "")[:160])] += 1
         exit_code = open(d + "/exit_code").read().strip() if glob.glob(d + "/exit_code") else "?"
         print(tag, "exit", exit_code, "turns", game and game.get("turns"), "winner", game and game.get("winner"),
               (tally[-1] if tally else "no tally")[:90])

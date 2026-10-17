@@ -599,3 +599,69 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
   life X was 0. The pitch option was labelled with the mana cost it replaces (`Disrupting Shoal {X}{U}{U}`; Force of Will
   likewise). Tests `aShoalsXIsAnnouncedByTheSeat`, `toxicDelugesLifeIsTheSeats` (harness-epoch-34).
 - Result: every defect found in the recorded C3 games is fixed. No LINE, TAKEN, LOST or SKIP in any of them.
+
+### g01  2026-10-17  seed 4101  Elves (seat) vs Elves (Forge AI)  won T11  $0.05  harness-epoch-43
+- Time: 91 min. 48 min model answers (70 decisions, median 11 s, longest 4.4 min), 40 min in 8 provider stalls (OpenRouter
+  kept the connection open with keepalives and no answer until the 300 s deadline; each retry answered in about 10 s),
+  3 HTTP 5xx retried. Elves asks many questions: 29 decisions on T5 alone.
+- clean  TAKEN 0, LOST 0, SKIP 0, ai=0, tools 10/10 served. Forced: 5 trigger orders of two identical Nettle Sentinel
+  untap triggers, 3 damage assignments with one legal split. One malformed `answer` (not JSON), corrected in the same
+  conversation.
+- clean  floating mana from the menu: T5 Gaea's Cradle tapped before Green Sun's Zenith for X=2.
+- FIXED  (setup) the Forge checkout build refused an unused import of ComputerUtilCost left by #240; `java_imports.py`
+  counted its mention in a javadoc sentence as a use. It now blanks comments and strings as checkstyle does.
+- FIXED  (sheet) `plan_audit.py` read plans only from the text grammar's PLAN: line, so it reported plans=0 for every
+  answer-tool game; it reads `set_plan` calls now (17 here). A clause that says "now" is no longer read as a hold ("Crack
+  Windswept Heath ... now to improve next turn's mana" was flagged).
+
+### g02  2026-10-17  seed 4102  Burn (seat) vs Death and Taxes (Forge AI)  lost T12  $0.02  harness-epoch-43
+- Time: 22 min. 16 min model answers (23 decisions), one 300 s provider stall, one HTTP 5xx retried.
+- clean  TAKEN 0, LOST 0, SKIP 0, ai=0; plans 8, hold violations 0. Forced: a suspended Rift Bolt's cast (one
+  ability), one entity, one damage split. No blocks asked T10 and T12: the seat had no creature (Swiftspear died
+  attacking into Mirran Crusader T9). T11 main passed as nothing-usable: correct, Thalia's tax made Price of Progress
+  cost three of four Mountains, so Eidolon's {R}{R} could not be paid.
+- FIXED  the attack outlook's "None of their creatures that can block now could block: Goblin Guide (2)": the bare
+  number (damage if unblocked) read as an engine id (the sheet's LEAK). Now "(2 damage)", lookahead-preview-v9,
+  harness-epoch-44.
+- noted  `simulate` asked during the suspended Rift Bolt's cast decision: refused by design (previews are of the
+  priority menu), as in earlier games.
+- checked  a fetch's library search lists the whole library in the event history: a player sees it when searching,
+  and the library is shuffled at once; the known-in-hidden-zones record does not carry it.
+
+### between g02 and g03  2026-10-17  free checks while the games ran
+- FIXED  the keyword gauntlet with lookups on (`GAUNTLET_TOOLS=1`, random previews, inspects and searches) crashed two
+  games with a StackOverflowError: affordability and offerable cleared PRICING_FOR_SNAPSHOT when done instead of
+  restoring it, so under an outer pricing the next pool-mana choice asked the seat, and its prompt priced the hand
+  again. The flag is restored everywhere, a prompt build is pricing from start to end, and the convoke chooser
+  honours it. Test `pricingInsidePricingKeepsTheGuardOn` (failed before the fix); both games replay to the end.
+- FIXED  (fake model) "header parser received no bytes" x13 on the request after a lookup: the stub closed each
+  connection without saying so; it now sends `Connection: close`.
+- FIXED  (sheet) `match_review.py` prints a TIME line: elapsed, model answer time, waits to the call deadline,
+  stalls cut early, provider errors.
+- clean  random-answer gauntlet with new seeds (s3): 28 games, 0 defect lines.
+- FIXED  tools gauntlet (e44-tools-t2): a kept mana source left a payment the engine could not make (Jegantha with
+  Forest floated and Island kept); the cost was not paid. The hold is released and the cost paid again, as an auto
+  row. Test `aKeptSourceLeavesAPaymentTheEngineMakes`.
+- FIXED  tools gauntlet (e44-tools-t2): a modal spell cancelled at its targets kept its chosen modes, and the next
+  cast of it skipped the mode question. Test `aCancelledModalSpellKeepsNoModes`.
+- FIXED  random gauntlet (e44-random-s4, kw05): Become Immense with {U}{G} floating and three lands asked delve with
+  "between 0 and 2", the seat exiled none, and {1} could not be paid. The least count now comes from the engine's test
+  payment. Test `delveMustExileWhatTheManaCannotPay` (the kw05 state; fails with the old estimate).
+- Guide v37 / seat-tools-v10: every hand tag and the mana-ability ACTIVATE are described. harness-epoch-45.
+
+### g03  2026-10-17  seed 4103  Death and Taxes (seat) vs Mardu Energy (Forge AI)  WON T20  $0.12  harness-epoch-44
+- Time: 64 min. 53 min model answers (188 calls, 129 decisions), 10 min in two waits to the 300 s call deadline (both
+  retried and answered), no provider errors. The cost is above earlier games because the game ran 20 turns.
+- clean  TAKEN 0, LOST 0, SKIP 0, ai=0, textParses=0; inspect served 11, simulate served 20; plans 27.
+- FIXED  `simulate` refused three times outside the priority menu (T8 x2 while aiming Wasteland at Scrubland or
+  Karakas, T14 at Aether Vial's "Search your hand?"). A target choice of a play is now previewed at the numbered target
+  (lookahead-preview-v10, seat-tools-v11). Test `aTargetChoiceOfAPlayCanBePreviewed`. A yes/no confirmation still has
+  nothing to preview and is refused with the reason.
+- FIXED  (found reading the preview code for the above) a preview set targets on every ability of a spell's chain and
+  restored only the first: Arc Trail's "1 damage to any other target" kept the preview's pick, and the real cast skips
+  an ability that already has a target, so the seat would not have been asked. Test
+  `aPreviewLeavesNoTargetOnAnyAbilityOfTheChain` (failed before the fix).
+- model  plan_audit HOLD-VIOLATIONS 3 of 22: each a play the model chose against its own plan clause (Wasteland kept
+  "available" then used, Vial at three counters, Mother of Runes). Coherence, not a harness defect. T14 the model
+  activated a four-counter Vial meaning to put in Thalia (mana value 2), then declined the search: a puzzle candidate.
+- (fake model) the random gauntlet policy now previews targets of a play as well.

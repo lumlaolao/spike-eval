@@ -839,7 +839,7 @@ public class PromptFidelityTest {
             legal.add(angel);
             legal.add(bear);
             String outlook = LlmSpikeGui.PlayerControllerLLM.attackersCeiling(legal, opp, new forge.game.combat.Combat(me));
-            Assert.assertTrue(outlook.contains("None of their creatures that can block now could block: Serra Angel (4)"), outlook);
+            Assert.assertTrue(outlook.contains("No creature of theirs that can block now could block: Serra Angel (4 damage)"), outlook);
             Assert.assertTrue(outlook.contains("Could be blocked: Grizzly Bears by Grizzly Bears"), outlook);
             Assert.assertFalse(outlook.contains("Every attacker can be blocked"), outlook);
         } finally {

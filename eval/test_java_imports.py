@@ -33,6 +33,19 @@ class JavaImportsTest(unittest.TestCase):
                          [(1, "unused import java.util.Map")])
         self.assertEqual(ji.problems("import java.util.Map;\nclass A { Map.Entry<String, String> e; }\n"), [])
 
+    def test_a_name_only_in_a_comment_or_a_string_is_not_a_use(self):
+        # LlmSpikeGui kept `import forge.ai.ComputerUtilCost;` after #240, named only in a javadoc sentence: checkstyle
+        # rejected it in the checkout build (game loop, 2026-10-17) while this check passed it.
+        for body in ("/** (the last line of ComputerUtilCost.canPayCost) */ class A {}",
+                     "class A { // ComputerUtilCost was here\n }", 'class A { String s = "ComputerUtilCost"; }'):
+            with self.subTest(body=body):
+                self.assertEqual(ji.problems("import forge.ai.ComputerUtilCost;\n" + body),
+                                 [(1, "unused import forge.ai.ComputerUtilCost")])
+        for body in ("/** See {@link ComputerUtilCost#canPayCost}. */ class A {}",
+                     "/**\n * @see ComputerUtilCost\n */ class A {}"):
+            with self.subTest(body=body):
+                self.assertEqual(ji.problems("import forge.ai.ComputerUtilCost;\n" + body), [])
+
     def test_the_overlay_is_clean(self):
         overlay = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "forge-overlay")
         self.assertEqual(ji.main([overlay]), 0)

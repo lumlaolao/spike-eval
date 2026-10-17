@@ -1,326 +1,99 @@
-# mtg-forge-llm-agent — LLM agents playing Magic: The Gathering on the Forge engine
+# mtg-forge-llm-agent: LLM agents playing Magic: The Gathering on the Forge engine
 
-> **Open work lives in [docs/harness/WORK-PLAN.md](docs/harness/WORK-PLAN.md); read it first.** The whole harness, each part
-> with the reason it is built that way: [docs/harness/ARCHITECTURE.md](docs/harness/ARCHITECTURE.md). September 2026 continuation: see [Player harness direction and status](docs/harness/PLAYER-HARNESS.md). Newer Java sources were recovered from the adjacent Forge checkout; older status claims below may be superseded. `MEMORY_TOOLS=1` enables experimental evidence retrieval and a seat-local strategy notebook.
+A model plays full Magic games inside the real Forge rules engine. `PlayerControllerLLM` routes every decision the
+engine asks a player (89 decision hooks, 44 ways to play a card) to the model; the engine validates every option, so an
+illegal move is impossible. The goal is a general MTG-play **benchmark**, not a stronger student.
 
-Claude models pilot full Legacy games inside the real Forge rules engine. A custom
-`PlayerControllerLLM` routes ~15 decision types (plays, targets, combat, discards,
-card-naming, mulligans...) to persistent `claude -p` CLI bridges; the engine validates
-every option, so illegal moves are impossible by construction.
+Read first: [docs/harness/WORK-PLAN.md](docs/harness/WORK-PLAN.md) (open work), [docs/harness/ARCHITECTURE.md](docs/harness/ARCHITECTURE.md)
+(every part and why), [docs/STANDARDS.md](docs/STANDARDS.md) (what the review skills enforce),
+[docs/harness/VERSIONS.md](docs/harness/VERSIONS.md) (every version stamp, generated). Path-scoped rules load from
+`.claude/rules/` when you touch the overlay (`forge-overlay.md`), the eval (`eval.md`) or the seat's prompts and tools
+(`seat-prompts.md`).
 
-## CURRENT FOCUS (2026-07-26) — the eval IS the deliverable
+## The benchmark (the deliverable)
 
-**The goal is a general MTG-play benchmark, not a stronger student.** Training work
-serves the eval, not the other way round. A change that does not make the benchmark
-more trustworthy or broader is out of scope right now.
-
-Three headline scores, each reported with its confidence interval AND the trivial
-baseline it beats (see "the 88% lesson" below — a score without its floor is not a
-score):
-
-1. **STR-AI** — win rate vs Forge's built-in heuristic AI, on a **fixed, published
-   seed set**, across **many deck archetypes**. Breadth is the point: burn-vs-delver
-   alone measures one matchup's quirks, not play skill. Target is thousands of games
-   over the full 16-deck pool, reported per-matchup and pooled.
-2. **STR-HELDOUT** — the same measurement on a seed band mechanically blocked from
-   every training corpus (`eval/seed_registry.json` + `eval/seed_policy.py`,
-   enforced by `run_batch.py` and CI). The gap between STR-AI and STR-HELDOUT is
-   the memorization estimate.
-3. **PUZ** — the golden puzzle suite: per-puzzle *solved / not solved*, *count
-   solved*, and *time-to-solve*. Teacher-independent, so it survives the teacher
-   being weak (see EVAL-DESIGN.md §3).
-
-`eval/EVAL-DESIGN.md` is the full design (five axes; these three are the headline).
-`eval/suites/*.json` is how a suite gets frozen; `eval/build_report.py` emits the
-scorecard.
-
-### The 88% lesson (why every metric now reports its floor)
-
-Replay decision-match against the Forge-AI teacher read **88.1%** while the same
-student won **10%** of games. Both numbers were correct. The teacher declines to act
-on ~83% of priority windows (`choice=-1`), `canonical_target` encodes that decline as
-the last menu option (`PASS (do nothing)`), so **78.2% of scoreable rows have PASS as
-the answer**. A model that only ever says PASS scores 78.2%. The student's 88.1% was
-**+9.9 points over doing nothing** — and its errors concentrated in the minority class
-(all 20 recorded mismatches were rows where the teacher acted), which is exactly where
-games are decided.
-
-Rules this earned, and they apply to every axis:
-- **Report the majority-class baseline next to any accuracy.** `replay_match.py` now
-  emits `majority_class_baseline` and `margin_over_baseline`; quoting a match rate
-  without them is not allowed.
-- **Prefer metrics whose trivial baseline is near zero** (win rate, puzzles solved)
-  over accuracy on an unbalanced label set.
-- **Class-balance the training corpus deliberately.** `datasets/stage2-r2-teacher-v0`
-  is 78.3% PASS targets; trained as-is it teaches inaction. Use `--cap-per-source` /
-  stratified caps, and check `target_synth` shares before training.
+Three headline scores, each with its confidence interval and the trivial baseline it beats (a score without its floor
+is not a score; `.claude/rules/eval.md`, "the 88% lesson"):
+1. **STR-AI**: win rate against Forge's AI on the frozen panels (`eval/suites/panels-v1.json`, `eval/panel_score.py`).
+2. **STR-HELDOUT**: the same on seeds blocked from every training corpus (`eval/seed_policy.py`).
+3. **PUZ**: the puzzle suite (`eval/PUZZLES.md`, `eval/puzzle_score.py`).
 
 ## The one rule that matters
 
-**`forge-overlay/` is the source of truth.** Never edit files inside `~/code/forge`
-directly — they get overwritten. Workflow for every change:
+**`forge-overlay/` is the source of truth.** Never edit the Forge checkout (`/root/forge` here; `$FORGE_HOME`): it is
+overwritten. Edit the overlay, `FORGE_HOME=/root/forge bash install.sh`, build, run acceptance. The checkout is pinned
+(`FORGE_COMMIT`); results compare only within one engine version. Engine patches go only through the overlay, marked
+`HARNESS PATCH` and listed in `docs/harness/ENGINE-PATCHES.md`.
+
+## Owner rules (non-negotiable)
+
+- **Game model: GPT-6 Luna** (`openrouter:openai/gpt-6-luna`) for every seat and tier unless the owner names another.
+  Never Opus.
+- **Egress:** any `openrouter:` spec sends the game state to openrouter.ai. The factory refuses without
+  `OPENROUTER_ALLOW_EGRESS=1`; that consent is the user's. Never set it yourself. Loopback (fake-model) runs need none.
+- **Every decision is answered by a tool call** (`answer`, one fixed schema; `set_plan` for the plan). Zero text
+  parsing: on a tool ask the text parsers refuse and log `[TEXT-PARSE]`, which fails acceptance. A reply that calls
+  nothing is reminded `AnswerTool.MAX_NUDGES` times, then the decision is lost to a fixed legal option. `tool_choice`
+  is "required" for OpenAI models, "auto" elsewhere (`AnswerTool.toolChoiceFor`).
+- **The seat's lookups are native function calls** (`NativeTools.java`, mirrored in `eval/tooluse/tools.json`); the
+  text grammar survives only for a backend without function calling. A `REFUSED` request in `eval/tool_audit.py` is a
+  harness defect.
+- **Never fall back to Forge's AI** for a choice the seat owns: `[TALLY] ... ai=0`. A legal action is never hidden.
+- **No heuristics decide for the model.** The only skips: the menu is PASS only, or the identical spot was passed.
+
+## Cost of paid runs
+
+A one-tier Luna game costs $0.02 to $0.05 and takes 20 to 90 minutes. `python3 eval/cost_report.py <runs>` prices
+any run (`--plan N` for N more). Always pass `run_batch.py --budget-usd X`. Start with a small block (about six games
+per arm), read it, then decide; say the expected cost before any paid run. Play games one at a time with the
+`game-loop` skill; a batch is not how the harness is tested.
+
+## Commands
 
 ```bash
-# 1. edit forge-overlay/.../forge/spike/LlmSpikeGui.java (or LlmSpikeHeadless.java)
-bash install.sh                                   # 2. copy overlay into $FORGE_HOME
-cd ~/code/forge && mvn -q -pl forge-gui-desktop -am compile -o   # 3. compile (offline is fine)
+FORGE_HOME=/root/forge bash eval/harness_acceptance.sh        # everything: compile, all tests, canaries, fake-model games
+STAGES="preflight classpath compile javatests" FORGE_HOME=/root/forge bash eval/harness_acceptance.sh   # a subset
+bash eval/keyword_gauntlet.sh                                  # 28 free fake-model games over 553 cards
+python3 eval/test_<name>.py                                    # one Python test file
+python3 eval/run_batch.py --seeds N --exploratory --budget-usd 0.40 --deck eval/decks/<d>.txt \
+  --controller-a llm --controller-b ai --smart-a openrouter:openai/gpt-6-luna --fast-a openrouter:openai/gpt-6-luna \
+  --memory-tools --lookahead --out runs/loop/gNN               # one paid game (the game-loop skill's form)
 ```
 
-**Engine patches (owner, 2026-10-15):** where the seat has no `PlayerController` hook, a patched copy of
-the engine file goes in `forge-overlay/` at its own path, every change marked `HARNESS PATCH`, listed in
-`docs/harness/ENGINE-PATCHES.md` with its upstream sha256 (`eval/test_engine_patches.py` checks both).
+Zero-model canaries (in acceptance): seed 42 floor mirror wins A in 108 turns, random mirror A in 59. Floor never
+reaches the play menu; use the random arm for play, attack and block paths. Before trusting a green gate, say what
+would have made it fail.
 
-The Forge checkout is pinned: `FORGE_COMMIT` records the engine version everything was
-validated against (`install.sh` warns on drift). Don't bump it casually — eval results
-are only comparable within one engine version.
+## Where things are
 
-## Standard: the seat's tools are native tool calls (2026-10-13 — user decision, non-negotiable)
+- `forge-overlay/.../spike/LlmSpikeGui.java`: `PlayerControllerLLM` (every hook), the bridges, `EvalLog`.
+  `SeatObservation.java` (the state the seat reads), `AnswerTool.java`, `NativeTools.java`, `PlayerLookahead.java`.
+  `LlmSpikeHeadless.java` runs a game with no GUI and writes the game line.
+- `eval/`: launchers and scoring (`run_batch.py`, `aggregate.py`, `panel_score.py`, `puzzle_score.py`), the review
+  sheet (`match_review.py`, `tool_audit.py`, `plan_audit.py`, `defect_analyzer.py`), the gauntlet.
+- `docs/harness/`: architecture, game-loop log, acceptance records, golden checks, prompt craft, versions.
+- `README.md`: the env-var table and the hard-won lessons.
 
-**Anything the model can look up or do beyond answering is offered as a native function
-definition and comes back as a `tool_calls` turn.** Do not add a new text command the reply must
-"consist of", and do not parse a tool request out of prose.
+## Skills (required, user decision 2026-10-13)
 
-- Definitions live in `NativeTools.java` and, identically, in `eval/tooluse/tools.json`
-  (`NativeToolsTest.definitionsMatchTheToolUseSuite` fails when they differ). A new tool is added in
-  both, maps onto one executor command, and shares the per-decision / per-game budget.
-- It is the default wherever the backend has function calling (`openrouter:` specs).
-  `NATIVE_TOOLS=0` / `run_batch.py --text-tools` is the opt-out, for reproducing older runs or
-  measuring the protocol. The text grammar (`MEMORY ...` / `INSPECT ...` lines) survives only as the
-  fallback for a backend without function calling (the Claude CLI lane) and gets no new features.
-- Why: across 48 recorded games the text grammar refused 30 of the model's 43 tool requests for
-  their form, and in the tool-use suite the deciding fact came back from a tool in 87% of asks with
-  native calling against 13% with that grammar (`docs/harness/PLAYER-HARNESS.md`, "Tool protocol").
-- A tool change is measured with `python3 eval/tool_use_suite.py` (reach, correct, restraint, each
-  next to its trivial baseline) before any game is played, and audited in games with
-  `python3 eval/tool_audit.py <run>` — a `REFUSED` request there is a harness defect.
-- Native and text runs are different conditions (`native_tools` on the game line). Never pool them.
+| When | Skill |
+|---|---|
+| before every commit, PR title/body, and merge | `pr-format` |
+| on every PR, before merging | `pr-review`, then `simplify`, then `standards` (fresh subagents where possible) |
+| whenever a game is played | `game-loop` (one match: play, read, fix, next) |
+| whenever game logs are reviewed | `harness-audit` |
+| filling or working the defect backlog | `defect-hunt`, `defect-fix` |
 
-## Standard: decisions are answered by a tool call (2026-10-15 — user decision)
+Recording verdicts and the merge gate: `docs/STANDARDS.md` section 1. Once per clone: `bash scripts/install_hooks.sh`.
 
-**Every decision is answered by calling `answer`, and every note (the plan) by `set_plan`, wherever native
-tools are on.** No answer is scraped out of prose. "The text parsing seems to BE HOW WE GOT INTO THIS big
-mess" (owner, 2026-10-15).
+## Keep the documents true
 
-- `AnswerTool.java` owns it. There is **one fixed `answer` schema** for every decision, all fields
-  optional: `option`, `options`, `blocks`, `amounts`, `keep`, `number`, `card`, plus the optional `steps`,
-  `yield`, `profile`, `lines` and `why` (one sentence for the game record; readable reasoning, where the
-  provider returns it, is kept on the context_call row as `reasoning`). The decision says which field it takes, and `AnswerTool.validate`
-  checks the call against that decision. An illegal call gets the reason and one more round in the same
-  conversation; a second illegal call loses the decision to the caller's deterministic fallback.
-- **The tool list never changes within a game.** Tool definitions open the prompt-cache prefix, so a
-  schema or tool that comes and goes between decisions discards the whole cache on every call
-  (`docs/harness/PROMPT-CRAFT.md` rule 19). That is why the schema is fixed, and why `set_plan` and (on a
-  lookahead seat) `simulate` are declared on every ask. A call that does not apply to this decision
-  gets an error saying why. The `nativetool` acceptance stage fails if the tool list changes between
-  requests.
-- `tool_choice` is per model (`AnswerTool.toolChoiceFor`, researched and measured 2026-10-15,
-  `docs/harness/PROMPT-CRAFT.md` rule 2):
-  - "required" for OpenAI models: Luna keeps its reasoning, and a text-only reply becomes impossible;
-  - "auto" elsewhere: Opus/Sonnet 5.5 and Fable 5.1 refuse forcing, and a forced call skips thinking on
-    the other Claude models;
-  - never the answer function by name, which skips the reasoning.
-  - `ANSWER_TOOL_CHOICE=auto|required` overrides it, for measurement only.
-- Every optional field's first enum value and its empty value mean "nothing": a model may fill every
-  field, as Luna does (answer-tool-v8).
-- The definitions are mirrored in `eval/tooluse/answer_tools.json` (pinned by
-  `AnswerToolTest.theFixedFunctionsMatchTheToolUseSuite`).
-- **Zero text parsing (owner, 2026-10-15):** on a tool ask a decision reads the typed answer only. The text
-  parsers sit behind a guard that refuses there and logs `[TEXT-PARSE]`, which fails acceptance and
-  `GoldenChecksToolTest`.
-- Opt-outs, for measurement only:
-  - `ANSWER_TOOL=0` returns to the text grammar;
-  - `ANSWER_SCHEMA=per-decision` builds a schema from each decision's legal values (the v1 arm);
-  - `ANSWER_TOOL_STRICT=1` sends `strict: true`.
-- **No text alternative on a tool ask** (owner, 2026-10-15: "everything goes through the tool calls"). A reply
-  that calls nothing is reminded, in the same conversation, at most `AnswerTool.MAX_NUDGES` times; then the
-  decision is lost (`answer_via: "lost"`, the caller's fixed legal option). Its prose is never parsed. A tool ask
-  that still carries a text answer format, or a text ask on a backend that calls, logs `[TEXT-FORMAT-LEAK]` and
-  counts on `[TALLY]`; `GoldenChecksToolTest` runs every golden check with the seat answering by calls and fails
-  on either, and the `answertool` acceptance stage checks every ask of its game.
-
-## Key files
-
-- `forge-overlay/.../spike/LlmSpikeGui.java` — everything: `PlayerControllerLLM` (the
-  router), `LLMBridge` interface + `ClaudeBridge` / `OpenRouterBridge` backends,
-  `WindowRecorder` (in-JVM mp4 capture), `EvalLog` (JSONL), seat construction, deck plans.
-  Model specs are `backend:model` strings, e.g. `haiku` (Claude CLI) or
-  `openrouter:anthropic/claude-3.5-sonnet` (OpenRouter API).
-  **Egress boundary:** any `openrouter:` spec sends the full game snapshot (board,
-  hands, deck plan) to openrouter.ai on every call. Holding an API key is not
-  consent — the factory refuses to start unless `OPENROUTER_ALLOW_EGRESS=1` is
-  set explicitly. Never set that flag on the user's behalf.
-- `forge-overlay/.../spike/LlmSpikeHeadless.java` — same match, no GUI; emits the
-  eval game-summary JSONL line. Use for all eval/batch work.
-- `run-llm-spike.sh` / `run-llm-headless.sh` — launchers (installed into the forge repo root).
-- `eval/` — batch driver + statistics (`run_batch.py`, `aggregate.py`; stdlib-only,
-  `python3 eval/test_aggregate.py` must pass).
-- `README.md` — full env-var table and the hard-won-lessons list. Read the lessons
-  before touching the priority loop or targeting code.
-
-## Validation ladder (cheapest first — always start at the bottom)
-
-0. **Whole-harness acceptance** (2026-09-07): `bash eval/harness_acceptance.sh` — isolated
-   compile, every Java/Python test with a declared-vs-run gate, pinned zero-model canaries
-   with a class-load proof, and two loopback fake-model games (memory tools, timeout
-   recovery, faithful observation profile). See `docs/harness/ACCEPTANCE.md`. Run it before
-   claiming any harness change works; it never touches the Forge checkout.
-
-1. **Harness mechanics** (seeding, JSONL, arms, engine plumbing):
-   `GAME_SEED=42 CONTROLLER_A=floor CONTROLLER_B=floor bash run-llm-headless.sh`
-   — zero model calls, ~12s per full game, bit-reproducible. Seed 42 floor mirror
-   is the regression canary: identity A wins after 108 turns, every time.
-   (Was 106 when first recorded; the harness commits since moved it to 108. If
-   you change an auto/floor path, re-pin this number — a stale canary is a
-   canary that can't fail.)
-   **Floor proves less than it looks like.** Floor short-circuits every play at
-   `play(no-budget)->PASS` before the play menu is built, so it never exercises
-   the play/attack/block decision paths. For anything touching those, use the
-   **random** arm (`CONTROLLER_A=random CONTROLLER_B=random`) — also zero-model
-   and deterministic, but it has budget (`smartOk()` is false only for
-   `mode=="floor"`) and reaches the full menu.
-1b. **D4 shadow labeler** (`SHADOW_AI`): `bash eval/shadow_canary.sh` — two gates,
-   both required. Gate 1 (on/off) catches shadow perturbing the game; gate 2
-   (no-op vs committed HEAD) catches defects that fire on BOTH arms, which gate 1
-   is structurally blind to. A real BLOCKER hid there: an SVar restore placed
-   before the `!SHADOW` guard mutated SpellAbilities in every config, and gate 1
-   stayed green because both arms were equally broken. The script asserts the
-   intended build was actually installed (SHADOW ref count 0 vs 16) — without
-   that, an unnoticed build-swap failure compares a build against itself and
-   reports PASS. **General rule this cycle earned: before trusting a green gate,
-   say what would have made it fail. If you can't, it isn't evidence.**
-2. **LLM code paths** (routing, parsing, prompts): `SMART_MODEL=haiku FAST_MODEL=haiku`
-   — never test with opus. For OpenRouter-backed validation, run one exploratory
-   game with a cheap model first, e.g.
-   `GAME_SEED=42 SMART_MODEL=openrouter:meta-llama/llama-3.1-8b-instruct FAST_MODEL=openrouter:meta-llama/llama-3.1-8b-instruct OPENROUTER_ALLOW_EGRESS=1 bash run-llm-headless.sh`
-   (requires `OPENROUTER_API_KEY`; the `OPENROUTER_ALLOW_EGRESS=1` opt-in is
-   mandatory — see the egress boundary note above).
-3. **Opus / frontier API models** only for user-requested showcases/recordings
-   (a full game ≈ 35-45 min).
-
-Watchdog every GUI validation run — `( sleep N; pkill -INT -f LlmSpikeGui ) &` — and
-`pkill -f 'sleep [0-9]'` before each relaunch (stale watchdogs kill fresh games).
-SIGINT (not SIGKILL) so the recorder's shutdown hook finalizes the mp4.
-
-## Engine gotchas (violating these cost us days)
-
-- **Pass priority with `null`, never an empty list** from `chooseSpellAbilityToPlay` —
-  empty list spins the 999-iteration "AI looped too much" loop.
-- **The AI cast path does no targeting** for ordinary spells: set engine-validated
-  targets on the chosen SpellAbility *before* returning it (`ensureTargetsSet`), or
-  the cast fizzles ("Couldn't add to stack, failed to target").
-- **Never fall back to Forge's AI for strategy.** Failure branches take deterministic
-  legal options. `[TALLY] ... ai=0` in the log is the invariant; every `[FALLBACK->AI]`
-  is a bug to investigate.
-- GUI matches are best-of-3 — a log with multiple mulligan clusters is one *match*,
-  several *games*.
-
-## The improvement loop (added 2026-07-21, branch harness-fixes)
-
-`runs/tournament-1/HARNESS-ANALYSIS.md` is the forensic baseline: 13 confirmed defect
-clusters, all fixed on this branch. The loop that keeps them fixed:
-
-```bash
-python3 eval/improve_loop.py --controller llm --games 2   # play (floor mode = free)
-# defect_analyzer.py runs automatically; read metrics.json
-python3 eval/model_sweep.py                               # per-model certification
-```
-
-- **`eval/defect_analyzer.py` is the run oracle** (the PR merge gate is `scripts/pr_merge.sh`). Hard invariants: `ai_tier_count=0`
-  and `silent_drop_total=0` (log-vs-jsonl reconciliation). It exits non-zero on
-  violation. Never weaken the analyzer to make a run pass — it is the oracle.
-- **Per-model config lives in `ModelCfg`** (LlmSpikeGui.java, `OPENROUTER_MODEL_CFG`
-  JSON env override): max_tokens / timeouts / fast-tier caps per model. Reasoning
-  models (gpt, deepseek) need big fast-tier budgets — hidden reasoning tokens burn
-  the cap and surface as empty replies, not truncated text.
-- **jsonl schema is additive-only.** Newer fields: `attempts`, `retry_ms`
-  (dead-attempt time; `latency_ms` is the successful attempt only), `finish_reason`,
-  `first_failed_reply`. Existing consumers read via `.get()` — keep it that way.
-- **Parallel games:** cheap `openrouter:` LLM games **6–10** (RAM-bound, ~1GB
-  RSS/JVM; count JVMs across ALL concurrent batches — 7 proven healthy
-  2026-07-21), floor **4–8** (CPU-burst-bound), mixed **4–6**, **1** for bare
-  Claude-CLI specs; see `eval/CONCURRENCY.md` §7. **Never rebuild while games run** —
-  a mid-batch `mvn compile` swaps `target/classes` under live JVMs and regenerating
-  `/tmp/forge_cp.txt` has no lock. No containers; a build lock + worktree is enough.
-- Wall-clock-capped games grant in-flight asks a grace window sized to the slowest
-  configured model timeout before JVM exit (else the ask's jsonl row is orphaned —
-  that was a real silent-drop). `run_batch.py`'s backstop must stay wider than
-  cap + that grace.
-- `secrets.env` (git-ignored, repo root; template `secrets.env.example`) holds
-  `OPENROUTER_API_KEY` + the egress opt-in; eval drivers auto-load it.
-
-## Cost of paid runs (owner rule, 2026-10-13)
-
-**Game model (owner, 2026-10-15): use GPT-6 Luna (`openrouter:openai/gpt-6-luna`) for every game model,
-both tiers and both seats, unless the owner names another. Never Opus.**
-
-A game on `deepseek-v4.1-flash` costs about **$0.04** (roughly 60 model calls, 370K prompt and 40K
-completion tokens; output is about 60% of the bill). Small, but it adds up unseen: 204 games in one
-day came to about $8. So:
-
-- `python3 eval/cost_report.py <run dirs>` prints tokens and dollars for any run, priced from
-  `eval/pricing/prices.json` (`--plan N` says what N more games would cost).
-- `run_batch.py --budget-usd X` stops starting games when the directory's spend reaches X, and every
-  batch log ends with a `[cost]` line. Always pass it.
-- A game whose JVM crashes, writes no game line or hangs is played once more (`--retries N`, default 1;
-  0 turns it off). The failed attempt's files move to `<out>/crashed/`: still priced and counted against
-  the budget, never aggregated, and the batch log says `[retry]`.
-- **Start with a small block** (about six games per arm), read the result and the cost, then decide
-  on the next block. Never launch hundreds of games in one go, and say the expected cost first.
-
-## Seed governance (locked 2026-07-25 — user-approved)
-
-Reserved eval seed blocks, never usable as SFT/training-data sources:
-**501–525** (frozen legacy baselines), **20000–29999** (puzzle-suite mining),
-**30000–30099** (certification holdout). `eval/seed_policy.py` is the single
-source of truth; `make_sft_data.py` refuses reserved-seed sources (override
-`--allow-reserved-seeds` prints a loud banner and is stamped into provenance);
-`run_batch.py` warns when requested seeds are eval-reserved. Pick training-data
-generation seeds outside these blocks. Full policy: `eval/EVAL-DESIGN.md` §6.5.
-
-## Eval mode
-
-Seeded, baseline-anchored A/B comparisons (see README "Eval mode" + `eval/README.md`):
-`GAME_SEED`, `SWAP_SEATS`, `SMART_MODEL_A/B`, `CONTROLLER_A/B` (llm|random|floor|ai),
-`EVAL_OUT` (JSONL), confound switches `MULLIGAN_HEURISTIC=1` / `SKIP_HEURISTICS=1` / `ONE_TIER=0`
-(each turns a harness shortcut back ON; all are off by default since 2026-10-15) / `PLAN_A=""`. The JSONL winner field is **identity-keyed** (A = deck-identity A
-regardless of seat swap) — don't "fix" that in either language.
-
-## Recording
-
-`RECORD=1` captures the Forge window in-JVM (no macOS screen-recording permission
-needed) → H.264 mp4. `RECORD_OUT`, `RECORD_FPS` tune it. Bigger window = crisper video.
-30-second social cut: `ffmpeg -i in.mp4 -vf "setpts=PTS*(30/DUR),fps=30" -an out.mp4`.
-
-## Required skills (every agent, every time — user decision 2026-10-13)
-
-The skills in `.claude/skills/` are not optional helpers. They are how work is done here, and
-`docs/STANDARDS.md` is what they enforce. Read `docs/STANDARDS.md` before changing anything.
-
-| When | Skill | It is required because |
-|---|---|---|
-| before every commit, PR title/body, and merge | `pr-format` | names and structure come from `scripts/pr_format.py`, not from memory |
-| on every PR, before merging | `pr-review` | finds what the author has not seen; BLOCKER or HIGH blocks the merge |
-| on every PR, after `pr-review` | `simplify` | the change loses what it does not need |
-| on every PR, and whenever you ask "what is the rule for this?" | `standards` | checks the change against `docs/STANDARDS.md` and keeps that file true |
-| **whenever a game is played** | `game-loop` | one match at a time: play it, read it, fix what the harness got wrong, then the next. A batch of many games is not how this repository tests the harness |
-| whenever game logs are reviewed | `harness-audit` | separates harness defects from model mistakes; produces puzzle candidates |
-| when games are played to fill the defect backlog | `defect-hunt` | `game-loop` with "fix it" replaced by "file it": each harness defect becomes a GitHub issue (`harness-defect`) a fresh agent can verify without the game, so many agents can work at once |
-| when taking an issue from that backlog | `defect-fix` | one claimed issue, reproduced by a test that fails on main, fixed, and closed by its PR |
-
-Run the three review skills as fresh subagents where the runtime has them, so the reviewer is
-not the author. Recording verdicts and the merge gate: `docs/STANDARDS.md` section 1. Once per
-clone: `bash scripts/install_hooks.sh`.
-
-## Keep the architecture document true
-
-`docs/harness/ARCHITECTURE.md` describes every part of the harness and why it is built that way. A change
-that alters how the harness works (a decision path, a tool, the prompt, a bridge, a default, an eval rule)
-updates that document in the same PR. A PR that changes behaviour and leaves it stale is not done.
+A change to how the harness works (a decision path, a tool, the prompt, a bridge, a default, an eval rule) updates
+`docs/harness/ARCHITECTURE.md` in the same PR, bumps the version stamp that covers it (`python3 eval/versions.py
+--write`), and records an acceptance run that changed in `docs/harness/ACCEPTANCE.md`. Commit subjects and body
+lines stay at 100 characters or fewer (`scripts/pr_format.py`). Model identifiers never go in commits or PRs.
 
 ## Before committing
 
-Non-trivial changes: stage, then have the diff reviewed before committing: the `verifier` agent
-from the claude-obsidian plugin against `git diff --cached` where it is installed (it has caught
-a BLOCKER (baseline contamination) and multiple HIGHs that validation runs missed), otherwise
-`pr-review`. Skipping both is not allowed. Then commit, and land it through a PR and
+Stage, then have the diff reviewed (`pr-review`, or the `verifier` agent where installed). Land through a PR and
 `scripts/pr_merge.sh`.

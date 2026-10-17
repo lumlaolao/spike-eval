@@ -167,6 +167,33 @@ class Policy:
             out.insert(0, call("set_plan", {"goal": "fake goal %d" % n, "next": "play a land, then pass"}))
         return out
 
+    def random_lookup(self, last_user, prompt, offered, play_menu, call):
+        """--policy random: now and then a lookup before the answer, with random arguments: a preview of any menu
+        option (sometimes a line of two) or of any target of a play, an inspect of any handle on the state, a memory search. None otherwise."""
+        with self.lock:
+            self.lookups = getattr(self, "lookups", 0) + 1
+            n = self.lookups
+        rng = random.Random("%s/lookup/%d" % (self.args.seed, n))
+        if "simulate" in offered and play_menu and rng.random() < 0.35:
+            nums = [int(x) for x in re.findall(r"(?m)^\s*(\d+)\) ", last_user)]
+            if nums:
+                args = {"option": rng.choice(nums)}
+                rest = [x for x in nums if x != args["option"]]
+                if rest and rng.random() < 0.3:
+                    args["then"] = [rng.choice(rest)]
+                return [call("simulate", args)]
+        # A target choice of a play is previewed too (lookahead-preview-v10): any target, or the CANCEL line.
+        if "simulate" in offered and "Choose the TARGET" in last_user and rng.random() < 0.35:
+            nums = [int(x) for x in re.findall(r"(?m)^\s*(\d+)\) ", last_user)]
+            if nums:
+                return [call("simulate", {"option": rng.choice(nums)})]
+        handles = re.findall(r"@\d+", prompt)
+        if "inspect" in offered and handles and rng.random() < 0.1:
+            return [call("inspect", {"target": rng.choice(handles)})]
+        if "memory_search" in offered and rng.random() < 0.05:
+            return [call("memory_search", {"query": rng.choice(["attack", "graveyard", "counter", "life", "draw"])})]
+        return None
+
     def random_answer(self, msgs, props, offered, call):
         """A uniformly random legal answer (--policy random). The draw is keyed on the seed and the answer
         count, so a game replays; a correction round answers with the least that is always legal."""
@@ -250,6 +277,8 @@ class Policy:
         last_user = next((str(m.get("content", "")) for m in reversed(body.get("messages") or [])
                           if m.get("role") == "user"), "")
         play_menu = re.search(r"(?m)^\s*\d+\) PASS\b", last_user) is not None
+        if self.args.policy == "random":
+            return self.random_lookup(last_user, prompt, offered, play_menu, call)
         if self.args.policy == "simulate" and "simulate" in offered and play_menu:
             with self.lock:
                 self.previews = getattr(self, "previews", 0) + 1
@@ -429,6 +458,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(data)))
+            # Said, not implied: the server closes after each reply, and a client that reused the socket got "header
+            # parser received no bytes" on the next request (13 times in the keyword gauntlet with lookups on).
+            self.send_header("Connection", "close")
             self.end_headers()
             self.wfile.write(data)
         except (BrokenPipeError, ConnectionResetError):

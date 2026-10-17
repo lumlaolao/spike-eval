@@ -247,6 +247,10 @@ A puzzle replaces the role with `<puzzle>`: the author's goal and what the solve
   measured. Principles, reasoning caps, worked examples and decision-text advice were removed (audit
   C1–C5). The deck's own plan stays: it is information a player has.
 - *Why plain language:* capitals and "you MUST" cause over-triggering on current models (rule 10).
+- *Why no versions in the prompt:* the model gains nothing from them, and a changing prefix would break the cache.
+  Every stamp is on the game line instead (`docs/harness/VERSIONS.md`, generated from the code).
+- The guide describes every section and hand tag the state can show; since observation-faithful-v37 it lists the
+  alternative-cost, optional-cost and timing tags and says a mana ability's ACTIVATE only fills the pool.
 
 ## 6. The answer: a tool call, nothing else
 
@@ -309,7 +313,7 @@ lookahead seat, declared on every ask. A call that does not apply gets an error 
 | `memory_search`, `memory_read` | the evidence archive of this game, which the brief summarises |
 | `memory_note` | the seat's own notebook |
 | `rules_lookup` | the comprehensive rules, effective date stated (`docs/harness/RULES-TOOL.md`) |
-| `simulate` | the lookahead: what an option resolves to, on a copy of the game (`LOOKAHEAD-DESIGN.md`). The copy shuffles every library and re-deals each opponent's hand from its hand and library, so a preview reveals no hidden card (lookahead-preview-v6, `LookaheadProbeTest.hiddenCardsDoNotChangeThePreview`) |
+| `simulate` | the lookahead: what an option resolves to, on a copy of the game (`LOOKAHEAD-DESIGN.md`). The copy shuffles every library and re-deals each opponent's hand from its hand and library, so a preview reveals no hidden card (lookahead-preview-v6, `LookaheadProbeTest.hiddenCardsDoNotChangeThePreview`). While the seat aims a play it is making, `option` is a target's number and the play is previewed at it (lookahead-preview-v10, seat-tools-v11; g03 asked there and was refused). A preview restores the targets of every ability of the chain it aimed (`aPreviewLeavesNoTargetOnAnyAbilityOfTheChain`: Arc Trail's second target stayed set, and the real cast skipped asking for it) |
 | `report_unclear_decision` | the model reports a confusing ask, which feeds the defect backlog |
 
 Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
@@ -496,6 +500,11 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
      the engine says the cast can pay (`payableKeywordTimes`, `escalateCost`, `keywordCost`). Its second run found
      a CANCEL answer to a tap cost paid anyway: writing the decision row cleared the cancel before it was returned,
      only with the game log on, which no golden check had; `GoldenChecksToolTest` now runs with the log on.
+     `GAUNTLET_TOOLS=1` gives the seat its lookups, and the random policy previews, inspects and searches at random.
+     Its first run found a StackOverflowError: a hand tag priced inside another pricing switched the guard off when
+     done, so a pool-mana choice reached from the next tag asked the seat, whose prompt priced the hand again. The
+     guard is now restored, never cleared, and building any prompt counts as pricing from start to end, so no hook a
+     prompt build reaches can ask (`renderSnapshot`; `pricingInsidePricingKeepsTheGuardOn`).
    - *Why measured, not listed by hand:* a hand-kept map says which test should reach a hook; the record says
      which test did. A per-type list let a hook that only ever took forced picks look covered.
 3. **Optional live-model checks (`eval/test_live_answer_tool.py`, `LIVE_MODEL_TESTS=1`, about a cent):**
@@ -511,6 +520,11 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
 
 - *Why this order:* cheapest first. The rule the canary history earned: before trusting a green gate,
   say what would have made it fail.
+- **Instructions for agents** (2026-10-17, from Anthropic's Claude Code guidance: CLAUDE.md is loaded in every
+  session, so keep it under 200 lines and move the rest where it loads on demand): `CLAUDE.md` holds what applies
+  everywhere; `.claude/rules/` holds path-scoped rules that load when matching files are touched (the overlay, the
+  eval, the seat's prompts and tools); `.claude/skills/` holds the workflows; `docs/harness/INDEX.md` marks each
+  document current or historical. `eval/test_docs_index.py` keeps CLAUDE.md under 200 lines and the index complete.
 
 ## 14. Deliberately not done
 
@@ -533,7 +547,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   - Delve is asked the same way: in the real payment, how many cards (any number up to the generic part)
     and which; an affordability test counts every card, unasked. So are an "up to" cost reduction (Mana
     Matrix: the whole reduction while pricing; asked inside the menu it re-entered the snapshot and overflowed,
-    #225) and an emerge or offering sacrifice.
+    #225) and an emerge or offering sacrifice. The least delve stated is the engine's own test payment of the rest
+    (an estimate let Become Immense delve none and fail to pay; harness-epoch-45).
   - A damage assignment order already declared (legacy ordering, `overrideOrder` false) is followed, not asked
     again (#224); a free split is the seat's.
   - Convoke and improvise, retargeting, redirection and mana from the pool are the seat's too. A convoke
@@ -551,5 +566,7 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     the second engine patch (`Player.assignCompanion` crashed on it).
   - **Mechanics no deck in the pool reaches:** dice, stickers, contraptions.
 - **Mana payment:** the engine maps the chosen sources to the cost. The seat decides which sources stay
-  untapped when it matters (`keep_untapped`, or the mana-sources ask).
+  untapped when it matters (`keep_untapped`, or the mana-sources ask). The planner can be more hopeful than the
+  real payment: when the engine cannot pay around the kept sources, the hold is released and the cost paid again,
+  recorded as an auto row (harness-epoch-45). A cancelled modal spell drops its modes, so the next cast asks again.
 - **The Claude CLI lane** answers in text, because it has no function calling.

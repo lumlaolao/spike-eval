@@ -44,7 +44,6 @@ import forge.card.MagicColor;
 import forge.ai.AiCardMemory;
 import forge.ai.ComputerUtilAbility;
 import forge.ai.ComputerUtilCombat;
-import forge.ai.ComputerUtilCost;
 import forge.ai.ComputerUtilMana;
 import forge.ai.LobbyPlayerAi;
 import forge.ai.PlayerControllerAi;
@@ -230,6 +229,8 @@ public final class LlmSpikeGui {
      *  the second Lotus Petal pays (Ad Nauseam); a mana ability with a cost beyond tapping (Lion's Eye Diamond, Spirit
      *  Guides) is on the menu; storm copies' new targets are the seat's and the copies are called copies; exile and an
      *  unordered graveyard are not ordered; a preview plays an alternative cost and holds the stack (lookahead-preview-v8).
+     *  Epoch 44 (2026-10-17, game loop g02): the attack outlook says what its number is, "(2 damage)", not "(2)"
+     *  (lookahead-preview-v9).
      *  Epoch 33 (2026-10-16): the stack says "not yet resolved", not "pending", carries no Forge debug note, and a copy
      *  effect says how many copies it makes; identical storm copies are not ordered (observation-faithful-v33).
      *  Epoch 34 (2026-10-16, surface checks): a counterspell targets the spell on the stack, not its card (it countered
@@ -262,8 +263,12 @@ public final class LlmSpikeGui {
      *  Epoch 41 (2026-10-17, owner: "if it's a legal action we don't disallow it"): what can be paid is the engine's
      *  legality test, not Forge AI's taste (legallyPayable); a cost may be paid with the ability's own target; casualty
      *  candidates are not filtered; who crews, and which creatures sharing a type tap, are the seat's; mana abilities
-     *  are on the menu (floating mana); a creature that can block more attackers may. */
-    static final String HARNESS_EPOCH = "harness-epoch-43";
+     *  are on the menu (floating mana); a creature that can block more attackers may.
+     *  Epoch 45 (2026-10-17): the guide lists every hand tag and what a mana ability's ACTIVATE does
+     *  (observation-faithful-v37, seat-tools-v11); a kept mana source the engine cannot pay around is released and
+     *  the cost paid again; a cancelled modal spell keeps no modes; delve's least count is the engine's test payment;
+     *  a preview restores every target it set, and a target choice of a play can be previewed (lookahead-preview-v10). */
+    static final String HARNESS_EPOCH = "harness-epoch-45";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -1850,6 +1855,12 @@ public final class LlmSpikeGui {
         private boolean lastExplicitDecline = false;
 
         private int decideOne(LLMBridge b, String type, String question, List<String> options, String noneLabel) {
+            return decideOne(b, type, question, options, noneLabel, null);
+        }
+
+        /** {@code simulate}: the `simulate` call for this decision (a target choice of a play), or null. */
+        private int decideOne(LLMBridge b, String type, String question, List<String> options, String noneLabel,
+                              java.util.function.Function<String, String> simulate) {
             lastExplicitDecline = false;
             clearLast();
             // Repeated labels (two blockers sharing a name, two copies of one card as targets) become
@@ -1877,7 +1888,7 @@ public final class LlmSpikeGui {
                 List<String> menu = new ArrayList<>(options);
                 if (noneLabel != null) menu.add(noneLabel);
                 offerAnswer(b, AnswerTool.Spec.one(menu.size()).labels(menu));
-                String reply = ask(b, prompt);
+                String reply = ask(b, prompt, simulate);
                 noteAnswerVia(attempt);
                 if (answerLost()) return -1;               // two invalid calls: the caller's legal default
                 if (reply == null) return -2;              // bridge dead -> caller decides
@@ -2135,6 +2146,14 @@ public final class LlmSpikeGui {
         }
 
         private String renderSnapshot() {
+            // Building a prompt is pricing from start to end: no hook it reaches may ask the model, whichever hook it is
+            // (a pool choice reached from the hand's tags asked, and its own prompt priced the hand again).
+            boolean was = PRICING_FOR_SNAPSHOT;
+            PRICING_FOR_SNAPSHOT = true;
+            try { return renderSnapshotPriced(); } finally { PRICING_FOR_SNAPSHOT = was; }
+        }
+
+        private String renderSnapshotPriced() {
             if (observer != null) {
                 // Faithful path: capture the engine log into the seat stream (redacted, with private
                 // reveals interleaved), render history from THAT stream, then the viewer-aware state.
@@ -2536,9 +2555,11 @@ public final class LlmSpikeGui {
                 SpellAbility sa = c.getFirstSpellAbility();
                 if (sa == null) return null;
                 if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(pl);
+                // Restored, never cleared: under an outer pricing a cleared flag let the next hook ask (StackOverflowError).
+                boolean was = PRICING_FOR_SNAPSHOT;
                 PRICING_FOR_SNAPSHOT = true;
                 try { if (ComputerUtilMana.canPayManaCost(sa, pl, 0, false)) return "(castable)"; }
-                finally { PRICING_FOR_SNAPSHOT = false; }
+                finally { PRICING_FOR_SNAPSHOT = was; }
             } catch (Exception e) { return null; }
             try {
                 forge.card.mana.ManaCost mc = c.getManaCost();
@@ -3840,6 +3861,7 @@ public final class LlmSpikeGui {
                 // 'don't activate' option"). The menu is asked again, at most twice per window.
                 if (!ensureTargetsSet(chosen, observer != null && rnd == null && cancels < 2)) {
                     for (SpellAbility s = chosen; s != null; s = s.getSubAbility()) s.resetTargets();
+                    dropModes(chosen);
                     cancels++;
                     cancelNote = "you chose " + verbOf(chosen) + " " + labelOf(chosen) + " and then cancelled it when asked for its target. Choose again.";
                     actionIntent = null;
@@ -4106,6 +4128,30 @@ public final class LlmSpikeGui {
          *  engine's own canTarget-validated candidates (LLM chooses when there's a real choice). */
         private void ensureTargetsSet(SpellAbility root) { ensureTargetsSet(root, false); }
 
+        /** The `simulate` call of a target choice: the play ({@code root}) previewed with {@code sa} aimed at the
+         *  numbered candidate (runs/loop/g03 asked for it twice while aiming Wasteland). Null where the seat has no
+         *  native preview. */
+        private java.util.function.Function<String, String> targetPreview(SpellAbility root, SpellAbility sa,
+                                                                          List<forge.game.GameObject> cands) {
+            LLMBridge b = bridgeFor("target");
+            if (!lookaheadEnabled() || !((MEMORY_TOOLS && NativeTools.enabled() && b.supportsNativeTools()) || answerToolFor(b)))
+                return null;
+            return argsJson -> {
+                com.google.gson.JsonObject a = NativeTools.arguments(argsJson);
+                int n = -1;
+                try { if (a != null && a.has("option")) n = a.get("option").getAsInt(); } catch (RuntimeException e) { n = -1; }
+                if (n < 1 || n > cands.size())
+                    return "ERROR: `option` must be the number of a target (1.." + cands.size() + ").";
+                if (!(cands.get(n - 1) instanceof forge.game.GameEntity))
+                    return "LOOKAHEAD (target " + n + "): (a preview cannot aim at a spell or ability on the stack)";
+                Player me = getPlayer();
+                String preview = PlayerLookahead.previewLine(me.getGame(), me, java.util.Collections.singletonList(root),
+                        me.getGame().getPhaseHandler().getTurn(), null, sa, (forge.game.GameEntity) cands.get(n - 1));
+                p("[ROUTER] lookahead target " + n + ": " + preview);
+                return "LOOKAHEAD (target " + n + "): " + preview;
+            };
+        }
+
         /** Label of the cancel option a target ask offers before its play is committed. */
         static final String CANCEL_LABEL = "CANCEL: do not take this action; go back to the action menu";
 
@@ -4149,7 +4195,7 @@ public final class LlmSpikeGui {
                         // logged by us or it vanishes with zero jsonl/log trace (the exact C5 double-failure shape).
                         int c = decideOne(bridgeFor("target"), null, "Choose the TARGET for " + copyOf(sa) + labelOf(sa) + xNote(sa)
                                 + " (the spell/ability resolves against whatever you pick).", labels,
-                                sa.getMinTargets() == 0 ? "No target" : null);
+                                sa.getMinTargets() == 0 ? "No target" : null, targetPreview(root, sa, cands));
                         if (c == -1 && sa.getMinTargets() == 0) {
                             // The seat's own "No target" is its decision, not a fallback (runs/luna-std mod-g7 T10 read
                             // it as a lost answer); only an answer that could not be used carries a fallback label.
@@ -4272,8 +4318,8 @@ public final class LlmSpikeGui {
             if (grave == null || grave.isEmpty() || genericAmount <= 0) return new CardCollection();
             List<Card> opts = new ArrayList<>(grave);
             int max = Math.min(opts.size(), genericAmount);
-            if (!payingForReal || askingConvoke) return new CardCollection(opts.subList(0, max));
-            int min = Math.max(0, Math.min(max, genericAmount + nonGenericOfCurrentPayment() - availableMana()));
+            if (PRICING_FOR_SNAPSHOT || !payingForReal || askingConvoke) return new CardCollection(opts.subList(0, max));
+            int min = minDelve(max, genericAmount);
             if (min == opts.size()) { auto("delve(forced-all " + min + ")"); return new CardCollection(opts); }
             List<Integer> picks;
             askingConvoke = true;   // the ask's own snapshot tests affordability, which calls this again
@@ -4288,6 +4334,24 @@ public final class LlmSpikeGui {
             for (int i : picks) out.add(opts.get(i));
             p("[ROUTER] delve: " + out.size() + " exiled " + out);
             return out;
+        }
+
+        /** The fewest cards delve must exile for the rest of the cost to be paid with mana, by the engine's own test payment
+         *  (an estimate of the mana available let Become Immense delve none and fail to pay {1}: random gauntlet). */
+        private int minDelve(int max, int genericAmount) {
+            if (payingCost == null || payingFor == null) return Math.max(0, Math.min(max, genericAmount + nonGenericOfCurrentPayment() - availableMana()));
+            boolean was = PRICING_FOR_SNAPSHOT;
+            PRICING_FOR_SNAPSHOT = true;
+            try {
+                for (int n = 0; n < max; n++) {
+                    forge.game.mana.ManaCostBeingPaid rest = new forge.game.mana.ManaCostBeingPaid(payingCost);
+                    rest.decreaseGenericMana(n);
+                    if (ComputerUtilMana.canPayManaCost(rest, payingFor, getPlayer(), false)) return n;
+                }
+                return max;
+            } catch (Exception e) {
+                return Math.max(0, Math.min(max, genericAmount + nonGenericOfCurrentPayment() - availableMana()));
+            } finally { PRICING_FOR_SNAPSHOT = was; }
         }
 
         /** The coloured part of the spell being paid (set by payManaCost); 0 when unknown. */
@@ -4524,6 +4588,7 @@ public final class LlmSpikeGui {
             }
             // Same recovery as the engine routine, but SAID: a play that did not happen must never read
             // as "casts X" in the log (the audited game recorded a failed activation as a cast).
+            dropModes(sa);   // cancelled or unpaid, the play did not happen; its modes go with it
             if (decision.cancelled()) {
                 cancels++;
                 cancelNote = "you chose " + verbOf(sa) + " " + labelOf(sa) + " and then cancelled it when asked to pay its cost. Choose again.";
@@ -4540,6 +4605,16 @@ public final class LlmSpikeGui {
                 for (SpellAbility csa : c.getSpellAbilities()) csa.setSkip(true);
             }
             return true;
+        }
+
+        /** A modal play that did not happen keeps no modes, as Forge's own rollback does (GameActionUtil.rollbackAbility):
+         *  a spree spell cancelled at its target kept both modes' chain with no targets, and the next preview of it
+         *  failed to target (keyword gauntlet with lookups on, Explosive Derailment). */
+        private void dropModes(SpellAbility sa) {
+            if (sa != null && sa.getApi() == ApiType.Charm) {
+                sa.setSubAbility(null);
+                if (modesChosenFor == sa) modesChosenFor = null;
+            }
         }
 
         /** G7: the card-choosing NON-mana costs (which permanent to sacrifice) go to the model via
@@ -4606,6 +4681,17 @@ public final class LlmSpikeGui {
             payingFor = sa;
             try {
                 paid = super.payManaCost(toPay, costPartMana, sa, prompt, matrix, effect);
+                // Both the planner and the engine's test payment can call a keep payable that the real payment, which
+                // orders sources greedily, then fails: Jegantha's {R} with a Mountain kept for {1} (keyword gauntlet). The
+                // cast is legal, so a preference about which source stays untapped never fails it: the engine refunded
+                // the spent mana to the pool, and it pays once more with nothing held, recorded.
+                if (!paid && !held.isEmpty() && tapPart == null) {
+                    for (Card c : held) forge.ai.AiCardMemory.forgetCard(getPlayer(), c, forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
+                    auto("mana-sources(the engine could not pay around the kept sources)->paid without keeping " + held.size());
+                    held.clear();
+                    sa.setSkip(false);
+                    paid = super.payManaCost(toPay, costPartMana, sa, prompt, matrix, effect);
+                }
             } finally {
                 payingForReal = wasPaying;
                 payingCost = wasCost;
@@ -4792,6 +4878,7 @@ public final class LlmSpikeGui {
         private boolean holdIfPayable(List<Card> held, forge.card.mana.ManaCost toPay, SpellAbility sa, boolean effect) {
             final Player me = getPlayer();
             for (Card c : held) forge.ai.AiCardMemory.rememberCard(me, c, forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
+            // The planner can still be more hopeful than the real payment; payManaCost then pays again without the hold.
             if (ComputerUtilMana.getManaSourcesToPayCost(neededMana(toPay, sa, effect), sa, me, effect) != null) return true;
             for (Card c : held) forge.ai.AiCardMemory.forgetCard(me, c, forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
             return false;
@@ -6386,7 +6473,7 @@ public final class LlmSpikeGui {
             // nothing is asked. The real payment asks the seat.
             List<Integer> picks;
             // A nested call (the ask's own snapshot tests affordability, which calls this again) is a probe too.
-            if (!payingForReal || askingConvoke) {
+            if (PRICING_FOR_SNAPSHOT || !payingForReal || askingConvoke) {
                 picks = new ArrayList<>();
                 for (int i = 0; i < max; i++) picks.add(i);
             } else {
@@ -8079,6 +8166,7 @@ public final class LlmSpikeGui {
             // The cost check prices the menu and the hand tags (SeatObservation.handList's castTag):
             // its adjust consults the controller on cost reductions (CostAdjustment's reduction loop),
             // and an ask inside a snapshot build re-enters renderSnapshot forever. See PRICING_FOR_SNAPSHOT.
+            boolean wasPricing = PRICING_FOR_SNAPSHOT;
             PRICING_FOR_SNAPSHOT = true;
             boolean payable;
             try {
@@ -8093,7 +8181,7 @@ public final class LlmSpikeGui {
                     finally { sa.setXManaCostPaid(x); }
                 }
             } finally {
-                PRICING_FOR_SNAPSHOT = false;
+                PRICING_FOR_SNAPSHOT = wasPricing;
             }
             // A spree spell is cast with at least one mode, and each adds its cost: offered only when one is payable.
             if (payable && sa.getApi() == ApiType.Charm) {
@@ -8349,15 +8437,16 @@ public final class LlmSpikeGui {
                             for (Card b : blockers)
                                 if (CombatUtil.canBlock(c, b, combat)) by.append(by.length() == 0 ? "" : ", ").append(b.getName());
                         if (by.length() == 0) {
+                            // The number says what it is: a bare "(2)" read as an engine id (runs/loop/g02 T1, LEAK).
                             unblockable.append(unblockable.length() == 0 ? "" : ", ").append(c.getName()).append(" (")
-                                    .append(ComputerUtilCombat.damageIfUnblocked(c, defender, combat, false)).append(')');
+                                    .append(ComputerUtilCombat.damageIfUnblocked(c, defender, combat, false)).append(" damage)");
                         } else {
                             blockable.append(blockable.length() == 0 ? "" : "; ").append(c.getName()).append(" by ").append(by);
                         }
                     } catch (Exception ignore) { }
                 }
                 return " OUTLOOK (engine, all unblocked): " + dmg + " damage."
-                        + (unblockable.length() > 0 ? " None of their creatures that can block now could block: " + unblockable + "." : "")
+                        + (unblockable.length() > 0 ? " No creature of theirs that can block now could block: " + unblockable + "." : "")
                         + (blockable.length() > 0 ? " Could be blocked: " + blockable + "." : "");
             } catch (Exception e) { return ""; }
         }
@@ -10475,6 +10564,8 @@ public final class LlmSpikeGui {
                 // measurements and must never be pooled; before this field there was no way to tell.
                 + ",\"context_profile\":\"" + jsonEscape(PlayerControllerLLM.CTX.name) + "\""
                 + ",\"context_sha\":\"" + jsonEscape(PlayerControllerLLM.CTX.sha()) + "\""
+                // The faithful state's own version (eval/versions.py lists every stamp; this one was only in the log).
+                + ",\"observation_version\":\"" + jsonEscape(SeatObservation.VERSION) + "\""
                 // Reasoning effort is part of the player's identity, like temperature: the same
                 // model at low and at max is two different players and must never pool.
                 + ",\"claude_effort_smart\":\"" + jsonEscape(ClaudeBridge.effortLabel(false)) + "\""

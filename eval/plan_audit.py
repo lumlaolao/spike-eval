@@ -50,7 +50,7 @@ LOG_PLAY = re.compile(r"^\[(?P<seat>[^\]]+)\] \[ROUTER\] play: (?P<how>casts|pla
 def card_name(label):
     """The card a menu option or log label refers to: 'CAST Shallow Grave @6 1{B} [..]' -> Shallow Grave."""
     s = re.sub(r"^(CAST|ACTIVATE|PLAY LAND)\s+", "", (label or "").strip())
-    s = re.split(r"\s+@\d+|\s+\[|\s+\d*\{|\s+\(from |\s+—", s, 1)[0]
+    s = re.split(r"\s+@\d+|\s+\[|\s+\d*\{|\s+\(from |\s+—", s, maxsplit=1)[0]
     s = re.sub(r"\s+\d+/\d+$", "", s)          # creature P/T
     return s.strip()
 
@@ -70,6 +70,10 @@ def held_in(plan, name):
             continue
         # Search the clause WITHOUT the card's own name: "Animate Dead" is not a reason to hold it.
         rest = re.sub(re.escape(name), " ", c, flags=re.I)
+        # A clause that says to do it now is not a hold, whatever it says the play is for ("Crack Windswept Heath for
+        # an untapped Forest now to improve next turn's mana", runs/loop/g01 T7).
+        if re.search(r"\bnow\b", rest, re.I):
+            continue
         if HOLD.search(rest):
             return c
     return None
@@ -157,6 +161,17 @@ def events_from_jsonl(path):
             try:
                 r = json.loads(line)
             except ValueError:
+                continue
+            # Since the answer tool (2026-10-15) the plan is a `set_plan` call, on a context_call row of the ask that
+            # precedes the decision row; reading only the text grammar's PLAN: line saw no plan in any current game.
+            if r.get("t") == "context_call" and "TOOL CALL set_plan " in str(r.get("raw_reply") or ""):
+                try:
+                    args = json.loads(str(r["raw_reply"]).split("TOOL CALL set_plan ", 1)[1].split("\nTOOL CALL ", 1)[0])
+                except (ValueError, IndexError):
+                    args = {}
+                plan = " ".join(str(args.get(k) or "") for k in ("goal", "next")).strip()
+                if plan:
+                    ev.append({"kind": "plan", "seat": r.get("seat"), "turn": int(r.get("turn") or 0), "plan": plan})
                 continue
             if r.get("type") != "play":
                 continue

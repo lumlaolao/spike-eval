@@ -1,5 +1,5 @@
 {
-  "version": "seat-tools-v9",
+  "version": "seat-tools-v11",
   "comment": "The seat's read-only tools as native function definitions. Each maps 1:1 onto a command ContextMemory.execute already implements (text_command), so the native and text protocols reach the SAME executor and differ only in how the request is expressed. Descriptions carry the same epistemic caveats the text grammar states. rules_lookup and simulate are served by the engine side only (RulesTool, PlayerLookahead), and report_unclear_decision is a complaint about the question, not a lookup; the tool-use suite has no fixture for them and does not offer them. The decision answer (`answer`, AnswerTool.java) is built per decision from its legal values, so it is not listed here: the suite's native-answer arm builds it from each scenario's numbered options, the way the seat does.",
   "tools": [
     {
@@ -146,14 +146,14 @@
       "text_command": "SIMULATE {option} {target} {then}",
       "function": {
         "name": "simulate",
-        "description": "Preview what a numbered option of the current decision does when it resolves — a CAST, an ACTIVATE, a PLAY LAND or PASS — on a copy of the game built only from what you can see: which permanents leave or arrive, and each player's life, hand, library and graveyard counts. PASS resolves nothing, so its preview is that answer and no copy is made; it does not play out the opponent's turn. Pass `then` to preview a LINE: further options played after it, in order, on the same copy (it tells you if a later one can no longer be paid for). It is an estimate, not the engine's verdict: hidden cards are guessed, and the engine pays the costs on the copy. You may preview several options or lines before you answer.",
+        "description": "Preview what a numbered option of the current decision does when it resolves — a CAST, an ACTIVATE, a PLAY LAND or PASS of your priority menu, or, while you choose the target of a play you are making, a target (the play aimed at it) — on a copy of the game built only from what you can see: which permanents leave or arrive, and each player's life, hand, library and graveyard counts. PASS resolves nothing, so its preview is that answer and no copy is made; it does not play out the opponent's turn. Pass `then` to preview a LINE: further options played after it, in order, on the same copy (it tells you if a later one can no longer be paid for). It is an estimate, not the engine's verdict: hidden cards are guessed, and the engine pays the costs on the copy. You may preview several options or lines before you answer.",
         "parameters": {
           "type": "object",
           "properties": {
             "option": {
               "type": "integer",
               "minimum": 1,
-              "description": "The number of a CAST, ACTIVATE, PLAY LAND or PASS option in the decision's menu."
+              "description": "The number of a CAST, ACTIVATE, PLAY LAND or PASS option in the decision's menu, or of a target in a target choice."
             },
             "target": {
               "type": "string",
