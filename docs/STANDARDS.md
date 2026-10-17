@@ -76,7 +76,7 @@ Install the commit hook once with `bash scripts/install_hooks.sh`.
 | Path | Holds | Rule |
 |---|---|---|
 | `forge-overlay/` | all Java | the only place Java is edited; never the Forge checkout |
-| `eval/*.py` | drivers, analyzers, statistics | stdlib only; each file added or changed after 2026-10-13 has `eval/test_<name>.py`. Files without one that day are listed in `eval/UNTESTED.txt`; the list only shrinks |
+| `eval/*.py` | drivers, analyzers, statistics | stdlib only; each file added or changed after 2026-10-13 has `eval/test_<name>.py`. Files without one that day are listed in `eval/UNTESTED.txt`; a listed file changed after that day gains its test and leaves the list in that PR, so the list only shrinks |
 | `eval/<name>/` | data a driver reads (`tooluse/`, `decks/`, `suites/`) | versioned inside the file |
 | `scripts/` | repository tooling (gate, format, hooks) | stdlib / bash 3.2; `pr_format.py` holds the logic and is tested from `eval/test_pr_format.py`; the shell scripts are thin wrappers |
 | `docs/harness/` | what the harness does and what was measured | a claim cites a file, a test or a run |
