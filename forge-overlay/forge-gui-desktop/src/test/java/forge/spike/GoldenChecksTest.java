@@ -931,6 +931,26 @@ public class GoldenChecksTest {
         Assert.assertEquals(rival.getCardsIn(ZoneType.Hand).size(), 0, "the blue kicker it chose");
     }
 
+    /** A second unpayable pick takes the deterministic decline-all fallback, and the base cast still
+     *  goes through: no kicker was paid (the rival's hand and life untouched). */
+    @Test
+    public void aTwiceUnpayableKickerSetDeclinesAll() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Tropical Island", "Tropical Island", "Bayou", "Bayou", "Bayou", "Bayou");
+        card("Ana Battlemage", me, ZoneType.Hand);
+        for (int i = 0; i < 3; i++) card("Ponder", rival, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Ana Battlemage"))
+                .on("optional additional costs", p -> "PICKS: 1,2");
+        String log = LineFindingProbeTest.logOf(() -> playAndResolve(seat(g, model, model), g, "Ana Battlemage"));
+        Assert.assertEquals(model.prompts.stream().filter(q -> q.contains("optional additional costs")).count(), 2L,
+                "the unpayable pair was asked twice");
+        Assert.assertTrue(log.contains("[AUTO-LEGAL] optional-costs(together unpayable)->decline-all"), log);
+        Assert.assertTrue(has(me, ZoneType.Battlefield, "Ana Battlemage"), "the base cast is itself payable");
+        Assert.assertEquals(rival.getCardsIn(ZoneType.Hand).size(), 3, "no kicker ran on the decline");
+        Assert.assertEquals(rival.getLife(), 20, "no kicker ran on the decline");
+    }
+
     /** Pay extra for flash (Rout): on the opponent's turn the sorcery is offered with that cost, and only with it. */
     @Test
     public void payingForFlashCastsASorceryOnTheOpponentsTurn() {

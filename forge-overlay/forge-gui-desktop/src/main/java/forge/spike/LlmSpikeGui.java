@@ -3954,7 +3954,10 @@ public final class LlmSpikeGui {
             } catch (Exception e) { p("[ROUTER] optional-costs: " + e + " -> none"); return sa; }
         }
 
-        /** Whether {@code sa} with the picked optional costs together can be paid now. */
+        /** Whether {@code sa} with the picked optional costs together can be paid now. An unpriceable
+         *  set is treated as unpayable: a kept set that fails at payment spends the seat's priority
+         *  window for nothing, so the offer filter's per-value catch is the direction to mirror - the
+         *  re-ask runs, the worst case is the always-legal decline-all fallback. */
         private boolean payableWith(SpellAbility sa, List<OptionalCostValue> offer, List<Integer> picks) {
             try {
                 List<OptionalCostValue> set = new ArrayList<>();
@@ -3962,7 +3965,7 @@ public final class LlmSpikeGui {
                 SpellAbility with = GameActionUtil.addOptionalCosts(sa, set);
                 with.setActivatingPlayer(getPlayer());
                 return ComputerUtilCost.canPayCost(with, getPlayer(), false);
-            } catch (Exception e) { return true; }
+            } catch (Exception e) { p("[ROUTER] optional-costs: " + e + " -> decline"); return false; }
         }
 
         /** Optional additional costs — kicker / buyback / entwine. The model chooses which to pay;
