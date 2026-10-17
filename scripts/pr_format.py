@@ -25,6 +25,7 @@ import sys
 TYPES = ("feat", "fix", "perf", "eval", "data", "test", "docs", "refactor", "chore", "build")
 SUBJECT = re.compile(r"^(%s)(\([^()\n]{1,40}\))?: \S.*$" % "|".join(TYPES))
 SUBJECT_MAX = 100
+EXEMPT_SUBJECTS = ("Merge ", "Revert ")
 SECTIONS = ("What", "Why", "Evidence", "Provenance", "Review", "Not done")
 SKILLS = ("pr-review", "simplify", "standards")
 # Each skill reports in its own words; the gate refuses the blocking ones.
@@ -38,6 +39,10 @@ CODE_PATHS = ("forge-overlay/", "eval/", "scripts/", "install.sh", "run-llm-")
 # `- acceptance @ <head sha>: OUT=<dir> <N>/<N> stages PASS ...`
 ACCEPTANCE = re.compile(r"^- acceptance @ ([0-9a-f]{7,40}): OUT=(\S+) (\d+)/(\d+) stages PASS\b", re.M)
 TRAILER = re.compile(r"^(Co-Authored-By|Claude-Session|Signed-off-by): ", re.I)
+# A generated signature footer is not a why: alone it satisfies nothing (pr-review finding,
+# executed). The observed shapes: the plain sentence, the markdown-italic one, the emoji link one.
+SIGNATURE = re.compile(r"^\s*(?:🤖\s*)?_?Generated with "
+                       r"(?:\[Claude Code\]\([^)]*\)|Claude Code)_?\s*$", re.I)
 # The `new-pr` skeleton's placeholders, matched exactly: a shape (any `<...>` line) also caught real
 # HTML such as `<img src=...>` and `<details open>`.
 PH_WHY = "<the evidence it was needed: file:line, a run directory, a count>"
@@ -55,7 +60,7 @@ CODE_SPAN = re.compile(r"`[^`\n]*`")
 
 def subject_problems(subject):
     out = []
-    if subject.startswith(("Merge ", "Revert ")):
+    if subject.startswith(EXEMPT_SUBJECTS):
         return out
     if not SUBJECT.match(subject):
         out.append("subject is not `type(scope): what is now true` with type in %s: %r" % ("/".join(TYPES), subject))
@@ -67,15 +72,24 @@ def subject_problems(subject):
 
 
 def commit_problems(message):
+    # '#' lines are git template comments, stripped before the audit: a body written only of
+    # them reads as no body (heading-only bodies refuse; refuse-not-bless is the safe direction).
     lines = [l for l in message.splitlines() if not l.startswith("#")]
     while lines and not lines[0].strip():
         lines.pop(0)
     if not lines:
         return ["empty commit message"]
     out = subject_problems(lines[0])
-    if lines[0].startswith("Merge "):
+    # a merge/revert subject is exempt from the body checks like the subject checks: a merge's
+    # why lives in its second parent, a revert's in the message it cites
+    if lines[0].startswith(EXEMPT_SUBJECTS):
         return out
-    if len(lines) > 1 and lines[1].strip():
+    body = [l for l in lines[1:] if l.strip() and not TRAILER.match(l) and not SIGNATURE.match(l)]
+    if not body:
+        out.append("a commit with no body carries no why; say why, what was measured, and "
+                   "would have caught it (STANDARDS section 2)")
+        return out
+    if lines[1].strip():
         out.append("no blank line between the subject and the body")
     for l in lines[2:]:
         if len(l) > SUBJECT_MAX and " " in l.strip() and not TRAILER.match(l) and "://" not in l:
@@ -158,6 +172,9 @@ def base_ref(arg=None):
 
 
 def branch_commits(base):
+    """The branch's own commits, base..HEAD, merges left out. Fetch the base first: a stale
+    local origin/main walks main's own earlier history too (the merge gate instead walks
+    GitHub's PR commit list and cannot see a stale local ref)."""
     out = run("git", "log", "--no-merges", "--format=%H%x1f%B%x1e", "%s..HEAD" % base)
     return [tuple(c.strip("\n").split("\x1f", 1)) for c in out.split("\x1e") if c.strip()]
 
