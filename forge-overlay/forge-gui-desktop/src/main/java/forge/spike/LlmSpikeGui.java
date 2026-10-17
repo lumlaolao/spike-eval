@@ -229,6 +229,8 @@ public final class LlmSpikeGui {
      *  the second Lotus Petal pays (Ad Nauseam); a mana ability with a cost beyond tapping (Lion's Eye Diamond, Spirit
      *  Guides) is on the menu; storm copies' new targets are the seat's and the copies are called copies; exile and an
      *  unordered graveyard are not ordered; a preview plays an alternative cost and holds the stack (lookahead-preview-v8).
+     *  Epoch 44 (2026-10-17, game loop g02): the attack outlook says what its number is, "(2 damage)", not "(2)"
+     *  (lookahead-preview-v9).
      *  Epoch 33 (2026-10-16): the stack says "not yet resolved", not "pending", carries no Forge debug note, and a copy
      *  effect says how many copies it makes; identical storm copies are not ordered (observation-faithful-v33).
      *  Epoch 34 (2026-10-16, surface checks): a counterspell targets the spell on the stack, not its card (it countered
@@ -262,7 +264,7 @@ public final class LlmSpikeGui {
      *  legality test, not Forge AI's taste (legallyPayable); a cost may be paid with the ability's own target; casualty
      *  candidates are not filtered; who crews, and which creatures sharing a type tap, are the seat's; mana abilities
      *  are on the menu (floating mana); a creature that can block more attackers may. */
-    static final String HARNESS_EPOCH = "harness-epoch-43";
+    static final String HARNESS_EPOCH = "harness-epoch-44";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -8348,15 +8350,16 @@ public final class LlmSpikeGui {
                             for (Card b : blockers)
                                 if (CombatUtil.canBlock(c, b, combat)) by.append(by.length() == 0 ? "" : ", ").append(b.getName());
                         if (by.length() == 0) {
+                            // The number says what it is: a bare "(2)" read as an engine id (runs/loop/g02 T1, LEAK).
                             unblockable.append(unblockable.length() == 0 ? "" : ", ").append(c.getName()).append(" (")
-                                    .append(ComputerUtilCombat.damageIfUnblocked(c, defender, combat, false)).append(')');
+                                    .append(ComputerUtilCombat.damageIfUnblocked(c, defender, combat, false)).append(" damage)");
                         } else {
                             blockable.append(blockable.length() == 0 ? "" : "; ").append(c.getName()).append(" by ").append(by);
                         }
                     } catch (Exception ignore) { }
                 }
                 return " OUTLOOK (engine, all unblocked): " + dmg + " damage."
-                        + (unblockable.length() > 0 ? " None of their creatures that can block now could block: " + unblockable + "." : "")
+                        + (unblockable.length() > 0 ? " No creature of theirs that can block now could block: " + unblockable + "." : "")
                         + (blockable.length() > 0 ? " Could be blocked: " + blockable + "." : "");
             } catch (Exception e) { return ""; }
         }

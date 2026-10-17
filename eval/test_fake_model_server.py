@@ -98,6 +98,24 @@ class FakeModelServerTest(unittest.TestCase):
         self.assertNotEqual(run("kw03"), run("kw04"))
 
 
+    def test_the_random_policy_looks_up_now_and_then_with_legal_arguments(self):
+        menu = "Choose ONE action:\n  1) CAST X @12\n  2) PLAY LAND Y @13\n  3) PASS (do nothing)"
+        play = {"tools": TOOLS + [{"type": "function", "function": {"name": "answer"}}], "tool_choice": "auto",
+                "messages": [{"role": "user", "content": menu}]}
+        p = policy(policy="random", seed="kw01")
+        seen = set()
+        for _ in range(60):
+            out = p.lookup_calls(play, menu, ["inspect", "memory_search", "simulate"], lambda n, a: {"name": n, "arguments": a})
+            if out:
+                c = out[0]
+                seen.add(c["name"])
+                if c["name"] == "simulate":
+                    self.assertIn(c["arguments"]["option"], (1, 2, 3))
+                if c["name"] == "inspect":
+                    self.assertIn(c["arguments"]["target"], ("@12", "@13"))
+        self.assertTrue({"simulate", "inspect"} <= seen, seen)
+
+
 class RefuseToolsTest(unittest.TestCase):
     """--refuse-tools over real HTTP: the 404 wording is the one OpenRouterBridge.refusesTools reads."""
 

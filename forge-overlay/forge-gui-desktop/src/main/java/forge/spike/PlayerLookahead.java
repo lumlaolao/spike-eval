@@ -45,8 +45,9 @@ final class PlayerLookahead {
      *  preview no longer reveals hidden cards (review H2).
      *  v7 (2026-10-16): imprinted cards are copied, so a Chrome Mox pays on the copy as in the game.
      *  v8 (2026-10-16): an option cast for an alternative cost (Force of Will's pitch) is previewed with that cost, and
-     *  the copy holds the stack, so a response is previewed against the spell it answers. */
-    static final String VERSION = "lookahead-preview-v8";
+     *  the copy holds the stack, so a response is previewed against the spell it answers.
+     *  v9 (2026-10-17): the attack outlook's damage for an attacker no creature could block says "damage". */
+    static final String VERSION = "lookahead-preview-v9";
 
     private PlayerLookahead() { }
 

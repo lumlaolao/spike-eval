@@ -15,6 +15,8 @@
 # GAUNTLET_POLICY=random answers every ask with a uniformly random legal answer instead (seeded per deck), so the
 # targets, picks, orders, splits, numbers, blocks and mulligans `first` never gives reach the harness too.
 # GAUNTLET_SEED=<salt> draws a different random game per deck (the seed is the salt plus the deck name).
+# GAUNTLET_TOOLS=1 gives the seat its lookups (MEMORY_TOOLS=1 LOOKAHEAD=1); the random policy then previews, inspects
+# and searches at random before some answers, so every card's play is simulated by the lookahead preview too.
 #
 # usage: bash eval/keyword_gauntlet.sh [out-dir] [parallel]   (needs a passing harness_acceptance.sh run's classes)
 set -u
@@ -30,7 +32,8 @@ JAVA="${JAVA_HOME:+$JAVA_HOME/bin/}java"
 mkdir -p "$OUT" && OUT="$(cd "$OUT" && pwd)" # absolute: each game runs from the Forge checkout
 POLICY="${GAUNTLET_POLICY:-first}"
 SALT="${GAUNTLET_SEED:-}"
-export REPO FORGE OUT CLASSES CP_FILE JAVA POLICY SALT
+TOOLS="${GAUNTLET_TOOLS:-0}"
+export REPO FORGE OUT CLASSES CP_FILE JAVA POLICY SALT TOOLS
 game() { # $1 deck A tag, $2 deck B tag
   local dir="$OUT/g-$1"; rm -rf "$dir"; mkdir -p "$dir"
   python3 "$REPO/eval/fake_model_server.py" --port 0 --policy "$POLICY" --seed "$SALT$1" --answer-tool --log "$dir/fake_requests.jsonl" \
@@ -41,7 +44,7 @@ game() { # $1 deck A tag, $2 deck B tag
       DECK_A_NAME="$1" DECK_B_NAME="$2-ai" GAME_CAP_MS=300000 CONTROLLER_A=llm CONTROLLER_B=ai \
       SMART_MODEL=openrouter:fake/harness-model FAST_MODEL=openrouter:fake/harness-model \
       OPENROUTER_BASE_URL="http://127.0.0.1:$port/v1" OPENROUTER_TIMEOUT_MS=4000 CONTEXT_PROFILE=v4-faithful \
-      SMART_BUDGET=100000 FAST_BUDGET=100000 MULLIGAN_HEURISTIC=0 SKIP_HEURISTICS=0 \
+      SMART_BUDGET=100000 FAST_BUDGET=100000 MULLIGAN_HEURISTIC=0 SKIP_HEURISTICS=0 MEMORY_TOOLS="$TOOLS" LOOKAHEAD="$TOOLS" \
       "$JAVA" --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED \
       --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.text=ALL-UNNAMED \
       --add-opens java.desktop/java.awt=ALL-UNNAMED --add-opens java.desktop/java.beans=ALL-UNNAMED \
