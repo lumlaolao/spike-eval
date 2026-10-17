@@ -453,6 +453,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(data)))
+            # Said, not implied: the server closes after each reply, and a client that reused the socket got "header
+            # parser received no bytes" on the next request (13 times in the keyword gauntlet with lookups on).
+            self.send_header("Connection", "close")
             self.end_headers()
             self.wfile.write(data)
         except (BrokenPipeError, ConnectionResetError):

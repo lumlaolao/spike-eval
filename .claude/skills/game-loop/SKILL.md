@@ -25,8 +25,15 @@ tail -40 docs/harness/GAME-LOOP-LOG.md   # what the last games found; do not red
 ```
 
 Paid games use only an authorised model and always a budget (`CLAUDE.md`, "Cost of paid runs").
-One game costs about $0.04 two-tier; with `--one-tier` every decision reasons (runs/loop/g08: 54 calls,
-~23 s each, $0.15 for 13 turns), so budget about $0.35 for a full game. The cap is 120 minutes: since
+A one-tier Luna game cost $0.05 (Elves, 98 calls, 11 turns) and $0.02 (Burn, 37 calls) on harness-epoch-43, with
+most prompt tokens read from the cache; `--budget-usd 0.40` a game is ample. Time is the larger cost: 22 to 91
+minutes, about half of it waiting on the provider (the sheet's TIME line says where it went). Decks that ask many
+questions (Elves: 29 decisions in one turn) take hours; vary them, and pick fast ones when time matters.
+
+Before paying for a game, the free checks find most defects: `bash eval/keyword_gauntlet.sh` (553 cards in 28
+fake-model games), with `GAUNTLET_POLICY=random` (random legal answers; `GAUNTLET_SEED=<salt>` for new ones) and
+`GAUNTLET_TOOLS=1` (lookups and previews too). Never edit `eval/keyword_gauntlet.sh` while it runs: bash reads the
+script as it goes. The cap is 120 minutes: since
 harness-epoch-7 the seat may think for 32000 tokens (up to 300 s a call) and make 16 tool calls a
 decision, and a capped game is scored invalid, so the cap must not end a game while the model thinks
 (docs/harness/MODEL-LIMITS.md).
@@ -60,7 +67,7 @@ switches are measurement arms only, each its own condition.
 ## 2. The sheet (mechanical, never skip)
 
 ```bash
-python3 eval/match_review.py runs/loop/g$N        # TAKEN / LOST / TOOL / SLOW / LOG, with JSONL lines
+python3 eval/match_review.py runs/loop/g$N        # TAKEN / LOST / TOOL / SLOW / LOG / TIME, with JSONL lines
 python3 eval/tool_audit.py   runs/loop/g$N
 python3 eval/plan_audit.py   runs/loop/g$N
 python3 eval/defect_analyzer.py runs/loop/g$N | tail -5      # ai_tier_count=0, silent_drop_total=0

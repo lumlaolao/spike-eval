@@ -201,5 +201,24 @@ class MatchReviewTest(unittest.TestCase):
                 self.assertEqual(mr.main([d, "--fail-on-defect"]), 0)
 
 
+
+class TimeSplitTest(unittest.TestCase):
+    def test_answers_deadline_waits_and_errors_are_counted(self):
+        import tempfile, time
+        text = ("[OPENROUTER S/smart] replied in 1000 ms with 1 tool call(s)\n"
+                "[OPENROUTER S/smart] wall-clock timeout after 300000 ms (deadline 300000 ms)\n"
+                "[OPENROUTER S/smart] HTTP 502: upstream request failed\n"
+                "[OPENROUTER S/smart] replied in 2000 ms with 1 tool call(s)\n")
+        with tempfile.NamedTemporaryFile("w", suffix=".log", delete=False) as f:
+            f.write(text)
+        try:
+            start = int(time.time() * 1000) - 600000
+            t = mr.time_split(text, "/x/game-7-%d.jsonl" % start, f.name)
+        finally:
+            os.unlink(f.name)
+        self.assertEqual((t["answers"], t["answers_ms"], t["deadline_waits"], t["deadline_ms"], t["provider_errors"]),
+                         (2, 3000, 1, 300000, 1))
+        self.assertAlmostEqual(t["elapsed_ms"] / 60000.0, 10, delta=0.5)
+
 if __name__ == "__main__":
     unittest.main()

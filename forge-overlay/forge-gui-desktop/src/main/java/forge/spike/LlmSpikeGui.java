@@ -2136,6 +2136,14 @@ public final class LlmSpikeGui {
         }
 
         private String renderSnapshot() {
+            // Building a prompt is pricing from start to end: no hook it reaches may ask the model, whichever hook it is
+            // (a pool choice reached from the hand's tags asked, and its own prompt priced the hand again).
+            boolean was = PRICING_FOR_SNAPSHOT;
+            PRICING_FOR_SNAPSHOT = true;
+            try { return renderSnapshotPriced(); } finally { PRICING_FOR_SNAPSHOT = was; }
+        }
+
+        private String renderSnapshotPriced() {
             if (observer != null) {
                 // Faithful path: capture the engine log into the seat stream (redacted, with private
                 // reveals interleaved), render history from THAT stream, then the viewer-aware state.
@@ -2537,9 +2545,11 @@ public final class LlmSpikeGui {
                 SpellAbility sa = c.getFirstSpellAbility();
                 if (sa == null) return null;
                 if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(pl);
+                // Restored, never cleared: under an outer pricing a cleared flag let the next hook ask (StackOverflowError).
+                boolean was = PRICING_FOR_SNAPSHOT;
                 PRICING_FOR_SNAPSHOT = true;
                 try { if (ComputerUtilMana.canPayManaCost(sa, pl, 0, false)) return "(castable)"; }
-                finally { PRICING_FOR_SNAPSHOT = false; }
+                finally { PRICING_FOR_SNAPSHOT = was; }
             } catch (Exception e) { return null; }
             try {
                 forge.card.mana.ManaCost mc = c.getManaCost();
@@ -6387,7 +6397,7 @@ public final class LlmSpikeGui {
             // nothing is asked. The real payment asks the seat.
             List<Integer> picks;
             // A nested call (the ask's own snapshot tests affordability, which calls this again) is a probe too.
-            if (!payingForReal || askingConvoke) {
+            if (PRICING_FOR_SNAPSHOT || !payingForReal || askingConvoke) {
                 picks = new ArrayList<>();
                 for (int i = 0; i < max; i++) picks.add(i);
             } else {
@@ -8080,6 +8090,7 @@ public final class LlmSpikeGui {
             // The cost check prices the menu and the hand tags (SeatObservation.handList's castTag):
             // its adjust consults the controller on cost reductions (CostAdjustment's reduction loop),
             // and an ask inside a snapshot build re-enters renderSnapshot forever. See PRICING_FOR_SNAPSHOT.
+            boolean wasPricing = PRICING_FOR_SNAPSHOT;
             PRICING_FOR_SNAPSHOT = true;
             boolean payable;
             try {
@@ -8094,7 +8105,7 @@ public final class LlmSpikeGui {
                     finally { sa.setXManaCostPaid(x); }
                 }
             } finally {
-                PRICING_FOR_SNAPSHOT = false;
+                PRICING_FOR_SNAPSHOT = wasPricing;
             }
             // A spree spell is cast with at least one mode, and each adds its cost: offered only when one is payable.
             if (payable && sa.getApi() == ApiType.Charm) {

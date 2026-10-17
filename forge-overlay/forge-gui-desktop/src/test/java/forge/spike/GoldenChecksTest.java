@@ -852,6 +852,25 @@ public class GoldenChecksTest {
         Assert.assertTrue(model.prompts.stream().noneMatch(q -> q.contains("MANA POOL")), "the pool was asked while pricing");
     }
 
+    /** Pricing inside pricing keeps the guard on. The hand's tags priced each card and switched PRICING_FOR_SNAPSHOT
+     *  off when done, though an outer pricing was still running; the next pool choice then asked the seat, whose prompt
+     *  priced the hand again: a StackOverflowError (keyword gauntlet with lookups on, kw04 and kw05). */
+    @Test
+    public void pricingInsidePricingKeepsTheGuardOn() throws Exception {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Forest");
+        Card bears = card("Grizzly Bears", me, ZoneType.Hand);
+        seat(g, new Script("CHOICE: 1"), new Script("CHOICE: 1"));
+        java.lang.reflect.Field f = LlmSpikeGui.PlayerControllerLLM.class.getDeclaredField("PRICING_FOR_SNAPSHOT");
+        f.setAccessible(true);
+        f.setBoolean(null, true);   // an outer pricing is running
+        try {
+            LlmSpikeGui.PlayerControllerLLM.castTag(me, bears, LlmSpikeGui.PlayerControllerLLM.untappedManaTally(me));
+            Assert.assertTrue(f.getBoolean(null), "the hand tag switched the pricing guard off under an outer pricing");
+        } finally { f.setBoolean(null, false); }
+    }
+
     /** "{1}, remove X +1/+1 counters (X at least 1)": with no counter Arcee's ability is not offered; with two, X is
      *  offered up to 2 (it was offered with none and announced at X=1, and the payment failed: keyword gauntlet). */
     @Test

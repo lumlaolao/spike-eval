@@ -496,6 +496,11 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
      the engine says the cast can pay (`payableKeywordTimes`, `escalateCost`, `keywordCost`). Its second run found
      a CANCEL answer to a tap cost paid anyway: writing the decision row cleared the cancel before it was returned,
      only with the game log on, which no golden check had; `GoldenChecksToolTest` now runs with the log on.
+     `GAUNTLET_TOOLS=1` gives the seat its lookups, and the random policy previews, inspects and searches at random.
+     Its first run found a StackOverflowError: a hand tag priced inside another pricing switched the guard off when
+     done, so a pool-mana choice reached from the next tag asked the seat, whose prompt priced the hand again. The
+     guard is now restored, never cleared, and building any prompt counts as pricing from start to end, so no hook a
+     prompt build reaches can ask (`renderSnapshot`; `pricingInsidePricingKeepsTheGuardOn`).
    - *Why measured, not listed by hand:* a hand-kept map says which test should reach a hook; the record says
      which test did. A per-type list let a hook that only ever took forced picks look covered.
 3. **Optional live-model checks (`eval/test_live_answer_tool.py`, `LIVE_MODEL_TESTS=1`, about a cent):**

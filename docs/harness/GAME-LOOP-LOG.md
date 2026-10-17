@@ -627,3 +627,15 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
   priority menu), as in earlier games.
 - checked  a fetch's library search lists the whole library in the event history: a player sees it when searching,
   and the library is shuffled at once; the known-in-hidden-zones record does not carry it.
+
+### between g02 and g03  2026-10-17  free checks while the games ran
+- FIXED  the keyword gauntlet with lookups on (`GAUNTLET_TOOLS=1`, random previews, inspects and searches) crashed two
+  games with a StackOverflowError: affordability and offerable cleared PRICING_FOR_SNAPSHOT when done instead of
+  restoring it, so under an outer pricing the next pool-mana choice asked the seat, and its prompt priced the hand
+  again. The flag is restored everywhere, a prompt build is pricing from start to end, and the convoke chooser
+  honours it. Test `pricingInsidePricingKeepsTheGuardOn` (failed before the fix); both games replay to the end.
+- FIXED  (fake model) "header parser received no bytes" x13 on the request after a lookup: the stub closed each
+  connection without saying so; it now sends `Connection: close`.
+- FIXED  (sheet) `match_review.py` prints a TIME line: elapsed, model answer time, waits to the call deadline,
+  stalls cut early, provider errors.
+- clean  random-answer gauntlet with new seeds (s3): 28 games, 0 defect lines.
