@@ -52,6 +52,8 @@ Commit subject: `type(scope): what is now true`, at most 100 characters, no trai
 - The rest is a sentence a reader understands without the diff: "the seat reads the opponent's
   cards", not "update SeatObservation".
 - The body says why, what was measured, and what would have caught it. Wrap at 100.
+- Every `#NN` in a commit message or PR body names a real PR and means exactly that PR. A dangle
+  is corrected forward in the body's Not done - never by rewriting a recorded message.
 - Merge and revert commits are exempt from the subject form. Any commit that is not trivial has a body.
 
 Branch: `type/short-name` (`fix/own-trigger-window`). A branch the runtime assigns (`claude/...`) may
@@ -150,6 +152,8 @@ most log questions).
 ## 6. Measurement
 
 - Report every rate next to its trivial baseline and its interval. No baseline, no number.
+- A recorded count names its metric: what was counted and by what measure, and follows it. No
+  metric, no count.
 - A single game is noise: use `--pairs`, and say what size of difference the sample can resolve.
 - Check `uptime` first; above 4 load average per core, timing and capped games are not evidence.
 - **Paid runs are budgeted and start small.** Every paid batch passes `--budget-usd`; its log ends
