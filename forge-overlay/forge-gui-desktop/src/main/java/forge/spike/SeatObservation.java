@@ -81,8 +81,11 @@ final class SeatObservation {
      *  v26: nothing the observation shows is cut (docs/harness/MODEL-LIMITS.md): whole event, stack and card
      *  text, every seen opponent card and every reveal, and uncapped known-in-hidden-zones and zone trails.
      *  v32 (2026-10-16): mana available counts a colour the card decides (Chrome Mox's imprinted colours, a
-     *  chosen colour) as the engine reads it; ability text names the card, not CARDNAME (runs/c3 T7, T11). */
-    static final String VERSION = "observation-faithful-v35";
+     *  chosen colour) as the engine reads it; ability text names the card, not CARDNAME (runs/c3 T7, T11).
+     *  v36 (2026-10-17): event and history lines drop the note Forge appends to a trigger ("[Card: ...]", "[Zone
+     *  Changer: ...]"), recorded when the trigger goes on the stack (keyword sweep: Demonstrate, Arcane Proxy);
+     *  combat says which attackers are in a band. */
+    static final String VERSION = "observation-faithful-v36";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
      *  Every section named here is one {@link #render} prints. */
@@ -793,7 +796,9 @@ final class SeatObservation {
             if (!EVENT_TYPES.contains(e.type())) continue;
             if (byId == null) byId = cardsById();
             // flat, not oneLine: the 90-character cut lost block assignments and search results.
-            String msg = redact(LlmSpikeGui.flat(e.message()), e.sourceCard(), byId);
+            String raw = e.message();
+            if (raw != null) for (String note : triggerNotes) raw = raw.replace(note, "");
+            String msg = redact(LlmSpikeGui.flat(raw), e.sourceCard(), byId);
             stream.add(new GameHistory.Ev(stream.size() + 1, currentTurn, e.type(), msg));
         }
         consumedLogEntries = all.size();
@@ -908,8 +913,23 @@ final class SeatObservation {
     /** A spell cast, from the engine's event rather than from the wording of the log line it also writes
      *  ("Rival cast X targeting Y" was split on " cast " and " targeting"). A copy is not cast (CR 707.10);
      *  a face-down spell is named only as one, unless its face may be shown to the seat. */
+    /** The notes Forge appended to triggers put on the stack, as " [" + note + "]" (see {@link #engineNotesOut}),
+     *  recorded when the trigger goes on the stack: the log line that names it is written from the same event and
+     *  carries the note, and by the time the line is captured the trigger may have resolved. */
+    private final Set<String> triggerNotes = new java.util.HashSet<>();
+
     @Subscribe
     public void onCast(GameEventSpellAbilityCast ev) {
+        try {
+            if (ev != null && ev.si() != null && ev.sa() != null && !ev.sa().isSpell()) {
+                for (SpellAbilityStackInstance si : game.getStack()) {
+                    if (si.getId() != ev.si().getId()) continue;
+                    forge.game.spellability.SpellAbility sa = si.getSpellAbility();
+                    String note = sa == null || sa.getTrigger() == null ? "" : sa.getTrigger().getImportantStackObjects(sa);
+                    if (!note.isEmpty()) triggerNotes.add(" [" + note + "]");
+                }
+            }
+        } catch (Exception ignore) { }
         try {
             if (ev == null || ev.sa() == null || ev.si() == null || !ev.sa().isSpell()) return;
             Player who = playerFromView(ev.si().getActivatingPlayer());
@@ -1274,6 +1294,14 @@ final class SeatObservation {
                 if (d instanceof Player) b.append(((Player) d) == viewer ? "you" : d.getName());
                 else if (d instanceof Card) b.append(shortRef((Card) d));
                 else b.append('?');
+                // A band is blocked as one (CR 702.22): who attacks with whom.
+                forge.game.combat.AttackingBand band = cb.getBandOfAttacker(a);
+                if (band != null && band.getAttackers().size() > 1) {
+                    b.append(" (in a band with ");
+                    boolean f = true;
+                    for (Card o : band.getAttackers()) if (o != a) { if (!f) b.append(", "); f = false; b.append(shortRef(o)); }
+                    b.append(')');
+                }
                 List<Card> blockers = cb.getBlockers(a);
                 if (blockers != null && !blockers.isEmpty()) {
                     b.append(" blocked by ");

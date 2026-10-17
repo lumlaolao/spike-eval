@@ -145,7 +145,8 @@ final class LlmCostDecision extends AiCostDecision {
             typeList = CardLists.getValidCards(typeList, type.split(";"), source.getController(), source, ability);
             typeList = CardLists.filter(typeList, CardPredicates.canExiledBy(ability, isEffect()));
             typeList = ComputerUtilCost.paymentChoicesWithoutTargets(typeList, ability, player);
-            if (amount <= 0 || typeList.size() <= amount) return super.visit(cost); // nothing to choose
+            if (amount <= 0 || typeList.size() < amount) return super.visit(cost); // nothing to choose
+            if (typeList.size() == amount) return forced(typeList, "exile");
             candidates = typeList;
             need = amount;
 
@@ -189,7 +190,8 @@ final class LlmCostDecision extends AiCostDecision {
             final int amount = cost.getAbilityAmount(ability);
             CardCollection typeList = CardLists.getValidCards(player.getCardsIn(ZoneType.Hand),
                     type.split(";"), source.getController(), source, ability);
-            if (amount <= 0 || typeList.size() <= amount) return super.visit(cost); // nothing to choose
+            if (amount <= 0 || typeList.size() < amount) return super.visit(cost); // nothing to choose
+            if (typeList.size() == amount) return forced(typeList, "discard");
             candidates = typeList;
             need = amount;
             CardCollectionView pick = ask(typeList, amount, "discard", "COST: to pay for " + source.getName()
@@ -217,7 +219,8 @@ final class LlmCostDecision extends AiCostDecision {
             CardCollection typeList = CardLists.getValidCards(player.getCardsIn(ZoneType.Battlefield),
                     cost.getType().split(";"), source.getController(), source, ability);
             typeList = ComputerUtilCost.paymentChoicesWithoutTargets(typeList, ability, player);
-            if (amount <= 0 || typeList.size() <= amount) return super.visit(cost); // nothing to choose
+            if (amount <= 0 || typeList.size() < amount) return super.visit(cost); // nothing to choose
+            if (typeList.size() == amount) return forced(typeList, "return");
             candidates = typeList;
             need = amount;
 
@@ -333,6 +336,15 @@ final class LlmCostDecision extends AiCostDecision {
     }
 
     /** The first {@code amount} legal candidates, recorded as a fixed fallback: never Forge's AI. */
+    /** Exactly as many candidates as the cost takes: they are the payment. Left to Forge's AI, the pick could be
+     *  refused (it declines to exile a permanent it values: Braided Net's craft with Altar of the Wretched the
+     *  only other artifact failed to pay, and was chosen again 999 times in the keyword gauntlet). */
+    private PaymentDecision forced(CardCollection candidates, String kind) {
+        LlmSpikeGui.PlayerControllerLLM seat = seat();
+        if (seat != null) seat.costDecisionDefault(kind + "-cost(forced-only-legal)->" + candidates.size());
+        return PaymentDecision.card(candidates);
+    }
+
     private PaymentDecision firstLegal(CardCollection candidates, int amount, String kind, String why) {
         CardCollection pick = new CardCollection(candidates.subList(0, Math.min(amount, candidates.size())));
         LlmSpikeGui.PlayerControllerLLM seat = seat();

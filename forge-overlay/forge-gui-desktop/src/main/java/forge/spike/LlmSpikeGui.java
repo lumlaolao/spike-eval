@@ -248,8 +248,18 @@ public final class LlmSpikeGui {
      *  Epoch 38 (2026-10-16): optional costs picked together are checked together (two kickers payable alone, not both).
      *  Epoch 39 (2026-10-17, every way to play): pricing an optional cost no longer leaves a Defiler's reduction on the
      *  spell; harmonize is priced with its tap and its power asked from the payable ones; an alternative-cost option
-     *  shows the card's text and the cost it pays. */
-    static final String HARNESS_EPOCH = "harness-epoch-39";
+     *  shows the card's text and the cost it pays.
+     *  Epoch 40 (2026-10-17, keyword sweep and gauntlet): a cost with exactly as many candidates as it takes is paid
+     *  with them, not left to Forge's AI (which declined to exile Altar of the Wretched for a craft); a play that
+     *  failed to pay is not offered again in its window; a loyalty ability that adds mana is on the menu; floating
+     *  mana is not asked while pricing (StackOverflowError); the log drops Forge's trigger notes
+     *  (observation-faithful-v36); a prevent-effect cost names its card; attackers can form bands; exert, enlist,
+     *  splice, coin flips, shield counters, dice, stickers, contraptions, attractions, starting hands and assist are the
+     *  seat's (Forge's AI decided them), and a spliced spell is retargeted by the seat, not vetoed by Forge's AI; an
+     *  ability's costs beyond mana are checked at its least X, and a non-mana X is capped by what can pay it; spree
+     *  modes are offered only when payable; convoking creatures are not counted as mana when a land is kept, and a
+     *  convoke that leaves the rest unpayable is asked again. */
+    static final String HARNESS_EPOCH = "harness-epoch-40";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -834,6 +844,13 @@ public final class LlmSpikeGui {
         /** Cancels in the current priority window (a cancelled play re-asks the menu, at most twice). */
         private String cancelKey = "";
         private int cancels = 0;
+        /** Plays that failed to pay in the current priority window: not offered again in it. Forge's AI skips a
+         *  failed ability the same way (SpellAbility.setSkip); the menu did not, and the keyword gauntlet's seat was
+         *  offered the same unpayable craft 999 times in one window. */
+        private final java.util.Set<String> failedInWindow = new java.util.HashSet<>();
+        static String failedPlayKey(SpellAbility sa) {
+            return sa.getHostCard().getId() + "|" + sa.getAlternativeCost() + "|" + sa.getCardStateName() + "|" + sa.getDescription();
+        }
         private String cancelNote = null;
         /** Set by {@link LlmCostDecision} for the one cost ask it is making when that ask may be answered
          *  "cancel" (a play not committed yet: CostPayment decides every part before paying any); the ask
@@ -2812,12 +2829,335 @@ public final class LlmSpikeGui {
                 lastShadowChoice = shadowAtk; // re-attach: decideMany's clearLast() nulled it above
                 evalDec("attackers", legal.size(), picks.size(), tierOf(true), 0, null, labels); // choice = # declared
                 p("[ROUTER] attackers: " + (picks.isEmpty() ? "none" : chosen.toString()));
+                formBands(combat);
             } catch (Exception e) {
                 // A failure branch takes a deterministic LEGAL option, never the Forge AI for strategy
                 // (#126): declaring no attackers is legal and cannot be the AI's line. The engine
                 // resolves combat from an empty set.
                 auto("attackers(err)->none");
             }
+        }
+
+        /** Bands (CR 702.22): an attacker with banding, or bands with other, may attack together with others
+         *  attacking the same player or planeswalker, and the band is blocked as one. The human GUI offers it
+         *  when declaring attackers (InputAttack's band mode); the seat declared every attacker alone, so banding
+         *  was never used. Each banding attacker asks which of the others join it; a set the engine calls no band
+         *  (AttackingBand.isValidBand: one non-banding creature at most) is asked once more, then left alone. */
+        private void formBands(Combat combat) {
+            java.util.Set<Card> banded = new java.util.HashSet<>();
+            for (Card leader : new ArrayList<>(combat.getAttackers())) {
+                if (banded.contains(leader)) continue;
+                if (!leader.hasKeyword(Keyword.BANDING) && !leader.hasKeyword(Keyword.BANDSWITH)) continue;
+                GameEntity def = combat.getDefenderByAttacker(leader);
+                List<Card> others = new ArrayList<>();
+                for (Card c : combat.getAttackers())
+                    if (c != leader && !banded.contains(c) && combat.getDefenderByAttacker(c) == def) others.add(c);
+                if (others.isEmpty()) continue;
+                List<String> labels = new ArrayList<>();
+                for (Card c : others) labels.add(labelOf(c));
+                String q = "BANDS: " + labelOf(leader) + " has " + (leader.hasKeyword(Keyword.BANDING) ? "banding" : "bands with other")
+                        + ". Choose the attackers that join its band against " + labelOf(def) + " (a band is blocked as one, and"
+                        + " you assign the damage dealt to it); PICKS: NONE keeps it attacking alone.";
+                for (int attempt = 0; attempt < 2; attempt++) {
+                    List<Integer> picks = decideMany(smart, "attack-bands", q + (attempt == 0 ? ""
+                            : " That set is not a band: all but one of its creatures need banding."), labels, 0, others.size());
+                    if (picks == null || picks.isEmpty()) break;
+                    CardCollection band = new CardCollection(leader);
+                    for (int i : picks) band.add(others.get(i));
+                    if (!forge.game.combat.AttackingBand.isValidBand(band, false)) {
+                        if (attempt == 1) auto("attack-bands(not a band)->alone");
+                        continue;
+                    }
+                    forge.game.combat.AttackingBand ab = combat.getBandOfAttacker(leader);
+                    for (Card c : band) if (c != leader) combat.addAttacker(c, def, ab);
+                    banded.addAll(band);
+                    p("[ROUTER] attack-bands: " + band);
+                    break;
+                }
+            }
+        }
+
+        // ---- Mechanics Forge's AI decided until 2026-10-17 (ledger: "not in eval decks"). The owner: "cover all the
+        // mechanics, every play surface"; each is the seat's now, with a fixed legal option when no answer comes.
+
+        /** Which of {@code cards} the seat picks for {@code type} (any number, none included). */
+        private List<Card> pickCards(String type, String question, List<Card> cards) {
+            clearLast();
+            List<Card> out = new ArrayList<>();
+            if (cards == null || cards.isEmpty()) return out;
+            if (!smartOk()) { auto(type + "(no-model)->none"); return out; }
+            List<String> labels = new ArrayList<>();
+            for (Card c : cards) labels.add(cardLabel(c));
+            List<Integer> picks = decideMany(smart, type, question, labels, 0, cards.size());
+            if (picks == null) { auto(type + "(unparsed)->none"); return out; }
+            for (int i : picks) out.add(cards.get(i));
+            p("[ROUTER] " + type + ": " + (out.isEmpty() ? "(none)" : names(out, false, 10)));
+            return out;
+        }
+
+        /** Exert (CR 701.43): which attackers are exerted as they attack. */
+        @Override
+        public List<Card> exertAttackers(List<Card> attackers) {
+            return pickCards("exert", "EXERT: choose the attackers to exert as they attack. An exerted creature gets what its"
+                    + " exert ability says and won't untap during your next untap step.", attackers);
+        }
+
+        /** Enlist (CR 702.154): which attackers enlist (each taps a non-attacking creature you control and adds its power). */
+        @Override
+        public List<Card> enlistAttackers(List<Card> attackers) {
+            return pickCards("enlist", "ENLIST: choose the attackers that enlist. Each taps a non-attacking creature you control"
+                    + " without summoning sickness and gets +X/+0 until end of turn, X that creature's power.", attackers);
+        }
+
+        /** Splice onto Arcane (CR 702.47): which cards in hand are spliced onto the spell. Only splices the whole cast can
+         *  still pay are offered: an unpayable one fails the cast. */
+        @Override
+        public List<Card> chooseCardsForSplice(SpellAbility sa, List<Card> cards) {
+            List<Card> payable = new ArrayList<>();
+            for (Card c : cards) {
+                try {
+                    SpellAbility with = sa.copy();
+                    forge.game.ability.AbilityUtils.addSpliceEffect(with, c);
+                    with.setActivatingPlayer(getPlayer());
+                    if (ComputerUtilCost.canPayCost(with, getPlayer(), false)) payable.add(c);
+                } catch (Exception ignore) { /* not offered */ }
+            }
+            if (payable.isEmpty()) { clearLast(); auto("splice(none payable)->none"); return payable; }
+            return pickCards("splice", "SPLICE" + srcAsk(sa) + ": choose the cards in your hand to splice onto it. Each adds its"
+                    + " effect, you pay its splice cost too, and it stays in your hand.", payable);
+        }
+
+        /** A coin flip the seat calls (heads or tails), or, with Krark's Thumb, the result it keeps. */
+        @Override
+        public boolean chooseFlipResult(SpellAbility sa, Player flipper, boolean call) {
+            clearLast();
+            List<String> labels = call ? Lists.newArrayList("Heads", "Tails") : Lists.newArrayList("Win the flip", "Lose the flip");
+            if (!smartOk() && !fastOk()) { auto("flip(no-model)->" + labels.get(0)); return true; }
+            String q = call ? "COIN FLIP" + srcAsk(sa) + ": call it." : "COIN FLIP" + srcAsk(sa) + ": choose the result you keep.";
+            int c = askOne("flip", q, labels, null, 0);
+            p("[ROUTER] flip: " + labels.get(c));
+            return c == 0;
+        }
+
+        /** Shield counters an effect gives, divided among what it affects (CR 122.1c). */
+        @Override
+        public Map<GameEntity, Integer> divideShield(Card effectSource, Map<GameEntity, Integer> affected, int shieldAmount) {
+            clearLast();
+            List<GameEntity> ents = new ArrayList<>(affected.keySet());
+            Map<GameEntity, Integer> out = new java.util.HashMap<>();
+            if (ents.isEmpty() || shieldAmount <= 0) return out;
+            List<Integer> alloc = null;
+            if (ents.size() > 1 && (smartOk() || fastOk())) {
+                List<String> labels = new ArrayList<>();
+                for (GameEntity e : ents) labels.add(labelOf(e));
+                alloc = decideAllocation(bridgeFor("shield"), "SHIELD: divide " + shieldAmount + " shield counters from "
+                        + labelOf(effectSource) + " among these.", labels, shieldAmount);
+                if (alloc != null && (alloc.size() != ents.size() || alloc.stream().mapToInt(Integer::intValue).sum() != shieldAmount)) alloc = null;
+                if (alloc != null) evalDec("shield", ents.size(), -1, tierOf(true), 0, null, labels);
+            }
+            if (alloc == null) { alloc = evenSplit(shieldAmount, ents.size()); auto("shield(" + (ents.size() == 1 ? "forced" : "default") + ")->even split"); }
+            for (int i = 0; i < ents.size(); i++) if (alloc.get(i) > 0) out.put(ents.get(i), alloc.get(i));
+            return out;
+        }
+
+        /** Set when a roll's reroll or modify cost was not paid: the engine asks again while the card that offers it
+         *  remains, and it remains until paid, so asking again would loop. Cleared by the next roll's first ask. */
+        private boolean rollPaymentFailed = false;
+
+        /** A die to ignore ("roll two dice and ignore one"). */
+        @Override
+        public Integer chooseRollToIgnore(List<Integer> rolls) {
+            clearLast();
+            if (rolls == null || rolls.isEmpty()) return null;
+            if (rolls.size() == 1 || new java.util.HashSet<>(rolls).size() == 1) { auto("roll-ignore(forced)"); return rolls.get(0); }
+            List<String> labels = new ArrayList<>();
+            for (Integer r : rolls) labels.add(String.valueOf(r));
+            return rolls.get(askOne("roll-ignore", "DICE: choose the roll to ignore.", labels, null, 0));
+        }
+
+        /** Which dice to reroll (Monitor Monitor: pay {1} to reroll one or more). */
+        @Override
+        public List<Integer> chooseDiceToReroll(List<Integer> rolls) {
+            clearLast();
+            List<Integer> out = new ArrayList<>();
+            if (rolls == null || rolls.isEmpty()) return out;
+            if (rollPaymentFailed) { rollPaymentFailed = false; auto("roll-reroll(cost not paid)->none"); return out; }
+            if (!smartOk()) { auto("roll-reroll(no-model)->none"); return out; }
+            List<String> labels = new ArrayList<>();
+            for (Integer r : rolls) labels.add(String.valueOf(r));
+            List<Integer> picks = decideMany(smart, "roll-reroll", "DICE: choose the dice to reroll (you pay the reroll cost); PICKS: NONE keeps them.",
+                    labels, 0, rolls.size());
+            if (picks == null) { auto("roll-reroll(unparsed)->none"); return out; }
+            for (int i : picks) out.add(rolls.get(i));
+            return out;
+        }
+
+        /** Which roll to raise or lower by 1 (Xenosquirrels, Night Shift of the Living Dead), or none. */
+        @Override
+        public Integer chooseRollToModify(List<Integer> rolls) {
+            clearLast();
+            if (rolls == null || rolls.isEmpty()) return null;
+            if (rollPaymentFailed) { rollPaymentFailed = false; auto("roll-modify(cost not paid)->none"); return null; }
+            List<String> labels = new ArrayList<>();
+            for (Integer r : rolls) labels.add(String.valueOf(r));
+            int c = askOne("roll-modify", "DICE: choose a roll to raise or lower by 1 (you pay the cost), or none.", labels,
+                    "None (keep the rolls)", -1);
+            return c < 0 || c >= rolls.size() ? null : rolls.get(c);
+        }
+
+        /** Which roll to swap with a creature's power or toughness (Dicey Sapper-style effects), or none. */
+        @Override
+        public forge.game.ability.effects.RollDiceEffect.DieRollResult chooseRollToSwap(List<forge.game.ability.effects.RollDiceEffect.DieRollResult> rolls) {
+            clearLast();
+            if (rolls == null || rolls.isEmpty()) return null;
+            List<String> labels = new ArrayList<>();
+            for (forge.game.ability.effects.RollDiceEffect.DieRollResult r : rolls) labels.add(String.valueOf(r.getModifiedValue()));
+            int c = askOne("roll-swap", "DICE: choose a roll to exchange with power or toughness, or none.", labels, "None (no exchange)", -1);
+            return c < 0 || c >= rolls.size() ? null : rolls.get(c);
+        }
+
+        /** Whether the swapped roll becomes power or toughness, or neither. */
+        @Override
+        public String chooseRollSwapValue(List<String> swapChoices, Integer currentResult, int power, int toughness) {
+            clearLast();
+            if (swapChoices == null || swapChoices.isEmpty()) return null;
+            int c = askOne("roll-swap", "DICE: exchange the roll " + currentResult + " with power " + power + " or toughness "
+                    + toughness + "?", new ArrayList<>(swapChoices), "Neither", -1);
+            return c < 0 || c >= swapChoices.size() ? null : swapChoices.get(c);
+        }
+
+        /** The cost of a reroll or a modification the seat chose (Forge's AI never paid one). */
+        @Override
+        public boolean payCostDuringRoll(Cost cost, SpellAbility sa) {
+            clearLast();
+            try {
+                if (cost == null || !ComputerUtilCost.canPayCost(cost, sa, getPlayer(), true)) {
+                    rollPaymentFailed = true;
+                    auto("roll-cost(cannot pay)->not paid");
+                    return false;
+                }
+                boolean paid = new CostPayment(cost, sa).payComputerCosts(new LlmCostDecision(getPlayer(), sa, true));
+                if (!paid) rollPaymentFailed = true;
+                p("[ROUTER] roll-cost: paid " + fit(named(cost.toSimpleString(), sa.getHostCard())) + " -> " + paid);
+                return paid;
+            } catch (Exception e) { rollPaymentFailed = true; auto("roll-cost(err)->not paid"); return false; }
+        }
+
+        /** A planar die roll to ignore (Planechase). */
+        @Override
+        public forge.game.PlanarDice choosePDRollToIgnore(List<forge.game.PlanarDice> rolls) {
+            clearLast();
+            if (rolls == null || rolls.isEmpty()) return null;
+            if (new java.util.HashSet<>(rolls).size() == 1) { auto("roll-ignore(forced)"); return rolls.get(0); }
+            List<String> labels = new ArrayList<>();
+            for (forge.game.PlanarDice r : rolls) labels.add(String.valueOf(r));
+            return rolls.get(askOne("roll-ignore", "PLANAR DIE: choose the roll to ignore.", labels, null, 0));
+        }
+
+        /** Which sticker goes on {@code target} (Unfinity), or none when optional. */
+        @Override
+        public forge.game.card.sticker.Sticker chooseSticker(List<forge.game.card.sticker.Sticker> options, Card target, SpellAbility sa, boolean isOptional) {
+            clearLast();
+            if (options == null || options.isEmpty()) return null;
+            List<String> labels = new ArrayList<>();
+            for (forge.game.card.sticker.Sticker st : options)
+                labels.add((st.getTickets() == 0 ? "" : st.getTickets() + " tickets - ") + st.getDescription());
+            int c = askOne("sticker", "STICKER" + srcAsk(sa) + ": choose the sticker to put on " + labelOf(target) + ".", labels,
+                    isOptional ? "None" : null, isOptional ? -1 : 0);
+            return c < 0 || c >= options.size() ? null : options.get(c);
+        }
+
+        /** Where a name sticker's word goes in the card's name (CR 123.6a). */
+        @Override
+        public int chooseStickerNamePosition(forge.game.card.sticker.Sticker sticker, Card target) {
+            clearLast();
+            if (target.getName() == null || target.getName().isBlank() || target.stickerWouldFillBlank()) return 0;
+            int words = target.getName().split(" ").length;
+            List<String> labels = new ArrayList<>();
+            for (int at = 0; at <= words; at++) labels.add(Card.addStickerWord(target.getName(), sticker.getWord(), at));
+            return Math.max(0, askOne("sticker", "STICKER: where does \"" + sticker.getWord() + "\" go in the name?", labels, null, 0));
+        }
+
+        /** Which card keeps its stickers when too many would remain (CR 123.9). */
+        @Override
+        public Card chooseCardToKeepStickers(CardCollectionView options) {
+            clearLast();
+            if (options == null || options.isEmpty()) return null;
+            List<Card> cards = new ArrayList<>(options);
+            List<String> labels = new ArrayList<>();
+            for (Card c : cards) labels.add(cardLabel(c));
+            return cards.get(askOne("sticker", "STICKERS: choose the card that keeps its stickers.", labels, null, 0));
+        }
+
+        /** Which contraptions are cranked this turn (Unstable). */
+        @Override
+        public List<Card> chooseContraptionsToCrank(List<Card> contraptions) {
+            return pickCards("crank", "CRANK: choose the contraptions to crank (each does what its cranked ability says).", contraptions);
+        }
+
+        /** Which sprocket a contraption is assembled on. */
+        @Override
+        public int chooseSprocket(Card assignee, List<Integer> sprockets) {
+            clearLast();
+            if (sprockets == null || sprockets.isEmpty()) return 0;
+            int next = (getPlayer().getCrankCounter() % 3) + 1;
+            List<String> labels = new ArrayList<>();
+            for (Integer sp : sprockets) labels.add(sp + (sp == next ? " (cranked next turn)" : ""));
+            return sprockets.get(askOne("sprocket", "SPROCKET: choose the sprocket for " + labelOf(assignee) + ".", labels, null, 0));
+        }
+
+        /** An Attraction's or an effect's sector (Unfinity). */
+        @Override
+        public String chooseSector(Card assignee, String ai, List<String> sectors) {
+            clearLast();
+            if (sectors == null || sectors.isEmpty()) return null;
+            String q = assignee != null ? "SECTOR: choose the sector for " + labelOf(assignee) + "." : "SECTOR: choose a sector for the effect.";
+            return sectors.get(askOne("sector", q, new ArrayList<>(sectors), null, 0));
+        }
+
+        /** Which of several opening hands is kept (a variant that deals more than one). */
+        @Override
+        public forge.game.zone.PlayerZone chooseStartingHand(List<forge.game.zone.PlayerZone> zones) {
+            clearLast();
+            if (zones == null || zones.isEmpty()) return null;
+            List<String> labels = new ArrayList<>();
+            for (forge.game.zone.PlayerZone z : zones) labels.add(names(new ArrayList<>(z.getCards()), false, 10));
+            return zones.get(askOne("starting-hand", "Choose the opening hand you keep.", labels, null, 0));
+        }
+
+        /** Assist (CR 702.132): which player is asked to help pay, or none. */
+        @Override
+        public Player choosePlayerToAssistPayment(FCollectionView<Player> optionList, SpellAbility sa, String title, int max) {
+            // Pricing asks too (the menu, the hand tags): an ask there builds a snapshot that prices again
+            // (StackOverflowError, keyword sweep). Only the real payment asks; pricing counts no assist.
+            if (PRICING_FOR_SNAPSHOT || !payingForReal) return null;
+            clearLast();
+            if (optionList == null || optionList.isEmpty()) return null;
+            List<Player> ps = new ArrayList<>(optionList);
+            List<String> labels = new ArrayList<>();
+            for (Player pl : ps) labels.add(pl.getName());
+            int c = askOne("assist", "ASSIST" + srcAsk(sa) + ": ask a player to help pay up to {" + max + "}, or none.", labels, "None", -1);
+            return c < 0 || c >= ps.size() ? null : ps.get(c);
+        }
+
+        /** How much of another player's assist spell the seat pays, from what it can pay. */
+        @Override
+        public boolean helpPayForAssistSpell(forge.game.mana.ManaCostBeingPaid cost, SpellAbility sa, int max, int requested) {
+            clearLast();
+            int can = 0;
+            for (int k = Math.min(max, 20); k > 0; k--) {
+                forge.game.mana.ManaCostBeingPaid probe = new forge.game.mana.ManaCostBeingPaid(forge.card.mana.ManaCost.get(k));
+                if (ComputerUtilMana.canPayManaCost(probe, sa, getPlayer(), false)) { can = k; break; }
+            }
+            if (can == 0) { auto("assist-pay(cannot pay)->0"); return true; }
+            List<String> labels = new ArrayList<>();
+            for (int k = 0; k <= can; k++) labels.add(String.valueOf(k));
+            int pay = Math.max(0, askOne("assist-pay", "ASSIST" + srcAsk(sa) + ": " + sa.getActivatingPlayer().getName() + " asks you to help pay"
+                    + " (they asked for {" + requested + "}). How much generic mana do you pay?", labels, null, 0));
+            if (pay == 0) return true;
+            forge.game.mana.ManaCostBeingPaid assist = new forge.game.mana.ManaCostBeingPaid(forge.card.mana.ManaCost.get(pay));
+            if (ComputerUtilMana.payManaCost(assist, sa, getPlayer(), false)) cost.decreaseGenericMana(pay);
+            return true;
         }
 
         /** A vote (Council's Judgment): the seat's, not ComputerUtil.vote. The ledger had it as "not in
@@ -3009,7 +3349,7 @@ public final class LlmSpikeGui {
                 PhaseHandler phh = me.getGame().getPhaseHandler();
                 boolean ownMain = phh.isPlayerTurn(me) && (phh.is(PhaseType.MAIN1) || phh.is(PhaseType.MAIN2));
                 String winKey = phh.getTurn() + "|" + phh.getPhase() + "|" + safeStackTop(me.getGame());
-                if (!winKey.equals(cancelKey)) { cancelKey = winKey; cancels = 0; cancelNote = null; }
+                if (!winKey.equals(cancelKey)) { cancelKey = winKey; cancels = 0; cancelNote = null; failedInWindow.clear(); }
 
                 // SPEED: on a reactive (not-our-main) priority window, only think when something can
                 // actually matter — a spell/ability on the stack, combat (tricks/removal), or the
@@ -3041,6 +3381,8 @@ public final class LlmSpikeGui {
                 // both build the byte-identical option menu — see enumeratePlayOptions).
                 PlayOptions po = enumeratePlayOptions(me, ownMain, observer != null);
                 List<SpellAbility> options = po.spells;
+                if (!failedInWindow.isEmpty() && options.removeIf(sa -> failedInWindow.contains(failedPlayKey(sa))))
+                    p("[ROUTER] play: a play that failed to pay in this window is not offered again");
                 List<SpellAbility> landPlays = po.landPlays;
                 List<Card> landCards = po.landCards;
                 boolean haveLand = !landPlays.isEmpty();
@@ -3951,7 +4293,8 @@ public final class LlmSpikeGui {
                     return false;
                 }
                 if (okFor("prevent-effect")) {
-                    String desc = fit(cost.toSimpleString());
+                    // Riot's and fabricate's choice is worded as a cost "Put a +1/+1 counter on CARDNAME".
+                    String desc = fit(named(cost.toSimpleString(), sa == null ? null : sa.getHostCard()));
                     List<String> labels = Lists.newArrayList("Pay " + desc, "Decline (let it resolve)");
                     String q = "Pay " + desc + " to prevent " + (sa == null ? "the spell" : "the spell " + srcOf(sa))
                             + " from affecting you? Say 1 to pay or 2 to decline.";
@@ -4061,6 +4404,7 @@ public final class LlmSpikeGui {
                             if (ComputerUtilCost.canPayCost(with, getPlayer(), false)) offer.add(v);
                         } catch (Exception ignore) { }
                     }
+                    if (offer.isEmpty()) { auto("optional-costs(none payable)->decline-all"); return new ArrayList<>(); }
                     if (!offer.isEmpty()) {
                         List<String> labels = new ArrayList<>();
                         for (OptionalCostValue v : offer) labels.add(fit(named(v.toString(), chosen.getHostCard())));
@@ -4117,6 +4461,7 @@ public final class LlmSpikeGui {
                 return played;
             }
 
+            final String chosenKey = failedPlayKey(sa);
             final Player ai = getPlayer();
             final Card source = sa.getHostCard();
             final Game game = source.getGame();
@@ -4124,9 +4469,11 @@ public final class LlmSpikeGui {
             source.setSplitStateToPlayAbility(sa);
             if (sa.isSpell() && !source.isCopiedSpell()) {
                 sa = forge.game.ability.AbilityUtils.addSpliceEffects(sa);
+                // A spliced spell is a new copy with the spliced effects at its end: its targets are the seat's again,
+                // all of them (the copied routine asked Forge's AI whether to go on, and dropped the play when it said no).
                 if (sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty()) {
                     sa.resetTargets();
-                    if (getAi().canPlaySa(sa) != forge.ai.AiPlayDecision.WillPlay) return true;
+                    ensureTargetsSet(sa);
                 }
                 sa.setHostCard(game.getAction().moveToStack(source, sa));
             }
@@ -4155,7 +4502,10 @@ public final class LlmSpikeGui {
                 cancelNote = "you chose " + verbOf(sa) + " " + labelOf(sa) + " and then cancelled it when asked to pay its cost. Choose again.";
                 actionIntent = null;
                 p("[ROUTER] play: cancelled " + labelOf(sa) + " at its cost -> re-ask");
-            } else p("[ROUTER] play: FAILED to pay for " + labelOf(sa) + " -> nothing was played");
+            } else {
+                p("[ROUTER] play: FAILED to pay for " + labelOf(sa) + " -> nothing was played");
+                failedInWindow.add(chosenKey);
+            }
             costCancelled = false;
             sa.setSkip(true);
             if (hz != null && hz.is(ZoneType.Stack)) {
@@ -4310,6 +4660,23 @@ public final class LlmSpikeGui {
          *  payment always respects) for this payment only; if the engine cannot pay around them, they are
          *  released and that is logged. Returns the cards held, to be released after the payment. */
         private List<Card> holdManaSources(forge.card.mana.ManaCost toPay, SpellAbility sa, boolean effect) {
+            // Convoke and improvise are chosen later in this payment. The engine's test payment counts a creature as a
+            // convoker and as a mana source at once (Llanowar Elves), so a land looked spare that was not: Angel of
+            // Salvation kept a Plains and failed to pay (keyword gauntlet). While this question is priced, the
+            // permanents that may convoke are not counted as mana; the seat's convoke choice still decides later.
+            List<Card> convokers = new ArrayList<>();
+            if (sa != null && sa.isSpell() && sa.getHostCard() != null) {
+                boolean convoke = sa.getHostCard().hasKeyword(Keyword.CONVOKE), improvise = sa.getHostCard().hasKeyword(Keyword.IMPROVISE);
+                if (convoke || improvise)
+                    for (Card c : getPlayer().getCardsIn(ZoneType.Battlefield))
+                        if (!c.isTapped() && ((convoke && c.isCreature()) || (improvise && c.isArtifact()))) convokers.add(c);
+            }
+            for (Card c : convokers) forge.ai.AiCardMemory.rememberCard(getPlayer(), c, forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
+            try { return holdManaSourcesPriced(toPay, sa, effect, convokers); }
+            finally { for (Card c : convokers) forge.ai.AiCardMemory.forgetCard(getPlayer(), c, forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL); }
+        }
+
+        private List<Card> holdManaSourcesPriced(forge.card.mana.ManaCost toPay, SpellAbility sa, boolean effect, List<Card> convokers) {
             List<Card> none = java.util.Collections.emptyList();
             try {
                 if (sa == null || "floor".equals(mode) || (!smartOk() && !fastOk())) return none;
@@ -4318,7 +4685,7 @@ public final class LlmSpikeGui {
                 if (plan == null || plan.isEmpty()) return none;
                 List<Card> sources = new ArrayList<>();
                 for (Card c : me.getCardsIn(ZoneType.Battlefield)) {
-                    if (c == sa.getHostCard()) continue;
+                    if (c == sa.getHostCard() || convokers.contains(c)) continue;
                     // A source the engine can tap for mana now (untapped, not summoning sick), as manaSources reads it.
                     if (c.getManaAbilities().anyMatch(ma -> ma.getPayCosts() != null && ma.getPayCosts().hasTapCost()
                             && canActivateNow(ma, me))) sources.add(c);
@@ -5356,6 +5723,26 @@ public final class LlmSpikeGui {
             return null;
         }
 
+        static List<AbilitySub> pick(List<AbilitySub> modes, List<Integer> picks) {
+            List<AbilitySub> out = new ArrayList<>();
+            for (int i : picks) out.add(modes.get(i));
+            return out;
+        }
+
+        /** Whether {@code sa} can be paid with the added costs of {@code modes} (spree, tiered). */
+        boolean modesPayable(SpellAbility sa, List<AbilitySub> modes) {
+            return modesPayable(sa, modes, getPlayer());
+        }
+        static boolean modesPayable(SpellAbility sa, List<AbilitySub> modes, Player me) {
+            try {
+                Cost total = sa.getPayCosts().copy();
+                for (AbilitySub ab : modes) if (ab.hasParam("ModeCost")) total.add(new Cost(ab.getParam("ModeCost"), false));
+                boolean was = PRICING_FOR_SNAPSHOT;
+                PRICING_FOR_SNAPSHOT = true;
+                try { return ComputerUtilCost.canPayCost(total, sa, me, false); } finally { PRICING_FOR_SNAPSHOT = was; }
+            } catch (Exception e) { return false; }
+        }
+
         /** Route modal spells ("choose one —") through the numbered menu. */
         @Override
         public List<AbilitySub> chooseModeForAbility(SpellAbility sa, List<AbilitySub> possible, int min, int num, boolean allowRepeat) {
@@ -5366,6 +5753,15 @@ public final class LlmSpikeGui {
                 // you may choose the same mode more than once") IS routed: the model picks the modes,
                 // repeats included, so a repeatable Charm is no longer the Forge AI's (#127).
                 if (possible == null || possible.isEmpty()) { auto("modes(empty)->none"); return new ArrayList<>(); }
+                // Spree and tiered modes each add a cost (ModeCost, added at payment by CostAdjustment): only the modes
+                // the cast can pay with are offered, and the set is checked together (Dance of the Tumbleweeds' +{1}
+                // mode was chosen with two lands for its {1}{G} and the cast failed, keyword gauntlet).
+                final boolean priced = possible.stream().anyMatch(ab -> ab.hasParam("ModeCost"));
+                if (priced) {
+                    possible = new ArrayList<>(possible);
+                    possible.removeIf(ab -> !modesPayable(sa, List.of(ab)));
+                    if (possible.isEmpty()) { auto("modes(none payable)->none"); return new ArrayList<>(); }
+                }
                 if (possible.size() == 1 && min >= 1) { auto("modes(forced-only-legal)"); return repeated(possible.get(0), Math.max(min, Math.min(num, 1))); } // forced
                 // No budget: deterministic legal modes (distinct first, then repeats), never Forge AI.
                 if (!smartOk()) {
@@ -5376,7 +5772,8 @@ public final class LlmSpikeGui {
                 List<String> labels = new ArrayList<>();
                 String host = sa.getHostCard() == null ? "" : safeName(sa.getHostCard());
                 for (AbilitySub ab : possible)
-                    labels.add(observer != null ? fit(ab.getDescription()).replace("CARDNAME", host).replace("NICKNAME", host) : oneLine(ab.getDescription()));
+                    labels.add((ab.hasParam("ModeCost") ? "+ " + new Cost(ab.getParam("ModeCost"), false).toSimpleString() + " — " : "")
+                            + (observer != null ? fit(ab.getDescription()).replace("CARDNAME", host).replace("NICKNAME", host) : oneLine(ab.getDescription())));
                 if (allowRepeat) {
                     List<Integer> rp = decideModesRepeat(smart, "MODAL SPELL — choose mode(s) for " + labelOf(sa) + xNote(sa)
                             + " (you may choose the same mode more than once).", labels, Math.max(0, min), num);
@@ -5391,8 +5788,13 @@ public final class LlmSpikeGui {
                     p("[ROUTER] modes(repeat): " + log);
                     return out;
                 }
-                List<Integer> picks = decideMany(smart, "modes", "MODAL SPELL — choose mode(s) for " + labelOf(sa) + xNote(sa) + ".",
-                        labels, Math.max(0, min), Math.min(num, possible.size()));
+                String mq = "MODAL SPELL — choose mode(s) for " + labelOf(sa) + xNote(sa) + (priced ? "; each mode adds its cost" : "") + ".";
+                List<Integer> picks = decideMany(smart, "modes", mq, labels, Math.max(0, min), Math.min(num, possible.size()));
+                for (int attempt = 0; priced && picks != null && picks.size() > 1 && !modesPayable(sa, pick(possible, picks)); attempt++) {
+                    if (attempt == 1) { picks = List.of(0); auto("modes(together unpayable)->first payable"); break; }
+                    picks = decideMany(smart, "modes", mq + " That set's costs together are more than you can pay; pick a set you can pay.",
+                            labels, Math.max(0, min), Math.min(num, possible.size()));
+                }
                 // decideMany's null covers BOTH bridge-down and still-unparseable-after-retry — same
                 // deterministic legal default as the no-budget branch above, never Forge AI.
                 if (picks == null || picks.size() < min) {
@@ -5851,6 +6253,9 @@ public final class LlmSpikeGui {
             java.util.Set<String> kinds = new java.util.HashSet<>();
             for (forge.game.mana.Mana m : manaChoices) kinds.add(m.toString());
             if (kinds.size() == 1) return manaChoices.get(0);   // all alike: nothing to choose
+            // Pricing (the menu, the hand tags) takes the first without asking: an ask builds a snapshot, whose
+            // pricing reached this ask again (floating {R}{G} from Lukka's +1: StackOverflowError, keyword gauntlet).
+            if (PRICING_FOR_SNAPSHOT || !payingForReal) return manaChoices.get(0);
             List<String> labels = new ArrayList<>();
             for (forge.game.mana.Mana m : manaChoices)
                 labels.add(m + (m.getSourceCard() == null ? "" : " (from " + safeName(m.getSourceCard()) + ")"));
@@ -5901,21 +6306,63 @@ public final class LlmSpikeGui {
             String how = creatures && artifacts ? "creatures or artifacts" : creatures ? "creatures (convoke)" : "artifacts (improvise)";
                 askingConvoke = true;
                 try {
-                    picks = askMany("convoke", "CONVOKE/IMPROVISE: you are paying " + manaCost + " for " + labelOf(sa) + ". Tap untapped "
-                            + how + " to pay part of it (up to " + max + "; none pays it all with mana). Choose which.", cardLabels(opts), 0, max);
+                    String q = "CONVOKE/IMPROVISE: you are paying " + manaCost + " for " + labelOf(sa) + ". Tap untapped "
+                            + how + " to pay part of it (up to " + max + "; none pays it all with mana). Choose which.";
+                    picks = askMany("convoke", q, cardLabels(opts), 0, max);
+                    // The rest must stay payable with the sources left (what this payment holds untapped is not
+                    // among them): the keyword gauntlet's Angel of Salvation kept a land on the strength of its
+                    // convokers, then convoked fewer, and the payment failed. Asked again once, then all convoke.
+                    for (int attempt = 0; !restPayable(sa, assignConvoke(opts, picks, shards, creatures), shards); attempt++) {
+                        if (attempt == 1) {
+                            picks = new ArrayList<>();
+                            for (int i = 0; i < max; i++) picks.add(i);
+                            auto("convoke(rest unpayable)->all " + max);
+                            break;
+                        }
+                        picks = askMany("convoke", q + " With those, the rest cannot be paid by your other sources; choose more.",
+                                cardLabels(opts), 0, max);
+                    }
                 } finally {
                     askingConvoke = false;
                 }
             }
+            return assignConvoke(opts, picks, shards, creatures);
+        }
+
+        /** Each picked card pays the first symbol it can (a creature: generic or its colour; an artifact: generic). */
+        private static Map<Card, forge.card.mana.ManaCostShard> assignConvoke(List<Card> opts, List<Integer> picks,
+                List<forge.card.mana.ManaCostShard> shards, boolean creatures) {
+            Map<Card, forge.card.mana.ManaCostShard> out = new java.util.HashMap<>();
+            List<forge.card.mana.ManaCostShard> left = new ArrayList<>(shards);
             for (int i : picks) {
                 Card c = opts.get(i);
-                for (java.util.Iterator<forge.card.mana.ManaCostShard> it = shards.iterator(); it.hasNext(); ) {
+                for (java.util.Iterator<forge.card.mana.ManaCostShard> it = left.iterator(); it.hasNext(); ) {
                     forge.card.mana.ManaCostShard sh = it.next();
                     boolean ok = sh.isGeneric() || (creatures && c.isCreature() && c.getColor().hasAnyColor(sh.getColorMask()));
                     if (ok) { out.put(c, sh); it.remove(); break; }
                 }
             }
             return out;
+        }
+
+        /** Whether the symbols {@code convoked} leaves can be paid by the sources this payment may still tap. */
+        private boolean restPayable(SpellAbility sa, Map<Card, forge.card.mana.ManaCostShard> convoked, List<forge.card.mana.ManaCostShard> shards) {
+            List<forge.card.mana.ManaCostShard> left = new ArrayList<>(shards);
+            for (forge.card.mana.ManaCostShard sh : convoked.values()) left.remove(sh);
+            int generic = 0;
+            StringBuilder sb = new StringBuilder();
+            for (forge.card.mana.ManaCostShard sh : left) { if (sh.isGeneric()) generic++; else sb.append(' ').append(sh.toShortString()); }
+            String str = ((generic > 0 ? String.valueOf(generic) : "") + sb).trim();
+            if (str.isEmpty()) return true;
+            Player me = getPlayer();
+            for (Card c : convoked.keySet()) forge.ai.AiCardMemory.rememberCard(me, c, forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
+            try {
+                return ComputerUtilMana.getManaSourcesToPayCost(new forge.game.mana.ManaCostBeingPaid(new forge.card.mana.ManaCost(str)), sa, me, false) != null;
+            } catch (Exception e) {
+                return true;
+            } finally {
+                for (Card c : convoked.keySet()) forge.ai.AiCardMemory.forgetCard(me, c, forge.ai.AiCardMemory.MemorySet.HELD_MANA_SOURCES_FOR_NEXT_SPELL);
+            }
         }
 
         /** An attack or block tax (Propaganda, Ghostly Prison): whether to pay it. Paying is the engine's mechanics.
@@ -6253,6 +6700,15 @@ public final class LlmSpikeGui {
                 } else {
                     org.apache.commons.lang3.Range<Integer> range = forge.game.ability.AbilityUtils.getAnnouncementBounds(sa, "X");
                     min = range.getMinimum(); max = range.getMaximum();
+                    // The engine's bounds do not ask whether the cost can be paid: Arcee, Sharpshooter's "remove X
+                    // +1/+1 counters" was announced at X=1 with none on it, and the payment failed (keyword gauntlet).
+                    int best = min - 1;
+                    for (int k = min; k <= Math.min(max, 99); k++) {
+                        sa.setXManaCostPaid(k);
+                        if (!forge.game.cost.CostPayment.canPayAdditionalCosts(sa.getPayCosts(), sa, false)) break;
+                        best = k;
+                    }
+                    if (best >= min) max = best;
                     note = max < 99 ? " (up to " + max + ")" : "";
                 }
                 sa.setXManaCostPaid(announced(sa, "X", min, max, note));
@@ -7472,9 +7928,13 @@ public final class LlmSpikeGui {
         static boolean costlyManaAbility(SpellAbility sa, Player me) {
             if (!sa.isManaAbility() || sa.getPayCosts() == null) return false;
             forge.game.cost.Cost c = sa.getPayCosts();
+            // A loyalty ability that adds mana (Lukka, Bound to Ruin's +1) changes loyalty: a play of its own, not a
+            // payment step, and it was never on the menu.
             boolean beyondTap = c.hasSpecificCostType(forge.game.cost.CostSacrifice.class)
                     || c.hasSpecificCostType(forge.game.cost.CostDiscard.class)
-                    || c.hasSpecificCostType(forge.game.cost.CostExile.class);
+                    || c.hasSpecificCostType(forge.game.cost.CostExile.class)
+                    || c.hasSpecificCostType(forge.game.cost.CostPutCounter.class)
+                    || c.hasSpecificCostType(forge.game.cost.CostRemoveCounter.class) || sa.isPwAbility();
             if (!beyondTap) return false;
             try { sa.setActivatingPlayer(me); return sa.canPlay() && forge.ai.ComputerUtilCost.canPayCost(sa, me, false); }
             catch (Exception e) { return false; }
@@ -7490,8 +7950,25 @@ public final class LlmSpikeGui {
             boolean payable;
             try {
                 payable = alt ? ComputerUtilCost.canPayCost(sa, me, false) : ComputerUtilMana.canPayManaCost(sa, me, 0, false);
+                // The rest of the cost by the engine's own test, at the least X it allows: Arcee, Sharpshooter's
+                // "{1}, remove X +1/+1 counters (X at least 1)" was offered with no counter on it and failed to pay.
+                if (payable && !alt && sa.getPayCosts() != null) {
+                    Integer x = sa.getXManaCostPaid();
+                    forge.game.cost.CostPartMana cm = sa.getPayCosts().getCostMana();
+                    if (sa.getPayCosts().hasXInAnyCostPart()) sa.setXManaCostPaid(cm == null ? 0 : Math.max(0, cm.getXMin()));
+                    try { payable = forge.game.cost.CostPayment.canPayAdditionalCosts(sa.getPayCosts(), sa, false); }
+                    finally { sa.setXManaCostPaid(x); }
+                }
             } finally {
                 PRICING_FOR_SNAPSHOT = false;
+            }
+            // A spree spell is cast with at least one mode, and each adds its cost: offered only when one is payable.
+            if (payable && sa.getApi() == ApiType.Charm) {
+                try {
+                    List<AbilitySub> modes = forge.game.ability.effects.CharmEffect.makePossibleOptions(sa);
+                    if (modes.stream().anyMatch(ab -> ab.hasParam("ModeCost")))
+                        payable = modes.stream().anyMatch(ab -> modesPayable(sa, List.of(ab), me));
+                } catch (Exception ignore) { }
             }
             // Harmonize's reduction (tap a creature, the spell costs that much less) is chosen during the cast: priced
             // at full, Channeled Dragonfire's harmonize was never offered with four Mountains and a 3-power creature.
