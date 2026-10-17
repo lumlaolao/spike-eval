@@ -135,7 +135,7 @@ Baseline / exploratory arm example (not citable — mismatched decks, plans):
 ```bash
 python3 eval/run_batch.py --seeds 1..30 --pairs --exploratory \
     --deck-a eval/decks/grixis-reanimator.txt --deck-b eval/decks/mardu-energy.txt \
-    --controller-a llm --smart-a haiku --controller-b random
+    --controller-a llm --smart-a haiku --fast-a haiku --controller-b random
 ```
 
 ## The JSONL contract (identity-keyed, final)

@@ -1037,6 +1037,18 @@ def effective_llm_models(args):
     return models
 
 
+def unpinned_llm_tiers(args):
+    """Flags an llm seat leaves unset (issue #234). A seat with no controller is an llm seat, and an unset
+    tier falls through to the in-JVM default model (Opus for the smart tier), which no stamp flags: a Luna
+    mirror launched with only seat A pinned played Luna against Opus 5.5."""
+    missing = []
+    for ident in ("a", "b"):
+        if (getattr(args, "controller_" + ident, None) or "llm") != "llm":
+            continue
+        missing += ["--%s-%s" % (tier, ident) for tier in ("smart", "fast") if not getattr(args, "%s_%s" % (tier, ident))]
+    return missing
+
+
 def warn_parallel_jobs(args):
     """Spec-aware --jobs advice (measured basis: eval/CONCURRENCY.md §7).
     Bare (non-openrouter:) specs shell out to the local claude CLI and contend
@@ -1344,6 +1356,14 @@ def main(argv=None):
 
 def run_block(args):
     """Launch one block (one directory, one condition). Returns (exit code, out_dir)."""
+    missing = unpinned_llm_tiers(args)
+    if missing:
+        # Every mode: an exploratory run on an unintended model is as wrong as a cited one.
+        print("run_batch: REFUSING: an llm seat must name both of its models; unset: %s. A seat with no "
+              "--controller-x is an llm seat, and an unset model falls through to the harness default "
+              "(issue #234). Pass the models, or --controller-x ai|random|floor." % ", ".join(missing),
+              file=sys.stderr)
+        sys.exit(2)
     warn_reserved_seeds(args.seeds)
     if not getattr(args, "fake_policy", None):
         preflight_openrouter(args)

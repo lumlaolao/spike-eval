@@ -416,6 +416,9 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   - it resumes;
   - it plays a crashed game once more and sets the failed attempt aside (`--retries`);
   - it enforces the budget;
+  - it refuses an llm seat that does not name both of its models, in every mode: a seat with no controller
+    is an llm seat, and an unset model fell through to the harness default (Opus), so a Luna mirror
+    launched with seat B unset played Luna against Opus 5.5 with every stamp healthy (issue #234);
   - cited mode forces `--jobs 1` only when a seat runs on the local claude CLI (parallel JVMs starve it);
     `openrouter:` games wait on the network and may run in parallel (review E3).
   - *Why pinned:* a baseline arm that silently inherited a setting would be pooled with a different

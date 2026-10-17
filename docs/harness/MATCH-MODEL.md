@@ -69,10 +69,14 @@ lever at a time, and compare. The harness makes this one env var each:
 ```bash
 # full match model (v4-faithful, tools on) vs the historical baseline (v1-compat, tools off)
 python3 eval/run_batch.py --deck-a eval/decks/grixis-reanimator.txt \
-  --deck-b eval/decks/mardu-energy.txt --seeds 42,43 --games-per-seed 2 \
+  --deck-b eval/decks/mardu-energy.txt --seeds 42,43 --pairs --exploratory \
+  --smart-a openrouter:openai/gpt-6-luna --fast-a openrouter:openai/gpt-6-luna \
+  --smart-b openrouter:openai/gpt-6-luna --fast-b openrouter:openai/gpt-6-luna \
   --context-profile v4-faithful --memory-tools --out runs/ab/match-on
 python3 eval/run_batch.py --deck-a eval/decks/grixis-reanimator.txt \
-  --deck-b eval/decks/mardu-energy.txt --seeds 42,43 --games-per-seed 2 \
+  --deck-b eval/decks/mardu-energy.txt --seeds 42,43 --pairs --exploratory \
+  --smart-a openrouter:openai/gpt-6-luna --fast-a openrouter:openai/gpt-6-luna \
+  --smart-b openrouter:openai/gpt-6-luna --fast-b openrouter:openai/gpt-6-luna \
   --context-profile v1-compat             --out runs/ab/match-off
 python3 eval/aggregate.py runs/ab/match-on runs/ab/match-off
 ```

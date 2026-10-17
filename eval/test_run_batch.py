@@ -256,6 +256,32 @@ class TestConditionEnv(unittest.TestCase):
         self.assertNotIn("[out]", p.stdout)
 
 
+class TestUnpinnedSeat(unittest.TestCase):
+    """Issue #234: a seat with no controller is an llm seat, and an llm tier with no model spec fell through
+    to the in-JVM default (Opus for the smart tier): a Luna mirror launched with only seat A pinned played
+    Luna against Opus 5.5, every stamp healthy. Every llm tier must be named, in every mode."""
+
+    def test_an_llm_seat_without_both_model_specs_is_refused(self):
+        luna = "openrouter:openai/gpt-6-luna"
+        for kw in ({"controller_b": None}, {"controller_b": "llm", "smart_b": luna},
+                   {"controller_b": "llm", "fast_b": luna}, {"smart_a": None}):
+            with self.subTest(**kw):
+                self.assertTrue(run_batch.unpinned_llm_tiers(make_args(**kw)))
+        for kw in ({}, {"controller_b": "llm", "smart_b": luna, "fast_b": luna},
+                   {"controller_a": "floor", "smart_a": None, "fast_a": None}):
+            with self.subTest(**kw):
+                self.assertEqual(run_batch.unpinned_llm_tiers(make_args(**kw)), [])
+
+    def test_the_launcher_refuses_before_anything_runs(self):
+        p = subprocess.run([sys.executable, str(RUN_BATCH), "--seeds", "7100", "--exploratory",
+                            "--deck", "/tmp/deck.txt", "--controller-a", "llm",
+                            "--smart-a", "openrouter:openai/gpt-6-luna", "--fast-a", "openrouter:openai/gpt-6-luna",
+                            "--forge-home", "/nonexistent"], capture_output=True, text=True)
+        self.assertEqual(p.returncode, 2, p.stderr)
+        self.assertIn("--smart-b", p.stderr)
+        self.assertNotIn("[out]", p.stdout)
+
+
 class TestOneTier(unittest.TestCase):
     """ONE_TIER (every decision on the smart bridge) changes how hard the model may think per
     decision, so it is a condition: set only by --one-tier, recorded, checked against `one_tier`."""
