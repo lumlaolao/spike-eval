@@ -74,8 +74,10 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - Who crews, and which creatures that share a type tap, are the seat's.
 - Mana abilities are on the menu, one per card name and ability, so mana can be floated.
 - A creature that can block more than one attacker may: its label says how many, and the `answer` schema allows it.
-- The one exception: a window whose only option is floating mana passes unasked, as an empty one, because mana with
-  nothing to spend empties unused.
+- The one exception: a window whose only option is floating mana that changes nothing passes unasked, as an empty
+  one: a land's ability costing only {T} and mana that only adds mana, into a pool that empties without burn, with no
+  trigger on a tap or on mana added. Floating that does change the game (a creature tapped and unable to block,
+  Manabarbs, Upwelling's pool, mana burn) is a legal play and is asked (`floatChangesNothing`, harness-epoch-42).
 
 **What the harness may decide without asking (owner rule):**
 - a choice with exactly one legal option (forced). A cost that takes exactly as many cards as there are

@@ -23,7 +23,7 @@ CLASSES="${GAUNTLET_CLASSES:-$RUN/classes}"
 CP_FILE="$RUN/classpath.txt"
 [ -d "$CLASSES" ] && [ -f "$CP_FILE" ] || { echo "no acceptance build: run eval/harness_acceptance.sh first"; exit 2; }
 JAVA="${JAVA_HOME:+$JAVA_HOME/bin/}java"
-mkdir -p "$OUT"
+mkdir -p "$OUT" && OUT="$(cd "$OUT" && pwd)" # absolute: each game runs from the Forge checkout
 export REPO FORGE OUT CLASSES CP_FILE JAVA
 game() { # $1 deck A tag, $2 deck B tag
   local dir="$OUT/g-$1"; rm -rf "$dir"; mkdir -p "$dir"

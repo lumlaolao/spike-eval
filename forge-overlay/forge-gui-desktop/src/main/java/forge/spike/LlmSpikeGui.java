@@ -263,7 +263,7 @@ public final class LlmSpikeGui {
      *  legality test, not Forge AI's taste (legallyPayable); a cost may be paid with the ability's own target; casualty
      *  candidates are not filtered; who crews, and which creatures sharing a type tap, are the seat's; mana abilities
      *  are on the menu (floating mana); a creature that can block more attackers may. */
-    static final String HARNESS_EPOCH = "harness-epoch-41";
+    static final String HARNESS_EPOCH = "harness-epoch-42";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -3397,9 +3397,10 @@ public final class LlmSpikeGui {
                 List<Card> landCards = po.landCards;
                 boolean haveLand = !landPlays.isEmpty();
                 // Nothing to do -> pass (deterministic; never Forge's AI).
-                // Floating mana with nothing else to do only empties the pool: such a window is passed as an empty one
-                // (asking it would make every window a model call).
-                boolean onlyFloat = !options.isEmpty() && options.stream().allMatch(o -> o.isManaAbility() && !costlyManaAbility(o, me));
+                // A window whose only plays float mana that changes nothing is passed as an empty one (asking it would
+                // make every window a model call). Floating that does change the game (a creature tapped, a trigger, a
+                // pool that keeps or burns) is a legal play like any other and is asked: see floatChangesNothing.
+                boolean onlyFloat = !options.isEmpty() && options.stream().allMatch(o -> floatChangesNothing(o, me));
                 if ((options.isEmpty() || onlyFloat) && !haveLand) return skipWindow("nothing-usable", 0);
                 if (!ownMain && (options.isEmpty() || onlyFloat)) return skipWindow("nothing-usable", 0);
 
@@ -7968,6 +7969,29 @@ public final class LlmSpikeGui {
                     && forge.game.cost.CostPayment.canPayAdditionalCosts(cost, sa, effect, p);
         }
         static boolean legallyPayable(SpellAbility sa, Player p, boolean effect) { return legallyPayable(sa.getPayCosts(), sa, p, effect); }
+
+        /** Whether activating mana ability {@code sa} now is a pass in all but name: a land's ability that costs only
+         *  {T} and mana and only adds mana, into a pool that empties without burn, with no trigger on a tap or on mana
+         *  added anywhere. Anything else floating does (a creature that can no longer block, Manabarbs, Upwelling's
+         *  pool, mana burn) is the seat's to weigh. */
+        static boolean floatChangesNothing(SpellAbility sa, Player me) {
+            if (!sa.isManaAbility() || sa.getPayCosts() == null || costlyManaAbility(sa, me)) return false;
+            try {
+                Card host = sa.getHostCard();
+                if (host == null || !host.isLand() || host.isCreature() || !onlyMakesMana(sa)) return false;
+                for (forge.game.cost.CostPart part : sa.getPayCosts().getCostParts())
+                    if (!(part instanceof forge.game.cost.CostTap) && !(part instanceof forge.game.cost.CostPartMana)) return false;
+                if (forge.game.staticability.StaticAbilityUnspentMana.hasManaBurn(me)
+                        || !forge.game.staticability.StaticAbilityUnspentMana.getManaToKeep(me).isEmpty()) return false;
+                for (Card c : me.getGame().getCardsIn(java.util.EnumSet.of(ZoneType.Battlefield, ZoneType.Command)))
+                    for (forge.game.trigger.Trigger t : c.getTriggers()) {
+                        forge.game.trigger.TriggerType m = t.getMode();
+                        if (m == forge.game.trigger.TriggerType.TapsForMana || m == forge.game.trigger.TriggerType.ManaAdded
+                                || m == forge.game.trigger.TriggerType.Taps || m == forge.game.trigger.TriggerType.TapAll) return false;
+                    }
+                return true;
+            } catch (Exception e) { return false; }
+        }
 
         /** A mana ability that only taps (or costs mana), activatable now: floating mana is legal, so it is on the menu. */
         static boolean floatableMana(SpellAbility sa, Player me) {
