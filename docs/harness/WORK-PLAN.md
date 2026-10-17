@@ -4,6 +4,33 @@ The living to-do list for the "the model is the only bottleneck" work. Only open
 what is done is in git history, `docs/harness/GAME-LOOP-LOG.md` and the run reports. Update this file
 when an item is finished or a new one is agreed, so the next session can pick up from it.
 
+## Handoff (2026-10-17, end of a Claude Code session; read this first)
+
+State of `main` after the merge of `fix/loop-epoch43`: harness-epoch-45 (observation-faithful-v37, seat-tools-v11,
+lookahead-preview-v10). Full acceptance PASS on it (17/17, 765 Java, 381 Python, canaries floor A/108/1828 and random
+A/59/397). The Forge checkout at `/root/forge` was built from it; any new container must reinstall and rebuild.
+
+Next steps, in order:
+1. **g04** (Goblins vs Miracles, seed 4104, `runs/loop/g04`) was playing when the session ended. If its directory is
+   in the repo, review it with the game-loop sheet; if not, it was lost with the container: play g04 again with the
+   same command (the `game-loop` skill, step 1). Then keep the loop going, a different deck each game, until three
+   games in a row put nothing new on the sheet.
+2. **Gauntlets on epoch 45:** `first` 28 games, 0 defects. The random (s5) and lookups (t3) passes were running at
+   handoff; rerun them if their results are not logged in GAME-LOOP-LOG.md:
+   `FORGE_HOME=/root/forge GAUNTLET_POLICY=random GAUNTLET_SEED=s6 bash eval/keyword_gauntlet.sh <out> 6`, and again
+   with `GAUNTLET_TOOLS=1 GAUNTLET_SEED=t4`; `python3 eval/gauntlet_scan.py <out>` must say 0 defect lines.
+3. **Small fix:** `eval/keyword_gauntlet.sh` should stop at once when `$FORGE/forge-gui-desktop` does not exist; without
+   `FORGE_HOME` it ran 28 games that all exited 1 (the scan caught it, but only after the whole run).
+4. **Known open:** `simulate` on a yes/no confirmation (g03 T14, Aether Vial's "Search your hand?") is refused with a
+   reason; there is nothing to preview. tool_audit still counts it as REFUSED. Decide whether that case should be
+   classified separately rather than built.
+5. Owner decisions still open (do not start without them): E4, E6, E5, then E7 (paid, cost first); the Luna puzzle
+   run; C3.
+
+How the owner has been merging this week: PRs opened and merged directly with the body line
+"Review skills: not run (owner: merge directly, without the review skills)". Ask the owner before assuming that
+still holds; otherwise `scripts/pr_merge.sh` and the three review skills are the gate.
+
 ## Now (2026-10-17): real games on the finished harness, then the eval
 
 - **Phase 1 (the review's R1-R7) and the surface work (S1-S6) are done.** Every decision hook and way to play is proven

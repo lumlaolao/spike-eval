@@ -25,6 +25,9 @@ only points at them and repeats what is never optional.
   is a native function definition (`NativeTools.java`, mirrored in `eval/tooluse/tools.json`), never
   a text command parsed out of the reply.
 - `forge-overlay/` is the source of truth; never edit the Forge checkout.
+- **Path-scoped rules** live in `.claude/rules/` (Claude Code loads them by path; other runtimes do not): before
+  touching `forge-overlay/` read `forge-overlay.md`, `eval/` or `runs/` read `eval.md`, the seat's prompts or
+  tools read `seat-prompts.md`.
 - Never fall back to Forge's AI for strategy.
 - Run `bash eval/harness_acceptance.sh` before claiming a harness change works.
 - Never `git add -A` at the repository root; `runs/` and `datasets/` are generated.
