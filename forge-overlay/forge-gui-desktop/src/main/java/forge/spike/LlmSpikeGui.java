@@ -3997,7 +3997,6 @@ public final class LlmSpikeGui {
                         List<Integer> picks = decideMany(smart, "optional-costs", q, labels, 0, offer.size());
                         // Each cost was offered as payable with the spell alone; several together can still be more
                         // than the seat can pay (Ana Battlemage's two kickers, 8 mana from 6 lands, and the cast failed).
-                        // The set is checked, re-asked once with the reason, then declined.
                         for (int attempt = 0; picks != null && picks.size() > 1 && !payableWith(chosen, offer, picks); attempt++) {
                             if (attempt == 1) { auto("optional-costs(together unpayable)->decline-all"); return new ArrayList<>(); }
                             picks = decideMany(smart, "optional-costs", q + " That set did not come back payable;"
