@@ -84,8 +84,10 @@ final class SeatObservation {
      *  chosen colour) as the engine reads it; ability text names the card, not CARDNAME (runs/c3 T7, T11).
      *  v36 (2026-10-17): event and history lines drop the note Forge appends to a trigger ("[Card: ...]", "[Zone
      *  Changer: ...]"), recorded when the trigger goes on the stack (keyword sweep: Demonstrate, Arcane Proxy);
-     *  combat says which attackers are in a band. */
-    static final String VERSION = "observation-faithful-v36";
+     *  combat says which attackers are in a band.
+     *  v37 (2026-10-17): the guide lists every hand tag the seat can see ("castable by an alternative cost", "castable
+     *  only with ...", "payable, not castable now") and says that a mana ability's ACTIVATE only fills the pool. */
+    static final String VERSION = "observation-faithful-v37";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
      *  Every section named here is one {@link #render} prints. */
@@ -95,8 +97,10 @@ final class SeatObservation {
             + "active player is not you, you are acting on their turn, at instant speed.\n"
             + "- YOU and OPP each start with a line of counts: life, poison (10 loses), any other counters, hand, library, "
             + "graveyard, exile, lands played this turn out of the lands allowed, mana in pool, and spells cast this turn.\n"
-            + "- Your hand lists each card with its mana cost and, for a spell, whether you can pay for it now: \"(castable)\", "
-            + "what is missing, such as \"(need 1 more B)\", or \"(not castable now)\". The opponent's hand is only a count.\n"
+            + "- Your hand lists each card with its mana cost and, for a spell, whether you can cast it now: \"(castable)\", "
+            + "\"(castable by an alternative cost)\", \"(castable only with <optional cost>)\", \"(payable, not castable now)\" "
+            + "(the mana is there but not the timing, such as a sorcery on the opponent's turn), what is missing, such as "
+            + "\"(need 1 more B)\", or \"(not castable now)\". The opponent's hand is only a count.\n"
             + "- board lists nonland permanents; lands lists lands, with [tapped] or [untapped] for each. [sick] marks a "
             + "creature that came under its controller's control this turn and cannot attack or use tap abilities yet.\n"
             + "- mana available is the mana your untapped sources can make right now, as the engine counts it (Ancient Tomb "
@@ -110,6 +114,8 @@ final class SeatObservation {
             + "\"(+N more not shown)\" note says otherwise.\n"
             + "- CAST THIS GAME and LANDS PLAYED record what the opponent has cast and played, even cards that have since left "
             + "play. OPPONENT CARDS YOU HAVE SEEN gives the printed rules text of their cards you have seen.\n"
+            + "- ACTIVATE options include your mana abilities: activating one only adds mana to your pool, where it stays until "
+            + "the step or phase ends.\n"
             + "- STACK lists what is waiting to resolve, top first (the top resolves first); COMBAT describes attackers and "
             + "blockers; NOT VISIBLE names what is hidden from you.\n"
             + "- SINCE YOUR LAST DECISION is the engine's log of what happened since you last chose, oldest first; [E<n>] ids "

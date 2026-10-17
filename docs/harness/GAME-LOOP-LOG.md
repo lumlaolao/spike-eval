@@ -639,3 +639,12 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
 - FIXED  (sheet) `match_review.py` prints a TIME line: elapsed, model answer time, waits to the call deadline,
   stalls cut early, provider errors.
 - clean  random-answer gauntlet with new seeds (s3): 28 games, 0 defect lines.
+- FIXED  tools gauntlet (e44-tools-t2): a kept mana source left a payment the engine could not make (Jegantha with
+  Forest floated and Island kept); the cost was not paid. The hold is released and the cost paid again, as an auto
+  row. Test `aKeptSourceLeavesAPaymentTheEngineMakes`.
+- FIXED  tools gauntlet (e44-tools-t2): a modal spell cancelled at its targets kept its chosen modes, and the next
+  cast of it skipped the mode question. Test `aCancelledModalSpellKeepsNoModes`.
+- FIXED  random gauntlet (e44-random-s4, kw05): Become Immense with {U}{G} floating and three lands asked delve with
+  "between 0 and 2", the seat exiled none, and {1} could not be paid. The least count now comes from the engine's test
+  payment. Test `delveMustExileWhatTheManaCannotPay` (the kw05 state; fails with the old estimate).
+- Guide v37 / seat-tools-v10: every hand tag and the mana-ability ACTIVATE are described. harness-epoch-45.

@@ -247,6 +247,10 @@ A puzzle replaces the role with `<puzzle>`: the author's goal and what the solve
   measured. Principles, reasoning caps, worked examples and decision-text advice were removed (audit
   C1–C5). The deck's own plan stays: it is information a player has.
 - *Why plain language:* capitals and "you MUST" cause over-triggering on current models (rule 10).
+- *Why no versions in the prompt:* the model gains nothing from them, and a changing prefix would break the cache.
+  Every stamp is on the game line instead (`docs/harness/VERSIONS.md`, generated from the code).
+- The guide describes every section and hand tag the state can show; since observation-faithful-v37 it lists the
+  alternative-cost, optional-cost and timing tags and says a mana ability's ACTIVATE only fills the pool.
 
 ## 6. The answer: a tool call, nothing else
 
@@ -516,6 +520,11 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
 
 - *Why this order:* cheapest first. The rule the canary history earned: before trusting a green gate,
   say what would have made it fail.
+- **Instructions for agents** (2026-10-17, from Anthropic's Claude Code guidance: CLAUDE.md is loaded in every
+  session, so keep it under 200 lines and move the rest where it loads on demand): `CLAUDE.md` holds what applies
+  everywhere; `.claude/rules/` holds path-scoped rules that load when matching files are touched (the overlay, the
+  eval, the seat's prompts and tools); `.claude/skills/` holds the workflows; `docs/harness/INDEX.md` marks each
+  document current or historical. `eval/test_docs_index.py` keeps CLAUDE.md under 200 lines and the index complete.
 
 ## 14. Deliberately not done
 
@@ -538,7 +547,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   - Delve is asked the same way: in the real payment, how many cards (any number up to the generic part)
     and which; an affordability test counts every card, unasked. So are an "up to" cost reduction (Mana
     Matrix: the whole reduction while pricing; asked inside the menu it re-entered the snapshot and overflowed,
-    #225) and an emerge or offering sacrifice.
+    #225) and an emerge or offering sacrifice. The least delve stated is the engine's own test payment of the rest
+    (an estimate let Become Immense delve none and fail to pay; harness-epoch-45).
   - A damage assignment order already declared (legacy ordering, `overrideOrder` false) is followed, not asked
     again (#224); a free split is the seat's.
   - Convoke and improvise, retargeting, redirection and mana from the pool are the seat's too. A convoke
@@ -556,5 +566,7 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     the second engine patch (`Player.assignCompanion` crashed on it).
   - **Mechanics no deck in the pool reaches:** dice, stickers, contraptions.
 - **Mana payment:** the engine maps the chosen sources to the cost. The seat decides which sources stay
-  untapped when it matters (`keep_untapped`, or the mana-sources ask).
+  untapped when it matters (`keep_untapped`, or the mana-sources ask). The planner can be more hopeful than the
+  real payment: when the engine cannot pay around the kept sources, the hold is released and the cost paid again,
+  recorded as an auto row (harness-epoch-45). A cancelled modal spell drops its modes, so the next cast asks again.
 - **The Claude CLI lane** answers in text, because it has no function calling.

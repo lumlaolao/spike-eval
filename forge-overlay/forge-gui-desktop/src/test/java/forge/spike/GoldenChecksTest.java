@@ -62,7 +62,9 @@ public class GoldenChecksTest {
             "pile", "opening-hand", "colors", "counter-type", "destroy", "keyword", "spell-for-effect", "clash",
             "confirm-static", "card-face", "keyword-cost", "cost-reduction", "discard-unless", "convoke", "new-targets",
             "harmonize", "attack-bands", "exert", "enlist", "splice", "flip", "shield", "roll-ignore", "roll-reroll",
-            "roll-modify", "roll-swap", "sticker", "crank", "sprocket", "sector", "starting-hand", "assist", "assist-pay"));
+            "roll-modify", "roll-swap", "sticker", "crank", "sprocket", "sector", "starting-hand", "assist", "assist-pay",
+            // 2026-10-17: asked since floating mana is on the menu; no golden check named it until delve met a pool.
+            "mana-from-pool"));
 
     /** Types a model answered in this class (tier smart or fast), across every test. */
     static final Set<String> ANSWERED = Collections.synchronizedSet(new TreeSet<>());
@@ -850,6 +852,50 @@ public class GoldenChecksTest {
         Assert.assertEquals(me.getManaPool().totalMana(), 2, "{R}{G} floats");
         ctrl.chooseSpellAbilityToPlay();
         Assert.assertTrue(model.prompts.stream().noneMatch(q -> q.contains("MANA POOL")), "the pool was asked while pricing");
+    }
+
+    /** A source kept untapped must leave a payment the engine really makes: with {G} floating, Jegantha ({W}{U}{B}{R}{G},
+     *  none for generic), a Mountain and a Swamp, keeping the Island looked payable to the planner (Jegantha's {R}) but
+     *  the payment spent the Mountain on {R} and came up {1} short (keyword gauntlet with lookups on, kw03). */
+    @Test
+    public void aKeptSourceLeavesAPaymentTheEngineMakes() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Forest", "Island", "Mountain", "Swamp");
+        card("Jegantha, the Wellspring", me, ZoneType.Battlefield);   // also something to champion
+        card("Changeling Berserker", me, ZoneType.Hand);
+        boolean[] floated = {false};
+        Script model = new Script("CHOICE: 1").on("You have priority", p -> {
+            if (!floated[0]) { floated[0] = true; return choiceWith("ACTIVATE Forest").apply(p); }
+            return choiceWith("CAST Changeling Berserker").apply(p);
+        }).on("MANA: you are paying", picks("Island"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Assert.assertTrue(ctrl.playChosenSpellAbility(ctrl.chooseSpellAbilityToPlay().get(0)), "Forest tapped");
+        Assert.assertEquals(me.getManaPool().totalMana(), 1, "{G} floats");
+        playAndResolve(ctrl, g, "Changeling Berserker with the floating {G}");
+        Assert.assertTrue(me.getCardsIn(ZoneType.Battlefield).anyMatch(c -> c.getName().equals("Changeling Berserker")),
+                "the Berserker was paid for: " + String.join(" | ", model.prompts.stream().map(q -> q.substring(Math.max(0, q.length() - 200))).toList()));
+    }
+
+    /** A modal spell cancelled at its target keeps no modes: Explosive Derailment's two spree modes stayed chained with no
+     *  targets, and the next preview of it failed to target (keyword gauntlet with lookups on, kw23). */
+    @Test
+    public void aCancelledModalSpellKeepsNoModes() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Mountain", "Mountain", "Mountain", "Mountain", "Mountain");
+        card("Hill Giant", rival, ZoneType.Battlefield);
+        card("Ornithopter", rival, ZoneType.Battlefield);
+        Card derail = card("Explosive Derailment", me, ZoneType.Hand);
+        boolean[] cast = {false};
+        Script model = new Script("CHOICE: 1").on("You have priority", p -> {
+            if (cast[0]) return choiceWith("PASS").apply(p);
+            cast[0] = true;
+            return choiceWith("Explosive Derailment").apply(p);
+        }).on("MODAL SPELL", p -> "PICKS: 1,2").on("TARGET", choiceWith("CANCEL"));
+        seat(g, model, model).chooseSpellAbilityToPlay();
+        Assert.assertTrue(model.prompts.stream().anyMatch(p -> p.contains("MODAL SPELL")), "modes were asked");
+        Assert.assertNull(derail.getFirstSpellAbility().getSubAbility(), "the cancelled spell kept its modes");
     }
 
     /** Pricing inside pricing keeps the guard on. The hand's tags priced each card and switched PRICING_FOR_SNAPSHOT
@@ -2316,6 +2362,33 @@ public class GoldenChecksTest {
         Assert.assertEquals(out.size(), 1, "three Islands pay the rest: the seat exiled only " + out);
         Assert.assertTrue(out.contains(bolt));
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** Delve's least is what the mana cannot pay, by the engine's test payment: Become Immense ({5}{G}) with two Forests
+     *  must exile four, and was offered none, by an estimate of the mana available (random gauntlet, kw05). */
+    @Test
+    public void delveMustExileWhatTheManaCannotPay() {
+        // runs/gauntlet e44-random-s4 kw05: {U}{G} floating, Plains and two Mountains untapped, two cards in the
+        // graveyard. Become Immense ({5}{G}) has five mana, so delve must exile one; the estimate said none.
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card island = card("Island", me, ZoneType.Battlefield), forest = card("Forest", me, ZoneType.Battlefield);
+        me.getManaPool().addManaNoEvent(new forge.game.mana.Mana(forge.card.MagicColor.BLUE, island, null, me));
+        me.getManaPool().addManaNoEvent(new forge.game.mana.Mana(forge.card.MagicColor.GREEN, forest, null, me));
+        island.setTapped(true);
+        forest.setTapped(true);
+        lands(me, "Plains", "Mountain", "Mountain");
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Aetherflame Wall", me, ZoneType.Graveyard);
+        card("Death-Greeter's Champion", me, ZoneType.Graveyard);
+        card("Become Immense", me, ZoneType.Hand);
+        String[] delve = new String[1];
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Become Immense"))
+                .on("DELVE", p -> { delve[0] = p; return "PICKS: 1"; });
+        playAndResolve(seat(g, model, model), g, "Become Immense with two floating mana and three lands");
+        Assert.assertNotNull(delve[0], "delve asked");
+        Assert.assertTrue(delve[0].contains("at least 1"), "the least delve is stated: " + delve[0].substring(Math.max(0, delve[0].indexOf("DELVE"))));
+        Assert.assertEquals(bears.getNetPower(), 8, "the cast was paid and resolved");
     }
 
     /** An edict (not a cost): which permanent is sacrificed. */

@@ -72,6 +72,7 @@ under the legacy profile, where the contract does not run; they are not counted.
 | flip, shield | chooseFlipResult, divideShield | 0 / 0 | no | aFlipCallAndAShieldSplitAreTheSeats |
 | roll-ignore, roll-reroll, roll-modify, roll-swap | chooseRollToIgnore, chooseDiceToReroll, chooseRollToModify, chooseRollToSwap, chooseRollSwapValue, choosePDRollToIgnore | 0 / 0 | no | diceChoicesAreTheSeats, unSetAndVariantChoicesAreTheSeats |
 | sticker, crank, sprocket, sector, starting-hand, assist, assist-pay | the sticker, contraption, attraction, multiple-hands and assist hooks | 0 / 0 | no | unSetAndVariantChoicesAreTheSeats |
+| mana-from-pool | chooseManaFromPool (floating mana of different kinds) | 0 / 0 | yes (SurfaceResolutionChoicesTest) | delveMustExileWhatTheManaCannotPay |
 
 Before: 12 of the 42 types had a contract-checked live test; now all 42 do.
 
