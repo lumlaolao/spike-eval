@@ -941,6 +941,80 @@ public class GoldenChecksTest {
         Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.contains("the rest cannot be paid")), "asked again with the reason");
     }
 
+    /** A legal option is the model's to take (owner, 2026-10-17): Goblin Bombardment aimed at the seat's only creature
+     *  may sacrifice that creature (the ability then has no target). The candidates left out the targets (a Forge AI
+     *  filter), so the payment failed (harness acceptance random canary). */
+    @Test
+    public void aCostMayPayWithTheAbilitysOwnTarget() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Goblin Bombardment", me, ZoneType.Battlefield);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("ACTIVATE Goblin Bombardment"))
+                .on("Choose the TARGET", choiceWith("Grizzly Bears"));
+        playAndResolve(seat(g, model, model), g, "Goblin Bombardment at its own sacrifice");
+        Assert.assertTrue(has(me, ZoneType.Graveyard, "Grizzly Bears"), "the targeted creature paid the cost");
+        Assert.assertEquals(rival.getLife(), 20, "no damage: its target is gone");
+    }
+
+    /** Crew: which creatures, the seat's. Hill Giant crews Smuggler's Copter when the seat says so (Forge's AI chose,
+     *  and would not tap a creature it valued above the vehicle). */
+    @Test
+    public void whoCrewsIsTheSeats() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card copter = card("Smuggler's Copter", me, ZoneType.Battlefield);
+        Card giant = card("Hill Giant", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Crew"))
+                .on("total power 1 or more", picks("Hill Giant"));
+        playAndResolve(seat(g, model, model), g, "Smuggler's Copter crewed");
+        Assert.assertTrue(giant.isTapped(), "the Giant crewed");
+        Assert.assertFalse(bears.isTapped(), "the Bears did not");
+        Assert.assertTrue(copter.isCreature(), "the Copter is a creature");
+    }
+
+    /** A companion in the command zone (set up as the engine does at game start) can be put into hand for {3} at sorcery
+     *  speed: the special action is on the menu and works. */
+    @Test
+    public void aCompanionIsPutIntoHandFromTheMenu() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Island", "Island", "Swamp");
+        Card gyruda = card("Gyruda, Doom of Depths", me, ZoneType.Command);
+        me.getZone(ZoneType.Command).add(Player.createCompanionEffect(gyruda));
+        g.getAction().checkStaticAbilities();
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Companion"));
+        playAndResolve(seat(g, model, model), g, "Gyruda put into hand");
+        Assert.assertTrue(has(me, ZoneType.Hand, "Gyruda, Doom of Depths"), "the companion is in hand");
+    }
+
+    /** Floating mana is legal: with a spell to cast, the menu also offers each kind of land's mana ability once, and the
+     *  seat may tap one for mana (it then floats); a window with only mana to float is passed without asking. */
+    @Test
+    public void floatingManaIsOnTheMenu() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Mountain", "Mountain", "Island");
+        card("Lightning Bolt", me, ZoneType.Hand);
+        String[] menu = new String[1];
+        Script model = new Script("CHOICE: 1").on("You have priority", p -> { menu[0] = p; return choiceWith("ACTIVATE Mountain").apply(p); });
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r);
+        Assert.assertTrue(ctrl.playChosenSpellAbility(r.get(0)), "the Mountain tapped for mana");
+        Assert.assertEquals(me.getManaPool().totalMana(), 1, "{R} floats");
+        Assert.assertEquals(menu[0].split("ACTIVATE Mountain", -1).length - 1, 1, "one option per kind of land: " + menu[0]);
+        Assert.assertTrue(menu[0].contains("ACTIVATE Island"), "the Island too");
+        // Only mana to float: no ask.
+        g = bareGame(PhaseType.MAIN1);
+        me = g.getPlayers().get(0);
+        lands(me, "Mountain");
+        Script quiet = new Script("CHOICE: 1");
+        Assert.assertNull(seat(g, quiet, quiet).chooseSpellAbilityToPlay(), "passed");
+        Assert.assertTrue(quiet.prompts.isEmpty(), "not asked");
+    }
+
     @Test
     public void disturbCastsTheBackFace() {
         Game g = bareGame(PhaseType.MAIN1);
@@ -1867,6 +1941,28 @@ public class GoldenChecksTest {
         combat.addAttacker(lions, me);
         seat(g, model, model).declareBlockers(me, combat);
         Assert.assertTrue(combat.getBlockers(lions).contains(bears));
+    }
+
+    /** A creature that can block any number of creatures may block both attackers (each blocker blocked once,
+     *  whatever the card said): the label says so, and both blocks stand. */
+    @Test
+    public void aBlockerThatCanBlockMoreBlocksMore() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card guard = card("Palace Guard", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", rival, ZoneType.Battlefield);
+        String[] asked = new String[1];
+        Script model = new Script("CHOICE: 1").on("declare blockers", p -> { asked[0] = p;
+            return "BLOCKS: Palace Guard->Grizzly Bears, Palace Guard->Savannah Lions"; });
+        Combat combat = new Combat(rival);
+        combat.addAttacker(bears, me);
+        combat.addAttacker(lions, me);
+        g.getAction().checkStaticAbilities();
+        seat(g, model, model).declareBlockers(me, combat);
+        Assert.assertTrue(asked[0] != null && asked[0].contains("can block any number of attackers"), "the label says so: " + asked[0]);
+        Assert.assertTrue(combat.getBlockers(bears).contains(guard), "the Guard blocks the Bears");
+        Assert.assertTrue(combat.getBlockers(lions).contains(guard), "and the Lions");
     }
 
     /** A trampler's split over one blocker, and the order of damage over two. */

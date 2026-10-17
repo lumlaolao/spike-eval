@@ -258,8 +258,12 @@ public final class LlmSpikeGui {
      *  seat's (Forge's AI decided them), and a spliced spell is retargeted by the seat, not vetoed by Forge's AI; an
      *  ability's costs beyond mana are checked at its least X, and a non-mana X is capped by what can pay it; spree
      *  modes are offered only when payable; convoking creatures are not counted as mana when a land is kept, and a
-     *  convoke that leaves the rest unpayable is asked again. */
-    static final String HARNESS_EPOCH = "harness-epoch-40";
+     *  convoke that leaves the rest unpayable is asked again.
+     *  Epoch 41 (2026-10-17, owner: "if it's a legal action we don't disallow it"): what can be paid is the engine's
+     *  legality test, not Forge AI's taste (legallyPayable); a cost may be paid with the ability's own target; casualty
+     *  candidates are not filtered; who crews, and which creatures sharing a type tap, are the seat's; mana abilities
+     *  are on the menu (floating mana); a creature that can block more attackers may. */
+    static final String HARNESS_EPOCH = "harness-epoch-41";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -2919,7 +2923,7 @@ public final class LlmSpikeGui {
                     SpellAbility with = sa.copy();
                     forge.game.ability.AbilityUtils.addSpliceEffect(with, c);
                     with.setActivatingPlayer(getPlayer());
-                    if (ComputerUtilCost.canPayCost(with, getPlayer(), false)) payable.add(c);
+                    if (legallyPayable(with, getPlayer(), false)) payable.add(c);
                 } catch (Exception ignore) { /* not offered */ }
             }
             if (payable.isEmpty()) { clearLast(); auto("splice(none payable)->none"); return payable; }
@@ -3031,7 +3035,7 @@ public final class LlmSpikeGui {
         public boolean payCostDuringRoll(Cost cost, SpellAbility sa) {
             clearLast();
             try {
-                if (cost == null || !ComputerUtilCost.canPayCost(cost, sa, getPlayer(), true)) {
+                if (cost == null || !legallyPayable(cost, sa, getPlayer(), true)) {
                     rollPaymentFailed = true;
                     auto("roll-cost(cannot pay)->not paid");
                     return false;
@@ -3254,10 +3258,15 @@ public final class LlmSpikeGui {
                 for (Card a : attackers) { if (atk.length() > 0) atk.append(", "); atk.append(observer != null ? observer.shortRef(a) : a.getName() + " (" + a.getNetPower() + "/" + a.getNetToughness() + ")"); }
                 StringBuilder blk = new StringBuilder();
                 List<String> blkLabels = new ArrayList<>(); // candidate pool captured BEFORE the assignment loop mutates `blockers`
+                // A creature that can block more than one attacker may (CR 509.1a): its label says how many, and it is
+                // not dropped after its first block (each blocker blocked once, whatever the card said).
+                List<Integer> blkLimits = new ArrayList<>();
                 for (Card b : blockers) {
                     if (blk.length() > 0) blk.append(", ");
-                    String bl = observer != null ? observer.shortRef(b) : b.getName() + " (" + b.getNetPower() + "/" + b.getNetToughness() + ")";
-                    blk.append(bl); blkLabels.add(bl);
+                    int lim = b.canBlockAny() ? attackers.size() : 1 + b.canBlockAdditional();
+                    String bl = (observer != null ? observer.shortRef(b) : b.getName() + " (" + b.getNetPower() + "/" + b.getNetToughness() + ")")
+                            + (lim > 1 ? " (can block " + (b.canBlockAny() ? "any number of" : "up to " + lim) + " attackers)" : "");
+                    blk.append(bl); blkLabels.add(bl); blkLimits.add(lim);
                 }
                 // Shared template (single source; the ai-teacher seat rebuilds byte-identically via the same builder).
                 String prompt = buildBlockersPrompt(snapshot(), atk.toString(), blk.toString(), blockersCeiling(combat, defender));
@@ -3271,7 +3280,7 @@ public final class LlmSpikeGui {
                 List<String> atkLabels = new ArrayList<>();
                 for (Card a : attackers) atkLabels.add(observer != null ? observer.shortRef(a) : a.getName() + " (" + a.getNetPower() + "/" + a.getNetToughness() + ")");
                 final List<Card> blkList = new ArrayList<>(blockers), atkList = new ArrayList<>(attackers);
-                AnswerTool.Spec blockSpec = AnswerTool.Spec.blocks(blkLabels, atkLabels).check(ans -> {
+                AnswerTool.Spec blockSpec = AnswerTool.Spec.blocks(blkLabels, atkLabels, blkLimits).check(ans -> {
                     for (int[] pr : ans.blocks)
                         if (!CombatUtil.canBlock(atkList.get(pr[1] - 1), blkList.get(pr[0] - 1), combat))
                             return "blocker " + pr[0] + " (" + blkLabels.get(pr[0] - 1) + ") cannot block attacker "
@@ -3322,7 +3331,8 @@ public final class LlmSpikeGui {
                     Card b = matchCard(blockers, pair[0]);
                     Card a = matchCard(attackers, pair[1]);
                     if (a != null && b != null && CombatUtil.canBlock(a, b, combat)) {
-                        combat.addBlocker(a, b); assigned++; blockers.remove(b);
+                        combat.addBlocker(a, b); assigned++;
+                        if (!CombatUtil.canBlockMoreCreatures(b, combat.getAttackersBlockedBy(b))) blockers.remove(b);
                     } else dropped.add(flat(pair[0]) + "->" + flat(pair[1]));
                 }
                 lastShadowChoice = shadowBlk; // genuine model-consulted decision -> label it
@@ -3387,8 +3397,11 @@ public final class LlmSpikeGui {
                 List<Card> landCards = po.landCards;
                 boolean haveLand = !landPlays.isEmpty();
                 // Nothing to do -> pass (deterministic; never Forge's AI).
-                if (options.isEmpty() && !haveLand) return skipWindow("nothing-usable", 0);
-                if (!ownMain && options.isEmpty()) return skipWindow("nothing-usable", 0);
+                // Floating mana with nothing else to do only empties the pool: such a window is passed as an empty one
+                // (asking it would make every window a model call).
+                boolean onlyFloat = !options.isEmpty() && options.stream().allMatch(o -> o.isManaAbility() && !costlyManaAbility(o, me));
+                if ((options.isEmpty() || onlyFloat) && !haveLand) return skipWindow("nothing-usable", 0);
+                if (!ownMain && (options.isEmpty() || onlyFloat)) return skipWindow("nothing-usable", 0);
 
                 // SPEED (interaction filter): on a mid-turn reactive window (not opp EOT, not combat),
                 // only think if we hold something that can actually INTERACT with what's happening —
@@ -4287,7 +4300,7 @@ public final class LlmSpikeGui {
                 // An option the seat cannot take is not offered: with nothing to pay with, declining is forced
                 // (runs/luna-v8/g1 offered "Pay {2}" for Spell Pierce and "Pay {R}{R}" for Chain Lightning's copy
                 // with no mana up, and the model had to point it out).
-                if (!ComputerUtilCost.canPayCost(cost, sa, getPlayer(), true)) {
+                if (!legallyPayable(cost, sa, getPlayer(), true)) {
                     evalDec("prevent-effect", 1, 0, "auto", 0, "forced(cannot-pay)->decline " + fit(cost.toSimpleString()), null);
                     p("[ROUTER] prevent-effect: cannot pay " + fit(cost.toSimpleString()) + " -> decline (forced)");
                     return false;
@@ -4309,7 +4322,7 @@ public final class LlmSpikeGui {
                     }
                     int c = decideOne(bridgeFor("prevent-effect"), "prevent-effect", q, labels, null);
                     if (c == 0) {
-                        if (!ComputerUtilCost.canPayCost(cost, sa, getPlayer(), true)) { auto("prevent-effect(model)->cannot-pay"); return false; }
+                        if (!legallyPayable(cost, sa, getPlayer(), true)) { auto("prevent-effect(model)->cannot-pay"); return false; }
                         CostPayment pay = new CostPayment(cost, sa);
                         // The seat's cost decisions: Forge AI chose what an "unless" payment discarded or
                         // sacrificed (Reality Smasher's "unless you discard a card").
@@ -4356,7 +4369,7 @@ public final class LlmSpikeGui {
                 for (int i : picks) set.add(offer.get(i));
                 SpellAbility with = withOptional(sa, set);
                 with.setActivatingPlayer(getPlayer());
-                return ComputerUtilCost.canPayCost(with, getPlayer(), false);
+                return legallyPayable(with, getPlayer(), false);
             } catch (Exception e) { p("[ROUTER] optional-costs: " + e + " -> decline"); return false; }
         }
 
@@ -4401,7 +4414,7 @@ public final class LlmSpikeGui {
                             if (v == null || v.getCost() == null) { offer.add(v); continue; }
                             SpellAbility with = withOptional(chosen, Lists.newArrayList(v));
                             with.setActivatingPlayer(getPlayer());
-                            if (ComputerUtilCost.canPayCost(with, getPlayer(), false)) offer.add(v);
+                            if (legallyPayable(with, getPlayer(), false)) offer.add(v);
                         } catch (Exception ignore) { }
                     }
                     if (offer.isEmpty()) { auto("optional-costs(none payable)->decline-all"); return new ArrayList<>(); }
@@ -4930,7 +4943,7 @@ public final class LlmSpikeGui {
          *  engine routine hard-codes {@code AiCostDecision} (as {@link #playChosenSpellAbility} does for a
          *  cast). RE-DIFF against {@code ComputerUtil.playNoStack} on every engine re-pin (ENGINE-PIN.md). */
         private boolean playNoStack(Player who, SpellAbility sa, boolean effect) {
-            if (!forge.ai.ComputerUtilCost.canPayCost(sa, who, effect)) return false;
+            if (!legallyPayable(sa, who, effect)) return false;
             final Card source = sa.getHostCard();
             if (!effect && sa.isSpell() && !source.isCopiedSpell()) {
                 sa.setHostCard(getGame().getAction().moveToStack(source, sa));
@@ -5739,7 +5752,7 @@ public final class LlmSpikeGui {
                 for (AbilitySub ab : modes) if (ab.hasParam("ModeCost")) total.add(new Cost(ab.getParam("ModeCost"), false));
                 boolean was = PRICING_FOR_SNAPSHOT;
                 PRICING_FOR_SNAPSHOT = true;
-                try { return ComputerUtilCost.canPayCost(total, sa, me, false); } finally { PRICING_FOR_SNAPSHOT = was; }
+                try { return legallyPayable(total, sa, me, false); } finally { PRICING_FOR_SNAPSHOT = was; }
             } catch (Exception e) { return false; }
         }
 
@@ -6371,7 +6384,7 @@ public final class LlmSpikeGui {
         @Override
         public boolean payCombatCost(Card card, Cost cost, SpellAbility sa, String prompt) {
             clearLast();
-            if (!ComputerUtilCost.canPayCost(sa, getPlayer(), sa != null && sa.isTrigger())) { auto("combat-cost(cannot-pay)->no"); return false; }
+            if (!legallyPayable(sa, getPlayer(), sa != null && sa.isTrigger())) { auto("combat-cost(cannot-pay)->no"); return false; }
             int c = askOne("combat-cost", (prompt == null || prompt.isEmpty() ? "Pay " + cost.toSimpleString() : seatText(prompt))
                     + " for " + labelOf(card) + "? If you do not pay, it does not attack or block.",
                     java.util.Arrays.asList("Pay", "Do not pay"), null, 0);
@@ -7891,11 +7904,15 @@ public final class LlmSpikeGui {
                     }
                 } catch (Exception ignore) { /* not offered */ }
             }
+            // A plain mana ability is a legal play too (float mana before a ritual, tap a land in response to its
+            // destruction): offered once per card name and ability, so twenty lands are five options, not twenty.
+            java.util.Set<String> floats = new java.util.HashSet<>();
             for (SpellAbility sa : candidates) {
                 // Every castable entry is offered: a cap here hides spells from the seat without a log
                 // line (issue #106).
                 if (offerable(sa, me, altCosts.contains(sa))) options.add(sa);
                 else if (everyLand && costlyManaAbility(sa, me)) options.add(sa);
+                else if (everyLand && floatableMana(sa, me) && floats.add(sa.getHostCard().getName() + "|" + sa.getDescription())) options.add(sa);
             }
             // Distinct lands we could play this main phase (by name), each offered as its own option so the
             // model chooses WHICH land — colored sources, fetchlands, painlands all matter for sequencing.
@@ -7936,7 +7953,26 @@ public final class LlmSpikeGui {
                     || c.hasSpecificCostType(forge.game.cost.CostPutCounter.class)
                     || c.hasSpecificCostType(forge.game.cost.CostRemoveCounter.class) || sa.isPwAbility();
             if (!beyondTap) return false;
-            try { sa.setActivatingPlayer(me); return sa.canPlay() && forge.ai.ComputerUtilCost.canPayCost(sa, me, false); }
+            try { sa.setActivatingPlayer(me); return sa.canPlay() && legallyPayable(sa, me, false); }
+            catch (Exception e) { return false; }
+        }
+
+        /** Whether the engine allows paying {@code cost} now: its mana and every other part, by the engine's own tests
+         *  (the last line of ComputerUtilCost.canPayCost). The rest of that method is Forge AI's taste, not the rules: it
+         *  refused, half the time at random, a planeswalker ability that spends all its loyalty, refused ward costs and
+         *  casualty creatures it would not pay, and kept a tax it expects later. A legal option is the model's to take or
+         *  leave (owner, 2026-10-17: "if it's a legal action we don't disallow it"). */
+        static boolean legallyPayable(Cost cost, SpellAbility sa, Player p, boolean effect) {
+            if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(p);
+            return ComputerUtilMana.canPayManaCost(cost, sa, p, 0, effect)
+                    && forge.game.cost.CostPayment.canPayAdditionalCosts(cost, sa, effect, p);
+        }
+        static boolean legallyPayable(SpellAbility sa, Player p, boolean effect) { return legallyPayable(sa.getPayCosts(), sa, p, effect); }
+
+        /** A mana ability that only taps (or costs mana), activatable now: floating mana is legal, so it is on the menu. */
+        static boolean floatableMana(SpellAbility sa, Player me) {
+            if (!sa.isManaAbility() || sa.getPayCosts() == null) return false;
+            try { sa.setActivatingPlayer(me); return sa.canPlay() && legallyPayable(sa, me, false); }
             catch (Exception e) { return false; }
         }
 
@@ -7949,7 +7985,7 @@ public final class LlmSpikeGui {
             PRICING_FOR_SNAPSHOT = true;
             boolean payable;
             try {
-                payable = alt ? ComputerUtilCost.canPayCost(sa, me, false) : ComputerUtilMana.canPayManaCost(sa, me, 0, false);
+                payable = alt ? legallyPayable(sa, me, false) : ComputerUtilMana.canPayManaCost(sa, me, 0, false);
                 // The rest of the cost by the engine's own test, at the least X it allows: Arcee, Sharpshooter's
                 // "{1}, remove X +1/+1 counters (X at least 1)" was offered with no counter on it and failed to pay.
                 if (payable && !alt && sa.getPayCosts() != null) {
@@ -8003,7 +8039,7 @@ public final class LlmSpikeGui {
             PRICING_FOR_SNAPSHOT = true;
             try {
                 if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(me);
-                if (ComputerUtilCost.canPayCost(sa, me, false)) out.add(0);
+                if (legallyPayable(sa, me, false)) out.add(0);
                 java.util.TreeSet<Integer> powers = new java.util.TreeSet<>();
                 for (Card c : me.getCreaturesInPlay()) if (c.getNetPower() > 0 && c.canTap()) powers.add(c.getNetPower());
                 // The reduction counts the power from the card's cast spell (Count$OptionalKeywordAmount reads
@@ -8015,7 +8051,7 @@ public final class LlmSpikeGui {
                         SpellAbility with = harmonizedWith(sa, n);
                         with.setActivatingPlayer(me);
                         host.setCastSA(with);
-                        if (ComputerUtilCost.canPayCost(with, me, false)) out.add(n);
+                        if (legallyPayable(with, me, false)) out.add(n);
                     } catch (Exception ignore) { /* not this power */ }
                     finally { host.setCastSA(cast); }
                 }
