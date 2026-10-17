@@ -64,6 +64,19 @@ them and refuses to pool what is not comparable.
   were Forge AI's ("not in eval decks") and are the seat's, each with a golden check. *Why it mattered:* an
   inherited AI method does not count on `[TALLY] ai=`, so a game that reached one showed ai=0.
 
+**A legal action is never hidden (owner, 2026-10-17: "if it's a legal action we don't disallow it, that's a model
+issue, not harness").** Whether something is offered is the engine's legality, never a judgment of what is wise:
+- What can be paid is decided by `legallyPayable`: the engine's mana and non-mana tests. Forge AI's
+  `ComputerUtilCost.canPayCost` adds its own taste on top. It refused, half the time at random, a planeswalker
+  ability that spends all its loyalty, and refused ward costs and casualty creatures it would not pay.
+- A cost may be paid with the ability's own target, as a human may (Goblin Bombardment sacrificing the creature it
+  aims at).
+- Who crews, and which creatures that share a type tap, are the seat's.
+- Mana abilities are on the menu, one per card name and ability, so mana can be floated.
+- A creature that can block more than one attacker may: its label says how many, and the `answer` schema allows it.
+- The one exception: a window whose only option is floating mana passes unasked, as an empty one, because mana with
+  nothing to spend empties unused.
+
 **What the harness may decide without asking (owner rule):**
 - a choice with exactly one legal option (forced). A cost that takes exactly as many cards as there are
   candidates is paid with those, by the harness (since harness-epoch-40): left to Forge's AI, the pick could be

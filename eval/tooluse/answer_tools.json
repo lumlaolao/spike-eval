@@ -20,7 +20,7 @@
           },
           "blocks": {
             "type": "array",
-            "description": "For a declare-blockers decision: each block as a blocker number and an attacker number; each blocker at most once. An empty list declares no blocks.",
+            "description": "For a declare-blockers decision: each block as a blocker number and an attacker number; each blocker once, or up to the number of attackers its label says it can block. An empty list declares no blocks.",
             "items": {
               "type": "object",
               "properties": {

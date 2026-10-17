@@ -145,11 +145,17 @@ final class AnswerTool {
         static Spec repeat(int n, int min, int max) { return new Spec(Kind.MANY_REPEAT, n, Math.max(0, min), Math.max(1, max), 0); }
         static Spec alloc(int n, int total) { return new Spec(Kind.ALLOC, n, total, total, 0); }
         static Spec keep() { return new Spec(Kind.KEEP, 2, 1, 1, 0); }
-        static Spec blocks(List<String> blockers, List<String> attackers) {
+        static Spec blocks(List<String> blockers, List<String> attackers) { return blocks(blockers, attackers, null); }
+        /** {@code limits}: how many attackers each blocker may block (1 unless it can block more; null: all 1). */
+        static Spec blocks(List<String> blockers, List<String> attackers, List<Integer> limits) {
             Spec s = new Spec(Kind.BLOCKS, blockers.size(), 0, blockers.size(), attackers.size());
             s.labels = new ArrayList<>(blockers); s.labels2 = new ArrayList<>(attackers);
+            s.blockLimits = limits == null ? null : new ArrayList<>(limits);
             return s;
         }
+        List<Integer> blockLimits;
+        int blockLimit(int oneBased) { return blockLimits == null ? 1 : Math.max(1, blockLimits.get(oneBased - 1)); }
+        int blockSlots() { int t = 0; for (int b = 1; b <= n; b++) t += Math.min(blockLimit(b), Math.max(1, m)); return t; }
         static Spec number(int min, int max) { return new Spec(Kind.NUMBER, 0, min, max, 0); }
         static Spec card() { return new Spec(Kind.CARD, 0, 0, 0, 0); }
         Spec cancel(int oneBased) { this.cancel = oneBased; return this; }
@@ -233,7 +239,8 @@ final class AnswerTool {
         pair.add("required", req);
         pair.addProperty("additionalProperties", false);
         JsonObject blocks = obj("type", "array", "description", "For a declare-blockers decision: each block as a blocker number "
-                + "and an attacker number; each blocker at most once. An empty list declares no blocks.");
+                + "and an attacker number; each blocker once, or up to the number of attackers its label says it can block."
+                + " An empty list declares no blocks.");
         blocks.add("items", pair);
         props.add("blocks", blocks);
         JsonObject amounts = obj("type", "array", "description", "For a decision that divides an amount (damage, counters) among "
@@ -362,9 +369,9 @@ final class AnswerTool {
                 pair.add("required", req);
                 pair.addProperty("additionalProperties", false);
                 JsonObject arr = obj("type", "array", "description", "Each block as a blocker number and an attacker number; "
-                        + "each blocker at most once. An empty list declares no blocks.");
+                        + "each blocker once, or up to the number of attackers its label says it can block. An empty list declares no blocks.");
                 arr.add("items", pair);
-                arr.addProperty("maxItems", s.n);
+                arr.addProperty("maxItems", s.blockSlots());
                 props.add("blocks", arr);
                 required.add("blocks");
                 what = "your blocks";
@@ -590,14 +597,18 @@ final class AnswerTool {
             case BLOCKS: {
                 if (absent(a, "blocks") || !a.get("blocks").isJsonArray()) return Result.bad("the `blocks` value must be a list (empty for no blocks).");
                 List<int[]> pairs = new ArrayList<>();
-                java.util.Set<Integer> used = new java.util.HashSet<>();
+                java.util.Map<Integer, Integer> used = new java.util.HashMap<>();
+                java.util.Set<String> seen = new java.util.HashSet<>();
                 for (JsonElement e : a.getAsJsonArray("blocks")) {
                     if (!e.isJsonObject()) return Result.bad("each block is an object with `blocker` and `attacker`.");
                     Integer b = intOf(e.getAsJsonObject().get("blocker")), at = intOf(e.getAsJsonObject().get("attacker"));
                     if (b == null || at == null) return Result.bad("each block needs an integer `blocker` and `attacker`.");
                     if (b < 1 || b > s.n) return Result.bad("blocker " + b + " is not on the list; your blockers are 1-" + s.n + ".");
                     if (at < 1 || at > s.m) return Result.bad("attacker " + at + " is not on the list; the attackers are 1-" + s.m + ".");
-                    if (!used.add(b)) return Result.bad("blocker " + b + " is used twice; each blocker blocks one attacker.");
+                    if (!seen.add(b + ">" + at)) return Result.bad("blocker " + b + " blocks attacker " + at + " twice.");
+                    if (used.merge(b, 1, Integer::sum) > s.blockLimit(b))
+                        return Result.bad("blocker " + b + " is used " + used.get(b) + " times; it can block "
+                                + (s.blockLimit(b) == 1 ? "one attacker." : "at most " + s.blockLimit(b) + " attackers."));
                     pairs.add(new int[] {b, at});
                 }
                 out.blocks = pairs;

@@ -54,7 +54,7 @@ public class KeywordSurfaceSweepTest {
 
     /** A moment of the turn the seat can act in. */
     enum Moment {
-        MAIN(PhaseType.MAIN1, true, ZoneType.Hand, ZoneType.Battlefield, ZoneType.Graveyard, ZoneType.Exile),
+        MAIN(PhaseType.MAIN1, true, ZoneType.Hand, ZoneType.Battlefield, ZoneType.Graveyard, ZoneType.Exile, ZoneType.Command),
         COMBAT(PhaseType.COMBAT_DECLARE_BLOCKERS, true, ZoneType.Hand, ZoneType.Battlefield, ZoneType.Graveyard),
         UPKEEP(PhaseType.UPKEEP, true, ZoneType.Hand, ZoneType.Battlefield),
         THEIR_TURN(PhaseType.MAIN1, false, ZoneType.Hand, ZoneType.Battlefield, ZoneType.Graveyard);
@@ -133,7 +133,8 @@ public class KeywordSurfaceSweepTest {
             sa.setActivatingPlayer(me);
             if (sa.isLandAbility()) { if (sa.canPlay() && me.canPlayLand(c, false, sa)) out.put(key(sa), sa); continue; }
             if (sa.isManaAbility()) {
-                if (LlmSpikeGui.PlayerControllerLLM.costlyManaAbility(sa, me)) out.put(key(sa), sa);
+                if (LlmSpikeGui.PlayerControllerLLM.costlyManaAbility(sa, me) || LlmSpikeGui.PlayerControllerLLM.floatableMana(sa, me))
+                    out.put(key(sa), sa);
                 continue;
             }
             try {

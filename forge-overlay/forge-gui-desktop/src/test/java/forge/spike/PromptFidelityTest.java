@@ -219,7 +219,7 @@ public class PromptFidelityTest {
                     Assert.assertTrue(m.find(), "the target ask offers cancel: " + prompt);
                     return "I no longer want this.\nCHOICE: " + m.group(1);
                 }
-                return prompt.contains("NOTE: you chose") ? "CHOICE: 2" : "CHOICE: 1"; // then PASS
+                return prompt.contains("NOTE: you chose") ? choiceOf(prompt, "PASS") : choiceOf(prompt, "CAST Lightning Bolt"); // then PASS
             }
         };
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
@@ -519,6 +519,13 @@ public class PromptFidelityTest {
         Assert.assertEquals(combat.getDefenderByAttacker(combat.getAttackers().get(0)), jace, decisions(model));
     }
 
+    /** "CHOICE: n" for the option whose label starts with {@code label} (menus also list mana to float). */
+    static String choiceOf(String prompt, String label) {
+        String d = prompt.substring(Math.max(0, prompt.lastIndexOf("DECISION:")));
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?m)^\\s*(\\d+)\\) " + java.util.regex.Pattern.quote(label)).matcher(d);
+        return m.find() ? "CHOICE: " + m.group(1) : "CHOICE: 1";
+    }
+
     /** Survival of the Fittest's "discard a creature card" was chosen by Forge AI's getCardsToDiscard. */
     @Test
     public void aDiscardCostIsTheSeatsChoice() {
@@ -536,7 +543,7 @@ public class PromptFidelityTest {
                     java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?m)^\\s*(\\d+)\\) Grizzly Bears").matcher(prompt);
                     return m.find() ? "PICKS: " + m.group(1) : "PICKS: 1";
                 }
-                return "CHOICE: 1";
+                return choiceOf(prompt, "ACTIVATE Survival of the Fittest");
             }
         };
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
@@ -718,7 +725,12 @@ public class PromptFidelityTest {
             Player me = g.getPlayers().get(0);
             card("Mountain", me, ZoneType.Battlefield);
             card("Lightning Bolt", me, ZoneType.Hand);
-            Recorder model = new Recorder("Nothing to do.\nCHOICE: 2\nYIELD: end-of-turn");
+            Recorder model = new Recorder("") {
+                @Override public String ask(String prompt) {
+                    prompts.add(prompt);
+                    return "Nothing to do.\n" + choiceOf(prompt, "PASS") + "\nYIELD: end-of-turn";
+                }
+            };
             LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
             Assert.assertNull(ctrl.chooseSpellAbilityToPlay());
             Assert.assertEquals(model.prompts.size(), 1);

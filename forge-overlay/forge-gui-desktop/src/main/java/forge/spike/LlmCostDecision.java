@@ -8,7 +8,6 @@ import com.google.common.collect.Sets;
 
 import forge.ai.AiCardMemory;
 import forge.ai.AiCostDecision;
-import forge.ai.ComputerUtilCost;
 import forge.ai.ComputerUtilMana;
 import forge.game.card.CardCollectionView;
 import forge.game.card.Card;
@@ -100,10 +99,6 @@ final class LlmCostDecision extends AiCostDecision {
                 typeList.addAll(unique);
             }
             typeList = new CardCollection(CardLists.filter(typeList, CardPredicates.canBeSacrificedBy(ability, isEffect())));
-            typeList = ComputerUtilCost.paymentChoicesWithoutTargets(typeList, ability, player);
-            if (source.hasKeyword(Keyword.CASUALTY)) {
-                typeList = new CardCollection(CardLists.filter(typeList, CardPredicates.hasSVar("AIDontSacToCasualty").negate()));
-            }
             if (typeList.size() < amount) return null; // engine handles the impossible case
             candidates = typeList;
             need = amount;
@@ -144,7 +139,6 @@ final class LlmCostDecision extends AiCostDecision {
                     ? player.getGame().getCardsIn(cost.getFrom()) : player.getCardsIn(cost.getFrom()));
             typeList = CardLists.getValidCards(typeList, type.split(";"), source.getController(), source, ability);
             typeList = CardLists.filter(typeList, CardPredicates.canExiledBy(ability, isEffect()));
-            typeList = ComputerUtilCost.paymentChoicesWithoutTargets(typeList, ability, player);
             if (amount <= 0 || typeList.size() < amount) return super.visit(cost); // nothing to choose
             if (typeList.size() == amount) return forced(typeList, "exile");
             candidates = typeList;
@@ -218,7 +212,6 @@ final class LlmCostDecision extends AiCostDecision {
             final int amount = cost.getAbilityAmount(ability);
             CardCollection typeList = CardLists.getValidCards(player.getCardsIn(ZoneType.Battlefield),
                     cost.getType().split(";"), source.getController(), source, ability);
-            typeList = ComputerUtilCost.paymentChoicesWithoutTargets(typeList, ability, player);
             if (amount <= 0 || typeList.size() < amount) return super.visit(cost); // nothing to choose
             if (typeList.size() == amount) return forced(typeList, "return");
             candidates = typeList;
@@ -245,6 +238,11 @@ final class LlmCostDecision extends AiCostDecision {
      */
     @Override
     public PaymentDecision visit(CostTapType cost) {
+        String shape = cost.getType();
+        if (shape.contains("+withTotalPowerGE") || shape.contains(".sharesCreatureTypeWith")) {
+            PaymentDecision d = tapByPowerOrType(cost, shape);
+            if (d != null || cancelled) return d;
+        }
         CardCollection candidates = null;
         int need = 0;
         try {
@@ -316,6 +314,62 @@ final class LlmCostDecision extends AiCostDecision {
         return reserved == null ? Collections.emptySet() : reserved;
     }
 
+    /** Crew and other "tap creatures with total power N or more", and "tap two creatures that share a creature type"
+     *  (Weight of Conscience): which creatures, the seat's. Left to the engine, Forge's AI chose, and for crew it would
+     *  not tap a creature it valued above the vehicle. A pick short of the power, or a pair sharing no type, takes a
+     *  fixed legal set, recorded: the largest powers first, or the first pair that shares a type. Null when the cost
+     *  cannot be paid this way (the engine's answer then stands). */
+    private PaymentDecision tapByPowerOrType(CostTapType cost, String shape) {
+        boolean power = shape.contains("+withTotalPowerGE");
+        String type = shape;
+        int need = 0;
+        if (power) {
+            String n = shape.split("withTotalPowerGE")[1];
+            need = Integer.parseInt(n);
+            type = shape.replace("+withTotalPowerGE" + n, "");
+        } else type = shape.replace(".sharesCreatureTypeWith", "");
+        CardCollection all = new CardCollection(player.getCardsIn(ZoneType.Battlefield));
+        all.removeAll(tapped);
+        CardCollection list = CardLists.getValidCards(all, type.split(";"), source.getController(), source, ability);
+        if (!cost.canTapSource) list.remove(source);
+        list = CardLists.filter(list, ability.isCrew() ? CardPredicates.CAN_CREW : CardPredicates.CAN_TAP);
+        if (power) {
+            if (CardLists.getTotalPower(list, ability) < need) return null;
+            offer();
+            CardCollectionView pick = player.getController().chooseCardsForEffect(list, ability, "COST: to pay for "
+                    + source.getName() + " you must TAP untapped creatures with total power " + need + " or more."
+                    + " A tapped creature cannot attack or block until it untaps. Choose which", 1, list.size(), false, null);
+            if (tookCancel()) return null;
+            if (pick != null && CardLists.getTotalPower(new CardCollection(pick), ability) >= need) return reserve(pick);
+            CardCollection byPower = new CardCollection(list);
+            byPower.sort((a, b) -> Integer.compare(b.getNetPower(), a.getNetPower()));
+            CardCollection out = new CardCollection();
+            for (Card c : byPower) { if (CardLists.getTotalPower(out, ability) >= need) break; out.add(c); }
+            LlmSpikeGui.PlayerControllerLLM seat = seat();
+            if (seat != null) seat.costDecisionDefault("tap-cost(power short)->largest " + out.size());
+            return reserve(out);
+        }
+        int amount = cost.getAbilityAmount(ability);
+        final CardCollection able = list;
+        CardCollection sharing = CardLists.filter(able, c -> CardLists.count(able, CardPredicates.sharesCreatureTypeWith(c)) > 1);
+        if (sharing.size() < amount) return null;
+        CardCollectionView pick = ask(sharing, amount, "tap", "COST: to pay for " + source.getName() + " you must TAP "
+                + amount + " untapped creatures that share a creature type. Choose which");
+        if (pick == null) return null;
+        boolean ok = true;
+        for (Card c : pick) for (Card o : pick) if (c != o && !CardPredicates.sharesCreatureTypeWith(o).test(c)) ok = false;
+        if (ok) return reserve(pick);
+        for (Card a : sharing) {
+            CardCollection pair = new CardCollection(CardLists.filter(sharing, CardPredicates.sharesCreatureTypeWith(a)));
+            if (pair.size() >= amount) {
+                LlmSpikeGui.PlayerControllerLLM seat = seat();
+                if (seat != null) seat.costDecisionDefault("tap-cost(no shared type)->first sharing set");
+                return reserve(new CardCollection(pair.subList(0, amount)));
+            }
+        }
+        return null;
+    }
+
     /** The engine's own pick, kept in {@code tapped}: the parent's exclusion set is private, so without
      *  this a later tap part could name a card an earlier one already took. */
     private PaymentDecision engineTap(CostTapType cost) {
@@ -335,7 +389,6 @@ final class LlmCostDecision extends AiCostDecision {
         return firstLegal(typeList, amount, kind, kind + " pick of " + (pick == null ? 0 : pick.size())).cards;
     }
 
-    /** The first {@code amount} legal candidates, recorded as a fixed fallback: never Forge's AI. */
     /** Exactly as many candidates as the cost takes: they are the payment. Left to Forge's AI, the pick could be
      *  refused (it declines to exile a permanent it values: Braided Net's craft with Altar of the Wretched the
      *  only other artifact failed to pay, and was chosen again 999 times in the keyword gauntlet). */
@@ -345,6 +398,7 @@ final class LlmCostDecision extends AiCostDecision {
         return PaymentDecision.card(candidates);
     }
 
+    /** The first {@code amount} legal candidates, recorded as a fixed fallback: never Forge's AI. */
     private PaymentDecision firstLegal(CardCollection candidates, int amount, String kind, String why) {
         CardCollection pick = new CardCollection(candidates.subList(0, Math.min(amount, candidates.size())));
         LlmSpikeGui.PlayerControllerLLM seat = seat();

@@ -239,24 +239,21 @@ public class LineFindingProbeTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
-    /** A play that cannot be paid for is not a play, and the log must say so. Aiming Bombardment at
-     *  the seat's ONLY creature leaves nothing to sacrifice (the target is excluded from the cost):
-     *  the audited game logged exactly this as "casts Goblin Bombardment". */
+    /** A play that cannot be paid for is not a play, and the log must say so (the audited game logged a failed
+     *  Bombardment as "casts Goblin Bombardment"). The seat picks Bombardment at the opponent; its only creature
+     *  leaves before the payment, so nothing can be sacrificed. (Sacrificing the ability's own target is legal and
+     *  is paid: GoldenChecksTest.aCostMayPayWithTheAbilitysOwnTarget.) */
     @Test
     public void anUnpayableActivationIsReportedAsFailedAndChangesNothing() {
         Game g = bareGame(PhaseType.MAIN1);
         Player me = g.getPlayers().get(0);
         Card bombardment = card("Goblin Bombardment", me, ZoneType.Battlefield);
         Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
-        LLMBridge aimsAtOwnCreature = new LLMBridge() {
+        LLMBridge aimsAtRival = new LLMBridge() {
             public String ask(String prompt) {
                 String opts = prompt.substring(Math.max(0, prompt.lastIndexOf("DECISION:")));
-                if (!opts.contains("Goblin Bombardment @") && !opts.contains("CAST Goblin Bombardment")) {
-                    java.util.regex.Matcher m = java.util.regex.Pattern
-                            .compile("(?m)^\\s*(\\d+)\\) [^\\n]*Grizzly Bears").matcher(opts);
-                    if (m.find()) return "CHOICE: " + m.group(1);
-                }
-                return PLAY;
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?m)^\\s*(\\d+)\\) [^\\n]*(ACTIVATE Goblin Bombardment|Rival)").matcher(opts);
+                return m.find() ? "CHOICE: " + m.group(1) : PLAY;
             }
             public String getLabel() { return "probe"; }
             public String getModel() { return "fake"; }
@@ -264,18 +261,18 @@ public class LineFindingProbeTest {
             public int getCalls() { return 0; }
         };
         LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(g, me,
-                new LobbyPlayerAi("Seat", null), "Seat", "", aimsAtOwnCreature, aimsAtOwnCreature, "llm");
+                new LobbyPlayerAi("Seat", null), "Seat", "", aimsAtRival, aimsAtRival, "llm");
         me.dangerouslySetController(ctrl);
         final SpellAbility[] played = new SpellAbility[1];
         String log = logOf(() -> {
             List<SpellAbility> chosen = ctrl.chooseSpellAbilityToPlay();
             Assert.assertNotNull(chosen);
             played[0] = chosen.get(0);
+            g.getAction().exile(bears, null, null);
             ctrl.playChosenSpellAbility(chosen.get(0));
         });
-        Assert.assertEquals(played[0].getTargets().getFirstTargetedCard(), bears, "fixture did not aim at the seat's own creature");
+        Assert.assertEquals(played[0].getHostCard(), bombardment, "fixture did not pick Bombardment");
         Assert.assertTrue(log.contains("FAILED to pay for"), log);
-        Assert.assertTrue(bears.isInZone(ZoneType.Battlefield), "a creature was sacrificed for a play that failed");
         Assert.assertTrue(bombardment.isInZone(ZoneType.Battlefield));
         Assert.assertEquals(g.getStack().size(), 0, "a failed play reached the stack");
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
