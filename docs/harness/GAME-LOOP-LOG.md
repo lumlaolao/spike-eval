@@ -613,3 +613,17 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
 - FIXED  (sheet) `plan_audit.py` read plans only from the text grammar's PLAN: line, so it reported plans=0 for every
   answer-tool game; it reads `set_plan` calls now (17 here). A clause that says "now" is no longer read as a hold ("Crack
   Windswept Heath ... now to improve next turn's mana" was flagged).
+
+### g02  2026-10-17  seed 4102  Burn (seat) vs Death and Taxes (Forge AI)  lost T12  $0.02  harness-epoch-43
+- Time: 22 min. 16 min model answers (23 decisions), one 300 s provider stall, one HTTP 5xx retried.
+- clean  TAKEN 0, LOST 0, SKIP 0, ai=0; plans 8, hold violations 0. Forced: a suspended Rift Bolt's cast (one
+  ability), one entity, one damage split. No blocks asked T10 and T12: the seat had no creature (Swiftspear died
+  attacking into Mirran Crusader T9). T11 main passed as nothing-usable: correct, Thalia's tax made Price of Progress
+  cost three of four Mountains, so Eidolon's {R}{R} could not be paid.
+- FIXED  the attack outlook's "None of their creatures that can block now could block: Goblin Guide (2)": the bare
+  number (damage if unblocked) read as an engine id (the sheet's LEAK). Now "(2 damage)", lookahead-preview-v9,
+  harness-epoch-44.
+- noted  `simulate` asked during the suspended Rift Bolt's cast decision: refused by design (previews are of the
+  priority menu), as in earlier games.
+- checked  a fetch's library search lists the whole library in the event history: a player sees it when searching,
+  and the library is shuffled at once; the known-in-hidden-zones record does not carry it.
