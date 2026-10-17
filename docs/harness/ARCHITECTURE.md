@@ -97,7 +97,7 @@ mana cost it replaces.
 **Ways to play a card (2026-10-16, harness-epoch-35):** every way the engine lists (Forge's `AlternativeCost` and
 `OptionalCost`) is offered and paid as the human path does it. Optional costs (kicker, multikicker, buyback, entwine,
 bargain) are asked after the seat picks the play (`withOptionalCosts`, CR 601.2b), from the menu and from effects
-(cascade, madness), and only when the whole cast stays payable. A spell playable only with one of them (retrace and
+(cascade, madness), and only when the whole cast stays payable, the picked set included (re-asked once with the reason, then declined). A spell playable only with one of them (retrace and
 jump-start from the graveyard, an offering that lowers a cost the seat cannot otherwise pay) is offered with it, and
 the hand tag says so. Emerge and offering sacrifices are the seat's, offering only creatures that leave the rest
 payable. A spell or trigger with several targets ("any number of target creatures", divided damage) is asked for the
