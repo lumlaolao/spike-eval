@@ -926,7 +926,7 @@ public class GoldenChecksTest {
                 .on("optional additional costs", p -> ++asks[0] == 1 ? "PICKS: 1,2" : "PICKS: 1").on("Choose the TARGET", choiceWith("Rival"));
         playAndResolve(seat(g, model, model), g, "Ana Battlemage, one kicker");
         Assert.assertEquals(asks[0], 2, "the unpayable pair was asked again");
-        Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.contains("Those together cost more than you can pay")));
+        Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.contains("did not come back payable")));
         Assert.assertTrue(has(me, ZoneType.Battlefield, "Ana Battlemage"), "cast with the one kicker it could pay");
         Assert.assertEquals(rival.getCardsIn(ZoneType.Hand).size(), 0, "the blue kicker it chose");
     }

@@ -4000,7 +4000,7 @@ public final class LlmSpikeGui {
                         // The set is checked, re-asked once with the reason, then declined.
                         for (int attempt = 0; picks != null && picks.size() > 1 && !payableWith(chosen, offer, picks); attempt++) {
                             if (attempt == 1) { auto("optional-costs(together unpayable)->decline-all"); return new ArrayList<>(); }
-                            picks = decideMany(smart, "optional-costs", q + " Those together cost more than you can pay now;"
+                            picks = decideMany(smart, "optional-costs", q + " That set did not come back payable;"
                                     + " pick a set you can pay.", labels, 0, offer.size());
                         }
                         if (picks != null) {
