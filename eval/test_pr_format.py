@@ -78,6 +78,23 @@ class PrFormatTest(unittest.TestCase):
         self.assertEqual(pf.pr_problems("feat(tools): the seat's tools are native function calls", BODY,
                                         "abc123456789", ["eval/x.py"], gate=True), [])
 
+    def test_the_no_body_refusal_quotes_section_2s_sentence_verbatim(self):
+        """The doc is the single source: a rewrite of section 2's sentence fails this pin
+        and forces re-pinning."""
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "..", "docs", "STANDARDS.md"), encoding="utf-8") as doc:
+            lines = list(doc)
+        bullet_idx = [i for i, l in enumerate(lines) if l.startswith("- The body says why")]
+        self.assertEqual(len(bullet_idx), 1, "section 2's sentence is found once")
+        headings = [l.rstrip() for l in lines[:bullet_idx[0]] if l.startswith("## ")]
+        self.assertEqual(headings[-1] if headings else "",
+                         "## 2. Commits and PRs (checked by `scripts/pr_format.py`)")
+        span = lines[bullet_idx[0]].split("says ", 1)[1].split(". Wrap", 1)[0]
+        self.assertGreater(len(span), 20, span)
+        refusal = [p for p in pf.commit_problems("fix(a): b\n") if "no body" in p]
+        self.assertEqual(len(refusal), 1)
+        self.assertIn(span, refusal[0], refusal[0])
+
     def test_the_gate_refuses_a_stale_missing_or_blocking_review(self):
         t = "feat(tools): native calls"
         stale = pf.pr_problems(t, BODY, "fff000111222", ["eval/x.py"], gate=True)
