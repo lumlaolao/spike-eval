@@ -895,6 +895,112 @@ public class GoldenChecksTest {
         Assert.assertEquals(me.getCardsIn(ZoneType.Battlefield).stream().filter(Card::isLand).count(), 4L, "it fetched a land");
     }
 
+    /** Escalate adds its cost for each mode beyond the first: the seat may choose as many modes as it can pay for, and no
+     *  more (the random gauntlet's Borrowed Grace chose both modes with mana for one, and the cast failed to pay). */
+    @Test
+    public void escalateModesAreOfferedAsFarAsTheyCanBePaid() {
+        for (int plains : new int[] {3, 5}) {
+            Game g = bareGame(PhaseType.MAIN1);
+            Player me = g.getPlayers().get(0);
+            for (int i = 0; i < plains; i++) lands(me, "Plains");
+            Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+            String[] modes = new String[1];
+            Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Borrowed Grace"))
+                    .on("MODAL SPELL", p -> { modes[0] = p; return "PICKS: 1,2"; });
+            card("Borrowed Grace", me, ZoneType.Hand);
+            playAndResolve(seat(g, model, model), g, "Borrowed Grace with " + plains + " Plains");
+            Assert.assertTrue(me.getCardsIn(ZoneType.Graveyard).anyMatch(c -> c.getName().equals("Borrowed Grace")),
+                    plains + " Plains: the cast was paid");
+            Assert.assertTrue(modes[0] != null && modes[0].contains("escalate"), "the question names escalate: " + modes[0]);
+            Assert.assertEquals(bears.getNetToughness(), plains == 5 ? 4 : 2, plains + " Plains: both modes only when payable");
+        }
+    }
+
+    /** Cancelling a tap cost cancels the play: Station's "tap another creature" answered CANCEL in the random gauntlet,
+     *  and a creature was tapped anyway, recorded as an unparsed answer. Only with the game log on: writing the
+     *  decision row cleared the cancel before it was returned. So the log is on here, as in a game. */
+    @Test
+    public void aCancelledTapCostTapsNothing() throws Exception {
+        boolean mine = !LlmSpikeGui.EvalLog.on();   // GoldenChecksToolTest keeps the log on for every check
+        if (mine) LlmSpikeGui.EvalLog.initToDir(java.nio.file.Files.createTempDirectory("cancel-log").toString(), 7);
+        try { cancelledTapCost(); } finally { if (mine) LlmSpikeGui.EvalLog.closeForTest(); }
+    }
+
+    private void cancelledTapCost() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Atmospheric Greenhouse", me, ZoneType.Battlefield);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Hill Giant", me, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Station"))
+                .on("you must TAP", picks("CANCEL"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "Station offered");
+        ctrl.playChosenSpellAbility(r.get(0));   // true: the seat is asked again, with the play unpaid
+        resolveAll(g);
+        Assert.assertEquals(me.getCreaturesInPlay().stream().filter(Card::isTapped).count(), 0L,
+                "nothing tapped: " + String.join(" | ", model.prompts.stream().map(p -> p.substring(Math.max(0, p.length() - 300))).toList()));
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** Strive adds its cost for each target beyond the first: Ajani's Presence ({W}, strive {2}{W}) with two Plains may
+     *  take one target, with four two. */
+    @Test
+    public void striveTargetsAreOfferedAsFarAsTheyCanBePaid() {
+        for (int plains : new int[] {2, 4}) {
+            Game g = bareGame(PhaseType.MAIN1);
+            Player me = g.getPlayers().get(0);
+            for (int i = 0; i < plains; i++) lands(me, "Plains");
+            card("Grizzly Bears", me, ZoneType.Battlefield);
+            card("Grizzly Bears", me, ZoneType.Battlefield);
+            card("Ajani's Presence", me, ZoneType.Hand);
+            String[] ask = new String[1];
+            Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Ajani's Presence"))
+                    .on("TARGETS", p -> { ask[0] = p; return p.contains("pick 0 to 2") ? "PICKS: 1,2" : "PICKS: 1"; });
+            playAndResolve(seat(g, model, model), g, "Ajani's Presence with " + plains + " Plains");
+            Assert.assertTrue(me.getCardsIn(ZoneType.Graveyard).anyMatch(c -> c.getName().equals("Ajani's Presence")), plains + " Plains: cast");
+            Assert.assertTrue(ask[0] != null && ask[0].contains("strive"), "the question names strive: " + ask[0]);
+            Assert.assertTrue(ask[0].contains(plains == 4 ? "pick 0 to 2" : "pick 0 to 1"), plains + " Plains: the bound: " + ask[0]);
+            Assert.assertEquals(me.getCreaturesInPlay().stream().filter(c -> c.getNetPower() == 3).count(), plains == 4 ? 2L : 1L,
+                    plains + " Plains: two targets only when payable");
+        }
+    }
+
+    /** Conspire is paid by tapping two untapped creatures that share a colour with the spell: with none to tap it is
+     *  not offered, and the cast goes ahead (the random gauntlet's Burn Trail was answered "pay it" with no creature to
+     *  tap, and the whole cast failed); with two, the seat is asked. */
+    @Test
+    public void aKeywordCostIsOfferedOnlyWhenItCanBePaid() {
+        for (boolean goblins : new boolean[] {false, true}) {
+            Game g = bareGame(PhaseType.MAIN1);
+            Player me = g.getPlayers().get(0);
+            lands(me, "Mountain", "Mountain", "Mountain", "Mountain");
+            if (goblins) { card("Raging Goblin", me, ZoneType.Battlefield); card("Raging Goblin", me, ZoneType.Battlefield); }
+            card("Burn Trail", me, ZoneType.Hand);
+            Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Burn Trail")).on("Conspire", p -> "CHOICE: 2");
+            playAndResolve(seat(g, model, model), g, "Burn Trail, goblins=" + goblins);
+            Assert.assertTrue(me.getCardsIn(ZoneType.Graveyard).anyMatch(c -> c.getName().equals("Burn Trail")), "goblins=" + goblins + ": cast");
+            boolean asked = model.prompts.stream().anyMatch(p -> p.contains("Conspire"));
+            Assert.assertEquals(asked, goblins, "conspire asked only when two creatures can pay it");
+            Assert.assertEquals(me.getCreaturesInPlay().stream().filter(Card::isTapped).count(), goblins ? 2L : 0L, "the goblins paid it");
+        }
+        // Squad may be paid any number of times (the engine's range is Integer.MAX_VALUE): only the times the mana covers
+        // are offered. A random answer of 1,212,328,817 squads hung the payment and ran the game out of heap.
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Forest", "Forest", "Forest", "Forest", "Forest");
+        card("Galadhrim Brigade", me, ZoneType.Hand);
+        String[] squad = new String[1];
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Galadhrim Brigade"))
+                .on("Squad", p -> { squad[0] = p; return "CHOICE: 2"; });
+        playAndResolve(seat(g, model, model), g, "Galadhrim Brigade with squad");
+        Assert.assertNotNull(squad[0], "squad asked");
+        Assert.assertTrue(squad[0].contains("1) 0") && squad[0].contains("2) 1") && !squad[0].contains("3) 2"),
+                "five Forests pay the {2}{G} and one {1}{G} squad: 0 or 1 offered: " + squad[0]);
+        Assert.assertEquals(me.getCreaturesInPlay().stream().filter(c -> c.getName().equals("Galadhrim Brigade")).count(), 2L, "one squad copy");
+    }
+
     /** Convoke with a mana creature: Llanowar Elves taps for convoke, so it is not a mana source left for the rest, and
      *  keeping a land untapped is not offered when nothing is spare (the keyword gauntlet's Angel of Salvation kept a
      *  land, counted the convoking Elves as mana, and failed to pay). */
@@ -1190,7 +1296,10 @@ public class GoldenChecksTest {
         lands(me, "Plains", "Plains", "Plains", "Plains", "Plains", "Plains", "Plains");
         card("Apex Hawks", me, ZoneType.Hand);
         Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Apex Hawks"))
-                .on("How many times", p -> p.contains("Every integer") ? "NUMBER: 2" : "CHOICE: " + opt(p, "2"))
+                .on("Multikicker", p -> {   // seven Plains pay {2}{W} and two {1}{W} kicks: 0, 1 or 2 offered
+                    Assert.assertTrue(p.contains("3) 2") && !p.contains("4) 3"), "only the payable kicks: " + p);
+                    return "CHOICE: " + opt(p, "2");
+                })
                 .on("Every integer", p -> "NUMBER: 2");
         playAndResolve(seat(g, model, model), g, "Apex Hawks, kicked twice");
         Card h = me.getCardsIn(ZoneType.Battlefield).stream().filter(c -> c.getName().equals("Apex Hawks")).findFirst().orElse(null);
@@ -2478,6 +2587,8 @@ public class GoldenChecksTest {
         Card bolt = card("Lightning Bolt", me, ZoneType.Library);
         Card bears = card("Grizzly Bears", me, ZoneType.Library);
         Card src = card("Pithing Needle", me, ZoneType.Battlefield);
+        card("Grizzly Bears", me, ZoneType.Battlefield);   // one creature: the sacrifice below can be paid once, not twice
+        lands(me, "Plains");                               // and the Needle's own {1}
         Script model = new Script("CHOICE: 1")
                 .on("Choose a pile", choice("Pile 2"))
                 .on("OPENING HAND", p -> "PICKS: NONE")

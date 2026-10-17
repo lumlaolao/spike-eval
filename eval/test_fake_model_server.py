@@ -71,6 +71,33 @@ class FakeModelServerTest(unittest.TestCase):
         self.assertNotRegex(g, r"CHOICE:\s*\d|PICKS:\s*(\d|none)|BLOCKS:\s*none|\bKEEP\b")
 
 
+    def test_the_random_policy_answers_within_every_bound_and_replays_by_seed(self):
+        def ask(p, content):
+            msgs = [{"role": "user", "content": content}]
+            props = fms.Policy.decision_props(msgs)
+            return json.loads(p.random_answer(msgs, props, set(), lambda n, a: {"name": n, "arguments": json.dumps(a)})[0]["arguments"])
+        menu = "call `answer` with `option`.\n  1) CAST X\n  2) CAST Y\n  3) PASS"
+        picks = "call `answer` with `options`.\n`options`: the numbers you pick, between 1 and 2\n  1) a\n  2) b\n  3) c"
+        split = "call `answer` with `amounts`.\n`amounts`: 3 numbers in the order listed, summing to 5"
+        num = "call `answer` with `number`.\n`number`: an integer from 2 through 6"
+        blocks = "call `answer` with `blocks`.\nATTACKERS: 1 = Bear; 2 = Elf\nYOUR BLOCKERS: 1 = Wall; 2 = Ape; 3 = Rat"
+        p = policy(policy="random", seed="kw03")
+        seen = set()
+        for _ in range(40):
+            seen.add(ask(p, menu)["option"])
+            o = ask(p, picks)["options"]
+            self.assertTrue(1 <= len(o) <= 2 and set(o) <= {1, 2, 3} and len(set(o)) == len(o))
+            a = ask(p, split)["amounts"]
+            self.assertEqual((len(a), sum(a), min(a) >= 0), (3, 5, True))
+            self.assertTrue(2 <= ask(p, num)["number"] <= 6)
+            for b in ask(p, blocks)["blocks"]:
+                self.assertTrue(1 <= b["blocker"] <= 3 and 1 <= b["attacker"] <= 2)
+        self.assertEqual(seen, {1, 2, 3}, "every option is drawn")
+        run = lambda seed: [ask(q, menu)["option"] for q in [policy(policy="random", seed=seed)] for _ in range(12)]  # noqa: E731
+        self.assertEqual(run("kw03"), run("kw03"), "a seed replays")
+        self.assertNotEqual(run("kw03"), run("kw04"))
+
+
 class RefuseToolsTest(unittest.TestCase):
     """--refuse-tools over real HTTP: the 404 wording is the one OpenRouterBridge.refusesTools reads."""
 

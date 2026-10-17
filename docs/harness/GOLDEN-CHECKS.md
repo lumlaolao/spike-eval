@@ -30,7 +30,7 @@ under the legacy profile, where the contract does not run; they are not counted.
 | phyrexian | payManaCost | 0 / 0 | yes | howAPhyrexianSymbolIsPaidIsTheModels |
 | number (incl. X) | chooseNumber, announceRequirements | 0 / 0 | yes | xAndModesAreTheModels, numbersAreTheModels |
 | number-value | chooseNumber (range wider than 12) | 0 / 0 | no | numbersAreTheModels |
-| modes | chooseModeForAbility | 3 / 0 | yes | xAndModesAreTheModels |
+| modes | chooseModeForAbility | 3 / 0 | yes | xAndModesAreTheModels, spreeModesAreOfferedOnlyWhenPayable, escalateModesAreOfferedAsFarAsTheyCanBePaid |
 | ability-to-play | getAbilityToPlay | 0 / 0 | no | whichWayToPlayACardIsTheModels |
 | play-from-effect | playSaFromPlayEffect | 0 / 0 | no | castingFromAnEffectIsTheModels |
 | mulligan | mulliganKeepHand | 14 / 12 | no | theMulliganAndTheBottomAreTheModels |
@@ -47,7 +47,7 @@ under the legacy profile, where the contract does not run; they are not counted.
 | cleanup-discard | chooseCardsToDiscardToMaximumHandSize | 17 / 11 | no | theCleanupDiscardIsTheModels |
 | delve | chooseCardsToDelve | 0 / 0 | no | whatDelveExilesIsTheModels |
 | sacrifice | choosePermanentsToSacrifice, getCostDecisionMaker | 0 / 0 | yes (cost) | anEdictsSacrificeIsTheModels |
-| cards-for-effect | chooseCardsForEffect, getCostDecisionMaker | 0 / 0 | yes (cost) | cardsChosenForAnEffectAreTheModels |
+| cards-for-effect | chooseCardsForEffect, getCostDecisionMaker | 0 / 0 | yes (cost) | cardsChosenForAnEffectAreTheModels, aCancelledTapCostTapsNothing |
 | prevent-effect | payCostToPreventEffect | 11 / 33 | no | payingForAnUnlessCostIsTheModels |
 | optional-costs | chooseOptionalCosts | 0 / 0 | no | aKickerIsTheModels |
 | trigger-order | orderSimultaneousSa | 29 / 8 | no | theOrderOfSimultaneousTriggersIsTheModels |

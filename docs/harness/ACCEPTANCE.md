@@ -9,6 +9,7 @@ are only read.
 
 | Stage | What it proves | What would make it fail |
 | --- | --- | --- |
+| 2026-10-17 | all 17 stages PASS (choices offered only as far as the cast can pay; a cancelled cost is not paid; harness-epoch-43) | 755/755 Java, 371 Python; surfaces 89/89 and 44/44; floor A/108/1828 and random A/59/397 unchanged. Keyword gauntlet 28 games and its new random-answer pass (`GAUNTLET_POLICY=random`) 28 games, 0 defect lines each (the random pass's first two runs found 5 defects, all fixed). |
 | 2026-10-17 | all 17 stages PASS (floating mana that changes the game is asked, harness-epoch-42) | 747/747 Java, 363 Python; surfaces 89/89 and 44/44; floor A/108/1828 and random A/59/397 unchanged. |
 | 2026-10-17 | all 17 stages PASS after a deliberate random re-pin (a legal action is never hidden, harness-epoch-41) | 747/747 Java, 363 Python; surfaces 89/89 and 44/44; floor unchanged A/108/1828; random A/35/231 -> A/59/397 (Goblin Bombardment may sacrifice its own target; reproduced twice). Keyword gauntlet: 28 games, 0 defect lines. |
 | 2026-10-17 | all 17 stages PASS after a deliberate random re-pin (keyword sweep and gauntlet, harness-epoch-40, observation-faithful-v36) | 737/737 Java, 363 Python; surfaces 89/89 decision hooks (was 69) and 44/44 ways to play. Floor unchanged A/108/1828; random re-pinned A/45/376 -> A/35/231 (a failed play is not offered again in its window; reproduced three times). `eval/keyword_gauntlet.sh` on this build: 28 zero-cost games, 0 defect lines (its first two runs found 7 defects, all fixed). |
