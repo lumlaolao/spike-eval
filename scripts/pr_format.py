@@ -72,12 +72,16 @@ def subject_problems(subject):
 
 
 def commit_problems(message):
+    # '#' lines are git template comments, stripped before the audit: a body written only of
+    # them reads as no body (heading-only bodies refuse; refuse-not-bless is the safe direction).
     lines = [l for l in message.splitlines() if not l.startswith("#")]
     while lines and not lines[0].strip():
         lines.pop(0)
     if not lines:
         return ["empty commit message"]
     out = subject_problems(lines[0])
+    # a merge/revert subject is exempt from the body checks like the subject checks: a merge's
+    # why lives in its second parent, a revert's in the message it cites
     if lines[0].startswith(EXEMPT_SUBJECTS):
         return out
     body = [l for l in lines[1:] if l.strip() and not TRAILER.match(l) and not SIGNATURE.match(l)]
@@ -168,6 +172,9 @@ def base_ref(arg=None):
 
 
 def branch_commits(base):
+    """The branch's own commits, base..HEAD, merges left out. Fetch the base first: a stale
+    local origin/main walks main's own earlier history too (the merge gate instead walks
+    GitHub's PR commit list and cannot see a stale local ref)."""
     out = run("git", "log", "--no-merges", "--format=%H%x1f%B%x1e", "%s..HEAD" % base)
     return [tuple(c.strip("\n").split("\x1f", 1)) for c in out.split("\x1e") if c.strip()]
 
