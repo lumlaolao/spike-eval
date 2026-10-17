@@ -65,6 +65,15 @@ class PrFormatTest(unittest.TestCase):
         self.assertEqual(pf.commit_problems("Merge pull request #79 from a/branch-name"), [])
         self.assertEqual(pf.commit_problems('Revert "fix(a): the old shape"\n\nThis reverts commit abc1234.\n'), [])
 
+    def test_a_signature_footer_alone_is_not_a_body(self):
+        for msg in ("fix(a): b\n\nGenerated with Claude Code\n",
+                    "fix(a): b\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\n"
+                    "Co-Authored-By: Claude <noreply@anthropic.com>\n",
+                    "fix(a): b\n\n_Generated with Claude Code_\n"):
+            self.assertTrue(any("no body" in p for p in pf.commit_problems(msg)), msg)
+        self.assertEqual(pf.commit_problems("fix(a): b\n\nwhy it was needed\n\n" +
+                                             "Generated with Claude Code\n"), [])
+
     def test_a_complete_pr_passes_the_gate_for_its_head(self):
         self.assertEqual(pf.pr_problems("feat(tools): the seat's tools are native function calls", BODY,
                                         "abc123456789", ["eval/x.py"], gate=True), [])

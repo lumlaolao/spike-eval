@@ -39,6 +39,10 @@ CODE_PATHS = ("forge-overlay/", "eval/", "scripts/", "install.sh", "run-llm-")
 # `- acceptance @ <head sha>: OUT=<dir> <N>/<N> stages PASS ...`
 ACCEPTANCE = re.compile(r"^- acceptance @ ([0-9a-f]{7,40}): OUT=(\S+) (\d+)/(\d+) stages PASS\b", re.M)
 TRAILER = re.compile(r"^(Co-Authored-By|Claude-Session|Signed-off-by): ", re.I)
+# A generated signature footer is not a why: alone it satisfies nothing (pr-review finding,
+# executed). The observed shapes: the plain sentence, the markdown-italic one, the emoji link one.
+SIGNATURE = re.compile(r"^\s*(?:🤖\s*)?_?Generated with "
+                       r"(?:\[Claude Code\]\([^)]*\)|Claude Code)_?\s*$", re.I)
 # The `new-pr` skeleton's placeholders, matched exactly: a shape (any `<...>` line) also caught real
 # HTML such as `<img src=...>` and `<details open>`.
 PH_WHY = "<the evidence it was needed: file:line, a run directory, a count>"
@@ -76,7 +80,7 @@ def commit_problems(message):
     out = subject_problems(lines[0])
     if lines[0].startswith(EXEMPT_SUBJECTS):
         return out
-    body = [l for l in lines[1:] if l.strip() and not TRAILER.match(l)]
+    body = [l for l in lines[1:] if l.strip() and not TRAILER.match(l) and not SIGNATURE.match(l)]
     if not body:
         out.append("a commit with no body carries no why; say why, what was measured, and "
                    "would have caught it (STANDARDS section 2)")
