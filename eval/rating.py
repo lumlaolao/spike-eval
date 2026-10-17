@@ -77,6 +77,8 @@ PLAYER_FIELDS = (
     "native_tools_version", "native_tools_downgraded", "rules_tool", "rules_tool_version",
     "rules_effective", "lookahead", "lookahead_version", "one_tier", "no_coaching", "one_chat",
     "one_chat_version", "turn_chat", "turn_chat_version",
+    # How the llm seat answers (the answer call or text): a floor or random arm beside it records false.
+    "answer_tool", "answer_tool_seats", "answer_tool_version",
 )
 PLAYER_FIELDS_BY_IDENT = {ident: SERVED_BY_IDENT[ident] + ("temperature_" + ident,)
                           for ident in ("a", "b")}

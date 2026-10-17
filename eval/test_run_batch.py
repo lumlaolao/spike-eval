@@ -230,6 +230,22 @@ class TestConditionEnv(unittest.TestCase):
                         run_batch.cited_pre_guards(args)
                 self.assertEqual(cm.exception.code, 2)
 
+    def test_cited_runs_in_parallel_only_off_the_claude_cli(self):
+        with tempfile.TemporaryDirectory() as d:
+            deck = Path(d) / "mirror.txt"
+            deck.write_text("4 Lightning Bolt\n", encoding="utf-8")
+            luna = "openrouter:openai/gpt-6-luna"
+            for smart, fast, refused in (("haiku", "haiku", True), (luna, "haiku", True), (luna, luna, False)):
+                args = make_args(deck_a=str(deck), deck_b=str(deck), exploratory=False, jobs=4,
+                                 smart_a=smart, fast_a=fast, seeds=[30000])
+                with self.subTest(smart=smart, fast=fast), mock.patch("sys.stderr"), \
+                        mock.patch.object(run_batch, "cited_seed_guard"):
+                    if refused:
+                        with self.assertRaises(SystemExit):
+                            run_batch.cited_pre_guards(args)
+                    else:
+                        run_batch.cited_pre_guards(args)
+
     def test_condition_env_is_refused_in_every_mode_before_anything_runs(self):
         p = subprocess.run([sys.executable, str(RUN_BATCH), "--seeds", "7100",
                             "--exploratory", "--env", "MEMORY_TOOLS=1",
@@ -699,7 +715,8 @@ def panel_args(**kw):
     base = dict(panel="mirror", panel_file=str(run_batch.PANEL_FILE), panel_cells=None, no_control=False,
                 sanity_arms=False, budget_usd=5.0, seeds=None, deck=None, deck_a=None, deck_b=None,
                 controller_a="llm", controller_b=None, smart_a="openrouter:deepseek/deepseek-v4.1-flash",
-                fast_a="openrouter:deepseek/deepseek-v4.1-flash", out="/tmp/panel-root", exploratory=False)
+                fast_a="openrouter:deepseek/deepseek-v4.1-flash", out="/tmp/panel-root", exploratory=False,
+                memory_tools=True, lookahead=True)
     base.update(kw)
     return make_args(**base)
 
@@ -741,6 +758,14 @@ class TestPanelLaunch(unittest.TestCase):
         for kw in ({"deck": "/tmp/x.txt"}, {"controller_b": "random"}, {"smart_b": "haiku"}):
             with self.assertRaises(SystemExit):
                 run_batch.plan_panel(panel_args(**kw))
+
+    def test_an_llm_pilot_launches_only_under_the_pinned_pilot_condition(self):
+        for kw in ({"memory_tools": False}, {"lookahead": False}, {"rules_tool": True}, {"two_tier": True},
+                   {"turn_chat": True}, {"context_profile": "v2-memory"}, {"text_answers": True}):
+            with self.subTest(**kw), self.assertRaises(SystemExit), mock.patch("sys.stderr"):
+                run_batch.plan_panel(panel_args(**kw))
+        # A sanity-arm pilot (no model) has no pilot condition to meet.
+        self.assertEqual(len(run_batch.plan_panel(panel_args(controller_a="floor", memory_tools=False))[1]), 16)
 
     def test_a_subset_of_cells_can_be_launched(self):
         _, plan = run_batch.plan_panel(panel_args(panel_cells="burn,elves"))

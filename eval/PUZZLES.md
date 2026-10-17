@@ -107,7 +107,8 @@ With c solves in k attempts:
 The headline is the mean margin over the split's active puzzles. Doing nothing scores about zero, and a
 puzzle a coin flip solves earns almost nothing. Every aggregate is printed with:
 - its floors (the same number for the random, pass and first arms);
-- a 95% bootstrap CI over puzzles;
+- a 95% bootstrap CI over puzzles, and beside each solved count (and pass@1 at k=1) a Wilson interval: the
+  bootstrap reports 0 of 21 solved as [0, 0], a certainty it does not have (Wilson: 0 to 3.2);
 - per tier, the solved count beside the count each trivial arm would be expected to solve;
 - where the AI baseline exists, a normalized score (random = 0, Forge AI = 1).
 

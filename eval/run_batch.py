@@ -18,7 +18,7 @@ Two modes:
   CITED (default) — the only mode whose numbers may be quoted. Enforces a
     mirror-deck setup (same decklist both seats, distinct identity names),
     forces the eval-confound switches off (MULLIGAN_HEURISTIC=0,
-    SKIP_HEURISTICS=0, no plans), pins --jobs 1, and stamps full provenance
+    SKIP_HEURISTICS=0, no plans), pins --jobs 1 when a seat uses the claude CLI, and stamps full provenance
     (engine/overlay/deck shas + discipline). Refuses to run on any violation
     or on spike-file drift.
   --exploratory — skips the mirror/heuristic/jobs guards for quick pokes.
@@ -915,10 +915,13 @@ def cited_pre_guards(args):
         _refuse("plans (PLAN_A/PLAN_B) are an expert-knowledge confound and are "
                 "forbidden in cited mode.")
 
-    # --- guard 3: single JVM ---
-    if args.jobs != 1:
-        _refuse("cited mode requires --jobs 1 (got %d); parallel JVMs starve the "
-                "claude CLI and inflate fallbacks." % args.jobs)
+    # --- guard 3: single JVM when a seat runs on the local claude CLI ---
+    # Parallel JVMs starve the CLI and inflate fallbacks. An openrouter: game waits on the network
+    # (eval/CONCURRENCY.md section 7), so it may run in parallel; warn_parallel_jobs still caps by RAM.
+    bare = sorted(set(m for m in effective_llm_models(args) if not m.startswith("openrouter:")))
+    if args.jobs != 1 and bare:
+        _refuse("cited mode requires --jobs 1 with claude-CLI model specs %s (got --jobs %d); "
+                "parallel JVMs starve the claude CLI and inflate fallbacks." % (bare, args.jobs))
 
     # --- guard 3b: held-out seeds only ---
     cited_seed_guard(args)
@@ -1595,7 +1598,7 @@ def plan_panel(args):
     """[(kind, cell id, namespace)] for every block a panel launch plays, in order, or a refusal.
     kind is 'pilot' or 'control'. Pure: nothing is launched or created."""
     try:
-        panel, pool, _doc = panel_score.load_panel(args.panel_file, args.panel)
+        panel, pool, doc = panel_score.load_panel(args.panel_file, args.panel)
     except panel_score.PanelError as e:
         _panel_refuse(str(e))
     for flag in ("deck", "deck_a", "deck_b", "controller_b", "smart_b", "fast_b"):
@@ -1609,6 +1612,18 @@ def plan_panel(args):
     if drift:
         _panel_refuse("deck file(s) changed since %s was frozen: %s. A new deck pool is a new panels "
                 "version." % (args.panel_file, ", ".join(drift)))
+    if (args.controller_a or "llm") == "llm":
+        # The pilot condition the panels file pins (review E2): the flags must produce exactly it.
+        want = (doc.get("pilot_condition") or {}).get("fields") or {}
+        r = copy.copy(args)
+        r.native_tools, r.answer_tool = native_tools_requested(r), answer_tool_requested(r)
+        r.one_tier = not getattr(r, "two_tier", False)
+        expect = resume_expectation(r)
+        off = ["%s=%s" % (f, json.dumps(v)) for f, v in want.items()
+               if [x for x in expect.get(f, [v]) if x is not ABSENT] != [v]]
+        if off:
+            _panel_refuse("the pilot plays under the panel's pilot_condition (%s); these flags do not give %s"
+                          % (args.panel_file, ", ".join(off)))
     published = panel_score.parse_seed_spec(panel["seeds"])
     seeds = args.seeds if args.seeds is not None else published
     stray = sorted(set(seeds) - set(published))

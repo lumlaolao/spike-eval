@@ -31,7 +31,8 @@ The headline score is decisive-only (--score decisive, the aggregate.py conventi
 uses the strict score instead. Both are always printed.
 
 Validity: every cell must exist and hold one experiment whose identity B is the Forge AI and whose
-game lines carry the cell's pinned deck_sha; the pilot must be the same player with the same
+game lines carry the cell's pinned deck_sha; an llm pilot must have played under the panels file's
+`pilot_condition` (refused otherwise, whatever the flags); the pilot must be the same player with the same
 settings in every cell (rating.check_conditions); aggregate.py's fallback and harness-decided gates
 must pass per cell; the sanity arms (sanity_arms.py) must not beat the floor in any cell; and every
 game read must belong to one benchmark version (benchmark_version.py), which the report carries.
@@ -95,6 +96,22 @@ def load_panel(panel_file, name):
             if c[side] not in pool:
                 raise PanelError("cell %s names deck %r, which is not in the deck pool" % (c["id"], c[side]))
     return panel, pool, doc
+
+
+def pilot_condition_problems(games, doc):
+    """How the llm pilot's games depart from the panels file's pinned pilot condition (review E2): one line per
+    field and value seen, [] when every game matches. A field a game does not carry is a departure."""
+    want = (doc.get("pilot_condition") or {}).get("fields") or {}
+    seen = {}
+    for g in games:
+        if g.get("controller_a") != "llm":
+            continue
+        for f, v in want.items():
+            if g.get(f, "(absent)") != v:
+                seen.setdefault((f, json.dumps(g.get(f, "(absent)"))), 0)
+                seen[(f, json.dumps(g.get(f, "(absent)")))] += 1
+    return ["the pilot played %d game(s) with %s=%s; the panel's pilot condition is %s"
+            % (n, f, v, json.dumps(want[f])) for (f, v), n in sorted(seen.items())]
 
 
 def pair_deck_sha(sha_a, sha_b):
@@ -311,6 +328,10 @@ def score_panel(root, panel_name, panel_file=DEFAULT_PANEL_FILE, score="decisive
     if len(pilots) > 1:
         problems.append("cells were played by different pilots: %s" % ", ".join(pilots))
     cond = rating.check_conditions(all_games)
+    # The pilot's own condition is part of the benchmark: no --allow-mixed-conditions lets another be scored.
+    off = pilot_condition_problems(pilot_games, doc)
+    if off:
+        raise PanelError("; ".join(off))
     version, version_problem = None, None
     try:
         version = benchmark_version.stamp(panels_path=panel_file, games=all_games)

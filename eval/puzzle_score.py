@@ -13,7 +13,9 @@ k attempts per puzzle (default 4, distinct seeds). Per puzzle, with c solves in 
 
 Headline PUZ = mean over puzzles of margin, so a puzzle a coin flip solves earns almost nothing and
 doing nothing scores about zero. Every aggregate is printed with its floor (the same number for the
-random, PASS and first-option policies) and a 95% bootstrap CI over puzzles.
+random, PASS and first-option policies) and a 95% bootstrap CI over puzzles. The solved counts (and pass@1 at
+k=1, where it is the solved share) also carry a Wilson interval: a bootstrap over puzzles reports 0 of 21 as
+[0, 0], a certainty it does not have, where Wilson gives 0 to 3.2.
 
 Refuses (exit 2) to: pool the open and held-out splits, mix suite versions or puzzle versions, mix
 solvers, score a puzzle with fewer than k attempts, or score an unscoreable row. Stdlib only.
@@ -29,6 +31,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import puzzle_format as pf  # noqa: E402
+from aggregate import wilson_ci  # noqa: E402
 
 
 class Refused(Exception):
@@ -218,6 +221,8 @@ def aggregate(rows, k, n_boot=2000, seed=0):
     }
     out["pass@1"] = {
         "value": stat_of("pass@1")(rows), "ci95": bootstrap_ci(rows, stat_of("pass@1"), n_boot, seed),
+        # At k=1 each puzzle is one Bernoulli trial: the count interval applies (at k>1 attempts cluster by puzzle).
+        "ci95_wilson": list(wilson_ci(sum(r["solves"] for r in rows), len(rows))) if k == 1 and rows else None,
         "floors": {arm: _mean([r[arm + "_rate"] for r in rows]) for arm in ("random", "pass", "first")},
     }
     for key in ("pass^2", "pass^k"):
@@ -254,6 +259,7 @@ def _solved_block(sub, k, n_boot, seed):
     return {
         "solved": count(sub), "of": len(sub),
         "ci95": bootstrap_ci(sub, count, n_boot, seed),
+        "ci95_wilson": [len(sub) * x for x in wilson_ci(count(sub), len(sub))],
         # Expected count a trivial policy would 'solve' (c >= k/2) given its per-attempt rate.
         "floors": {arm: sum(p_solved_by_policy(r[arm + "_rate"], k) for r in sub)
                    for arm in ("random", "pass", "first")},
@@ -294,6 +300,8 @@ def render(rep):
         if key in a:
             b = a[key]
             extra = ("  (if independent %s)" % _fmt(b["if_independent"])) if "if_independent" in b else ""
+            if b.get("ci95_wilson"):
+                extra += "  (Wilson %s)" % _ci(b["ci95_wilson"])
             lines.append("  %-37s %s  95%% CI %s   floors: random %s, PASS %s, first %s%s"
                          % (key, _fmt(b["value"]), _ci(b["ci95"]), _fmt(b["floors"]["random"]),
                             _fmt(b["floors"]["pass"]), _fmt(b["floors"]["first"]), extra))
@@ -302,8 +310,8 @@ def render(rep):
                      % (_fmt(a["normalized"]["value"]), _fmt(a["normalized"]["forge_ai_rate"])))
     s = a["solved"]
     for name, b in [("all", s["all"])] + [("tier " + t, b) for t, b in s["by_tier"].items()]:
-        lines.append("  solved %-30s %d/%d  95%% CI %s   expected floors: random %.2f, PASS %.2f, first %.2f"
-                     % (name, b["solved"], b["of"], _ci(b["ci95"]), b["floors"]["random"],
+        lines.append("  solved %-30s %d/%d  95%% CI %s Wilson %s   expected floors: random %.2f, PASS %.2f, first %.2f"
+                     % (name, b["solved"], b["of"], _ci(b["ci95"]), _ci(b["ci95_wilson"]), b["floors"]["random"],
                         b["floors"]["pass"], b["floors"]["first"]))
     return "\n".join(lines)
 

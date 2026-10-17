@@ -91,6 +91,22 @@
     "control_seeds": "7800..7999",
     "note": "Claimed from the stage3-holdout eval-only bank (eval/seed_registry.json), above the 7000..7799 that eval/suites/stage3-v1.json uses. Not a seed_policy.py reserved block, so seed_registry.py check is what keeps it out of training corpora. 50 seeds x 2 seat orders = 100 games per cell (per-cell 95% CI about +-10 points, pooled about +-2.5). The AI-vs-AI control plays 4x the seeds (control_seeds, a superset of seeds) because it costs only CPU and its variance enters every cross-panel margin. A smaller block uses a prefix of the seeds (run_batch.py --seeds must be a subset)."
   },
+  "pilot_condition": {
+    "note": "An llm pilot plays every cell under exactly this condition (game-line fields), the one the game loop's Luna games are played under (.claude/skills/game-loop): the faithful profile, one tier, every answer by the answer call, the native lookup tools and the lookahead preview, no rules tool, no turn or one-chat window, no compound plans, coaching as the profile has it. run_batch.py --panel refuses to launch another; panel_score.py refuses to score another. A different pilot condition is a new panels version.",
+    "fields": {
+      "context_profile": "v4-faithful",
+      "one_tier": true,
+      "answer_tool": true,
+      "memory_tools": true,
+      "native_tools": true,
+      "lookahead": true,
+      "rules_tool": false,
+      "one_chat": false,
+      "turn_chat": false,
+      "plan_execute": false,
+      "no_coaching": false
+    }
+  },
   "panels": {
     "mirror": {
       "headline": true,
