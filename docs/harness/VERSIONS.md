@@ -11,7 +11,7 @@ Versions are not in the model's prompt: the model gains nothing from them, and a
 | `AnswerTool.VERSION` | `answer-tool-v11` | `answer_tool_version` | the `answer` and `set_plan` functions and their validation. |
 | `NativeTools.VERSION` | `seat-tools-v11` | `native_tools_version` | the lookup tools' definitions (inspect, search, read, simulate). |
 | `ContextMemory.VERSION` | `evidence-tools-v3` | `memory_tools_version` | what the evidence lookups return. |
-| `PlayerLookahead.VERSION` | `lookahead-preview-v10` | `lookahead_version` | the `simulate` preview and the attack outlook. |
+| `PlayerLookahead.VERSION` | `lookahead-preview-v11` | `lookahead_version` | the `simulate` preview and the attack outlook. |
 | `RulesTool.VERSION` | `rules-tool-v1` | `rules_tool_version` | the comprehensive-rules lookup. |
 | `ChatSessionBridge.VERSION` | `one-chat-v3` | `one_chat_version` | the one-conversation-per-seat arm (ONE_CHAT). |
 | `ChatSessionBridge.TURN_VERSION` | `turn-chat-v1` | `turn_chat_version` | the conversation bounded by the turn (TURN_CHAT). |

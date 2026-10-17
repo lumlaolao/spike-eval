@@ -3859,7 +3859,7 @@ public final class LlmSpikeGui {
                 // the play is committed may be answered "cancel": the model saw the candidates and no
                 // longer wants the play (runs/loop/g06 Grindstone, g07 Wirewood Symbiote: "there's no
                 // 'don't activate' option"). The menu is asked again, at most twice per window.
-                if (!ensureTargetsSet(chosen, observer != null && rnd == null && cancels < 2)) {
+                if (!ensureTargetsSet(chosen, observer != null && rnd == null && cancels < 2, true)) {
                     for (SpellAbility s = chosen; s != null; s = s.getSubAbility()) s.resetTargets();
                     dropModes(chosen);
                     cancels++;
@@ -4126,7 +4126,7 @@ public final class LlmSpikeGui {
          *  untargeted spell we picked would fail hasLegalTargeting and fizzle ("Couldn't add to stack").
          *  We walk the ability chain and, for each targeting ability with no target yet, pick from the
          *  engine's own canTarget-validated candidates (LLM chooses when there's a real choice). */
-        private void ensureTargetsSet(SpellAbility root) { ensureTargetsSet(root, false); }
+        private void ensureTargetsSet(SpellAbility root) { ensureTargetsSet(root, false, false); }
 
         /** The `simulate` call of a target choice: the play ({@code root}) previewed with {@code sa} aimed at the
          *  numbered candidate (runs/loop/g03 asked for it twice while aiming Wasteland). Null where the seat has no
@@ -4156,7 +4156,9 @@ public final class LlmSpikeGui {
         static final String CANCEL_LABEL = "CANCEL: do not take this action; go back to the action menu";
 
         /** False only when {@code cancellable} and the model chose {@link #CANCEL_LABEL}. */
-        private boolean ensureTargetsSet(SpellAbility root, boolean cancellable) {
+        /** {@code play}: a play from the seat's priority menu, which a target preview can replay on a copy (a
+         *  trigger cannot: runs/loop/g04 T5 previewed a cycling trigger's target and got "unavailable"). */
+        private boolean ensureTargetsSet(SpellAbility root, boolean cancellable, boolean play) {
             for (SpellAbility sa = root; sa != null; sa = sa.getSubAbility()) {
                 clearLast(); // per-ability: a single-candidate auto-target must not inherit a prior ability's prompt
                 try {
@@ -4195,7 +4197,7 @@ public final class LlmSpikeGui {
                         // logged by us or it vanishes with zero jsonl/log trace (the exact C5 double-failure shape).
                         int c = decideOne(bridgeFor("target"), null, "Choose the TARGET for " + copyOf(sa) + labelOf(sa) + xNote(sa)
                                 + " (the spell/ability resolves against whatever you pick).", labels,
-                                sa.getMinTargets() == 0 ? "No target" : null, targetPreview(root, sa, cands));
+                                sa.getMinTargets() == 0 ? "No target" : null, play ? targetPreview(root, sa, cands) : null);
                         if (c == -1 && sa.getMinTargets() == 0) {
                             // The seat's own "No target" is its decision, not a fallback (runs/luna-std mod-g7 T10 read
                             // it as a lost answer); only an answer that could not be used carries a fallback label.

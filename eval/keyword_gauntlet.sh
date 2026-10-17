@@ -28,6 +28,8 @@ RUN="$(ls -d "$REPO"/runs/harness-acceptance/* 2>/dev/null | tail -1)"
 CLASSES="${GAUNTLET_CLASSES:-$RUN/classes}"
 CP_FILE="$RUN/classpath.txt"
 [ -d "$CLASSES" ] && [ -f "$CP_FILE" ] || { echo "no acceptance build: run eval/harness_acceptance.sh first"; exit 2; }
+# Each game runs from the checkout: without it every game exits 1 and the run says so only at the end.
+[ -d "$FORGE/forge-gui-desktop" ] || { echo "no Forge checkout at $FORGE: set FORGE_HOME"; exit 2; }
 JAVA="${JAVA_HOME:+$JAVA_HOME/bin/}java"
 mkdir -p "$OUT" && OUT="$(cd "$OUT" && pwd)" # absolute: each game runs from the Forge checkout
 POLICY="${GAUNTLET_POLICY:-first}"
