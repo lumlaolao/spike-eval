@@ -60,9 +60,8 @@ class PrFormatTest(unittest.TestCase):
         self.assertEqual(pf.commit_problems("# comment\n\nfix(a): b\n\nwhy it was needed\n"), [])
 
     def test_a_subject_only_commit_carrying_no_why_fails_the_check(self):
-        self.assertTrue(any("no body" in p for p in pf.commit_problems("fix(a): b\n")), "subject only")
-        self.assertTrue(any("no body" in p for p in
-                            pf.commit_problems("fix(a): b\n\nClaude-Session: ses_x\n")), "one trailer only")
+        for msg in ("fix(a): b\n", "fix(a): b\n\nClaude-Session: ses_x\n"):
+            self.assertTrue(any("no body" in p for p in pf.commit_problems(msg)), msg)
         self.assertEqual(pf.commit_problems("Merge pull request #79 from a/branch-name"), [])
         self.assertEqual(pf.commit_problems('Revert "fix(a): the old shape"\n\nThis reverts commit abc1234.\n'), [])
 

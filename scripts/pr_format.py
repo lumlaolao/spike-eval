@@ -25,6 +25,7 @@ import sys
 TYPES = ("feat", "fix", "perf", "eval", "data", "test", "docs", "refactor", "chore", "build")
 SUBJECT = re.compile(r"^(%s)(\([^()\n]{1,40}\))?: \S.*$" % "|".join(TYPES))
 SUBJECT_MAX = 100
+EXEMPT_SUBJECTS = ("Merge ", "Revert ")
 SECTIONS = ("What", "Why", "Evidence", "Provenance", "Review", "Not done")
 SKILLS = ("pr-review", "simplify", "standards")
 # Each skill reports in its own words; the gate refuses the blocking ones.
@@ -55,7 +56,7 @@ CODE_SPAN = re.compile(r"`[^`\n]*`")
 
 def subject_problems(subject):
     out = []
-    if subject.startswith(("Merge ", "Revert ")):
+    if subject.startswith(EXEMPT_SUBJECTS):
         return out
     if not SUBJECT.match(subject):
         out.append("subject is not `type(scope): what is now true` with type in %s: %r" % ("/".join(TYPES), subject))
@@ -73,14 +74,14 @@ def commit_problems(message):
     if not lines:
         return ["empty commit message"]
     out = subject_problems(lines[0])
-    if lines[0].startswith(("Merge ", "Revert ")):
+    if lines[0].startswith(EXEMPT_SUBJECTS):
         return out
     body = [l for l in lines[1:] if l.strip() and not TRAILER.match(l)]
     if not body:
-        out.append("a commit with no body carries no why; write what was needed, was measured, "
-                   "and would have caught it (STANDARDS section 2)")
+        out.append("a commit with no body carries no why; say why, what was measured, and "
+                   "would have caught it (STANDARDS section 2)")
         return out
-    if len(lines) > 1 and lines[1].strip():
+    if lines[1].strip():
         out.append("no blank line between the subject and the body")
     for l in lines[2:]:
         if len(l) > SUBJECT_MAX and " " in l.strip() and not TRAILER.match(l) and "://" not in l:
