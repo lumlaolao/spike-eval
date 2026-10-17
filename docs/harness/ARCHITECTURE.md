@@ -58,12 +58,20 @@ them and refuses to pool what is not comparable.
   `docs/harness/controller-ownership.tsv` lists every controller method, who decides it (model,
   deterministic, Forge AI) and how often the pool reaches it. The acceptance run prints the count of AI
   decisions still reachable in Legacy play, and `[TALLY] ... ai=0` in each game log is the invariant.
-  Since harness-epoch-14 no reachable decision falls back to it (section 15).
+  Since harness-epoch-14 no reachable decision falls back to it (section 15). Since harness-epoch-40 no decision of
+  any mechanic is left to it either: exert, enlist, splice onto Arcane, coin-flip calls, shield counters, dice
+  (ignore, reroll, modify, swap; planar dice), stickers, contraptions, attractions, multiple starting hands and assist
+  were Forge AI's ("not in eval decks") and are the seat's, each with a golden check. *Why it mattered:* an
+  inherited AI method does not count on `[TALLY] ai=`, so a game that reached one showed ai=0.
 
 **What the harness may decide without asking (owner rule):**
-- a choice with exactly one legal option (forced);
+- a choice with exactly one legal option (forced). A cost that takes exactly as many cards as there are
+  candidates is paid with those, by the harness (since harness-epoch-40): left to Forge's AI, the pick could be
+  refused (it declined to exile Altar of the Wretched for a craft, so the payment failed);
 - the priority menu is PASS only (nothing castable, activatable or playable), or this exact spot (turn,
-  phase, stack, board, menu) was already passed.
+  phase, stack, board, menu) was already passed;
+- a play that failed to pay is not offered again in the same window (turn, phase, top of the stack), as Forge's
+  AI skips a failed ability: the seat was offered the same unpayable play 999 times.
 
 Anything new asks again: an opponent's spell or ability, every attack and block, a trigger, a new option.
 - *Why:* skipping a window the model could act in, keeping a hand for it, or picking its play is a
@@ -431,6 +439,29 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
    - The same stage checks the ways to play a card: each play the seat makes records how it was played
      (`play:alt:Evoke`, `play:opt:Kicker1`, from which zone, which face), and every kind the engine lists must be
      played by a golden check or listed in `eval/play_gaps.txt` (may only shrink).
+   - **Every mechanic (`KeywordSurfaceSweepTest`, 2026-10-17):** for each of Forge's keywords, three real cards
+     that have it, in each zone and turn moment a card can be played from (own main phase, own combat with an
+     unblocked attacker, own upkeep, the opponent's turn). Parity: what the engine lets a human do with the card
+     (`Card.getAllPossibleAbilities`, the list the GUI offers on a click, kept when payable with a legal target)
+     must be on the seat's menu, and the menu must offer nothing else. Playthrough: each such play is made by the
+     seat with a fake model that answers every ask in its own format, resolves, hands nothing to Forge's AI,
+     reads no answer it cannot parse and keeps `AskContract` on every ask. Any gap fails the test. The five
+     keywords with no card to sweep are pinned (no card uses Absorb, Frenzy or Poisonous; the agendas are
+     Conspiracy draft only).
+   - **The keyword gauntlet (`eval/keyword_gauntlet.sh`, on demand, no model cost):** the sweep's 553 cards in 28
+     decks (`eval/gauntlet/`), each deck's LLM seat on the loopback fake model (`--policy first --answer-tool`:
+     the first option of every ask) against the next deck's Forge AI, in full games. Triggers, combat, upkeep and
+     end-step mechanics reach the seat as a game brings them. `eval/gauntlet_scan.py` fails on a choice Forge's
+     AI made, an unreadable answer, a play that failed to pay, a crash or an unfinished game. *Why both:* the
+     sweep proves each play is reachable and plays once; only games bring the states in between. The first run
+     found a craft the seat could never pay (with one candidate, the exile was left to Forge's AI, which declined
+     to exile Altar of the Wretched) and chose 999 times in one window, and a StackOverflowError (floating mana
+     asked while the hand was priced). Its second run, with failed payments counted, found three more: an
+     ability offered at X=1 with no counter to remove (Arcee: the menu now checks the costs beyond mana at the
+     least X, and X is capped by what can pay it), a spree mode chosen that the mana could not cover (modes are
+     offered only when payable, and checked together), and a convoke payment one short (creatures that may
+     convoke are not counted as mana when a land is kept untapped; a convoke that leaves the rest unpayable is
+     asked again with the reason).
    - *Why measured, not listed by hand:* a hand-kept map says which test should reach a hook; the record says
      which test did. A per-type list let a hook that only ever took forced picks look covered.
 3. **Optional live-model checks (`eval/test_live_answer_tool.py`, `LIVE_MODEL_TESTS=1`, about a cent):**

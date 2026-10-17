@@ -9,6 +9,7 @@ are only read.
 
 | Stage | What it proves | What would make it fail |
 | --- | --- | --- |
+| 2026-10-17 | all 17 stages PASS after a deliberate random re-pin (keyword sweep and gauntlet, harness-epoch-40, observation-faithful-v36) | 737/737 Java, 363 Python; surfaces 89/89 decision hooks (was 69) and 44/44 ways to play. Floor unchanged A/108/1828; random re-pinned A/45/376 -> A/35/231 (a failed play is not offered again in its window; reproduced three times). `eval/keyword_gauntlet.sh` on this build: 28 zero-cost games, 0 defect lines (its first two runs found 7 defects, all fixed). |
 | 2026-10-16 | all 16 stages PASS (combo lines play out, harness-epoch-32, lookahead-preview-v8; provider stall cut) | 547/547 Java, 339 Python, canaries unchanged (floor A/108/1828, random A/45/376). New golden checks: a ritual, Lotus Petal and Ad Nauseam are paid; every Ad Nauseam repeat is the seat's; the Doomsday pile and its order are the seat's; Tendrils storm copies resolve on the seat's targets; Lion's Eye Diamond cracks in response to Infernal Tutor. Previews keep the stack and a Force of Will pitch. `OpenRouterTimeoutTest` 11/11: a connection that sends no headers, or goes silent, for `OPENROUTER_IDLE_MS` is retried. Evidence `runs/harness-acceptance/20261016T163523Z`. |
 | 2026-10-16 | all 16 stages PASS (turn window, review C1-C2; new stage `turnchat`) | 532/532 Java, 339 Python, canaries unchanged. New stage `turnchat`: a loopback game with `TURN_CHAT=1`: `requests=23 carried_turn_history=17 max_assistant_msgs=14 decisions=20`, every request a valid tool-call sequence, no earlier answer replayed as text. Its first run (before the PR) found the answering assistant message added twice to the replay; fixed and pinned by `AnswerToolTest.anAnsweredAskKeepsItsCallsResultsAndReasoning`. |
 | 2026-10-16 | all 15 stages PASS (independent review R2-R7, harness-epoch-30; new stage `scoring`) | 529/529 Java, 337 Python. Canaries unchanged (floor A/108/1828, random A/45/376). New stage `scoring`: one open puzzle through `puzzle_solve.py` on the loopback model, scored by `puzzle_score.py --ids` as a pilot; one mirror panel cell (random pilot, seed 7800, both seats) through `run_batch.py --panel` on a stand-in Forge home running the isolated build, scored by `panel_score.py` with no version, condition, deck-pin or gate problem (`bv1-1f8a4b323806`). What would make it fail: a scorer refusal (the old puzzle-hash mismatch), a launcher loading another build, a provenance or condition problem. |
@@ -46,6 +47,10 @@ that OS, reproduced, with the same note a re-pin needs.
   egress gate is what makes the faketool stage possible without consent flags.
 - Model ownership of every strategic decision: `[OWNERSHIP]` in the javatests line reports
   how many silent Forge-AI strategic hooks remain reachable (OWNERSHIP.md).
+- Every mechanic in a full game. The javatests stage includes `KeywordSurfaceSweepTest` (each Forge keyword's
+  plays reachable from the menu and played once), but the states between plays (combat, upkeep, death, end step)
+  come only from games: run `bash eval/keyword_gauntlet.sh` after a passing acceptance run (28 zero-cost games;
+  `eval/gauntlet_scan.py` exits non-zero on any harness defect).
 
 ## Recorded runs
 

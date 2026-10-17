@@ -61,7 +61,8 @@ public class GoldenChecksTest {
             // 2026-10-15: choices Forge's AI made outright until then (work plan priority 0, A).
             "pile", "opening-hand", "colors", "counter-type", "destroy", "keyword", "spell-for-effect", "clash",
             "confirm-static", "card-face", "keyword-cost", "cost-reduction", "discard-unless", "convoke", "new-targets",
-            "harmonize"));
+            "harmonize", "attack-bands", "exert", "enlist", "splice", "flip", "shield", "roll-ignore", "roll-reroll",
+            "roll-modify", "roll-swap", "sticker", "crank", "sprocket", "sector", "starting-hand", "assist", "assist-pay"));
 
     /** Types a model answered in this class (tier smart or fast), across every test. */
     static final Set<String> ANSWERED = Collections.synchronizedSet(new TreeSet<>());
@@ -767,6 +768,177 @@ public class GoldenChecksTest {
         playAndResolve(seat(g, model, model), g, "Oroku Saki by sneak");
         Assert.assertTrue(has(me, ZoneType.Battlefield, "Oroku Saki, Shredder Rising"), "cast by sneak");
         Assert.assertTrue(has(me, ZoneType.Hand, "Grizzly Bears"), "the unblocked attacker returned");
+    }
+
+    /** Craft exiles "another artifact you control or an artifact card from your graveyard": with the only other
+     *  artifact in the graveyard, or the only one on the battlefield, the craft is paid (the keyword gauntlet's
+     *  Braided Net was offered and failed to pay 999 times). */
+    @Test
+    public void craftExilesAnArtifactFromEitherZone() {
+        // Altar of the Wretched is the gauntlet's: Forge's AI declines to exile it, and with one candidate the exile
+        // was left to the AI, so the payment failed.
+        for (String other : new String[] {"Ornithopter", "Altar of the Wretched"})
+        for (ZoneType where : new ZoneType[] {ZoneType.Graveyard, ZoneType.Battlefield}) {
+            Game g = bareGame(PhaseType.MAIN1);
+            Player me = g.getPlayers().get(0);
+            lands(me, "Island", "Mountain");
+            card("Braided Net", me, ZoneType.Battlefield);
+            card(other, me, where);
+            Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Craft"));
+            playAndResolve(seat(g, model, model), g, "Braided Net's craft with " + other + " in the " + where);
+            Assert.assertTrue(has(me, ZoneType.Exile, other), where + ": " + other + " was exiled");
+            Assert.assertTrue(has(me, ZoneType.Battlefield, "Braided Quipu"), where + ": it returned transformed");
+        }
+        // With its lands tapped the craft cannot be paid, so it is not offered (the gauntlet's Braided Net was).
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Island", "Island");
+        for (Card l : me.getCardsIn(ZoneType.Battlefield)) l.setTapped(true);
+        Card net = card("Braided Net", me, ZoneType.Battlefield);
+        card("Altar of the Wretched", me, ZoneType.Battlefield);
+        seat(g, new Script("CHOICE: 1"), new Script("CHOICE: 1"));
+        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true).spells.stream()
+                .noneMatch(sa -> sa.getHostCard() == net && String.valueOf(sa).contains("Craft")), "craft offered with no mana");
+        // With mana but no other artifact to exile the craft cannot be paid, so it is not offered.
+        g = bareGame(PhaseType.MAIN1);
+        me = g.getPlayers().get(0);
+        lands(me, "Island", "Island");
+        Card lone = card("Braided Net", me, ZoneType.Battlefield);
+        seat(g, new Script("CHOICE: 1"), new Script("CHOICE: 1"));
+        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true).spells.stream()
+                .noneMatch(sa -> sa.getHostCard() == lone && String.valueOf(sa).contains("Craft")), "craft offered with nothing to exile");
+        // The gauntlet's board: the last lands spent on Altar of the Wretched, its enter trigger on the stack.
+        g = bareGame(PhaseType.MAIN1);
+        me = g.getPlayers().get(0);
+        lands(me, "Swamp", "Swamp", "Swamp");
+        Card net2 = card("Braided Net", me, ZoneType.Battlefield);
+        card("Altar of the Wretched", me, ZoneType.Hand);
+        card("Island", me, ZoneType.Library);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Script("CHOICE: 1").on("You have priority", choiceWith("Altar")),
+                new Script("CHOICE: 1"));
+        Assert.assertTrue(ctrl.playChosenSpellAbility(ctrl.chooseSpellAbilityToPlay().get(0)), "Altar cast");
+        g.getStack().resolveStack();
+        g.getTriggerHandler().runWaitingTriggers();
+        g.getStack().addAllTriggeredAbilitiesToStack();
+        Assert.assertFalse(g.getStack().isEmpty(), "Altar's trigger is on the stack");
+        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, false).spells.stream()
+                .noneMatch(sa -> sa.getHostCard() == net2 && String.valueOf(sa).contains("Craft")),
+                "craft offered with a trigger on the stack and no mana: " + LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, false).spells);
+    }
+
+    /** Floating mana of two kinds (Lukka's +1: {R}{G}, creature spells only) and a creature in hand: pricing the hand
+     *  for the snapshot reached the pool choice, whose ask built a snapshot that priced the hand again
+     *  (StackOverflowError in the keyword gauntlet). Pricing takes the first; only a real payment asks. */
+    @Test
+    public void floatingManaIsNotAskedWhilePricing() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card lukka = card("Lukka, Bound to Ruin", me, ZoneType.Battlefield);
+        lukka.addCounterInternal(forge.game.card.CounterEnumType.LOYALTY, 5, me, false, null, null);
+        card("Alesha's Vanguard", me, ZoneType.Hand);
+        card("Agonasaur Rex", me, ZoneType.Hand);
+        card("Grizzly Bears", me, ZoneType.Hand);
+        boolean[] once = {false};
+        Script model = new Script("CHOICE: 1").on("You have priority", p -> {
+            if (once[0]) return "CHOICE: " + opt(p, "PASS");
+            once[0] = true;
+            return choiceWith("+1: Add").apply(p);
+        });
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Assert.assertTrue(ctrl.playChosenSpellAbility(ctrl.chooseSpellAbilityToPlay().get(0)), "Lukka's +1 activated");
+        resolveAll(g);
+        Assert.assertEquals(me.getManaPool().totalMana(), 2, "{R}{G} floats");
+        ctrl.chooseSpellAbilityToPlay();
+        Assert.assertTrue(model.prompts.stream().noneMatch(q -> q.contains("MANA POOL")), "the pool was asked while pricing");
+    }
+
+    /** "{1}, remove X +1/+1 counters (X at least 1)": with no counter Arcee's ability is not offered; with two, X is
+     *  offered up to 2 (it was offered with none and announced at X=1, and the payment failed: keyword gauntlet). */
+    @Test
+    public void anXCostOfCountersIsBoundByTheCounters() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Mountain", "Mountain");
+        Card arcee = card("Arcee, Sharpshooter", me, ZoneType.Battlefield);
+        card("Hill Giant", g.getPlayers().get(1), ZoneType.Battlefield);
+        seat(g, new Script("CHOICE: 1"), new Script("CHOICE: 1"));
+        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true).spells.stream()
+                .noneMatch(sa -> sa.getHostCard() == arcee && !sa.isSpell()), "offered with no counter to remove");
+        arcee.addCounterInternal(forge.game.card.CounterEnumType.P1P1, 2, me, false, null, null);
+        String[] xAsk = new String[1];
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("ACTIVATE Arcee"))
+                .on("Choose X", p -> { xAsk[0] = p; return "CHOICE: " + opt(p, "2"); }).on("Choose the TARGET", choiceWith("Hill Giant"));
+        playAndResolve(seat(g, model, model), g, "Arcee's ability, X=2");
+        Assert.assertNotNull(xAsk[0], "X was asked");
+        Assert.assertFalse(xAsk[0].contains("\n  4) "), "X offered beyond the two counters: " + xAsk[0]);
+        Assert.assertEquals(arcee.getCounters(forge.game.card.CounterEnumType.P1P1), 0, "both counters removed");
+    }
+
+    /** Spree: each mode adds its cost. Two Forests pay no mode of Dance of the Tumbleweeds ({1}{G} + {1} or + {3}), so it
+     *  is not offered; with three only the {1} mode is (it was chosen with two lands and the cast failed: keyword gauntlet). */
+    @Test
+    public void spreeModesAreOfferedOnlyWhenPayable() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Forest", "Forest");
+        Card dance = card("Dance of the Tumbleweeds", me, ZoneType.Hand);
+        card("Forest", me, ZoneType.Library);
+        seat(g, new Script("CHOICE: 1"), new Script("CHOICE: 1"));
+        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, true).spells.stream()
+                .noneMatch(sa -> sa.getHostCard() == dance), "offered with no payable mode");
+        card("Forest", me, ZoneType.Battlefield);
+        String[] modes = new String[1];
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Dance of the Tumbleweeds"))
+                .on("MODAL SPELL", p -> { modes[0] = p; return "PICKS: 1"; }).on("Forest", choiceWith("Forest"));
+        playAndResolve(seat(g, model, model), g, "Dance of the Tumbleweeds, the {1} mode");
+        Assert.assertTrue(modes[0] == null || !modes[0].contains("Create an X/X"), "the unpayable {3} mode was offered: " + modes[0]);
+        Assert.assertEquals(me.getCardsIn(ZoneType.Battlefield).stream().filter(Card::isLand).count(), 4L, "it fetched a land");
+    }
+
+    /** Convoke with a mana creature: Llanowar Elves taps for convoke, so it is not a mana source left for the rest, and
+     *  keeping a land untapped is not offered when nothing is spare (the keyword gauntlet's Angel of Salvation kept a
+     *  land, counted the convoking Elves as mana, and failed to pay). */
+    @Test
+    public void aConvokingCreatureIsNotAlsoAManaSource() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Plains", "Plains", "Plains", "Plains", "Plains", "Forest");
+        card("Llanowar Elves", me, ZoneType.Battlefield);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Angel of Salvation", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Angel of Salvation"))
+                .on("CONVOKE", picks("Llanowar Elves", "Grizzly Bears"))
+                .on("Which should stay untapped", picks("Plains"))
+                .on("prevent", p -> "PICKS: NONE");
+        playAndResolve(seat(g, model, model), g, "Angel of Salvation, convoked");
+        Assert.assertTrue(has(me, ZoneType.Battlefield, "Angel of Salvation"), "cast with six lands and two convoking creatures");
+        // The gauntlet's board: eight lands, only two of them Plains for its {W}{W}, and two creatures that are not white.
+        // Keeping a Plains untapped leaves {W}{W} unpayable, whatever convokes.
+        g = bareGame(PhaseType.MAIN1);
+        me = g.getPlayers().get(0);
+        lands(me, "Plains", "Plains", "Island", "Island", "Swamp", "Swamp", "Mountain", "Forest");
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Hill Giant", me, ZoneType.Battlefield);
+        card("Angel of Salvation", me, ZoneType.Hand);
+        model = new Script("CHOICE: 1").on("You have priority", choiceWith("Angel of Salvation"))
+                .on("CONVOKE", picks("Grizzly Bears", "Hill Giant"))
+                .on("Which should stay untapped", picks("Plains"))
+                .on("prevent", p -> "PICKS: NONE");
+        playAndResolve(seat(g, model, model), g, "Angel of Salvation, a Plains asked to stay up");
+        Assert.assertTrue(has(me, ZoneType.Battlefield, "Angel of Salvation"), "cast: the Plains could not stay up");
+        // Six lands for {6}{W}{W}: both creatures must convoke. Convoking none is asked again with the reason, then
+        // both convoke (the gauntlet's seat convoked fewer than its kept land assumed, and the payment failed).
+        g = bareGame(PhaseType.MAIN1);
+        me = g.getPlayers().get(0);
+        lands(me, "Plains", "Plains", "Island", "Swamp", "Mountain", "Forest");
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Hill Giant", me, ZoneType.Battlefield);
+        card("Angel of Salvation", me, ZoneType.Hand);
+        model = new Script("CHOICE: 1").on("You have priority", choiceWith("Angel of Salvation"))
+                .on("CONVOKE", p -> "PICKS: NONE").on("prevent", p -> "PICKS: NONE");
+        playAndResolve(seat(g, model, model), g, "Angel of Salvation, convoke declined");
+        Assert.assertTrue(has(me, ZoneType.Battlefield, "Angel of Salvation"), "cast: the creatures convoked when nothing else could pay");
+        Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.contains("the rest cannot be paid")), "asked again with the reason");
     }
 
     @Test
@@ -1521,6 +1693,169 @@ public class GoldenChecksTest {
         Assert.assertEquals(combat.getDefenderByAttacker(combat.getAttackers().get(0)), jace);
     }
 
+    /** Banding: Benalish Hero and Grizzly Bears attack as one band when the seat says so (the seat used to declare
+     *  every attacker alone, so banding was never used); two non-banding creatures are no band. */
+    @Test
+    public void aBandingAttackerFormsABand() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card hero = card("Benalish Hero", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", me, ZoneType.Battlefield);
+        String[] asked = new String[1];
+        Script model = new Script("CHOICE: 1")
+                .on("declare attackers", picks("Benalish Hero", "Grizzly Bears", "Savannah Lions"))
+                .on("BANDS:", p -> { asked[0] = p; return picks("Grizzly Bears").apply(p); });
+        Combat combat = new Combat(me);
+        seat(g, model, model).declareAttackers(me, combat);
+        Assert.assertNotNull(asked[0], "the band was the seat's to form");
+        Assert.assertSame(combat.getBandOfAttacker(bears), combat.getBandOfAttacker(hero), "Bears joined the Hero's band");
+        Assert.assertNotSame(combat.getBandOfAttacker(lions), combat.getBandOfAttacker(hero), "Lions attack alone");
+        g.getPhaseHandler().setCombat(combat);
+        String seen = new SeatObservation(g, rival).combat();
+        Assert.assertTrue(seen.contains("Grizzly Bears") && seen.contains("in a band with"), "the defender sees the band: " + seen);
+        // Joining both non-banding creatures is no band: asked again, then each attacks alone.
+        g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        me = g.getPlayers().get(0);
+        hero = card("Benalish Hero", me, ZoneType.Battlefield);
+        bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Savannah Lions", me, ZoneType.Battlefield);
+        model = new Script("CHOICE: 1").on("declare attackers", picks("Benalish Hero", "Grizzly Bears", "Savannah Lions"))
+                .on("BANDS:", picks("Grizzly Bears", "Savannah Lions"));
+        combat = new Combat(me);
+        seat(g, model, model).declareAttackers(me, combat);
+        Assert.assertNotSame(combat.getBandOfAttacker(bears), combat.getBandOfAttacker(hero), "an invalid band is not formed");
+        Assert.assertEquals(model.prompts.stream().filter(q -> q.contains("BANDS:")).count(), 2L, "asked once more with the reason");
+    }
+
+    /** Exert and enlist (Forge's AI chose both until 2026-10-17): which attackers, the seat's. */
+    @Test
+    public void exertAndEnlistAreTheSeats() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_ATTACKERS);
+        Player me = g.getPlayers().get(0);
+        Card glory = card("Glorybringer", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("EXERT:", picks("Glorybringer")).on("ENLIST:", picks("Grizzly Bears"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Assert.assertEquals(ctrl.exertAttackers(List.of(glory, bears)), List.of(glory), "exerted");
+        Assert.assertEquals(ctrl.enlistAttackers(List.of(glory, bears)), List.of(bears), "enlisted");
+    }
+
+    /** Splice onto Arcane, through the cast: Glacial Ray spliced onto Glacial Ray deals 2 + 2, both targets the seat's
+     *  (the copied play routine asked Forge's AI whether to go on after splicing). */
+    @Test
+    public void spliceOntoArcaneIsTheSeats() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Mountain", "Mountain", "Mountain", "Mountain");
+        Card cast = card("Glacial Ray", me, ZoneType.Hand);
+        card("Glacial Ray", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Glacial Ray"))
+                .on("SPLICE", p -> "PICKS: 1").on("Choose the TARGET", choiceWith("Rival"));
+        playAndResolve(seat(g, model, model), g, "Glacial Ray with a splice");
+        Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.contains("SPLICE")), "the splice was the seat's");
+        Assert.assertEquals(rival.getLife(), 16, "2 + 2 damage");
+        Assert.assertEquals(me.getCardsIn(ZoneType.Hand).size(), 1, "the spliced card stays in hand");
+        // With two Mountains the splice cannot be paid: not offered.
+        g = bareGame(PhaseType.MAIN1);
+        me = g.getPlayers().get(0);
+        lands(me, "Mountain", "Mountain");
+        card("Glacial Ray", me, ZoneType.Hand);
+        card("Glacial Ray", me, ZoneType.Hand);
+        model = new Script("CHOICE: 1").on("You have priority", choiceWith("Glacial Ray"))
+                .on("SPLICE", p -> "PICKS: 1").on("Choose the TARGET", choiceWith("Rival"));
+        playAndResolve(seat(g, model, model), g, "Glacial Ray, splice unaffordable");
+        Assert.assertTrue(model.prompts.stream().noneMatch(q -> q.contains("SPLICE")), "an unpayable splice was offered");
+    }
+
+    /** A coin flip's call, and the result kept; shield counters divided. */
+    @Test
+    public void aFlipCallAndAShieldSplitAreTheSeats() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card clash = card("Mana Clash", me, ZoneType.Hand);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", me, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("call it", choice("Tails")).on("result you keep", choice("Lose the flip"))
+                .on("SHIELD:", p -> "ALLOC: 0, 2");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Assert.assertFalse(ctrl.chooseFlipResult(clash.getFirstSpellAbility(), me, true), "called tails");
+        Assert.assertFalse(ctrl.chooseFlipResult(clash.getFirstSpellAbility(), me, false), "kept the lost flip");
+        Map<GameEntity, Integer> affected = new LinkedHashMap<>();
+        affected.put(bears, 0);
+        affected.put(lions, 0);
+        Map<GameEntity, Integer> split = ctrl.divideShield(clash, affected, 2);
+        Assert.assertEquals(split.get(lions), Integer.valueOf(2), "both shields on the Lions: " + split);
+        Assert.assertNull(split.get(bears), "none on the Bears");
+    }
+
+    /** Dice: the roll ignored, the dice rerolled, the roll modified, the swap; a reroll cost the seat cannot pay is
+     *  not paid, and the reroll is not asked again in that roll (the engine would ask forever). */
+    @Test
+    public void diceChoicesAreTheSeats() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card monitor = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("roll to ignore", choice("3")).on("dice to reroll", picks("3"))
+                .on("raise or lower", choice("15")).on("exchange with power", choice("15"))
+                .on("exchange the roll", choice("Toughness"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Assert.assertEquals(ctrl.chooseRollToIgnore(List.of(3, 15)), Integer.valueOf(3));
+        Assert.assertEquals(ctrl.chooseDiceToReroll(List.of(3, 15)), List.of(3));
+        Assert.assertEquals(ctrl.chooseRollToModify(List.of(3, 15)), Integer.valueOf(15));
+        forge.game.ability.effects.RollDiceEffect.DieRollResult r3 = new forge.game.ability.effects.RollDiceEffect.DieRollResult(3, 3);
+        forge.game.ability.effects.RollDiceEffect.DieRollResult r15 = new forge.game.ability.effects.RollDiceEffect.DieRollResult(15, 15);
+        Assert.assertSame(ctrl.chooseRollToSwap(List.of(r3, r15)), r15);
+        Assert.assertEquals(ctrl.chooseRollSwapValue(List.of("Power", "Toughness"), 15, 2, 2), "Toughness");
+        // No mana: the {1} reroll cost is not paid, and the next reroll ask of this roll answers none.
+        Assert.assertFalse(ctrl.payCostDuringRoll(new forge.game.cost.Cost("1", false), new forge.game.spellability.SpellAbility.EmptySa(monitor, me)));
+        Assert.assertTrue(ctrl.chooseDiceToReroll(List.of(3, 15)).isEmpty(), "not asked again after an unpaid reroll");
+        // With a Mountain the cost is paid.
+        card("Mountain", me, ZoneType.Battlefield);
+        Assert.assertTrue(ctrl.payCostDuringRoll(new forge.game.cost.Cost("1", false), new forge.game.spellability.SpellAbility.EmptySa(monitor, me)));
+    }
+
+    /** The Un-set and variant hooks Forge's AI decided (stickers, contraptions, attractions, starting hands, assist):
+     *  each is the seat's. */
+    @Test
+    public void unSetAndVariantChoicesAreTheSeats() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", me, ZoneType.Battlefield);
+        forge.game.card.sticker.Sticker word = forge.game.card.sticker.Sticker.parse(bears, "1", Map.of("Kind", "Name", "Word", "Happy"));
+        forge.game.card.sticker.Sticker pt = forge.game.card.sticker.Sticker.parse(bears, "2", Map.of("Kind", "PT", "Power", "4", "Toughness", "1"));
+        Script model = new Script("CHOICE: 1")
+                .on("choose the sticker", choice("4/1")).on("go in the name", choice("Grizzly Happy Bears"))
+                .on("keeps its stickers", choiceWith("Savannah Lions")).on("CRANK:", picks("Savannah Lions"))
+                .on("SPROCKET:", choice("3")).on("SECTOR:", choice("Blue")).on("PLANAR DIE", choice("Chaos")).on("opening hand you keep", choice("Island"))
+                .on("ask a player", choice("Rival")).on("How much generic mana", choice("1"));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        Assert.assertSame(ctrl.chooseSticker(List.of(word, pt), bears, null, true), pt, "the P/T sticker");
+        Assert.assertEquals(ctrl.chooseStickerNamePosition(word, bears), 1, "between the two words");
+        Assert.assertSame(ctrl.chooseCardToKeepStickers(new CardCollection(List.of(bears, lions))), lions);
+        Assert.assertEquals(ctrl.chooseContraptionsToCrank(List.of(bears, lions)), List.of(lions), "cranked");
+        Assert.assertEquals(ctrl.chooseSprocket(bears, List.of(1, 2, 3)), 3);
+        Assert.assertEquals(ctrl.chooseSector(bears, null, List.of("Red", "Blue", "Green")), "Blue");
+        Assert.assertEquals(ctrl.choosePDRollToIgnore(List.of(forge.game.PlanarDice.Blank, forge.game.PlanarDice.Chaos)),
+                forge.game.PlanarDice.Chaos, "the planar roll ignored");
+        forge.game.zone.PlayerZone a = new forge.game.zone.PlayerZone(ZoneType.Hand, me), b = new forge.game.zone.PlayerZone(ZoneType.Hand, me);
+        a.add(card("Swamp", me, ZoneType.Library));
+        b.add(card("Island", me, ZoneType.Library));
+        Assert.assertSame(ctrl.chooseStartingHand(List.of(a, b)), b, "the hand with the Island");
+        Assert.assertNull(ctrl.choosePlayerToAssistPayment(new FCollection<>(List.of(rival)), bears.getFirstSpellAbility(), "", 3),
+                "pricing asks nobody (an ask there builds a snapshot that prices again)");
+        Assert.assertSame(ctrl.inRealPaymentForTest(() -> ctrl.choosePlayerToAssistPayment(new FCollection<>(List.of(rival)),
+                bears.getFirstSpellAbility(), "", 3)), rival, "the real payment asks");
+        // Helping pay an assist spell: one Mountain, so 0 or 1; the seat pays 1 and the cost drops by it.
+        card("Mountain", me, ZoneType.Battlefield);
+        forge.game.mana.ManaCostBeingPaid cost = new forge.game.mana.ManaCostBeingPaid(forge.card.mana.ManaCost.get(3));
+        SpellAbility theirs = card("Grizzly Bears", rival, ZoneType.Hand).getFirstSpellAbility();
+        theirs.setActivatingPlayer(rival);
+        Assert.assertTrue(ctrl.helpPayForAssistSpell(cost, theirs, 3, 3));
+        Assert.assertEquals(cost.getGenericManaAmount(), 2, "the seat paid {1} of the assist");
+    }
+
     @Test
     public void blocksAreTheModels() {
         Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
@@ -2105,6 +2440,7 @@ public class GoldenChecksTest {
         Card goblin = card("Goblin Guide", me, ZoneType.Battlefield);    // red
         Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);    // green
         card("Savannah Lions", me, ZoneType.Battlefield);
+        lands(me, "Mountain", "Forest");   // the {1}{R} the two convokers leave (since harness-epoch-40 it must stay payable)
         Card bolt = card("Lightning Bolt", me, ZoneType.Hand);
         Card goyf = card("Tarmogoyf", rival, ZoneType.Battlefield);
         Script model = new Script("CHOICE: 1")
