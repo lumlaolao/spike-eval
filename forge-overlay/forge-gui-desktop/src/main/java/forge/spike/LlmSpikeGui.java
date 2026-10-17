@@ -265,8 +265,9 @@ public final class LlmSpikeGui {
      *  candidates are not filtered; who crews, and which creatures sharing a type tap, are the seat's; mana abilities
      *  are on the menu (floating mana); a creature that can block more attackers may.
      *  Epoch 45 (2026-10-17): the guide lists every hand tag and what a mana ability's ACTIVATE does
-     *  (observation-faithful-v37, seat-tools-v10); a kept mana source the engine cannot pay around is released and
-     *  the cost paid again; a cancelled modal spell keeps no modes; delve's least count is the engine's test payment. */
+     *  (observation-faithful-v37, seat-tools-v11); a kept mana source the engine cannot pay around is released and
+     *  the cost paid again; a cancelled modal spell keeps no modes; delve's least count is the engine's test payment;
+     *  a preview restores every target it set, and a target choice of a play can be previewed (lookahead-preview-v10). */
     static final String HARNESS_EPOCH = "harness-epoch-45";
 
     static final class EvalLog {
@@ -1854,6 +1855,12 @@ public final class LlmSpikeGui {
         private boolean lastExplicitDecline = false;
 
         private int decideOne(LLMBridge b, String type, String question, List<String> options, String noneLabel) {
+            return decideOne(b, type, question, options, noneLabel, null);
+        }
+
+        /** {@code simulate}: the `simulate` call for this decision (a target choice of a play), or null. */
+        private int decideOne(LLMBridge b, String type, String question, List<String> options, String noneLabel,
+                              java.util.function.Function<String, String> simulate) {
             lastExplicitDecline = false;
             clearLast();
             // Repeated labels (two blockers sharing a name, two copies of one card as targets) become
@@ -1881,7 +1888,7 @@ public final class LlmSpikeGui {
                 List<String> menu = new ArrayList<>(options);
                 if (noneLabel != null) menu.add(noneLabel);
                 offerAnswer(b, AnswerTool.Spec.one(menu.size()).labels(menu));
-                String reply = ask(b, prompt);
+                String reply = ask(b, prompt, simulate);
                 noteAnswerVia(attempt);
                 if (answerLost()) return -1;               // two invalid calls: the caller's legal default
                 if (reply == null) return -2;              // bridge dead -> caller decides
@@ -4121,6 +4128,30 @@ public final class LlmSpikeGui {
          *  engine's own canTarget-validated candidates (LLM chooses when there's a real choice). */
         private void ensureTargetsSet(SpellAbility root) { ensureTargetsSet(root, false); }
 
+        /** The `simulate` call of a target choice: the play ({@code root}) previewed with {@code sa} aimed at the
+         *  numbered candidate (runs/loop/g03 asked for it twice while aiming Wasteland). Null where the seat has no
+         *  native preview. */
+        private java.util.function.Function<String, String> targetPreview(SpellAbility root, SpellAbility sa,
+                                                                          List<forge.game.GameObject> cands) {
+            LLMBridge b = bridgeFor("target");
+            if (!lookaheadEnabled() || !((MEMORY_TOOLS && NativeTools.enabled() && b.supportsNativeTools()) || answerToolFor(b)))
+                return null;
+            return argsJson -> {
+                com.google.gson.JsonObject a = NativeTools.arguments(argsJson);
+                int n = -1;
+                try { if (a != null && a.has("option")) n = a.get("option").getAsInt(); } catch (RuntimeException e) { n = -1; }
+                if (n < 1 || n > cands.size())
+                    return "ERROR: `option` must be the number of a target (1.." + cands.size() + ").";
+                if (!(cands.get(n - 1) instanceof forge.game.GameEntity))
+                    return "LOOKAHEAD (target " + n + "): (a preview cannot aim at a spell or ability on the stack)";
+                Player me = getPlayer();
+                String preview = PlayerLookahead.previewLine(me.getGame(), me, java.util.Collections.singletonList(root),
+                        me.getGame().getPhaseHandler().getTurn(), null, sa, (forge.game.GameEntity) cands.get(n - 1));
+                p("[ROUTER] lookahead target " + n + ": " + preview);
+                return "LOOKAHEAD (target " + n + "): " + preview;
+            };
+        }
+
         /** Label of the cancel option a target ask offers before its play is committed. */
         static final String CANCEL_LABEL = "CANCEL: do not take this action; go back to the action menu";
 
@@ -4164,7 +4195,7 @@ public final class LlmSpikeGui {
                         // logged by us or it vanishes with zero jsonl/log trace (the exact C5 double-failure shape).
                         int c = decideOne(bridgeFor("target"), null, "Choose the TARGET for " + copyOf(sa) + labelOf(sa) + xNote(sa)
                                 + " (the spell/ability resolves against whatever you pick).", labels,
-                                sa.getMinTargets() == 0 ? "No target" : null);
+                                sa.getMinTargets() == 0 ? "No target" : null, targetPreview(root, sa, cands));
                         if (c == -1 && sa.getMinTargets() == 0) {
                             // The seat's own "No target" is its decision, not a fallback (runs/luna-std mod-g7 T10 read
                             // it as a lost answer); only an answer that could not be used carries a fallback label.

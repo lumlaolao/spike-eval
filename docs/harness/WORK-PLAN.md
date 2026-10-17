@@ -17,8 +17,6 @@ when an item is finished or a new one is agreed, so the next session can pick up
   pilot condition is pinned in `panels-v1.json`). Waiting on the owner: E4 (the headline score's handling of
   unfinished games), E6 (STR-HELDOUT: held-out decks or private puzzles), E5 (freeze an epoch), then E7 (the first
   paid block, cost stated first). Also waiting: the Luna puzzle run and the C3 comparison (cost first).
-- **Open, needs design:** `simulate` inside a target choice. The model asks it there (g02, g03) after previewing the
-  same target from the priority menu; it is refused by design, since previews are of the priority menu.
 - The items below stay as the longer backlog.
 
 ## Owner decisions this list rests on (2026-10-15)

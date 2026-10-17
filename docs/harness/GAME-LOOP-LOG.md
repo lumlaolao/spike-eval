@@ -648,3 +648,20 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
   "between 0 and 2", the seat exiled none, and {1} could not be paid. The least count now comes from the engine's test
   payment. Test `delveMustExileWhatTheManaCannotPay` (the kw05 state; fails with the old estimate).
 - Guide v37 / seat-tools-v10: every hand tag and the mana-ability ACTIVATE are described. harness-epoch-45.
+
+### g03  2026-10-17  seed 4103  Death and Taxes (seat) vs Mardu Energy (Forge AI)  WON T20  $0.12  harness-epoch-44
+- Time: 64 min. 53 min model answers (188 calls, 129 decisions), 10 min in two waits to the 300 s call deadline (both
+  retried and answered), no provider errors. The cost is above earlier games because the game ran 20 turns.
+- clean  TAKEN 0, LOST 0, SKIP 0, ai=0, textParses=0; inspect served 11, simulate served 20; plans 27.
+- FIXED  `simulate` refused three times outside the priority menu (T8 x2 while aiming Wasteland at Scrubland or
+  Karakas, T14 at Aether Vial's "Search your hand?"). A target choice of a play is now previewed at the numbered target
+  (lookahead-preview-v10, seat-tools-v11). Test `aTargetChoiceOfAPlayCanBePreviewed`. A yes/no confirmation still has
+  nothing to preview and is refused with the reason.
+- FIXED  (found reading the preview code for the above) a preview set targets on every ability of a spell's chain and
+  restored only the first: Arc Trail's "1 damage to any other target" kept the preview's pick, and the real cast skips
+  an ability that already has a target, so the seat would not have been asked. Test
+  `aPreviewLeavesNoTargetOnAnyAbilityOfTheChain` (failed before the fix).
+- model  plan_audit HOLD-VIOLATIONS 3 of 22: each a play the model chose against its own plan clause (Wasteland kept
+  "available" then used, Vial at three counters, Mother of Runes). Coherence, not a harness defect. T14 the model
+  activated a four-counter Vial meaning to put in Thalia (mana value 2), then declined the search: a puzzle candidate.
+- (fake model) the random gauntlet policy now previews targets of a play as well.

@@ -399,6 +399,86 @@ public class LookaheadProbeTest {
                 "preview left a target on the LIVE option");
     }
 
+    /** A preview aims every targeting ability of the chain, and restored only the first one's targets: Arc Trail's
+     *  "1 damage to any other target" kept the preview's pick, and the real cast's ensureTargetsSet skips an ability
+     *  that is already targeted, so the seat was never asked for it (found reading PlayerLookahead, 2026-10-17). */
+    @Test
+    public void aPreviewLeavesNoTargetOnAnyAbilityOfTheChain() {
+        Game g = SeatObservationTest.bareGame();
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 2; i++) SeatObservationTest.card("Mountain", me, forge.game.zone.ZoneType.Battlefield);
+        SeatObservationTest.card("Grizzly Bears", g.getPlayers().get(1), forge.game.zone.ZoneType.Battlefield);
+        forge.game.spellability.SpellAbility sa = spellOn(SeatObservationTest.card("Arc Trail", me, forge.game.zone.ZoneType.Hand));
+        sa.setActivatingPlayer(me);
+        String report = PlayerLookahead.previewCast(g, me, sa, 5L);
+        Assert.assertTrue(report.contains("Arc Trail"), report);
+        for (forge.game.spellability.SpellAbility s = sa; s != null; s = s.getSubAbility())
+            Assert.assertTrue(s.getTargets() == null || s.getTargets().isEmpty(),
+                    "the preview left a target on " + s + ": " + s.getTargets());
+    }
+
+    /** A target choice of a play can be previewed: runs/loop/g03 T8 asked `simulate` twice while aiming Wasteland, and
+     *  was refused. The model previews Lightning Bolt at the Bears from the target question, then aims it there. */
+    @Test
+    public void aTargetChoiceOfAPlayCanBePreviewed() {
+        Game g = LineFindingProbeTest.bareGame(forge.game.phase.PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        SeatObservationTest.card("Mountain", me, forge.game.zone.ZoneType.Battlefield);
+        forge.game.card.Card bears = SeatObservationTest.card("Grizzly Bears", g.getPlayers().get(1), forge.game.zone.ZoneType.Battlefield);
+        SeatObservationTest.card("Lightning Bolt", me, forge.game.zone.ZoneType.Hand);
+        java.util.List<String> results = new java.util.ArrayList<>();
+        LineFindingProbeTest.Recorder model = new LineFindingProbeTest.Recorder("CHOICE: 1") {
+            int seq;
+            @Override public boolean supportsNativeTools() { return true; }
+            @Override public NativeTools.Turn chat(String messagesJson, String toolsJson, boolean allowCalls) {
+                com.google.gson.JsonArray msgs = com.google.gson.JsonParser.parseString(messagesJson).getAsJsonArray();
+                String prompt = msgs.get(0).getAsJsonObject().get("content").getAsString();
+                com.google.gson.JsonObject last = msgs.get(msgs.size() - 1).getAsJsonObject();
+                if ("tool".equals(last.get("role").getAsString())) results.add(last.get("content").getAsString());
+                boolean target = prompt.contains("Choose the TARGET");
+                String option = numberOf(prompt, target ? "Grizzly Bears" : "CAST Lightning Bolt");
+                return target && msgs.size() == 1 ? call(NativeTools.SIMULATE, "{\"option\":" + option + "}")
+                        : call(AnswerTool.NAME, "{\"option\":" + option + "}");
+            }
+            private NativeTools.Turn call(String name, String args) {
+                NativeTools.Call c = new NativeTools.Call("c" + (++seq), name, args);
+                com.google.gson.JsonObject f = new com.google.gson.JsonObject();
+                f.addProperty("name", name);
+                f.addProperty("arguments", args);
+                com.google.gson.JsonObject tc = new com.google.gson.JsonObject();
+                tc.addProperty("id", c.id);
+                tc.addProperty("type", "function");
+                tc.add("function", f);
+                com.google.gson.JsonArray tcs = new com.google.gson.JsonArray();
+                tcs.add(tc);
+                com.google.gson.JsonObject msg = new com.google.gson.JsonObject();
+                msg.addProperty("role", "assistant");
+                msg.add("tool_calls", tcs);
+                return new NativeTools.Turn(null, msg.toString(), new java.util.ArrayList<>(java.util.List.of(c)));
+            }
+            private String numberOf(String prompt, String label) {
+                java.util.regex.Matcher m = java.util.regex.Pattern.compile("(?m)^\\s*(\\d+)\\) " + java.util.regex.Pattern.quote(label)).matcher(prompt);
+                String n = "1";
+                while (m.find()) n = m.group(1);
+                return n;
+            }
+        };
+        LlmSpikeGui.PlayerControllerLLM.TEST_LOOKAHEAD_OVERRIDE = Boolean.TRUE;
+        try {
+            LlmSpikeGui.PlayerControllerLLM ctrl = LineFindingProbeTest.seat(g, model, model);
+            java.util.List<forge.game.spellability.SpellAbility> chosen = ctrl.chooseSpellAbilityToPlay();
+            Assert.assertNotNull(chosen, "the seat passed instead of casting");
+            Assert.assertEquals(results.size(), 1, "one preview, from the target question: " + results);
+            Assert.assertTrue(results.get(0).startsWith("LOOKAHEAD (target "), results.get(0));
+            Assert.assertTrue(results.get(0).contains("assuming target: Grizzly Bears") && results.get(0).contains("Grizzly Bears"),
+                    "the preview aims the bolt at the Bears: " + results.get(0));
+            Assert.assertTrue(bears.isInZone(forge.game.zone.ZoneType.Battlefield), "the preview touched the live Bears");
+            Assert.assertEquals(chosen.get(0).getTargets().getFirstTargetedCard(), bears, "the bolt is aimed where the seat said");
+        } finally {
+            LlmSpikeGui.PlayerControllerLLM.TEST_LOOKAHEAD_OVERRIDE = null;
+        }
+    }
+
     /** The copy kept the opponent's real hand (2026-10-16 review H2): a Show and Tell preview could name the
      *  creature the opponent would put in. Two games whose opponent holds the same cards split differently
      *  between hand and library, which the seat cannot tell apart, must preview the same. */

@@ -114,6 +114,12 @@ class FakeModelServerTest(unittest.TestCase):
                 if c["name"] == "inspect":
                     self.assertIn(c["arguments"]["target"], ("@12", "@13"))
         self.assertTrue({"simulate", "inspect"} <= seen, seen)
+        # A target choice of a play is previewed too, by a target's number.
+        ask = "Choose the TARGET for Lightning Bolt:\n  1) Rival\n  2) Grizzly Bears @9\n  3) CANCEL: go back"
+        tgt = {"tools": play["tools"], "tool_choice": "auto", "messages": [{"role": "user", "content": ask}]}
+        targets = [c[0]["arguments"]["option"] for c in
+                   (p.lookup_calls(tgt, ask, ["simulate"], lambda n, a: {"name": n, "arguments": a}) for _ in range(40)) if c]
+        self.assertTrue(targets and set(targets) <= {1, 2, 3}, targets)
 
 
 class RefuseToolsTest(unittest.TestCase):

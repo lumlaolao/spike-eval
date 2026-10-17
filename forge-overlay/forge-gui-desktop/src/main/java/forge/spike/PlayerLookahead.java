@@ -47,7 +47,9 @@ final class PlayerLookahead {
      *  v8 (2026-10-16): an option cast for an alternative cost (Force of Will's pitch) is previewed with that cost, and
      *  the copy holds the stack, so a response is previewed against the spell it answers.
      *  v9 (2026-10-17): the attack outlook's damage for an attacker no creature could block says "damage". */
-    static final String VERSION = "lookahead-preview-v9";
+    // v10 (2026-10-17): a preview restores the targets of every ability of the chain (Arc Trail's second target
+    // stayed aimed, and the real cast never asked for it), and a target choice of a play can be previewed.
+    static final String VERSION = "lookahead-preview-v10";
 
     private PlayerLookahead() { }
 
@@ -301,6 +303,14 @@ final class PlayerLookahead {
      */
     static String previewLine(Game live, Player seat, java.util.List<forge.game.spellability.SpellAbility> liveOptions,
                               long seed, String targetHint) {
+        return previewLine(live, seat, liveOptions, seed, targetHint, null, null);
+    }
+
+    /** As {@link #previewLine(Game, Player, java.util.List, long, String)}, with {@code aimed} (an ability of the
+     *  first option's chain, during the seat's choice of its target) aimed at {@code at}. Abilities the seat has
+     *  already aimed keep their targets; the rest take the default. */
+    static String previewLine(Game live, Player seat, java.util.List<forge.game.spellability.SpellAbility> liveOptions,
+                              long seed, String targetHint, forge.game.spellability.SpellAbility aimed, forge.game.GameEntity at) {
         if (live == null || seat == null || liveOptions == null || liveOptions.isEmpty() || liveOptions.contains(null))
             return "(no preview)";
         // No length cap: each step is a distinct option of the menu, so a line is bounded by the menu
@@ -323,11 +333,15 @@ final class PlayerLookahead {
         // this is transient decision scaffolding on an ability not yet on the stack (the real cast's
         // ensureTargetsSet overwrites targets anyway), and the live board/hands/life/RNG are never
         // touched. A test pins that the option's own targets are unchanged after a preview.
-        java.util.List<java.util.List<forge.game.GameObject>> savedTargets = new java.util.ArrayList<>();
+        // Every ability of each chain: restoring only the first left Arc Trail's "any other target" aimed, and
+        // the real cast skips an ability that already has a target, so the seat was never asked for it.
+        java.util.Map<forge.game.spellability.SpellAbility, java.util.List<forge.game.GameObject>> savedTargets = new java.util.IdentityHashMap<>();
         for (forge.game.spellability.SpellAbility o : liveOptions) {
-            java.util.List<forge.game.GameObject> s = new java.util.ArrayList<>();
-            try { if (o.getTargets() != null) s.addAll(o.getTargets()); } catch (Exception ignore) { }
-            savedTargets.add(s);
+            for (forge.game.spellability.SpellAbility s = o; s != null; s = s.getSubAbility()) {
+                java.util.List<forge.game.GameObject> t = new java.util.ArrayList<>();
+                try { if (s.getTargets() != null) t.addAll(s.getTargets()); } catch (Exception ignore) { }
+                savedTargets.put(s, t);
+            }
         }
         enter();
         try {
@@ -352,7 +366,7 @@ final class PlayerLookahead {
                 String label;
                 try { label = o.getHostCard() == null ? "the spell" : o.getHostCard().getName(); }
                 catch (Exception e) { label = "the spell"; }
-                String assumed = selectFirstTargets(o, i == 0 ? targetHint : null);
+                String assumed = selectFirstTargets(o, i == 0 ? targetHint : null, i == 0 ? aimed : null, at);
                 boolean isLand = o.isLandAbility();
                 boolean ok;
                 if (isLand) {
@@ -417,12 +431,11 @@ final class PlayerLookahead {
             System.out.println("[LOOKAHEAD] preview failed: " + t + where);
             return "(preview failed: " + t.getClass().getSimpleName() + ")";
         } finally {
-            // Restore each live option's own targets (usually none), THEN the live RNG reference.
-            for (int i = 0; i < liveOptions.size(); i++) {
+            // Restore every ability's own targets (usually none), THEN the live RNG reference.
+            for (java.util.Map.Entry<forge.game.spellability.SpellAbility, java.util.List<forge.game.GameObject>> e : savedTargets.entrySet()) {
                 try {
-                    forge.game.spellability.SpellAbility o = liveOptions.get(i);
-                    o.resetTargets();
-                    for (forge.game.GameObject go : savedTargets.get(i)) o.getTargets().add(go);
+                    e.getKey().resetTargets();
+                    for (forge.game.GameObject go : e.getValue()) e.getKey().getTargets().add(go);
                 } catch (Exception ignore) { }
             }
             MyRandom.setRandom(liveRandom);
@@ -434,7 +447,8 @@ final class PlayerLookahead {
      *  mirroring the live {@code ensureTargetsSet} fallback. Returns a comma-joined description of the
      *  assumed targets (empty when the spell does not target), so the preview can disclose what it
      *  assumed. The caller is responsible for restoring the ability's original targets. */
-    private static String selectFirstTargets(forge.game.spellability.SpellAbility root, String hint) {
+    private static String selectFirstTargets(forge.game.spellability.SpellAbility root, String hint,
+            forge.game.spellability.SpellAbility aimed, forge.game.GameEntity at) {
         StringBuilder assumed = new StringBuilder();
         for (forge.game.spellability.SpellAbility s = root; s != null; s = s.getSubAbility()) {
             try {
@@ -447,7 +461,8 @@ final class PlayerLookahead {
                 int min = Math.max(1, s.getMinTargets());
                 s.resetTargets();
                 for (int i = 0; i < min && i < cands.size(); i++) {
-                    forge.game.GameEntity ge = (i == 0) ? pickTarget(s, cands, hint) : cands.get(i);
+                    forge.game.GameEntity ge = i > 0 ? cands.get(i)
+                            : s == aimed && at != null && cands.contains(at) ? at : pickTarget(s, cands, hint);
                     if (s.getTargets().contains(ge)) continue;
                     s.getTargets().add(ge);
                     if (assumed.length() > 0) assumed.append(", ");

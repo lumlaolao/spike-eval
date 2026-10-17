@@ -41,13 +41,15 @@ final class NativeTools {
      *  v9 (2026-10-15): no decision limits in the definitions (docs/harness/MODEL-LIMITS.md): `simulate` may
      *  run more than once a decision and its line takes any number of further options; a search page holds
      *  50 results, a read page 20000 characters, a note or report up to 2000 characters. */
-    static final String VERSION = "seat-tools-v10";
+    static final String VERSION = "seat-tools-v11";
+    // v11 (2026-10-17): `simulate` also previews a target while the seat aims a play it is making (runs/loop/g03
+    // asked it there twice and was refused).
     // v10 (2026-10-17): the instructions name the preview, and end "answer the decision as it asks" (every decision says
     // which `answer` field it takes), not the text protocol's "in the requested format".
     static final String SIMULATE = "simulate";
     /** The refusal of a preview on a decision with no play menu (the tool is declared on every ask). */
-    static final String NO_PREVIEW = "ERROR: `simulate` previews an option of a play decision (your priority menu); "
-            + "this decision has none, so nothing was previewed. Answer the decision.";
+    static final String NO_PREVIEW = "ERROR: `simulate` previews an option of your priority menu, or a target while you aim a play you "
+            + "are making; this decision is neither, so nothing was previewed. Answer the decision.";
     /** Not a lookup: it records the seat's complaint about the question and spends no archive budget
      *  (one per ask, {@link ContextMemory#REPORTS_PER_GAME} per game). */
     static final String REPORT = "report_unclear_decision";
@@ -214,14 +216,15 @@ final class NativeTools {
         }
         if (simulate) a.add(fn(SIMULATE,
                 "Preview what a numbered option of the current decision does when it resolves — a CAST, an ACTIVATE, "
-                + "a PLAY LAND or PASS — on a copy of the game built only from what you can see: which permanents leave "
+                + "a PLAY LAND or PASS of your priority menu, or, while you choose the target of a play you are making, "
+                + "a target (the play aimed at it) — on a copy of the game built only from what you can see: which permanents leave "
                 + "or arrive, and each player's life, hand, library and graveyard counts. PASS resolves nothing, so its "
                 + "preview is that answer and no copy is made; it does not play out the opponent's turn. Pass `then` to "
                 + "preview a LINE: further options played after it, in order, on the same copy (it tells you if a later "
                 + "one can no longer be paid for). It is an estimate, not the engine's verdict: hidden cards are guessed, "
                 + "and the engine pays the costs on the copy. You may preview several options or lines before you answer.",
                 props("option", prop("integer", "The number of a CAST, ACTIVATE, PLAY LAND or PASS option in the "
-                                + "decision's menu.", 1, null),
+                                + "decision's menu, or of a target in a target choice.", 1, null),
                       "target", prop("string", "Optional: the name of the target to preview the first option against.", null, null),
                       "then", intArray("Optional: more menu numbers to play after it, in order, each at most once.")),
                 "option"));

@@ -169,7 +169,7 @@ class Policy:
 
     def random_lookup(self, last_user, prompt, offered, play_menu, call):
         """--policy random: now and then a lookup before the answer, with random arguments: a preview of any menu
-        option (sometimes a line of two), an inspect of any handle on the state, a memory search. None otherwise."""
+        option (sometimes a line of two) or of any target of a play, an inspect of any handle on the state, a memory search. None otherwise."""
         with self.lock:
             self.lookups = getattr(self, "lookups", 0) + 1
             n = self.lookups
@@ -182,6 +182,11 @@ class Policy:
                 if rest and rng.random() < 0.3:
                     args["then"] = [rng.choice(rest)]
                 return [call("simulate", args)]
+        # A target choice of a play is previewed too (lookahead-preview-v10): any target, or the CANCEL line.
+        if "simulate" in offered and "Choose the TARGET" in last_user and rng.random() < 0.35:
+            nums = [int(x) for x in re.findall(r"(?m)^\s*(\d+)\) ", last_user)]
+            if nums:
+                return [call("simulate", {"option": rng.choice(nums)})]
         handles = re.findall(r"@\d+", prompt)
         if "inspect" in offered and handles and rng.random() < 0.1:
             return [call("inspect", {"target": rng.choice(handles)})]

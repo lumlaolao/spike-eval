@@ -549,9 +549,9 @@ game=next((r for r in rows if r.get("t")=="game"),None)
 if not game: problems.append("no game line")
 else:
     if game.get("native_tools") is not True: problems.append("native_tools=%r not stamped"%game.get("native_tools"))
-    if game.get("native_tools_version")!="seat-tools-v10": problems.append("native_tools_version=%r (expected seat-tools-v10; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
+    if game.get("native_tools_version")!="seat-tools-v11": problems.append("native_tools_version=%r (expected seat-tools-v11; move this pin WITH NativeTools.VERSION)"%game.get("native_tools_version"))
     if game.get("memory_tools_version")!="evidence-tools-v3": problems.append("memory_tools_version=%r (expected evidence-tools-v3; move this pin WITH ContextMemory.VERSION)"%game.get("memory_tools_version"))
-    if game.get("lookahead_version")!="lookahead-preview-v9" or game.get("lookahead") is not True: problems.append("lookahead=%r lookahead_version=%r (expected True, lookahead-preview-v9; move this pin WITH PlayerLookahead.VERSION)"%(game.get("lookahead"),game.get("lookahead_version")))
+    if game.get("lookahead_version")!="lookahead-preview-v10" or game.get("lookahead") is not True: problems.append("lookahead=%r lookahead_version=%r (expected True, lookahead-preview-v10; move this pin WITH PlayerLookahead.VERSION)"%(game.get("lookahead"),game.get("lookahead_version")))
     if game.get("native_tools_seats")!="A/smart,A/fast": problems.append("native_tools_seats=%r"%game.get("native_tools_seats"))
 calls=[r for r in rows if r.get("t")=="context_call"]
 tools=[r for r in rows if r.get("t")=="context_tool"]
