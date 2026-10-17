@@ -990,7 +990,8 @@ public class GoldenChecksTest {
     }
 
     /** Floating mana is legal: with a spell to cast, the menu also offers each kind of land's mana ability once, and the
-     *  seat may tap one for mana (it then floats); a window with only mana to float is passed without asking. */
+     *  seat may tap one for mana (it then floats). A window with only a land's mana to float is passed without asking;
+     *  floating that changes the game (a creature tapped, a trigger on the tap) is a legal play and is asked. */
     @Test
     public void floatingManaIsOnTheMenu() {
         Game g = bareGame(PhaseType.MAIN1);
@@ -1013,6 +1014,16 @@ public class GoldenChecksTest {
         Script quiet = new Script("CHOICE: 1");
         Assert.assertNull(seat(g, quiet, quiet).chooseSpellAbilityToPlay(), "passed");
         Assert.assertTrue(quiet.prompts.isEmpty(), "not asked");
+        // Llanowar Elves tapped can no longer block; Manabarbs deals damage on the tap: both are the seat's to weigh.
+        for (String[] board : new String[][] {{"Llanowar Elves", null}, {"Mountain", "Manabarbs"}}) {
+            g = bareGame(PhaseType.MAIN1);
+            me = g.getPlayers().get(0);
+            lands(me, board[0]);
+            if (board[1] != null) card(board[1], g.getPlayers().get(1), ZoneType.Battlefield);
+            Script asked = new Script("CHOICE: 1");
+            seat(g, asked, asked).chooseSpellAbilityToPlay();
+            Assert.assertFalse(asked.prompts.isEmpty(), "asked: " + String.join(", ", board[0], String.valueOf(board[1])));
+        }
     }
 
     @Test
