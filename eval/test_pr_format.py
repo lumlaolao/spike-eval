@@ -78,6 +78,19 @@ class PrFormatTest(unittest.TestCase):
         self.assertEqual(pf.pr_problems("feat(tools): the seat's tools are native function calls", BODY,
                                         "abc123456789", ["eval/x.py"], gate=True), [])
 
+    def test_the_no_body_refusal_quotes_section_2s_sentence_verbatim(self):
+        """The refusal's echo of STANDARDS section 2 is pinned FROM the doc: the doc is the
+        single source (docs/STANDARDS.md: the - The body says why, ... bullet), so the pin
+        cannot drift from it; a rewrite of the sentence fails here and forces re-pinning."""
+        lines = [l for l in open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                              os.pardir, "docs", "STANDARDS.md"), encoding="utf-8")
+                 if l.startswith("- The body says why")]
+        self.assertEqual(len(lines), 1, "section 2's sentence is found once")
+        span = lines[0].split("says ", 1)[1].split(". Wrap", 1)[0]
+        refusal = [p for p in pf.commit_problems("fix(a): b\n") if "no body" in p]
+        self.assertEqual(len(refusal), 1)
+        self.assertIn(span, refusal[0], refusal[0])
+
     def test_the_gate_refuses_a_stale_missing_or_blocking_review(self):
         t = "feat(tools): native calls"
         stale = pf.pr_problems(t, BODY, "fff000111222", ["eval/x.py"], gate=True)
