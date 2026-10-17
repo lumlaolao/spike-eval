@@ -79,14 +79,18 @@ class PrFormatTest(unittest.TestCase):
                                         "abc123456789", ["eval/x.py"], gate=True), [])
 
     def test_the_no_body_refusal_quotes_section_2s_sentence_verbatim(self):
-        """The refusal's echo of STANDARDS section 2 is pinned FROM the doc: the doc is the
-        single source (docs/STANDARDS.md: the - The body says why, ... bullet), so the pin
-        cannot drift from it; a rewrite of the sentence fails here and forces re-pinning."""
-        lines = [l for l in open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                              os.pardir, "docs", "STANDARDS.md"), encoding="utf-8")
-                 if l.startswith("- The body says why")]
-        self.assertEqual(len(lines), 1, "section 2's sentence is found once")
-        span = lines[0].split("says ", 1)[1].split(". Wrap", 1)[0]
+        """The doc is the single source: a rewrite of section 2's sentence fails this pin
+        and forces re-pinning."""
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               "..", "docs", "STANDARDS.md"), encoding="utf-8") as doc:
+            lines = list(doc)
+        bullet_idx = [i for i, l in enumerate(lines) if l.startswith("- The body says why")]
+        self.assertEqual(len(bullet_idx), 1, "section 2's sentence is found once")
+        headings = [l.rstrip() for l in lines[:bullet_idx[0]] if l.startswith("## ")]
+        self.assertEqual(headings[-1] if headings else "",
+                         "## 2. Commits and PRs (checked by `scripts/pr_format.py`)")
+        span = lines[bullet_idx[0]].split("says ", 1)[1].split(". Wrap", 1)[0]
+        self.assertGreater(len(span), 20, span)
         refusal = [p for p in pf.commit_problems("fix(a): b\n") if "no body" in p]
         self.assertEqual(len(refusal), 1)
         self.assertIn(span, refusal[0], refusal[0])
