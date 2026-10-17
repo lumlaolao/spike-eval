@@ -129,6 +129,15 @@ class ScoreTest(unittest.TestCase):
         self.assertEqual(set(a["solved"]["by_tier"]), {"2", "3"})
         self.assertIn("PUZ", ps.render(rep))
 
+    def test_none_solved_has_a_count_interval_wider_than_zero(self):
+        rep = ps.score(self.m, self.rows([0, 0, 0]), "open", k=4, n_boot=200)
+        s = rep["aggregate"]["solved"]["all"]
+        self.assertEqual(s["ci95"], [0, 0], "the bootstrap's false certainty")
+        self.assertEqual(s["ci95_wilson"][0], 0.0)
+        self.assertGreater(s["ci95_wilson"][1], 1.0, "0 of 3 solved is compatible with more than one")
+        self.assertIsNone(rep["aggregate"]["pass@1"]["ci95_wilson"], "k=4: attempts cluster by puzzle")
+        self.assertIn("Wilson", ps.render(rep))
+
     def test_pass_hat_is_every_one_of_j_attempts_solving(self):
         self.assertEqual(ps.pass_hat(4, 4, 4), 1.0)
         self.assertAlmostEqual(ps.pass_hat(2, 4, 2), 1 / 6)

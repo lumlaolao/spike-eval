@@ -71,8 +71,8 @@ concurrency; CPU is the binding constraint for floor-vs-floor concurrency
   (`run_batch.py:396-398`) implemented via `ThreadPoolExecutor`
   (`run_batch.py:501-509`) — each job is a separate `subprocess.run(["bash",
   "run-llm-headless.sh"], ...)`, i.e. a separate JVM. **Cited mode forces
-  `--jobs 1`** (`run_batch.py:298-301`, guard message: *"parallel JVMs starve
-  the claude CLI and inflate fallbacks"*), and prints a warning above
+  `--jobs 1` when any seat has a bare claude-CLI spec** (`cited_pre_guards`, guard message: *"parallel
+  JVMs starve the claude CLI and inflate fallbacks"*; all-`openrouter:` runs may be parallel since 2026-10-17), and prints a warning above
   `--jobs 2` even in `--exploratory` mode (`run_batch.py:475-478`,
   `eval/README.md:87`). This guard is deliberate and already correctly
   targets the real hazard (see the `claude` CLI point below) — it's not a

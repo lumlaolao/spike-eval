@@ -84,7 +84,8 @@ enforces:
 2. **Confounds off** — forces `MULLIGAN_HEURISTIC=0`, `SKIP_HEURISTICS=0`, and
    empty `PLAN_A`/`PLAN_B` (plans inject expert knowledge). Overriding any of
    these via `--env`, or passing `--plan-a/--plan-b`, is refused.
-3. **`--jobs 1`** — parallel JVMs starve the `claude` CLI and inflate fallbacks.
+3. **`--jobs 1` when a seat uses a bare (claude-CLI) model spec**: parallel JVMs starve the `claude` CLI and
+   inflate fallbacks. All-`openrouter:` runs may run in parallel (RAM-bound, `eval/CONCURRENCY.md` §7).
 4. **Per-tier cap** — if `--cap-minutes` is omitted it is derived: no llm seat
    → 15 min, all-haiku llm → 120, any opus → 240.
 5. **Provenance + drift** — stamps `ENGINE_SHA` (forge `HEAD`), `OVERLAY_SHA`

@@ -45,7 +45,10 @@ def write_block(d, deck_sha, results, controller_a="llm", smart_a=PILOT, control
                  "smart_a": smart_a if controller_a == "llm" else None,
                  "fast_a": smart_a if controller_a == "llm" else None,
                  "deck_sha": deck_sha, "engine_sha": ENGINE, "overlay_sha": "o" * 12,
-                 "context_profile": "v4-faithful", "context_sha": "c" * 12, "harness_epoch": "harness-epoch-5"}
+                 "context_profile": "v4-faithful", "context_sha": "c" * 12, "harness_epoch": "harness-epoch-5",
+                 "plan_execute": False}
+            if controller_a == "llm":
+                g.update(DOC["pilot_condition"]["fields"])
             g.update(kw)
             f.write_text(json.dumps(g) + "\n")
 
@@ -226,6 +229,31 @@ class TestMirrorPanel(unittest.TestCase):
                     harness_epoch="harness-epoch-4")
         with self.assertRaises(ps.PanelError):
             self.score()
+
+    def test_a_pilot_off_the_pinned_condition_is_refused_whatever_the_flags(self):
+        with tempfile.TemporaryDirectory() as d:
+            panel_run(d, "mirror")
+            panel, pool, _ = ps.load_panel(PANELS, "mirror")
+            c = panel["cells"][0]
+            write_block(Path(d) / c["id"], ps.cell_deck_sha(c, pool), results(4), lookahead=False)
+            for allow in (False, True):
+                with self.subTest(allow=allow), self.assertRaises(ps.PanelError) as cm:
+                    ps.score_panel(d, "mirror", PANELS, resamples=20, allow_mixed=allow)
+                self.assertIn("lookahead=false", str(cm.exception))
+
+    def test_a_model_pilot_and_its_no_model_sanity_arms_are_one_environment(self):
+        # A floor or random arm records answer_tool=false and the pilot true: a setting of the llm seat, not of
+        # the environment. Read as the environment, every real panel with sanity arms was refused.
+        with tempfile.TemporaryDirectory() as d:
+            panel_run(d, "mirror", sanity=ZERO_ARMS)
+            panel, pool, _ = ps.load_panel(PANELS, "mirror")
+            for c in panel["cells"]:
+                for arm in ("floor", "random"):
+                    ov = sanity_arms.arm_overrides(arm)
+                    write_block(sanity_arms.arm_dir(Path(d) / c["id"], arm), ps.cell_deck_sha(c, pool), results(0),
+                                controller_a=ov["controller_a"], smart_a=ov["smart_a"], answer_tool=False)
+            r = ps.score_panel(d, "mirror", PANELS, resamples=20)
+            self.assertEqual(r["condition_problems"], [])
 
     def test_different_pilots_across_cells_are_a_problem(self):
         panel_run(self.root, "mirror", skip=("infect",))

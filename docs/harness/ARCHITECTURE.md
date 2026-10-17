@@ -415,7 +415,9 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     `v1-compat` (coaching, a reasoning cap, a 25-decision turn cap) runs only as a named arm;
   - it resumes;
   - it plays a crashed game once more and sets the failed attempt aside (`--retries`);
-  - it enforces the budget.
+  - it enforces the budget;
+  - cited mode forces `--jobs 1` only when a seat runs on the local claude CLI (parallel JVMs starve it);
+    `openrouter:` games wait on the network and may run in parallel (review E3).
   - *Why pinned:* a baseline arm that silently inherited a setting would be pooled with a different
     measurement.
 - **`aggregate.py`** reports win rates with confidence intervals, kept apart per condition.
@@ -423,7 +425,10 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
 - **Seed governance (`eval/seed_policy.py`):** some seed blocks are reserved for evaluation, and no
   training data may come from them.
 - **The three headline scores:**
-  - **STR-AI:** win rate against Forge's AI over fixed panels (`eval/SCORING.md`).
+  - **STR-AI:** win rate against Forge's AI over fixed panels (`eval/SCORING.md`). The panels file pins
+    the pilot condition (profile, tiers, answer tool, tools, lookahead, chat windows, plans): `run_batch.py
+    --panel` launches and `panel_score.py` scores no other. *Why:* a score is a property of one seat; two
+    settings under one name would be two benchmarks.
   - **STR-HELDOUT:** the same on a held-out seed band.
   - **PUZ:** the puzzle suite (`eval/PUZZLES.md`), where Forge enforces the goal and a solve is judged
     by the engine.

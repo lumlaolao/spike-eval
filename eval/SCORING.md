@@ -99,6 +99,14 @@ played, one pilot with one set of settings played every cell, `aggregate.py`'s f
 harness-decided gates pass in every cell, no sanity arm beats the floor, and every game belongs to
 one benchmark version. Exit 0 valid, 1 not valid (still printed), 2 refused.
 
+**The pilot condition** (review E2, E9): the panels file's `pilot_condition` pins how an llm pilot plays:
+the faithful profile, one tier, answers by the `answer` call, the native lookup tools and the lookahead
+preview, no rules tool, no turn or one-chat window, no compound plans. `run_batch.py --panel` refuses flags
+that give another condition, and `panel_score.py` refuses to score a pilot game that departs from it, even
+with `--allow-mixed-conditions`. Another pilot condition is a new panels version. The answer-tool fields
+belong to the llm seat, not the environment: a floor or random sanity arm beside a model pilot records
+`answer_tool=false` and pools with it (before 2026-10-17 that refused every real panel with sanity arms).
+
 ## Sanity arms (`sanity_arms.py`)
 
 ```bash
