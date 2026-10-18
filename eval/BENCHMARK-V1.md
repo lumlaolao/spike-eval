@@ -105,6 +105,38 @@ k, budget, and its interval. Best-of-N or consensus numbers are labelled as such
 
 Paid phases state their cost first and pass `--budget-usd` (`CLAUDE.md`, "Cost of paid runs").
 
+## Idea (owner, 2026-10-18): turn the 996 rules questions into puzzles
+
+`puzzles/modern/puzzles.jsonl` holds 996 judge-sourced rules questions (978 marked machine-verifiable). Each
+names its cards (1 to 5, mostly 1-3) and a situation in prose, with a judge's answer. Rules areas: triggered
+abilities 310, zone changes 184, replacement 161, casting 124, keywords 114, continuous effects 112, combat
+94, state-based actions 81, copying 73, layers 68. Today they are text Q&A with no scorer. As puzzles they
+would test whether a model can *use* a rule at the table, not recite it.
+
+**How a question becomes a puzzle.**
+1. Build the board the question describes as a `.pzl` (the cards named, the situation set up), plus filler so
+   only the rule decides the result. A model can draft it; a person or the checks below accept it.
+2. Pick a goal Forge enforces whose outcome turns on the rule. "Does Tithe Taker's tax stop Lavinia from
+   countering the cascaded spell?" becomes "win this turn", where the win needs the cascaded spell to resolve.
+3. **Check Forge agrees with the judge first.** Play the position with the search prover: the outcome the
+   judge's answer predicts must be the one Forge produces. Where they differ, Forge has a rules bug: drop the
+   puzzle and note the bug. This also gives every puzzle a proven line.
+4. Guess-proof it like every puzzle: random play must solve it under 5%, so the right line has to rely on the
+   rule. A pair of near-identical positions where the rule flips the answer (one where the play works, one
+   where it does not) stops a model from scoring by always trying the flashy line.
+
+**Which questions fit.** Questions about what happens on the board (triggers, replacement, combat, SBAs,
+copying, layers) convert well. Pure legality questions ("can you cast X now?") become a check that the play
+is or is not on the menu, which Forge decides; they suit a separate rules-knowledge score better than a
+puzzle. Questions about tournament procedure or hidden information do not convert.
+
+**Caveats.** The questions are public (judge blogs), so the converted puzzles are contaminated like the
+Possibility Storm set: they belong to the public pool, with perturbed copies, not the private headline split.
+The answers are paraphrased, so step 3 (Forge agrees with the judge) is the acceptance gate, not the text.
+
+**Next.** A pilot of 20 questions from the board-outcome areas: draft each position, prove it, record how
+many convert, how many expose a Forge disagreement, and the hours per puzzle. Then decide whether it scales.
+
 ## Progress log
 
 Newest last. Each entry says what was built, what it showed, and what is next.
