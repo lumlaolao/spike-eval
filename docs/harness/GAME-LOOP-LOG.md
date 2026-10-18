@@ -777,3 +777,9 @@ of Nature twice, chained Heritage Druids, and on turn 8 tapped Gaea's Cradle for
   and its report shows the mana pool. Test `aTapAbilityAndAManaAbilityArePreviewed` (renamed).
   lookahead-preview-v12. Both folded into harness-epoch-51.
 - clean  mulligan, blocks, the X announcement, the Zenith search, attackers, two lookups served.
+
+### g11  2026-10-18  seed 4111  Lands (seat) vs UR Tempo (Forge AI)  WON T21  $0.13  harness-epoch-51
+Sheet clean: 164 model decisions, 20 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 8 of 8 served (inspect 1,
+simulate 7), ai_tier_count=0, 22 min. The seat held Rishadan Port on the opponent's lands, then on turn 21 copied
+Dark Depths with Thespian's Stage for Marit Lage, which survived its upkeep trigger and attacked for 20.
+- clean  the combo line, the Port activations, the Marit Lage upkeep trigger, mulligan, blocks. First of three.
