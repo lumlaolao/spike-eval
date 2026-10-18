@@ -865,3 +865,8 @@ Sheet clean: 74 model decisions, 9 forced picks (4 single damage-assigns to one 
 order), TAKEN 0, LOST 0, SKIP 0, TOOL 3 of 3 served (inspect 3), ai_tier_count=0, 10 min. Two block asks, both NONE
 (model's choice with one attacker against three blockers). Second clean game on epoch 55; epoch 56 (combat damage
 asked as amounts under the free-division rule) is built from what the rules puzzles found and restarts the count.
+
+### g22  2026-10-18  seed 4122  Modern Rakdos Delirium (seat) vs Pioneer The Rock (Forge AI)  WON T11  $0.07  harness-epoch-56
+Sheet clean: 66 model decisions, 4 forced picks (3 single-option replacement orders; all 5 to a lone non-trample
+blocker), TAKEN 0, LOST 0, SKIP 0, TOOL 11 of 11 served (inspect 3, simulate 8), ai_tier_count=0, 9 min. First clean
+game on epoch 56. No multi-blocker or trample assignment came up, so the new amounts ask was not exercised live.
