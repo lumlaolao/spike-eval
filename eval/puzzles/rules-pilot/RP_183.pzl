@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 183 - A blinked Kess is a new Kess
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent is at 6 life and controls no creatures. You control Kess, Dissident Mage, two Mountains and a Plains; your hand is Cloudshift and your graveyard holds two Lightning Bolts. Reduce the opponent to 0 life this turn.
+Rule:rulesguru-7d3e4a3e1334307d | A permanent that leaves and returns is a new object (CR 400.7) with a new Kess effect, so a blinked Kess lets you cast a second instant from your graveyard this turn
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Cloudshift
+p0battlefield=Kess, Dissident Mage|SummonSick;Mountain;Mountain;Plains
+p0graveyard=Lightning Bolt;Lightning Bolt
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

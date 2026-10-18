@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot 184 - Dying together is still a target
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Driver of the Dead, Grizzly Bears and two Mountains, have Pyroclasm in hand, and Llanowar Elves is in your graveyard. The opponent controls Raging Goblin. End the turn with Raging Goblin in the opponent's graveyard and Grizzly Bears on your battlefield.
+Rule:wizards-official-card-rulings-4df19c7ee7491e2e | Leaves-the-battlefield triggers look back in time and their targets are chosen when they are put on the stack (CR 603.10a, 603.3d): Driver of the Dead can return a creature that died at the same time
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Pyroclasm
+p0battlefield=Driver of the Dead|SummonSick;Grizzly Bears|SummonSick;Mountain;Mountain
+p0graveyard=Llanowar Elves
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Raging Goblin
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Raging Goblin" = 1
+count p0 Battlefield "Grizzly Bears" = 1

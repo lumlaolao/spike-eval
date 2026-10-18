@@ -886,3 +886,7 @@ Sheet clean: 64 model decisions, 7 forced picks (each a single non-trample block
 into Moonshadow had no trample, so all 16 to it was the only split), TAKEN 0, LOST 0, SKIP 0, TOOL 5 of 5 served,
 ai_tier_count=0, 7 min. First game on epoch 58; no preview failed (Carnivorous Cultivator was in the deck but the
 failing state did not recur, so the GameCopier patch was not exercised live).
+
+### g25  2026-10-18  seed 4125  Legacy Elves (seat) vs Goblins (Forge AI)  WON T10  $0.05  harness-epoch-58
+Sheet clean: 55 model decisions, 5 forced picks (2 single targets, 3 damage-assigns to a lone non-trample blocker),
+TAKEN 0, LOST 0, SKIP 0, TOOL 10 of 10 served (simulate 10), ai_tier_count=0, 8 min. Second clean game on epoch 58.

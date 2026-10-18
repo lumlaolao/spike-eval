@@ -1,0 +1,554 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=38569 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 34086 files in 1 ms (25 parts) using thread pool
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 857 files in 0 ms (8 parts) using thread pool
+[SEED] 4125
+[EVAL] jsonl game-4125-1792365748122.jsonl
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/legacy-elves.plan
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/goblins.plan
+[DECK] loaded 'Seat': 60 main, 15 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/legacy-elves.txt)
+[DECK] loaded 'ForgeAI': 60 main, 0 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/goblins.txt)
+[SEATS] A=Seat(llm,openrouter:openai/gpt-6-luna) B=ForgeAI(ai,opus)
+[Seat] [OBSERVATION] observation-faithful-v41 (profile v4-faithful/379d6b7b5b6a)
+[HEADLESS] game starting (cap=120min)
+[Seat] [ROUTER] mulligan: 1/7 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4274 ms with 1 tool call(s)
+[Seat] [ROUTER] plan: GOAL: Find an opening hand with a real mana source and an early play; use Elves to build mana and convert into a fast Natural Order/Craterhoof win. NEXT: Mulligan hands without a functional first-turn mana source; prioritize a land plus one-drop or other productive early development.
+[OPENROUTER Seat/smart] replied in 2461 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: MULLIGAN
+[OPENROUTER Seat/smart] replied in 4455 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan-bottom: Wirewood Symbiote
+[Seat] [ROUTER] mulligan: 2/6 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3959 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: KEEP
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3573 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Use the free Once Upon a Time to find a functional land/creature start, then develop mana and pursue a fast Natural Order or other payoff. NEXT: Cast Once Upon a Time now; use its find to secure a land or mana creature, then play Verdant Catacombs or Gaea's Cradle as appropriate and deploy a one-drop.
+[OPENROUTER Seat/smart] replied in 2754 ms with 1 tool call(s)
+[Seat] [ROUTER] lines: Natural Order + a green creature -> sacrifice it to find Craterhoof Behemoth for a lethal attack; Quirion Ranger + mana Elf -> reuse the Elf's mana ability by untapping it; Badgermole Cub + mana-producing creatures -> each creature tap generates extra green mana.
+[Seat] [ROUTER] profile: Unknown opponent: no deck information yet; respect potential interaction and fast combo until their plays identify the archetype.
+[Seat] [ROUTER] play: casts Once Upon a Time @11 — cost: none [If this spell is the first spell you've cast this game, you may cast it without paying its mana cost. Look at the top five cards of your library. You may reveal a creature or land card from among them and put it into your hand. Put the rest on the bottom of your library in a random order.]
+[OPENROUTER Seat/smart] replied in 5386 ms with 1 tool call(s)
+[Seat] [ROUTER] choose-entity: Wirewood Symbiote {G} 1/1 @17 [Library, yours] [Once Upon a Time]
+[Seat] [TALLY] smart=7 fast=0 auto=0 ai=0 textParses=0 avgSmart=3837ms avgFast=3837ms
+[Seat] [ROUTER] play(main): 0 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3763 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Verdant Catacombs
+[Seat] [TALLY] smart=8 fast=0 auto=0 ai=0 textParses=0 avgSmart=3828ms avgFast=3828ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8018 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Develop mana with a basic Forest and a one-mana Elf, then build toward a fast Natural Order. NEXT: Activate Verdant Catacombs for an untapped Forest, then cast a mana Elf if priority and mana allow.
+[OPENROUTER Seat/smart] replied in 1840 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Verdant Catacombs @25 [{T}, Pay 1 life, Sacrifice Verdant Catacombs: Search your library for a Swamp or Forest card, put it onto the battlefield, then shuffle.]
+[OPENROUTER Seat/smart] replied in 4648 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: Forest @39 [Library, yours] -> Battlefield [Verdant Catacombs]
+[Seat] [TALLY] smart=11 fast=0 auto=0 ai=0 textParses=0 avgSmart=4102ms avgFast=4102ms
+[Seat] [ROUTER] play(main): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4256 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Fyndhorn Elves 1/1 @8 {G} [{T}: Add {G}.]
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5872 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Build a wide mana-creature board and develop Gaea's Cradle toward Natural Order. NEXT: Pass through upkeep without floating mana; in main play Gaea's Cradle, then cast as many one-mana Elves as possible.
+[OPENROUTER Seat/smart] replied in 6644 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3072 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=15 fast=0 auto=0 ai=0 textParses=0 avgSmart=4331ms avgFast=4331ms
+[Seat] [ROUTER] play(main): 7 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6504 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Use Badgermole Cub to amplify creature mana and grow Gaea's Cradle into a strong engine for Natural Order. NEXT: Cast Badgermole Cub using Forest and Fyndhorn Elves, earthbend Forest, then play Gaea's Cradle and use the resulting creature count to develop more Elves.
+[OPENROUTER Seat/smart] replied in 2509 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Badgermole Cub 2/2 @85 1{G} [When this creature enters, earthbend 1. (Target land you control becomes a 0/0 creature with haste that's still a land. Put a +1/+1 counter on it. When it dies or is exiled, return it to the battlefield tapped.) Whenever you tap a creature for mana, add an additional {G}.]
+[Seat] [ROUTER] target: Forest [tapped] @81 [Battlefield, yours] <- Badgermole Cub 2/2 @86 [When this creature enters, earthbend 1. (Target land you control becomes a 0/0 creature with haste that's still a land. Put a +1/+1 counter on it. When it dies or is exiled, return it to the battlefield tapped.)] (only legal)
+[Seat] [TALLY] smart=17 fast=0 auto=0 ai=0 textParses=0 avgSmart=4352ms avgFast=4352ms
+[Seat] [ROUTER] play(main): 0 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4877 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Gaea's Cradle
+[Seat] [TALLY] smart=18 fast=0 auto=0 ai=0 textParses=0 avgSmart=4381ms avgFast=4381ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6799 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Gaea's Cradle @87 [{T}: Add {G} for each creature you control.]
+[Seat] [TALLY] smart=19 fast=0 auto=0 ai=0 textParses=0 avgSmart=4508ms avgFast=4508ms
+[Seat] [ROUTER] play(main): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6171 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Elvish Mystic 1/1 @13 {G} [{T}: Add {G}.]
+[Seat] [TALLY] smart=20 fast=0 auto=0 ai=0 textParses=0 avgSmart=4591ms avgFast=4591ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 15413 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Wirewood Symbiote 1/1 @23 {G} [Return an Elf you control to its owner's hand: Untap target creature. Activate only once each turn.]
+[Seat] [TALLY] smart=21 fast=0 auto=0 ai=0 textParses=0 avgSmart=5107ms avgFast=5107ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6969 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Llanowar Elves 1/1 @14 {G} [{T}: Add {G}.]
+[Seat] [TALLY] smart=22 fast=0 auto=0 ai=0 textParses=0 avgSmart=5191ms avgFast=5191ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4342 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 2: if you pass, nothing resolves: the board, hands, life and graveyards are unchanged. A preview cannot play out the opponent's turn.
+[OPENROUTER Seat/smart] replied in 2226 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=24 fast=0 auto=0 ai=0 textParses=0 avgSmart=5032ms avgFast=5032ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 11150 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=25 fast=0 auto=0 ai=0 textParses=0 avgSmart=5277ms avgFast=5277ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8604 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9973 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Keep the elf engine intact through the opponent's turn, then develop mana and board on my next turn. NEXT: Pass through the Vial upkeep trigger; on my turn untap, play a land if available, and use the creatures/Cradle to develop.
+[OPENROUTER Seat/smart] replied in 4162 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5727 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 2: if you pass, nothing resolves: the board, hands, life and graveyards are unchanged. A preview cannot play out the opponent's turn.
+[OPENROUTER Seat/smart] replied in 7907 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 16001 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Preserve the remaining elf engine through the opponent's turn, then use the available land drop and mana creatures to rebuild and advance toward a Natural Order/Craterhoof finish. NEXT: Pass on Wasteland's activation; on my turn, make a land drop and use the dorks/Badgermole Cub mana to develop.
+[OPENROUTER Seat/smart] replied in 2028 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7610 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Rebuild mana and develop the elf board while preserving options to reach a Natural Order/Craterhoof finish. NEXT: Pass through upkeep; in main phase make a land drop, then use mana efficiently to cast the Fyndhorn Elves and continue developing.
+[OPENROUTER Seat/smart] replied in 2458 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Likely red-white Aether Vial creature deck (Death and Taxes-like); respect Vial, Karakas, and further Wasteland.
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=34 fast=0 auto=0 ai=0 textParses=0 avgSmart=5776ms avgFast=5776ms
+[Seat] [ROUTER] play(main): 7 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10173 ms with 1 tool call(s)
+hidden has neither ManaCost nor Color
+[Seat] [ROUTER] lookahead 2, then 1: if you cast Badgermole Cub, then cast Fyndhorn Elves: you board 6 -> 8; mana pool empty -> {G:2}; hand 2 -> 0; entered the battlefield: Badgermole Cub, Fyndhorn Elves; ForgeAI no change
+[OPENROUTER Seat/smart] replied in 11110 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Use Badgermole Cub to amplify the mana-Elf board and continue developing toward a Natural Order/Craterhoof finish. NEXT: Cast Badgermole Cub, earthbend the Forest, then use the Cub's mana bonus to cast Fyndhorn Elves if possible.
+[OPENROUTER Seat/smart] replied in 5283 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Badgermole Cub 2/2 @96 1{G} [When this creature enters, earthbend 1. (Target land you control becomes a 0/0 creature with haste that's still a land. Put a +1/+1 counter on it. When it dies or is exiled, return it to the battlefield tapped.) Whenever you tap a creature for mana, add an additional {G}.]
+[OPENROUTER Seat/smart] replied in 6699 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 3 for CAST Badgermole Cub 2/2 @97 1{G} [When this creature enters, earthbend 1. (Target land you control becomes a 0/0 creature with haste that's still a land. Put a +1/+1 counter on it. When it dies or is exiled, return it to the battlefield tapped.) Whenever you tap a creature for mana, add an additional {G}.]
+[Seat] [ROUTER] target: Forest 1/1 [tapped] [+1/+1 x1] [haste] @81 [Battlefield, yours] <- Badgermole Cub 2/2 @98 [When this creature enters, earthbend 1. (Target land you control becomes a 0/0 creature with haste that's still a land. Put a +1/+1 counter on it. When it dies or is exiled, return it to the battlefield tapped.)] (only legal)
+[Seat] [TALLY] smart=38 fast=0 auto=0 ai=0 textParses=0 avgSmart=6043ms avgFast=6043ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7309 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Fyndhorn Elves 1/1 @24 {G} [{T}: Add {G}.]
+[OPENROUTER Seat/smart] replied in 7501 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 2 for CAST Fyndhorn Elves 1/1 @99 {G} [{T}: Add {G}.]
+[Seat] [TALLY] smart=40 fast=0 auto=0 ai=0 textParses=0 avgSmart=6112ms avgFast=6112ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4592 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Fyndhorn Elves 1/1 @82 [{T}: Add {G}.]
+[Seat] [TALLY] smart=41 fast=0 auto=0 ai=0 textParses=0 avgSmart=6074ms avgFast=6074ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6698 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 3: if you pass, nothing resolves: the board, hands, life and graveyards are unchanged. A preview cannot play out the opponent's turn.
+[OPENROUTER Seat/smart] replied in 2405 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 3 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3748 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Badgermole Cub, Elvish Mystic, Wirewood Symbiote
+[Seat] [TALLY] smart=44 fast=0 auto=0 ai=0 textParses=0 avgSmart=5952ms avgFast=5952ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10253 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10704 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Preserve the developed Elf board and build toward a Natural Order/Craterhoof finish. NEXT: Pass through the Vial upkeep trigger, then use the next turn's draw and available mana to develop; keep the board ready to attack.
+[OPENROUTER Seat/smart] replied in 1922 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6143 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 2: if you pass, nothing resolves: the board, hands, life and graveyards are unchanged. A preview cannot play out the opponent's turn.
+[OPENROUTER Seat/smart] replied in 2066 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4997 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 1: if you activate Wirewood Symbiote [assuming target: Forest]: you board 8 -> 7; hand 0 -> 1; left the battlefield: Fyndhorn Elves; ForgeAI no change
+[OPENROUTER Seat/smart] replied in 3310 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6338 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10804 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7255 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Use the next draw to continue developing, then threaten a lethal Natural Order/Craterhoof attack while preserving the Elf board. NEXT: Pass the empty upkeep window; draw for turn, play an appropriate land if available, develop or attack for pressure, and respond to the opponent's Vial or land interaction.
+[OPENROUTER Seat/smart] replied in 2393 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=55 fast=0 auto=0 ai=0 textParses=0 avgSmart=5965ms avgFast=5965ms
+[Seat] [ROUTER] play(main): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7608 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Formidable Speaker 2/4 @105 2{G} [When this creature enters, you may discard a card. If you do, search your library for a creature card, reveal it, put it into your hand, then shuffle. {1}, {T}: Untap another target permanent.]
+[OPENROUTER Seat/smart] replied in 11658 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 4 for CAST Formidable Speaker 2/4 @106 2{G} [When this creature enters, you may discard a card. If you do, search your library for a creature card, reveal it, put it into your hand, then shuffle. {1}, {T}: Untap another target permanent.]
+[OPENROUTER Seat/smart] replied in 8229 ms with 1 tool call(s)
+[Seat] [ROUTER] confirm-trigger [Formidable Speaker]: NO
+[Seat] [TALLY] smart=58 fast=0 auto=0 ai=0 textParses=0 avgSmart=6131ms avgFast=6131ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8535 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 6: if you pass, nothing resolves: the board, hands, life and graveyards are unchanged. A preview cannot play out the opponent's turn.
+[OPENROUTER Seat/smart] replied in 2383 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 7 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5666 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Forest, Badgermole Cub, Elvish Mystic, Wirewood Symbiote, Llanowar Elves, Badgermole Cub, Fyndhorn Elves
+[Seat] [TALLY] smart=61 fast=0 auto=0 ai=0 textParses=0 avgSmart=6101ms avgFast=6101ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8195 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6075 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Survive the opponent's turn and attack for lethal next turn; preserve the board and Symbiote activation for useful value. NEXT: Pass this upkeep without spending Symbiote; respond to any meaningful opponent action, then attack for lethal next turn.
+[OPENROUTER Seat/smart] replied in 2415 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10389 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9794 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 11038 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8607 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Win this turn by attacking for lethal; preserve all creatures and mana abilities until combat. NEXT: Pass upkeep, then attack with the board for lethal; account for any opponent Vial activation before combat.
+[OPENROUTER Seat/smart] replied in 3897 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3597 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=70 fast=0 auto=0 ai=0 textParses=0 avgSmart=6231ms avgFast=6231ms
+[Seat] [ROUTER] play(main): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6076 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 7: if you pass, nothing resolves: the board, hands, life and graveyards are unchanged. A preview cannot play out the opponent's turn.
+[OPENROUTER Seat/smart] replied in 2005 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5749 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 9 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4992 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Forest, Fyndhorn Elves, Badgermole Cub, Elvish Mystic, Wirewood Symbiote, Llanowar Elves, Badgermole Cub, Fyndhorn Elves, Formidable Speaker
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 11096 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 2: if you pass, nothing resolves: the board, hands, life and graveyards are unchanged. A preview cannot play out the opponent's turn.
+[OPENROUTER Seat/smart] replied in 2007 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5636 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 2: if you pass, nothing resolves: the board, hands, life and graveyards are unchanged. A preview cannot play out the opponent's turn.
+[OPENROUTER Seat/smart] replied in 1968 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] damage-assign: all 2 -> Goblin Chieftain (forced)
+[Seat] [ROUTER] damage-assign: all 2 -> Goblin Matron (forced)
+[Seat] [ROUTER] damage-assign: all 2 -> Goblin Matron (forced)
+========== GAME OVER ==========
+outcome: A after 10 turns (AllOpponentsLost) in 484s
+--- full game log ---
+  MULLIGAN: Seat has mulliganed down to 6 cards.
+  MULLIGAN: ForgeAI has kept a hand of 7 cards
+  MULLIGAN: Seat has kept a hand of 6 cards
+  TURN: Turn 1 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  STACK_ADD: Seat cast Once Upon a Time
+  STACK_RESOLVE: Once Upon a Time (58) - Seat looks at the top five cards of their library. They may put a creature or land card from among them into their hand and put the rest on the bottom of their library in a random order.
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Karakas (92)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 2 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Verdant Catacombs (28)
+  LIFE: Life: Seat 20 > 19
+  ZONE_CHANGE: Verdant Catacombs (28) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat activated Verdant Catacombs
+  STACK_RESOLVE: Verdant Catacombs (28) - Seat searches their library for a Swamp or Forest card, puts it onto the battlefield, then shuffles.
+  MANA: Forest (30) - {T}: Add {G}.
+  STACK_ADD: Seat cast Fyndhorn Elves
+  STACK_RESOLVE: Fyndhorn Elves - Creature 1 / 1
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 3 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Mountain (113)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Mountain (113) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Aether Vial
+  STACK_RESOLVE: Aether Vial
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 4 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  MANA: Forest (30) - {T}: Add {G}.
+  MANA: Fyndhorn Elves (45) - {T}: Add {G}.
+  STACK_ADD: Seat cast Badgermole Cub
+  STACK_RESOLVE: Badgermole Cub - Creature 2 / 2
+  STACK_ADD: Seat triggered Badgermole Cub targeting [Forest (30)]
+  STACK_RESOLVE: When this creature enters, earthbend 1. (Target land you control becomes a 0/0 creature with haste that's still a land. Put a +1/+1 counter on it. When it dies or is exiled, return it to the battlefield tapped.) (Targeting: [[Forest (30)]]) [Zone Changer: Badgermole Cub (19)]
+  LAND: Seat played Gaea's Cradle (48)
+  MANA: Gaea's Cradle (48) - {T}: Add {G} for each creature you control.
+  STACK_ADD: Seat cast Elvish Mystic
+  STACK_RESOLVE: Elvish Mystic - Creature 1 / 1
+  STACK_ADD: Seat cast Wirewood Symbiote
+  STACK_RESOLVE: Wirewood Symbiote - Creature 1 / 1
+  STACK_ADD: Seat cast Llanowar Elves
+  STACK_RESOLVE: Llanowar Elves - Creature 1 / 1
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 5 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  STACK_ADD: ForgeAI triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: ForgeAI]
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Wasteland (124)
+  ZONE_CHANGE: Wasteland (124) was put into Graveyard from Battlefield.
+  STACK_ADD: ForgeAI activated Wasteland targeting [Gaea's Cradle (48)]
+  ZONE_CHANGE: Gaea's Cradle (48) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Wasteland (124) - Destroy Gaea's Cradle (48).
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 6 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  MANA: Forest (30) - {T}: Add {G}.
+  STACK_ADD: Seat cast Badgermole Cub
+  STACK_RESOLVE: Badgermole Cub - Creature 2 / 2
+  STACK_ADD: Seat triggered Badgermole Cub targeting [Forest (30)]
+  STACK_RESOLVE: When this creature enters, earthbend 1. (Target land you control becomes a 0/0 creature with haste that's still a land. Put a +1/+1 counter on it. When it dies or is exiled, return it to the battlefield tapped.) (Targeting: [[Forest (30)]]) [Zone Changer: Badgermole Cub (16)]
+  MANA: Llanowar Elves (41) - {T}: Add {G}.
+  STACK_ADD: Seat cast Fyndhorn Elves
+  STACK_RESOLVE: Fyndhorn Elves - Creature 1 / 1
+  MANA: Fyndhorn Elves (45) - {T}: Add {G}.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Badgermole Cub (19), Elvish Mystic (21) and Wirewood Symbiote (39) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Badgermole Cub (19).
+ForgeAI didn't block Elvish Mystic (21).
+ForgeAI didn't block Wirewood Symbiote (39).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Badgermole Cub (19) deals 2 combat damage to ForgeAI.
+  DAMAGE: Elvish Mystic (21) deals 1 combat damage to ForgeAI.
+  DAMAGE: Wirewood Symbiote (39) deals 1 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 20 > 16
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 7 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  STACK_ADD: ForgeAI triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: ForgeAI]
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Wasteland (125)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Mountain (113) - {T}: Add {R}.
+  MANA: Wasteland (125) - {T}: Add {C}.
+  MANA: Karakas (92) - {T}: Add {W}.
+  STACK_ADD: ForgeAI cast Goblin Matron
+  STACK_RESOLVE: Goblin Matron - Creature 1 / 1
+  STACK_ADD: ForgeAI triggered Goblin Matron
+  STACK_RESOLVE: When Goblin Matron enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle. [Zone Changer: Goblin Matron (128)]
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 8 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  MANA: Fyndhorn Elves (45) - {T}: Add {G}.
+  STACK_ADD: Seat cast Formidable Speaker
+  STACK_RESOLVE: Formidable Speaker - Creature 2 / 4
+  STACK_ADD: Seat triggered Formidable Speaker
+  STACK_RESOLVE: When this creature enters, you may discard a card. If you do, search your library for a creature card, reveal it, put it into your hand, then shuffle. [Zone Changer: Formidable Speaker (55)]
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Forest (30), Badgermole Cub (19), Elvish Mystic (21), Wirewood Symbiote (39), Llanowar Elves (41), Badgermole Cub (16) and Fyndhorn Elves (46) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Forest (30).
+ForgeAI didn't block Badgermole Cub (19).
+ForgeAI didn't block Elvish Mystic (21).
+ForgeAI didn't block Wirewood Symbiote (39).
+ForgeAI didn't block Llanowar Elves (41).
+ForgeAI didn't block Badgermole Cub (16).
+ForgeAI didn't block Fyndhorn Elves (46).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Forest (30) deals 2 combat damage to ForgeAI.
+  DAMAGE: Badgermole Cub (19) deals 2 combat damage to ForgeAI.
+  DAMAGE: Elvish Mystic (21) deals 1 combat damage to ForgeAI.
+  DAMAGE: Wirewood Symbiote (39) deals 1 combat damage to ForgeAI.
+  DAMAGE: Llanowar Elves (41) deals 1 combat damage to ForgeAI.
+  DAMAGE: Badgermole Cub (16) deals 2 combat damage to ForgeAI.
+  DAMAGE: Fyndhorn Elves (46) deals 1 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 16 > 6
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 9 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  STACK_ADD: ForgeAI triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: ForgeAI]
+  STACK_ADD: ForgeAI activated Aether Vial
+  STACK_RESOLVE: Aether Vial (85) - You may put a creature card with mana value equal to the number of charge counters on Aether Vial from your hand onto the battlefield.
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Wasteland (123)
+  MANA: Mountain (113) - {T}: Add {R}.
+  MANA: Wasteland (125) - {T}: Add {C}.
+  MANA: Wasteland (123) - {T}: Add {C}.
+  STACK_ADD: ForgeAI cast Goblin Matron
+  STACK_RESOLVE: Goblin Matron - Creature 1 / 1
+  STACK_ADD: ForgeAI triggered Goblin Matron
+  STACK_RESOLVE: When Goblin Matron enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle. [Zone Changer: Goblin Matron (127)]
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 10 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Forest (30), Fyndhorn Elves (45), Badgermole Cub (19), Elvish Mystic (21), Wirewood Symbiote (39), Llanowar Elves (41), Badgermole Cub (16), Fyndhorn Elves (46) and Formidable Speaker (55) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI assigned Goblin Chieftain (120) to block Forest (30).
+ForgeAI didn't block Fyndhorn Elves (45).
+ForgeAI assigned Goblin Matron (127) to block Badgermole Cub (19).
+ForgeAI didn't block Elvish Mystic (21).
+ForgeAI didn't block Wirewood Symbiote (39).
+ForgeAI didn't block Llanowar Elves (41).
+ForgeAI didn't block Badgermole Cub (16).
+ForgeAI didn't block Fyndhorn Elves (46).
+ForgeAI assigned Goblin Matron (128) to block Formidable Speaker (55).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Forest (30) deals 2 damage to Goblin Chieftain (120).
+  DAMAGE: Fyndhorn Elves (45) deals 1 combat damage to ForgeAI.
+  DAMAGE: Badgermole Cub (19) deals 2 damage to Goblin Matron (127).
+  DAMAGE: Elvish Mystic (21) deals 1 combat damage to ForgeAI.
+  DAMAGE: Wirewood Symbiote (39) deals 1 combat damage to ForgeAI.
+  DAMAGE: Llanowar Elves (41) deals 1 combat damage to ForgeAI.
+  DAMAGE: Badgermole Cub (16) deals 2 combat damage to ForgeAI.
+  DAMAGE: Fyndhorn Elves (46) deals 1 combat damage to ForgeAI.
+  DAMAGE: Formidable Speaker (55) deals 2 damage to Goblin Matron (128).
+  DAMAGE: Goblin Matron (128) deals 2 damage to Formidable Speaker (55).
+  DAMAGE: Goblin Chieftain (120) deals 2 damage to Forest (30).
+  DAMAGE: Goblin Matron (127) deals 2 damage to Badgermole Cub (19).
+  LIFE: Life: ForgeAI 6 > -1
+  PLAYER_CONTROL: Seat has restored control over themself
+  PLAYER_CONTROL: ForgeAI has restored control over themself
+  GAME_OUTCOME: Match Duration 7m : 46s
+  GAME_OUTCOME: Turn 5
+  GAME_OUTCOME: Seat has won because all opponents have lost
+  GAME_OUTCOME: ForgeAI has lost because life total reached 0
+  MATCH_RESULTS: Seat: 1 ForgeAI: 0 
+===============================

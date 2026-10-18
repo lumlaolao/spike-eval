@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 186 - Uncounterable is not unexilable
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent has cast Abrupt Decay (it can't be countered) targeting your Grizzly Bears. You control two Islands and two Plains and have Aven Interrupter and Counterspell in hand. End the turn with Grizzly Bears on the battlefield.
+Rule:wizards-of-the-coast-release-notes-cb61a6a76316d013 | "Can't be countered" stops only countering (CR 701.6): Aven Interrupter can still exile the spell from the stack
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Aven Interrupter;Counterspell
+p0battlefield=Grizzly Bears|Id:1;Island;Island;Plains;Plains
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Swamp;Forest
+p1library=Plains;Plains;Plains
+p1putonstack=Abrupt Decay->1
+[acceptance]
+count p0 Battlefield "Grizzly Bears" = 1

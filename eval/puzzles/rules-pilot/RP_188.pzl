@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 188 - Flashback gets the discount
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You are at 20 life and control Stormcatch Mentor, Grizzly Bears and one Plains; Folk Medicine is in your graveyard. End the turn at 22 life.
+Rule:rulesguru-0fa0f9e62731ef68 | Flashback is an alternative cost, and cost reductions apply to it (CR 601.2f, 702.34a): Stormcatch Mentor reduces Folk Medicine's {1}{W} flashback to {W}
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0battlefield=Stormcatch Mentor|SummonSick;Grizzly Bears|SummonSick;Plains
+p0graveyard=Folk Medicine
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+life p0 = 22
