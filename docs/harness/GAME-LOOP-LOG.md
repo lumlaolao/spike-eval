@@ -751,4 +751,9 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
   (off by default since 2026-10-15), the 4000-token cut-offs (32000 since harness-epoch-7), the one-preview budget
   (removed, MODEL-LIMITS.md), Heritage Druid's tapped Elves (asked, `LlmSpikeTest` issue #105). The provider 300 s
   stalls and stream cut-offs are the provider's, retried by the bridge.
+- FIXED  memory search gave up when no entry held every word of the query (g08: "Doomsday pile selected", Matches=0).
+  It now lists the entries holding some of the words, most first, and says so. Test
+  `aSearchWithNoLiteralMatchFallsBackToEveryWord` (extended). evidence-tools-v4.
+- checked  naming a card (Cabal Therapy, Pithing Needle) accepts only card-database names, so a token's name is
+  refused although `inspect` now answers by it. Test `aTokenNameIsNotACardName`.
 

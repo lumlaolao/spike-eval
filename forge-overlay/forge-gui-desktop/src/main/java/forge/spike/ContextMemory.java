@@ -18,7 +18,9 @@ final class ContextMemory {
      *  16 calls an ask (2 was reached in 23 of the 83 asks that used a tool in runs/compare), 1000 a
      *  game, a 20000-character READ page (one page holds any observation), 50 search results a page,
      *  more than one preview a decision, every note shown, and a note of up to 2000 characters. */
-    static final String VERSION = "evidence-tools-v3";
+    // v4 (2026-10-18): a search no entry answers with every word lists the entries holding some of the words, most
+    // first (runs/loop/g08: "Doomsday pile selected" found nothing).
+    static final String VERSION = "evidence-tools-v4";
     static final int TOOLS_PER_ASK = 16;
     static final int TOOLS_PER_GAME = 1000;
     static final int PAGE_CHARS = 20000;
@@ -399,10 +401,28 @@ final class ContextMemory {
             }
             byWords = !matches.isEmpty();
         }
+        // No entry holds every word: "Doomsday pile selected" found nothing although the archive held the Doomsday
+        // picks (runs/loop/g08 T8). Entries holding any of the words, most words first, then the newest, say so.
+        boolean ranked = false;
+        if (matches.isEmpty()) {
+            List<String> words = words(needle);
+            words.removeAll(STOP_WORDS);
+            java.util.Map<Integer, Integer> held = new java.util.HashMap<>();
+            for (int i = 0; !words.isEmpty() && i < entries.size(); i++) {
+                if (i + 1 == currentObservation) continue;
+                java.util.Set<String> in = new java.util.HashSet<>(words(entries.get(i).text.toLowerCase(Locale.ROOT)));
+                int n = 0;
+                for (String w : words) if (in.contains(w)) n++;
+                if (n > 0) { held.put(i, n); matches.add(i); }
+            }
+            matches.sort((x, y) -> held.get(y).equals(held.get(x)) ? Integer.compare(y, x) : Integer.compare(held.get(y), held.get(x)));
+            ranked = !matches.isEmpty();
+        }
         if (offset > matches.size()) return "ERROR: offset outside search results.";
         int end = offset + Math.min(SEARCH_PAGE, matches.size() - offset);
         StringBuilder out = new StringBuilder("Matches=" + matches.size() + " next="
-                + (end < matches.size() ? end : "END") + (byWords ? " (no literal match; entries holding every word)" : "") + "\n");
+                + (end < matches.size() ? end : "END") + (byWords ? " (no literal match; entries holding every word)" : "")
+                + (ranked ? " (no entry holds every word; entries holding some of them, most first)" : "") + "\n");
         for (int i = offset; i < end; i++) {
             int index = matches.get(i);
             Entry e = entries.get(index);
@@ -411,6 +431,10 @@ final class ContextMemory {
         }
         return out.toString();
     }
+
+    /** Words too common to rank an entry by. */
+    private static final java.util.Set<String> STOP_WORDS = java.util.Set.of("the", "a", "an", "of", "to", "in", "on",
+            "and", "or", "is", "was", "for", "my", "their", "your", "it", "at", "by", "with", "from");
 
     /** Lower-case words of at least two characters, a trailing possessive dropped. */
     private static List<String> words(String lower) {

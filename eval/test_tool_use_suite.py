@@ -34,8 +34,8 @@ class ToolUseSuiteTest(unittest.TestCase):
 
     def test_text_arm_is_the_shipped_grammar(self):
         memory = java_literals("ContextMemory.java")
-        self.assertIn(tu.MEMORY_INSTRUCTIONS.split("evidence-tools-v3", 1)[1], memory)
-        self.assertIn('VERSION = "evidence-tools-v3"', memory)
+        self.assertIn(tu.MEMORY_INSTRUCTIONS.split("evidence-tools-v4", 1)[1], memory)
+        self.assertIn('VERSION = "evidence-tools-v4"', memory)
         self.assertIn(tu.NATIVE_INSTRUCTIONS, java_literals("NativeTools.java"))
         self.assertIn('VERSION = "%s"' % self.tools["version"], java_literals("NativeTools.java"))
         self.assertIn(tu.INSPECT_INSTRUCTIONS, java_literals("SeatObservation.java"))
