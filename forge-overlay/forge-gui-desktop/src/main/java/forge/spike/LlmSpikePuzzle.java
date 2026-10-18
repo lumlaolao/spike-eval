@@ -347,7 +347,9 @@ public final class LlmSpikePuzzle {
         List<Long> seeds = parseSeeds(System.getenv("PZL_SEEDS"));
         final long seed = seeds != null && !seeds.isEmpty() ? seeds.get(0) : LlmSpikeGui.applySeed();
         int budget = intOr(System.getenv().getOrDefault("PZL_SEARCH_BUDGET", "2000"), 2000);
-        int lines = intOr(System.getenv().getOrDefault("PZL_SEARCH_LINES", "4"), 4);
+        // Lines tried per choice point before it is given up: 4 gave up on RP_034 (four Fiery Confluence lines, each
+        // beaten by Welding Jar) where 40 proved it; the budget bounds the total either way.
+        int lines = intOr(System.getenv().getOrDefault("PZL_SEARCH_LINES", "32"), 32);
         System.out.println("[PZL] search " + id + " opponent=" + ctlB + " seed=" + seed + " budget=" + budget);
         final int[] n = {0};
         final boolean[] broken = {false};
@@ -365,8 +367,12 @@ public final class LlmSpikePuzzle {
             if ("invalid".equals(p.status) && line.drift == null)
                 return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), false, "rollout hit the wall-clock cap");
             boolean solved = p.cleanSolve() && !line.stopped();
+            // What tells two solutions apart: the solver's game-log actions, and the final state (a mode, a clone
+            // pick or a face-up choice changes the state but not the log's actions).
+            String state = "";
+            try { state = PuzzleAcceptance.digest(PuzzleAcceptance.of(p.game)); } catch (Exception ignore) { }
             return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), solved, line.drift,
-                    String.join("\n", solverActions(p.logLines, "Solver")));
+                    String.join("\n", solverActions(p.logLines, "Solver")) + "\n#state\n" + state);
         };
         long t0 = System.currentTimeMillis();
         PuzzleSearch searcher = new PuzzleSearch(g, "Solver", budget, lines, seed);

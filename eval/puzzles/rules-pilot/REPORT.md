@@ -77,3 +77,75 @@ example in `eval/PUZZLES.md` never matches.
    `scratchpad/rp/RP_017-rand/game-1-*.jsonl`.
 5. **The baseline arms' menu differs from the faithful seat's.** Costly mana abilities and floating mana are
    gated on `observer != null`, so a proof cannot use Ashnod's Altar or mana-first lines.
+
+# Batch 2: thirty more questions (RP_021 to RP_047)
+
+Source: the TRIAGE.md ranked list from #22 to #40, then 12 more `convert == "good"` questions from `triage.jsonl`
+chosen for spread: triage lines 369, 571, 268, 501, 209, 224, 95, 145, 341, 220, 207 and 875. Ranked #28 (Giant
+Warthog, a trampler whose blocker has left) was skipped without counting: it tests the same rule as RP_007. Ranked
+#27, #35 and #37 were dropped without a board. Build: epoch 52 (scratchpad `epoch52-build.txt`). Gate as in batch 1:
+search arm (budget 600, cap 60 s), then the pass arm. Results are in `manifest.jsonl` (30 rows after batch 1's 21).
+
+## Counts
+
+| result | n | puzzles |
+|---|---|---|
+| converted | 23 | 021-023, 025, 027-033, 035-044, 046, 047 |
+| Forge disagreement | 1 | 024 |
+| dropped | 6 | 026 (harness), 034 (prover limit), 045 (harness); ranked #27, #35, #37 (no board) |
+
+The pass arm was rejected on all 27 boards. Uniqueness was exhaustive on 15 of the 23 conversions. Not exhaustive:
+RP_022 (7/27), RP_025 (0/370), RP_028 (6/10), RP_029 (0/6), RP_030 (9/10), RP_032 (10/16), RP_035 (8/23),
+RP_040 (3/17), RP_043 (9/10) and RP_046 (1/6). Their "unique" means none found within the budget. RP_044 is the
+first puzzle whose proof branches trigger order. Its misread order was confirmed rejected by a random-arm seed.
+
+Effort: about 110 minutes over 30 questions, about 3.7 minutes per question, plus one HOLD wait for the engine rebuild.
+No run started while HOLD existed.
+
+## Forge disagreements
+
+- **RP_024** (Hooded Hydra, Hardened Scales, Corpsejack Menace). CR 616.1 lets the controller order the two
+  counter replacements (12 or 11). Forge never asks: every ask is `replacement-order(forced-only-legal)`, as in
+  RP_011. The accepted 12 is the engine's order. Turning a morph face up is also not a game-log action, so the
+  proof's `actions` is empty.
+
+## Dropped
+
+- **RP_026** (Forge Anew + Kaldra Compleat). Harness: the equip ability is never offered when only Forge Anew's {0}
+  alternative cost can pay it. The search log has attack choices and no play decision. With seven Wastes (printed
+  {7} payable) the same line is proven (`rp2v/RP_026b`).
+- **RP_034** (Fiery Confluence vs Welding Jar). Prover limit: it gives up after 4 solver lines that each lose to
+  the Jar reply (`PZL_SEARCH_LINES` default 4). With 40 it is proven and unique (`rp2v/RP_034-lines40`).
+- **RP_045** (General Leo Cristophe vs Scavenging Ooze). Harness: an "up to one target" trigger with one candidate
+  is forced (`... <- General Leo Cristophe ... (only legal)`), so choosing no target is never offered and every line
+  loses to the Ooze.
+- **Ranked #27, #35, #37**: no board. Either no solver choice depends on the rule (Sorin's +2 under Doubling
+  Season), or every board has two equal solutions (Twinning Staff: either Golem target gives five resolutions), or
+  the state cannot be set (Ocelot Pride: city's blessing, tokens created this turn).
+
+## Grammar needs
+
+None. One limit: Twinning Staff's "number of resolutions" is observable only through damage.
+
+## What made puzzles fail the gate (and the fixes)
+
+- **Too many free choices for the budget**: RP_021's sacrifice outlet could sacrifice any creature at every priority
+  stop of a whole turn. Fixed by moving to the opponent's upkeep and using Glimmer Bairn (sacrifices tokens only).
+- **Extra actions as second solutions**: re-sacrificing the returned Clique (RP_030, fixed with an acceptance line)
+  and the Druid's own untap ability (RP_038, fixed with `SummonSick`).
+- **Avoided by design**: Walking Ballista's ping and pump give second X choices (Endless One instead, RP_025).
+  Possible attacks: boards start in MAIN2.
+
+## Harness and prover findings
+
+1. **Alternative activation costs are not priced** (RP_026): `offerable()` checks the printed cost, so Forge Anew's
+   {0} equip is never on the menu.
+2. **A single-candidate "up to one" target is forced** (RP_045): `ensureTargetsSet` offers "No target (decline)"
+   only when there are 2 or more candidates. The epoch-52 fix covers spells, not this path.
+3. **Lines-per-point cap**: a puzzle whose opponent reply beats several attractive solver lines needs
+   `PZL_SEARCH_LINES` above 4 (RP_034).
+4. **Uniqueness compares game-log actions, and these choices are not in them**: modal modes (RP_034, RP_043),
+   clone choices (RP_035), turning a morph face up (RP_024), and whether a sacrifice comes before or after a trigger
+   resolves (RP_021). A second solution that differs only there would be called the same. For RP_021 the timing was
+   checked another way (only one Snake ever existed).
+5. **Replacement order still never asked** (RP_024, RP_011).

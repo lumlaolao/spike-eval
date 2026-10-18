@@ -2174,6 +2174,43 @@ public class GoldenChecksTest {
         Assert.assertTrue(combat.getBlockers(lions).contains(bears));
     }
 
+    /** Rules pilot RP_045 (2026-10-18): General Leo Cristophe's "return up to one target creature card" with one
+     *  creature card in the graveyard took it without asking ("(only legal)"); no target is legal too. An "up to one"
+     *  target with a single candidate is asked, with "No target" offered. */
+    @Test
+    public void anUpToOneTargetWithOneCandidateIsAskedWithNoTargetOffered() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card bears = card("Grizzly Bears", me, ZoneType.Graveyard);
+        Card leo = card("General Leo Cristophe", me, ZoneType.Battlefield);
+        SpellAbility trig = leo.getTriggers().iterator().next().ensureAbility();
+        trig.setActivatingPlayer(me);
+        List<String> asks = new ArrayList<>();
+        Script model = new Script("CHOICE: 1").on("TARGET", p -> { asks.add(p); return "CHOICE: 2"; });
+        Assert.assertTrue(seat(g, model, model).chooseTargetsFor(trig));
+        Assert.assertEquals(asks.size(), 1, "the seat was asked");
+        Assert.assertTrue(asks.get(0).contains("No target"), "no target is offered:\n" + asks.get(0));
+        Assert.assertFalse(trig.getTargets().contains(bears), "the seat's 'no target' stands");
+    }
+
+    /** Rules pilot RP_026 (2026-10-18): Forge Anew ("you may pay {0} rather than pay the equip cost of the first equip
+     *  ability you activate during each of your turns") with no mana: equip was legal and never on the menu, which
+     *  expanded alternative costs for spells only. */
+    @Test
+    public void anAlternativeCostForAnActivatedAbilityIsOffered() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Forge Anew", me, ZoneType.Battlefield);
+        card("Bonesplitter", me, ZoneType.Battlefield);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        g.getAction().checkStaticAbilities();
+        Script model = new Script("CHOICE: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        ctrl.chooseSpellAbilityToPlay();
+        String ask = PromptFidelityTest.promptWith(model, "You have priority");
+        Assert.assertTrue(ask.contains("Bonesplitter") && ask.contains("Equip"), "equip for {0} is on the menu:\n" + ask);
+    }
+
     /** Rules pilot RP_007 (2026-10-18): the engine checks a block's requirements and restrictions only for its own
      *  GUI (InputBlock calls CombatUtil.validateBlocks), so a menace attacker blocked by one creature stood. An
      *  illegal block set goes back to the seat with the engine's reason. */

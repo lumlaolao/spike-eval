@@ -116,7 +116,10 @@ A line it cannot read stops the run before any game. Result rows carry `acceptan
 
 **Uniqueness.** After a proof, a puzzle with an acceptance state (or any puzzle with `PZL_UNIQUE_BUDGET=N`) is
 searched for a second solution: every other option at every solver choice on the main line, looking for a line
-whose solver actions (its game-log actions) differ and which is itself proven against every opponent reply.
+whose solver actions (its game-log actions) or final state (life, and cards by zone with tokens and counters;
+not tapped status or library order) differ, and which is itself proven against every opponent reply. The final state
+is there because a mode, a clone pick or a face-up choice changes the board but not the log's actions.
+`PZL_SEARCH_LINES` (default 32; it was 4, which gave up on RP_034) bounds the lines tried per choice point.
 `uniqueness`: `unique` (none found) or `multiple` (`uniqueness_second_line` and `uniqueness_second_actions`
 show it); `uniqueness_exhausted` of `uniqueness_deviations` deviations were played out completely, and when all
 were, "unique" is exhaustive rather than "not found within the budget". `uniqueness_unproven_alternatives`

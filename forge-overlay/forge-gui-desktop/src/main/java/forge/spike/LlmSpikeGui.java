@@ -287,8 +287,10 @@ public final class LlmSpikeGui {
      *  Epoch 52 (2026-10-18, rules puzzle pilot): a spell whose targets are all "up to" is offered with none to target
      *  (Finale of Promise); a source whose tap damage is lethal pays (City of Brass at 1 life, an engine patch); a
      *  block set the engine objects to (menace, "must block") goes back to the seat with the engine's reason.
+     *  Epoch 53 (2026-10-18, rules puzzle batch 2): an activated ability's alternative cost is offered (Forge Anew:
+     *  equip for {0}); an "up to one" target with a single candidate is asked, with "No target" offered.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-52";
+    static final String HARNESS_EPOCH = "harness-epoch-53";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -4088,7 +4090,8 @@ public final class LlmSpikeGui {
                 // needs an allocation per target. Both route through the same menu (#124); the
                 // division is the model's, with an even split as the deterministic legal fallback.
                 if (sa.getMaxTargets() > 1 || sa.isDividedAsYouChoose()) return chooseManyTargets(sa, cands, labels, min);
-                if (cands.size() > 1 && okFor("targets")) {
+                // "Up to one" with one candidate is still a choice: that one, or none (rules pilot RP_045).
+                if ((cands.size() > 1 || min == 0) && okFor("targets")) {
                     String q = "Choose the TARGET for " + copyOf(sa) + labelOf(sa) + xNote(sa) + " (the spell/ability resolves against whatever you pick).";
                     int c = decideOne(bridgeFor("targets"), "targets", q, labels, min == 0 ? "No target (decline)" : null);
                     // bridge dead -> the same deterministic path as an unparsed reply (decline when
@@ -4275,7 +4278,7 @@ public final class LlmSpikeGui {
                     int min = Math.max(1, sa.getMinTargets());
                     int pick = 0; // first legal candidate beats leaving it untargeted (which fizzles)
                     String fb = null; // non-null when the pick is a deterministic fallback, not a model choice
-                    if (cands.size() > 1 && okFor("target")) {
+                    if ((cands.size() > 1 || sa.getMinTargets() == 0) && okFor("target")) {
                         List<String> labels = new ArrayList<>();
                         for (forge.game.GameObject ge : cands) labels.add(targetLabel(ge));
                         if (cancellable) labels.add(CANCEL_LABEL);
@@ -8277,7 +8280,8 @@ public final class LlmSpikeGui {
             for (SpellAbility sa : ComputerUtilAbility.getSpellAbilities(
                     ComputerUtilAbility.getAvailableCards(me.getGame(), me), me)) {
                 candidates.add(sa);
-                if (!sa.isSpell() || sa.getAlternativeCost() != null) continue;
+                // An activated ability has alternative costs too (Forge Anew: equip for {0}, rules pilot RP_026).
+                if ((!sa.isSpell() && !sa.isActivatedAbility()) || sa.isManaAbility() || sa.getAlternativeCost() != null) continue;
                 try {
                     for (SpellAbility alt : GameActionUtil.getAlternativeCosts(sa, me, false)) {
                         candidates.add(alt); altCosts.add(alt);
