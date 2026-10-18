@@ -783,3 +783,13 @@ Sheet clean: 164 model decisions, 20 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL
 simulate 7), ai_tier_count=0, 22 min. The seat held Rishadan Port on the opponent's lands, then on turn 21 copied
 Dark Depths with Thespian's Stage for Marit Lage, which survived its upkeep trigger and attacked for 20.
 - clean  the combo line, the Port activations, the Marit Lage upkeep trigger, mulligan, blocks. First of three.
+
+### g12  2026-10-18  seed 4112  Esper Blink (seat) vs Mardu Energy (Forge AI)  WON T18  $0.15  harness-epoch-51
+Sheet clean: 110 model decisions, 18 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 11 of 11 served (inspect 2,
+simulate 9), ai_tier_count=0, 20 min. The seat exiled Orcish Bowmasters with Emperor of Bones, Solitude'd Hexing
+Squelcher through ward, Ephemerated Overlord with its trigger on the stack, and saved Emperor from Swords to
+Plowshares with a second Ephemerate.
+- checked  "play: cancelled Ephemerate @122 -> re-ask" (line 352): the model chose the cast, then the cancel option at
+  targeting ("neither target benefits"); the rebound trigger it declined was the other copy (@9). Model's choice.
+- checked  plan_audit HOLD-VIOLATION T14 (Ephemerate against "keep Ephemerate available"): model-chosen, not a defect.
+- clean  blink targets, Solitude evoke-free cast, impending Overlord, mana held. Second of three.
