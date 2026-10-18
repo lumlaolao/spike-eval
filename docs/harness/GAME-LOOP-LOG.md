@@ -837,3 +837,12 @@ Sheet clean: 61 model decisions, 0 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 6
 ai_tier_count=0, 9 min. First game on epoch 54 (AiCache cleared at the seat's priority ask).
 - checked  plan_audit HOLD-VIOLATION T11 Fireblast against "only if it creates lethal": it was the lethal turn.
 - clean  burn targets, previews. First clean game on epoch 54.
+
+### g18  2026-10-18  seed 4118  Pauper Mono-Blue Delver (seat) vs Broodscale (Forge AI)  LOST T18  $0.04  harness-epoch-54
+Sheet clean: 58 model decisions, 11 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 5 of 5 served (simulate 5),
+ai_tier_count=0, 9 min. First loss of the run.
+- checked  plan_audit HOLD-VIOLATIONS x4 (Counterspell T7, T8, Dispel T9, Sleep of the Dead T15): each is the spell
+  the plan held mana for, cast; the matcher reads "keep mana for X" as a hold. Model-chosen.
+- checked  `exile-cost(forced-only-legal)->3` (Sleep of the Dead's escape: exactly three other cards in the graveyard),
+  5 damage-assign to a single blocker, 3 single-target picks, 2 graveyard orders.
+- clean  two block asks (NONE; one block), counter targets, escape cast. Second clean game on epoch 54.
