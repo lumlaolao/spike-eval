@@ -852,3 +852,10 @@ Sheet clean: 35 model decisions, 7 forced picks (each one legal option: a target
 cast pick, Thalia's one ability, a colour, a replacement order), TAKEN 0, LOST 0, SKIP 0, TOOL 2 of 2 served,
 ai_tier_count=0, 5 min. Third clean game in a row on epoch 54 (g17-g19); epoch 55 (choice-list dividers) restarts
 the count. The whole-block-set check is still not exercised in a real game (no block asks).
+
+### g20  2026-10-18  seed 4120  Modern Urzatron (seat) vs Death and Taxes (Forge AI)  WON T15  $0.05  harness-epoch-55
+Sheet clean: 60 model decisions, 6 forced picks (2 single targets, 2 damage-assigns to one blocker, a counter kind, a
+replacement order; optional costs with none payable), TAKEN 0, LOST 0, SKIP 0, TOOL 5 of 5 served, ai_tier_count=0,
+12 min. First clean game on epoch 55.
+- note  plan_audit change (commit "holding mana for a card..."): its message says the g10-g19 flags fell from 9 to 3;
+  measured with the previous script it is 8 to 3.
