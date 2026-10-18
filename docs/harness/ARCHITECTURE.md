@@ -95,6 +95,9 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   keep the declared order. The prover's search arm branches over the splits. "Lethal" is the rule's (CR 702.19b:
   toughness minus damage marked, 1 with deathtouch, power under Zilortha), not what would kill: epoch 57 replaced
   Forge AI's estimate, which counted indestructible, protection, shields and doublers.
+- A `simulate` preview copies the game with Forge's GameCopier, which threw on a card no copied zone holds (a prepared
+  card's spell, Enroot), in the preview's copy and in the simulator's own internal ones. GameCopier is patched to skip
+  such a card (epoch 58, ENGINE-PATCHES.md).
 - A block set is checked as a whole, by the engine's `CombatUtil.validateBlocks`: requirements ("all creatures able
   to block it do so") and restrictions (menace). Forge runs that check only for its own GUI, so before epoch 52 any
   block set the seat or an arm declared stood. The `answer` call is corrected in the same conversation; a text reply
