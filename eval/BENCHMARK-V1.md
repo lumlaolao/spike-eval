@@ -125,6 +125,23 @@ would test whether a model can *use* a rule at the table, not recite it.
    rule. A pair of near-identical positions where the rule flips the answer (one where the play works, one
    where it does not) stops a model from scoring by always trying the flashy line.
 
+**The shape every puzzle takes (owner, 2026-10-18): a start state, an acceptance state, one solution.**
+- **Start state:** the exact board, hands, libraries, life, phase and turn, as the `.pzl` `[state]`.
+- **Acceptance state:** a predicate on the game state the engine reaches, checked by code at a fixed point
+  (the end of the turn limit), e.g. "opponent at 0 life", or "Lavinia's ability on the stack was countered
+  and the cascaded spell is on the battlefield", or "exactly two Clue tokens and Thraben Inspector in the
+  graveyard". Forge's built-in goals (win, survive, destroy or control specified permanents) cover some of
+  these; the rest need a small acceptance check of ours that reads the final engine state (zones, counters,
+  life, the stack), never the model's text. It belongs in the overlay with the puzzle runner, one place.
+- **One solution:** exactly one line of play (up to order that does not matter) reaches the acceptance state.
+  The prover checks this: it searches for a second line that reaches the acceptance state, and for lines that
+  apply the rule wrongly (the misreading the judge's answer corrects); a puzzle where a misreading also passes,
+  or where several unrelated lines pass, is redesigned or dropped. A single solution is what lets a pass mean
+  "the model knew the rule", and it lets the answer key be the line itself.
+- This shape is the target for every new puzzle, not only the rules ones: mined puzzles get an acceptance
+  state too ("win this turn" is just the most common one), and a mined position with many winning lines is
+  kept only if the acceptance state narrows it to one.
+
 **Which questions fit.** Questions about what happens on the board (triggers, replacement, combat, SBAs,
 copying, layers) convert well. Pure legality questions ("can you cast X now?") become a check that the play
 is or is not on the menu, which Forge decides; they suit a separate rules-knowledge score better than a
@@ -134,8 +151,9 @@ puzzle. Questions about tournament procedure or hidden information do not conver
 Possibility Storm set: they belong to the public pool, with perturbed copies, not the private headline split.
 The answers are paraphrased, so step 3 (Forge agrees with the judge) is the acceptance gate, not the text.
 
-**Next.** A pilot of 20 questions from the board-outcome areas: draft each position, prove it, record how
-many convert, how many expose a Forge disagreement, and the hours per puzzle. Then decide whether it scales.
+**Next.** Build the acceptance-state check (a predicate file per puzzle, read by the runner at the turn
+limit) and the prover's uniqueness search. Then a pilot of 20 questions from the board-outcome areas: draft
+each start and acceptance state, prove it has one solution, record how many convert, how many expose a Forge disagreement, and the hours per puzzle. Then decide whether it scales.
 
 ## Progress log
 
