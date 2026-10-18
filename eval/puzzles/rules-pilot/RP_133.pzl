@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 133 - No return from the Leyline
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Leyline of the Void, Flametongue Kavu and three Swamps, and have Come Back Wrong in hand. The opponent controls White Knight and Flametongue Kavu. End the turn with White Knight in exile.
+Rule:cranial-insertion-84d02ed76933a0e5 | Come Back Wrong returns the creature only if it was put into a graveyard; Leyline of the Void exiles the opponent's creature instead, so nothing returns
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Come Back Wrong
+p0battlefield=Leyline of the Void;Flametongue Kavu;Swamp;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=White Knight;Flametongue Kavu
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Exile "White Knight" = 1

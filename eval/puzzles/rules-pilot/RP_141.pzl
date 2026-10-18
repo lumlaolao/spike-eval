@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 141 - Persecutor dies with its owner
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You are at 0 life and control two Canopy Gorgers. The opponent is at 6 life and controls Abyssal Persecutor. Win this turn.
+Rule:rulesguru-7f9118f310a13793 | State-based actions are performed simultaneously (CR 704.3): Abyssal Persecutor dies as its controller reaches 0 life, so the controller loses and the game ends before the 0-life attacker can lose
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=0
+p0battlefield=Canopy Gorger;Canopy Gorger
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1battlefield=Abyssal Persecutor
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
+winner p0

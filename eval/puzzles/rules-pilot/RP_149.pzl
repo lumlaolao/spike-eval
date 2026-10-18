@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 149 - Exiled, so it never died
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You are at 2 life and control Dauthi Voidwalker and a Mountain, with Shock in hand. The opponent controls Perilous Myr. End the turn with Perilous Myr in exile, still at 2 life.
+Rule:wizards-official-card-rulings-789ae39b0f4f90d8 | Dauthi Voidwalker exiles an opponent's card instead of putting it into a graveyard (CR 614.1a), so the creature never dies and its dies trigger does not trigger
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=2
+p0hand=Shock
+p0battlefield=Dauthi Voidwalker;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Perilous Myr
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Exile "Perilous Myr" = 1
+life p0 = 2

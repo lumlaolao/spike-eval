@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 146 - Copies are not cast
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control two Mountains and have three Ornithopters and Grapeshot in hand. The opponent is at 3 life and controls Chalice of the Void with two charge counters. Win this turn.
+Rule:rulesguru-15371b05cdbf7ad5 | Chalice of the Void counters the cast Grapeshot, but storm's copies are not cast (CR 702.40a, 707.10) and still resolve
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Ornithopter;Ornithopter;Ornithopter;Grapeshot
+p0battlefield=Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Chalice of the Void|Counters:CHARGE=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

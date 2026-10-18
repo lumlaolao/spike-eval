@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 137 - The copy is not animated
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Satya, Aetherflux Genius, Mishra's Factory, Grizzly Bears and a Plains. The opponent is at 9 life with no creatures. Win this turn.
+Rule:cranial-insertion-d1d79b91a3437a80 | A copy takes only copiable values (CR 707.2, 613.2): a token copy of an animated Mishra's Factory is a noncreature land and deals no combat damage
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Satya, Aetherflux Genius;Mishra's Factory;Grizzly Bears;Plains
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=9
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

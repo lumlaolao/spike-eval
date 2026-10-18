@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 143 - Still a Mountain after Turn
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Mishra's Factory, three Mountains and an Island, and have Turn // Burn in hand. The opponent is at 2 life and controls Magus of the Moon and Leyline of Sanctity. Win this turn.
+Rule:rulesguru-a27b294b03fe7138 | Magus of the Moon's type change applies in layer 4 before Turn removes its ability in layer 6 (CR 613.1d, 613.1f, 613.5), so a Turned Magus still makes nonbasic lands Mountains
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Turn // Burn
+p0battlefield=Mishra's Factory;Mountain;Mountain;Mountain;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Magus of the Moon;Leyline of Sanctity
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

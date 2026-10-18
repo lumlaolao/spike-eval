@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 140 - Sacrifice what you can, then lose
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. The opponent is at 0 life and controls Lich and a tapped Exquisite Archangel, and no other permanents. You control Nessian Courser. Win this turn.
+Rule:rulesguru-9e8b891c2afad4c1 | A player sacrifices as many as possible (CR 609.3); with Lich and Exquisite Archangel sacrificed for 3 damage, Lich's controller then loses and no Archangel is left to replace it
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Nessian Courser
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=0
+p1battlefield=Lich;Exquisite Archangel|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Lich" = 1
+count p1 Graveyard "Exquisite Archangel" = 1
