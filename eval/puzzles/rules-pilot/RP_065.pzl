@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 065 - Departed together
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:Dearly Departed and Squire are in your graveyard. You control six Swamps and have Command the Dreadhorde in hand. End the turn with Dearly Departed on your battlefield and a +1/+1 counter on Squire.
+Rule:rulesguru-3179c1164e24ac9e | Replacement effects are checked before the zone change (CR 614.12), so Dearly Departed still in the graveyard modifies a Human entering at the same time as it
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Command the Dreadhorde
+p0battlefield=Swamp;Swamp;Swamp;Swamp;Swamp;Swamp
+p0graveyard=Dearly Departed;Squire
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Dearly Departed" = 1
+counters p0 Battlefield "Squire" P1P1 = 1

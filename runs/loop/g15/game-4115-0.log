@@ -1,0 +1,58 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=36953 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 34086 files in 1 ms (25 parts) using thread pool
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 857 files in 0 ms (8 parts) using thread pool
+[SEED] 4115
+[EVAL] jsonl game-4115-1792328971285.jsonl
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/pioneer-the-rock.plan
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/modern-broodscale.plan
+[DECK] loaded 'Seat': 60 main, 15 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/pioneer-the-rock.txt)
+[DECK] loaded 'ForgeAI': 60 main, 15 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/modern-broodscale.txt)
+[SEATS] A=Seat(llm,openrouter:openai/gpt-6-luna) B=ForgeAI(ai,opus)
+[Seat] [OBSERVATION] observation-faithful-v41 (profile v4-faithful/379d6b7b5b6a)
+[HEADLESS] game starting (cap=120min)
+[OPENROUTER Seat/smart] replied in 2681 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: 4/7 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7039 ms with 1 tool call(s)
+[Seat] [ROUTER] plan: GOAL: Keep a functional opening hand with early disruption and a curve into threats. NEXT: Mulligan this slow hand; prioritize a 1–2 drop interaction/threat, usable colored sources, and a reasonable curve.
+[OPENROUTER Seat/smart] replied in 2239 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: MULLIGAN
+[OPENROUTER Seat/smart] replied in 2885 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan-bottom: Unholy Annex // Ritual Chamber
+[Seat] [ROUTER] mulligan: 3/6 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8024 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: KEEP
+[Seat] [TALLY] smart=5 fast=0 auto=0 ai=0 textParses=0 avgSmart=4573ms avgFast=4573ms
+[Seat] [ROUTER] play(main): 0 castable + 3 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7129 ms with 1 tool call(s)
+hidden has neither ManaCost nor Color
+[Seat] [ROUTER] lookahead 3: if you play Blooming Marsh: you board 0 -> 1; hand 6 -> 5; entered the battlefield: Blooming Marsh; ForgeAI no change
+[OPENROUTER Seat/smart] replied in 5037 ms with 1 tool call(s)
+[Seat] [ROUTER] lines: Badgermole Cub + Llanowar Wastes -> earthbend a land into a creature and gain extra green when tapping creatures for mana; Sheoldred, the Apocalypse + Unholy Annex -> draw at end step while Sheoldred gains life, and an unlocked Demon makes the Annex drain the opponent; Graveyard Trespasser + Thoughtseize -> disrupt their hand, then exile a creature from their graveyard for life swing.
+[Seat] [ROUTER] play: land Blooming Marsh
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[Seat] [TALLY] smart=7 fast=0 auto=1 ai=0 textParses=0 avgSmart=5004ms avgFast=5004ms
+[Seat] [ROUTER] play(main): 1 castable + 2 land -> asking openai/gpt-6-luna...

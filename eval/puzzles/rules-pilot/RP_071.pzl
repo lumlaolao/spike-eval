@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 071 - Any damage will do
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:The opponent controls Craw Wurm. You control Olivia Voldaren equipped with Sword of Kaldra, a Mountain and a Swamp. End the turn with Craw Wurm in exile.
+Rule:rulesguru-fd6309457112af63 | Sword of Kaldra's "deals damage to a creature" is any damage, not only combat damage (CR 120.2), so an activated ping triggers it
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0battlefield=Olivia Voldaren|Id:1;Sword of Kaldra|AttachedTo:1;Mountain;Swamp
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Craw Wurm
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Exile "Craw Wurm" = 1

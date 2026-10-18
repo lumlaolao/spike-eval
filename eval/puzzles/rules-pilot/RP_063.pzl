@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 063 - Already in the graveyard
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control Pyromancer Ascension (no quest counters) and three Mountains, your graveyard is empty, and you have two Honor the God-Pharaoh and Fortress Crab in hand. End the turn with a quest counter on Pyromancer Ascension.
+Rule:rulesguru-902fabb20509e11d | Costs are paid before a spell becomes cast (CR 601.2h, 601.2i), so a card discarded to cast it is already in the graveyard when cast triggers check
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Honor the God-Pharaoh;Honor the God-Pharaoh;Fortress Crab
+p0battlefield=Pyromancer Ascension;Mountain;Mountain;Mountain
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+counters p0 Battlefield "Pyromancer Ascension" QUEST = 1

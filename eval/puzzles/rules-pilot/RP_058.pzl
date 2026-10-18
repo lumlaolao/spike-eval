@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 058 - Counters come home
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Hill Giant. You control Flametongue Kavu with three +1/+1 counters, Resourceful Defense and a Plains, and have Cloudshift in hand. End the turn with Hill Giant in the opponent's graveyard and three +1/+1 counters on Flametongue Kavu.
+Rule:ask-a-magic-judge-8690b96a66381f5a | A leaves-the-battlefield trigger is put on the stack only after the blink spell finishes resolving, so it can target the returned creature (CR 603.3, 400.7)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Cloudshift
+p0battlefield=Flametongue Kavu|Counters:P1P1=3;Resourceful Defense;Plains
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Hill Giant" = 1
+counters p0 Battlefield "Flametongue Kavu" P1P1 = 3

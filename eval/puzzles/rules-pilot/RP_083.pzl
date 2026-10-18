@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 083 - Two wards
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls two Armguard Familiars. You control nine Islands and have Essence Fracture in hand. End the turn with both Armguard Familiars in the opponent's hand.
+Rule:wizards-official-card-rulings-dae2ca1a9afaa7ec | Each targeted permanent's ward triggers separately (CR 702.21a); any unpaid ward counters the whole spell
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Essence Fracture
+p0battlefield=Island;Island;Island;Island;Island;Island;Island;Island;Island
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Armguard Familiar;Armguard Familiar
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Hand "Armguard Familiar" = 2

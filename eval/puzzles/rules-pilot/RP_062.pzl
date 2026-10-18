@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 062 - Stunned, not silenced
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control a tapped Patrol Signaler with two stun counters and six Plains. End the turn with exactly three Kithkin Soldier tokens.
+Rule:ask-a-magic-judge-643893b36f315112 | Paying an untap-symbol cost on a stunned permanent removes a stun counter instead of untapping it (CR 122.1d, 107.6), so it stays tapped and can pay again
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0battlefield=Patrol Signaler|Tapped|Counters:STUN=2;Plains;Plains;Plains;Plains;Plains;Plains
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+tokens p0 Battlefield "Kithkin Soldier Token" = 3

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 060 - The Monk lives
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Illness in the Ranks. You control Cori-Steel Cutter and two Islands, and have two Opts in hand. End the turn with a Monk token on your battlefield.
+Rule:cranial-insertion-3a79d33eff9bb69a | State-based actions are not checked while an ability resolves (CR 704.3), so the 0/0 token is still there when the Cutter's trigger attaches it
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Opt;Opt
+p0battlefield=Cori-Steel Cutter;Island;Island
+p0library=Fortress Crab;Fortress Crab;Fortress Crab
+p1life=20
+p1battlefield=Illness in the Ranks
+p1library=Plains;Plains;Plains
+[acceptance]
+tokens p0 Battlefield "Monk Token" = 1

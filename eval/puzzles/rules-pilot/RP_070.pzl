@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 070 - X on the stack
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:The opponent controls Chalice of the Void with two charge counters. You control four Mountains and have Marketback Walker in hand. End the turn with Marketback Walker on your battlefield.
+Rule:rulesguru-f8b4ceae4eb68ba3 | On the stack, X counts toward mana value (CR 202.3e): Marketback Walker with X=1 has mana value 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Marketback Walker
+p0battlefield=Mountain;Mountain;Mountain;Mountain
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Chalice of the Void|Counters:CHARGE=2
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Marketback Walker" = 1

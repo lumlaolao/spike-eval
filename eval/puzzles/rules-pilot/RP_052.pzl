@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 052 - Captain's orders
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:The opponent is at 6 life and controls Grizzly Bears. You control Balmor, Battlemage Captain, three Mountains and an Island, and have Act of Treason and Preordain in hand. Win this turn.
+Rule:wizards-of-the-coast-release-notes-866f01a68ae73f68 | A "creatures you control get +1/+0" effect affects only the creatures you control as it resolves (CR 611.2c); a creature stolen later, including by the spell that triggered it, is not pumped
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Act of Treason;Preordain
+p0battlefield=Balmor, Battlemage Captain;Mountain;Mountain;Mountain;Island
+p0library=Fortress Crab;Fortress Crab;Fortress Crab
+p1life=6
+p1battlefield=Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

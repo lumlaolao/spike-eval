@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 079 - The Mirror cannot clean poison
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:The opponent has 8 poison counters and controls Lich's Mirror and no creatures. You control Phyrexian Crusader. Win this turn.
+Rule:rulesguru-0cdde3ca1f70e6e2 | Lich's Mirror resets life, not poison counters (CR 704.5c); the Mirror is shuffled away, so the next check ends the game
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Phyrexian Crusader
+p0library=Island;Island;Island
+p1life=20
+p1counters=POISON=8
+p1battlefield=Lich's Mirror
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[acceptance]
+winner p0

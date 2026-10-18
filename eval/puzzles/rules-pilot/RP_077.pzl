@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 077 - Four for one
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Bard, King of Dale, Thought Reflection and three Islands, and have Opt and Divination in hand; your library has five cards. End the turn with exactly one card in your library.
+Rule:wizards-of-the-coast-release-notes-0ec2e90e0847cdd9 | Two draw-replacement effects both apply to the same draw (CR 616.1, 614.11): each card drawn becomes four
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Opt;Divination
+p0battlefield=Bard, King of Dale;Thought Reflection;Island;Island;Island
+p0library=Fortress Crab;Fortress Crab;Fortress Crab;Fortress Crab;Fortress Crab
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Library * = 1

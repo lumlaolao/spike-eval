@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 075 - The second strike
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:The opponent is at 8 life with no creatures. You control Sidar Jabari of Zhalfir; Kwende, Pride of Femeref and White Knight are in your graveyard. Win this turn.
+Rule:ask-a-magic-judge-9d783146a4905ff9 | A creature that has double strike when the regular combat damage step begins deals damage again, even if it gained double strike after first-strike damage (CR 702.4c, 510.4)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Sidar Jabari of Zhalfir
+p0graveyard=Kwende, Pride of Femeref;White Knight
+p0library=Island;Island;Island
+p1life=8
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

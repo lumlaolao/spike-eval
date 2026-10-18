@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 049 - The Idol wakes
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:The opponent is at 8 life with no permanents. You control Idol of False Gods with seven +1/+1 counters, Mist Intruder (an Eldrazi) and Spawning Pit. Win this turn.
+Rule:cranial-insertion-b52a71f5f8c879f6 | Summoning sickness asks whether you have controlled the permanent continuously since your turn began, not how long it has been a creature (CR 302.6)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Idol of False Gods|Counters:P1P1=7;Mist Intruder;Spawning Pit
+p0library=Island;Island;Island
+p1life=8
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

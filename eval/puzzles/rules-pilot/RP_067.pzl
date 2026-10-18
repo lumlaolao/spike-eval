@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 067 - Copies past the Chalice
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Chalice of the Void with one charge counter. You control two Mountains and have Shattering Spree in hand. End the turn with Chalice of the Void in the opponent's graveyard.
+Rule:rulesguru-7a6fc3e1af620710 | Replicate copies are not cast (CR 702.56a, 707.10), so Chalice counters only the original and the copies resolve
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Shattering Spree
+p0battlefield=Mountain;Mountain
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Chalice of the Void|Counters:CHARGE=1
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Chalice of the Void" = 1

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 072 - A double from the grave
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:Vorstclaw, Body Double and Grizzly Bears are in your graveyard. You control nine Swamps and have Rise of the Dark Realms in hand. End the turn with two Vorstclaws on your battlefield.
+Rule:rulesguru-d414103f9e428bce | An enters-as-a-copy replacement is applied before the zone change (CR 614.12), so cards returning with Body Double are still in the graveyard to be copied
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Rise of the Dark Realms
+p0battlefield=Swamp;Swamp;Swamp;Swamp;Swamp;Swamp;Swamp;Swamp;Swamp
+p0graveyard=Vorstclaw;Body Double;Grizzly Bears
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Vorstclaw" = 2

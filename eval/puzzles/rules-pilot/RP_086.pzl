@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 086 - A copy without counters
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Overlord of the Boilerbilges with two time counters (cast for its impending cost). You control Garruk's Packleader and three Islands, and have Copy Enchantment in hand; your library has three cards. End the turn with the opponent at 16 life and two cards in your library.
+Rule:cranial-insertion-69fbe1b1c2646f92 | A copy does not copy counters (CR 707.2), so a copied impending Overlord has no time counters and enters as a creature
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Copy Enchantment
+p0battlefield=Garruk's Packleader;Island;Island;Island
+p0library=Fortress Crab;Fortress Crab;Fortress Crab
+p1life=20
+p1battlefield=Overlord of the Boilerbilges|Counters:TIME=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 = 16
+count p0 Library * = 2

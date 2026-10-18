@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 082 - One shot, one counter
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:The opponent controls two Llanowar Elves. You control The Red Terror and a Mountain, and have Dual Shot and Shock in hand. End the turn with both Llanowar Elves in the opponent's graveyard and exactly one +1/+1 counter on The Red Terror.
+Rule:ask-a-magic-judge-872281378bc642e7 | One source dealing damage to several objects at once is one damage event (CR 120.3), so The Red Terror triggers once
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Dual Shot;Shock
+p0battlefield=The Red Terror;Mountain
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Llanowar Elves;Llanowar Elves
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Llanowar Elves" = 2
+counters p0 Battlefield "The Red Terror" P1P1 = 1

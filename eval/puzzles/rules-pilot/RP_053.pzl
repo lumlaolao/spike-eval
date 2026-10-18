@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 053 - Two gains
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control Ajani's Pridemate, Soul Warden and two Plains, and have Lone Missionary and Healing Salve in hand. End the turn with exactly two +1/+1 counters on Ajani's Pridemate.
+Rule:wizards-of-the-coast-release-notes-23e8fb803a3e3967 | Ajani's Pridemate triggers once per life-gain event, however much life is gained (CR 119.9); two triggers that each gain life are two events
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lone Missionary;Healing Salve
+p0battlefield=Ajani's Pridemate;Soul Warden;Plains;Plains
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+counters p0 Battlefield "Ajani's Pridemate" P1P1 = 2
