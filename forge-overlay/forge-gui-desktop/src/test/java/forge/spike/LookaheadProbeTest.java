@@ -61,8 +61,7 @@ public class LookaheadProbeTest {
 
     /** runs/loop/g16 T8 (2026-10-18): two `simulate` calls failed with "Couldn't map Enroot (151)". Carnivorous
      *  Cultivator enters prepared: an effect remembers a copy of the card in its prepared-spell state that is in no
-     *  zone the copier copies, so GameCopier.find throws. The preview parks such remembered cards for the copy and
-     *  puts every remembered list back exactly. */
+     *  zone the copier copies, so GameCopier.find threw, in the preview's copy and (g23) in the simulator's own. */
     @Test
     public void aPreparedCardsRememberedSpellDoesNotBreakThePreview() {
         Game g = SeatObservationTest.bareGame();
@@ -80,25 +79,11 @@ public class LookaheadProbeTest {
         Assert.assertNotNull(enroot, "the prepared effect remembers its spell");
         enroot.getZone().remove(enroot);
         Assert.assertNotNull(enroot.getZone(), "its zone is still set");
-        try {
-            new forge.ai.simulation.GameCopier(g).makeCopy();
-            Assert.fail("the engine copier now maps a remembered card no copied zone holds: remove the workaround");
-        } catch (RuntimeException e) {
-            Assert.assertTrue(String.valueOf(e.getMessage()).contains("Couldn't map"), String.valueOf(e));
-        }
-        java.util.Map<forge.game.card.Card, java.util.List<Object>> before = new java.util.HashMap<>();
-        for (forge.game.card.Card c : g.getCardsInGame()) before.put(c, PlayerLookahead.UncopiedRemembered.rememberedOf(c));
-        PlayerLookahead.UncopiedEffects effects = PlayerLookahead.UncopiedEffects.park(g);
-        PlayerLookahead.UncopiedRemembered parked = PlayerLookahead.UncopiedRemembered.park(g);
-        Assert.assertTrue(parked.parked > 0, "the prepared spell was parked");
-        try {
-            Assert.assertNotNull(new forge.ai.simulation.GameCopier(g).makeCopy());
-        } finally {
-            parked.restore();
-            effects.restore();
-        }
-        for (forge.game.card.Card c : g.getCardsInGame())
-            Assert.assertEquals(PlayerLookahead.UncopiedRemembered.rememberedOf(c), before.get(c), "remembered restored on " + c);
+        // GameCopier is patched (ENGINE-PATCHES.md): the copy is made, every copy, the simulator's internal ones too
+        // (runs/loop/g23 failed inside GameStateEvaluator.simulateUpcomingCombatThisTurn).
+        Game copy = new forge.ai.simulation.GameCopier(g).makeCopy();
+        Assert.assertNotNull(copy);
+        Assert.assertTrue(cult.isPrepared(), "the live card is untouched");
     }
 
     @Test

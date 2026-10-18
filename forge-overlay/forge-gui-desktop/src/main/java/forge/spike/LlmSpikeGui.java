@@ -300,8 +300,10 @@ public final class LlmSpikeGui {
      *  Epoch 57 (2026-10-18): "lethal damage" for assignment is the rule's (toughness minus damage, 1 with deathtouch),
      *  not Forge AI's estimate of what kills, which forced legal trample splits past indestructible, protected or
      *  shielded blockers (rules pilot RP_156-RP_160).
+     *  Epoch 58 (2026-10-18): a preview no longer fails on a prepared card (Enroot) in any copy, the simulator's internal
+     *  ones included: an engine patch to GameCopier (runs/loop/g23), lookahead-preview-v14.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-57";
+    static final String HARNESS_EPOCH = "harness-epoch-58";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats

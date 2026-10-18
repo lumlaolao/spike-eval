@@ -870,3 +870,13 @@ asked as amounts under the free-division rule) is built from what the rules puzz
 Sheet clean: 66 model decisions, 4 forced picks (3 single-option replacement orders; all 5 to a lone non-trample
 blocker), TAKEN 0, LOST 0, SKIP 0, TOOL 11 of 11 served (inspect 3, simulate 8), ai_tier_count=0, 9 min. First clean
 game on epoch 56. No multi-blocker or trample assignment came up, so the new amounts ask was not exercised live.
+
+### g23  2026-10-18  seed 4123  Mono-Green Landfall (seat) vs Pauper White Weenie (Forge AI)  WON T14  $0.11  harness-epoch-56
+87 model decisions, 29 forced picks, TAKEN 0, LOST 0, SKIP 0, ai_tier_count=0, 14 min. TOOL 10 of 12 served.
+- exercised  the amounts ask, live: a trampler over three blockers, "ForgeAI=51, Martyr's Soul=2, Leonardo=3, Raffine's
+  Informant=2" (each blocker its lethal, the rest over). First real game to meet it.
+- FIXED  two `simulate` calls failed again with "Couldn't map Enroot" (T12, T14), on a build carrying epoch 54's
+  harness-side parking: this time inside the simulator's own copy (GameStateEvaluator.simulateUpcomingCombatThisTurn),
+  which the harness cannot reach. GameCopier is now patched (ENGINE-PATCHES.md) and the parking is gone. The fixture
+  test fails without the patch; a cast-preview test that passed without it was dropped. harness-epoch-58.
+- checked  29 forced picks: 17 counter kinds, 4 replacement orders, 6 single-blocker damage-assigns, 2 single targets.
