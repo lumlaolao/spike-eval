@@ -11,16 +11,18 @@ three engine patches, `ENGINE-PATCHES.md`). Acceptance and the gauntlets were la
 set `JAVA_HOME` to JDK 17.
 
 Next steps, in order:
-1. **The game loop continues at g11.** g01-g10 are logged in GAME-LOOP-LOG.md. g10 found two defects (fixed as
-   epoch 51), so no game yet counts towards "three in a row with nothing new". Play
+1. **The benchmark plan is approved: [eval/BENCHMARK-V1.md](../../eval/BENCHMARK-V1.md)** (2026-10-18). Puzzles are
+   the headline (private mined split, tool condition C1), games against the Forge AI the validity check; human
+   timing skipped for now. Next is its phase 2 (the puzzle verifier, free). It answers review row E6.
+2. **The game loop continues at g12.** g11 was clean (the first of three in a row with nothing new). Play
    one game at a time on decks not used this round (the `game-loop` skill) until three in a row add nothing.
-2. **After any harness change, and once now for epoch 50**, run the three gauntlets with new seeds, each into its own
+3. **After any harness change, and once now for epoch 50**, run the three gauntlets with new seeds, each into its own
    directory, and check each with `python3 eval/gauntlet_scan.py <dir>` (it must say 0 defect lines):
    - `FORGE_HOME=<checkout> bash eval/keyword_gauntlet.sh <dir-first> 6`
    - `FORGE_HOME=<checkout> GAUNTLET_POLICY=random GAUNTLET_SEED=<salt> bash eval/keyword_gauntlet.sh <dir-random> 6`
    - `FORGE_HOME=<checkout> GAUNTLET_POLICY=random GAUNTLET_SEED=<salt> GAUNTLET_TOOLS=1 bash eval/keyword_gauntlet.sh <dir-tools> 6`
-3. Owner decisions still open (do not start without them): E4, E6, E5, then E7 (paid, cost first); the Luna puzzle
-   run; C3.
+4. Owner decisions still open: E4, E5, then E7 (paid, cost first); which models to compare (BENCHMARK-V1 decision
+   4); C3.
 
 Merging: the owner asked for the full gate on the epoch-46 PR (`pr_format.py check-branch` and `check-pr`, the three
 review skills on the PR head, a recorded acceptance run, then `scripts/pr_merge.sh`). Use it unless the owner says
