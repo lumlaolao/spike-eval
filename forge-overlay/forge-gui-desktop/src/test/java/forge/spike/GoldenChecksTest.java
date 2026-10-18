@@ -2211,6 +2211,22 @@ public class GoldenChecksTest {
         Assert.assertTrue(ask.contains("Bonesplitter") && ask.contains("Equip"), "equip for {0} is on the menu:\n" + ask);
     }
 
+    /** prove-v3 PS_WAR0a (2026-10-18): Forge's static AiCache is cleared only by Forge's AI, when it chooses a play
+     *  (AiController.chooseSpellAbilityToPlay). A model seat never cleared it: answers cached against this game
+     *  (isPreventCombatDamageThisTurn, keyed by the game) stayed for the whole game, and every finished game stayed
+     *  reachable (the puzzle prover ran out of heap after ~550 rollouts). The seat clears it where Forge's AI does. */
+    @Test
+    public void theSeatClearsForgesAiCacheWhereForgesAiDoes() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Object probe = new Object();
+        Assert.assertEquals((int) forge.ai.AiCache.getCached("harness-probe", () -> 1, null, probe), 1);
+        Assert.assertEquals((int) forge.ai.AiCache.getCached("harness-probe", () -> 2, null, probe), 1, "cached");
+        Script model = new Script("CHOICE: 1");
+        seat(g, model, model).chooseSpellAbilityToPlay();
+        Assert.assertEquals((int) forge.ai.AiCache.getCached("harness-probe", () -> 3, null, probe), 3, "cleared by the seat");
+        forge.ai.AiCache.clear();
+    }
+
     /** Rules pilot RP_007 (2026-10-18): the engine checks a block's requirements and restrictions only for its own
      *  GUI (InputBlock calls CombatUtil.validateBlocks), so a menace attacker blocked by one creature stood. An
      *  illegal block set goes back to the seat with the engine's reason. */

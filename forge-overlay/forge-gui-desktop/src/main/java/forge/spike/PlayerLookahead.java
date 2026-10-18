@@ -52,7 +52,9 @@ final class PlayerLookahead {
     // v11 (2026-10-17): the target preview is offered only while aiming a play from the priority menu; a trigger's
     // target cannot be replayed on the copy (runs/loop/g04 T5 got "unavailable").
     // v12 (2026-10-18): a mana ability is previewed as a step of a line, and the report shows the mana pool.
-    static final String VERSION = "lookahead-preview-v12";
+    // v13 (2026-10-18): a remembered card, or a static effect's affected card, that no copied zone holds is parked for
+    // the copy (runs/loop/g16: "Couldn't map Enroot", Carnivorous Cultivator's prepared spell, failed two previews).
+    static final String VERSION = "lookahead-preview-v13";
 
     private PlayerLookahead() { }
 
@@ -88,8 +90,9 @@ final class PlayerLookahead {
             Game copy;
             UncopiedEffects parked = UncopiedEffects.park(live);
             StaleEffectCards stale = StaleEffectCards.park(live);
+            UncopiedRemembered remembered = UncopiedRemembered.park(live);
             GameCopier copier = new GameCopier(live);
-            try { copy = copier.makeCopy(); } finally { stale.restore(); parked.restore(); }
+            try { copy = copier.makeCopy(); } finally { remembered.restore(); stale.restore(); parked.restore(); }
             copyImprints(live, copier);
             for (Player p : copy.getPlayers()) {
                 Zone lib = p.getZone(ZoneType.Library);
@@ -367,9 +370,10 @@ final class PlayerLookahead {
             GameSimulator sim;
             UncopiedEffects parked = UncopiedEffects.park(live);   // the constructor is where the copy is made
             StaleEffectCards stale = StaleEffectCards.park(live);
+            UncopiedRemembered remembered = UncopiedRemembered.park(live);
             try {
                 sim = new GameSimulator(new SimulationController(new GameStateEvaluator.Score(0)), live, seat, null);
-            } finally { stale.restore(); parked.restore(); }
+            } finally { remembered.restore(); stale.restore(); parked.restore(); }
             Game simGame = sim.getSimulatedGameState();
             if (simGame == null) return "(preview unavailable)";
             copyImprints(live, sim.getGameCopier());
@@ -598,6 +602,56 @@ final class PlayerLookahead {
         }
     }
 
+    /** A card a card remembers that is in no zone the copy holds: GameCopier.find throws on it ("Couldn't map Enroot":
+     *  Carnivorous Cultivator enters prepared, and the effect remembers a copy of it in its prepared-spell state,
+     *  runs/loop/g16 T8). The copier already skips a zoneless remembered card; this parks the others for the copy and
+     *  puts each remembered list back exactly, so the preview runs without the link (the prepared spell cannot be
+     *  previewed; everything else can). */
+    static final class UncopiedRemembered {
+        private final java.util.Map<forge.game.card.Card, java.util.List<Object>> original = new java.util.LinkedHashMap<>();
+        int parked = 0;
+
+        static UncopiedRemembered park(Game live) {
+            UncopiedRemembered u = new UncopiedRemembered();
+            try {
+                java.util.Set<forge.game.card.Card> held = new java.util.HashSet<>();
+                for (forge.game.card.Card c : live.getCardsIn(UncopiedEffects.COPIED)) held.add(c);
+                for (forge.game.card.Card c : live.getCardsIn(UncopiedEffects.COPIED)) {
+                    if (!c.hasRemembered()) continue;
+                    java.util.List<Object> all = rememberedOf(c);
+                    java.util.List<Object> keep = new java.util.ArrayList<>();
+                    for (Object o : all) {
+                        if (o instanceof forge.game.card.Card && ((forge.game.card.Card) o).getZone() != null && !held.contains(o)) u.parked++;
+                        else keep.add(o);
+                    }
+                    if (keep.size() == all.size()) continue;
+                    u.original.put(c, all);
+                    c.clearRemembered();
+                    for (Object o : keep) c.addRemembered(o);
+                }
+            } catch (RuntimeException e) {
+                System.out.println("[LOOKAHEAD] cannot park uncopied remembered cards (engine changed?): " + e);
+                u.restore();
+            }
+            return u;
+        }
+
+        static java.util.List<Object> rememberedOf(forge.game.card.Card c) {
+            java.util.List<Object> out = new java.util.ArrayList<>();
+            for (Object o : c.getRemembered()) out.add(o);
+            return out;
+        }
+
+        /** Put every remembered list back exactly: same objects, same order. */
+        void restore() {
+            for (java.util.Map.Entry<forge.game.card.Card, java.util.List<Object>> e : original.entrySet()) {
+                e.getKey().clearRemembered();
+                for (Object o : e.getValue()) e.getKey().addRemembered(o);
+            }
+            original.clear();
+        }
+    }
+
     static final class UncopiedEffects {
         static final java.util.Set<ZoneType> COPIED = java.util.EnumSet.of(ZoneType.Battlefield, ZoneType.Hand,
                 ZoneType.Graveyard, ZoneType.Library, ZoneType.Exile, ZoneType.Stack, ZoneType.Command);
@@ -620,11 +674,17 @@ final class PlayerLookahead {
             try {
                 java.util.Map<Object, Object> table = tableOf(live);
                 java.util.LinkedHashMap<Object, Object> original = new java.util.LinkedHashMap<>(table);
+                java.util.Set<forge.game.card.Card> held = new java.util.HashSet<>();
+                for (forge.game.card.Card c : live.getCardsIn(COPIED)) held.add(c);
                 int n = 0;
                 for (java.util.Map.Entry<Object, Object> e : original.entrySet()) {
-                    forge.game.card.Card src = ((forge.game.StaticEffect) e.getValue()).getSource();
+                    forge.game.StaticEffect se = (forge.game.StaticEffect) e.getValue();
+                    forge.game.card.Card src = se.getSource();
                     Zone z = src == null ? null : src.getZone();
-                    if (z != null && !COPIED.contains(z.getZoneType())) { table.remove(e.getKey()); n++; }
+                    // Also an effect on a card the copy will not hold (g16: Carnivorous Cultivator's prepared spell).
+                    boolean affectsUnheld = false;
+                    for (forge.game.card.Card c : se.getAffectedCards()) if (c.getZone() != null && !held.contains(c)) affectsUnheld = true;
+                    if ((z != null && !COPIED.contains(z.getZoneType())) || affectsUnheld) { table.remove(e.getKey()); n++; }
                 }
                 return n == 0 ? new UncopiedEffects(null, null, 0) : new UncopiedEffects(table, original, n);
             } catch (ReflectiveOperationException | RuntimeException e) {

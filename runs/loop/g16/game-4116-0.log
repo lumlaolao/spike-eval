@@ -39,3 +39,697 @@ Read cards: 857 files in 0 ms (8 parts) using thread pool
 [Seat] [ROUTER] mulligan: MULLIGAN
 [OPENROUTER Seat/smart] replied in 9654 ms with 1 tool call(s)
 [Seat] [ROUTER] plan: GOAL: Keep a green landfall curve and develop early threats. NEXT: Bottom Keen-Eyed Curator; lead on Forest and cast Sazh's Chocobo, then use landfall to grow it and deploy the remaining threats.
+[OPENROUTER Seat/smart] replied in 1877 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan-bottom: Keen-Eyed Curator
+[Seat] [ROUTER] mulligan: 2/6 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8131 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: KEEP
+[Seat] [TALLY] smart=4 fast=0 auto=0 ai=0 textParses=0 avgSmart=6823ms avgFast=6823ms
+[Seat] [ROUTER] play(main): 0 castable + 3 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5902 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Forest
+[Seat] [TALLY] smart=5 fast=0 auto=0 ai=0 textParses=0 avgSmart=6639ms avgFast=6639ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5230 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Build an early landfall threat and pressure the opponent before their graveyard plan develops. NEXT: Cast Sazh's Chocobo now; next turn use land drops/fetchlands to grow it, then deploy Earthbender Ascension or Mossborn Hydra as mana allows.
+[OPENROUTER Seat/smart] replied in 3103 ms with 1 tool call(s)
+[Seat] [ROUTER] lines: Sazh's Chocobo + Fabled Passage -> fetch landfall puts multiple +1/+1 counters on Chocobo. Mossborn Hydra + Fabled Passage -> landfall doubles its counters for a fast trampling threat. Earthbender Ascension + landfall -> fetches a basic, then repeated land drops grow a creature with trample once quest counters reach four.
+[Seat] [ROUTER] profile: Hogaak graveyard strategy: they have Hogaak, Force of Will, and likely graveyard enablers; respect a fast 8/8 trampler and possible free counterspells.
+[Seat] [ROUTER] play: casts Sazh's Chocobo 0/1 @13 {G} [Landfall — Whenever a land you control enters, put a +1/+1 counter on this creature.]
+[Seat] [ROUTER] blockers: 1 atk / 1 blk -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3494 ms with 1 tool call(s)
+[Seat] [ROUTER] blockers: NONE
+[Seat] [TALLY] smart=8 fast=0 auto=0 ai=0 textParses=0 avgSmart=5627ms avgFast=5627ms
+[Seat] [ROUTER] play(main): 2 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9085 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Remove Moonshadow before it can attack or grow, while developing Chocobo with landfall. NEXT: Play Ba Sing Se; then cast Hard-Hitting Question using Forest, targeting Moonshadow with Chocobo's damage. Save the second Ba Sing Se for a later land drop.
+[OPENROUTER Seat/smart] replied in 2122 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Ba Sing Se
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [TALLY] smart=10 fast=0 auto=2 ai=0 textParses=0 avgSmart=5622ms avgFast=5622ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6570 ms with 1 tool call(s)
+hidden has neither ManaCost nor Color
+[Seat] [ROUTER] lookahead 1: if you cast Hard-Hitting Question [assuming target: Sazh's Chocobo, Moonshadow]: you graveyard 0 -> 1; hand 5 -> 4; ForgeAI board 4 -> 3; graveyard 3 -> 4; left the battlefield: Moonshadow
+[OPENROUTER Seat/smart] replied in 3817 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Sazh's Chocobo 1/2 [untapped] [+1/+1 x1] @22 (was @13) [Battlefield, yours] <- Hard-Hitting Question @8 {G} [Target creature you control deals damage equal to its power to target creature or planeswalker you don't control.] (only legal)
+[OPENROUTER Seat/smart] replied in 3430 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Moonshadow 1/1 [untapped] [sick] [-1/-1 x6] [menace] @25 [Battlefield, opponent's] <- Hard-Hitting Question @8 in your HAND
+[Seat] [ROUTER] play: casts Hard-Hitting Question @8 {G} [Target creature you control deals damage equal to its power to target creature or planeswalker you don't control.]
+[OPENROUTER Seat/smart] replied in 15333 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 1 for CAST Hard-Hitting Question @27 {G} [Target creature you control deals damage equal to its power to target creature or planeswalker you don't control.]
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4039 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Sazh's Chocobo
+[Seat] [TALLY] smart=15 fast=0 auto=2 ai=0 textParses=0 avgSmart=5961ms avgFast=5961ms
+[Seat] [ROUTER] play(main): 2 castable + 3 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7964 ms with 2 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Build a landfall engine and stabilize against the opponent's growing board. NEXT: Play Forest as the third land, then use all three green mana to cast Earthbender Ascension; prioritize its landfall and fetched basic while preparing to block or race.
+[Seat] [ROUTER] play: land Forest
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [TALLY] smart=16 fast=0 auto=3 ai=0 textParses=0 avgSmart=6086ms avgFast=6086ms
+[Seat] [ROUTER] play(main): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9124 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Resolve Earthbender Ascension to establish a repeatable landfall engine and stabilize against the opponent’s creature pressure. NEXT: Cast Earthbender Ascension, using its search to make another landfall trigger; next turn prioritize developing blockers and preserving lands against Wasteland.
+[OPENROUTER Seat/smart] replied in 2069 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Earthbender Ascension @9 2{G} [Earthbender Ascension]
+[OPENROUTER Seat/smart] replied in 12175 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Forest [tapped] @21 (was @14) [Battlefield, yours] <- Earthbender Ascension @37 [When this enchantment enters, earthbend 2. Then search your library for a basic land card, put it onto the battlefield tapped, then shuffle.]
+[OPENROUTER Seat/smart] replied in 3623 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: Forest @62 [Library, yours] -> Battlefield [Earthbender Ascension]
+[OPENROUTER Seat/smart] replied in 5037 ms with 1 tool call(s)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3792 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Sazh's Chocobo
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6466 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Stabilize against the opponent’s graveyard deck, then use landfall to build a lethal threat. NEXT: Pass through upkeep without tapping lands; in my main phase play Ba Sing Se and cast Mossborn Hydra if still advantageous, keeping an eye on Wasteland and the next attack.
+[OPENROUTER Seat/smart] replied in 2342 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Hogaak graveyard deck: respect a possible 8/8 Hogaak from the graveyard and Force of Will; their Dark Matter Manipulators grow as their graveyard fills.
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=24 fast=0 auto=5 ai=0 textParses=0 avgSmart=5917ms avgFast=5917ms
+[Seat] [ROUTER] play(main): 5 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 12621 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Ba Sing Se
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[OPENROUTER Seat/smart] replied in 4144 ms with 1 tool call(s)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [TALLY] smart=26 fast=0 auto=8 ai=0 textParses=0 avgSmart=6106ms avgFast=6106ms
+[Seat] [ROUTER] play(main): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 12924 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 2, then 1: if you cast Carnivorous Cultivator, then cast Mossborn Hydra: you board 7 -> 9; hand 3 -> 1; entered the battlefield: Carnivorous Cultivator, Mossborn Hydra; ForgeAI no change
+[OPENROUTER Seat/smart] replied in 15366 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Carnivorous Cultivator 2/3 @92 1{G} [Deathtouch This creature enters prepared. Whenever this creature deals combat damage to a player, return target land card from your graveyard to your hand.]
+[OPENROUTER Seat/smart] replied in 8740 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 3 for CAST Carnivorous Cultivator 2/3 @94 1{G} [Deathtouch This creature enters prepared. Whenever this creature deals combat damage to a player, return target land card from your graveyard to your hand.]
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[Seat] [TALLY] smart=29 fast=0 auto=9 ai=0 textParses=0 avgSmart=6751ms avgFast=6751ms
+[Seat] [ROUTER] play(main): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 1556 ms with 1 tool call(s)
+Couldn't map Enroot (151)/346139613
+[LOOKAHEAD] preview failed: java.lang.RuntimeException: Couldn't map Enroot (151)/346139613 <- forge.ai.simulation.GameCopier.find(GameCopier.java:516) <- forge.ai.simulation.GameCopier.makeCopy(GameCopier.java:151) <- forge.ai.simulation.GameStateEvaluator.simulateUpcomingCombatThisTurn(GameStateEvaluator.java:53) <- forge.ai.simulation.GameStateEvaluator.getScoreForGameState(GameStateEvaluator.java:107) <- forge.ai.simulation.GameSimulator.simulateSpellAbility(GameSimulator.java:243) <- forge.ai.simulation.GameSimulator.simulateSpellAbility(GameSimulator.java:183)
+[Seat] [ROUTER] lookahead 1: (preview failed: RuntimeException)
+[OPENROUTER Seat/smart] replied in 6916 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Mossborn Hydra 0/0 @11 2{G} [Trample (This creature can deal excess combat damage to the player or planeswalker it's attacking.) This creature enters with a +1/+1 counter on it. Landfall — Whenever a land you control enters, double the number of +1/+1 counters on this creature.]
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6607 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: none
+[Seat] [ROUTER] play(react): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 13675 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Survive the opponent's next attack, then use landfall and combat to set up lethal pressure. NEXT: Pass through upkeep with mana available; in main phase play Pit of Offerings for landfall, then choose attacks and preserve options to cast Enroot if its graveyard setup is useful.
+[OPENROUTER Seat/smart] replied in 2067 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10488 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 5: if you pass, nothing resolves: the board, hands, life and graveyards are unchanged. A preview cannot play out the opponent's turn.
+[OPENROUTER Seat/smart] replied in 3007 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=36 fast=0 auto=11 ai=0 textParses=0 avgSmart=6670ms avgFast=6670ms
+[Seat] [ROUTER] play(main): 6 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 22972 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Create enough blockers to survive the opponent's lethal-looking attack, while growing the landfall board. NEXT: Play Forest for landfall, then earthbend a noncreature land to add a fifth blocker before passing.
+[OPENROUTER Seat/smart] replied in 2317 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Forest
+[OPENROUTER Seat/smart] replied in 9942 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Survive the opponent's next attack while preserving the developing landfall board. NEXT: Resolve the landfall triggers; then use Ba Sing Se's sorcery-speed earthbend activation to animate another land as a blocker, and pass with that board.
+[OPENROUTER Seat/smart] replied in 2611 ms with 1 tool call(s)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [TALLY] smart=40 fast=0 auto=13 ai=0 textParses=0 avgSmart=6949ms avgFast=6949ms
+[Seat] [ROUTER] play(main): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 14872 ms with 1 tool call(s)
+Couldn't map Enroot (151)/177656219
+[LOOKAHEAD] preview failed: java.lang.RuntimeException: Couldn't map Enroot (151)/177656219 <- forge.ai.simulation.GameCopier.find(GameCopier.java:516) <- forge.ai.simulation.GameCopier.makeCopy(GameCopier.java:151) <- forge.ai.simulation.GameStateEvaluator.simulateUpcomingCombatThisTurn(GameStateEvaluator.java:53) <- forge.ai.simulation.GameStateEvaluator.getScoreForGameState(GameStateEvaluator.java:107) <- forge.ai.simulation.GameSimulator.simulateSpellAbility(GameSimulator.java:243) <- forge.ai.simulation.GameSimulator.simulateSpellAbility(GameSimulator.java:183)
+[Seat] [ROUTER] lookahead 5: (preview failed: RuntimeException)
+[OPENROUTER Seat/smart] replied in 7046 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 6700 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Forest [untapped] @36 (was @30) [Battlefield, yours] <- Ba Sing Se @26 [{2}{G}, {T}: Earthbend 2. Activate only as a sorcery. (Target land you control becomes a 0/0 creature with haste that's still a land. Put two +1/+1 counters on it. When it dies or is exiled, return it to the battlefield tapped.)]
+[Seat] [ROUTER] play: activates Ba Sing Se @26 [{2}{G}, {T}: Earthbend 2. Activate only as a sorcery. (Target land you control becomes a 0/0 creature with haste that's still a land. Put two +1/+1 counters on it. When it dies or is exiled, return it to the battlefield tapped.)]
+[OPENROUTER Seat/smart] replied in 8428 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 2 for ACTIVATE Ba Sing Se @26 [{2}{G}, {T}: Earthbend 2. Activate only as a sorcery. (Target land you control becomes a 0/0 creature with haste that's still a land. Put two +1/+1 counters on it. When it dies or is exiled, return it to the battlefield tapped.)]
+[Seat] [TALLY] smart=44 fast=0 auto=13 ai=0 textParses=0 avgSmart=7159ms avgFast=7159ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9483 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 5 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 16239 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Sazh's Chocobo
+[Seat] [TALLY] smart=46 fast=0 auto=13 ai=0 textParses=0 avgSmart=7407ms avgFast=7407ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 11184 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Enroot @95 from your EXILE — cost: {G} [Search your library for a land card, put it into your graveyard, then shuffle.]
+[OPENROUTER Seat/smart] replied in 10943 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: Fabled Passage @49 [Library, yours] -> Graveyard [Enroot]
+[Seat] [TALLY] smart=48 fast=0 auto=13 ai=0 textParses=0 avgSmart=7559ms avgFast=7559ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 15268 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10925 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Survive ForgeAI's turn and preserve a lethal counterattack next turn. NEXT: Pass without tapping the animated Forest; reassess any spells or activations, then block the attack to minimize lethal damage and attack for lethal next turn.
+[OPENROUTER Seat/smart] replied in 3742 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7297 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9674 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Preserve the lethal counterattack while keeping all blockers available through ForgeAI's turn. NEXT: Pass without tapping any lands or creatures; on their turn, use blocks to prevent lethal and retain enough attackers to swing for lethal next turn.
+[OPENROUTER Seat/smart] replied in 2589 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=54 fast=0 auto=13 ai=0 textParses=0 avgSmart=7636ms avgFast=7636ms
+[Seat] [ROUTER] play(main): 5 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6849 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 6: if you play Pit of Offerings: you board 10 -> 11; hand 2 -> 1; entered the battlefield: Pit of Offerings; ForgeAI graveyard 10 -> 7
+[OPENROUTER Seat/smart] replied in 5354 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Pit of Offerings
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[OPENROUTER Seat/smart] replied in 20007 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 10212 ms with 1 tool call(s)
+[Seat] [ROUTER] targets: 3 -> Pit of Offerings @109 [When Pit of Offerings enters, exile up to three target cards from graveyards.]
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[OPENROUTER Seat/smart] replied in 9017 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Sazh's Chocobo 5/6 [untapped] [+1/+1 x5] @22 (was @13) [Battlefield, yours] <- Earthbender Ascension @37 [When you do, if it has four or more quest counters on it, put a +1/+1 counter on target creature you control. It gains trample until end of turn.]
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [TALLY] smart=59 fast=0 auto=17 ai=0 textParses=0 avgSmart=7860ms avgFast=7860ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8815 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 1: if you cast Mossborn Hydra: you board 11 -> 12; hand 1 -> 0; entered the battlefield: Mossborn Hydra; ForgeAI no change
+[OPENROUTER Seat/smart] replied in 3367 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Preserve survival through ForgeAI's next combat while retaining a lethal counterattack. NEXT: Cast Mossborn Hydra now as an additional potential blocker; on ForgeAI's turn block to prevent lethal, then attack for lethal next turn if possible.
+[OPENROUTER Seat/smart] replied in 1879 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Mossborn Hydra 0/0 @108 2{G} [Trample (This creature can deal excess combat damage to the player or planeswalker it's attacking.) This creature enters with a +1/+1 counter on it. Landfall — Whenever a land you control enters, double the number of +1/+1 counters on this creature.]
+[OPENROUTER Seat/smart] replied in 9596 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 3 for CAST Mossborn Hydra 0/0 @113 2{G} [Trample (This creature can deal excess combat damage to the player or planeswalker it's attacking.) This creature enters with a +1/+1 counter on it. Landfall — Whenever a land you control enters, double the number of +1/+1 counters on this creature.]
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [TALLY] smart=63 fast=0 auto=19 ai=0 textParses=0 avgSmart=7737ms avgFast=7737ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7186 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Survive ForgeAI's next combat while preserving a lethal counterattack. NEXT: Pass through my remaining turn; on their turn, respond to any meaningful spell or activation and block enough damage to stay alive. Attack for lethal next turn if the board still permits it.
+[OPENROUTER Seat/smart] replied in 2029 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 5 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 22985 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Forest, Sazh's Chocobo, Forest, Mossborn Hydra
+[Seat] [ROUTER] damage-assign: all 2 -> Moonshadow (forced)
+[OPENROUTER Seat/smart] replied in 4699 ms with 1 tool call(s)
+[Seat] [ROUTER] damage-assign: max-trample
+[Seat] [ROUTER] damage-assign: all 2 -> Dark Matter Manipulator (forced)
+[OPENROUTER Seat/smart] replied in 3242 ms with 1 tool call(s)
+[Seat] [ROUTER] damage-assign: max-trample
+[Seat] [AUTO-LEGAL] order(forced: Graveyard has no order to choose)->as-is
+[OPENROUTER Seat/smart] replied in 9364 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 10805 ms with 1 tool call(s)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[OPENROUTER Seat/smart] replied in 5862 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Carnivorous Cultivator 2/3 [untapped] [deathtouch] @96 (was @94) [Battlefield, yours] <- Earthbender Ascension @37 [When you do, if it has four or more quest counters on it, put a +1/+1 counter on target creature you control. It gains trample until end of turn.]
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[OPENROUTER Seat/smart] replied in 13782 ms with 1 tool call(s)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[OPENROUTER Seat/smart] replied in 9114 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Mossborn Hydra 2/2 [untapped] [sick] [+1/+1 x2] [trample] @114 (was @113) [Battlefield, yours] <- Earthbender Ascension @37 [When you do, if it has four or more quest counters on it, put a +1/+1 counter on target creature you control. It gains trample until end of turn.]
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [TALLY] smart=73 fast=0 auto=26 ai=0 textParses=0 avgSmart=7897ms avgFast=7897ms
+[Seat] [ROUTER] play(main): 6 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9069 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Convert the overwhelming board into lethal damage this turn. NEXT: Play Fabled Passage, then attack with lethal creatures; use any remaining landfall/value only if needed.
+[OPENROUTER Seat/smart] replied in 4562 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Hogaak graveyard deck; Hogaak and Moonshadow are exiled, but respect unknown interaction from their three-card hand and available mana.
+[Seat] [ROUTER] play: land Fabled Passage
+[OPENROUTER Seat/smart] replied in 6899 ms with 1 tool call(s)
+[Seat] [TALLY] smart=76 fast=0 auto=26 ai=0 textParses=0 avgSmart=7855ms avgFast=7855ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3833 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[OPENROUTER Seat/smart] replied in 4156 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Sazh's Chocobo 9/10 [untapped] [+1/+1 x9] @22 (was @13) [Battlefield, yours] <- Earthbender Ascension @37 [When you do, if it has four or more quest counters on it, put a +1/+1 counter on target creature you control. It gains trample until end of turn.]
+[Seat] [TALLY] smart=78 fast=0 auto=27 ai=0 textParses=0 avgSmart=7756ms avgFast=7756ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7325 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Fabled Passage @124 [{T}, Sacrifice Fabled Passage: Search your library for a basic land card, put it onto the battlefield tapped, then shuffle. Then if you control four or more lands, untap that land.]
+[OPENROUTER Seat/smart] replied in 6090 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: Forest @70 [Library, yours] -> Battlefield [Fabled Passage]
+[OPENROUTER Seat/smart] replied in 4874 ms with 1 tool call(s)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[OPENROUTER Seat/smart] replied in 8153 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Sazh's Chocobo 10/11 [untapped] [+1/+1 x10] @22 (was @13) [Battlefield, yours] <- Earthbender Ascension @37 [When you do, if it has four or more quest counters on it, put a +1/+1 counter on target creature you control. It gains trample until end of turn.]
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [TALLY] smart=82 fast=0 auto=32 ai=0 textParses=0 avgSmart=7700ms avgFast=7700ms
+[Seat] [ROUTER] play(main): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3545 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 4 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4813 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Sazh's Chocobo, Carnivorous Cultivator, Mossborn Hydra, Mossborn Hydra
+========== GAME OVER ==========
+outcome: A after 14 turns (AllOpponentsLost) in 661s
+--- full game log ---
+  MULLIGAN: ForgeAI has mulliganed down to 6 cards.
+  MULLIGAN: Seat has mulliganed down to 6 cards.
+  MULLIGAN: ForgeAI has kept a hand of 6 cards
+  MULLIGAN: Seat has kept a hand of 6 cards
+  TURN: Turn 1 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Underground Sea (135)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Underground Sea (135) - {T}: Add {B}.
+  STACK_ADD: ForgeAI cast Dark Matter Manipulator
+  STACK_RESOLVE: Dark Matter Manipulator - Creature 1 / 2
+  STACK_ADD: ForgeAI triggered Dark Matter Manipulator
+  ZONE_CHANGE: ForgeAI milled Force of Will (97), Hogaak, Arisen Necropolis (126) and Misty Rainforest (107).
+  STACK_RESOLVE: When this creature enters, mill three cards. [Zone Changer: Dark Matter Manipulator (84)]
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 2 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Forest (49)
+  MANA: Forest (49) - {T}: Add {G}.
+  STACK_ADD: Seat cast Sazh's Chocobo
+  STACK_RESOLVE: Sazh's Chocobo - Creature 0 / 1
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 3 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Dryad Arbor (101)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Dark Matter Manipulator (84) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Dark Matter Manipulator (84).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Dark Matter Manipulator (84) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 20 > 19
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Underground Sea (135) - {T}: Add {B}.
+  STACK_ADD: ForgeAI cast Moonshadow
+  EFFECT_REPLACED: Moonshadow enters with six -1/-1 counters on it.
+  STACK_RESOLVE: Moonshadow - Creature 7 / 7
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 4 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  EFFECT_REPLACED: This land enters tapped unless you control a basic land.
+  LAND: Seat played Ba Sing Se (32)
+  STACK_ADD: Seat triggered Sazh's Chocobo
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a +1/+1 counter on this creature. [Zone Changer: Ba Sing Se (32)]
+  MANA: Ba Sing Se (32) - {T}: Add {G}.
+  STACK_ADD: Seat cast Hard-Hitting Question targeting [Sazh's Chocobo (7)] [Moonshadow (82)]
+  DAMAGE: Sazh's Chocobo (7) deals 1 damage to Moonshadow (82).
+  STACK_RESOLVE: Hard-Hitting Question (39) -  Sazh's Chocobo (7) deals 1 damage to Moonshadow (82).
+  ZONE_CHANGE: Moonshadow (82) was put into Graveyard from Battlefield.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Sazh's Chocobo (7) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Sazh's Chocobo (7).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Sazh's Chocobo (7) deals 1 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 20 > 19
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 5 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Wasteland (125)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Dark Matter Manipulator (84) and Dryad Arbor (101) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Dark Matter Manipulator (84).
+Seat didn't block Dryad Arbor (101).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Dark Matter Manipulator (84) deals 1 combat damage to Seat.
+  DAMAGE: Dryad Arbor (101) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 19 > 17
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Underground Sea (135) - {T}: Add {B}.
+  STACK_ADD: ForgeAI cast Dark Matter Manipulator
+  STACK_RESOLVE: Dark Matter Manipulator - Creature 1 / 2
+  STACK_ADD: ForgeAI triggered Dark Matter Manipulator
+  ZONE_CHANGE: ForgeAI milled Underground Sea (134), Orcish Bowmasters (105) and Brainstorm (92).
+  STACK_RESOLVE: When this creature enters, mill three cards. [Zone Changer: Dark Matter Manipulator (83)]
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 6 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Forest (51)
+  STACK_ADD: Seat triggered Sazh's Chocobo
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a +1/+1 counter on this creature. [Zone Changer: Forest (51)]
+  MANA: Forest (49) - {T}: Add {G}.
+  MANA: Forest (51) - {T}: Add {G}.
+  MANA: Ba Sing Se (32) - {T}: Add {G}.
+  STACK_ADD: Seat cast Earthbender Ascension
+  STACK_RESOLVE: Earthbender Ascension
+  STACK_ADD: Seat triggered Earthbender Ascension targeting [Forest (49)]
+  STACK_RESOLVE: When this enchantment enters, earthbend 2. Then search your library for a basic land card, put it onto the battlefield tapped, then shuffle. (Targeting: [[Forest (49)]]) [Zone Changer: Earthbender Ascension (11)]
+  STACK_ADD: Seat triggered Earthbender Ascension
+  STACK_ADD: Seat triggered Sazh's Chocobo
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a +1/+1 counter on this creature. [Zone Changer: Forest (45)]
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a quest counter on this enchantment. When you do, if it has four or more quest counters on it, put a +1/+1 counter on target creature you control. It gains trample until end of turn. [Zone Changer: Forest (45)]
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Sazh's Chocobo (7) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Sazh's Chocobo (7).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Sazh's Chocobo (7) deals 3 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 19 > 16
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 7 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Wasteland (124)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Dark Matter Manipulator (84), Dark Matter Manipulator (83) and Dryad Arbor (101) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Dark Matter Manipulator (84).
+Seat didn't block Dark Matter Manipulator (83).
+Seat didn't block Dryad Arbor (101).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Dark Matter Manipulator (84) deals 3 combat damage to Seat.
+  DAMAGE: Dark Matter Manipulator (83) deals 3 combat damage to Seat.
+  DAMAGE: Dryad Arbor (101) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 17 > 10
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Underground Sea (135) - {T}: Add {B}.
+  STACK_ADD: ForgeAI cast Moonshadow
+  EFFECT_REPLACED: Moonshadow enters with six -1/-1 counters on it.
+  STACK_RESOLVE: Moonshadow - Creature 7 / 7
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 8 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  EFFECT_REPLACED: This land enters tapped unless you control a basic land.
+  LAND: Seat played Ba Sing Se (33)
+  STACK_ADD: Seat triggered Earthbender Ascension
+  STACK_ADD: Seat triggered Sazh's Chocobo
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a +1/+1 counter on this creature. [Zone Changer: Ba Sing Se (33)]
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a quest counter on this enchantment. When you do, if it has four or more quest counters on it, put a +1/+1 counter on target creature you control. It gains trample until end of turn. [Zone Changer: Ba Sing Se (33)]
+  MANA: Ba Sing Se (32) - {T}: Add {G}.
+  MANA: Ba Sing Se (33) - {T}: Add {G}.
+  STACK_ADD: Seat cast Carnivorous Cultivator
+  EFFECT_REPLACED: This creature enters prepared.
+  STACK_RESOLVE: Carnivorous Cultivator - Creature 2 / 3
+  MANA: Forest (51) - {T}: Add {G}.
+  MANA: Forest (45) - {T}: Add {G}.
+  MANA: Forest (49) - {T}: Add {G}.
+  STACK_ADD: Seat cast Mossborn Hydra
+  EFFECT_REPLACED: Mossborn Hydra enters with a +1/+1 counter on it.
+  STACK_RESOLVE: Mossborn Hydra - Creature 0 / 0
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 9 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  MANA: Underground Sea (135) - {T}: Add {U}.
+  STACK_ADD: ForgeAI cast Ponder
+  STACK_RESOLVE: Ponder (118) - Look at the top 3 cards of ForgeAI's library. Then put them back in any order.You may have that player shuffle their library. ForgeAI draws a card.
+  LAND: ForgeAI played Misty Rainforest (110)
+  LIFE: Life: ForgeAI 16 > 15
+  ZONE_CHANGE: Misty Rainforest (110) was put into Graveyard from Battlefield.
+  STACK_ADD: ForgeAI activated Misty Rainforest
+  STACK_ADD: ForgeAI triggered Moonshadow
+  STACK_RESOLVE: Whenever one or more permanent cards are put into your graveyard from anywhere while this creature has a -1/-1 counter on it, remove a -1/-1 counter from this creature. [Amount: 1]
+  STACK_RESOLVE: Misty Rainforest (110) - ForgeAI searches their library for a Forest or Island card, puts it onto the battlefield, then shuffles.
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 10 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Forest (52)
+  STACK_ADD: Seat triggered Earthbender Ascension
+  STACK_ADD: Seat triggered Sazh's Chocobo
+  STACK_ADD: Seat triggered Mossborn Hydra
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, double the number of +1/+1 counters on this creature. [Zone Changer: Forest (52)]
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a +1/+1 counter on this creature. [Zone Changer: Forest (52)]
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a quest counter on this enchantment. When you do, if it has four or more quest counters on it, put a +1/+1 counter on target creature you control. It gains trample until end of turn. [Zone Changer: Forest (52)]
+  MANA: Forest (45) - {T}: Add {G}.
+  MANA: Forest (52) - {T}: Add {G}.
+  MANA: Ba Sing Se (33) - {T}: Add {G}.
+  STACK_ADD: Seat activated Ba Sing Se targeting [Forest (51)]
+  STACK_RESOLVE: Ba Sing Se (32) - Earthbend 2. (Target land you control becomes a 0/0 creature with haste that's still a land. Put  two +1/+1 counters on it. When it dies or is exiled, return it to the battlefield tapped under your control.)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Sazh's Chocobo (7) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Sazh's Chocobo (7).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Sazh's Chocobo (7) deals 5 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 15 > 10
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  MANA: Forest (51) - {T}: Add {G}.
+  STACK_ADD: Seat cast Enroot
+  STACK_RESOLVE: Enroot (151) - Seat searches their library for a land card, puts it into its owner's graveyard, then shuffles.
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 11 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  MANA: Underground Sea (135) - {T}: Add {U}.
+  STACK_ADD: ForgeAI cast Ponder
+  STACK_RESOLVE: Ponder (115) - Look at the top 3 cards of ForgeAI's library. Then put them back in any order.You may have that player shuffle their library. ForgeAI draws a card.
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 12 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  EFFECT_REPLACED: Pit of Offerings enters tapped.
+  LAND: Seat played Pit of Offerings (35)
+  STACK_ADD: Seat triggered Pit of Offerings targeting [Hogaak, Arisen Necropolis (126), Moonshadow (82), Force of Will (97)]
+  STACK_ADD: Seat triggered Sazh's Chocobo
+  STACK_ADD: Seat triggered Mossborn Hydra
+  STACK_ADD: Seat triggered Earthbender Ascension
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a quest counter on this enchantment. When you do, if it has four or more quest counters on it, put a +1/+1 counter on target creature you control. It gains trample until end of turn. [Zone Changer: Pit of Offerings (35)]
+  STACK_ADD: Seat triggered Earthbender Ascension targeting [Sazh's Chocobo (7)]
+  STACK_RESOLVE: When you do, if it has four or more quest counters on it, put a +1/+1 counter on target creature you control. It gains trample until end of turn. (Targeting: [[Sazh's Chocobo (7)]])
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, double the number of +1/+1 counters on this creature. [Zone Changer: Pit of Offerings (35)]
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a +1/+1 counter on this creature. [Zone Changer: Pit of Offerings (35)]
+  STACK_RESOLVE: When Pit of Offerings enters, exile up to three target cards from graveyards. (Targeting: [[Hogaak, Arisen Necropolis (126), Moonshadow (82), Force of Will (97)]]) [Zone Changer: Pit of Offerings (35)]
+  MANA: Forest (52) - {T}: Add {G}.
+  MANA: Ba Sing Se (32) - {T}: Add {G}.
+  MANA: Ba Sing Se (33) - {T}: Add {G}.
+  STACK_ADD: Seat cast Mossborn Hydra
+  EFFECT_REPLACED: Mossborn Hydra enters with a +1/+1 counter on it.
+  STACK_RESOLVE: Mossborn Hydra - Creature 0 / 0
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Forest (49), Sazh's Chocobo (7), Forest (51) and Mossborn Hydra (44) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI assigned Moonshadow (81) to block Forest (49).
+ForgeAI assigned Dryad Arbor (101) to block Sazh's Chocobo (7).
+ForgeAI assigned Dark Matter Manipulator (84) to block Forest (51).
+ForgeAI assigned Dark Matter Manipulator (83) to block Mossborn Hydra (44).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Forest (49) deals 2 damage to Moonshadow (81).
+  DAMAGE: Sazh's Chocobo (7) deals 6 combat damage to ForgeAI.
+  DAMAGE: Sazh's Chocobo (7) deals 1 damage to Dryad Arbor (101).
+  DAMAGE: Forest (51) deals 2 damage to Dark Matter Manipulator (84).
+  DAMAGE: Mossborn Hydra (44) deals 2 combat damage to ForgeAI.
+  DAMAGE: Mossborn Hydra (44) deals 2 damage to Dark Matter Manipulator (83).
+  DAMAGE: Moonshadow (81) deals 2 damage to Forest (49).
+  DAMAGE: Dark Matter Manipulator (84) deals 3 damage to Forest (51).
+  DAMAGE: Dryad Arbor (101) deals 1 damage to Sazh's Chocobo (7).
+  DAMAGE: Dark Matter Manipulator (83) deals 3 damage to Mossborn Hydra (44).
+  LIFE: Life: ForgeAI 10 > 2
+  ZONE_CHANGE: Forest (49) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Forest (51) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Dark Matter Manipulator (84) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Dryad Arbor (101) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Dark Matter Manipulator (83) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Moonshadow (81) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat triggered Ba Sing Se
+  STACK_ADD: Seat triggered Earthbender Ascension
+  STACK_RESOLVE: When it dies or is exiled, return it to the battlefield tapped. ([Forest (49)]) [Zone Changer: Forest (49)]
+  STACK_ADD: Seat triggered Mossborn Hydra
+  STACK_ADD: Seat triggered Sazh's Chocobo
+  STACK_ADD: Seat triggered Mossborn Hydra
+  STACK_ADD: Seat triggered Earthbender Ascension
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a quest counter on this enchantment. When you do, if it has four or more quest counters on it, put a +1/+1 counter on target creature you control. It gains trample until end of turn. [Zone Changer: Forest (49)]
+  STACK_ADD: Seat triggered Earthbender Ascension targeting [Carnivorous Cultivator (58)]
+  STACK_RESOLVE: When you do, if it has four or more quest counters on it, put a +1/+1 counter on target creature you control. It gains trample until end of turn. (Targeting: [[Carnivorous Cultivator (58)]])
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, double the number of +1/+1 counters on this creature. [Zone Changer: Forest (49)]
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a +1/+1 counter on this creature. [Zone Changer: Forest (49)]
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, double the number of +1/+1 counters on this creature. [Zone Changer: Forest (49)]
+  STACK_RESOLVE: When it dies or is exiled, return it to the battlefield tapped. ([Forest (51)]) [Zone Changer: Forest (51)]
+  STACK_ADD: Seat triggered Sazh's Chocobo
+  STACK_ADD: Seat triggered Mossborn Hydra
+  STACK_ADD: Seat triggered Mossborn Hydra
+  STACK_ADD: Seat triggered Earthbender Ascension
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a quest counter on this enchantment. When you do, if it has four or more quest counters on it, put a +1/+1 counter on target creature you control. It gains trample until end of turn. [Zone Changer: Forest (51)]
+  STACK_ADD: Seat triggered Earthbender Ascension targeting [Mossborn Hydra (41)]
+  STACK_RESOLVE: When you do, if it has four or more quest counters on it, put a +1/+1 counter on target creature you control. It gains trample until end of turn. (Targeting: [[Mossborn Hydra (41)]])
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, double the number of +1/+1 counters on this creature. [Zone Changer: Forest (51)]
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, double the number of +1/+1 counters on this creature. [Zone Changer: Forest (51)]
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a +1/+1 counter on this creature. [Zone Changer: Forest (51)]
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 13 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 14 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Fabled Passage (3)
+  STACK_ADD: Seat triggered Sazh's Chocobo
+  STACK_ADD: Seat triggered Mossborn Hydra
+  STACK_ADD: Seat triggered Mossborn Hydra
+  STACK_ADD: Seat triggered Earthbender Ascension
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a quest counter on this enchantment. When you do, if it has four or more quest counters on it, put a +1/+1 counter on target creature you control. It gains trample until end of turn. [Zone Changer: Fabled Passage (3)]
+  STACK_ADD: Seat triggered Earthbender Ascension targeting [Sazh's Chocobo (7)]
+  ZONE_CHANGE: Fabled Passage (3) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat activated Fabled Passage
+  STACK_RESOLVE: Fabled Passage (3) - Search your library for a basic land card, put it onto the battlefield tapped, then shuffle. Then if you control four or more lands, untap that land.  
+  STACK_ADD: Seat triggered Earthbender Ascension
+  STACK_ADD: Seat triggered Sazh's Chocobo
+  STACK_ADD: Seat triggered Mossborn Hydra
+  STACK_ADD: Seat triggered Mossborn Hydra
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, double the number of +1/+1 counters on this creature. [Zone Changer: Forest (46)]
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, double the number of +1/+1 counters on this creature. [Zone Changer: Forest (46)]
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a +1/+1 counter on this creature. [Zone Changer: Forest (46)]
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a quest counter on this enchantment. When you do, if it has four or more quest counters on it, put a +1/+1 counter on target creature you control. It gains trample until end of turn. [Zone Changer: Forest (46)]
+  STACK_ADD: Seat triggered Earthbender Ascension targeting [Sazh's Chocobo (7)]
+  STACK_RESOLVE: When you do, if it has four or more quest counters on it, put a +1/+1 counter on target creature you control. It gains trample until end of turn. (Targeting: [[Sazh's Chocobo (7)]])
+  STACK_RESOLVE: When you do, if it has four or more quest counters on it, put a +1/+1 counter on target creature you control. It gains trample until end of turn. (Targeting: [[Sazh's Chocobo (7)]])
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, double the number of +1/+1 counters on this creature. [Zone Changer: Fabled Passage (3)]
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, double the number of +1/+1 counters on this creature. [Zone Changer: Fabled Passage (3)]
+  STACK_RESOLVE: Landfall — Whenever a land you control enters, put a +1/+1 counter on this creature. [Zone Changer: Fabled Passage (3)]
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Sazh's Chocobo (7), Carnivorous Cultivator (58), Mossborn Hydra (44) and Mossborn Hydra (41) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Sazh's Chocobo (7).
+ForgeAI didn't block Carnivorous Cultivator (58).
+ForgeAI didn't block Mossborn Hydra (44).
+ForgeAI didn't block Mossborn Hydra (41).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Sazh's Chocobo (7) deals 13 combat damage to ForgeAI.
+  DAMAGE: Carnivorous Cultivator (58) deals 3 combat damage to ForgeAI.
+  DAMAGE: Mossborn Hydra (44) deals 64 combat damage to ForgeAI.
+  DAMAGE: Mossborn Hydra (41) deals 24 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 2 > -102
+  PLAYER_CONTROL: Seat has restored control over themself
+  PLAYER_CONTROL: ForgeAI has restored control over themself
+  GAME_OUTCOME: Match Duration 10m : 31s
+  GAME_OUTCOME: Turn 7
+  GAME_OUTCOME: Seat has won because all opponents have lost
+  GAME_OUTCOME: ForgeAI has lost because life total reached 0
+  MATCH_RESULTS: Seat: 1 ForgeAI: 0 
+===============================

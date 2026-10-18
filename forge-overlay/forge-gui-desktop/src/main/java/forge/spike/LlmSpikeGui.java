@@ -289,8 +289,11 @@ public final class LlmSpikeGui {
      *  block set the engine objects to (menace, "must block") goes back to the seat with the engine's reason.
      *  Epoch 53 (2026-10-18, rules puzzle batch 2): an activated ability's alternative cost is offered (Forge Anew:
      *  equip for {0}); an "up to one" target with a single candidate is asked, with "No target" offered.
+     *  Epoch 54 (2026-10-18): the seat clears Forge's static AiCache where Forge's AI does, so answers cached against
+     *  this game (isPreventCombatDamageThisTurn) are not read stale; a preview survives a card remembered outside
+     *  every copied zone (lookahead-preview-v13, runs/loop/g16).
      */
-    static final String HARNESS_EPOCH = "harness-epoch-53";
+    static final String HARNESS_EPOCH = "harness-epoch-54";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -3481,6 +3484,10 @@ public final class LlmSpikeGui {
             // which spins the priority loop ~999x ("AI looped too much"). So PASS must be null, never empty.
             final List<SpellAbility> PASS = null;
             clearLast();
+            // Forge's static AiCache is cleared where Forge's AI chooses a play (AiController.chooseSpellAbilityToPlay);
+            // the seat's pricing and combat helpers read it too, so the seat clears it in the same place. Uncleared,
+            // answers keyed by this game lasted the whole game and every finished game stayed reachable (prove-v3).
+            forge.ai.AiCache.clear();
             try {
                 Player me = getPlayer();
                 PhaseHandler phh = me.getGame().getPhaseHandler();

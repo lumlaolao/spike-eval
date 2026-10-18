@@ -817,3 +817,17 @@ ai_tier_count=0, 14 min. First game on epoch 53.
   Abrupt Decay), 5 `replacement-order(forced-only-legal)` (one option each), 1 counter-type.
 - not exercised  the whole-block-set check again (no block ask with menace or a requirement).
 - clean  Abrupt Decay on Basking Broodscale, earthbend target, previews. First clean game on epoch 53.
+
+### g16  2026-10-18  seed 4116  Mono-Green Landfall (seat) vs Legacy Hogaak (Forge AI)  WON T14  $0.07  harness-epoch-53
+64 model decisions, 35 forced picks, TAKEN 0, LOST 0, SKIP 0, ai_tier_count=0, 11 min. TOOL 5 of 7 served.
+- FIXED  two `simulate` calls failed, "Couldn't map Enroot (151)" (lines 134, 169, T6-T8): Carnivorous Cultivator
+  enters prepared and an effect remembers its prepared spell, which no copied zone held, so Forge's GameCopier threw.
+  The preview parks such remembered cards, and static effects that affect them, for the copy and restores them
+  exactly. Test `aPreparedCardsRememberedSpellDoesNotBreakThePreview` (the fixture builds the end state; the game's
+  route to it is not reproduced). lookahead-preview-v13.
+- FIXED  (found tracing the prover's heap) Forge's static AiCache was never cleared for a model seat, so answers
+  keyed by the game lasted the whole game. The seat clears it where Forge's AI does. Test
+  `theSeatClearsForgesAiCacheWhereForgesAiDoes`. Both folded into harness-epoch-54.
+- checked  35 forced picks: 25 counter-type (Mossborn Hydra and landfall counters, one kind each), 6
+  replacement-order (one option), 2 damage-assign to a single blocker, 1 target, 1 graveyard order.
+- not exercised  the whole-block-set check: Moonshadow attacked into one possible blocker; the seat declared none.

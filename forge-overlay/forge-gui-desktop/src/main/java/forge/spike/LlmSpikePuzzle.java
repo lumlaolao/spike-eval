@@ -569,6 +569,8 @@ public final class LlmSpikePuzzle {
             worker.join(LlmSpikeGui.ModelCfg.maxDecisionMs() + 10_000L);
         }
         long durMs = System.currentTimeMillis() - t0;
+        // The static AiCache holds the game it was filled for: cleared after every rollout so a search keeps one.
+        forge.ai.AiCache.clear();
 
         // A run where the goal card never got installed is UNSCOREABLE, not a loss: without it the
         // solver simply never loses on time, so "not solved" would be indistinguishable from

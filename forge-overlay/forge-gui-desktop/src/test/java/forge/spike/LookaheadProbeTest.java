@@ -59,6 +59,48 @@ public class LookaheadProbeTest {
 
     // ---- copy mechanism -----------------------------------------------------------------------
 
+    /** runs/loop/g16 T8 (2026-10-18): two `simulate` calls failed with "Couldn't map Enroot (151)". Carnivorous
+     *  Cultivator enters prepared: an effect remembers a copy of the card in its prepared-spell state that is in no
+     *  zone the copier copies, so GameCopier.find throws. The preview parks such remembered cards for the copy and
+     *  puts every remembered list back exactly. */
+    @Test
+    public void aPreparedCardsRememberedSpellDoesNotBreakThePreview() {
+        Game g = SeatObservationTest.bareGame();
+        forge.game.player.Player me = g.getPlayers().get(0);
+        // Entering from hand runs the card's "enters prepared" replacement, as casting it did in g16.
+        forge.game.card.Card inHand = SeatObservationTest.card("Carnivorous Cultivator", me, forge.game.zone.ZoneType.Hand);
+        forge.game.card.Card cult = g.getAction().moveTo(forge.game.zone.ZoneType.Battlefield, inHand, null, null);
+        Assert.assertTrue(cult.isPrepared(), "the fixture prepared the card");
+        // g16's state: the effect remembers the prepared spell (Enroot), whose zone is set, but no copied zone holds
+        // it. Entering prepared here leaves Enroot in exile, so the fixture takes it out of the exile list the way the
+        // game had it; the route the game took to that state is not reproduced yet.
+        forge.game.card.Card enroot = null;
+        for (forge.game.card.Card c : g.getCardsIn(forge.game.zone.ZoneType.Command))
+            for (Object o : c.getRemembered()) if (o instanceof forge.game.card.Card) enroot = (forge.game.card.Card) o;
+        Assert.assertNotNull(enroot, "the prepared effect remembers its spell");
+        enroot.getZone().remove(enroot);
+        Assert.assertNotNull(enroot.getZone(), "its zone is still set");
+        try {
+            new forge.ai.simulation.GameCopier(g).makeCopy();
+            Assert.fail("the engine copier now maps a remembered card no copied zone holds: remove the workaround");
+        } catch (RuntimeException e) {
+            Assert.assertTrue(String.valueOf(e.getMessage()).contains("Couldn't map"), String.valueOf(e));
+        }
+        java.util.Map<forge.game.card.Card, java.util.List<Object>> before = new java.util.HashMap<>();
+        for (forge.game.card.Card c : g.getCardsInGame()) before.put(c, PlayerLookahead.UncopiedRemembered.rememberedOf(c));
+        PlayerLookahead.UncopiedEffects effects = PlayerLookahead.UncopiedEffects.park(g);
+        PlayerLookahead.UncopiedRemembered parked = PlayerLookahead.UncopiedRemembered.park(g);
+        Assert.assertTrue(parked.parked > 0, "the prepared spell was parked");
+        try {
+            Assert.assertNotNull(new forge.ai.simulation.GameCopier(g).makeCopy());
+        } finally {
+            parked.restore();
+            effects.restore();
+        }
+        for (forge.game.card.Card c : g.getCardsInGame())
+            Assert.assertEquals(PlayerLookahead.UncopiedRemembered.rememberedOf(c), before.get(c), "remembered restored on " + c);
+    }
+
     @Test
     public void gameCopierBehaviorProbe() {
         Game g = SeatObservationTest.bareGame();
