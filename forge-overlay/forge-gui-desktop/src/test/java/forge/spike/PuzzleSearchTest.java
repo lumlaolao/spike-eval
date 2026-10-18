@@ -203,6 +203,16 @@ public class PuzzleSearchTest {
         Assert.assertEquals(seen.size(), 6);
     }
 
+    /** Rules puzzle batch 3: 18 correct puzzles were called "multiple" for choices that change nothing on their own
+     *  (the order of cards moved together, which identical land paid, a scry, a confirm). Those are not noted. */
+    @Test
+    public void choicesThatMakeNoSecondSolutionAreNotCompared() {
+        for (String t : new String[] {"order", "trigger-order", "replacement-order", "mana-sources", "scry", "confirm", "zone-change"})
+            Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.UNIQUENESS_NEUTRAL.contains(t), t);
+        for (String t : new String[] {"modes", "number", "card-name", "targets", "some-type", "color"})
+            Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.UNIQUENESS_NEUTRAL.contains(t), t);
+    }
+
     @Test
     public void theSearchArmFlagsDriftWhenTheOtherSeatOrMenuSizeAsks() {
         PuzzleArms.searchLine = new PuzzleArms.Line(Collections.singletonList(new Step("Solver", 4, 2)), 5L);

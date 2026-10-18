@@ -149,3 +149,82 @@ None. One limit: Twinning Staff's "number of resolutions" is observable only thr
    resolves (RP_021). A second solution that differs only there would be called the same. For RP_021 the timing was
    checked another way (only one Snake ever existed).
 5. **Replacement order still never asked** (RP_024, RP_011).
+
+# Batch 3: forty more questions (RP_048 to RP_086)
+
+Source: 40 unattempted `convert == "good"` questions from `triage.jsonl`, chosen for spread (triggers, SBAs,
+layers, copies, replacement, costs, combat, counters, control). Questions that are near-duplicates of batch 1 and 2
+rules were skipped (for example RP_031's spell-in-graveyard SBA (Tarmogoyf), RP_029's LKI counters, RP_039's exile
+instead of dying). Questions needing damage division, replacement order, opponent actions or randomness were skipped
+too. Build: epoch 53. RP_048 to RP_062 were first gated on the build from 10:08. The newer build (13:06; uniqueness
+compares log actions plus hidden solver choices and reports `uniqueness_difference`) gated everything else, and
+every result below is from it: RP_048 to RP_062 were re-run on it. Gate: search arm (budget 600, cap 60 s), then
+the pass arm. No run started while HOLD existed. 40 rows are in `manifest.jsonl` (now 91).
+
+## Counts
+
+| result | n | puzzles |
+|---|---|---|
+| converted | 20 | 049-051, 054-057, 062-064, 066, 067, 070, 071, 075, 079-081, 083, 085 |
+| multiple, outcome-neutral difference | 18 | 048, 052, 053, 058-061, 068, 069, 072-074, 076-078, 082, 084, 086 |
+| Forge disagreement | 1 | 065 |
+| dropped | 1 | Rotpriest question (no board) |
+
+Every board was proven, except RP_065, and the pass arm was rejected on all 39. Uniqueness was exhaustive on 16 of
+the 20 conversions. Not exhaustive: RP_055 (10/22), RP_062 (5/10), RP_066 (8/9) and RP_083 (4/5). The 18
+"multiple" boards have a correct proven line. Their second line differs only in a choice that changes nothing,
+listed per row in `note`. They are recorded as `multiple_neutral` and are not counted until the prover decides
+what counts as a difference (see below).
+
+## Forge disagreement
+
+- **RP_065** (Command the Dreadhorde returning Dearly Departed and Squire together). Forge moves the targets one
+  at a time in target order. With [Squire, Dearly Departed] the Squire gets its counter (random seed 3, and the
+  graveyard-swapped variant `rp3v/RP_065s` proved unique). With [Dearly Departed, Squire] it gets none. The search
+  arm does not branch target order, so the shipped board is "not found" after exhausting 41 rollouts. CR 614.12 makes
+  the result independent of order.
+
+## Dropped
+
+- **ask-a-magic-judge-bb2d6af95202a723** (Venerated Rotpriest): no board. The solver would have to give its own
+  creature hexproof, which does not stop its own spells, so every order of the two spells works.
+
+## Board fixes during the gate
+
+- RP_049: an Eldrazi Spawn's sac-for-mana ability is now on the baseline menu and is not a log action, so it gave a
+  second line. The Spawn was replaced by Mist Intruder.
+- RP_052: the Opt could be cast after attackers (a real second line). It is now Preordain, a sorcery.
+- RP_056: the pass arm solved v1, because it auto-confirms an optional trigger with one target. In v2 the solver
+  must sacrifice to feed the Ozolith. Acceptance now keeps Shalai, because sacrificing it with its trigger on the
+  stack also won.
+- RP_063, RP_075: drawn Islands gave a land drop. The libraries are now non-land.
+- RP_051: Wild Mongrel's colour choice was replaced by Putrid Imp. RP_077: Opt's scry was replaced by Think Twice.
+- RP_055: v1 (Murder between the two untap triggers) was not found in 600 rollouts, because land mana abilities on
+  the menu multiply the tree. A scripted replay showed Forge does put two Treachery triggers on the stack. v2
+  differed in how many lands each trigger untapped. v3 makes Kozilek need all ten lands.
+- RP_086: the Packleader version differed in trigger order. It now uses Fling (only a creature can be flung).
+
+## Grammar needs
+
+None.
+
+## Harness and prover findings
+
+1. **The new uniqueness counts choices that change nothing** (18 boards). Kinds, with an example of each:
+   - The order of cards moved together: RP_059, 072, 074, 076, 084 (`order: [...]`).
+   - Which identical land paid: RP_048, 069, 073, 086 (`mana-sources: []` against a named Plains or Island).
+   - A declined library pick, then "Cancel Search? NO", then the same pick: RP_061, RP_068.
+   - The order of two triggers whose results commute: RP_053, RP_058.
+   - A scry: RP_052, RP_060.
+   - The order of two draw replacements that both double: RP_077.
+   - The same targets described as tapped and as untapped: RP_082.
+   - Setup-time creature-type picks: RP_078. Roaming Throne's choose-a-type replacement seems to be asked when the
+     puzzle state is loaded, before `ChosenType:Goblin` is applied.
+2. **RP_056: `uniqueness_difference` was empty (`[]`) for a real second line** that had an extra action.
+3. **Target order is not branched** (RP_065), and Forge's result depends on it.
+4. **Draw replacement order is now asked** (RP_077: Bard, King of Dale against Thought Reflection). Batch 1 and 2 never
+   saw a replacement-order choice.
+5. **A replicate copy is logged as "Solver cast ..."** (RP_067). Chalice still triggered only on the original.
+6. **The pass arm auto-confirms an optional trigger** that has a single target (RP_056 v1 was solved by passing).
+7. Process: two diagnostic JVMs (`rp3v/RP_055d`) ran while both lanes were busy, so three JVMs ran at once for a
+   few minutes.

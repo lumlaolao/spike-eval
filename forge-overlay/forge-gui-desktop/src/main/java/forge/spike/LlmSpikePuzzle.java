@@ -411,8 +411,10 @@ public final class LlmSpikePuzzle {
                     // The lines of the two fingerprints that differ: what made the second line another solution.
                     List<String> a = java.util.Arrays.asList(u.mainPrint.split("\n")), b = java.util.Arrays.asList(u.secondPrint.split("\n"));
                     List<String> diff = new ArrayList<>();
-                    for (String l : a) if (!b.contains(l)) diff.add("main: " + l);
-                    for (String l : b) if (!a.contains(l)) diff.add("second: " + l);
+                    // As multisets: a second line with one more of the same action (RP_056: another sacrifice) differs.
+                    List<String> onlyB = new ArrayList<>(b);
+                    for (String l : a) if (!onlyB.remove(l)) diff.add("main: " + l);
+                    for (String l : onlyB) diff.add("second: " + l);
                     extra.put("uniqueness_difference", diff);
                 }
             }
@@ -514,6 +516,9 @@ public final class LlmSpikePuzzle {
             try {
                 match.startGame(game, () -> {
                     puzzle.applyToGame(game);
+                    // Choices made while the board is put down (Roaming Throne's type) are the puzzle's, not a play.
+                    PuzzleArms.Line setupLine = PuzzleArms.searchLine;
+                    if (setupLine != null) setupLine.clearChoices();
                     for (Card c : game.getPlayers().get(0).getZone(ZoneType.Command)) {
                         if ("Puzzle Goal".equals(c.getName())) {
                             goalInstalled[0] = true;

@@ -809,3 +809,11 @@ ai_tier_count=0, 8 min. First game on epoch 52; no [BLOCK-INVALID] and no block 
 - not exercised  the whole-block-set check: Moonshadow (menace) never came down; one block ask, answered NONE.
 - clean  attacks with the Inspectors and Raffine's Informant, the block ask, previews. First clean game on epoch 52
   (epoch 53, from rules puzzle batch 2, is built and starts the count again once installed).
+
+### g15  2026-10-18  seed 4115  The Rock (seat) vs Broodscale (Forge AI)  WON T15  $0.07  harness-epoch-53
+Sheet clean: 87 model decisions, 13 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 6 of 6 served (simulate 6),
+ai_tier_count=0, 14 min. First game on epoch 53.
+- checked  13 forced picks: 7 `color(forced)` (a dual paying a shard only one of its colours fits: Badgermole Cub,
+  Abrupt Decay), 5 `replacement-order(forced-only-legal)` (one option each), 1 counter-type.
+- not exercised  the whole-block-set check again (no block ask with menace or a requirement).
+- clean  Abrupt Decay on Basking Broodscale, earthbend target, previews. First clean game on epoch 53.

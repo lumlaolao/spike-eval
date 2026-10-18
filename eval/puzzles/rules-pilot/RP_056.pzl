@@ -3,7 +3,7 @@ Name:Rules pilot 056 - Moved is put
 Goal:Win
 Turns:1
 Difficulty:Easy
-Description:The opponent is at 3 life with no permanents. You control The Ozolith (no counters), Spawning Pit, Grizzly Bears with three +1/+1 counters, and Shalai and Hallar, which came under your control this turn. Win this turn.
+Description:The opponent is at 3 life with no permanents. You control The Ozolith (no counters), Spawning Pit, Grizzly Bears with three +1/+1 counters, and Shalai and Hallar, which came under your control this turn. Win this turn with Shalai and Hallar on your battlefield.
 Rule:ask-a-magic-judge-b7a4877c624087b6 | Moving a counter removes it from one object and puts it on another (CR 122.5), so "whenever counters are put on" triggers on a move
 [state]
 turn=1
@@ -16,3 +16,4 @@ p1life=3
 p1library=Plains;Plains;Plains
 [acceptance]
 winner p0
+count p0 Battlefield "Shalai and Hallar" = 1

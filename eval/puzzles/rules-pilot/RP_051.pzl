@@ -3,7 +3,7 @@ Name:Rules pilot 051 - Madness past the Peace
 Goal:Survive
 Turns:1
 Difficulty:Easy
-Description:The opponent controls Rest in Peace. You control Wild Mongrel and no lands, and have Basking Rootwalla in hand. End the turn with Basking Rootwalla on your battlefield.
+Description:The opponent controls Rest in Peace. You control Putrid Imp and no lands, and have Basking Rootwalla in hand. End the turn with Basking Rootwalla on your battlefield.
 Rule:cranial-insertion-988f3868913a5064 | A discarded madness card is exiled by a replacement effect instead of reaching the graveyard, so Rest in Peace never applies and it can be cast from exile (CR 702.35a)
 [state]
 turn=1
@@ -11,7 +11,7 @@ activeplayer=p0
 activephase=MAIN2
 p0life=20
 p0hand=Basking Rootwalla
-p0battlefield=Wild Mongrel
+p0battlefield=Putrid Imp
 p0library=Island;Island;Island
 p1life=20
 p1battlefield=Rest in Peace

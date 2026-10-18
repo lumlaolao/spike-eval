@@ -3,19 +3,19 @@ Name:Rules pilot 055 - Ten lands from Treachery
 Goal:Survive
 Turns:1
 Difficulty:Hard
-Description:The opponent controls Elesh Norn, Mother of Machines and Hill Giant. You control ten Islands, five of them tapped, and have Treachery and Blatant Thievery in hand. End the turn controlling Elesh Norn and Hill Giant.
+Description:The opponent controls Elesh Norn, Mother of Machines. You control ten Islands, five of them tapped, and have Treachery and Kozilek, Butcher of Truth in hand; your library has six cards. End the turn controlling Elesh Norn and Kozilek.
 Rule:ask-a-magic-judge-d561e504856ec2cd | You control the creature as Treachery enters, so the stolen Elesh Norn already doubles Treachery's own enters trigger (CR 603.6a, 603.2)
 [state]
 turn=1
 activeplayer=p0
 activephase=MAIN2
 p0life=20
-p0hand=Treachery;Blatant Thievery
+p0hand=Treachery;Kozilek, Butcher of Truth
 p0battlefield=Island;Island;Island;Island;Island;Island|Tapped;Island|Tapped;Island|Tapped;Island|Tapped;Island|Tapped
-p0library=Fortress Crab;Fortress Crab;Fortress Crab
+p0library=Fortress Crab;Fortress Crab;Fortress Crab;Fortress Crab;Fortress Crab;Fortress Crab
 p1life=20
-p1battlefield=Elesh Norn, Mother of Machines;Hill Giant
+p1battlefield=Elesh Norn, Mother of Machines
 p1library=Plains;Plains;Plains
 [acceptance]
 count p0 Battlefield "Elesh Norn, Mother of Machines" = 1
-count p0 Battlefield "Hill Giant" = 1
+count p0 Battlefield "Kozilek, Butcher of Truth" = 1

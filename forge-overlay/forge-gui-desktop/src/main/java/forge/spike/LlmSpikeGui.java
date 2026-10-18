@@ -1890,10 +1890,19 @@ public final class LlmSpikeGui {
          *  handle, or two identical triggers in either order, is the same choice (RP_021). */
         private void noteSolverChoice(String type, String label) {
             if (!(rnd instanceof PuzzleArms.Search) || !"Solver".equals(((PuzzleArms.Search) rnd).seat)) return;
+            if (type != null && UNIQUENESS_NEUTRAL.contains(type)) return;
             PuzzleArms.Line l = PuzzleArms.searchLine;
             if (l != null && label != null && !label.startsWith("PASS"))
-                l.note((type == null ? "choice" : type) + ": " + label.replaceAll(" ?@\\d+", "").replaceAll(" #\\d+(?=[,\\]]|$)", ""));
+                l.note((type == null ? "choice" : type) + ": " + label.replaceAll(" ?@\\d+", "")
+                        .replaceAll(" #\\d+(?=[,\\]]|$)", "").replaceAll("\\[(un)?tapped\\]|\\[sick\\]", ""));
         }
+
+        /** Choices that make no second solution on their own (rules puzzle batch 3: 18 correct puzzles were called
+         *  "multiple" for them): the order of cards moved together or of triggers and replacements, which source paid,
+         *  a scry, a confirm prompt, a library pick declined and made again. Where one decides the result, the result
+         *  differs in the solver's actions or in a choice that is noted. */
+        static final java.util.Set<String> UNIQUENESS_NEUTRAL = new java.util.HashSet<>(java.util.Arrays.asList(
+                "order", "trigger-order", "replacement-order", "mana-sources", "scry", "confirm", "zone-change"));
 
         /** {@code simulate}: the `simulate` call for this decision (a target choice of a play), or null. */
         private int decideOne(LLMBridge b, String type, String question, List<String> options, String noneLabel,

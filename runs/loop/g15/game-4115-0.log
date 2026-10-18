@@ -71,3 +71,731 @@ hidden has neither ManaCost nor Color
 [OPENROUTER Seat/smart] replied in 3993 ms with 1 tool call(s)
 [Seat] [ROUTER] play: casts Badgermole Cub 2/2 @10 1{G} [When this creature enters, earthbend 1. (Target land you control becomes a 0/0 creature with haste that's still a land. Put a +1/+1 counter on it. When it dies or is exiled, return it to the battlefield tapped.) Whenever you tap a creature for mana, add an additional {G}.]
 [Seat] [AUTO-LEGAL] color(forced)->first
+[OPENROUTER Seat/smart] replied in 11065 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Use Badgermole Cub to accelerate into impactful midgame threats while preserving removal for the opponent's Eldrazi/ramp payoffs. NEXT: On turn 4, use the earthbent land and available lands to develop a threat or disrupt their ramp; reassess after seeing their next play.
+[OPENROUTER Seat/smart] replied in 2117 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Blooming Marsh [tapped] @16 (was @13) [Battlefield, yours] <- Badgermole Cub 2/2 @21 [When this creature enters, earthbend 1. (Target land you control becomes a 0/0 creature with haste that's still a land. Put a +1/+1 counter on it. When it dies or is exiled, return it to the battlefield tapped.)]
+[Seat] [ROUTER] play(react): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10599 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Disrupt the Eldrazi combo/ramp by removing Basking Broodscale while the opponent is tapped out, then develop a threat this turn. NEXT: Cast Abrupt Decay on Basking Broodscale in upkeep; in main, play Mutavault and consider Professor Dellian Fel if mana permits.
+[OPENROUTER Seat/smart] replied in 5651 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 3123 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Basking Broodscale 2/2 [untapped] [sick] @23 [Battlefield, opponent's] <- Abrupt Decay @14 {B}{G} [Destroy target nonland permanent with mana value 3 or less.]
+[Seat] [ROUTER] play: casts Abrupt Decay @14 {B}{G} [Destroy target nonland permanent with mana value 3 or less.]
+[Seat] [AUTO-LEGAL] color(forced)->first
+[Seat] [TALLY] smart=17 fast=0 auto=4 ai=0 textParses=0 avgSmart=5185ms avgFast=5185ms
+[Seat] [ROUTER] play(main): 0 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3785 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Mutavault
+[Seat] [TALLY] smart=18 fast=0 auto=4 ai=0 textParses=0 avgSmart=5107ms avgFast=5107ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5644 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5132 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3984 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Badgermole Cub
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3017 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=22 fast=0 auto=4 ai=0 textParses=0 avgSmart=4987ms avgFast=4987ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4812 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6995 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Stay alive against Eldrazi ramp while developing a threat on my next turn. NEXT: Let Ugin's Labyrinth imprint trigger resolve; respond to any meaningful Eldrazi play, then use my next land drop and available mana to develop Professor Dellian Fel or another threat.
+[OPENROUTER Seat/smart] replied in 2815 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5437 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5353 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5477 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6823 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3917 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 72704 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4388 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4921 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Develop Professor Dellian Fel while keeping Fatal Push available for a small creature or a revolt setup. NEXT: Pass the upkeep; in main phase play a land, then cast Professor Dellian Fel if the available mana permits. Save Fatal Push unless a worthwhile target appears.
+[OPENROUTER Seat/smart] replied in 2255 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 7 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6418 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=35 fast=0 auto=4 ai=0 textParses=0 avgSmart=6915ms avgFast=6915ms
+[Seat] [ROUTER] play(main): 9 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6631 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 1: if you cast Professor Dellian Fel: you board 4 -> 5; hand 4 -> 3; entered the battlefield: Professor Dellian Fel; ForgeAI no change
+[OPENROUTER Seat/smart] replied in 4408 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Professor Dellian Fel @11 2{B}{G} [Professor Dellian Fel]
+[Seat] [AUTO-LEGAL] color(forced)->first
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [TALLY] smart=37 fast=0 auto=7 ai=0 textParses=0 avgSmart=6839ms avgFast=6839ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7408 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 3803 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Sowing Mycospawn 3/3 [untapped] [sick] @32 (was @30) [Battlefield, opponent's] <- Professor Dellian Fel @42 [-3: Destroy target creature.]
+[Seat] [ROUTER] play: activates Professor Dellian Fel @42 [-3: Destroy target creature.]
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4063 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Badgermole Cub
+[Seat] [ROUTER] play(react): 7 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6041 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Keep pressure on the Eldrazi ramp deck while preserving removal for a major threat. NEXT: Pass upkeep; in main attack with Badgermole Cub if safe and use Professor Dellian Fel's +2 to gain life; keep Fatal Push and Bitter Triumph for a relevant opposing creature or planeswalker.
+[OPENROUTER Seat/smart] replied in 3621 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Eldrazi ramp: Ancient Stirrings, Sowing Mycospawn, and Ugin’s Labyrinth accelerate large threats; respect their high-mana Eldrazi, especially Emrakul.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 7 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 11114 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 5344 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Badgermole Cub 2/2 [untapped] @21 (was @10) [Battlefield, yours] <- Fatal Push @26 {B} [Destroy target creature if it has mana value 2 or less. Revolt — Destroy that creature if it has mana value 4 or less instead if a permanent you controlled left the battlefield this turn.]
+[Seat] [ROUTER] play: casts Fatal Push @26 {B} [Destroy target creature if it has mana value 2 or less. Revolt — Destroy that creature if it has mana value 4 or less instead if a permanent you controlled left the battlefield this turn.]
+[OPENROUTER Seat/smart] replied in 6951 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 2 for CAST Fatal Push @46 {B} [Destroy target creature if it has mana value 2 or less. Revolt — Destroy that creature if it has mana value 4 or less instead if a permanent you controlled left the battlefield this turn.]
+[Seat] [AUTO-LEGAL] color(forced)->first
+[Seat] [ROUTER] play(react): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6051 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6246 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 2836 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Develop Professor Dellian Fel and maintain removal for the Eldrazi deck’s large threats. NEXT: Pass through upkeep. In main phase consider using Professor’s +2 for life or 0 for a card, then make a land drop and preserve Bitter Triumph for a real threat.
+[OPENROUTER Seat/smart] replied in 2998 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5184 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=50 fast=0 auto=8 ai=0 textParses=0 avgSmart=6494ms avgFast=6494ms
+[Seat] [ROUTER] play(main): 7 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5892 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Use Professor Dellian Fel to generate cards while staying ready to remove a large Eldrazi threat. NEXT: Activate Professor's 0 ability for a card, make the Blooming Marsh land drop, and preserve Bitter Triumph unless a real threat demands it.
+[OPENROUTER Seat/smart] replied in 3239 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Professor Dellian Fel @42 [0: You draw a card and you lose 1 life.]
+[Seat] [TALLY] smart=52 fast=0 auto=8 ai=0 textParses=0 avgSmart=6420ms avgFast=6420ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6898 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=53 fast=0 auto=8 ai=0 textParses=0 avgSmart=6429ms avgFast=6429ms
+[Seat] [ROUTER] play(main): 5 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5874 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Blooming Marsh
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[Seat] [TALLY] smart=54 fast=0 auto=9 ai=0 textParses=0 avgSmart=6419ms avgFast=6419ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5863 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Mutavault @27 [{1}: Mutavault becomes a 2/2 creature with all creature types until end of turn. It's still a land.]
+[Seat] [TALLY] smart=55 fast=0 auto=9 ai=0 textParses=0 avgSmart=6409ms avgFast=6409ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6089 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Preserve Mutavault as an attacker and keep Bitter Triumph available for a meaningful threat. NEXT: Pass through the rest of main phase, attack with the available creatures if safe, and reassess on the opponent's turn.
+[OPENROUTER Seat/smart] replied in 5004 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3584 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6963 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Mutavault
+[Seat] [ROUTER] play(react): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 11227 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Preserve Bitter Triumph for a meaningful target while preparing to contain the next attack. NEXT: Pass this upkeep; in my main phase consider Graveyard Trespasser, and hold Bitter Triumph to remove the Mycospawn before combat damage if it attacks.
+[OPENROUTER Seat/smart] replied in 2427 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6666 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=62 fast=0 auto=9 ai=0 textParses=0 avgSmart=6362ms avgFast=6362ms
+[Seat] [ROUTER] play(main): 11 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 16632 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Professor Dellian Fel @42 [+2: You gain 3 life.]
+[Seat] [TALLY] smart=63 fast=0 auto=9 ai=0 textParses=0 avgSmart=6525ms avgFast=6525ms
+[Seat] [ROUTER] play(main): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 12609 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=64 fast=0 auto=9 ai=0 textParses=0 avgSmart=6620ms avgFast=6620ms
+[Seat] [ROUTER] play(main): 9 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 19280 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 3: if you cast Graveyard Trespasser: you life 20 -> 21; board 5 -> 6; hand 4 -> 3; entered the battlefield: Graveyard Trespasser; ForgeAI life 14 -> 13; graveyard 7 -> 6
+[OPENROUTER Seat/smart] replied in 7718 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Graveyard Trespasser 3/3 @53 2{B} [Ward—Discard a card. Whenever Graveyard Trespasser enters or attacks, exile up to one target card from a graveyard. If a creature card was exiled this way, each opponent loses 1 life and you gain 1 life. Daybound (If a player casts no spells during their own turn, it becomes night next turn.)]
+[Seat] [ROUTER] mana: keep untapped 1 (said with the play) for CAST Graveyard Trespasser 3/3 @64 2{B} [Ward—Discard a card. Whenever Graveyard Trespasser enters or attacks, exile up to one target card from a graveyard. If a creature card was exiled this way, each opponent loses 1 life and you gain 1 life. Daybound (If a player casts no spells during their own turn, it becomes night next turn.)]
+[Seat] [AUTO-LEGAL] color(forced)->first
+[Seat] [AUTO-LEGAL] color(forced)->first
+[Seat] [TALLY] smart=66 fast=0 auto=11 ai=0 textParses=0 avgSmart=6828ms avgFast=6828ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9522 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[OPENROUTER Seat/smart] replied in 4017 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Sowing Mycospawn 3{G} 3/3 @43 (was @32) [Graveyard, opponent's] <- Graveyard Trespasser 3/3 @65 [Whenever Graveyard Trespasser enters or attacks, exile up to one target card from a graveyard. If a creature card was exiled this way, each opponent loses 1 life and you gain 1 life.]
+[Seat] [TALLY] smart=68 fast=0 auto=11 ai=0 textParses=0 avgSmart=6827ms avgFast=6827ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8687 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=69 fast=0 auto=11 ai=0 textParses=0 avgSmart=6853ms avgFast=6853ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 13240 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Survive the opponent's next turn and develop toward controlling their Eldrazi threats; don't spend mana that cannot be used profitably. NEXT: Pass with Overgrown Tomb untapped. Block Sowing Mycospawn with Graveyard Trespasser if it attacks; untap and reassess removal on my next turn.
+[OPENROUTER Seat/smart] replied in 8973 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=71 fast=0 auto=11 ai=0 textParses=0 avgSmart=6973ms avgFast=6973ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6090 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8696 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Survive the Eldrazi turn and keep priority to respond to any major threat; develop removal and pressure on my next turn. NEXT: Pass without tapping Overgrown Tomb. After the Labyrinth ability resolves, respond to opponent spells or activations; if nothing demands action, pass through their turn while preserving the option to block Mycospawn.
+[OPENROUTER Seat/smart] replied in 1721 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9931 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7978 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 8 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 13609 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Remove the Devourer before it can attack, while preserving enough pressure and resources to answer the known Emrakul. NEXT: Pass this upkeep without paying Graveyard Trespasser’s ward; in my main phase use Bitter Triumph on Devourer, then deploy the second Graveyard Trespasser if mana permits.
+[OPENROUTER Seat/smart] replied in 2480 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 8 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6908 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=79 fast=0 auto=11 ai=0 textParses=0 avgSmart=6994ms avgFast=6994ms
+[Seat] [ROUTER] play(main): 14 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7494 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Remove Devourer before it can attack, develop another blocker/threat, and retain Bitter Triumph for the known Emrakul or a later threat. NEXT: Use Professor Dellian Fel’s -3 to destroy Devourer, then cast the second Graveyard Trespasser with the remaining mana if the game offers that action.
+[OPENROUTER Seat/smart] replied in 2303 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 4799 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Devourer of Destiny 6/6 [untapped] [sick] @70 (was @69) [Battlefield, opponent's] <- Professor Dellian Fel @42 [-3: Destroy target creature.]
+[Seat] [ROUTER] play: activates Professor Dellian Fel @42 [-3: Destroy target creature.]
+[Seat] [TALLY] smart=82 fast=0 auto=11 ai=0 textParses=0 avgSmart=6916ms avgFast=6916ms
+[Seat] [ROUTER] play(main): 8 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 14829 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 11157 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Sowing Mycospawn 3/3 [tapped] @61 [Battlefield, opponent's] <- Bitter Triumph @41 1{B} [Destroy target creature or planeswalker.]
+[Seat] [ROUTER] play: casts Bitter Triumph @41 1{B} [Destroy target creature or planeswalker.]
+[OPENROUTER Seat/smart] replied in 9009 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 2 for CAST Bitter Triumph @72 1{B} [Destroy target creature or planeswalker.]
+[Seat] [AUTO-LEGAL] color(forced)->first
+[Seat] [TALLY] smart=85 fast=0 auto=12 ai=0 textParses=0 avgSmart=7084ms avgFast=7084ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7242 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=86 fast=0 auto=12 ai=0 textParses=0 avgSmart=7085ms avgFast=7085ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5512 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=87 fast=0 auto=12 ai=0 textParses=0 avgSmart=7067ms avgFast=7067ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 11247 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Overgrown Tomb @20 [{T}: Add {B}.]
+[Seat] [TALLY] smart=88 fast=0 auto=12 ai=0 textParses=0 avgSmart=7115ms avgFast=7115ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6982 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Mutavault @27 [{1}: Mutavault becomes a 2/2 creature with all creature types until end of turn. It's still a land.]
+[Seat] [TALLY] smart=89 fast=0 auto=12 ai=0 textParses=0 avgSmart=7113ms avgFast=7113ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5343 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 3: if you pass, nothing resolves: the board, hands, life and graveyards are unchanged. A preview cannot play out the opponent's turn.
+[OPENROUTER Seat/smart] replied in 4911 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Press the life-total advantage while preserving Professor Dellian Fel and prepare to answer the known Emrakul, the Promised End. NEXT: Pass to combat and attack with the available creatures; on the opponent's turn, respond to any major threat with removal or use Trespasser ward to tax targeting. Develop black mana next turn for interaction.
+[OPENROUTER Seat/smart] replied in 2155 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5662 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 2 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3446 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Mutavault, Graveyard Trespasser
+[OPENROUTER Seat/smart] replied in 4277 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Devourer of Destiny 5{C}{C} 6/6 @75 (was @70) [Graveyard, opponent's] <- Graveyard Trespasser 3/3 @65 [Whenever Graveyard Trespasser enters or attacks, exile up to one target card from a graveyard. If a creature card was exiled this way, each opponent loses 1 life and you gain 1 life.]
+[Seat] [ROUTER] play(react): 7 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6798 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Keep pressure on while preparing to answer the known Emrakul; prioritize a play this turn that improves the clock without exposing Fel unnecessarily. NEXT: Pass upkeep; in main, attack with Mutavault and Graveyard Glutton, play a land, then evaluate casting the second Graveyard Trespasser versus Culling Ritual based on the opponent's development. Hold interaction for Emrakul if possible.
+[OPENROUTER Seat/smart] replied in 2563 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Eldrazi ramp: Ancient Stirrings, Sowing Mycospawn, and Ugin’s Labyrinth accelerate large threats; respect the known Emrakul and their artifact mana.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 7 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4767 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=98 fast=0 auto=12 ai=0 textParses=0 avgSmart=6867ms avgFast=6867ms
+[Seat] [ROUTER] play(main): 13 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 24688 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Graveyard Trespasser 3/3 @63 2{B} [Ward—Discard a card. Whenever Graveyard Trespasser enters or attacks, exile up to one target card from a graveyard. If a creature card was exiled this way, each opponent loses 1 life and you gain 1 life. Daybound (If a player casts no spells during their own turn, it becomes night next turn.)]
+[OPENROUTER Seat/smart] replied in 9899 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 1 for CAST Graveyard Trespasser 3/3 @80 2{B} [Ward—Discard a card. Whenever Graveyard Trespasser enters or attacks, exile up to one target card from a graveyard. If a creature card was exiled this way, each opponent loses 1 life and you gain 1 life. Daybound (If a player casts no spells during their own turn, it becomes night next turn.)]
+[Seat] [TALLY] smart=100 fast=0 auto=12 ai=0 textParses=0 avgSmart=7076ms avgFast=7076ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8376 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[OPENROUTER Seat/smart] replied in 7334 ms with 1 tool call(s)
+[Seat] [ROUTER] targets: 2 -> Graveyard Glutton 4/4 @81 [Whenever Graveyard Glutton enters or attacks, exile up to two target cards from graveyards. For each creature card exiled this way, each opponent loses 1 life and you gain 1 life.]
+[Seat] [TALLY] smart=102 fast=0 auto=13 ai=0 textParses=0 avgSmart=7091ms avgFast=7091ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10206 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Blooming Marsh 1/1 @16 [{T}: Add {B} or {G}.]
+[OPENROUTER Seat/smart] replied in 7970 ms with 1 tool call(s)
+[Seat] [TALLY] smart=104 fast=0 auto=13 ai=0 textParses=0 avgSmart=7129ms avgFast=7129ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 11725 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=105 fast=0 auto=13 ai=0 textParses=0 avgSmart=7173ms avgFast=7173ms
+[Seat] [ROUTER] play(main): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 12404 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 3: if you activate Professor Dellian Fel: you life 24 -> 27; ForgeAI no change
+[OPENROUTER Seat/smart] replied in 11829 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Professor Dellian Fel @42 [+2: You gain 3 life.]
+[Seat] [TALLY] smart=107 fast=0 auto=13 ai=0 textParses=0 avgSmart=7266ms avgFast=7266ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5912 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Mutavault @27 [{1}: Mutavault becomes a 2/2 creature with all creature types until end of turn. It's still a land.]
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5628 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Graveyard Glutton
+[OPENROUTER Seat/smart] replied in 5540 ms with 1 tool call(s)
+[Seat] [ROUTER] targets: 1 -> Graveyard Glutton 4/4 @65 [Whenever Graveyard Glutton enters or attacks, exile up to two target cards from graveyards. For each creature card exiled this way, each opponent loses 1 life and you gain 1 life.]
+========== GAME OVER ==========
+outcome: A after 15 turns (AllOpponentsLost) in 814s
+--- full game log ---
+  MULLIGAN: Seat has mulliganed down to 6 cards.
+  MULLIGAN: Seat has kept a hand of 6 cards
+  MULLIGAN: ForgeAI has kept a hand of 7 cards
+  TURN: Turn 1 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  EFFECT_REPLACED: Blooming Marsh enters tapped unless you control two or fewer other lands.
+  LAND: Seat played Blooming Marsh (31)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 2 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Forest (110)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Forest (110) - {T}: Add {G}.
+  STACK_ADD: ForgeAI cast Ancient Stirrings
+  STACK_RESOLVE: Ancient Stirrings (100) - ForgeAI looks at the top five cards of their library. They may put a card.colorless from among them into their hand and put the rest on the bottom of their library in any order.
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 3 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LIFE: Life: Seat 20 > 18
+  EFFECT_REPLACED: As Overgrown Tomb enters, you may pay 2 life. If you don't, it enters tapped.
+  LAND: Seat played Overgrown Tomb (54)
+  MANA: Blooming Marsh (31) - {T}: Add {B} or {G}.
+  MANA: Overgrown Tomb (54) - {T}: Add {G}.
+  STACK_ADD: Seat cast Badgermole Cub
+  STACK_RESOLVE: Badgermole Cub - Creature 2 / 2
+  STACK_ADD: Seat triggered Badgermole Cub targeting [Blooming Marsh (31)]
+  STACK_RESOLVE: When this creature enters, earthbend 1. (Target land you control becomes a 0/0 creature with haste that's still a land. Put a +1/+1 counter on it. When it dies or is exiled, return it to the battlefield tapped.) (Targeting: [[Blooming Marsh (31)]]) [Zone Changer: Badgermole Cub (15)]
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 4 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Eldrazi Temple (116)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Forest (110) - {T}: Add {G}.
+  MANA: Eldrazi Temple (116) - {T}: Add {C}{C}. Spend this mana only to cast colorless Eldrazi spells or activate abilities of colorless Eldrazi.
+  STACK_ADD: ForgeAI cast Basking Broodscale
+  STACK_RESOLVE: Basking Broodscale - Creature 2 / 2
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 5 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  MANA: Overgrown Tomb (54) - {T}: Add {B}.
+  MANA: Blooming Marsh (31) - {T}: Add {B} or {G}.
+  STACK_ADD: Seat cast Abrupt Decay targeting [Basking Broodscale (78)]
+  ZONE_CHANGE: Basking Broodscale (78) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Abrupt Decay (44) - Destroy Basking Broodscale (78).
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Mutavault (47)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Badgermole Cub (15) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Badgermole Cub (15).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Badgermole Cub (15) deals 2 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 20 > 18
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 6 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Ugin's Labyrinth (81)
+  STACK_ADD: ForgeAI triggered Ugin's Labyrinth
+  STACK_RESOLVE: Imprint — When Ugin's Labyrinth enters, you may exile a colorless card with mana value 7 or greater from your hand. [Zone Changer: Ugin's Labyrinth (81)]
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Forest (110) - {T}: Add {G}.
+  MANA: Eldrazi Temple (116) - {T}: Add {C}{C}. Spend this mana only to cast colorless Eldrazi spells or activate abilities of colorless Eldrazi.
+  MANA: Ugin's Labyrinth (81) - {T}: Add {C}. If a card is exiled with Ugin's Labyrinth, add {C}{C} instead.
+  STACK_ADD: ForgeAI cast Sowing Mycospawn
+  STACK_ADD: ForgeAI triggered Sowing Mycospawn
+  EFFECT_REPLACED: Urza's Saga enters with a lore counter on it.
+  STACK_RESOLVE: When you cast this spell, search your library for a land card, put it onto the battlefield, then shuffle. [Card: Sowing Mycospawn (84), Activator: ForgeAI, SpellAbility: Sowing Mycospawn - Creature 3 / 3]
+  STACK_ADD: ForgeAI triggered Urza's Saga
+  STACK_RESOLVE: I — Urza's Saga gains "{T}: Add {C}." [Added once: Urza's Saga (132)]
+  STACK_RESOLVE: Sowing Mycospawn - Creature 3 / 3
+  MANA: Urza's Saga (132) - {T}: Add {C}.
+  STACK_ADD: ForgeAI cast Talisman of Resilience
+  STACK_RESOLVE: Talisman of Resilience
+  MANA: Talisman of Resilience (135) - {T}: Add {C}.
+  STACK_ADD: ForgeAI cast Soul-Guide Lantern
+  STACK_RESOLVE: Soul-Guide Lantern
+  STACK_ADD: ForgeAI triggered Soul-Guide Lantern targeting [Abrupt Decay (44)]
+  STACK_RESOLVE: When Soul-Guide Lantern enters, exile target card from a graveyard. (Targeting: [[Abrupt Decay (44)]]) [Zone Changer: Soul-Guide Lantern (127)]
+  PHASE: ForgeAI's End step
+  ZONE_CHANGE: Soul-Guide Lantern (127) was put into Graveyard from Battlefield.
+  STACK_ADD: ForgeAI activated Soul-Guide Lantern
+  STACK_RESOLVE: Soul-Guide Lantern (127) -  Exile each opponent's graveyard.
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 7 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  MANA: Overgrown Tomb (54) - {T}: Add {B}.
+  MANA: Blooming Marsh (31) - {T}: Add {B} or {G}.
+  MANA: Mutavault (47) - {T}: Add {C}.
+  STACK_ADD: Seat cast Professor Dellian Fel
+  EFFECT_REPLACED: Professor Dellian Fel enters with five loyalty counters on it.
+  STACK_RESOLVE: Professor Dellian Fel
+  STACK_ADD: Seat activated Professor Dellian Fel targeting [Sowing Mycospawn (84)]
+  ZONE_CHANGE: Sowing Mycospawn (84) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Professor Dellian Fel (34) - Destroy Sowing Mycospawn (84).
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Badgermole Cub (15) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Badgermole Cub (15).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Badgermole Cub (15) deals 2 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 18 > 16
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 8 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  STACK_ADD: ForgeAI triggered Urza's Saga
+  STACK_RESOLVE: II — Urza's Saga gains "{2}, {T}: Create a 0/0 colorless Construct artifact creature token with 'This token gets +1/+1 for each artifact you control.'" [Added once: Urza's Saga (132)]
+  LAND: ForgeAI played Ugin's Labyrinth (82)
+  STACK_ADD: ForgeAI triggered Ugin's Labyrinth
+  STACK_RESOLVE: Imprint — When Ugin's Labyrinth enters, you may exile a colorless card with mana value 7 or greater from your hand. [Zone Changer: Ugin's Labyrinth (82)]
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 9 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  MANA: Eldrazi Temple (116) - {T}: Add {C}{C}. Spend this mana only to cast colorless Eldrazi spells or activate abilities of colorless Eldrazi.
+  MANA: Ugin's Labyrinth (81) - {T}: Add {C}. If a card is exiled with Ugin's Labyrinth, add {C}{C} instead.
+  MANA: Forest (110) - {T}: Add {G}.
+  MANA: Talisman of Resilience (135) - {T}: Add {C}.
+  MANA: Urza's Saga (132) - {T}: Add {C}.
+  MANA: Ugin's Labyrinth (82) - {T}: Add {C}. If a card is exiled with Ugin's Labyrinth, add {C}{C} instead.
+  STACK_ADD: ForgeAI cast Kozilek's Command
+  MANA: Blooming Marsh (31) - {T}: Add {B} or {G}.
+  STACK_ADD: Seat cast Fatal Push targeting [Badgermole Cub (15)]
+  ZONE_CHANGE: Badgermole Cub (15) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Fatal Push (41) - Destroy Badgermole Cub (15).
+  STACK_RESOLVE: ForgeAI scried 6 card(s) to the top of the library
+  STACK_RESOLVE: Kozilek's Command (92) -  Target player scries X, then draws a card. (Targeting: ForgeAI) ForgeAI draws a card. Exile target creature with mana value X or less. (X=6)
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  STACK_ADD: Seat activated Professor Dellian Fel
+  LIFE: Life: Seat 18 > 17
+  STACK_RESOLVE: Professor Dellian Fel (34) - Seat draws a card. Seat loses 1 life.
+  EFFECT_REPLACED: Blooming Marsh enters tapped unless you control two or fewer other lands.
+  LAND: Seat played Blooming Marsh (30)
+  MANA: Overgrown Tomb (54) - {T}: Add {G}.
+  STACK_ADD: Seat activated Mutavault
+  STACK_RESOLVE: Mutavault (47) - Mutavault (47) has base power and toughness 2/2  and becomes a creature until end of turn.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Mutavault (47) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Mutavault (47).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Mutavault (47) deals 2 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 16 > 14
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 10 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  STACK_ADD: ForgeAI activated Ugin's Labyrinth
+  STACK_RESOLVE: Ugin's Labyrinth (81) - Put Emrakul, the Promised End (103) in its owner's hand.
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  STACK_ADD: ForgeAI triggered Urza's Saga
+  STACK_RESOLVE: III — Search your library for an artifact card with mana cost {0} or {1}, put it onto the battlefield, then shuffle. [Added once: Urza's Saga (132)]
+  ZONE_CHANGE: Urza's Saga (132) was put into Graveyard from Battlefield.
+  EFFECT_REPLACED: As Cavern of Souls enters, choose a creature type.
+  LAND: ForgeAI played Cavern of Souls (113)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Forest (110) - {T}: Add {G}.
+  STACK_ADD: ForgeAI cast Ancient Stirrings
+  STACK_RESOLVE: Ancient Stirrings (99) - ForgeAI looks at the top five cards of their library. They may put a card.colorless from among them into their hand and put the rest on the bottom of their library in any order.
+  MANA: Cavern of Souls (113) - {T}: Add one mana of any color. Spend this mana only to cast a creature spell of the chosen type, and that spell can't be countered.
+  MANA: Eldrazi Temple (116) - {T}: Add {C}{C}. Spend this mana only to cast colorless Eldrazi spells or activate abilities of colorless Eldrazi.
+  MANA: Talisman of Resilience (135) - {T}: Add {C}.
+  STACK_ADD: ForgeAI cast Sowing Mycospawn
+  STACK_ADD: ForgeAI triggered Sowing Mycospawn
+  STACK_RESOLVE: When you cast this spell, search your library for a land card, put it onto the battlefield, then shuffle. [Card: Sowing Mycospawn (86), Activator: ForgeAI, SpellAbility: Sowing Mycospawn - Creature 3 / 3]
+  STACK_ADD: ForgeAI triggered Ugin's Labyrinth
+  STACK_RESOLVE: Imprint — When Ugin's Labyrinth enters, you may exile a colorless card with mana value 7 or greater from your hand. [Zone Changer: Ugin's Labyrinth (83)]
+  STACK_RESOLVE: Sowing Mycospawn - Creature 3 / 3
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 11 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  STACK_ADD: Seat activated Professor Dellian Fel
+  LIFE: Life: Seat 17 > 20
+  STACK_RESOLVE: Professor Dellian Fel (34) - Seat gains 3 life.
+  MANA: Blooming Marsh (30) - {T}: Add {B} or {G}.
+  MANA: Mutavault (47) - {T}: Add {C}.
+  MANA: Blooming Marsh (31) - {T}: Add {B} or {G}.
+  STACK_ADD: Seat cast Graveyard Trespasser
+  STACK_RESOLVE: Graveyard Trespasser - Creature 3 / 3
+  STACK_ADD: Seat triggered Graveyard Trespasser targeting [Sowing Mycospawn (84)]
+  LIFE: Life: ForgeAI 14 > 13
+  LIFE: Life: Seat 20 > 21
+  STACK_RESOLVE: Whenever Graveyard Trespasser enters or attacks, exile up to one target card from a graveyard. If a creature card was exiled this way, each opponent loses 1 life and you gain 1 life. (Targeting: [[Sowing Mycospawn (84)]]) [Zone Changer: Graveyard Trespasser (8)]
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 12 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  STACK_ADD: ForgeAI activated Ugin's Labyrinth
+  STACK_RESOLVE: Ugin's Labyrinth (83) - Put Devourer of Destiny (98) in its owner's hand.
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Yavimaya, Cradle of Growth (128)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Eldrazi Temple (116) - {T}: Add {C}{C}. Spend this mana only to cast colorless Eldrazi spells or activate abilities of colorless Eldrazi.
+  MANA: Forest (110) - {T}: Add {G}.
+  MANA: Yavimaya, Cradle of Growth (128) - {T}: Add {G}.
+  MANA: Cavern of Souls (113) - {T}: Add one mana of any color. Spend this mana only to cast a creature spell of the chosen type, and that spell can't be countered.
+  MANA: Talisman of Resilience (135) - {T}: Add {C}.
+  MANA: Springleaf Drum (88) - {T}, Tap an untapped creature you control: Add one mana of any color.
+  STACK_ADD: ForgeAI cast Devourer of Destiny
+  STACK_ADD: ForgeAI triggered Devourer of Destiny targeting [Graveyard Trespasser (8)]
+  STACK_ADD: Seat triggered Graveyard Trespasser
+  STACK_RESOLVE: Ward—Discard a card. (Whenever this permanent becomes the target of a spell or ability an opponent controls, counter it unless that player discards a card.) [Source: Devourer of Destiny (98), Target: Graveyard Trespasser (8)]
+  STACK_RESOLVE: Devourer of Destiny - Creature 6 / 6
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 13 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  STACK_ADD: Seat activated Professor Dellian Fel targeting [Devourer of Destiny (98)]
+  MANA: Blooming Marsh (30) - {T}: Add {B} or {G}.
+  MANA: Blooming Marsh (31) - {T}: Add {G}.
+  STACK_ADD: Seat cast Bitter Triumph targeting [Sowing Mycospawn (86)]
+  ZONE_CHANGE: Sowing Mycospawn (86) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Bitter Triumph (56) - Destroy Sowing Mycospawn (86).
+  ZONE_CHANGE: Devourer of Destiny (98) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Professor Dellian Fel (34) - Destroy Devourer of Destiny (98).
+  MANA: Overgrown Tomb (54) - {T}: Add {B}.
+  STACK_ADD: Seat activated Mutavault
+  STACK_RESOLVE: Mutavault (47) - Mutavault (47) has base power and toughness 2/2  and becomes a creature until end of turn.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Mutavault (47) and Graveyard Trespasser (8) to attack ForgeAI.
+  STACK_ADD: Seat triggered Graveyard Trespasser targeting [Devourer of Destiny (98)]
+  LIFE: Life: ForgeAI 13 > 12
+  LIFE: Life: Seat 21 > 22
+  STACK_RESOLVE: Whenever Graveyard Trespasser enters or attacks, exile up to one target card from a graveyard. If a creature card was exiled this way, each opponent loses 1 life and you gain 1 life. (Targeting: [[Devourer of Destiny (98)]]) [Attacker: Graveyard Trespasser (8)]
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Mutavault (47).
+ForgeAI didn't block Graveyard Trespasser (8).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Mutavault (47) deals 2 combat damage to ForgeAI.
+  DAMAGE: Graveyard Trespasser (8) deals 3 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 12 > 7
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 14 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Ugin's Labyrinth (80)
+  STACK_ADD: ForgeAI triggered Ugin's Labyrinth
+  STACK_RESOLVE: Imprint — When Ugin's Labyrinth enters, you may exile a colorless card with mana value 7 or greater from your hand. [Zone Changer: Ugin's Labyrinth (80)]
+  STACK_ADD: ForgeAI activated Ugin's Labyrinth
+  STACK_RESOLVE: Ugin's Labyrinth (80) - Put Emrakul, the Promised End (103) in its owner's hand.
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 15 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  MANA: Overgrown Tomb (54) - {T}: Add {B}.
+  MANA: Blooming Marsh (30) - {T}: Add {G}.
+  MANA: Mutavault (47) - {T}: Add {C}.
+  STACK_ADD: Seat cast Graveyard Trespasser
+  EFFECT_REPLACED: If it is night, this permanent enters transformed.
+  STACK_RESOLVE: Graveyard Trespasser - Creature 3 / 3
+  STACK_ADD: Seat triggered Graveyard Glutton targeting [Basking Broodscale (78), Sowing Mycospawn (86)]
+  MANA: Blooming Marsh (31) - {T}: Add {B} or {G}.
+  LIFE: Life: ForgeAI 7 > 5
+  LIFE: Life: Seat 22 > 24
+  STACK_RESOLVE: Whenever Graveyard Glutton enters or attacks, exile up to two target cards from graveyards. For each creature card exiled this way, each opponent loses 1 life and you gain 1 life. (Targeting: [[Basking Broodscale (78), Sowing Mycospawn (86)]]) [Zone Changer: Graveyard Glutton (9)]
+  STACK_ADD: Seat activated Professor Dellian Fel
+  STACK_ADD: Seat activated Mutavault
+  STACK_RESOLVE: Mutavault (47) - Mutavault (47) has base power and toughness 2/2  and becomes a creature until end of turn.
+  LIFE: Life: Seat 24 > 27
+  STACK_RESOLVE: Professor Dellian Fel (34) - Seat gains 3 life.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Graveyard Glutton (8) to attack ForgeAI.
+  STACK_ADD: Seat triggered Graveyard Glutton targeting [Badgermole Cub (15)]
+  LIFE: Life: ForgeAI 5 > 4
+  LIFE: Life: Seat 27 > 28
+  STACK_RESOLVE: Whenever Graveyard Glutton enters or attacks, exile up to two target cards from graveyards. For each creature card exiled this way, each opponent loses 1 life and you gain 1 life. (Targeting: [[Badgermole Cub (15)]]) [Attacker: Graveyard Glutton (8)]
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Graveyard Glutton (8).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Graveyard Glutton (8) deals 4 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 4 > 0
+  PLAYER_CONTROL: Seat has restored control over themself
+  PLAYER_CONTROL: ForgeAI has restored control over themself
+  GAME_OUTCOME: Match Duration 13m : 09s
+  GAME_OUTCOME: Turn 8
+  GAME_OUTCOME: Seat has won because all opponents have lost
+  GAME_OUTCOME: ForgeAI has lost because life total reached 0
+  MATCH_RESULTS: Seat: 1 ForgeAI: 0 
+===============================

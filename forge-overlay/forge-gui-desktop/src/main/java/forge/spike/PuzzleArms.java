@@ -277,6 +277,8 @@ final class PuzzleArms {
 
         synchronized void note(String choice) { if (!stopped) choices.add(choice); }
 
+        synchronized void clearChoices() { choices.clear(); }
+
         /** True once the rollout passed {@link #maxDraws}: the runner ends the game, unsolved. */
         boolean stopped() { return stopped; }
 
