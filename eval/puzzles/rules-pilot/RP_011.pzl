@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 011 - Compleated in the Season
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:End the turn with Vraska, Betrayal's Sting on your battlefield with exactly 10 loyalty counters and you at exactly 18 life.
+Rule:ask-a-magic-judge-e5cdeb22ba36b383 | Compleated and Doubling Season are both replacement effects on the enters-with loyalty; the controller chooses the order (CR 616.1): doubled then reduced is 10, reduced then doubled is 8
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Vraska, Betrayal's Sting
+p0battlefield=Doubling Season;Swamp;Swamp;Swamp;Swamp;Swamp;Swamp
+p0library=Swamp;Swamp;Swamp
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+counters p0 Battlefield "Vraska, Betrayal's Sting" LOYALTY = 10
+life p0 = 18

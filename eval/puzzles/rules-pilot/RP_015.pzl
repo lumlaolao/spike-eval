@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 015 - The Phantom remembers
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:The opponent is at 4 life. Win this turn.
+Rule:cranial-insertion-e3171a4ba5bc5ded | A dies trigger that uses the creature's power uses its last-known information, pumps included (CR 608.2h)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Cavalcade of Calamity
+p0battlefield=Infernal Phantom;Spawning Pit;Mountain;Mountain
+p0library=Mountain;Mountain;Mountain
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

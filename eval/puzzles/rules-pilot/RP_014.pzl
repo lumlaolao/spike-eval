@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 014 - Hushed, not silenced
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:The opponent is at 2 life and controls Hushbringer. Win this turn.
+Rule:cranial-insertion-f4d18543b5633aac | Hushbringer stops enters-the-battlefield triggered abilities, not enters-with-counters replacement effects; Walking Ballista still enters with X counters
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Walking Ballista
+p0battlefield=Plains;Plains;Plains;Plains
+p0library=Plains;Plains;Plains
+p1life=2
+p1battlefield=Hushbringer
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

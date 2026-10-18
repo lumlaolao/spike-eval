@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 020 - The Turtle's gift
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:Your Ancient Adamantoise is enchanted with Gift of Immortality. End the turn with Ancient Adamantoise on your battlefield and ten Treasure tokens.
+Rule:cranial-insertion-cf61d74e7b55e994 | You order your simultaneous dies triggers (CR 603.3b); Gift's return resolving first leaves the Adamantoise's exile with nothing to find, but its Treasures are still made
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0battlefield=Ancient Adamantoise|Id:1;Gift of Immortality|AttachedTo:1;Spawning Pit
+p0library=Forest;Forest;Forest
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Ancient Adamantoise" = 1
+tokens p0 Battlefield "Treasure Token" = 10

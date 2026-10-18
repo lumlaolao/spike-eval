@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 006 - Finale storm order
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:End the turn with exactly six Goblin tokens on your battlefield.
+Rule:ask-a-magic-judge-d7f0f9990ce90ac7 | Storm counts only spells cast before it this turn; the spells Finale of Promise casts are cast one at a time, in the order you choose
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Finale of Promise
+p0graveyard=Empty the Warrens;Evermind
+p0battlefield=Mountain;Mountain;Mountain;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+tokens p0 Battlefield "Goblin Token" = 6

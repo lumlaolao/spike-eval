@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 004 - The damage is still there
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:The opponent's Darksteel Gargoyle was dealt 3 damage earlier this turn. End the turn with Darksteel Gargoyle in the opponent's graveyard.
+Rule:ask-a-magic-judge-5c785d53bd1ec837 | Damage stays marked until cleanup; a creature with lethal damage marked dies when it loses indestructible (CR 704.5g)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Turn to Frog;Shock
+p0battlefield=Island;Mountain
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Darksteel Gargoyle|Damage:3
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Darksteel Gargoyle" = 1

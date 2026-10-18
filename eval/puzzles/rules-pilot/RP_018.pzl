@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 018 - Too late for the Baloth
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:The opponent is at 2 life with Obstinate Baloth as the only card in hand. Win this turn.
+Rule:cranial-insertion-179d4e47f65915d2 | State-based actions are checked before triggered abilities are put on the stack (CR 704.3, 117.5); the opponent at 0 life loses before Baloth's life gain trigger
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Hopeless Nightmare
+p0battlefield=Swamp
+p0library=Swamp;Swamp;Swamp
+p1life=2
+p1hand=Obstinate Baloth
+p1library=Forest;Forest;Forest
+[acceptance]
+winner p0

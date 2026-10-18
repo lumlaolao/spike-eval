@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 007 - The blocker is gone
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You are at 6 life and the opponent's Colossal Dreadmaw is attacking you. Survive the turn.
+Rule:ask-a-magic-judge-80af40e521c485de | A blocked trampler whose blockers have all left combat assigns all its damage to the player (CR 702.19e); a blocker that stays takes lethal damage first
+[state]
+turn=1
+activeplayer=p1
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=6
+p0hand=Saving Grasp
+p0battlefield=Grizzly Bears;Island
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Colossal Dreadmaw|Attacking|Tapped
+p1library=Forest;Forest;Forest
+[acceptance]
+life p0 >= 1
+winner p0
