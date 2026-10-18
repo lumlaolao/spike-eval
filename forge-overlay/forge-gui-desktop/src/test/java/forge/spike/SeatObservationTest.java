@@ -150,6 +150,10 @@ public class SeatObservationTest {
         LineFindingProbeTest.rivalCasts(g, "Shallow Grave", null);
         String out = render(observerFor(g, 0), "");
         Assert.assertTrue(out.contains("Shallow Grave"), out);
+        Assert.assertFalse(out.contains(". gains "), "a subjectless sentence: " + out);
+        // A player with no untapped mana source (the opponent here) reads "none", not "{} up to 0 mana".
+        Assert.assertFalse(out.contains("{} up to 0 mana"), out);
+        Assert.assertTrue(out.contains("mana available: none (no untapped mana sources)"), out);
         Assert.assertFalse(java.util.regex.Pattern.compile(LlmSpikeGui.PlayerControllerLLM.ENGINE_FILTER_REGEX).matcher(out).find(),
                 "the engine's filter is shown: " + out);
     }

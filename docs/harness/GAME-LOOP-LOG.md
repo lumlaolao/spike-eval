@@ -756,4 +756,8 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
   `aSearchWithNoLiteralMatchFallsBackToEveryWord` (extended). evidence-tools-v4.
 - checked  naming a card (Cabal Therapy, Pithing Needle) accepts only card-database names, so a token's name is
   refused although `inspect` now answers by it. Test `aTokenNameIsNotACardName`.
+- FIXED  (sweep of g05-g09 prompts) "mana available: {} up to 0 mana (0 untapped sources; each counts its mana under
+  every colour ...)" on 149 rows reads "none (no untapped mana sources)"; Shallow Grave's stack line "... to the
+  battlefield. gains haste" reads "It gains haste". Test `aStackLineSaysItsFilterInWords` (extended).
+  observation-faithful-v41.
 
