@@ -1,0 +1,23 @@
+[metadata]
+Name:Rules pilot 114 - The wound waits for cleanup
+Goal:Win
+Turns:2
+Difficulty:Hard
+Description:The opponent has nine poison counters and controls Grizzly Bears and Sea Scryer; Sea Scryer has +3/+3 from Giant Growth until end of turn (a 4/4 now). You have one black mana floating (it empties at the end of this phase) and Virulent Wound in hand. Win before the end of the opponent's next turn.
+Rule:rulesguru-0c7d357086665eb3 | Until-end-of-turn effects end in the cleanup step and state-based actions are then checked (CR 514.2, 514.3a); the delayed "dies this turn" trigger still exists and gives the poison counter
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Virulent Wound
+p0manapool=B
+p0library=Island;Island;Island
+p1life=20
+p1counters=POISON=9
+p1battlefield=Grizzly Bears;Sea Scryer|Id:1
+p1library=Plains;Plains;Plains
+p1precast=Giant Growth->1
+[acceptance]
+winner p0
+count p1 Graveyard "Sea Scryer" = 1

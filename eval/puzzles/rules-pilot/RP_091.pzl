@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 091 - No life while it lives
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You are at 1 life and control Sun-Blessed Healer (3/1 lifelink) and a Mountain, and have Lightning Bolt in hand. The opponent controls Giant Cindermaw (4/3, players can't gain life). End the turn at 4 life.
+Rule:cranial-insertion-d0395ebcba3827a6 | Combat damage is dealt simultaneously, so Giant Cindermaw is still on the battlefield as lifelink would apply and its "can't gain life" stops the gain (CR 510.2, 702.15b)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=1
+p0hand=Lightning Bolt
+p0battlefield=Sun-Blessed Healer;Mountain
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Giant Cindermaw
+p1library=Plains;Plains;Plains
+[acceptance]
+life p0 = 4

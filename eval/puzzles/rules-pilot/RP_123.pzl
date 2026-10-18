@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 123 - The Dragon outlives the spell
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Rite of the Dragoncaller, a Mountain and two Islands, and have Boltwave and Negate in hand. The opponent is at 20 life. End the turn with two Dragon tokens and the opponent still at 20 life.
+Rule:cranial-insertion-d99fcc91670a9f4f | A cast trigger is independent of its spell (CR 603.2, 603.4): countering the spell does not remove the trigger
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Boltwave;Negate
+p0battlefield=Rite of the Dragoncaller;Mountain;Island;Island
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+tokens p0 Battlefield "Dragon Token" = 2
+life p1 = 20

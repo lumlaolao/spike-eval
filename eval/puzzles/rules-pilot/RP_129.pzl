@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 129 - Equipped before the check
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control Champion of the Flame (1/1; +2/+2 for each Aura and Equipment attached), an unattached Barbed Batterfist (equipped creature gets +1/-1) and a Mountain. The opponent is at 20 life with no creatures. End the turn with the opponent at 16 life.
+Rule:rulesguru-6d622ee4f61fc9ba | All continuous effects are applied before state-based actions are checked (CR 613, 704.3), so the -1 toughness never kills the Champion
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Champion of the Flame;Barbed Batterfist;Mountain
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 = 16

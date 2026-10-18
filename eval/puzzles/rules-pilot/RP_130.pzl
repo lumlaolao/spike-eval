@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 130 - The return that never comes
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Serra Angel. You control four Plains and an Island, and have Glimmerpoint Stag and Stifle in hand. End the turn with Serra Angel in exile.
+Rule:rulesguru-ea4050509a90b1c8 | A delayed triggered ability triggers only once (CR 603.7c); if it is countered, the exiled card never returns
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Glimmerpoint Stag;Stifle
+p0battlefield=Plains;Plains;Plains;Plains;Island
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Serra Angel
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Exile "Serra Angel" = 1

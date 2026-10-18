@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 088 - Second breakfast
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control Peregrin Took and three Plains, and have Field-Tested Frying Pan in hand. Your library is three Grizzly Bears. End the turn with exactly two cards in your library.
+Rule:ask-a-magic-judge-42761c1e6307a0d4 | Peregrin Took's replacement applies to each "create" separately (CR 614.1), so Field-Tested Frying Pan makes three Foods and a Halfling
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Field-Tested Frying Pan
+p0battlefield=Peregrin Took;Plains;Plains;Plains
+p0library=Grizzly Bears;Grizzly Bears;Grizzly Bears
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Library * = 2

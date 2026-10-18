@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 120 - Putting is not playing
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control a Forest and an Island and have not played a land this turn. You have Growth Spiral and two more Forests in hand. End the turn with three Forests on your battlefield.
+Rule:wizards-of-the-coast-release-notes-806a950272dd97a4 | Putting a land onto the battlefield with an effect is not playing a land (CR 305.4), so it does not use your land drop
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Growth Spiral;Forest;Forest
+p0battlefield=Forest;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Forest" = 3

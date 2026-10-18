@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 116 - One event, one Bat
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Desecrated Tomb, two Islands and two Swamps. Your graveyard holds four Grizzly Bears, and you have Skaab Ruinator and Raise Dead in hand. End the turn with exactly two Bat tokens.
+Rule:rulesguru-aee5d597b3e05cb5 | Exiling three cards as one cost is one event (CR 601.2h, 700.1), so Desecrated Tomb triggers once for Skaab Ruinator's cost
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Skaab Ruinator;Raise Dead
+p0battlefield=Desecrated Tomb;Island;Island;Swamp;Swamp
+p0graveyard=Grizzly Bears;Grizzly Bears;Grizzly Bears;Grizzly Bears
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+tokens p0 Battlefield "Bat Token" = 2

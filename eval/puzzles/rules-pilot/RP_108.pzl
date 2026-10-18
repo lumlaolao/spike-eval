@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 108 - Deflect without a draw
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:You are at 2 life and the opponent is at 3. The opponent's Hill Giant (3/3) and Grizzly Bears (2/2) are attacking you. You control Sworn Guardian (1/3), a Mountain and a Plains, and have Deflecting Palm in hand. Win this turn.
+Rule:rulesguru-fc4fd24ad801f839 | Deflecting Palm's damage is dealt right after the prevented combat damage, so both players can reach 0 at the same state-based check and the game is a draw (CR 104.4a, 704.3)
+[state]
+turn=1
+activeplayer=p1
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=2
+p0hand=Deflecting Palm
+p0battlefield=Sworn Guardian;Mountain;Plains
+p0library=Island;Island;Island
+p1life=3
+p1battlefield=Hill Giant|Attacking|Tapped;Grizzly Bears|Attacking|Tapped
+p1library=Forest;Forest;Forest
+[acceptance]
+winner p0

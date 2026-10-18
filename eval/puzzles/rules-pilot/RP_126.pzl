@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 126 - Only an escape escapes
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:Your graveyard holds Ox of Agonas and eight Grizzly Bears. You control two Mountains and three Swamps and have Rise from the Grave in hand; your library is three Grizzly Bears. End the turn with Ox of Agonas on your battlefield with a +1/+1 counter.
+Rule:rulesguru-817588f7a3cbb1fe | "Escapes with" applies only when the permanent escaped, that is, was cast with escape (CR 702.138c); a reanimated Ox gets no counter
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Rise from the Grave
+p0battlefield=Mountain;Mountain;Swamp;Swamp;Swamp
+p0graveyard=Ox of Agonas;Grizzly Bears;Grizzly Bears;Grizzly Bears;Grizzly Bears;Grizzly Bears;Grizzly Bears;Grizzly Bears;Grizzly Bears
+p0library=Grizzly Bears;Grizzly Bears;Grizzly Bears
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+counters p0 Battlefield "Ox of Agonas" P1P1 = 1

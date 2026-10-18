@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 111 - Innocence comes back wrong
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Enduring Innocence. You control three Swamps and two Forests, and have Come Back Wrong and Grizzly Bears in hand. Your library is three Colossal Dreadmaws. End the turn with exactly two cards in your library.
+Rule:cranial-insertion-0f4cf598dc4b3089 | Come Back Wrong returns the card before Enduring Innocence's dies trigger resolves, so that trigger finds it gone (CR 400.7, 603.6) and you keep the creature for the turn
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Come Back Wrong;Grizzly Bears
+p0battlefield=Swamp;Swamp;Swamp;Forest;Forest
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Enduring Innocence
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Library * = 2

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 124 - Face down, no shuffle
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:You control a face-down Blightsteel Colossus (a 2/2 with no abilities), two Mountains and a Swamp, and have Fling and Reanimate in hand. The opponent is at 20 life. End the turn with Blightsteel Colossus on your battlefield and the opponent at 18 life.
+Rule:rulesguru-cdd327f7bd9f4289 | A face-down permanent has no abilities (CR 708.2), so Blightsteel's shuffle replacement does not exist as it dies (CR 614.12) and the card goes to the graveyard
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Fling;Reanimate
+p0battlefield=Blightsteel Colossus|FaceDown;Mountain;Mountain;Swamp
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Blightsteel Colossus" = 1
+life p1 = 18

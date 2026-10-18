@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 122 - Which spell reaches the graveyard
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Dryad Militant (instants and sorceries go to exile instead of a graveyard). You control three Swamps and have Stab and Murder in hand. End the turn with Dryad Militant in the opponent's graveyard and one card in your graveyard.
+Rule:cranial-insertion-b5b251903eabd590 | A spell finishes resolving before state-based actions (CR 608.2n, 704.3): Stab's -2/-2 leaves the Militant on the battlefield as Stab is exiled, while Murder destroys it first
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Stab;Murder
+p0battlefield=Swamp;Swamp;Swamp
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Dryad Militant
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Dryad Militant" = 1
+count p0 Graveyard * = 1

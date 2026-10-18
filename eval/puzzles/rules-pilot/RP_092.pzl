@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 092 - Flying comes too late
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control Grizzly Bears and an Island, and have Jump in hand. The opponent is at 20 life and controls an untapped Hill Giant. End the turn with the opponent at 18 life.
+Rule:cranial-insertion-7429a10868a411e7 | Evasion is checked only as blockers are declared (CR 509.1b, 509.1h); flying given after a block does not unblock the attacker
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Jump
+p0battlefield=Grizzly Bears;Island
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 = 18

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 095 - Tinybones sees it first
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Tinybones, Bauble Burglar (your only creature) and five Swamps, and have Fraying Omnipotence in hand. The opponent has four Colossal Dreadmaws in hand. End the turn with two of the opponent's Colossal Dreadmaws in exile.
+Rule:cranial-insertion-ba494a0bf328f0e7 | A spell's instructions are followed in order with no state-based actions or sacrifices in between (CR 608.2c), so Tinybones still sees the discards before it is sacrificed
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Fraying Omnipotence
+p0battlefield=Tinybones, Bauble Burglar;Swamp;Swamp;Swamp;Swamp;Swamp
+p0library=Island;Island;Island
+p1life=20
+p1hand=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Exile "Colossal Dreadmaw" = 2

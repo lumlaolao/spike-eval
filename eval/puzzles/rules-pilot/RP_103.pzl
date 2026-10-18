@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 103 - Four cycles, four monsters
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:You have four Yidaro, Wandering Monster in hand and eight red mana in your mana pool; you have never cycled Yidaro before. End the turn with one Yidaro on your battlefield and three in your graveyard.
+Rule:rulesguru-9f73ae888f60f3c8 | Yidaro's trigger checks the cycle count as it resolves (CR 608.2h): cycle all four before any trigger resolves and each one enters (then the legend rule keeps one)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Yidaro, Wandering Monster;Yidaro, Wandering Monster;Yidaro, Wandering Monster;Yidaro, Wandering Monster
+p0manapool=R R R R R R R R
+p0library=Grizzly Bears;Grizzly Bears;Grizzly Bears;Grizzly Bears;Grizzly Bears;Grizzly Bears
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Yidaro, Wandering Monster" = 1
+count p0 Graveyard "Yidaro, Wandering Monster" = 3

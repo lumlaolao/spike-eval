@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 107 - Blink after damage
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:Heliod, God of the Sun is attacking (your devotion to white is exactly five: Heliod, Lone Missionary, Nyxborn Courser and Savannah Lions). The opponent is at 20 life with no creatures. You control a Plains and have Cloudshift in hand. End the turn at 24 life with the opponent at 15.
+Rule:rulesguru-085c123ffdfb2eb7 | A permanent that stops being a creature is removed from combat (CR 506.4); blinking Lone Missionary drops devotion to four for a moment, so Heliod would leave combat
+[state]
+turn=1
+activeplayer=p0
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=20
+p0hand=Cloudshift
+p0battlefield=Heliod, God of the Sun|Attacking|Tapped;Lone Missionary;Nyxborn Courser;Savannah Lions;Plains
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+life p0 = 24
+life p1 = 15

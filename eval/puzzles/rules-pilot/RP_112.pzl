@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 112 - The duplicate dies as a concierge
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:The opponent is at 20 life and controls Sinister Concierge and Serra Angel. You control two Islands and two Mountains, and have Flesh Duplicate and Fling in hand. End the turn with Serra Angel in exile and the opponent at 18 life.
+Rule:cranial-insertion-6c6d7ac5cbc04cb0 | A dies trigger looks back at the permanent as it last existed (CR 603.10a), so a Flesh Duplicate copying Sinister Concierge has the Concierge's dies trigger
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Flesh Duplicate;Fling
+p0battlefield=Island;Island;Mountain;Mountain
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Sinister Concierge;Serra Angel
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Exile "Serra Angel" = 1
+life p1 = 18

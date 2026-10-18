@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 093 - Not a draw
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:Both players are at 20 life. You control Heartless Hidetsugu equipped with Grafted Exoskeleton, and a Mountain, and have Lightning Bolt in hand. Win this turn.
+Rule:cranial-insertion-5302e0772221429d | Players who reach ten poison counters at the same time lose at the same state-based check, and the game is a draw (CR 704.5c, 104.4a)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lightning Bolt
+p0battlefield=Heartless Hidetsugu|Id:1;Grafted Exoskeleton|AttachedTo:1;Mountain
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

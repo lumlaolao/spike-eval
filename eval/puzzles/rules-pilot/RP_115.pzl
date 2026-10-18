@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 115 - Pair before the fight
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Tolsimir, Friend to Wolves, an unpaired Nightshade Peddler and two Forests, and have Wandering Wolf in hand. The opponent controls Colossal Dreadmaw (6/6). End the turn with Colossal Dreadmaw in the opponent's graveyard.
+Rule:ask-a-magic-judge-d053ae8b7515a475 | You order your simultaneous triggers (CR 603.3b): with the soulbond trigger resolving first, the Wolf has deathtouch when Tolsimir's trigger makes it fight
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Wandering Wolf
+p0battlefield=Tolsimir, Friend to Wolves;Nightshade Peddler;Forest;Forest
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Colossal Dreadmaw
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Colossal Dreadmaw" = 1
