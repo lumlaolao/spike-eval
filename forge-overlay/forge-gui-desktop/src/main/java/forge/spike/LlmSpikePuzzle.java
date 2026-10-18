@@ -650,8 +650,8 @@ public final class LlmSpikePuzzle {
         long durMs = System.currentTimeMillis() - t0;
         extra.put("pzl_sha256", pzlSha);
         extra.put("goal_bounded", bounded);
+        extra.put("acceptance", acceptanceStatus(main, acceptance));
         extra.put("acceptance_conditions", acceptance.size());
-        if (main != null) extra.put("acceptance", acceptanceStatus(main, acceptance));
         if (r != null) {
             extra.put("search_replays", r.replays);
             extra.put("search_budget", budget);
@@ -932,7 +932,6 @@ public final class LlmSpikePuzzle {
         String status = pl.status;
         List<String> logLines = pl.logLines;
         List<String> actions = solverActions(logLines, "Solver");
-        boolean accMet = pl.acceptanceMet;
         String accErr = pl.acceptanceError;
 
         System.out.println("========== PUZZLE OVER ==========");

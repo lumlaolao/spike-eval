@@ -67,6 +67,10 @@ def attempt_success(row):
         raise Refused("row for %s has unknown status %r" % (row.get("id"), status))
     if status == "solved" and row.get("tainted_by_deckout"):
         return False, "tainted"
+    if status == "solved" and row.get("acceptance") in ("rejected", "error"):
+        # An authored puzzle's [acceptance] section was rejected (or was never readable): the
+        # goal alone is not the question asked. Same rule the baseline reader applies.
+        return False, "acceptance"
     return status == "solved", None
 
 

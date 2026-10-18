@@ -25,9 +25,7 @@ first).
 import argparse
 import datetime
 import json
-import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -118,8 +116,6 @@ def cmd_build(a):
             "pzl": str(pzl.relative_to(REPO)),
             "pzl_sha256": pf.sha256_file(pzl),
         }
-        if pf.split_for(pid) != rec["split"]:
-            print("NOTE: %s split recompute differs" % pid)
         records.append(rec)
     m = {"schema": pf.SUITE_SCHEMA, "suite": "rules-pilot",
          "version": "1", "engine_sha": (REPO / "FORGE_COMMIT").read_text().strip() if (REPO / "FORGE_COMMIT").is_file() else "",
@@ -170,16 +166,19 @@ def cmd_gate(a):
     engine = (REPO / "FORGE_COMMIT").read_text().strip() if (REPO / "FORGE_COMMIT").is_file() else "unknown"
 
     def work(rec):
+        # Workers never touch the manifest's dict objects: cmd_gate saves from the main thread
+        # while other workers run, so every record is copied before it is written.
         if ids is None or rec["id"] in ids:
             pzl = pf.pzl_path(rec)
             row = prove_one(build, pzl, a.budget, out_root)
-            rec["proof"] = pb.proof_from_row(row, "search", engine, stamp)
+            proof = pb.proof_from_row(row, "search", engine, stamp)
             if row:
-                rec["proof"]["acceptance"] = row.get("acceptance")
-                rec["proof"]["acceptance_conditions"] = row.get("acceptance_conditions")
+                proof["acceptance"] = row.get("acceptance")
+                proof["acceptance_conditions"] = row.get("acceptance_conditions")
                 for k in ("unique", "unique_replays", "unique_budget", "second_line"):
                     if row.get(k) not in (None, ""):
-                        rec["proof"][k] = row[k]
+                        proof[k] = row[k]
+            rec = dict(rec, proof=proof)
         return rec
 
     from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -202,7 +201,7 @@ def cmd_gate(a):
     def workb(rec):
         if ids is None or rec["id"] in ids:
             pzl = pf.pzl_path(rec)
-            rec["baselines"] = baselines_one(build, pzl, a.rollouts, out_root)
+            rec = dict(rec, baselines=baselines_one(build, pzl, a.rollouts, out_root))
         return rec
 
     done = {}
@@ -212,6 +211,9 @@ def cmd_gate(a):
             done[r["id"]] = r
             save()
     m = save()
+    if a.write:
+        save_manifest(m, a.write)
+        print("wrote %s" % a.write)
 
     for r in m["puzzles"]:
         if ids is not None and r["id"] not in ids:
@@ -223,7 +225,54 @@ def cmd_gate(a):
             r["id"], p.get("status"), p.get("unique"), p.get("opponent_branches_beaten"),
             rb if rb is not None else -1,
             (b.get("pass") or {}).get("rate"), ",".join(x["acceptance"] or "err" for x in r.get("probes", []))))
+
+    # The gate is a gate: any puzzle failing one of its five criteria is a named failure and
+    # a non-zero exit, so a green run has to mean every checked pilot puzzle passed it.
+    failures = {}
+    checked = 0
+    for r in m["puzzles"]:
+        if ids is not None and r["id"] not in ids:
+            continue
+        checked += 1
+        fails = gate_failures(r, bound=a.bound)
+        if fails:
+            failures[r["id"]] = fails
+            for f in fails:
+                print("FAIL %s: %s" % (r["id"], f))
+    if failures:
+        print("GATE: %d of %d checked puzzle(s) failed" % (len(failures), checked))
+        return 1
+    print("GATE: all %d checked puzzle(s) passed the five criteria" % checked)
     return 0
+
+
+def gate_failures(rec, bound=0.05):
+    """Named failures against the pilot's five criteria, one per failing gate:
+    proof proven, acceptance reached, no second line within budget, random under the bound,
+    every recorded misreading probe rejected. Probes missing so far only warn in the report;
+    a recorded probe whose acceptance is not rejected fails, and a puzzle with no probe at
+    all is not yet through gate 3 (so a complete pilot breadth fails until each has one)."""
+    fails = []
+    p = rec.get("proof") or {}
+    if p.get("status") != "proven":
+        fails.append("proof is %s, not proven" % (p.get("status") or "missing"))
+    if p.get("acceptance") != "accepted":
+        fails.append("acceptance is %s, not accepted" % (p.get("acceptance") or "missing"))
+    if p.get("unique") != "yes":
+        fails.append("uniqueness is %s (a second line, or the hunt never ran)" % (p.get("unique") or "missing"))
+    b = (rec.get("baselines") or {}).get("random") or {}
+    rate = b.get("rate")
+    if rate is None:
+        fails.append("random arm has no rate")
+    elif rate >= bound:
+        fails.append("random arm solves %.3f (>= %.2f)" % (rate, bound))
+    probes = rec.get("probes") or []
+    if not probes:
+        fails.append("no misreading probe recorded yet")
+    for i, x in enumerate(probes):
+        if x.get("acceptance") != "rejected":
+            fails.append("probe %d was %s, not rejected" % (i, x.get("acceptance") or "unread"))
+    return fails
 
 
 def save_manifest(m, path):
@@ -246,9 +295,10 @@ def main(argv=None):
     g.add_argument("--ids", default=None)
     g.add_argument("--budget", type=int, default=1500)
     g.add_argument("--rollouts", type=int, default=200)
+    g.add_argument("--bound", type=float, default=0.05, help="random arm rate that fails the gate")
     g.add_argument("-j", "--jobs", type=int, default=4)
     g.add_argument("--manifest", default=None)
-    g.add_argument("--write", default=None)
+    g.add_argument("--write", default=None, help="also write the finished manifest here")
     a = ap.parse_args(argv)
     if a.cmd == "build":
         return cmd_build(a)

@@ -156,23 +156,15 @@ final class PuzzleSearch {
                 r.verdict = Verdict.DRIFT;
                 return r;
             }
-            if (!startsWith(ro.steps, new ArrayList<>())) {
-                drift = "rollout left its prefix";
-                r.drift = drift;
-                r.verdict = Verdict.DRIFT;
-                return r;
-            }
-            boolean hit = ro.solved && !key(solverSignature(ro.steps, solverSeat),
-                    solverSignature(ro.steps, solverSeat).size()).equals(huntMainSig);
+            List<Step> sig = solverSignature(ro.steps, solverSeat);
+            boolean hit = ro.solved && !key(sig, sig.size()).equals(huntMainSig);
             update(ro, hit ? 1 : 0);
-            r.replays = replays;
             if (hit) {
                 r.secondLine = ro.steps;
                 r.verdict = Verdict.PROVEN;
                 return r;
             }
         }
-        r.replays = replays;
         return r;
     }
 
