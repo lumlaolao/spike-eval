@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot smoke - Shock the Bears
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:Plumbing check for [acceptance], not a benchmark item. Accepted only if Grizzly Bears ends in the opponent's graveyard.
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Shock
+p0battlefield=Mountain
+p1life=20
+p1battlefield=Grizzly Bears
+[acceptance]
+count p1 Graveyard "Grizzly Bears" = 1
+life p1 = 20

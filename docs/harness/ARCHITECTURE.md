@@ -396,7 +396,7 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 | `random` | uniform over the same legal menus |
 | `ai` | Forge's AI, the opponent and a baseline |
 | `pass`, `first`, `script` | puzzle arms |
-| `search` | the puzzle prover: both seats draw from one shared line of choices (`PuzzleArms.Search`), and `PuzzleSearch` replays prefixes to find a winning line and beat every opponent reply on it |
+| `search` | the puzzle prover: both seats draw from one shared line of choices (`PuzzleArms.Search`), and `PuzzleSearch` replays prefixes to find a winning line and beat every opponent reply on it, then (rules puzzles) searches each solver deviation for a second solution; a rule puzzle's `[acceptance]` section (`PuzzleAcceptance`) decides what a solve is |
 
 - *Why the prover:* Forge's puzzle mode tests one opponent line, its AI's, so a solve can come from the AI
   blocking badly. A proof (`eval/BENCHMARK-V1.md`, phase 2) beats every opponent choice the engine offers, and

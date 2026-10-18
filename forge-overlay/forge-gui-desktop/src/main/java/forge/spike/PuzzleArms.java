@@ -249,11 +249,21 @@ final class PuzzleArms {
         final Random completion;
         final List<Step> taken = new ArrayList<>();
         String drift = null;
+        /** Draws past which the rollout is stopped (never inside the prefix): a random completion can loop
+         *  (an ability activated forever) until the wall-clock cap or the heap ends it. */
+        final int maxDraws;
+        private volatile boolean stopped = false;
 
-        Line(List<Step> prefix, long completionSeed) {
+        Line(List<Step> prefix, long completionSeed) { this(prefix, completionSeed, MAX_DRAWS); }
+
+        Line(List<Step> prefix, long completionSeed, int maxDraws) {
             this.prefix = prefix == null ? new ArrayList<>() : prefix;
             this.completion = new Random(completionSeed);
+            this.maxDraws = maxDraws;
         }
+
+        /** True once the rollout passed {@link #maxDraws}: the runner ends the game, unsolved. */
+        boolean stopped() { return stopped; }
 
         synchronized int draw(String seat, int bound) {
             int at = taken.size();
@@ -269,10 +279,22 @@ final class PuzzleArms {
             } else {
                 v = completion.nextInt(bound);
             }
+            if (stopped) return v;   // draws after the stop depend on when the game thread sees it: not kept
             if (taken.size() < TAPE_CAP_STEPS) taken.add(new Step(seat, bound, v));
+            if (taken.size() >= maxDraws && taken.size() > prefix.size()) stopped = true;
             return v;
         }
         static final int TAPE_CAP_STEPS = 200_000;
+        /** A proven puzzle's line is tens of draws; PZL_SEARCH_MAX_DRAWS overrides. */
+        static final int MAX_DRAWS = maxDrawsFromEnv();
+
+        private static int maxDrawsFromEnv() {
+            try {
+                String v = System.getenv("PZL_SEARCH_MAX_DRAWS");
+                if (v != null) return Math.max(1, Integer.parseInt(v.trim()));
+            } catch (NumberFormatException ignore) { }
+            return 3000;
+        }
     }
 
     /** The search arm: every draw comes from {@link #searchLine}, as a choice among a counted set of options. */

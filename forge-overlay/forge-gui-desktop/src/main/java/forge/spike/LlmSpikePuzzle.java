@@ -283,6 +283,8 @@ public final class LlmSpikePuzzle {
             if (kv.length == 2 && "Goal".equalsIgnoreCase(kv[0].trim())) goal = kv[1].trim();
         }
         requireEnforcedGoal(goal);
+        // A rules puzzle's acceptance state: read now, so a line it cannot read stops the run before any game.
+        if (sections.get("acceptance") != null) PuzzleAcceptance.parse(sections.get("acceptance"));
         final boolean bounded = goalIsBounded(sections);
         final String pzlSha = fileSha256(String.valueOf(file));
 
@@ -360,10 +362,15 @@ public final class LlmSpikePuzzle {
                 return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), false, "rollout threw: " + e);
             }
             if (!p.healthy) broken[0] = true;
-            return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), p.cleanSolve(), line.drift);
+            if ("invalid".equals(p.status) && line.drift == null)
+                return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), false, "rollout hit the wall-clock cap");
+            boolean solved = p.cleanSolve() && !line.stopped();
+            return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), solved, line.drift,
+                    String.join("\n", solverActions(p.logLines, "Solver")));
         };
         long t0 = System.currentTimeMillis();
-        PuzzleSearch.Result r = bounded ? new PuzzleSearch(g, "Solver", budget, lines, seed).prove() : null;
+        PuzzleSearch searcher = new PuzzleSearch(g, "Solver", budget, lines, seed);
+        PuzzleSearch.Result r = bounded ? searcher.prove() : null;
         String status = r == null ? "unscoreable" : r.verdict == PuzzleSearch.Verdict.PROVEN ? "proven"
                 : r.verdict == PuzzleSearch.Verdict.DRIFT ? "drift" : "not_found";
         Map<String, Object> extra = new LinkedHashMap<>();
@@ -377,6 +384,26 @@ public final class LlmSpikePuzzle {
                 status = "drift";
                 extra.put("search_drift", "the main line did not replay to the same solve");
             }
+        }
+        // One solution (eval/BENCHMARK-V1.md): a rules puzzle is searched for a second one by default.
+        int uniqueBudget = intOr(System.getenv().getOrDefault("PZL_UNIQUE_BUDGET",
+                sections.get("acceptance") != null ? String.valueOf(budget) : "0"), 0);
+        if ("proven".equals(status) && uniqueBudget > 0) {
+            PuzzleSearch.Uniqueness u = searcher.unique(r.line, uniqueBudget);
+            extra.put("uniqueness", u.verdict);
+            extra.put("uniqueness_deviations", u.deviations);
+            extra.put("uniqueness_exhausted", u.exhausted);
+            extra.put("uniqueness_replays", u.replays);
+            extra.put("uniqueness_unproven_alternatives", u.unprovenAlternatives);
+            if (u.second != null) {
+                extra.put("uniqueness_second_line", PuzzleSearch.lineText(u.second));
+                Played second = replay(file, id, sections, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
+                        new PuzzleArms.Line(u.second, 0));
+                extra.put("uniqueness_second_actions", solverActions(second.logLines, "Solver"));
+            }
+            if (u.drift != null) extra.put("uniqueness_drift", u.drift);
+            System.out.println("[PZL] search " + id + ": uniqueness " + u.verdict + " (" + u.deviations
+                    + " deviations, " + u.exhausted + " played out, " + u.replays + " rollouts)");
         }
         if (r != null && r.refutation != null && !"proven".equals(status)) {
             // The opponent reply that beat every line found, played out once, for the puzzle's audit.
@@ -401,6 +428,7 @@ public final class LlmSpikePuzzle {
         }
         if (main != null) {
             List<String> actions = solverActions(main.logLines, "Solver");
+            putAcceptance(extra, main);
             extra.put("log_sha256", logFingerprint(main.logLines));
             extra.put("solver_actions", actions.size());
             extra.put("actions", actions);
@@ -493,7 +521,16 @@ public final class LlmSpikePuzzle {
         }, "Game-puzzle");
         worker.setDaemon(true);
         worker.start();
-        worker.join(capMs);
+        // A search rollout past its choice cap is ended here, unsolved (PuzzleArms.Line.maxDraws).
+        PuzzleArms.Line searchLine = PuzzleArms.searchLine;
+        while (worker.isAlive() && System.currentTimeMillis() - t0 < capMs) {
+            worker.join(Math.max(1, Math.min(200, capMs - (System.currentTimeMillis() - t0))));
+            if (searchLine != null && searchLine.stopped() && worker.isAlive()) {
+                game.setGameOver(GameEndReason.Draw);
+                worker.join(10_000L);
+                break;
+            }
+        }
         boolean capped = worker.isAlive();
         if (capped) {
             System.out.println("[PZL] wall-clock cap reached; this puzzle is INVALID, not a failure");
@@ -534,6 +571,15 @@ public final class LlmSpikePuzzle {
 
         // An unbounded goal is UNSCOREABLE, not a result: the card is installed and the game runs,
         // but the limit never arrives, so a "solve" means "won eventually" rather than "won in N".
+        // A rules puzzle is solved when its acceptance state holds at the end, whoever won (PuzzleAcceptance).
+        List<String> acceptanceFailed = null;
+        if (sections.get("acceptance") != null && !capped) {
+            PuzzleAcceptance.Verdict av = PuzzleAcceptance.parse(sections.get("acceptance"))
+                    .evaluate(PuzzleAcceptance.of(game));
+            solved = av.accepted;
+            acceptanceFailed = av.failed;
+        }
+
         String status = capped ? "invalid"
                 : (!goalInstalled[0] || !bounded) ? "unscoreable"
                 : (solved ? "solved" : "failed");
@@ -549,15 +595,25 @@ public final class LlmSpikePuzzle {
         pl.winCond = winCond; pl.durMs = durMs; pl.goalInstalled = goalInstalled[0]; pl.goalOracle = goalOracle[0];
         pl.solverLoss = solverLoss; pl.oppLoss = oppLoss; pl.solverLossSpell = solverLossSpell;
         pl.oppLossSpell = oppLossSpell; pl.tainted = tainted; pl.logLines = logLines; pl.healthy = !worker.isAlive();
+        pl.acceptanceFailed = acceptanceFailed;
         return pl;
     }
 
+
+    /** The acceptance verdict on a result row, when the puzzle has an acceptance state. */
+    static void putAcceptance(Map<String, Object> extra, Played p) {
+        if (p.acceptanceFailed == null) return;
+        extra.put("acceptance", p.acceptanceFailed.isEmpty() ? "accepted" : "rejected");
+        extra.put("acceptance_failed", p.acceptanceFailed);
+    }
 
     /** What one rollout did, read off the finished game. */
     static final class Played {
         Game game; LobbyPlayer solverSeat;
         String status, winCond = "?", solverLoss, oppLoss, solverLossSpell, oppLossSpell;
         boolean solved, tainted, goalInstalled, healthy;
+        /** Null without an [acceptance] section; else the conditions that did not hold (empty: accepted). */
+        List<String> acceptanceFailed;
         String goalOracle = "";
         int turns = -1;
         long durMs;
@@ -615,6 +671,7 @@ public final class LlmSpikePuzzle {
         extra.put("opponent_loss_spell", oppLossSpell);
         extra.put("goal_bounded", bounded);
         extra.put("tainted_by_deckout", tainted);
+        putAcceptance(extra, pl);
         extra.put("taint_side", tainted ? ("Milled".equals(solverLoss) ? "solver" : "opponent") : "");
         // Puzzle-suite fields (eval/PUZZLES.md), additive: which rollout, which exact position, a
         // fingerprint of what happened (the verifier compares it), and the line when it is wanted.

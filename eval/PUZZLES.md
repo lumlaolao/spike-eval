@@ -87,8 +87,41 @@ python3 eval/puzzle_baselines.py prove --suite S.json [--ids a,b] --budget 1500 
 - `proven`: a strategy that wins against every opponent choice the engine offers, each leaf a Forge-scored
   solve; the main line replays twice to the same game log. `not_found`: the budget ran out, never "unsolvable".
   `--opponent ai` proves against the Forge AI's replies only.
+- A rollout stops after `PZL_SEARCH_MAX_DRAWS` choices (default 3000), outside its prefix only, and counts as
+  not solved: a random completion can loop (an ability activated forever) until the wall-clock cap or the heap
+  ends it, and those rollouts used to be reported as drift (prove-v1: PS_ELD1, PS_DOM0, PS_M204).
+- A subtree whose every line has been played is never replayed (rollouts are deterministic given their line),
+  and its solves are remembered.
 - Not yet branched on: divided damage (the arms split it evenly) and the engine seed (one seed per proof).
 - Why: `BENCHMARK-V1.md`, "What a puzzle must pass before it is frozen".
+
+## Rules puzzles: an acceptance state and one solution
+
+A rules puzzle (made from a question in `puzzles/modern/puzzles.jsonl`; triage in `eval/puzzles/rules/`) adds
+an `[acceptance]` section to its `.pzl`: one condition per line on the final engine state, all of which must hold.
+Forge ignores the section; `PuzzleAcceptance.java` reads it, and the puzzle is solved when the conditions hold
+when the game ends (the Forge goal, usually `Survive`, still bounds the turns), whoever won.
+
+```
+[acceptance]
+life p1 = 20                                       p0 is the solver, p1 the opponent
+count p1 Graveyard "Grizzly Bears" = 1             exact card name, or * for any card
+tokens p0 Battlefield "Goblin" = 2                 tokens only
+counters p0 Battlefield "Walking Ballista" P1P1 >= 3
+winner p0                                          p0, p1 or none
+```
+
+A line it cannot read stops the run before any game. Result rows carry `acceptance` (accepted or rejected) and
+`acceptance_failed` (each failed condition with what was there).
+
+**Uniqueness.** After a proof, a puzzle with an acceptance state (or any puzzle with `PZL_UNIQUE_BUDGET=N`) is
+searched for a second solution: every other option at every solver choice on the main line, looking for a line
+whose solver actions (its game-log actions) differ and which is itself proven against every opponent reply.
+`uniqueness`: `unique` (none found) or `multiple` (`uniqueness_second_line` and `uniqueness_second_actions`
+show it); `uniqueness_exhausted` of `uniqueness_deviations` deviations were played out completely, and when all
+were, "unique" is exhaustive rather than "not found within the budget". `uniqueness_unproven_alternatives`
+counts other solving lines an opponent reply beat (not solutions). Smoke checks: `eval/puzzles/rules-pilot/
+RP_SMOKE.pzl` (unique) and `RP_SMOKE2.pzl` (multiple).
 
 ## Running a model
 

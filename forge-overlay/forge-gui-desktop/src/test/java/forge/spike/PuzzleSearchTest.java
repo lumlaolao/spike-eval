@@ -30,6 +30,51 @@ public class PuzzleSearchTest {
         };
     }
 
+    /** The proven main line, then the uniqueness search over it with {@code extra} more rollouts. */
+    private static PuzzleSearch.Uniqueness unique(PuzzleSearch.Game g, int extra) {
+        PuzzleSearch s = new PuzzleSearch(g, "Solver", 500, 4, 7L);
+        PuzzleSearch.Result r = s.prove();
+        Assert.assertEquals(r.verdict, PuzzleSearch.Verdict.PROVEN);
+        return s.unique(r.line, extra);
+    }
+
+    @Test
+    public void aPuzzleWithOneSolvingStrategyIsUnique() {
+        PuzzleSearch.Uniqueness u = unique(toy((a, b, c) -> a == 2 && c == b), 300);
+        Assert.assertEquals(u.verdict, "unique");
+        Assert.assertNull(u.second);
+        Assert.assertEquals(u.deviations, 3, "a=0, a=1 and the other c");
+        Assert.assertEquals(u.exhausted, 3, "every line of every deviation was played");
+        Assert.assertTrue(u.replays < 60, "a played-out deviation is not replayed: " + u.replays);
+    }
+
+    @Test
+    public void aSecondSolvingStrategyIsFoundAndShown() {
+        PuzzleSearch.Uniqueness u = unique(toy((a, b, c) -> (a == 2 || a == 0) && c == b), 300);
+        Assert.assertEquals(u.verdict, "multiple");
+        Assert.assertNotEquals(u.second.get(0).value, 1);
+    }
+
+    @Test
+    public void aSecondLineThatNeedsTheOpponentToErrIsNotASecondSolution() {
+        PuzzleSearch.Uniqueness u = unique(toy((a, b, c) -> (a == 2 && c == b) || (a == 1 && b == 0)), 300);
+        Assert.assertEquals(u.verdict, "unique");
+        Assert.assertTrue(u.unprovenAlternatives >= 1, "the a=1 line was found and refuted");
+    }
+
+    @Test
+    public void choicesThatChangeNoSolverActionAreOneSolution() {
+        // A fourth solver draw d that the game ignores: lines differing only in d do the same thing.
+        PuzzleSearch.Game g = (prefix, seed) -> {
+            PuzzleArms.Line line = new PuzzleArms.Line(prefix, seed);
+            int a = line.draw("Solver", 3), b = line.draw("Opponent", 2), c = line.draw("Solver", 2);
+            line.draw("Solver", 2);
+            return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), a == 2 && c == b, line.drift,
+                    "a=" + a + " c=" + c);
+        };
+        Assert.assertEquals(unique(g, 300).verdict, "unique");
+    }
+
     @Test
     public void aLineThatAnswersEveryOpponentReplyIsProven() {
         // a = 2, then c must equal b: a strategy exists, but only one that answers each reply differently.
@@ -104,6 +149,23 @@ public class PuzzleSearchTest {
         } finally {
             PuzzleArms.searchLine = null;
         }
+    }
+
+    /** runs/puzzles/prove-v1: PS_ELD1 and PS_DOM0 hit the 10-minute cap and PS_M204 ran out of heap, each a
+     *  random completion looping, and each was then reported as drift. A rollout stops at a choice cap. */
+    @Test
+    public void aRolloutStopsAtTheChoiceCapButNeverInsideItsPrefix() {
+        List<Step> prefix = new ArrayList<>();
+        for (int i = 0; i < 5; i++) prefix.add(new Step("Solver", 2, 1));
+        PuzzleArms.Line line = new PuzzleArms.Line(prefix, 5L, 3);
+        for (int i = 0; i < 5; i++) {
+            line.draw("Solver", 2);
+            Assert.assertFalse(line.stopped(), "stopped inside the prefix at draw " + i);
+        }
+        line.draw("Opponent", 2);
+        Assert.assertTrue(line.stopped());
+        Assert.assertNull(line.drift);
+        Assert.assertFalse(new PuzzleArms.Line(prefix, 5L).stopped());
     }
 
     @Test

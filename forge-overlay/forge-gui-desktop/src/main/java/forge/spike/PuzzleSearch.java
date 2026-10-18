@@ -33,11 +33,13 @@ final class PuzzleSearch {
         Rollout play(List<Step> prefix, long completionSeed);
     }
 
-    /** What a rollout did: every draw, whether Forge scored it a solve, and any drift from the prefix. */
+    /** What a rollout did: every draw, whether Forge scored it a solve, any drift from the prefix, and what the
+     *  solver did (its actions in the game log), which tells two solving lines apart. */
     static final class Rollout {
-        final List<Step> steps; final boolean solved; final String drift;
-        Rollout(List<Step> steps, boolean solved, String drift) {
-            this.steps = steps; this.solved = solved; this.drift = drift;
+        final List<Step> steps; final boolean solved; final String drift; final String actions;
+        Rollout(List<Step> steps, boolean solved, String drift) { this(steps, solved, drift, null); }
+        Rollout(List<Step> steps, boolean solved, String drift, String actions) {
+            this.steps = steps; this.solved = solved; this.drift = drift; this.actions = actions;
         }
     }
 
@@ -55,9 +57,22 @@ final class PuzzleSearch {
         List<Step> refutation = null;
     }
 
+    /** The uniqueness search's answer: "unique" (no second solution found within the budget, never a proof
+     *  that none exists), "multiple" (a second strategy proven, in {@link #second}) or "drift". */
+    static final class Uniqueness {
+        String verdict = "unique";
+        List<Step> second = null;
+        int deviations = 0;             // solver choices on the main line, each other option searched
+        int exhausted = 0;              // deviations whose every line was played: none of them is a solution
+        int replays = 0;
+        int unprovenAlternatives = 0;   // other solving lines found that an opponent reply beat
+        String drift = null;
+    }
+
     private final Game game;
     private final String solverSeat;
     private final int budget;
+    private int cap;                    // the replay count this search stops at (budget, or a deviation's share)
     private final int linesPerNode;
     private final double explore;
     private final Random rng;
@@ -93,7 +108,8 @@ final class PuzzleSearch {
     Result prove() {
         Result r = new Result();
         List<Step> main = new ArrayList<>();
-        Boolean ok = prove(new ArrayList<>(), main);
+        cap = budget;
+        Boolean ok = prove(new ArrayList<>(), main, null, true);
         r.replays = replays;
         r.drift = drift;
         r.opponentBranches = opponentBranches;
@@ -110,20 +126,79 @@ final class PuzzleSearch {
 
     int replays() { return replays; }
 
-    private boolean outOfBudget() { return replays >= budget || drift != null; }
+    /** Search for a second solution beside the proven {@code main}, with {@code extra} more replays. Any other
+     *  solving line leaves the main line at a choice of the solver's or of the opponent's; the opponent's are
+     *  the proof's branches, so each other option at each solver choice is searched in turn for a line that
+     *  does something different (other solver actions) and is itself proven against every opponent reply. */
+    Uniqueness unique(List<Step> main, int extra) {
+        Uniqueness u = new Uniqueness();
+        int start = replays;
+        Rollout m = game.play(main, nextSeed++);
+        replays++;
+        if (m.drift != null || !m.solved) {
+            u.verdict = "drift";
+            u.drift = m.drift != null ? m.drift : "the main line did not solve on replay";
+            u.replays = replays - start;
+            return u;
+        }
+        String mainPrint = fingerprint(m);
+        List<List<Step>> devs = new ArrayList<>();
+        for (int j = 0; j < main.size(); j++) {
+            Step s = main.get(j);
+            if (!s.seat.equals(solverSeat) || s.bound < 2) continue;
+            for (int v = 0; v < s.bound; v++) {
+                if (v == s.value) continue;
+                List<Step> dev = new ArrayList<>(main.subList(0, j));
+                dev.add(new Step(s.seat, s.bound, v));
+                devs.add(dev);
+            }
+        }
+        u.deviations = devs.size();
+        int end = replays + extra;
+        int altsBefore = unprovenAlternatives;
+        for (int i = 0; i < devs.size() && replays < end && drift == null; i++) {
+            cap = replays + Math.max(4, (end - replays) / (devs.size() - i));
+            List<Step> found = new ArrayList<>();
+            if (Boolean.TRUE.equals(prove(devs.get(i), found, mainPrint, true))) {
+                u.verdict = "multiple";
+                u.second = found;
+                break;
+            }
+        }
+        if (drift != null) { u.verdict = "drift"; u.drift = drift; }
+        if ("unique".equals(u.verdict)) for (List<Step> d : devs) if (exhausted(d)) u.exhausted++;
+        u.unprovenAlternatives = unprovenAlternatives - altsBefore;
+        u.replays = replays - start;
+        return u;
+    }
+
+    private int unprovenAlternatives = 0;
+
+    /** What the solver did in a rollout: its game-log actions, or (a toy game) its draws. */
+    private String fingerprint(Rollout ro) {
+        if (ro.actions != null) return ro.actions;
+        StringBuilder sb = new StringBuilder();
+        for (Step s : ro.steps) if (s.seat.equals(solverSeat)) sb.append(s).append(' ');
+        return sb.toString();
+    }
+
+    private boolean outOfBudget() { return replays >= cap || drift != null; }
 
     /** True when every opponent reply after {@code prefix} is beaten; null when the budget ran out first.
-     *  {@code mainOut} receives the winning line the proof rests on. */
-    private Boolean prove(List<Step> prefix, List<Step> mainOut) {
-        String key = key(prefix, prefix.size());
+     *  {@code mainOut} receives the winning line the proof rests on. {@code avoid}: a solver fingerprint the
+     *  winning line must not have (the uniqueness search; it applies at the top only, since under an opponent
+     *  branch the solver may well answer as the main line does). {@code top}: this call may spend all of the
+     *  remaining budget finding its line. */
+    private Boolean prove(List<Step> prefix, List<Step> mainOut, String avoid, boolean top) {
+        String key = key(prefix, prefix.size()) + (avoid == null ? "" : "|avoid");
         Boolean memo = proven.get(key);
         if (memo != null) return memo;
         Set<String> tried = new HashSet<>();
         for (int attempt = 0; attempt < linesPerNode; attempt++) {
             // The root may spend the whole budget finding its line; an opponent branch gets a quarter of
             // what is left, so one unbeatable reply cannot starve the others.
-            int share = prefix.isEmpty() ? budget - replays : Math.max(8, (budget - replays) / 4);
-            List<Step> win = findWin(prefix, tried, share);
+            int share = top ? cap - replays : Math.max(8, (cap - replays) / 4);
+            List<Step> win = findWin(prefix, tried, share, avoid);
             if (win == null) return outOfBudget() ? null : Boolean.FALSE;
             tried.add(key(win, win.size()));
             boolean holds = true;
@@ -135,11 +210,12 @@ final class PuzzleSearch {
                     List<Step> alt = new ArrayList<>(win.subList(0, j));
                     alt.add(new Step(s.seat, s.bound, v));
                     opponentBranches++;
-                    Boolean sub = prove(alt, null);
+                    Boolean sub = prove(alt, null, null, false);
                     if (sub == null) return null;
                     if (!sub) {
                         holds = false;
-                        if (refutation == null || alt.size() < refutation.size()) refutation = alt;
+                        if (avoid != null) unprovenAlternatives++;
+                        else if (refutation == null || alt.size() < refutation.size()) refutation = alt;
                     }
                 }
             }
@@ -155,21 +231,51 @@ final class PuzzleSearch {
 
     /** A winning line through {@code prefix} not in {@code tried}, or null when {@code share} rollouts
      *  found none. */
-    private List<Step> findWin(List<Step> prefix, Set<String> tried, int share) {
-        for (int i = 0; i < share && !outOfBudget(); i++) {
+    private List<Step> findWin(List<Step> prefix, Set<String> tried, int share, String avoid) {
+        // A solve already played through this prefix (a played-out subtree is never replayed, so its solves
+        // are only here).
+        String pk = key(prefix, prefix.size());
+        for (Map.Entry<String, Rollout> e : solves.entrySet()) {
+            Rollout ro = e.getValue();
+            if (e.getKey().startsWith(pk) && !tried.contains(e.getKey())
+                    && (avoid == null || !avoid.equals(fingerprint(ro)))) return ro.steps;
+        }
+        for (int i = 0; i < share && !outOfBudget() && !exhausted(prefix); i++) {
             List<Step> start = select(prefix);
             Rollout ro = game.play(start, nextSeed++);
             replays++;
             if (ro.drift != null) { drift = ro.drift; return null; }
             if (!startsWith(ro.steps, prefix)) { drift = "rollout left its prefix"; return null; }
             update(ro);
-            if (ro.solved && !tried.contains(key(ro.steps, ro.steps.size()))) return ro.steps;
+            terminal.add(key(ro.steps, ro.steps.size()));
+            if (ro.solved) solves.put(key(ro.steps, ro.steps.size()), ro);
+            if (ro.solved && !tried.contains(key(ro.steps, ro.steps.size()))
+                    && (avoid == null || !avoid.equals(fingerprint(ro)))) return ro.steps;
+            if (exhausted(prefix)) return null;
         }
         return null;
     }
 
-    /** Descend the UCT tree from {@code prefix}: an untried choice first, else the best by UCT (the
-     *  opponent's best is the solver's worst). Returns the prefix to replay. */
+    /** Lines a rollout ended on: replaying one draws nothing more, so it is the only line below its key. */
+    private final Set<String> terminal = new HashSet<>();
+    private final Set<String> exhaustedKeys = new HashSet<>();
+    /** Every solving line played, by its key, in the order found. */
+    private final Map<String, Rollout> solves = new java.util.LinkedHashMap<>();
+
+    /** Every line through {@code path} has been played (the rollouts are deterministic given their line). */
+    boolean exhausted(List<Step> path) { return exhausted(key(path, path.size())); }
+
+    private boolean exhausted(String k) {
+        if (terminal.contains(k) || exhaustedKeys.contains(k)) return true;
+        Node n = tree.get(k);
+        if (n == null) return false;
+        for (int v = 0; v < n.bound; v++) if (!exhausted(k + new Step(n.seat, n.bound, v) + " ")) return false;
+        exhaustedKeys.add(k);
+        return true;
+    }
+
+    /** Descend the UCT tree from {@code prefix}, never into a played-out subtree: an untried choice first, else
+     *  the best by UCT (the opponent's best is the solver's worst). Returns the prefix to replay. */
     private List<Step> select(List<Step> prefix) {
         List<Step> path = new ArrayList<>(prefix);
         while (true) {
@@ -177,7 +283,10 @@ final class PuzzleSearch {
             if (n == null) return path;
             int pick = -1;
             List<Integer> untried = new ArrayList<>();
-            for (int v = 0; v < n.bound; v++) if (n.visits[v] == 0) untried.add(v);
+            String here = key(path, path.size());
+            boolean[] done = new boolean[n.bound];
+            for (int v = 0; v < n.bound; v++) done[v] = exhausted(here + new Step(n.seat, n.bound, v) + " ");
+            for (int v = 0; v < n.bound; v++) if (n.visits[v] == 0 && !done[v]) untried.add(v);
             if (!untried.isEmpty()) {
                 pick = untried.get(rng.nextInt(untried.size()));
                 path.add(new Step(n.seat, n.bound, pick));
@@ -186,6 +295,7 @@ final class PuzzleSearch {
             boolean mine = n.seat.equals(solverSeat);
             double best = -1;
             for (int v = 0; v < n.bound; v++) {
+                if (done[v]) continue;
                 double rate = n.wins[v] / (double) n.visits[v];
                 double score = (mine ? rate : 1 - rate) + explore * Math.sqrt(Math.log(n.total) / n.visits[v]);
                 if (score > best) { best = score; pick = v; }
