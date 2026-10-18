@@ -179,3 +179,30 @@ Newest last. Each entry says what was built, what it showed, and what is next.
   coin flips), which puzzles with fixed libraries do not care about.
 - **Tests.** `PuzzleSearchTest` (8): a strategy that answers each opponent reply is proven; a win that
   needs the opponent to err is not; drift is caught; every subset is reachable once.
+
+### 2026-10-18  prove-v1, the rules puzzles' shape, and the first 20 rules puzzles
+
+- **prove-v1 (34 tier-1 Forge built-ins, budget 1500, opponent = search):** 9 proven, 19 not found, 6 drift.
+  The drift was not non-determinism: a random completion looped (an ability activated forever) until the
+  wall-clock cap or the heap ended it (PS_ELD1, PS_DOM0 capped; PS_M204 OutOfMemoryError), and the truncated
+  rollout read as "left its prefix". A rollout now stops at `PZL_SEARCH_MAX_DRAWS` (3000) and counts as
+  unsolved. The 6 are re-run on the new build next; the 19 not found need more budget or are puzzles Forge's AI
+  "solved" only because its opponent erred (the refutation line says which reply beats them).
+- **Built for rules puzzles.** `[acceptance]` in a `.pzl` (`PuzzleAcceptance`): conditions on the final engine
+  state, solved when all hold. `PuzzleSearch.unique`: every other option at every solver choice on the main line
+  is searched for a proven line with other solver actions; a played-out subtree is never replayed, so a small
+  puzzle's "unique" is exhaustive (the Shock smoke puzzle: 19 rollouts, 3 of 3 deviations played out).
+- **Triage of the 996 questions** (`eval/puzzles/rules/TRIAGE.md`): 216 good, 559 maybe, 221 no; every card the
+  good ones need is in Forge; about 21 near-duplicate groups; a few answers to check (634 names the wrong card;
+  129 and 961 rest on 2024 rules changes the pinned Forge may not have).
+- **Pilot batch 1** (`eval/puzzles/rules-pilot/`, 20 questions, about 5 minutes each): 18 pass the gate (proven,
+  unique, the do-nothing arm rejected, the line exercises the rule); RP_011 is a Forge disagreement (Doubling
+  Season with compleated: the order is never offered and varies between games on one seed).
+- **What the pilot found in the harness** (fixed, harness-epoch-52): Finale of Promise ("up to" targets) never
+  offered with no target; City of Brass at 1 life never paid (Forge AI's mana sorter); block sets never checked as
+  a whole (menace, "must block"; Forge validates only for its GUI). In the prover: the search arm had a smaller
+  menu than the model (no floating mana), and never varied an order (trigger order puzzles passed on Forge's
+  default). Each of these could have made a puzzle look unique when it was not, or hidden a legal play from the
+  model in a real game.
+- **Next.** Re-verify batch 1 on epoch 52; batch 2 (30 questions) is being authored; then the rest of the 216
+  good questions, then the maybes; Luna games on epoch 52 continue in the background.
