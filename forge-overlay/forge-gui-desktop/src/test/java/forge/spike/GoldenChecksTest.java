@@ -2701,6 +2701,18 @@ public class GoldenChecksTest {
         source(src);
     }
 
+    /** A creature type is said in its own plural: Forge wrote Heritage Druid's cost "Tap three untapped Elfs you
+     *  control" on the ACTIVATE option (runs/loop/g10 turn 6). */
+    @Test
+    public void aTypeIsSaidInItsOwnPlural() {
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.typePlurals("Tap three untapped Elfs you control: Add {G}{G}{G}."),
+                "Tap three untapped Elves you control: Add {G}{G}{G}.");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.typePlurals("Sacrifice two Goblins and three Wolfs."),
+                "Sacrifice two Goblins and three Wolves.");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.typePlurals("Elves and Clues stay as they are."),
+                "Elves and Clues stay as they are.");
+    }
+
     /** The engine's name filter in words; a filter with anything but types and subtypes is left out, never shown raw
      *  (runs/loop/g05: "(must match: Card.nonLand)" beside Cabal Therapy's own "Choose a nonland card name"). */
     @Test

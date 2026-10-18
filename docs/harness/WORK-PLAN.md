@@ -6,13 +6,13 @@ when an item is finished or a new one is agreed, so the next session can pick up
 
 ## Handoff (2026-10-18; read this first)
 
-State of `main`: harness-epoch-50 (observation-faithful-v41, seat-tools-v11, lookahead-preview-v11;
+State of `main`: harness-epoch-51 (observation-faithful-v41, seat-tools-v11, lookahead-preview-v12;
 three engine patches, `ENGINE-PATCHES.md`). Acceptance and the gauntlets were last run on epoch 46 (the owner asked to skip them on 2026-10-18 night). A new machine reinstalls and rebuilds Forge first (`install.sh`, then the `mvn` build); on the Mac,
 set `JAVA_HOME` to JDK 17.
 
 Next steps, in order:
-1. **The game loop continues at g10.** g01-g09 are logged in GAME-LOOP-LOG.md. g05 to g08 each found a harness defect
-   (fixed as epochs 46 to 49), so no game yet counts towards "three in a row with nothing new". Play
+1. **The game loop continues at g11.** g01-g10 are logged in GAME-LOOP-LOG.md. g10 found two defects (fixed as
+   epoch 51), so no game yet counts towards "three in a row with nothing new". Play
    one game at a time on decks not used this round (the `game-loop` skill) until three in a row add nothing.
 2. **After any harness change, and once now for epoch 50**, run the three gauntlets with new seeds, each into its own
    directory, and check each with `python3 eval/gauntlet_scan.py <dir>` (it must say 0 defect lines):

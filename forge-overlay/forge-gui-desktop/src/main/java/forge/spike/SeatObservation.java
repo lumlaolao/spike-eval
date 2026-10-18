@@ -1129,7 +1129,7 @@ final class SeatObservation {
         return b.toString();
     }
 
-    private static String manaPool(Player p) {
+    static String manaPool(Player p) {
         try {
             forge.game.mana.ManaPool pool = p.getManaPool();
             if (pool == null || pool.isEmpty()) return "empty";

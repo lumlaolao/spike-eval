@@ -269,7 +269,7 @@ public class LookaheadProbeTest {
     }
 
     @Test
-    public void aTapAbilityIsPreviewedAndAManaAbilityIsNot() {
+    public void aTapAbilityAndAManaAbilityArePreviewed() {
         Game g = SeatObservationTest.bareGame();
         Player me = g.getPlayers().get(0), opp = g.getPlayers().get(1);
         forge.game.card.Card pinger = SeatObservationTest.card("Prodigal Pyromancer", me, forge.game.zone.ZoneType.Battlefield);
@@ -283,14 +283,17 @@ public class LookaheadProbeTest {
         Assert.assertTrue(theirs.isInZone(forge.game.zone.ZoneType.Battlefield));
         Assert.assertFalse(pinger.isTapped(), "the live permanent must not be tapped by a preview");
 
-        // A land drop is previewable (see aLineThatStartsWithALandDropIsPreviewed); a MANA ability is
-        // still refused: "add one mana" resolves to nothing the report can show.
+        // A mana ability is an ACTIVATE option of the menu and is previewed too: the seat asked for "cast Heritage
+        // Druid, cast Heritage Druid, then tap Gaea's Cradle" and was refused the whole line (runs/loop/g10 turn 6,
+        // `simulate {"option":2,"then":[4,6]}`). Its effect is the mana it adds, which the report shows.
         forge.game.card.Card forest = SeatObservationTest.card("Forest", me, forge.game.zone.ZoneType.Battlefield);
         forge.game.spellability.SpellAbility mana = null;
         for (forge.game.spellability.SpellAbility s : forest.getAllPossibleAbilities(me, false)) if (s.isManaAbility()) mana = s;
         Assert.assertNotNull(mana, "fixture: no mana ability on a Forest");
-        Assert.assertTrue(PlayerLookahead.previewLine(g, me, java.util.Arrays.asList(mana), 5L, null)
-                .startsWith("(a preview covers CAST, ACTIVATE and PLAY LAND options, not mana abilities)"));
+        String tapped = PlayerLookahead.previewLine(g, me, java.util.Arrays.asList(mana), 5L, null);
+        Assert.assertTrue(tapped.startsWith("if you activate Forest: you mana pool empty -> {G:1}"), tapped);
+        Assert.assertFalse(forest.isTapped(), "the live Forest must not be tapped by a preview");
+        Assert.assertTrue(me.getManaPool().isEmpty(), "the live pool must not be filled by a preview");
     }
 
     /** A line: two plays on one copy. With mana for both, both happen; with mana for one, the preview

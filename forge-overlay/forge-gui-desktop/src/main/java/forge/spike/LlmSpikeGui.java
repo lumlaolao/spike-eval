@@ -281,8 +281,11 @@ public final class LlmSpikeGui {
      *  Epoch 50 (2026-10-18): the header before the first turn says "before the first turn (opening hands)", not
      *  "Turn 0 null (active: ? | priority: ?)" (observation-faithful-v40; a sweep of runs/ found it on every mulligan);
      *  no mana reads "none", and a subjectless stack sentence reads "It gains" (v41); "cast CAST", "Choose a Creature to
-     *  name" and "top of Seat library" read as English. */
-    static final String HARNESS_EPOCH = "harness-epoch-50";
+     *  name" and "top of Seat library" read as English.
+     *  Epoch 51 (2026-10-18): a creature type is said in its own plural on an option ("Elves", not Forge's "Elfs"),
+     *  and a preview plays a mana ability and shows the mana it adds.
+     */
+    static final String HARNESS_EPOCH = "harness-epoch-51";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -1393,6 +1396,7 @@ public final class LlmSpikeGui {
             // A trigger's description carries the engine's own note with its card id ("[Zone Changer:
             // Orcish Bowmasters (37)]", runs/loop/g08): an engine id the faithful profile never shows.
             desc = desc.replaceAll("\\s*\\[[A-Za-z ]+: [^\\]]*\\(\\d+\\)\\]", "").trim();
+            desc = typePlurals(desc);
             // A permanent spell's description is Forge's "Fury - Creature 3 / 3", which says nothing of what it does:
             // the option shows the card's rules text instead (Fury's damage was nowhere on the menu).
             try {
@@ -5890,6 +5894,22 @@ public final class LlmSpikeGui {
 
         private static String plural(String noun) {
             return noun.endsWith("y") ? noun.substring(0, noun.length() - 1) + "ies" : noun + "s";
+        }
+
+        private static final Pattern TYPE_PLURAL = Pattern.compile("\\b([A-Z][a-z]+)s\\b");
+
+        /** A creature type in its own plural: Forge's text adds an "s" to the type, so Heritage Druid's cost read "Tap
+         *  three untapped Elfs you control" (runs/loop/g10). Forge's type list has the plural it should have used. */
+        static String typePlurals(String text) {
+            Matcher m = TYPE_PLURAL.matcher(text);
+            StringBuilder out = new StringBuilder();
+            while (m.find()) {
+                String one = m.group(1), own = forge.card.CardType.getPluralType(one);
+                boolean wrong = !own.equals(one) && !own.equals(m.group()) && forge.card.CardType.isASubType(one);
+                m.appendReplacement(out, Matcher.quoteReplacement(wrong ? own : m.group()));
+            }
+            m.appendTail(out);
+            return out.toString();
         }
 
         /** The engine's filter for a name in words ("a nonland card", "a Nissa planeswalker card"), or null when an
