@@ -2676,7 +2676,7 @@ public class GoldenChecksTest {
     @Test
     public void aNameFilterIsSaidInWords() {
         java.util.function.Function<String, String> name = LlmSpikeGui.PlayerControllerLLM::nameConstraint;
-        java.util.function.Function<String, String> cost = LlmSpikeGui.PlayerControllerLLM::plainCost;
+        java.util.function.Function<String, String> cost = LlmSpikeGui.PlayerControllerLLM::plainFilters;
         Assert.assertEquals(name.apply("Card.nonLand"), "a nonland card");
         Assert.assertEquals(name.apply("Creature"), "a creature card");
         Assert.assertEquals(name.apply("Card.Land+nonBasic"), "a nonbasic land card");
@@ -2698,6 +2698,9 @@ public class GoldenChecksTest {
         Assert.assertEquals(cost.apply("Return three Land.Basic to their owner's hand"), "Return three basic lands to their owner's hand");
         Assert.assertEquals(cost.apply("Tap four untapped Creature.withFlying you control"), "Tap four untapped creatures you control");
         Assert.assertEquals(cost.apply("Sacrifice a creature"), "Sacrifice a creature");
+        // A stack line (runs/loop/g07 T5, Shallow Grave).
+        Assert.assertEquals(cost.apply("ForgeAI returns a Creature.TopGraveyardCreature+YouCtrl card from their graveyard"),
+                "ForgeAI returns a creature from their graveyard");
         Assert.assertFalse(AskContract.ENGINE_FILTER.matcher(cost.apply("Exile a Card.cmcEQX card")).find());
     }
 
