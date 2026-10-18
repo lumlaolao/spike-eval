@@ -700,7 +700,7 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
 - FIXED  Berserk's resolve line in GAME HISTORY said "+10/+0" while the stack had said "+5/+0" and +5 applied:
   MagicStack built the line after the pump, re-reading the pumped power. Engine patch 3 (`MagicStack.java`) captures
   it before. Test `aPumpResolveLineSaysWhatTheStackPreviewSays` (failed before). harness-epoch-46.
-- PUZZLE T5 the plan cast Sneak Attack "leaving Volcanic untapped" with no red source in the arithmetic; T4 the fetch
+- model  PUZZLE candidate: T5 the plan cast Sneak Attack "leaving Volcanic untapped" with no red source in the arithmetic; T4 the fetch
   took a basic Island over Volcanic Island (rows 98, 137, 145).
 - model  T6 Brainstorm put back City of Traitors, the land its own plan meant to play next.
 - clean  TAKEN 0, LOST 0, SKIP 0, ai=0; plan audit 0 of 5 hold violations.

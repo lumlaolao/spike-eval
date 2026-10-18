@@ -182,7 +182,7 @@ model's plan text (the "plan-named" fallbacks went in harness-epoch-30, review M
     | the shuffle after a Ponder order | the ability (`MayShuffle`, or a Shuffle effect), not the message wording |
     | X in the mode and target questions | the announced `getXManaCostPaid` of the spell |
     | a card's name in a question | the engine's name, with an effect's engine id removed (one function, `safeName`) |
-    | a filter in a cost or a name ask ("another blue card", "a nonland card") | the engine's filter (`Card.Blue+Other`) said in words (`filterPhrase`); a filter with anything but types, subtypes and colours becomes "card" (the option quotes the card's text) |
+    | a filter in a cost or a name ask ("another blue card", "three black creatures", "a nonland card") | the engine's filter (`Card.Blue+Other`) said in words (`filterParts`, `plainCost`, `nameConstraint`), in every cost the seat reads under the faithful profile (legacy profiles keep the engine's text). A condition that is not a type, a real subtype, a colour or "other" is left out of a cost, and leaves a name ask to the card's own text |
     | CAST THIS GAME, LANDS PLAYED | the engine's `GameEventSpellAbilityCast` / `GameEventLandPlayed` (a copy is not a cast), not the log line's wording |
 
   - The one hint still worked out by the harness: "(need 1 more B)" compares the cost's coloured pips

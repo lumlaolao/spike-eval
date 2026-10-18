@@ -27,8 +27,9 @@ final class AskContract {
     /** In the state a count follows a lower-case word ("library (50)"); an engine id follows a card name, whose
      *  last word is capitalised ("Aether Vial (4)", "Show and Tell (104)"). */
     static final Pattern STATE_ENGINE_ID = Pattern.compile("\\b[A-Z][A-Za-z']* \\(\\d+\\)");
-    /** Forge's filter syntax ("Card.nonLand", "Creature.cmcEQX", "Planeswalker.Nissa"): runs/loop/g05 showed it raw. */
-    static final Pattern ENGINE_FILTER = Pattern.compile("\\b(?:Card|Creature|Permanent|Land|Artifact|Enchantment|Planeswalker|Spell)\\.[A-Za-z!][A-Za-z]");
+    /** Forge's filter syntax ("Card.nonLand", "Creature.cmcEQX", "Eldrazi.Spawn"): runs/loop/g05 showed it raw. The same
+     *  regex as LlmSpikeGui.ENGINE_FILTER_REGEX and match_review.ENGINE_FILTER (eval/test_match_review.py). */
+    static final Pattern ENGINE_FILTER = Pattern.compile("\\b[A-Z][a-z]+\\.[a-z]*[A-Z!][A-Za-z]");
     static final Pattern RANGE = Pattern.compile("Choose between (\\d+) and (\\d+) of these");
     static final Pattern NUMBER_RANGE = Pattern.compile("Every integer from (-?\\d+) through (-?\\d+) inclusive is legal");
     static final Pattern HAND_TAG = Pattern.compile("@(\\d+) \\((castable[^)]*|payable, not castable now|need [^)]*|not castable now)\\)");

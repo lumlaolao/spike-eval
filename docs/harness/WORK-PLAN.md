@@ -6,19 +6,20 @@ when an item is finished or a new one is agreed, so the next session can pick up
 
 ## Handoff (2026-10-18; read this first)
 
-State of `main`: harness-epoch-47 (observation-faithful-v37, seat-tools-v11, lookahead-preview-v11; three engine
-patches, `ENGINE-PATCHES.md`). Acceptance and the three gauntlets pass on it; the latest records are in
-`ACCEPTANCE.md`. A new machine reinstalls and rebuilds Forge first (`install.sh`, then the `mvn` build). On the Mac,
+State of `main` after PR #255: harness-epoch-47 (observation-faithful-v37, seat-tools-v11, lookahead-preview-v11;
+three engine patches, `ENGINE-PATCHES.md`). Its acceptance run is recorded in `ACCEPTANCE.md`; the gauntlets were last
+run on epoch 46. A new machine reinstalls and rebuilds Forge first (`install.sh`, then the `mvn` build); on the Mac,
 set `JAVA_HOME` to JDK 17.
 
 Next steps, in order:
 1. **The game loop continues at g07.** g01-g06 are logged in GAME-LOOP-LOG.md. g06 and the review of g05 each found a
    harness defect (fixed as epochs 46 and 47), so no game yet counts towards "three in a row with nothing new". Play
    one game at a time on decks not used this round (the `game-loop` skill) until three in a row add nothing.
-2. **After any harness change**, rerun the three gauntlets with new seeds:
-   `FORGE_HOME=<checkout> bash eval/keyword_gauntlet.sh <out> 6`, then with `GAUNTLET_POLICY=random
-   GAUNTLET_SEED=<salt>`, then also with `GAUNTLET_TOOLS=1`; `python3 eval/gauntlet_scan.py <out>` must say 0 defect
-   lines each time.
+2. **After any harness change, and once now for epoch 47**, run the three gauntlets with new seeds, each into its own
+   directory, and check each with `python3 eval/gauntlet_scan.py <dir>` (it must say 0 defect lines):
+   - `FORGE_HOME=<checkout> bash eval/keyword_gauntlet.sh <dir-first> 6`
+   - `FORGE_HOME=<checkout> GAUNTLET_POLICY=random GAUNTLET_SEED=<salt> bash eval/keyword_gauntlet.sh <dir-random> 6`
+   - `FORGE_HOME=<checkout> GAUNTLET_POLICY=random GAUNTLET_SEED=<salt> GAUNTLET_TOOLS=1 bash eval/keyword_gauntlet.sh <dir-tools> 6`
 3. Owner decisions still open (do not start without them): E4, E6, E5, then E7 (paid, cost first); the Luna puzzle
    run; C3.
 

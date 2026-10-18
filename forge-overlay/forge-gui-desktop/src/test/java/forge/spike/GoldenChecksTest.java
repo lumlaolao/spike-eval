@@ -2675,20 +2675,30 @@ public class GoldenChecksTest {
      *  (runs/loop/g05: "(must match: Card.nonLand)" beside Cabal Therapy's own "Choose a nonland card name"). */
     @Test
     public void aNameFilterIsSaidInWords() {
-        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.nameConstraint("Card.nonLand"), "a nonland card");
-        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.nameConstraint("Creature"), "a creature card");
-        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.nameConstraint("Card.Land+nonBasic"), "a nonbasic land card");
-        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.nameConstraint("Card.Artifact"), "an artifact card");
-        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.nameConstraint("Planeswalker.Nissa"), "a Nissa planeswalker card");
-        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.nameConstraint("Card.nonLand+nonCreature"), "a nonland noncreature card");
-        Assert.assertNull(LlmSpikeGui.PlayerControllerLLM.nameConstraint("Creature.cmcEQX"));
-        Assert.assertNull(LlmSpikeGui.PlayerControllerLLM.nameConstraint("Card.OppOwn+!token+nonCopiedSpell"));
-        Assert.assertNull(LlmSpikeGui.PlayerControllerLLM.nameConstraint(null));
-        // The same words in a cost: Force of Will's pitch read "Exile a Card.Blue+Other card from your hand".
-        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.plainCost("Pay 1 life, Exile a Card.Blue+Other card from your hand"),
+        java.util.function.Function<String, String> name = LlmSpikeGui.PlayerControllerLLM::nameConstraint;
+        java.util.function.Function<String, String> cost = LlmSpikeGui.PlayerControllerLLM::plainCost;
+        Assert.assertEquals(name.apply("Card.nonLand"), "a nonland card");
+        Assert.assertEquals(name.apply("Creature"), "a creature card");
+        Assert.assertEquals(name.apply("Card.Land+nonBasic"), "a nonbasic land card");
+        Assert.assertEquals(name.apply("Card.Artifact"), "an artifact card");
+        Assert.assertEquals(name.apply("Planeswalker.Nissa"), "a Nissa planeswalker card");
+        Assert.assertEquals(name.apply("Card.Elf"), "an Elf card");
+        Assert.assertEquals(name.apply("Card.nonLand+nonCreature"), "a nonland noncreature card");
+        // A condition that is not a type, a subtype or a colour leaves the name ask to the card's own text.
+        Assert.assertNull(name.apply("Creature.cmcEQX"));
+        Assert.assertNull(name.apply("Card.Self"));
+        Assert.assertNull(name.apply("Card.OppOwn+!token+nonCopiedSpell"));
+        Assert.assertNull(name.apply(null));
+        // Costs: Force of Will's pitch read "Exile a Card.Blue+Other card from your hand".
+        Assert.assertEquals(cost.apply("Pay 1 life, Exile a Card.Blue+Other card from your hand"),
                 "Pay 1 life, Exile another blue card from your hand");
-        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.plainCost("Sacrifice a creature"), "Sacrifice a creature");
-        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.plainCost("Exile a Card.cmcEQX card"), "Exile a card");
+        Assert.assertEquals(cost.apply("Exile two Card.Blue+Other cards from your hand"), "Exile two other blue cards from your hand");
+        Assert.assertEquals(cost.apply("Sacrifice a Creature.Black"), "Sacrifice a black creature");
+        Assert.assertEquals(cost.apply("Sacrifice three Creature.Black"), "Sacrifice three black creatures");
+        Assert.assertEquals(cost.apply("Return three Land.Basic to their owner's hand"), "Return three basic lands to their owner's hand");
+        Assert.assertEquals(cost.apply("Tap four untapped Creature.withFlying you control"), "Tap four untapped creatures you control");
+        Assert.assertEquals(cost.apply("Sacrifice a creature"), "Sacrifice a creature");
+        Assert.assertFalse(AskContract.ENGINE_FILTER.matcher(cost.apply("Exile a Card.cmcEQX card")).find());
     }
 
     // ------------------------------------------------------------------ choices Forge's AI made outright until 2026-10-15
