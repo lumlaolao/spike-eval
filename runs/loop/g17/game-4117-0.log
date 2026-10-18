@@ -63,3 +63,19 @@ Read cards: 857 files in 0 ms (8 parts) using thread pool
 [Seat] [ROUTER] play: land Mountain
 [Seat] [TALLY] smart=9 fast=0 auto=0 ai=0 textParses=0 avgSmart=4611ms avgFast=4611ms
 [Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5891 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 4898 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Goblin Lackey 1/1 [untapped] [sick] @12 [Battlefield, opponent's] <- Chain Lightning @1 {R} [Chain Lightning deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may choose a new target for that copy.]
+[Seat] [ROUTER] play: casts Chain Lightning @1 {R} [Chain Lightning deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may choose a new target for that copy.]
+[Seat] [TALLY] smart=11 fast=0 auto=0 ai=0 textParses=0 avgSmart=4753ms avgFast=4753ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3823 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=12 fast=0 auto=0 ai=0 textParses=0 avgSmart=4676ms avgFast=4676ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6297 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 3: if you pass, nothing resolves: the board, hands, life and graveyards are unchanged. A preview cannot play out the opponent's turn.
+[OPENROUTER Seat/smart] replied in 2633 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=14 fast=0 auto=0 ai=0 textParses=0 avgSmart=4645ms avgFast=4645ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
