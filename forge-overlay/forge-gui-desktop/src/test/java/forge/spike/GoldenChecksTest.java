@@ -2700,7 +2700,19 @@ public class GoldenChecksTest {
         Assert.assertEquals(cost.apply("Sacrifice a creature"), "Sacrifice a creature");
         // A stack line (runs/loop/g07 T5, Shallow Grave).
         Assert.assertEquals(cost.apply("ForgeAI returns a Creature.TopGraveyardCreature+YouCtrl card from their graveyard"),
-                "ForgeAI returns a creature from their graveyard");
+                "ForgeAI returns a creature card from their graveyard");
+        // Recorded stack lines across runs/ (2026-10-18 sweep): who controls it, a chosen name, a bare filter.
+        Assert.assertEquals(cost.apply("ForgeAI chooses a Card.nonCreature+nonLand card from it."), "ForgeAI chooses a noncreature nonland card from it.");
+        Assert.assertEquals(cost.apply("Deals 1 damage to Creature.OppCtrl."), "Deals 1 damage to creatures an opponent controls.");
+        Assert.assertEquals(cost.apply("Deals 3 damage to Creature.nonElemental."), "Deals 3 damage to non-Elemental creatures.");
+        Assert.assertEquals(cost.apply("They discard all of type: Card.NamedCard card."), "They discard all of type: cards with the chosen name.");
+        Assert.assertEquals(cost.apply("Seat searches their library for a Remembered.sameName card, reveals it"),
+                "Seat searches their library for a card with the same name, reveals it");
+        Assert.assertEquals(cost.apply("deals 0 damage to Creature.ControlledBy TargetedOrController. (X=0)"),
+                "deals 0 damage to creatures that player or that planeswalker's controller controls. (X=0)");
+        Assert.assertEquals(cost.apply("Seat puts a Creature.YouCtrl card from their hand onto the battlefield"),
+                "Seat puts a creature card from their hand onto the battlefield");
+        Assert.assertEquals(cost.apply("Deals 2 damage to Creature.withFlying."), "Deals 2 damage to the creatures the card describes.");
         Assert.assertFalse(AskContract.ENGINE_FILTER.matcher(cost.apply("Exile a Card.cmcEQX card")).find());
     }
 

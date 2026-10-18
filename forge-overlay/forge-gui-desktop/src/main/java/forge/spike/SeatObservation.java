@@ -88,7 +88,9 @@ final class SeatObservation {
      *  v37 (2026-10-17): the guide lists every hand tag the seat can see ("castable by an alternative cost", "castable
      *  only with ...", "payable, not castable now") and says that a mana ability's ACTIVATE only fills the pool. */
     // v38 (2026-10-18): engine filters in stack and history lines are said in words (runs/loop/g07 T5, Shallow Grave).
-    static final String VERSION = "observation-faithful-v38";
+    // v39 (2026-10-18): who controls it, a chosen or shared name, and a bare filter ("creatures an opponent controls")
+    // are said too; a condition that cannot be said reads "the creatures the card describes" (sweep of runs/).
+    static final String VERSION = "observation-faithful-v39";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
      *  Every section named here is one {@link #render} prints. */

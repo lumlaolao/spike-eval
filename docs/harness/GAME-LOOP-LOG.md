@@ -713,3 +713,10 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
   filters in words too ("returns a creature from their graveyard"), in `SeatObservation.redact`.
   Test `aStackLineSaysItsFilterInWords`. observation-faithful-v38, harness-epoch-48.
 
+### filter sweep  2026-10-18  every recorded decision prompt under runs/ (18,613 files)
+- FIXED  engine filters in stack lines that the first translation lost meaning on: Duress "chooses a
+  Card.nonCreature+nonLand card" (1407 rows), Cabal Therapy "discard all of type: Card.NamedCard card" (480), "a
+  Remembered.sameName card" (582), Boiling Earth "Deals 1 damage to Creature.OppCtrl." (239), Bonfire "to
+  Creature.ControlledBy TargetedOrController" (200). Control, a chosen or shared name and a bare filter are said in
+  words; an unsayable condition reads "the creatures the card describes". observation-faithful-v39, harness-epoch-49.
+
