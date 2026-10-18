@@ -108,6 +108,16 @@ final class PuzzleArms {
         return new ArrayList<>(all.subList(0, subsetSize(r, lo, hi)));
     }
 
+    /** An order of n options, one draw per place (n, n-1, ... 2 options): the search arm's answer to an order ask,
+     *  where {@link #subset} would keep the given order. */
+    static List<Integer> permutation(Random r, int n) {
+        List<Integer> left = new ArrayList<>();
+        for (int i = 0; i < n; i++) left.add(i);
+        List<Integer> out = new ArrayList<>();
+        while (!left.isEmpty()) out.add(left.remove(r.nextInt(left.size())));
+        return out;
+    }
+
     /** Base for every arm Random: a tape of what was drawn, and drift/exhaustion flags. */
     abstract static class ArmRandom extends Random {
         private static final long serialVersionUID = 1L;

@@ -106,7 +106,7 @@ when the game ends (the Forge goal, usually `Survive`, still bounds the turns), 
 [acceptance]
 life p1 = 20                                       p0 is the solver, p1 the opponent
 count p1 Graveyard "Grizzly Bears" = 1             exact card name, or * for any card
-tokens p0 Battlefield "Goblin" = 2                 tokens only
+tokens p0 Battlefield "Goblin Token" = 2           tokens only (Forge names them "Goblin Token")
 counters p0 Battlefield "Walking Ballista" P1P1 >= 3
 winner p0                                          p0, p1 or none
 ```

@@ -53,6 +53,10 @@ public class ComputerUtilMana {
     /** HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): which players choose the colour an any-colour source makes
      *  for a generic shard themselves. Nobody, unless the harness sets it (PlayerControllerLLM, model seats). */
     public static java.util.function.Predicate<Player> HARNESS_SEAT_CHOOSES_ANY_COLOR = p -> false;
+    /** HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): which players may pay with a source whose tap damage would be
+     *  lethal (City of Brass at 1 life). Forge's AI skips such a source; tapping it is legal, and with Angel's Grace or
+     *  an answer above the trigger it is the line. Set by PlayerControllerLLM for its seats; false for Forge's AI. */
+    public static java.util.function.Predicate<Player> HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE = p -> false;
 
     private final static boolean DEBUG_MANA_PAYMENT = false;
 
@@ -1547,7 +1551,9 @@ public class ComputerUtilMana {
         // 3. Use lands that produce any color many
         // 4. all other sources (creature, costs, drawback, etc.)
 
-        final boolean canDieToTapDamage = ai.canLoseLife() && !ai.cantLoseForZeroOrLessLife();
+        // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): a harness seat may tap a source whose damage is lethal.
+        final boolean canDieToTapDamage = ai.canLoseLife() && !ai.cantLoseForZeroOrLessLife()
+                && !HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE.test(ai);
         for (Card card : manaSources) {
             // exclude creature sources that will tap as a part of an attack declaration
             if (card.isCreature()) {

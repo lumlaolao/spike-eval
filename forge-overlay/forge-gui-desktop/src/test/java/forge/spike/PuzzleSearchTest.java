@@ -168,6 +168,36 @@ public class PuzzleSearchTest {
         Assert.assertFalse(new PuzzleArms.Line(prefix, 5L).stopped());
     }
 
+    /** Rules pilot RP_017: tapping City of Brass for mana before Angel's Grace was never on the search arm's menu,
+     *  so the prover could not find the line. The prover's menu is the model's; the canary arms keep theirs. */
+    @Test
+    public void theProverChoosesFromTheModelsMenuAndTheCanaryArmsKeepTheirs() {
+        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.faithfulMenu(false, PuzzleArms.forMode("search", 1L, "Solver")));
+        Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.faithfulMenu(true, null));
+        for (String arm : new String[] {"random", "pass", "first"})
+            Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.faithfulMenu(false, PuzzleArms.forMode(arm, 1L, "Solver")), arm);
+    }
+
+    /** Rules pilot RP_002 / RP_020: the search arm answered every order ask (trigger order, cards to a zone) in the
+     *  given order, so a puzzle decided by trigger order was "proven" only because Forge's default was right. */
+    @Test
+    public void everyOrderIsReachableByTheSearchArm() {
+        java.util.Set<List<Integer>> seen = new java.util.HashSet<>();
+        for (int a = 0; a < 3; a++) for (int b = 0; b < 2; b++) {
+            PuzzleArms.searchLine = new PuzzleArms.Line(Arrays.asList(new Step("Solver", 3, a), new Step("Solver", 2, b)), 5L);
+            try {
+                List<Integer> p = PuzzleArms.permutation(PuzzleArms.forMode("search", 1L, "Solver"), 3);
+                Assert.assertEquals(new java.util.TreeSet<>(p).size(), 3, "a permutation: " + p);
+                Assert.assertNull(PuzzleArms.searchLine.drift);
+                Assert.assertEquals(PuzzleArms.searchLine.taken.size(), 2, "n-1 draws");
+                seen.add(p);
+            } finally {
+                PuzzleArms.searchLine = null;
+            }
+        }
+        Assert.assertEquals(seen.size(), 6);
+    }
+
     @Test
     public void theSearchArmFlagsDriftWhenTheOtherSeatOrMenuSizeAsks() {
         PuzzleArms.searchLine = new PuzzleArms.Line(Collections.singletonList(new Step("Solver", 4, 2)), 5L);

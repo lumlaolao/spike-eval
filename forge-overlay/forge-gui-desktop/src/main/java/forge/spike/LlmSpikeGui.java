@@ -284,8 +284,11 @@ public final class LlmSpikeGui {
      *  name" and "top of Seat library" read as English.
      *  Epoch 51 (2026-10-18): a creature type is said in its own plural on an option ("Elves", not Forge's "Elfs"),
      *  and a preview plays a mana ability and shows the mana it adds.
+     *  Epoch 52 (2026-10-18, rules puzzle pilot): a spell whose targets are all "up to" is offered with none to target
+     *  (Finale of Promise); a source whose tap damage is lethal pays (City of Brass at 1 life, an engine patch); a
+     *  block set the engine objects to (menace, "must block") goes back to the seat with the engine's reason.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-51";
+    static final String HARNESS_EPOCH = "harness-epoch-52";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -748,6 +751,9 @@ public final class LlmSpikeGui {
         static {
             forge.ai.ComputerUtilMana.HARNESS_SEAT_CHOOSES_ANY_COLOR = p -> p.getController() instanceof PlayerControllerLLM
                     && ((PlayerControllerLLM) p.getController()).choosesOwnColours();
+            // Every harness seat may pay with a source whose tap damage is lethal (a legal action is never hidden):
+            // Forge's AI skipped City of Brass at 1 life, so Angel's Grace was never offered (rules pilot RP_017).
+            forge.ai.ComputerUtilMana.HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE = p -> p.getController() instanceof PlayerControllerLLM;
         }
         boolean choosesOwnColours() { return "llm".equals(mode) && rnd == null; }
         private static final int MAX_PLAY_DECISIONS_PER_TURN = 25;
@@ -1958,7 +1964,11 @@ public final class LlmSpikeGui {
             long t0 = System.currentTimeMillis();
             // RANDOM arm: uniformly sized random subset of the same legal menu.
             if (rnd != null) {
-                List<Integer> res = PuzzleArms.subset(rnd, options.size(), Math.max(0, min), Math.min(max, options.size()));
+                // An order ask (every option, in an order) is searched over its orders; the other arms keep their stream.
+                boolean order = ("trigger-order".equals(type) || "order".equals(type))
+                        && min == options.size() && max == options.size();
+                List<Integer> res = order && rnd instanceof PuzzleArms.Search ? PuzzleArms.permutation(rnd, options.size())
+                        : PuzzleArms.subset(rnd, options.size(), Math.max(0, min), Math.min(max, options.size()));
                 if (res == null) return null;
                 lastPicks = res;
                 if (type != null) evalDec(type, options.size(), res.size(), tierOf(b == smart), System.currentTimeMillis() - t0, null, options);
@@ -3266,6 +3276,32 @@ public final class LlmSpikeGui {
             return player;
         }
 
+        /** The engine's reason the last block set was not legal, put into the re-ask; set only during that re-ask. */
+        private String blockCorrection = null;
+
+        /** The engine's objection to these blocks (requirements such as "all creatures able to block it do so",
+         *  restrictions such as menace), or null. The engine checks them only for its own GUI (InputBlock calls
+         *  CombatUtil.validateBlocks), so every other controller's blocks stood whatever they were (rules pilot
+         *  RP_007). The pairs (blocker, attacker) are added, checked and removed again. */
+        static String blocksError(Combat combat, Player defender, List<Card[]> pairs) {
+            for (Card[] pr : pairs) combat.addBlocker(pr[1], pr[0]);
+            try { return CombatUtil.validateBlocks(combat, defender); }
+            catch (Exception e) { return null; }
+            finally { for (Card[] pr : pairs) combat.removeBlockAssignment(pr[1], pr[0]); }
+        }
+
+        /** Blocks the seat declared that the engine objects to are removed and the seat is asked once more with the
+         *  reason; a second illegal set is logged and left as no blocks. */
+        private void illegalBlocks(Player defender, Combat combat, String err) {
+            for (Card b : CardLists.filterControlledBy(combat.getAllBlockers(), defender)) combat.undoBlockingAssignment(b);
+            if (blockCorrection == null) {
+                blockCorrection = err;
+                try { declareBlockers(defender, combat); } finally { blockCorrection = null; }
+                return;
+            }
+            p("[BLOCK-INVALID] the second block set was not legal either (" + err + "): no blocks");
+        }
+
         @Override
         public void declareBlockers(Player defender, Combat combat) {
             clearLast();
@@ -3284,14 +3320,23 @@ public final class LlmSpikeGui {
                 // "student choice" was never a choice at all.
                 final Integer shadowBlk = shadowBlockers(defender, combat, blockers.size());
                 if (rnd != null) { // random arm: each legal blocker blocks a random attacker or not, 50/50
-                    int assignedR = 0;
-                    for (Card b : blockers) {
-                        if (rnd.nextBoolean()) continue;
-                        Card a = attackers.get(rnd.nextInt(attackers.size()));
-                        if (CombatUtil.canBlock(a, b, combat)) { combat.addBlocker(a, b); assignedR++; }
+                    // A draw the engine objects to (menace, a block requirement) is drawn again; a legal first draw
+                    // leaves the arm's stream as it was.
+                    for (int draw = 0; ; draw++) {
+                        List<Card[]> pairs = new ArrayList<>();
+                        for (Card b : blockers) {
+                            if (rnd.nextBoolean()) continue;
+                            Card a = attackers.get(rnd.nextInt(attackers.size()));
+                            if (CombatUtil.canBlock(a, b, combat)) pairs.add(new Card[] {b, a});
+                        }
+                        String err = blocksError(combat, defender, pairs);
+                        if (err == null || draw >= 63) {
+                            for (Card[] pr : pairs) combat.addBlocker(pr[1], pr[0]);
+                            if (err != null) p("[BLOCK-INVALID] arm: no legal block set in 64 draws (" + err + ")");
+                            auto("blockers(random)->" + pairs.size() + (draw > 0 ? " (draw " + (draw + 1) + ")" : ""));
+                            return;
+                        }
                     }
-                    auto("blockers(random)->" + assignedR);
-                    return;
                 }
                 // No model available -> deterministic NO BLOCKS (the fallback policy), never the engine AI.
                 if (!smartOk()) { auto("blockers(no-model)->none"); return; }
@@ -3314,6 +3359,8 @@ public final class LlmSpikeGui {
                 // Every other ask names its DECISION; the one-chat history keeps an earlier ask from that
                 // line on, so without it a block kept its whole stale state (PromptFidelityTest contract).
                 if (observer != null) prompt = prompt.replace("\nCOMBAT — declare blockers.", "\nDECISION: COMBAT — declare blockers.");
+                if (blockCorrection != null)
+                    prompt += "\n\nThe blocks you declared are not legal (the engine says: " + blockCorrection + "). Declare blockers again.";
                 p("[ROUTER] blockers: " + attackers.size() + " atk / " + blockers.size() + " blk -> " + routeLabel(smart.getModel(), rnd != null));
                 // The answer tool names blocks by NUMBER: the two lists, numbered, and every pair checked
                 // against the engine before it is accepted (an illegal block is corrected in the same
@@ -3322,11 +3369,15 @@ public final class LlmSpikeGui {
                 for (Card a : attackers) atkLabels.add(observer != null ? observer.shortRef(a) : a.getName() + " (" + a.getNetPower() + "/" + a.getNetToughness() + ")");
                 final List<Card> blkList = new ArrayList<>(blockers), atkList = new ArrayList<>(attackers);
                 AnswerTool.Spec blockSpec = AnswerTool.Spec.blocks(blkLabels, atkLabels, blkLimits).check(ans -> {
-                    for (int[] pr : ans.blocks)
+                    List<Card[]> pairs = new ArrayList<>();
+                    for (int[] pr : ans.blocks) {
                         if (!CombatUtil.canBlock(atkList.get(pr[1] - 1), blkList.get(pr[0] - 1), combat))
                             return "blocker " + pr[0] + " (" + blkLabels.get(pr[0] - 1) + ") cannot block attacker "
                                     + pr[1] + " (" + atkLabels.get(pr[1] - 1) + ").";
-                    return null;
+                        pairs.add(new Card[] {blkList.get(pr[0] - 1), atkList.get(pr[1] - 1)});
+                    }
+                    String err = blocksError(combat, defender, pairs);
+                    return err == null ? null : "these blocks are not legal together: " + err;
                 });
                 String numbered = "\nATTACKERS: " + numberedList(atkLabels) + "\nYOUR BLOCKERS: " + numberedList(blkLabels) + "\n";
                 String line = null;
@@ -3364,6 +3415,8 @@ public final class LlmSpikeGui {
                     lastShadowChoice = shadowBlk; // genuine model-consulted decision -> label it
                     evalDec("blockers", blkLabels.size(), 0, "smart", 0, null, blkLabels);
                     p("[ROUTER] blockers: NONE");
+                    String none = blocksError(combat, defender, new ArrayList<>());
+                    if (none != null) illegalBlocks(defender, combat, none);
                     return;
                 }
                 int assigned = 0;
@@ -3381,6 +3434,8 @@ public final class LlmSpikeGui {
                 evalDec("blockers", blockers.size() + assigned, assigned, "smart", 0,
                         dropped.isEmpty() ? null : "blockers(unparsed-pairs:" + dropped.size() + ")", blkLabels); // choice = # blocks
                 p("[ROUTER] blockers: assigned " + assigned + (dropped.isEmpty() ? "" : ", not used: " + String.join("; ", dropped)));
+                String err = blocksError(combat, defender, new ArrayList<>());
+                if (err != null) illegalBlocks(defender, combat, err);
             } catch (Exception e) {
                 // Same rule as declareAttackers (#126): a deterministic LEGAL default, never the AI.
                 // Declaring no blockers is legal.
@@ -3430,7 +3485,7 @@ public final class LlmSpikeGui {
 
                 // Enumerate castable spells + distinct playable lands (shared with the ai-teacher seat so
                 // both build the byte-identical option menu — see enumeratePlayOptions).
-                PlayOptions po = enumeratePlayOptions(me, ownMain, observer != null);
+                PlayOptions po = enumeratePlayOptions(me, ownMain, faithfulMenu(observer != null, rnd));
                 List<SpellAbility> options = po.spells;
                 if (!failedInWindow.isEmpty() && options.removeIf(sa -> failedInWindow.contains(failedPlayKey(sa))))
                     p("[ROUTER] play: a play that failed to pay in this window is not offered again");
@@ -8196,6 +8251,14 @@ public final class LlmSpikeGui {
          *  LLM method calls this in place, so its output is unchanged. Read-only w.r.t. real game state
          *  (the only mutation, {@code setActivatingPlayer} inside the target-legality probe, mirrors the
          *  original inline code). */
+        /** The faithful menu (every land, every mana ability that floats) for a model seat and for the puzzle prover:
+         *  a prover with a smaller menu than the model's misses lines, and calls a puzzle unique that has a second
+         *  solution (rules pilot RP_017: City of Brass tapped before Angel's Grace was never on the search arm's menu).
+         *  The other zero-model arms keep the legacy menu, so the canaries do not move. */
+        static boolean faithfulMenu(boolean modelSeat, java.util.Random arm) {
+            return modelSeat || arm instanceof PuzzleArms.Search;
+        }
+
         static PlayOptions enumeratePlayOptions(Player me, boolean ownMain) {
             return enumeratePlayOptions(me, ownMain, false);
         }
@@ -8372,7 +8435,8 @@ public final class LlmSpikeGui {
                 try {
                     if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(me);
                     TargetRestrictions tr = sa.getTargetRestrictions();
-                    if (tr != null && targetCandidates(sa, tr).size() < Math.max(1, sa.getMinTargets())) return false;
+                    // Only the targets it must have: "up to one target" casts with none (Finale of Promise, RP_006).
+                    if (tr != null && targetCandidates(sa, tr).size() < sa.getMinTargets()) return false;
                 } catch (Exception ignore) { /* can't evaluate -> offer it, prior behavior */ }
             }
             return true;

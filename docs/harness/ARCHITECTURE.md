@@ -77,6 +77,13 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   replicate), escalate's modes and strive's targets stop at what the engine says the cast can pay, so no answer
   the seat may give fails the cast (harness-epoch-43).
 - A creature that can block more than one attacker may: its label says how many, and the `answer` schema allows it.
+- A spell whose targets are all "up to" is offered with nothing to target (Finale of Promise), and a mana source whose
+  tap damage would be lethal still pays (City of Brass at 1 life; Forge's AI skips it, an engine patch lifts that for
+  harness seats). Both were found by the rules puzzle pilot (harness-epoch-52).
+- A block set is checked as a whole, by the engine's `CombatUtil.validateBlocks`: requirements ("all creatures able
+  to block it do so") and restrictions (menace). Forge runs that check only for its own GUI, so before epoch 52 any
+  block set the seat or an arm declared stood. The `answer` call is corrected in the same conversation; a text reply
+  is asked once more with the engine's reason; an arm draws again (a legal first draw keeps its stream).
 - The one exception: a window whose only option is floating mana that changes nothing passes unasked, as an empty
   one: a land's ability costing only {T} and mana that only adds mana, into a pool that empties without burn, with no
   trigger on a tap or on mana added. Floating that does change the game (a creature tapped and unable to block,

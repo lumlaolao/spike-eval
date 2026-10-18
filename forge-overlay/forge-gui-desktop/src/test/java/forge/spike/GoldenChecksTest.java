@@ -170,6 +170,41 @@ public class GoldenChecksTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** Rules pilot RP_017 (2026-10-18): at 1 life with City of Brass, Angel's Grace was never offered. Forge AI's
+     *  mana sorter skips a source whose tap damage would be lethal; tapping it is legal (owner: a legal action is
+     *  never hidden), and here the Grace resolves before City's trigger. */
+    @Test
+    public void aSourceWhoseTapDamageIsLethalStillPaysForTheSeat() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        me.setLife(1, null);
+        card("City of Brass", me, ZoneType.Battlefield);
+        card("Angel's Grace", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        ctrl.chooseSpellAbilityToPlay();
+        String ask = PromptFidelityTest.promptWith(model, "You have priority");
+        Assert.assertTrue(ask.contains("CAST Angel's Grace"), "Angel's Grace is on the menu:\n" + ask);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** Rules pilot RP_006 (2026-10-18): Finale of Promise ("up to one target instant card and/or up to one target
+     *  sorcery card") was never offered with nothing in the graveyard: the menu demanded at least one target. A spell
+     *  whose targets are all "up to" is cast with none. */
+    @Test
+    public void aSpellWithOnlyUpToTargetsIsOfferedWithNoTarget() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Finale of Promise", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        ctrl.chooseSpellAbilityToPlay();
+        String ask = PromptFidelityTest.promptWith(model, "You have priority");
+        Assert.assertTrue(ask.contains("CAST Finale of Promise"), "Finale of Promise is on the menu:\n" + ask);
+    }
+
     /** runs/c3/ant-storm-default T7 (2026-10-16): {B:3} floating and two Lotus Petals, Ad Nauseam (3BB) offered as
      *  castable and chosen; the seat named a colour for one Petal, then "Didn't find what to pay for {1}" and nothing
      *  was cast. Two any-colour sources paying generic shards must both pay. */
@@ -2137,6 +2172,47 @@ public class GoldenChecksTest {
         combat.addAttacker(lions, me);
         seat(g, model, model).declareBlockers(me, combat);
         Assert.assertTrue(combat.getBlockers(lions).contains(bears));
+    }
+
+    /** Rules pilot RP_007 (2026-10-18): the engine checks a block's requirements and restrictions only for its own
+     *  GUI (InputBlock calls CombatUtil.validateBlocks), so a menace attacker blocked by one creature stood. An
+     *  illegal block set goes back to the seat with the engine's reason. */
+    @Test
+    public void aMenaceAttackerBlockedByOneCreatureIsSentBack() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card brute = card("Boggart Brute", rival, ZoneType.Battlefield);
+        List<String> asks = new ArrayList<>();
+        Script model = new Script("CHOICE: 1").on("declare blockers", p -> {
+            asks.add(p);
+            return asks.size() == 1 ? "BLOCKS: Grizzly Bears->Boggart Brute" : "BLOCKS: NONE"; });
+        Combat combat = new Combat(rival);
+        combat.addAttacker(brute, me);
+        g.getAction().checkStaticAbilities();
+        seat(g, model, model).declareBlockers(me, combat);
+        Assert.assertTrue(combat.getBlockers(brute).isEmpty(), "one blocker on a menace creature does not stand");
+        Assert.assertEquals(asks.size(), 2, "the seat was asked again");
+        Assert.assertTrue(asks.get(1).contains("cannot be blocked with 1"), "with the engine's reason:\n" + asks.get(1));
+    }
+
+    /** Prized Unicorn: "All creatures able to block Prized Unicorn do so." A seat that blocks nothing is sent back. */
+    @Test
+    public void aBlockRequirementTheSeatIgnoredIsSentBack() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card unicorn = card("Prized Unicorn", rival, ZoneType.Battlefield);
+        List<String> asks = new ArrayList<>();
+        Script model = new Script("CHOICE: 1").on("declare blockers", p -> {
+            asks.add(p);
+            return asks.size() == 1 ? "BLOCKS: NONE" : "BLOCKS: Grizzly Bears->Prized Unicorn"; });
+        Combat combat = new Combat(rival);
+        combat.addAttacker(unicorn, me);
+        g.getAction().checkStaticAbilities();
+        seat(g, model, model).declareBlockers(me, combat);
+        Assert.assertTrue(combat.getBlockers(unicorn).contains(bears), "the required block stands");
+        Assert.assertTrue(asks.size() == 2 && asks.get(1).contains("must block"), "sent back with the reason: " + asks);
     }
 
     /** A creature that can block any number of creatures may block both attackers (each blocker blocked once,
