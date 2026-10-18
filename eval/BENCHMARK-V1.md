@@ -104,3 +104,28 @@ k, budget, and its interval. Best-of-N or consensus numbers are labelled as such
 | 7 | Games panel as the validity check, sized after the pilot | ~$50-100 |
 
 Paid phases state their cost first and pass `--budget-usd` (`CLAUDE.md`, "Cost of paid runs").
+
+## Progress log
+
+Newest last. Each entry says what was built, what it showed, and what is next.
+
+### 2026-10-18  phase 2 started: the search prover
+
+- **Built.** `CONTROLLER_A=search` in `LlmSpikePuzzle` proves a puzzle with `PuzzleSearch.java`. Both seats
+  draw from one shared line of choices (`PuzzleArms.Search`, `PuzzleArms.Line`): a prefix to replay, then a
+  seeded uniform completion over the same legal menus the random arm uses. A rollout is a deterministic
+  function of the engine seed and that line, so the search replays prefixes and reads back who chose what
+  from how many options and whether Forge scored a solve. It finds a winning line by UCT (solver choices
+  maximise the solve rate, opponent choices minimise it), then proves every other opponent choice on that
+  line is also beaten, recursively. A proof is a strategy tree whose every leaf is a Forge-scored solve;
+  the main line is replayed twice more and must give the same game log. The budget bounds it, so "not
+  found" never means "unsolvable".
+- **One harness change for it.** A decideMany subset is now drawn through `PuzzleArms.subset`. The random,
+  pass and first arms make exactly the draws they made before (shuffle, then a size), so no stream or
+  canary moves (`PuzzleSearchTest.subsetMakesTheDrawsDecideManyAlwaysMadeForTheOtherArms`); the search
+  arm draws one include-or-not per option, so each subset is one line, not up to n! orders.
+- **Known limits of the opponent check.** The random arm splits divided damage evenly (`evenSplit`) and
+  keeps every mulligan, so a proof does not branch on those; it holds for one engine seed (library order,
+  coin flips), which puzzles with fixed libraries do not care about.
+- **Tests.** `PuzzleSearchTest` (8): a strategy that answers each opponent reply is proven; a win that
+  needs the opponent to err is not; drift is caught; every subset is reachable once.

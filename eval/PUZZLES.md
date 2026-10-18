@@ -75,6 +75,21 @@ python3 eval/puzzle_format.py check eval/suites/puzzles-forge-builtin-v1.json
 - `puzzle_baselines.py verify --suite S` replays every stored line. Run it after an engine bump: a
   puzzle whose line no longer reaches the goal is retired.
 
+## Proving a puzzle against every opponent reply
+
+```bash
+python3 eval/puzzle_baselines.py prove --suite S.json [--ids a,b] --budget 1500 -j 4 --write S2.json
+```
+
+- Runs `CONTROLLER_A=search CONTROLLER_B=search` (`PuzzleSearch.java`): both seats choose from the legal
+  menus through one shared line of choices, and the search finds a winning line, then beats every other
+  opponent choice on it, recursively. The result is the record's `proof`.
+- `proven`: a strategy that wins against every opponent choice the engine offers, each leaf a Forge-scored
+  solve; the main line replays twice to the same game log. `not_found`: the budget ran out, never "unsolvable".
+  `--opponent ai` proves against the Forge AI's replies only.
+- Not yet branched on: divided damage (the arms split it evenly) and the engine seed (one seed per proof).
+- Why: `BENCHMARK-V1.md`, "What a puzzle must pass before it is frozen".
+
 ## Running a model
 
 ```bash

@@ -396,6 +396,12 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 | `random` | uniform over the same legal menus |
 | `ai` | Forge's AI, the opponent and a baseline |
 | `pass`, `first`, `script` | puzzle arms |
+| `search` | the puzzle prover: both seats draw from one shared line of choices (`PuzzleArms.Search`), and `PuzzleSearch` replays prefixes to find a winning line and beat every opponent reply on it |
+
+- *Why the prover:* Forge's puzzle mode tests one opponent line, its AI's, so a solve can come from the AI
+  blocking badly. A proof (`eval/BENCHMARK-V1.md`, phase 2) beats every opponent choice the engine offers, and
+  every leaf of it is a solve Forge scored. A decideMany subset is drawn through `PuzzleArms.subset`, which
+  makes the old draws for every other arm (no canary moves) and one include-or-not per option for search.
 
 - The seed-42 floor and random mirrors are pinned canaries, at A/108/1824 and A/45/368.
 - *Why:* a score is meaningless without the trivial baseline it beats (the "88% lesson" in `CLAUDE.md`).
@@ -440,7 +446,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     the pilot condition (profile, tiers, answer tool, tools, lookahead, chat windows, plans): `run_batch.py
     --panel` launches and `panel_score.py` scores no other. *Why:* a score is a property of one seat; two
     settings under one name would be two benchmarks.
-  - **STR-HELDOUT:** the same on a held-out seed band.
+  - **STR-HELDOUT:** the same on a held-out seed band; to become the private mined puzzle split
+    (`eval/BENCHMARK-V1.md`, owner decision 2026-10-18).
   - **PUZ:** the puzzle suite (`eval/PUZZLES.md`), where Forge enforces the goal and a solve is judged
     by the engine.
 - **Ratings (`rating.py`):** Bradley-Terry with the Forge AI pinned at 1500, a first-player term, a

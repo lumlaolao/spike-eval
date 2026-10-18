@@ -1194,7 +1194,7 @@ public final class LlmSpikeGui {
             this.mode = mode == null || mode.isEmpty() ? "llm" : mode;
             // The random arm and the other zero-model puzzle arms (PuzzleArms: script, pass, first) share
             // the random arm's decision paths; each draws the same one long from MyRandom here.
-            this.rnd = PuzzleArms.isArm(this.mode) ? PuzzleArms.forMode(this.mode, MyRandom.getRandom().nextLong()) : null;
+            this.rnd = PuzzleArms.isArm(this.mode) ? PuzzleArms.forMode(this.mode, MyRandom.getRandom().nextLong(), seat) : null;
             this.smart = smartBridge;
             this.fast  = fastBridge;
             this.ctx = profile();
@@ -1958,12 +1958,8 @@ public final class LlmSpikeGui {
             long t0 = System.currentTimeMillis();
             // RANDOM arm: uniformly sized random subset of the same legal menu.
             if (rnd != null) {
-                List<Integer> all = new ArrayList<>();
-                for (int i = 0; i < options.size(); i++) all.add(i);
-                PuzzleArms.shuffle(all, rnd);
-                int lo = Math.max(0, min), hi = Math.min(max, options.size());
-                if (hi < lo) return null;
-                List<Integer> res = new ArrayList<>(all.subList(0, PuzzleArms.subsetSize(rnd, lo, hi)));
+                List<Integer> res = PuzzleArms.subset(rnd, options.size(), Math.max(0, min), Math.min(max, options.size()));
+                if (res == null) return null;
                 lastPicks = res;
                 if (type != null) evalDec(type, options.size(), res.size(), tierOf(b == smart), System.currentTimeMillis() - t0, null, options);
                 return res;

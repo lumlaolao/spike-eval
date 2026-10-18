@@ -244,6 +244,13 @@ def validate_puzzle(rec, repo=REPO, check_files=True):
             p.append("%s: unknown baseline arm %r" % (pid, arm))
         elif not _rate_ok(base[arm]):
             p.append("%s: baseline %s is not {solved, n, rate=solved/n}" % (pid, arm))
+    proof = rec.get("proof")
+    if proof is not None and (not isinstance(proof, dict)
+                              or proof.get("status") not in ("proven", "not_found", "drift", "unscoreable")
+                              or proof.get("opponent") not in ("search", "ai")):
+        p.append("%s: proof is not {status: proven|not_found|drift|unscoreable, opponent: search|ai}" % pid)
+    elif proof and proof.get("status") == "proven" and not proof.get("line") and proof.get("solver_actions"):
+        p.append("%s: a proven proof without its line" % pid)
     if status == "active":
         for arm in REQUIRED_BASELINES:
             if arm not in base:

@@ -209,6 +209,19 @@ class BaselineDecisionTest(unittest.TestCase):
                     {"script_unconsumed": 2}, {"log_sha256": "other"}):
             self.assertTrue(pb.check_replay(line, dict({"status": "solved", "log_sha256": "L"}, **bad)), bad)
 
+    def test_a_search_row_becomes_the_proof_and_a_malformed_proof_is_named(self):
+        row = {"status": "proven", "search_replays": 62, "opponent_choice_points": 1, "line": "Solver:2:1",
+               "solver_actions": 6, "actions": ["LAND: Solver played Swamp"], "search_drift": "", "seed": 1}
+        proof = pb.proof_from_row(row, "search", "abc", "2026-10-18")
+        self.assertEqual((proof["status"], proof["opponent"], proof["line"]), ("proven", "search", "Solver:2:1"))
+        self.assertNotIn("search_drift", proof)          # empty fields are left out
+        self.assertIsNone(pb.proof_from_row(None, "search", "abc", "2026-10-18"))
+        rec_ = rec("p1", tempfile.mkdtemp())
+        self.assertEqual(pf.validate_puzzle(dict(rec_, proof=proof), check_files=False), [])
+        for bad in ({"status": "solved", "opponent": "search"}, {"status": "proven", "opponent": "human"},
+                    {"status": "proven", "opponent": "search", "solver_actions": 3}):
+            self.assertTrue(pf.validate_puzzle(dict(rec_, proof=bad), check_files=False), bad)
+
     def test_tier_and_status(self):
         self.assertEqual(pb.tier_for(0.75, 9), 1)
         self.assertEqual(pb.tier_for(0.0, 3), 2)

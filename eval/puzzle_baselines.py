@@ -11,12 +11,18 @@ Every arm here is free: no model is called and nothing leaves the machine.
 
   python3 eval/puzzle_baselines.py run    --suite S.json [--ids a,b] [--rollouts 200] [-j 4] --write S.json
   python3 eval/puzzle_baselines.py verify --suite S.json [-j 4]
+  python3 eval/puzzle_baselines.py prove  --suite S.json [--ids a,b] [--budget 2000] [-j 4] --write S.json
 
 `run` measures every arm, takes the shortest solving random rollout as the reference line when the
 puzzle has none (searching further seeds with --search N if the baseline rollouts found none),
 replays that line in a fresh JVM, and sets tier and status. A puzzle random solves more than 20% of
 the time is dropped. `verify` replays every stored line and exits 1 if an active puzzle's line no
 longer reaches the goal (an engine bump retires such a puzzle).
+
+`prove` runs the search prover (CONTROLLER_A=search, PuzzleSearch.java; eval/BENCHMARK-V1.md, phase 2) and
+stores its result as the record's `proof`: "proven" means a strategy that beats every opponent choice the
+engine offers (with --opponent ai, only the Forge AI's), every leaf a Forge-scored solve. "not_found" is a
+spent budget, never a claim that the puzzle is unsolvable.
 
 The Java side runs against an ISOLATED build: --build DIR holding classes/ and classpath.txt, as
 eval/harness_acceptance.sh writes them under runs/harness-acceptance/<stamp>/ (the newest one is the
@@ -319,6 +325,59 @@ def verify_puzzle(build, rec, out_root):
     return dict(rec, verification=ver)
 
 
+PROOF_STATUSES = ("proven", "not_found", "drift", "unscoreable")
+
+
+def proof_from_row(row, opponent, engine_sha, date):
+    """The record's `proof` from the search runner's one result row (None when the run wrote none)."""
+    if not row:
+        return None
+    keep = ("search_replays", "search_budget", "search_lines_per_point", "opponent_choice_points",
+            "opponent_branches_beaten", "search_drift", "line", "solver_actions", "actions", "log_sha256",
+            "duration_ms", "seed")
+    proof = {"status": row.get("status"), "opponent": opponent, "engine_sha": engine_sha, "date": date}
+    proof.update({k: row[k] for k in keep if row.get(k) not in (None, "")})
+    return proof
+
+
+def prove_puzzle(build, rec, out_root, budget, opponent, seed=1):
+    out = Path(out_root) / rec["id"] / ("prove-%s" % opponent)
+    env = {"PUZZLE": str(pf.pzl_path(rec).resolve()), "CONTROLLER_A": "search", "CONTROLLER_B": opponent,
+           "PZL_SEEDS": str(seed), "GAME_CAP_MS": "60000", "PZL_SEARCH_BUDGET": str(budget)}
+    if (out / "puzzle-results.jsonl").exists():
+        (out / "puzzle-results.jsonl").unlink()
+    build.run(env, out, timeout_s=max(3600, budget * 10))
+    rows = read_results(out)
+    engine = (REPO / "FORGE_COMMIT").read_text().strip() if (REPO / "FORGE_COMMIT").is_file() else "unknown"
+    proof = proof_from_row(rows[-1] if rows else None, opponent, engine, datetime.date.today().isoformat())
+    return dict(rec, proof=proof or {"status": "not_found", "opponent": opponent, "error": "no result row"})
+
+
+def cmd_prove(a):
+    build = Build(a.build, a.forge)
+    manifest = pf.load_suite(a.suite)
+    if manifest.get("frozen") and not a.write:
+        raise SystemExit("suite is frozen; a proof changes its records. Write to a new manifest with --write")
+    ids = set(a.ids.split(",")) if a.ids else None
+    out_root = Path(a.out_dir or REPO / "runs/puzzles" / ("%s-proofs" % manifest["suite"]))
+    todo = [r for r in manifest["puzzles"] if ids is None or r["id"] in ids]
+    manifest = dict(manifest, frozen=False, suite_sha256=None)
+    target = Path(a.write or a.suite)
+    done = {}
+    with ThreadPoolExecutor(max(1, a.jobs)) as ex:
+        futs = [ex.submit(prove_puzzle, build, r, out_root, a.budget, a.opponent) for r in todo]
+        for f in as_completed(futs):
+            r = f.result()
+            done[r["id"]] = r
+            m = dict(manifest, puzzles=[done.get(x["id"], x) for x in manifest["puzzles"]])
+            target.write_text(json.dumps(m, indent=2) + "\n", encoding="utf-8")
+            p = r["proof"]
+            print("%-24s %-10s rollouts=%s opponent_points=%s replies_beaten=%s actions=%s" % (
+                r["id"], p.get("status"), p.get("search_replays"), p.get("opponent_choice_points"),
+                p.get("opponent_branches_beaten"), p.get("solver_actions")), flush=True)
+    return 0
+
+
 def cmd_run(a):
     build = Build(a.build, a.forge)
     manifest = pf.load_suite(a.suite)
@@ -402,8 +461,17 @@ def main(argv=None):
     v.add_argument("--suite", required=True)
     v.add_argument("-j", "--jobs", type=int, default=4)
     v.add_argument("--out-dir", default=None)
+    pr = sub.add_parser("prove")
+    pr.add_argument("--suite", required=True)
+    pr.add_argument("--ids", default=None)
+    pr.add_argument("--budget", type=int, default=2000, help="rollouts the search may play per puzzle")
+    pr.add_argument("--opponent", choices=("search", "ai"), default="search",
+                    help="search: beat every opponent choice; ai: beat the Forge AI's")
+    pr.add_argument("-j", "--jobs", type=int, default=4)
+    pr.add_argument("--out-dir", default=None)
+    pr.add_argument("--write", default=None, help="manifest to write (default: --suite in place)")
     a = ap.parse_args(argv)
-    return cmd_run(a) if a.cmd == "run" else cmd_verify(a)
+    return {"run": cmd_run, "verify": cmd_verify, "prove": cmd_prove}[a.cmd](a)
 
 
 if __name__ == "__main__":

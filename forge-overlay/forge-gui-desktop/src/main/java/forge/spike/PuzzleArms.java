@@ -23,6 +23,9 @@ import java.util.Random;
  *   <li>{@code pass}: always the do-nothing option where one exists (PASS, decline, the fewest picks,
  *       no blocks, the smallest X), else the first.</li>
  *   <li>{@code first}: always the first option listed (one pick from a subset menu when one is allowed).</li>
+ *   <li>{@code search}: {@link Search}, for {@link PuzzleSearch}. Both seats draw from one shared {@link Line}:
+ *       a prefix of choices to replay, then a seeded uniform completion. Every draw is written down with the
+ *       seat that made it and how many options it had, so a search knows who chose what from how many.</li>
  * </ul>
  *
  * <p>The context-free draws ({@code nextInt(n)}) cannot tell "the last option is a decline" from "the
@@ -35,7 +38,8 @@ final class PuzzleArms {
 
     /** The arms that run on the random-arm decision paths (the {@code rnd != null} branches). */
     static boolean isArm(String mode) {
-        return "random".equals(mode) || "script".equals(mode) || "pass".equals(mode) || "first".equals(mode);
+        return "random".equals(mode) || "script".equals(mode) || "pass".equals(mode) || "first".equals(mode)
+                || "search".equals(mode);
     }
 
     /** The tape the next {@code script} seat replays. Set by LlmSpikePuzzle before each rollout. */
@@ -46,13 +50,17 @@ final class PuzzleArms {
     /** The draw source for {@code mode}, or null for a seat that is not one of these arms. {@code seed}
      *  is the long the random arm has always drawn from MyRandom at construction; every arm draws it,
      *  so the engine's own stream (and with it the opponent's AI) is the same across arms. */
-    static Random forMode(String mode, long seed) {
+    static Random forMode(String mode, long seed) { return forMode(mode, seed, ""); }
+
+    /** As {@link #forMode(String, long)}; {@code seat} names who draws, which only the search arm records. */
+    static Random forMode(String mode, long seed, String seat) {
         ArmRandom r;
         switch (mode == null ? "" : mode) {
             case "random": r = new Tape(seed); break;
             case "script": r = new Script(seed, scriptTape); break;
             case "pass":   r = new Fixed(seed, true); break;
             case "first":  r = new Fixed(seed, false); break;
+            case "search": r = new Search(seed, seat); break;
             default: return null;
         }
         lastBuilt = r;
@@ -75,6 +83,29 @@ final class PuzzleArms {
     static void shuffle(List<Integer> items, Random r) {
         if (r instanceof Fixed) return;
         Collections.shuffle(items, r);
+    }
+
+    /** The subset a decideMany menu of {@code n} options takes, {@code lo}..{@code hi} items, or null when
+     *  {@code hi < lo}. Every arm but search makes exactly the draws decideMany always made (shuffle the
+     *  indices, then draw a size, take the first that many), so no stream moves. A shuffle reaches one
+     *  subset by up to n! orders, which a search would branch over in vain; the search arm draws one
+     *  include-or-not per option instead, skipping the draws {@code lo} and {@code hi} force. */
+    static List<Integer> subset(Random r, int n, int lo, int hi) {
+        if (r instanceof Search) {
+            if (hi < lo) return null;
+            List<Integer> out = new ArrayList<>();
+            for (int i = 0; i < n; i++) {
+                int left = n - i;
+                if (out.size() >= hi) break;
+                if (lo - out.size() >= left || r.nextBoolean()) out.add(i);
+            }
+            return out;
+        }
+        List<Integer> all = new ArrayList<>();
+        for (int i = 0; i < n; i++) all.add(i);
+        shuffle(all, r);
+        if (hi < lo) return null;
+        return new ArrayList<>(all.subList(0, subsetSize(r, lo, hi)));
     }
 
     /** Base for every arm Random: a tape of what was drawn, and drift/exhaustion flags. */
@@ -193,5 +224,78 @@ final class PuzzleArms {
             note("s" + lo + "," + hi + ":" + v);
             return v;
         }
+    }
+
+    /** The line both search seats draw from in one rollout: {@code prefix} choices replayed in order, then
+     *  uniform draws from {@code completion}. Set by the search driver before each rollout. */
+    static volatile Line searchLine = null;
+
+    /** One draw of a search rollout: the seat that drew, how many options it had, which it took. */
+    static final class Step {
+        final String seat; final int bound; final int value;
+        Step(String seat, int bound, int value) { this.seat = seat; this.bound = bound; this.value = value; }
+        @Override public String toString() { return seat + ":" + bound + ":" + value; }
+        @Override public boolean equals(Object o) {
+            return o instanceof Step && ((Step) o).seat.equals(seat) && ((Step) o).bound == bound && ((Step) o).value == value;
+        }
+        @Override public int hashCode() { return (seat.hashCode() * 31 + bound) * 31 + value; }
+    }
+
+    /** A rollout's shared draw source. A prefix step whose seat or option count differs from what the game
+     *  asks is DRIFT (the replay left the line it was meant to follow): it is recorded, and the rest of the
+     *  rollout completes at random, so the driver can refuse the rollout. */
+    static final class Line {
+        final List<Step> prefix;
+        final Random completion;
+        final List<Step> taken = new ArrayList<>();
+        String drift = null;
+
+        Line(List<Step> prefix, long completionSeed) {
+            this.prefix = prefix == null ? new ArrayList<>() : prefix;
+            this.completion = new Random(completionSeed);
+        }
+
+        synchronized int draw(String seat, int bound) {
+            int at = taken.size();
+            int v;
+            if (drift == null && at < prefix.size()) {
+                Step want = prefix.get(at);
+                if (!want.seat.equals(seat) || want.bound != bound) {
+                    drift = "draw " + at + ": line has " + want + ", game asked " + seat + ":" + bound;
+                    v = completion.nextInt(bound);
+                } else {
+                    v = want.value;
+                }
+            } else {
+                v = completion.nextInt(bound);
+            }
+            if (taken.size() < TAPE_CAP_STEPS) taken.add(new Step(seat, bound, v));
+            return v;
+        }
+        static final int TAPE_CAP_STEPS = 200_000;
+    }
+
+    /** The search arm: every draw comes from {@link #searchLine}, as a choice among a counted set of options. */
+    static final class Search extends ArmRandom {
+        private static final long serialVersionUID = 1L;
+        final String seat;
+        Search(long seed, String seat) { super(seed); this.seat = seat == null ? "" : seat; }
+
+        private int draw(int bound) {
+            Line l = searchLine;
+            int v = l == null ? 0 : l.draw(seat, bound);
+            note(seat + ":" + bound + ":" + v);
+            return v;
+        }
+        @Override public int nextInt(int bound) { return bound <= 1 ? 0 : draw(bound); }
+        @Override public boolean nextBoolean() { return draw(2) == 1; }
+        @Override public long nextLong(long origin, long bound) {
+            long span = bound - origin;
+            if (span <= 1) return origin;
+            if (span > Integer.MAX_VALUE) span = Integer.MAX_VALUE;
+            return origin + draw((int) span);
+        }
+        @Override int choose(int n, boolean lastIsDecline) { return nextInt(n); }
+        @Override int size(int lo, int hi) { return lo + (hi > lo ? nextInt(hi - lo + 1) : 0); }
     }
 }
