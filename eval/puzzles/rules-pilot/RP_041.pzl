@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 041 - No reflection
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is the opponent's turn; their Fable of the Mirror-Breaker has two lore counters. End the turn with Fable of the Mirror-Breaker in the opponent's graveyard.
+Rule:cranial-insertion-d24163cf484bffab | A Saga whose final chapter ability has left the stack is sacrificed as a state-based action (CR 714.4), even if that ability was countered
+[state]
+turn=1
+activeplayer=p1
+activephase=DRAW
+p0life=20
+p0hand=Trickbind
+p0battlefield=Island;Island
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Fable of the Mirror-Breaker|Counters:LORE=2
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Fable of the Mirror-Breaker" = 1

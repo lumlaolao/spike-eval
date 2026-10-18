@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 034 - Through the shield
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:The opponent is at 2 life and controls Stone Golem and Welding Jar. Win this turn with Stone Golem in the opponent's graveyard.
+Rule:rulesguru-4ab201ccee21d530 | A mode chosen more than once is carried out once per choice, in order (CR 700.2d); one regeneration shield replaces only the first destruction (CR 701.19a)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Fiery Confluence
+p0battlefield=Mountain;Mountain;Mountain;Mountain
+p0library=Island;Island;Island
+p1life=2
+p1battlefield=Stone Golem;Welding Jar
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0
+count p1 Graveyard "Stone Golem" = 1

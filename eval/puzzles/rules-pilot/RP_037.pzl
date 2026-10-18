@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 037 - Push the Aberration
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:The opponent controls Insectile Aberration (3/2 flier). End the turn with it in the opponent's graveyard.
+Rule:rulesguru-9b88aaef906ade60 | The back face of a transforming double-faced card has the mana value of its front face (CR 712.8e): Insectile Aberration has mana value 1
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Fatal Push;Tragic Slip
+p0battlefield=Swamp
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Delver of Secrets|Transformed
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Delver of Secrets" = 1

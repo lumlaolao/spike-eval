@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 036 - Armor is not enough
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:The opponent controls Rowan Treefolk enchanted with Eel Umbra. End the turn with Rowan Treefolk in the opponent's graveyard.
+Rule:rulesguru-919e2e7f2079f6e9 | Umbra armor replaces destruction only; sacrificing is not destroying (CR 702.89a, 701.17b)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Murder;Diabolic Edict
+p0battlefield=Swamp;Swamp;Swamp
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Rowan Treefolk|Id:1;Eel Umbra|AttachedTo:1
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Rowan Treefolk" = 1

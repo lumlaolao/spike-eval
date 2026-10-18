@@ -1,0 +1,79 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=35251 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 34086 files in 1 ms (25 parts) using thread pool
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 857 files in 0 ms (8 parts) using thread pool
+[SEED] 4114
+[EVAL] jsonl game-4114-1792314588589.jsonl
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/pauper-weenie-white.plan
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/modern-rakdos-delirium.plan
+[DECK] loaded 'Seat': 60 main, 15 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/pauper-weenie-white.txt)
+[DECK] loaded 'ForgeAI': 60 main, 15 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/modern-rakdos-delirium.txt)
+[SEATS] A=Seat(llm,openrouter:openai/gpt-6-luna) B=ForgeAI(ai,opus)
+[Seat] [OBSERVATION] observation-faithful-v41 (profile v4-faithful/379d6b7b5b6a)
+[HEADLESS] game starting (cap=120min)
+[Seat] [ROUTER] mulligan: 2/7 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5712 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: KEEP
+[Seat] [TALLY] smart=1 fast=0 auto=0 ai=0 textParses=0 avgSmart=5712ms avgFast=5712ms
+[Seat] [ROUTER] play(main): 0 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4187 ms with 1 tool call(s)
+[Seat] [ROUTER] plan: GOAL: Develop an efficient white creature board and use creature-based discounts to build tempo. NEXT: Play Plains now; on turn 3, play a creature if possible, favoring Informant for card selection or Inspector for a Clue.
+[OPENROUTER Seat/smart] replied in 2042 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Plains
+[Seat] [TALLY] smart=3 fast=0 auto=0 ai=0 textParses=0 avgSmart=3980ms avgFast=3980ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3023 ms with 1 tool call(s)
+hidden has neither ManaCost nor Color
+[Seat] [ROUTER] lookahead 1: if you cast Novice Inspector: you board 1 -> 3; hand 7 -> 6; entered the battlefield: Clue Token, Novice Inspector; ForgeAI no change
+[OPENROUTER Seat/smart] replied in 6707 ms with 1 tool call(s)
+[Seat] [ROUTER] lines: Novice Inspector + Martyr's Soul -> the Inspector provides an extra creature to help convoke Soul, and Soul may enter with two +1/+1 counters if you control no tapped lands. Creatures + Salt Road Packbeast -> a wider board reduces Packbeast's affinity cost, and it replaces itself with a draw.
+[Seat] [ROUTER] play: casts Novice Inspector 1/2 @5 {W} [When Novice Inspector enters, investigate. (Create a Clue token. It's an artifact with "{2}, Sacrifice this token: Draw a card.")]
+[Seat] [TALLY] smart=5 fast=0 auto=0 ai=0 textParses=0 avgSmart=4334ms avgFast=4334ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6028 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=6 fast=0 auto=0 ai=0 textParses=0 avgSmart=4616ms avgFast=4616ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6021 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 1: if you cast Ramosian Rally: you graveyard 0 -> 1; hand 6 -> 5; ForgeAI no change
+[OPENROUTER Seat/smart] replied in 3571 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=8 fast=0 auto=0 ai=0 textParses=0 avgSmart=4661ms avgFast=4661ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5438 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7110 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Preserve the creature board while developing efficient white threats. NEXT: Cast Ramosian Rally now using Novice Inspector to pay its alternative cost and save it from Unholy Heat; on my turn, play Plains and cast Raffine's Informant.
+[OPENROUTER Seat/smart] replied in 2990 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Likely red-based removal/control so far, with Unholy Heat; respect further cheap removal.
+[Seat] [ROUTER] play: casts Ramosian Rally @2 — cost: Tap an untapped creature you control [If you control a Plains, you may tap an untapped creature you control rather than pay this spell's mana cost. Creatures you control get +1/+1 until end of turn.]
+Nethergoyf Did not have activator set in SpellAbilityRestriction.canPlay()
+[Seat] [TALLY] smart=11 fast=0 auto=0 ai=0 textParses=0 avgSmart=4802ms avgFast=4802ms
+[Seat] [ROUTER] play(main): 1 castable + 1 land -> asking openai/gpt-6-luna...

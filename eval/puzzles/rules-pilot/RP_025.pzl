@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 025 - Exactly six
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Winding Constrictor and Metallic Mimic (naming Eldrazi). End the turn with an Endless One that has exactly six +1/+1 counters.
+Rule:rulesguru-b76e877716bc05db | Two replacement effects that modify the same counter event each apply once, one after the other (CR 616.1, 614.5): X=4 gives six counters
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Endless One
+p0battlefield=Winding Constrictor;Metallic Mimic|ChosenType:Eldrazi;Wastes;Wastes;Wastes;Wastes;Wastes;Wastes;Wastes;Wastes;Wastes;Wastes
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+counters p0 Battlefield "Endless One" P1P1 = 6

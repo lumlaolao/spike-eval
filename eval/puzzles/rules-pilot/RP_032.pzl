@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 032 - Omnath twice
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:The opponent is at 5 life. You control Omnath, Locus of Creation, Strionic Resonator and two Plains, and have a Forest and Lava Axe in hand. Win this turn.
+Rule:rulesguru-2bbe83b99611c7f2 | A copy of a triggered ability resolves first; the original then resolves as the second time this turn and adds {R}{G}{W}{U}
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Forest;Lava Axe
+p0battlefield=Omnath, Locus of Creation;Strionic Resonator;Plains;Plains
+p0library=Island;Island;Island
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

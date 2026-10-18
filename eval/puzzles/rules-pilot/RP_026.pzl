@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 026 - Kaldra between the strikes
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:The opponent is at 12 life with no creatures. You control Forge Anew, Memnite equipped with Kaldra Compleat, and Jadar, Ghoulcaller of Nephalia. Win this turn.
+Rule:rulesguru-6618d5b726de9bcd | Players get priority between the first-strike and regular combat damage steps; a creature that dealt no first-strike damage deals damage in the second step (CR 510.4, 702.7b)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Forge Anew;Memnite|Id:1;Kaldra Compleat|AttachedTo:1;Jadar, Ghoulcaller of Nephalia
+p0library=Island;Island;Island
+p1life=12
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

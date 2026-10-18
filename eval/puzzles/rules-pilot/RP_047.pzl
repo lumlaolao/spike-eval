@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 047 - The shield does not hold
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:The opponent controls Grizzly Bears with a shield counter and 1 damage already marked on it. End the turn with Grizzly Bears in the opponent's graveyard.
+Rule:wizards-official-card-rulings-437abe53d271d9a7 | A shield counter replaces damage and destruction, not the state-based death of a creature whose marked damage reaches its toughness (CR 122.1c, 704.5g)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Shock;Tragic Slip
+p0battlefield=Badlands
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Grizzly Bears|Counters:SHIELD=1|Damage:1
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Grizzly Bears" = 1

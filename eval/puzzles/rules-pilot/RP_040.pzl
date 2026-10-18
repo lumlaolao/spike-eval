@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 040 - Three Cubs
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Parallel Lives and Bear Cub; the opponent has ten cards in their graveyard. End the turn with exactly three Bear Cub tokens.
+Rule:cranial-insertion-fce3bc1218a66761 | A copy of a permanent spell becomes a token without being created, so Parallel Lives does not double it (CR 707.10f, 111.1)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Bear Cub;See Double
+p0battlefield=Parallel Lives;Bear Cub;Forest;Forest;Island;Island;Island;Island
+p0library=Island;Island;Island
+p1life=20
+p1graveyard=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+p1library=Plains;Plains;Plains
+[acceptance]
+tokens p0 Battlefield "Bear Cub" = 3

@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot 028 - Two come back
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Young Wolf and Spawning Pit, and have Gemrazer in hand. End the turn with both Gemrazer and Young Wolf on your battlefield, each with a +1/+1 counter.
+Rule:cranial-insertion-d2cf5e927fd00011 | A mutated creature that dies goes to the graveyard as separate cards; its undying returns each card with a +1/+1 counter (CR 702.140e, 702.93a)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Gemrazer
+p0battlefield=Young Wolf;Spawning Pit;Forest;Forest;Forest
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Gemrazer" = 1
+count p0 Battlefield "Young Wolf" = 1
+counters p0 Battlefield "Gemrazer" P1P1 = 1
+counters p0 Battlefield "Young Wolf" P1P1 = 1

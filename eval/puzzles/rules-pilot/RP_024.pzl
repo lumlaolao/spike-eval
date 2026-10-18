@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 024 - The Hydra unveiled
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Hardened Scales, Corpsejack Menace and a face-down Hooded Hydra. End the turn with twelve +1/+1 counters on Hooded Hydra.
+Rule:rulesguru-f6209dbf39cc441c | The affected object's controller orders replacement effects (CR 616.1); Hardened Scales then Corpsejack Menace gives 12 counters, the other order 11
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0battlefield=Hooded Hydra|FaceDown;Hardened Scales;Corpsejack Menace;Forest;Forest;Forest;Forest;Forest
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+counters p0 Battlefield "Hooded Hydra" P1P1 = 12

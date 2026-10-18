@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 046 - Three declared
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:The opponent is at 4 life with three untapped 1/1 Soldier tokens. You control Stadium Headliner, Legion Loyalist and an untapped Mountain, and have Raging Goblin in hand. Win this turn.
+Rule:cranial-insertion-a677dd39214ec172 | A token put onto the battlefield attacking was never declared as an attacker, so it does not count for battalion (CR 508.3a, 508.4)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Raging Goblin
+p0battlefield=Stadium Headliner;Legion Loyalist;Mountain
+p0library=Island;Island;Island
+p1life=4
+p1battlefield=T:w_1_1_soldier;T:w_1_1_soldier;T:w_1_1_soldier
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

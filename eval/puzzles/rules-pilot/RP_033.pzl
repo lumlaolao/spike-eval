@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 033 - Spilled over
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:The opponent is at 3 life and controls Craw Wurm (6/4). You control Pestilent Spirit and three Mountains. Win this turn.
+Rule:ask-a-magic-judge-50b82484c7071761 | With deathtouch, 1 damage is lethal, so the rest of Flame Spill's damage is excess and is dealt to the controller (CR 702.2c, 120.4a)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Flame Spill
+p0battlefield=Pestilent Spirit;Mountain;Mountain;Mountain
+p0library=Island;Island;Island
+p1life=3
+p1battlefield=Craw Wurm
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

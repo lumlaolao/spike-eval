@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 023 - Kalitas takes them with him
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Kalitas, Traitor of Ghet; the opponent controls Grizzly Bears and Hill Giant. End the turn with two Zombie tokens and both of the opponent's creatures in exile.
+Rule:rulesguru-3b539f6011e98300 | Kalitas's replacement effect applies to creatures that die at the same time as Kalitas (CR 614.1, 704.5g)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Wrath of God;Murder
+p0battlefield=Kalitas, Traitor of Ghet;Plains;Plains;Swamp;Swamp
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Grizzly Bears;Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+tokens p0 Battlefield "Zombie Token" = 2
+count p1 Exile * = 2

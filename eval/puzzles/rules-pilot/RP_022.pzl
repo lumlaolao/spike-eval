@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 022 - Swans down
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls two Swans of Bryn Argoll. End the turn with both Swans in the opponent's graveyard and no cards in your hand.
+Rule:rulesguru-bacde9f7b4d206d0 | A self-replacement effect (Twinstrike's hellbent "destroy instead") applies before other replacement effects (CR 614.15, 616.1a), so the Swans never prevent damage or draw
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Twinstrike;Grizzly Bears
+p0battlefield=Swamp;Swamp;Mountain;Mountain;Forest;Forest;Forest
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Swans of Bryn Argoll;Swans of Bryn Argoll
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Swans of Bryn Argoll" = 2
+count p0 Hand * = 0

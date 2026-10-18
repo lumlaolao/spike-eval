@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 035 - Dead on arrival
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:The opponent is at 2 life. You control Furnace Celebration, Endurance Bobblehead and three lands; Phyrexian Metamorph is in your graveyard and Animate Dead in your hand. Win this turn.
+Rule:rulesguru-e5c8cdbbb68d3a55 | Animate Dead cannot attach to a returned card that is not a creature; it goes to the graveyard and its leaves trigger sacrifices the permanent (CR 303.4j, 704.5m)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Animate Dead
+p0battlefield=Furnace Celebration;Endurance Bobblehead;Swamp;Mountain;Mountain
+p0graveyard=Phyrexian Metamorph
+p0library=Island;Island;Island
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0
+count p0 Graveyard "Phyrexian Metamorph" = 1

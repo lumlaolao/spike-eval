@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 045 - The General's counters
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You have General Leo Cristophe in hand and Grizzly Bears in your graveyard; the opponent controls Scavenging Ooze and an untapped Forest. End the turn with a +1/+1 counter on General Leo Cristophe.
+Rule:cranial-insertion-28c08d20ca0f68a6 | A trigger whose only target is illegal on resolution does nothing (CR 608.2b); with "up to one" target, choosing none guarantees the counters
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=General Leo Cristophe
+p0battlefield=Plains;Plains;Plains;Plains;Plains
+p0graveyard=Grizzly Bears
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Scavenging Ooze;Forest
+p1library=Plains;Plains;Plains
+[acceptance]
+counters p0 Battlefield "General Leo Cristophe" P1P1 >= 1

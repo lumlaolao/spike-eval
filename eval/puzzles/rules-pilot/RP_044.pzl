@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 044 - One Zombie from the Bridge
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:Bridge from Below is in your graveyard. You control Bronze Sable; the opponent controls Axebane Stag. End the turn with a Zombie token.
+Rule:rulesguru-a253831de7d227f0 | You order your simultaneous triggers (CR 603.3b); an intervening-if is rechecked on resolution (CR 603.4), so the Zombie trigger must resolve before Bridge from Below exiles itself
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Day of Judgment
+p0battlefield=Bronze Sable;Plains;Plains;Plains;Plains
+p0graveyard=Bridge from Below
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Axebane Stag
+p1library=Plains;Plains;Plains
+[acceptance]
+tokens p0 Battlefield "Zombie Token" = 1

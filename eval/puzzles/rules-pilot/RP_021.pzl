@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 021 - Two snakes for the pit
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is the start of your upkeep. You control Ophiomancer, Harmonic Prodigy and Spawning Pit, and no Snakes. End the turn with two charge counters on Spawning Pit and with Ophiomancer and Harmonic Prodigy still on your battlefield.
+Rule:cranial-insertion-3fbf5047f436dcae | An intervening-if trigger rechecks its condition on resolution (CR 603.4): the doubled Ophiomancer trigger makes a second Snake only if the first is gone by then
+[state]
+turn=1
+activeplayer=p1
+activephase=CLEANUP
+activephaseadvance=UPKEEP
+p0life=20
+p0battlefield=Ophiomancer;Harmonic Prodigy;Spawning Pit
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+counters p0 Battlefield "Spawning Pit" CHARGE = 2
+count p0 Battlefield "Ophiomancer" = 1
+count p0 Battlefield "Harmonic Prodigy" = 1

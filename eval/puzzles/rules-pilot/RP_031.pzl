@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot 031 - The Blob holds
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Consuming Blob (1/2); the opponent controls two Grizzly Bears. End the turn with both Grizzly Bears in the opponent's graveyard and Consuming Blob on your battlefield.
+Rule:wizards-official-card-rulings-72e20521cfb28ec5 | A resolving instant or sorcery goes to the graveyard before state-based actions are checked, so it already counts for Consuming Blob's toughness (CR 608.2n, 704.3)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Pyroclasm;Shock
+p0battlefield=Consuming Blob;Mountain;Mountain
+p0graveyard=Grizzly Bears
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Grizzly Bears;Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Grizzly Bears" = 2
+count p0 Battlefield "Consuming Blob" = 1
