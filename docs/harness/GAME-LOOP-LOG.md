@@ -704,3 +704,12 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
   took a basic Island over Volcanic Island (rows 98, 137, 145).
 - model  T6 Brainstorm put back City of Traitors, the land its own plan meant to play next.
 - clean  TAKEN 0, LOST 0, SKIP 0, ai=0; plan audit 0 of 5 hold violations.
+
+### g07  2026-10-18  seed 4107  UR Delver (seat) vs Grixis Reanimator (Forge AI)  WON T10  $0.03  harness-epoch-47
+- Time: 7 min, 54 model answers; no waits, no provider errors.
+- clean  TAKEN 0, LOST 0, SKIP 0, ai=0; tools REFUSED 0 (simulate 3, memory 2); plans 7, hold violations 1.
+- FIXED  the new LEAK check found the opponent's Shallow Grave on the stack as "returns a
+  Creature.TopGraveyardCreature+YouCtrl card from their graveyard" (2 rows, T5): stack and history lines now say
+  filters in words too ("returns a creature from their graveyard"), in `SeatObservation.redact`.
+  Test `aStackLineSaysItsFilterInWords`. observation-faithful-v38, harness-epoch-48.
+

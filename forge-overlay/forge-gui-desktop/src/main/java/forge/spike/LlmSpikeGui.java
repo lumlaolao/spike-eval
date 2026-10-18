@@ -272,8 +272,10 @@ public final class LlmSpikeGui {
      *  Berserk) is captured before the effect applies (HARNESS PATCH of forge/game/zone/MagicStack.java), so the
      *  seat's GAME HISTORY no longer contradicts the stack preview it was shown (g06 seed 4106 T7, "+5/+0" vs "+10/+0").
      *  Epoch 47 (2026-10-18): the engine's filter syntax is said in words: a cost label read "Exile a Card.Blue+Other
-     *  card" (Force of Will) and a card-name ask "(must match: Card.nonLand)" (g05, Cabal Therapy). */
-    static final String HARNESS_EPOCH = "harness-epoch-47";
+     *  card" (Force of Will) and a card-name ask "(must match: Card.nonLand)" (g05, Cabal Therapy).
+     *  Epoch 48 (2026-10-18): the same in the state's stack and history lines (g07, Shallow Grave's "returns a
+     *  Creature.TopGraveyardCreature+YouCtrl card"; observation-faithful-v38). */
+    static final String HARNESS_EPOCH = "harness-epoch-48";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -1437,7 +1439,7 @@ public final class LlmSpikeGui {
                 return hostRef + (mc == null ? "" : " " + mc) + body;
             }
             String cost = "";
-            try { if (sa.getPayCosts() != null) cost = plainCost(paidCostString(sa).replace("CARDNAME", name).replaceFirst("^\\{0\\},?\\s*", "").trim()); } catch (Exception ignore) { }
+            try { if (sa.getPayCosts() != null) cost = plainFilters(paidCostString(sa).replace("CARDNAME", name).replaceFirst("^\\{0\\},?\\s*", "").trim()); } catch (Exception ignore) { }
             return hostRef + (zone.isEmpty() ? "" : " from " + zone) + (alt.isEmpty() ? "" : " (" + alt + ")")
                     + " — cost: " + (cost.isEmpty() ? "none" : cost) + body;
         }
@@ -5879,10 +5881,10 @@ public final class LlmSpikeGui {
         private static final Pattern COST_FILTER = Pattern.compile(
                 "\\b(?:(an?|one|two|three|four|five|six|seven|eight|nine|ten|X|\\d+) )?((?:untapped|tapped|other) )?([A-Z][a-z]+\\.[a-z]*[A-Z!][A-Za-z!+.=<>]*)(?: (cards?))?");
 
-        /** A cost description with every engine filter in words: Force of Will's pitch read "Exile a Card.Blue+Other card
+        /** Engine text (a cost, a stack line, a log line) with every engine filter in words: Force of Will's pitch read "Exile a Card.Blue+Other card
          *  from your hand" in ten recorded rows; now "Exile another blue card from your hand". A count above one makes
          *  the noun plural; a condition that cannot be said in words is left out (the option quotes the card's text). */
-        static String plainCost(String cost) {
+        static String plainFilters(String cost) {
             if (cost == null || cost.indexOf('.') < 0) return cost;
             Matcher m = COST_FILTER.matcher(cost);
             StringBuilder out = new StringBuilder();
@@ -5904,7 +5906,7 @@ public final class LlmSpikeGui {
         /** A cost as the seat reads it: under the faithful profile its filters are said in words; a legacy profile keeps
          *  the engine's text byte for byte (docs/STANDARDS.md section 4). */
         private String costText(String engineText) {
-            return observer != null ? plainCost(engineText) : engineText;
+            return observer != null ? plainFilters(engineText) : engineText;
         }
 
         /** Shared free-form "CARD: <name>" ask (one retry). Returns the raw name or null. `exists`

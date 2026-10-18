@@ -125,6 +125,19 @@ public class SeatObservationTest {
         for (String f : forbidden) Assert.assertFalse(text.contains(f), where + " leaks '" + f + "':\n" + text);
     }
 
+    /** The opponent's Shallow Grave on the stack read "returns a Creature.TopGraveyardCreature+YouCtrl card from their
+     *  graveyard" (runs/loop/g07 T5): engine filters in the state are said in words. */
+    @Test
+    public void aStackLineSaysItsFilterInWords() {
+        Game g = bareGame();
+        card("Griselbrand", g.getPlayers().get(1), ZoneType.Graveyard);
+        LineFindingProbeTest.rivalCasts(g, "Shallow Grave", null);
+        String out = render(observerFor(g, 0), "");
+        Assert.assertTrue(out.contains("Shallow Grave"), out);
+        Assert.assertFalse(java.util.regex.Pattern.compile(LlmSpikeGui.PlayerControllerLLM.ENGINE_FILTER_REGEX).matcher(out).find(),
+                "the engine's filter is shown: " + out);
+    }
+
     // ---- known hidden locations: the Unsummon -> Thoughtseize chain ---------------------------
 
     /** The seat can SEE a public card move into an opponent's hand and act on that knowledge — and the

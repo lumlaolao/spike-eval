@@ -87,7 +87,8 @@ final class SeatObservation {
      *  combat says which attackers are in a band.
      *  v37 (2026-10-17): the guide lists every hand tag the seat can see ("castable by an alternative cost", "castable
      *  only with ...", "payable, not castable now") and says that a mana ability's ACTIVATE only fills the pool. */
-    static final String VERSION = "observation-faithful-v37";
+    // v38 (2026-10-18): engine filters in stack and history lines are said in words (runs/loop/g07 T5, Shallow Grave).
+    static final String VERSION = "observation-faithful-v38";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
      *  Every section named here is one {@link #render} prints. */
@@ -862,7 +863,9 @@ final class SeatObservation {
             }
         }
         sb.append(out, last, out.length());
-        return sb.toString();
+        // Engine filters in words: Shallow Grave's stack line read "returns a Creature.TopGraveyardCreature+YouCtrl
+        // card from their graveyard" (runs/loop/g07 T5).
+        return LlmSpikeGui.PlayerControllerLLM.plainFilters(sb.toString());
     }
 
     /** {@link #redact} for text the seat is asked with (a stack description in a question). */
