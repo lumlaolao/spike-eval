@@ -17,6 +17,8 @@ import forge.card.ICardFace;
 import forge.card.MagicColor;
 import forge.game.Game;
 import forge.game.GameEntity;
+import forge.game.GameLogEntry;
+import forge.game.GameLogEntryType;
 import forge.game.card.Card;
 import forge.game.card.CardCollection;
 import forge.game.combat.Combat;
@@ -2852,6 +2854,36 @@ public class GoldenChecksTest {
         Assert.assertNotNull(t1);
         Assert.assertEquals(t1.getDividedValue(goyf), Integer.valueOf(2), String.valueOf(t1));
         Assert.assertEquals(ctrl.aiDelegationsCount() + ctrl1.aiDelegationsCount(), 0);
+    }
+
+    /** Berserk on a 3/3: its X is the target's power, so the STACK preview built when the spell went on the
+     *  stack says "+3/+0". The resolve line (STACK_RESOLVE — the event the seat's GAME HISTORY shows) used to
+     *  be built AFTER the pump had applied: X re-read the already-pumped creature and the same spell showed
+     *  "+6/+0" in history while the preview still said "+3/+0", both in the seat (g06 seed 4106, T7: preview
+     *  "+5/+0", history E103 "+10/+0" in one prompt). The applied amount is +3 (Giant ends at 6) either way —
+     *  only the log lied. MagicStack must capture the resolving spell's own stack description before it
+     *  applies. HARNESS PATCH of forge/game/zone/MagicStack.java. */
+    @Test
+    public void aPumpResolveLineSaysWhatTheStackPreviewSays() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card giant = card("Hill Giant", me, ZoneType.Battlefield);
+        Assert.assertEquals(giant.getNetPower(), 3, "fixture: a 3-power target");
+        LineFindingProbeTest.rivalCasts(g, "Berserk", giant);
+        Assert.assertTrue(g.getStack().peekAbility().getStackDescription().contains("+3/+0"),
+                "fixture: the stack preview says +3: " + g.getStack().peekAbility().getStackDescription());
+        g.getStack().resolveStack();
+        Assert.assertEquals(giant.getNetPower(), 6, "the +3 applied");
+        String resolveLine = null;
+        for (GameLogEntry e : g.getGameLog().getAllEntries()) {
+            if (e.type() == GameLogEntryType.STACK_RESOLVE && e.message().contains("Hill Giant")) {
+                resolveLine = e.message();
+            }
+        }
+        Assert.assertNotNull(resolveLine, "the resolve reached the game log");
+        Assert.assertTrue(resolveLine.contains("+3/+0"), "the resolve line says what was applied: " + resolveLine);
+        Assert.assertFalse(resolveLine.contains("+6/+0"), "the resolve line does not re-read the pumped power: " + resolveLine);
+        Assert.assertTrue(resolveLine.contains("trample"), resolveLine);
     }
 
     // ------------------------------------------------------------------ the gate

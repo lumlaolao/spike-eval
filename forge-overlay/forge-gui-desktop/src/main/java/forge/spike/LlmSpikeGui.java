@@ -267,8 +267,11 @@ public final class LlmSpikeGui {
      *  Epoch 45 (2026-10-17): the guide lists every hand tag and what a mana ability's ACTIVATE does
      *  (observation-faithful-v37, seat-tools-v11); a kept mana source the engine cannot pay around is released and
      *  the cost paid again; a cancelled modal spell keeps no modes; delve's least count is the engine's test payment;
-     *  a preview restores every target it set, and a target choice of a play can be previewed (lookahead-preview-v10). */
-    static final String HARNESS_EPOCH = "harness-epoch-45";
+     *  a preview restores every target it set, and a target choice of a play can be previewed (lookahead-preview-v10).
+     *  Epoch 46 (2026-10-17): the resolve line of a state-dependent pump (+X where X is the target's power, e.g.
+     *  Berserk) is captured before the effect applies (HARNESS PATCH of forge/game/zone/MagicStack.java), so the
+     *  seat's GAME HISTORY no longer contradicts the stack preview it was shown (g06 seed 4106 T7, "+5/+0" vs "+10/+0"). */
+    static final String HARNESS_EPOCH = "harness-epoch-46";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
