@@ -6,7 +6,7 @@ when an item is finished or a new one is agreed, so the next session can pick up
 
 ## Handoff (2026-10-18; read this first)
 
-State of `main`: harness-epoch-48 (observation-faithful-v38, seat-tools-v11, lookahead-preview-v11;
+State of `main`: harness-epoch-49 (observation-faithful-v39, seat-tools-v11, lookahead-preview-v11;
 three engine patches, `ENGINE-PATCHES.md`). Acceptance and the gauntlets were last run on epoch 46 (the owner asked to skip them on 2026-10-18 night). A new machine reinstalls and rebuilds Forge first (`install.sh`, then the `mvn` build); on the Mac,
 set `JAVA_HOME` to JDK 17.
 
@@ -14,7 +14,7 @@ Next steps, in order:
 1. **The game loop continues at g08.** g01-g07 are logged in GAME-LOOP-LOG.md. g06, the review of g05 and g07 each found a
    harness defect (fixed as epochs 46 to 48), so no game yet counts towards "three in a row with nothing new". Play
    one game at a time on decks not used this round (the `game-loop` skill) until three in a row add nothing.
-2. **After any harness change, and once now for epoch 48**, run the three gauntlets with new seeds, each into its own
+2. **After any harness change, and once now for epoch 49**, run the three gauntlets with new seeds, each into its own
    directory, and check each with `python3 eval/gauntlet_scan.py <dir>` (it must say 0 defect lines):
    - `FORGE_HOME=<checkout> bash eval/keyword_gauntlet.sh <dir-first> 6`
    - `FORGE_HOME=<checkout> GAUNTLET_POLICY=random GAUNTLET_SEED=<salt> bash eval/keyword_gauntlet.sh <dir-random> 6`

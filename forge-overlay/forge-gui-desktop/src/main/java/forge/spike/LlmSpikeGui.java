@@ -274,8 +274,10 @@ public final class LlmSpikeGui {
      *  Epoch 47 (2026-10-18): the engine's filter syntax is said in words: a cost label read "Exile a Card.Blue+Other
      *  card" (Force of Will) and a card-name ask "(must match: Card.nonLand)" (g05, Cabal Therapy).
      *  Epoch 48 (2026-10-18): the same in the state's stack and history lines (g07, Shallow Grave's "returns a
-     *  Creature.TopGraveyardCreature+YouCtrl card"; observation-faithful-v38). */
-    static final String HARNESS_EPOCH = "harness-epoch-48";
+     *  Creature.TopGraveyardCreature+YouCtrl card"; observation-faithful-v38).
+     *  Epoch 49 (2026-10-18): filters say who controls ("creatures an opponent controls"), a chosen or shared name, and
+     *  a bare filter as a plural; an unsayable condition reads "the creatures the card describes" (v39). */
+    static final String HARNESS_EPOCH = "harness-epoch-49";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -5819,25 +5821,31 @@ public final class LlmSpikeGui {
         private static final Set<String> ADJECTIVE_WORDS = Set.of("Basic", "Legendary", "Snow", "White", "Blue", "Black",
                 "Red", "Green", "Colorless", "Multicolor");
 
-        /** One alternative of an engine filter ("Card.nonLand", "Card.Blue+Other", "Creature.Black", "Planeswalker.Nissa")
-         *  as {words before the noun, the noun, "complete" or "partial"}: {"nonland", "card"}, {"other blue", "card"},
-         *  {"black", "creature"}, {"Nissa", "planeswalker"}. A property that is not a type, a real subtype, a colour or
-         *  "Other" (cmcEQX, OppOwn, Self, ManaCost=...) is left out and the result is "partial". */
+        /** Conditions said after the noun ("a creature you control"). "ControlledBy" takes its next word, below. */
+        private static final Map<String, String> POSTFIX_WORDS = Map.of(
+                "YouCtrl", "you control", "OppCtrl", "an opponent controls", "YouOwn", "you own", "OppOwn", "an opponent owns",
+                "sameName", "with the same name", "NamedCard", "with the chosen name");
+
+        /** One alternative of an engine filter ("Card.nonLand", "Card.Blue+Other", "Creature.OppCtrl", "Planeswalker.Nissa")
+         *  as {words before the noun, the noun, "complete" or "partial", words after the noun}: {"nonland", "card"},
+         *  {"other blue", "card"}, {"", "creature", .., "an opponent controls"}, {"Nissa", "planeswalker"}. A property
+         *  that is none of these (cmcEQX, Self, ManaCost=...) is left out and the result is "partial". */
         static String[] filterParts(String alt) {
             String[] seg = alt.trim().split("\\.", 2);
             List<String> props = new ArrayList<>();
             if (!seg[0].equals("Card")) props.add(seg[0]);
             if (seg.length > 1) props.addAll(java.util.Arrays.asList(seg[1].split("\\+")));
-            List<String> adjectives = new ArrayList<>(), subtypes = new ArrayList<>(), types = new ArrayList<>();
+            List<String> adjectives = new ArrayList<>(), subtypes = new ArrayList<>(), types = new ArrayList<>(), after = new ArrayList<>();
             boolean other = false, complete = true;
             for (String w : props) {
                 if (w.equals("Other")) { other = true; continue; }
+                if (POSTFIX_WORDS.containsKey(w)) { after.add(POSTFIX_WORDS.get(w)); continue; }
                 boolean non = w.startsWith("non") && w.length() > 3 && Character.isUpperCase(w.charAt(3));
                 String core = non ? w.substring(3) : w;
                 boolean type = CARD_TYPE_WORDS.contains(core), adjective = ADJECTIVE_WORDS.contains(core);
                 boolean subtype = !type && !adjective && core.matches("[A-Z][a-z]+") && forge.card.CardType.isASubType(core);
                 if (!type && !adjective && !subtype) { complete = false; continue; }
-                if (non) adjectives.add("non" + core.toLowerCase(Locale.ROOT));
+                if (non) adjectives.add(subtype ? "non-" + core : "non" + core.toLowerCase(Locale.ROOT));
                 else if (adjective) adjectives.add(core.toLowerCase(Locale.ROOT));
                 else if (type) types.add(core.toLowerCase(Locale.ROOT));
                 else subtypes.add(core);
@@ -5847,7 +5855,7 @@ public final class LlmSpikeGui {
             before.addAll(adjectives);
             before.addAll(subtypes);
             return new String[] {String.join(" ", before), types.isEmpty() ? "card" : String.join(" ", types),
-                    complete ? "complete" : "partial"};
+                    complete ? "complete" : "partial", String.join(" ", after)};
         }
 
         private static String withArticle(String phrase) {
@@ -5869,7 +5877,7 @@ public final class LlmSpikeGui {
                 String[] f = filterParts(alt);
                 if (!f[2].equals("complete")) return null;
                 String noun = f[1].equals("card") ? "card" : f[1] + " card";
-                alternatives.add(withArticle(f[0].isEmpty() ? noun : f[0] + " " + noun));
+                alternatives.add(withArticle(f[0].isEmpty() ? noun : f[0] + " " + noun) + (f[3].isEmpty() ? "" : " " + f[3]));
             }
             return String.join(" or ", alternatives);
         }
@@ -5879,24 +5887,37 @@ public final class LlmSpikeGui {
          *  keeps the three equal). */
         static final String ENGINE_FILTER_REGEX = "\\b[A-Z][a-z]+\\.[a-z]*[A-Z!][A-Za-z]";
         private static final Pattern COST_FILTER = Pattern.compile(
-                "\\b(?:(an?|one|two|three|four|five|six|seven|eight|nine|ten|X|\\d+) )?((?:untapped|tapped|other) )?([A-Z][a-z]+\\.[a-z]*[A-Z!][A-Za-z!+.=<>]*)(?: (cards?))?");
+                "\\b(?:(an?|one|two|three|four|five|six|seven|eight|nine|ten|X|\\d+) )?((?:untapped|tapped|other) )?([A-Z][a-z]+\\.[a-z]*[A-Z!][A-Za-z!+=<>]*)(?: (cards?)| (TargetedOrController|TargetedController|Targeted))?");
 
         /** Engine text (a cost, a stack line, a log line) with every engine filter in words: Force of Will's pitch read "Exile a Card.Blue+Other card
          *  from your hand" in ten recorded rows; now "Exile another blue card from your hand". A count above one makes
          *  the noun plural; a condition that cannot be said in words is left out (the option quotes the card's text). */
-        static String plainFilters(String cost) {
-            if (cost == null || cost.indexOf('.') < 0) return cost;
-            Matcher m = COST_FILTER.matcher(cost);
+        static String plainFilters(String text) {
+            if (text == null || text.indexOf('.') < 0) return text;
+            Matcher m = COST_FILTER.matcher(text);
             StringBuilder out = new StringBuilder();
             while (m.find()) {
-                String[] f = filterParts(m.group(3));
+                String token = m.group(3);
+                String target = m.group(5);
+                if (target != null && token.endsWith("ControlledBy")) token = token.substring(0, token.length() - "ControlledBy".length()) + "ControlledByTarget";
+                String[] f = filterParts(token.replace("+ControlledByTarget", "").replace(".ControlledByTarget", ""));
+                String after = f[3];
+                if (token.contains("ControlledByTarget"))
+                    after = (after.isEmpty() ? "" : after + " ") + (target.equals("TargetedOrController")
+                            ? "that player or that planeswalker's controller controls" : "that player controls");
+                // "YouCtrl" on a card in a hand or graveyard means "yours", which the line already says ("from their
+                // graveyard"): the control words are dropped there.
+                String rest = text.substring(m.end());
+                if (rest.startsWith(" from ") || rest.startsWith(" in "))
+                    after = after.replaceAll("(?:^| )(?:you control|an opponent controls|you own|an opponent owns)", "").trim();
                 String count = m.group(1);
-                boolean one = count == null || count.equals("a") || count.equals("an") || count.equals("one") || count.equals("1");
-                String noun = one ? f[1] : plural(f[1]);
+                boolean bare = count == null, one = !bare && (count.equals("a") || count.equals("an") || count.equals("one") || count.equals("1"));
+                String noun = f[1].equals("card") || m.group(4) == null ? f[1] : f[1] + " card";
+                noun = one ? noun : plural(noun);
                 String words = (m.group(2) == null ? "" : m.group(2)) + f[0];  // "untapped " stays before the filter's words
-                String phrase = words.trim().isEmpty() ? noun : words.trim() + " " + noun;
-                String said = count == null || count.equals("a") || count.equals("an") ? (count == null ? phrase : withArticle(phrase))
-                        : count + " " + phrase;
+                String phrase = (words.trim().isEmpty() ? noun : words.trim() + " " + noun) + (after.isEmpty() ? "" : " " + after);
+                String said = bare ? (f[2].equals("complete") ? phrase : "the " + phrase + " the card describes")
+                        : one && !count.equals("one") && !count.equals("1") ? withArticle(phrase) : count + " " + phrase;
                 m.appendReplacement(out, Matcher.quoteReplacement(said));
             }
             m.appendTail(out);
