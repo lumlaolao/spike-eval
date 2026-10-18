@@ -277,8 +277,10 @@ public final class LlmSpikeGui {
      *  Creature.TopGraveyardCreature+YouCtrl card"; observation-faithful-v38).
      *  Epoch 49 (2026-10-18): filters say who controls ("creatures an opponent controls"), a chosen or shared name, and
      *  a bare filter as a plural; an unsayable condition reads "the creatures the card describes" (v39). A pick that is
-     *  one of several for the same effect ("(3 / 5)", Doomsday) says the cards already picked (g08). */
-    static final String HARNESS_EPOCH = "harness-epoch-49";
+     *  one of several for the same effect ("(3 / 5)", Doomsday) says the cards already picked (g08).
+     *  Epoch 50 (2026-10-18): the header before the first turn says "before the first turn (opening hands)", not
+     *  "Turn 0 null (active: ? | priority: ?)" (observation-faithful-v40; a sweep of runs/ found it on every mulligan). */
+    static final String HARNESS_EPOCH = "harness-epoch-50";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats

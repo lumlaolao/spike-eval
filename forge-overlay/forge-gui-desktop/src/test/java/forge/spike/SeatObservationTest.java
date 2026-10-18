@@ -125,6 +125,22 @@ public class SeatObservationTest {
         for (String f : forbidden) Assert.assertFalse(text.contains(f), where + " leaks '" + f + "':\n" + text);
     }
 
+    /** Before the first turn (the mulligan) there is no phase and no active player: the header read
+     *  "== Turn 0 null (active: ? | priority: ?) ==" on every opening-hand ask (runs/loop/g07-g09). */
+    @Test
+    public void theHeaderBeforeTheFirstTurnSaysSo() {
+        List<RegisteredPlayer> players = Lists.newArrayList();
+        players.add(new RegisteredPlayer(new Deck()).setPlayer(new LobbyPlayerAi("Viewer", null)));
+        players.add(new RegisteredPlayer(new Deck()).setPlayer(new LobbyPlayerAi("Rival", null)));
+        GameRules rules = new GameRules(GameType.Constructed);
+        Game g = new Game(players, rules, new Match(rules, players, "SeatObservationTest"));
+        g.setAge(GameStage.Mulligan);
+        String out = render(observerFor(g, 0), "");
+        String header = out.substring(out.indexOf("== Turn"), out.indexOf("==\n", out.indexOf("== Turn") + 3) + 2);
+        Assert.assertFalse(header.contains("null") || header.contains("?"), header);
+        Assert.assertTrue(header.contains("before the first turn (opening hands)"), header);
+    }
+
     /** The opponent's Shallow Grave on the stack read "returns a Creature.TopGraveyardCreature+YouCtrl card from their
      *  graveyard" (runs/loop/g07 T5): engine filters in the state are said in words. */
     @Test
