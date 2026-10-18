@@ -802,3 +802,10 @@ simulate 5), ai_tier_count=0, 10 min. Forge's AI went off with Tendrils of Agony
 - checked  `counter-type(forced-only-legal)` x3 (Vial's upkeep counter: charge is the only kind).
 - clean  mulligan, Vial triggers, yields. Third clean game in a row on epoch 51; epoch 52 (rules pilot fixes:
   "up to" targets, lethal tap damage, whole-block-set legality) restarts the count.
+
+### g14  2026-10-18  seed 4114  Pauper White Weenie (seat) vs Rakdos Delirium (Forge AI)  WON T14  $0.03  harness-epoch-52
+Sheet clean: 43 model decisions, 2 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 6 of 6 served (simulate 6),
+ai_tier_count=0, 8 min. First game on epoch 52; no [BLOCK-INVALID] and no block sent back.
+- not exercised  the whole-block-set check: Moonshadow (menace) never came down; one block ask, answered NONE.
+- clean  attacks with the Inspectors and Raffine's Informant, the block ask, previews. First clean game on epoch 52
+  (epoch 53, from rules puzzle batch 2, is built and starts the count again once installed).

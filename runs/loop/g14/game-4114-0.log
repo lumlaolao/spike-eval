@@ -77,3 +77,542 @@ hidden has neither ManaCost nor Color
 Nethergoyf Did not have activator set in SpellAbilityRestriction.canPlay()
 [Seat] [TALLY] smart=11 fast=0 auto=0 ai=0 textParses=0 avgSmart=4802ms avgFast=4802ms
 [Seat] [ROUTER] play(main): 1 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3433 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Develop the board efficiently while respecting the opponent's removal. NEXT: Play a Plains, then cast Raffine's Informant; retain the two Martyr's Souls for a later board-building turn.
+[OPENROUTER Seat/smart] replied in 2175 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Plains
+[Seat] [TALLY] smart=13 fast=0 auto=0 ai=0 textParses=0 avgSmart=4495ms avgFast=4495ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10386 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Build a large, efficient creature board while developing card selection and respecting removal. NEXT: Cast Martyr's Soul using the Inspector to convoke for white, keeping both Plains untapped; next turn use Raffine's Informant or the Clue as resources allow.
+[OPENROUTER Seat/smart] replied in 2986 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Martyr's Soul 3/2 @3 2{W} [Convoke (Your creatures can help cast this spell. Each creature you tap while casting this spell pays for {1} or one mana of that creature's color.) When Martyr's Soul enters, if you control no tapped lands, put two +1/+1 counters on it.]
+[OPENROUTER Seat/smart] replied in 10761 ms with 1 tool call(s)
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 13319 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Rebuild a threatening creature board while preserving the Clue for later card advantage. NEXT: Pass to main phase, play a Plains, then recast Martyr's Soul using Novice Inspector to convoke; keep the Clue unused.
+[OPENROUTER Seat/smart] replied in 2432 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3746 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=19 fast=0 auto=0 ai=0 textParses=0 avgSmart=5371ms avgFast=5371ms
+[Seat] [ROUTER] play(main): 5 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10544 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 6, then 2: if you play Plains, then cast Martyr's Soul: you board 4 -> 6; hand 5 -> 3; entered the battlefield: Martyr's Soul, Plains; ForgeAI no change
+[OPENROUTER Seat/smart] replied in 10150 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Build a wider board with cheap creatures so Martyr's Soul can later be convoked without tapping lands and enter with counters. NEXT: Play Plains, cast Raffine's Informant and Thraben Inspector; preserve the Clue. Reassess the connive discard and next turn's Soul line.
+[OPENROUTER Seat/smart] replied in 2408 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Plains
+[Seat] [TALLY] smart=22 fast=0 auto=0 ai=0 textParses=0 avgSmart=5689ms avgFast=5689ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4385 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Raffine's Informant 2/1 @1 1{W} [When Raffine's Informant enters, it connives. (Draw a card, then discard a card. If you discarded a nonland card, put a +1/+1 counter on this creature.)]
+[OPENROUTER Seat/smart] replied in 11765 ms with 1 tool call(s)
+[Seat] [ROUTER] discard: Search Party Captain
+[Seat] [TALLY] smart=24 fast=0 auto=0 ai=0 textParses=0 avgSmart=5888ms avgFast=5888ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8289 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Develop board and card advantage while preserving a stronger Martyr's Soul for a later turn when lands are untapped. NEXT: Cast Thraben Inspector with the untapped Plains, create another Clue, and reassess next turn; do not cast Soul while tapped lands would prevent its counters.
+[OPENROUTER Seat/smart] replied in 1764 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Thraben Inspector 1/2 @30 {W} [When Thraben Inspector enters, investigate. (Create a Clue token. It's an artifact with "{2}, Sacrifice this token: Draw a card.")]
+[Seat] [TALLY] smart=26 fast=0 auto=0 ai=0 textParses=0 avgSmart=5822ms avgFast=5822ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 13692 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Preserve the current attack and set up a larger Martyr's Soul next turn. NEXT: Pass now, attack with the three untapped creatures, and consider casting Soul after combat via convoke or next turn while keeping lands untapped for its counters.
+[OPENROUTER Seat/smart] replied in 2221 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6093 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: none
+[Seat] [TALLY] smart=29 fast=0 auto=0 ai=0 textParses=0 avgSmart=5978ms avgFast=5978ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 11460 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7711 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Build card advantage while pressuring with the creature board; respect the opponent's removal. NEXT: In main, play Plains if useful, consider cracking a Clue before combat to find action, then attack based on their 3/2 blocker and hold up any remaining mana.
+[OPENROUTER Seat/smart] replied in 3004 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Red-based removal/yard-synergy deck; respect cheap removal such as Unholy Heat and Lightning Bolt, plus Dark Matter Manipulator as a growing attacker.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7703 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Clue Token @12 [{2}, Sacrifice this token: Draw a card.]
+[Seat] [TALLY] smart=33 fast=0 auto=0 ai=0 textParses=0 avgSmart=6159ms avgFast=6159ms
+[Seat] [ROUTER] play(main): 2 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7045 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Keep attacking with the existing board while adding a creature and card advantage; play the land before combat, then deploy Novice Inspector postcombat if available. NEXT: Play Plains, attack thoughtfully into the 3/2 blocker, then cast Novice Inspector with a Plains after combat.
+[OPENROUTER Seat/smart] replied in 2301 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Plains
+[Seat] [TALLY] smart=35 fast=0 auto=0 ai=0 textParses=0 avgSmart=6074ms avgFast=6074ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5554 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 1: if you cast Novice Inspector: you board 8 -> 10; hand 2 -> 1; entered the battlefield: Clue Token, Novice Inspector; ForgeAI no change
+[OPENROUTER Seat/smart] replied in 1968 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Novice Inspector 1/2 @42 {W} [When Novice Inspector enters, investigate. (Create a Clue token. It's an artifact with "{2}, Sacrifice this token: Draw a card.")]
+[Seat] [ROUTER] attackers: 3 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5214 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Novice Inspector, Raffine's Informant, Thraben Inspector
+[Seat] [ROUTER] damage-assign: all 1 -> Dark Matter Manipulator (forced)
+[Seat] [ROUTER] blockers: 1 atk / 1 blk -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6588 ms with 1 tool call(s)
+[Seat] [ROUTER] blockers: NONE
+[Seat] [ROUTER] play(react): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8854 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Maintain pressure while using the Clue for card advantage and developing with the available Plains. NEXT: Pass upkeep; in main play Plains, then decide whether to crack a Clue before combat or hold it, attack with the team, and use any drawn creature postcombat if affordable.
+[OPENROUTER Seat/smart] replied in 2466 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8760 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=42 fast=0 auto=0 ai=0 textParses=0 avgSmart=6000ms avgFast=6000ms
+[Seat] [ROUTER] play(main): 4 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9284 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Plains
+[Seat] [TALLY] smart=43 fast=0 auto=0 ai=0 textParses=0 avgSmart=6076ms avgFast=6076ms
+[Seat] [ROUTER] play(main): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5803 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Clue Token @36 [{2}, Sacrifice this token: Draw a card.]
+[Seat] [TALLY] smart=44 fast=0 auto=0 ai=0 textParses=0 avgSmart=6070ms avgFast=6070ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 14959 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 2: if you activate Clue Token: you board 9 -> 8; hand 1 -> 2; library 46 -> 45; left the battlefield: Clue Token; ForgeAI no change. The engine chose what to sacrifice for this preview; in the real play YOU choose
+[OPENROUTER Seat/smart] replied in 4670 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Clue Token @45 [{2}, Sacrifice this token: Draw a card.]
+[Seat] [ROUTER] attackers: 3 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3992 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Keep pressure on ForgeAI while developing efficiently; their removal and 3-power attacker remain threats. NEXT: Attack with all three creatures while the opponent cannot block; after combat, use future Plains to deploy creatures and preserve a wide board.
+[OPENROUTER Seat/smart] replied in 2416 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Raffine's Informant, Thraben Inspector, Novice Inspector
+[Seat] [TALLY] smart=48 fast=0 auto=0 ai=0 textParses=0 avgSmart=6106ms avgFast=6106ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 15283 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 3, then 2: if you cast Salt Road Packbeast, then cast Fortress Kin-Guard: you board 8 -> 10; hand 4 -> 3; library 43 -> 42; entered the battlefield: Fortress Kin-Guard, Salt Road Packbeast; ForgeAI no change
+[OPENROUTER Seat/smart] replied in 4960 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Preserve lethal pressure while adding enough board and card advantage to withstand a removal spell. NEXT: Cast Salt Road Packbeast, then Fortress Kin-Guard; choose the +1/+1 counter for Kin-Guard if offered. On my next turn, attack with the full board.
+[OPENROUTER Seat/smart] replied in 3092 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Salt Road Packbeast 4/3 @53 5{W} [Affinity for creatures (This spell costs {1} less to cast for each creature you control.) When this creature enters, draw a card.]
+[Seat] [TALLY] smart=51 fast=0 auto=0 ai=0 textParses=0 avgSmart=6205ms avgFast=6205ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10317 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Fortress Kin-Guard 1/2 @52 1{W} [When this creature enters, it endures 1. (Put a +1/+1 counter on it or create a 1/1 white Spirit creature token.)]
+[OPENROUTER Seat/smart] replied in 35203 ms with 1 tool call(s)
+[Seat] [ROUTER] confirm(You may put 1 +1/+1 counters on Fortress Kin-Guard. If you don't, create a 1/1 white...): YES
+[Seat] [ROUTER] attackers: 3 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5249 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Raffine's Informant, Thraben Inspector, Novice Inspector
+[Seat] [ROUTER] damage-assign: all 3 -> Dark Matter Manipulator (forced)
+[Seat] [TALLY] smart=54 fast=0 auto=0 ai=0 textParses=0 avgSmart=6800ms avgFast=6800ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7212 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Keep lethal combat pressure while building redundancy against removal. NEXT: Cast Raffine's Informant for its draw-and-discard value; next turn attack with the full board if lethal remains.
+[OPENROUTER Seat/smart] replied in 4583 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Red-based removal and graveyard-synergy deck; respect Unholy Heat, Lightning Bolt, and potential graveyard-powered threats.
+[Seat] [ROUTER] play: casts Raffine's Informant 2/1 @49 1{W} [When Raffine's Informant enters, it connives. (Draw a card, then discard a card. If you discarded a nonland card, put a +1/+1 counter on this creature.)]
+[OPENROUTER Seat/smart] replied in 13708 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Convert the current board into lethal damage this turn while preserving pressure if the opponent has interaction. NEXT: Discard Lunarch Veteran to connive; play a Plains, then use Ramosian Rally and attack with the established creatures.
+[OPENROUTER Seat/smart] replied in 2754 ms with 1 tool call(s)
+[Seat] [ROUTER] discard: Lunarch Veteran
+[Seat] [TALLY] smart=58 fast=0 auto=0 ai=0 textParses=0 avgSmart=6818ms avgFast=6818ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 15958 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Secure lethal combat while adding useful value before the attack. NEXT: Cast Fortress Kin-Guard and Thraben Inspector, then cast Ramosian Rally by tapping the sick Raffine's Informant; attack with the established creatures.
+[OPENROUTER Seat/smart] replied in 2549 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Fortress Kin-Guard 1/2 @56 1{W} [When this creature enters, it endures 1. (Put a +1/+1 counter on it or create a 1/1 white Spirit creature token.)]
+[Seat] [TALLY] smart=60 fast=0 auto=0 ai=0 textParses=0 avgSmart=6899ms avgFast=6899ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7650 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Ramosian Rally @62 — cost: Tap an untapped creature you control [If you control a Plains, you may tap an untapped creature you control rather than pay this spell's mana cost. Creatures you control get +1/+1 until end of turn.]
+[OPENROUTER Seat/smart] replied in 5117 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 11974 ms with 1 tool call(s)
+[Seat] [ROUTER] confirm(You may put 1 +1/+1 counters on Fortress Kin-Guard. If you don't, create a 1/1 white...): YES
+[Seat] [TALLY] smart=63 fast=0 auto=0 ai=0 textParses=0 avgSmart=6964ms avgFast=6964ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7257 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Thraben Inspector 1/2 @54 {W} [When Thraben Inspector enters, investigate. (Create a Clue token. It's an artifact with "{2}, Sacrifice this token: Draw a card.")]
+[Seat] [ROUTER] attackers: 4 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4591 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Thraben Inspector, Novice Inspector, Salt Road Packbeast, Fortress Kin-Guard
+========== GAME OVER ==========
+outcome: A after 14 turns (AllOpponentsLost) in 465s
+--- full game log ---
+  MULLIGAN: ForgeAI has kept a hand of 7 cards
+  MULLIGAN: Seat has kept a hand of 7 cards
+  TURN: Turn 1 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  EFFECT_REPLACED: As Blood Crypt enters, you may pay 2 life. If you don't, it enters tapped.
+  LAND: ForgeAI played Blood Crypt (124)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 2 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Plains (56)
+  MANA: Plains (56) - {T}: Add {W}.
+  STACK_ADD: Seat cast Novice Inspector
+  STACK_RESOLVE: Novice Inspector - Creature 1 / 2
+  STACK_ADD: Seat triggered Novice Inspector
+  STACK_RESOLVE: When Novice Inspector enters, investigate. (Create a Clue token. It's an artifact with "{2}, Sacrifice this token: Draw a card.") [Zone Changer: Novice Inspector (42)]
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 3 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  MANA: Blood Crypt (124) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Unholy Heat targeting [Novice Inspector (42)]
+  STACK_ADD: Seat cast Ramosian Rally
+  STACK_RESOLVE: Ramosian Rally (29) - Creatures you control get +1/+1 until end of turn.
+  DAMAGE: Unholy Heat (120) deals 2 damage to Novice Inspector (42).
+  STACK_RESOLVE: Unholy Heat (120) - Unholy Heat (120) deals 2 damage to Novice Inspector (42).
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Arid Mesa (86)
+  LIFE: Life: ForgeAI 20 > 19
+  ZONE_CHANGE: Arid Mesa (86) was put into Graveyard from Battlefield.
+  STACK_ADD: ForgeAI activated Arid Mesa
+  EFFECT_REPLACED: As Blood Crypt enters, you may pay 2 life. If you don't, it enters tapped.
+  STACK_RESOLVE: Arid Mesa (86) - ForgeAI searches their library for a Mountain or Plains card, puts it onto the battlefield, then shuffles.
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 4 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Plains (53)
+  MANA: Plains (56) - {T}: Add {W}.
+  MANA: Plains (53) - {T}: Add {W}.
+  STACK_ADD: Seat cast Martyr's Soul
+  STACK_RESOLVE: Martyr's Soul - Creature 3 / 2
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 5 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  MANA: Blood Crypt (124) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Lightning Bolt targeting [Martyr's Soul (6)]
+  DAMAGE: Lightning Bolt (78) deals 3 damage to Martyr's Soul (6).
+  STACK_RESOLVE: Lightning Bolt (78) - Lightning Bolt (78) deals 3 damage to Martyr's Soul (6).
+  ZONE_CHANGE: Martyr's Soul (6) was put into Graveyard from Battlefield.
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Bloodstained Mire (104)
+  LIFE: Life: ForgeAI 19 > 18
+  ZONE_CHANGE: Bloodstained Mire (104) was put into Graveyard from Battlefield.
+  STACK_ADD: ForgeAI activated Bloodstained Mire
+  EFFECT_REPLACED: Raucous Theater enters tapped.
+  STACK_RESOLVE: Bloodstained Mire (104) - ForgeAI searches their library for a Swamp or Mountain card, puts it onto the battlefield, then shuffles.
+  STACK_ADD: ForgeAI triggered Raucous Theater
+  STACK_RESOLVE: ForgeAI surveiled 1 card(s) to the graveyard
+  STACK_RESOLVE: When Raucous Theater enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Raucous Theater (108)]
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Blood Crypt (125) - {T}: Add {B}.
+  STACK_ADD: ForgeAI cast Dark Matter Manipulator
+  STACK_RESOLVE: Dark Matter Manipulator - Creature 1 / 2
+  STACK_ADD: ForgeAI triggered Dark Matter Manipulator
+  ZONE_CHANGE: ForgeAI milled Street Wraith (130), Blood Moon (135) and Fear of Missing Out (83).
+  STACK_RESOLVE: When this creature enters, mill three cards. [Zone Changer: Dark Matter Manipulator (89)]
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 6 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Plains (55)
+  MANA: Plains (56) - {T}: Add {W}.
+  MANA: Plains (53) - {T}: Add {W}.
+  STACK_ADD: Seat cast Raffine's Informant
+  STACK_RESOLVE: Raffine's Informant - Creature 2 / 1
+  STACK_ADD: Seat triggered Raffine's Informant
+  DISCARD: Seat discards Search Party Captain (22).
+  STACK_RESOLVE: When Raffine's Informant enters, it connives. (Draw a card, then discard a card. If you discarded a nonland card, put a +1/+1 counter on this creature.) [Zone Changer: Raffine's Informant (33)]
+  MANA: Plains (55) - {T}: Add {W}.
+  STACK_ADD: Seat cast Thraben Inspector
+  STACK_RESOLVE: Thraben Inspector - Creature 1 / 2
+  STACK_ADD: Seat triggered Thraben Inspector
+  STACK_RESOLVE: When Thraben Inspector enters, investigate. (Create a Clue token. It's an artifact with "{2}, Sacrifice this token: Draw a card.") [Zone Changer: Thraben Inspector (14)]
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 7 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Marsh Flats (100)
+  LIFE: Life: ForgeAI 18 > 17
+  ZONE_CHANGE: Marsh Flats (100) was put into Graveyard from Battlefield.
+  STACK_ADD: ForgeAI activated Marsh Flats
+  EFFECT_REPLACED: Raucous Theater enters tapped.
+  STACK_RESOLVE: Marsh Flats (100) - ForgeAI searches their library for a Plains or Swamp card, puts it onto the battlefield, then shuffles.
+  STACK_ADD: ForgeAI triggered Raucous Theater
+  STACK_RESOLVE: ForgeAI surveiled 1 card(s) to the top of the library
+  STACK_RESOLVE: When Raucous Theater enters, surveil 1. (Look at the top card of your library. You may put it into your graveyard.) [Zone Changer: Raucous Theater (107)]
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Blood Crypt (124) - {T}: Add {B}.
+  STACK_ADD: ForgeAI cast Thoughtseize targeting [Seat]
+  DISCARD: Seat discards Martyr's Soul (7).
+  LIFE: Life: ForgeAI 17 > 15
+  STACK_RESOLVE: Thoughtseize (116) - Seat reveals their hand. ForgeAI chooses a nonland card from it. Seat discards that card. ForgeAI loses 2 life.
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 8 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  MANA: Plains (56) - {T}: Add {W}.
+  MANA: Plains (53) - {T}: Add {W}.
+  ZONE_CHANGE: Clue Token (152) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat activated Clue Token
+  STACK_RESOLVE: Clue Token (152) - Seat draws a card.
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Plains (50)
+  MANA: Plains (55) - {T}: Add {W}.
+  STACK_ADD: Seat cast Novice Inspector
+  STACK_RESOLVE: Novice Inspector - Creature 1 / 2
+  STACK_ADD: Seat triggered Novice Inspector
+  STACK_RESOLVE: When Novice Inspector enters, investigate. (Create a Clue token. It's an artifact with "{2}, Sacrifice this token: Draw a card.") [Zone Changer: Novice Inspector (41)]
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Novice Inspector (42), Raffine's Informant (33) and Thraben Inspector (14) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI assigned Dark Matter Manipulator (89) to block Novice Inspector (42).
+ForgeAI didn't block Raffine's Informant (33).
+ForgeAI didn't block Thraben Inspector (14).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Novice Inspector (42) deals 1 damage to Dark Matter Manipulator (89).
+  DAMAGE: Raffine's Informant (33) deals 3 combat damage to ForgeAI.
+  DAMAGE: Thraben Inspector (14) deals 1 combat damage to ForgeAI.
+  DAMAGE: Dark Matter Manipulator (89) deals 3 damage to Novice Inspector (42).
+  LIFE: Life: ForgeAI 15 > 11
+  ZONE_CHANGE: Novice Inspector (42) was put into Graveyard from Battlefield.
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 9 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Bloodstained Mire (106)
+  LIFE: Life: ForgeAI 11 > 10
+  ZONE_CHANGE: Bloodstained Mire (106) was put into Graveyard from Battlefield.
+  STACK_ADD: ForgeAI activated Bloodstained Mire
+  EFFECT_REPLACED: As Blood Crypt enters, you may pay 2 life. If you don't, it enters tapped.
+  STACK_RESOLVE: Bloodstained Mire (106) - ForgeAI searches their library for a Swamp or Mountain card, puts it onto the battlefield, then shuffles.
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Dark Matter Manipulator (89) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Dark Matter Manipulator (89).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Dark Matter Manipulator (89) deals 3 combat damage to Seat.
+  LIFE: Life: Seat 20 > 17
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 10 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Plains (46)
+  MANA: Plains (56) - {T}: Add {W}.
+  MANA: Plains (53) - {T}: Add {W}.
+  ZONE_CHANGE: Clue Token (154) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat activated Clue Token
+  MANA: Plains (55) - {T}: Add {W}.
+  MANA: Plains (50) - {T}: Add {W}.
+  ZONE_CHANGE: Clue Token (156) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat activated Clue Token
+  STACK_RESOLVE: Clue Token (156) - Seat draws a card.
+  STACK_RESOLVE: Clue Token (154) - Seat draws a card.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Raffine's Informant (33), Thraben Inspector (14) and Novice Inspector (41) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Raffine's Informant (33).
+ForgeAI didn't block Thraben Inspector (14).
+ForgeAI didn't block Novice Inspector (41).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Raffine's Informant (33) deals 3 combat damage to ForgeAI.
+  DAMAGE: Thraben Inspector (14) deals 1 combat damage to ForgeAI.
+  DAMAGE: Novice Inspector (41) deals 1 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 10 > 5
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 11 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Swamp (117)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 12 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  MANA: Plains (56) - {T}: Add {W}.
+  MANA: Plains (53) - {T}: Add {W}.
+  MANA: Plains (55) - {T}: Add {W}.
+  STACK_ADD: Seat cast Salt Road Packbeast
+  STACK_RESOLVE: Salt Road Packbeast - Creature 4 / 3
+  STACK_ADD: Seat triggered Salt Road Packbeast
+  STACK_RESOLVE: When this creature enters, draw a card. [Zone Changer: Salt Road Packbeast (38)]
+  MANA: Plains (50) - {T}: Add {W}.
+  MANA: Plains (46) - {T}: Add {W}.
+  STACK_ADD: Seat cast Fortress Kin-Guard
+  STACK_RESOLVE: Fortress Kin-Guard - Creature 1 / 2
+  STACK_ADD: Seat triggered Fortress Kin-Guard
+  STACK_RESOLVE: When this creature enters, it endures 1. (Put a +1/+1 counter on it or create a 1/1 white Spirit creature token.) [Zone Changer: Fortress Kin-Guard (16)]
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Raffine's Informant (33), Thraben Inspector (14) and Novice Inspector (41) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI assigned Dark Matter Manipulator (89) to block Raffine's Informant (33).
+ForgeAI didn't block Thraben Inspector (14).
+ForgeAI didn't block Novice Inspector (41).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Raffine's Informant (33) deals 3 damage to Dark Matter Manipulator (89).
+  DAMAGE: Thraben Inspector (14) deals 1 combat damage to ForgeAI.
+  DAMAGE: Novice Inspector (41) deals 1 combat damage to ForgeAI.
+  DAMAGE: Dark Matter Manipulator (89) deals 3 damage to Raffine's Informant (33).
+  LIFE: Life: ForgeAI 5 > 3
+  ZONE_CHANGE: Raffine's Informant (33) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Dark Matter Manipulator (89) was put into Graveyard from Battlefield.
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 13 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 14 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  MANA: Plains (56) - {T}: Add {W}.
+  MANA: Plains (53) - {T}: Add {W}.
+  STACK_ADD: Seat cast Raffine's Informant
+  STACK_RESOLVE: Raffine's Informant - Creature 2 / 1
+  STACK_ADD: Seat triggered Raffine's Informant
+  DISCARD: Seat discards Lunarch Veteran (3).
+  STACK_RESOLVE: When Raffine's Informant enters, it connives. (Draw a card, then discard a card. If you discarded a nonland card, put a +1/+1 counter on this creature.) [Zone Changer: Raffine's Informant (35)]
+  MANA: Plains (55) - {T}: Add {W}.
+  MANA: Plains (50) - {T}: Add {W}.
+  STACK_ADD: Seat cast Fortress Kin-Guard
+  STACK_ADD: Seat cast Ramosian Rally
+  STACK_RESOLVE: Ramosian Rally (30) - Creatures you control get +1/+1 until end of turn.
+  STACK_RESOLVE: Fortress Kin-Guard - Creature 1 / 2
+  STACK_ADD: Seat triggered Fortress Kin-Guard
+  STACK_RESOLVE: When this creature enters, it endures 1. (Put a +1/+1 counter on it or create a 1/1 white Spirit creature token.) [Zone Changer: Fortress Kin-Guard (18)]
+  MANA: Plains (46) - {T}: Add {W}.
+  STACK_ADD: Seat cast Thraben Inspector
+  STACK_RESOLVE: Thraben Inspector - Creature 1 / 2
+  STACK_ADD: Seat triggered Thraben Inspector
+  STACK_RESOLVE: When Thraben Inspector enters, investigate. (Create a Clue token. It's an artifact with "{2}, Sacrifice this token: Draw a card.") [Zone Changer: Thraben Inspector (12)]
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Thraben Inspector (14), Novice Inspector (41), Salt Road Packbeast (38) and Fortress Kin-Guard (16) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Thraben Inspector (14).
+ForgeAI didn't block Novice Inspector (41).
+ForgeAI didn't block Salt Road Packbeast (38).
+ForgeAI didn't block Fortress Kin-Guard (16).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Thraben Inspector (14) deals 2 combat damage to ForgeAI.
+  DAMAGE: Novice Inspector (41) deals 2 combat damage to ForgeAI.
+  DAMAGE: Salt Road Packbeast (38) deals 5 combat damage to ForgeAI.
+  DAMAGE: Fortress Kin-Guard (16) deals 3 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 3 > -9
+  PLAYER_CONTROL: Seat has restored control over themself
+  PLAYER_CONTROL: ForgeAI has restored control over themself
+  GAME_OUTCOME: Match Duration 7m : 37s
+  GAME_OUTCOME: Turn 7
+  GAME_OUTCOME: Seat has won because all opponents have lost
+  GAME_OUTCOME: ForgeAI has lost because life total reached 0
+  MATCH_RESULTS: Seat: 1 ForgeAI: 0 
+===============================

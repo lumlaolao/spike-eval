@@ -11,3 +11,9 @@
 Running 1 games (jobs=1, out=/home/user/mtg-forge-llm-agent/runs/loop/g14, forge_home=/root/forge)
 [budget] this directory may spend up to $0.40 (already $0.00); a game is not started past that, so the overshoot is at most the 1 games in flight
 [start] seed=4114 swap=0 -> game-4114-0.log
+[done] seed=4114 swap=0
+
+=== batch summary ===
+completed: 1  skipped(resume): 0  problems: 0
+[cost] /home/user/mtg-forge-llm-agent/runs/loop/g14: 1 games, 65 model calls, 0.48M prompt + 0.02M completion tokens -> $0.03 ($0.029 per game started)  (68% of prompt tokens read from cache)
+Aggregate with: python3 /home/user/mtg-forge-llm-agent/eval/aggregate.py /home/user/mtg-forge-llm-agent/runs/loop/g14
