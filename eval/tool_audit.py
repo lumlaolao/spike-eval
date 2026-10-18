@@ -10,8 +10,9 @@ Reads `context_tool` / `context_call` rows (MEMORY_TOOLS=1 games) and sorts each
   FAILED      the tool itself broke (a lookahead preview that threw). A harness defect: the model
               asked correctly and got nothing. Sixteen of sixteen spell previews in one arm went this
               way unnoticed while they were counted as served.
-  empty       the tool ran and found nothing (`Matches=0`), the target did not exist, or the option
-              was one the tool does not cover (a preview of a non-spell option)
+  empty       the tool ran and found nothing (`Matches=0`), the target did not exist, the option
+              was one the tool does not cover (a preview of a non-spell option), or the decision
+              is not one the tool previews (neither a priority menu nor an aim)
   bad-args    the tool ran and the arguments were wrong (an id out of range, a non-integer)
   exhausted   the request came after the per-ask budget was spent, so the decision got no answer
 

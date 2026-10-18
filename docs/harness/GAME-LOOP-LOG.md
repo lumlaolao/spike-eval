@@ -679,7 +679,7 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
 - FIXED  (script) the gauntlet run without `FORGE_HOME` played 28 games that all exited 1; it now stops at once when
   the checkout is missing.
 
-### g05  2026-10-17  seed 4105  Cephalid Breakfast (seat) vs Lands (Forge AI)  WON T14  $0.12  overlay 30857a1e0f50
+### g05  2026-10-17  seed 4105  Cephalid Breakfast (seat) vs Lands (Forge AI)  WON T14  $0.12  harness-epoch-45  overlay 30857a1e0f50
 - Time: 20 min (158 model answers in the first game of this round played on the Mac clone; 0 waits to the
   deadline, 0 stalls cut early, 0 provider errors). Deck-faithful play throughout: Tamiyo transformed T4 on
   the third draw, Relic of Progenitus exiled both graveyards before Punishing Fire could recur, both
@@ -688,7 +688,8 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
   failed only `canary-random`: those epochs re-rolled the random walk and re-pinned only Linux (A/59/397),
   leaving the plain Mac pin STALE until measured there. Measured on this Mac: winner B/50/273, reproduced
   twice in one class-load build; floor unchanged A/108/1804 (plain Mac pin); full acceptance PASS on the re-pinned keys
-  (runs/harness-acceptance/20261018T000454Z). Commit 487b6022; no code change, main untouched.
+  (runs/harness-acceptance/20261018T001252Z; the measurement run 20261018T000454Z reads the walk and still
+  FAILs the old pin on purpose). Commit 487b6022; no code change, main untouched.
 - clean  TAKEN 0, LOST 0, SKIP 0, ai=0; tools 10/10 served; mulligan, fetch zone choices, mana keeps, all
   by call. The combo turn ran on the schema as designed: the Cabal Therapy flashback asked its sacrifice
   with an eight-line menu and a cancel, answered by pick numbers, and the win (Cabal Therapy flashback
@@ -703,7 +704,7 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
   flashing back Cabal Therapy (sacrificing Oracle) and Dread Return to reanimate it on an empty library.
   Noted, not a puzzle.
 
-### g06  2026-10-17  seed 4106  Sneak and Show (seat) vs Infect (Forge AI)  LOST T7  $0.03  overlay 30857a1e0f50
+### g06  2026-10-17  seed 4106  Sneak and Show (seat) vs Infect (Forge AI)  LOST T7  $0.03  harness-epoch-45  overlay 30857a1e0f50
 - Time: 6 min (54 model calls, 64% cache hits; 0 waits to the deadline, 0 stalls, 0 provider errors).
   Mull to 5 (both bottom choices and the keep by call), 2 lands in the kept 5, and the fetches never
   produced a second red source: Sneak Attack stayed in hand the whole game ("need 1 more R" printed on
@@ -711,9 +712,8 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
   pump kill (Blighted Agent 5/5 -> Might + Berserk + Vines, 14 poison) with no instant in hand.
 - FIXED  a state-dependent pump's resolve line contradicted the stack preview in the same turn's consecutive
   prompts: the T7 rows showed Berserk as "+5/+0" (STACK preview) and "+10/+0" (GAME HISTORY [E103]) for the
-  same burst;
-  the effect applied +5 (damage 5+5+4 = 14). Root: MagicStack fires the resolved event after the spell
-  applies and PumpEffect re-evaluates SVar X (= the target's power) against the pumped creature. Test
+  same burst; the effect applied +5 (damage 5+5+4 = 14). Root: MagicStack fires the resolved event after the
+  spell applies and PumpEffect re-evaluates SVar X (= the target's power) against the pumped creature. Test
   first: GoldenChecksTest.aPumpResolveLineSaysWhatTheStackPreviewSays failed on the checkout (Hill Giant
   fixture prints "+6/+0"), then the engine patch MagicStack.java (pre-capture of the resolving spell's
   stack description), harness-epoch-46, three engine patches now. No decision hung on it this game.

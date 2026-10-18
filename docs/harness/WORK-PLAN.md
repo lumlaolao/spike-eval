@@ -11,8 +11,8 @@ before its effect applies, `forge/game/zone/MagicStack.java`). Full acceptance P
 Python, floor A/108/1804 and random B/50/273 (plain Mac pins) unchanged; `runs/harness-acceptance/20261018T013426Z`), and
 all three gauntlet arms clean on new seeds (84 games, 0 defect lines). The Forge checkout was rebuilt from
 it; on the Mac set `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home` for everything
-below. The epoch-46 fix, eval sharpenings and g05/g06 records are committed locally and not yet pushed or
-turned into PRs; ask the owner first whether to open a PR or merge directly (see below).
+below. The epoch-46 fix, eval sharpenings and g05/g06 records went in as the branch `fix/loop-epoch46`
+(merged through its PR); the merge-path note below is the standing answer for the next PR.
 
 Next steps, in order:
 1. **Next game is g07.** g05 (Cephalid Breakfast beat Lands, T14) and g06 (Sneak and Show lost to Infect, T7)
@@ -29,11 +29,11 @@ Next steps, in order:
 4. Owner decisions still open (do not start without them): E4, E6, E5, then E7 (paid, cost first); the Luna
    puzzle run; C3.
 
-The merge path is currently an open question with the owner: this week's PRs were opened and merged directly
-with the body line "Review skills: not run (owner: merge directly, without the review skills)" — confirm that
-still holds, or else `scripts/pr_merge.sh` and the three review skills are the gate. The audits to run after
-each game stay the full free set (`match_review.py`, `tool_audit.py`, `plan_audit.py`, `defect_analyzer.py`,
-`cost_report.py`).
+The merge gate this week: the owner asked for the full gate on the epoch-46 PR — `pr_format.py check-branch`
+and `check-pr`, the three review skills run fresh on the PR head, an acceptance run recorded on it, then
+`scripts/pr_merge.sh` (merge commit). Confirm the gate also applies to the next PR before merging without it.
+The audits to run after each game stay the full free set (`match_review.py`, `tool_audit.py`, `plan_audit.py`,
+`defect_analyzer.py`, `cost_report.py`).
 
 ## Now (2026-10-17): real games on the finished harness, then the eval
 
