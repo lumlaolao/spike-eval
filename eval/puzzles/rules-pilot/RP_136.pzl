@@ -3,8 +3,8 @@ Name:Rules pilot 136 - Dress Down before it enters
 Goal:Survive
 Turns:1
 Difficulty:Medium
-Description:The opponent has cast Spike Feeder. You control two Islands and have Dress Down in hand. End the turn with Spike Feeder in the opponent's graveyard.
-Rule:cranial-insertion-89996d31428cf8a0 | An entering permanent's replacement effects are checked with the effects that will apply to it on the battlefield (CR 614.12): under Dress Down, Spike Feeder has no counters ability and enters 0/0
+Description:The opponent has cast Hagra Constrictor. You control two Islands and have Dress Down in hand. End the turn with Hagra Constrictor in the opponent's graveyard.
+Rule:cranial-insertion-89996d31428cf8a0 | An entering permanent's replacement effects are checked with the effects that will apply to it on the battlefield (CR 614.12): under Dress Down, Hagra Constrictor has no counters ability and enters 0/0
 [state]
 turn=1
 activeplayer=p0
@@ -15,6 +15,6 @@ p0battlefield=Island;Island
 p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
 p1life=20
 p1library=Plains;Plains;Plains
-p1putonstack=Spike Feeder
+p1putonstack=Hagra Constrictor
 [acceptance]
-count p1 Graveyard "Spike Feeder" = 1
+count p1 Graveyard "Hagra Constrictor" = 1

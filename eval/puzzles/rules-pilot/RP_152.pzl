@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 152 - Granted after Dress Down
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Faerie Conclave (untapped) and four Islands, and have Dress Down in hand. The opponent is at 2 life and controls Giant Spider. Win this turn.
+Rule:rulesguru-581a4896519bc0aa | Ability-adding and ability-removing effects apply in timestamp order in layer 6 (CR 613.7): flying granted after Dress Down entered survives it, flying granted before does not
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Dress Down
+p0battlefield=Faerie Conclave;Island;Island;Island;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Giant Spider
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

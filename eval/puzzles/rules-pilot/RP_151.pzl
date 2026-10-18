@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 151 - Count the snow first
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control three Snow-Covered Swamps and have a fourth and Dead of Winter in hand. You have not played a land this turn. The opponent controls Giant Spider. End the turn with Giant Spider in the opponent's graveyard.
+Rule:cranial-insertion-7140c18bf31a6847 | Dead of Winter counts snow permanents as it resolves and the -X/-X is then fixed (CR 608.2h, 611.2c); a snow land played afterward does not grow it
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Snow-Covered Swamp;Dead of Winter
+p0battlefield=Snow-Covered Swamp;Snow-Covered Swamp;Snow-Covered Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Giant Spider
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Giant Spider" = 1

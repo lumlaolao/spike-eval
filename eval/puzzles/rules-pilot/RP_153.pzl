@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 153 - Duplicant copies the card
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control eight Mountains and have Duplicant and Fling in hand. The opponent is at 3 life and controls Grizzly Bears with two +1/+1 counters and Hill Giant. Win this turn.
+Rule:rulesguru-9dd8dc0115904fa2 | Duplicant sets its power and toughness from the exiled card's own values (layer 7b, CR 613.4b); the +1/+1 counters the creature had do not count
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Duplicant;Fling
+p0battlefield=Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Grizzly Bears|Counters:P1P1=2;Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

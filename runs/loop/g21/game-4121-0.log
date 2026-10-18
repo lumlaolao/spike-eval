@@ -1,0 +1,659 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=35787 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 34086 files in 5 ms (25 parts) using thread pool
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 857 files in 0 ms (8 parts) using thread pool
+[SEED] 4121
+[EVAL] jsonl game-4121-1792348774217.jsonl
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/goblins.plan
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/pauper-weenie-white.plan
+[DECK] loaded 'Seat': 60 main, 0 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/goblins.txt)
+[DECK] loaded 'ForgeAI': 60 main, 15 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/pauper-weenie-white.txt)
+[SEATS] A=Seat(llm,openrouter:openai/gpt-6-luna) B=ForgeAI(ai,opus)
+[Seat] [OBSERVATION] observation-faithful-v41 (profile v4-faithful/379d6b7b5b6a)
+[HEADLESS] game starting (cap=120min)
+[OPENROUTER Seat/smart] replied in 4820 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: 4/7 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4384 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: KEEP
+[Seat] [TALLY] smart=2 fast=0 auto=0 ai=0 textParses=0 avgSmart=4602ms avgFast=4602ms
+[Seat] [ROUTER] play(main): 0 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6386 ms with 1 tool call(s)
+[Seat] [ROUTER] plan: GOAL: Develop an early Goblins board while preserving the option to use Vial and Lackey for pressure. NEXT: Play Mountain, then cast Aether Vial if available; deploy Goblin Lackey as soon as it gives the strongest attack.
+[OPENROUTER Seat/smart] replied in 3468 ms with 1 tool call(s)
+[Seat] [ROUTER] lines: Aether Vial + Goblin Ringleader -> deploy Ringleader at instant speed and refill with Goblins. Goblin Lackey + Goblin Matron -> connect with Lackey, put Matron onto the battlefield, and tutor a Goblin. Goblin Warchief + Krenko, Mob Boss -> grant haste so Krenko can make a large token army immediately.
+[Seat] [ROUTER] play: land Mountain
+[Seat] [TALLY] smart=4 fast=0 auto=0 ai=0 textParses=0 avgSmart=4764ms avgFast=4764ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4945 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Establish Goblin Lackey early and exploit a connection for a free Goblin while developing Vial if possible. NEXT: Cast Goblin Lackey now; next turn attack if safe, then use the second land for Aether Vial or preserve mana for follow-up.
+[OPENROUTER Seat/smart] replied in 2405 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Goblin Lackey 1/1 @2 {R} [Whenever Goblin Lackey deals damage to a player, you may put a Goblin permanent card from your hand onto the battlefield.]
+[Seat] [TALLY] smart=6 fast=0 auto=0 ai=0 textParses=0 avgSmart=4401ms avgFast=4401ms
+[Seat] [ROUTER] play(main): 2 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7126 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Develop Aether Vial while keeping Lackey pressure and building reliable red mana. NEXT: Play Mountain, then cast Aether Vial; attack with Lackey next combat if no blocker appears.
+[OPENROUTER Seat/smart] replied in 2151 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Unknown white-based opponent from the lone Plains; respect possible removal or a blocker for Lackey.
+[Seat] [ROUTER] play: land Mountain
+[Seat] [TALLY] smart=8 fast=0 auto=0 ai=0 textParses=0 avgSmart=4460ms avgFast=4460ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5625 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Aether Vial @1 {1} [Aether Vial]
+[Seat] [TALLY] smart=9 fast=0 auto=0 ai=0 textParses=0 avgSmart=4590ms avgFast=4590ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5604 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4987 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3841 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Goblin Lackey
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4287 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[OPENROUTER Seat/smart] replied in 6201 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: Goblin Matron 2{R} 1/1 @10 [Hand, yours] -> Battlefield [Goblin Lackey]
+[OPENROUTER Seat/smart] replied in 3852 ms with 1 tool call(s)
+[Seat] [ROUTER] confirm-trigger [Goblin Matron]: YES
+[OPENROUTER Seat/smart] replied in 7560 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: Goblin Ringleader 3{R} 2/2 @28 [Library, yours] -> Hand [Goblin Matron]
+[Seat] [TALLY] smart=16 fast=0 auto=0 ai=0 textParses=0 avgSmart=4852ms avgFast=4852ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7583 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Keep Lackey pressure while developing Vial and mana for Matron/Ringleader. NEXT: Pass the turn; on the next upkeep let Vial gain a counter, then use it to deploy a one-drop if available or continue building lands for Matron.
+[OPENROUTER Seat/smart] replied in 2538 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6316 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 3914 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Develop mana for Goblin Matron while maintaining Lackey and Aether Vial pressure. NEXT: Pass through upkeep; in main phase play Mountain, then cast Goblin Matron if three mana is available, and choose a useful Goblin tutor.
+[OPENROUTER Seat/smart] replied in 2602 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 12828 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4706 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 6499 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5750 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4115 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 5086 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[OPENROUTER Seat/smart] replied in 5058 ms with 1 tool call(s)
+[Seat] [ROUTER] confirm-trigger [Aether Vial]: YES
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3390 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Develop board while preserving Lackey and Aether Vial pressure; use the available land drop to cast Matron. NEXT: Pass upkeep. In main, play Mountain and cast Goblin Matron; tutor Goblin Warchief or another threat based on the board.
+[OPENROUTER Seat/smart] replied in 2188 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 51860 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=31 fast=0 auto=1 ai=0 textParses=0 avgSmart=6518ms avgFast=6518ms
+[Seat] [ROUTER] play(main): 2 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4763 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Mountain
+[Seat] [TALLY] smart=32 fast=0 auto=1 ai=0 textParses=0 avgSmart=6463ms avgFast=6463ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 13336 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Goblin Matron 1/1 @6 2{R} [When Goblin Matron enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle.]
+[Seat] [TALLY] smart=33 fast=0 auto=1 ai=0 textParses=0 avgSmart=6671ms avgFast=6671ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5489 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=34 fast=0 auto=1 ai=0 textParses=0 avgSmart=6637ms avgFast=6637ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5709 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[OPENROUTER Seat/smart] replied in 5343 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Use Matron to find a high-impact Goblin that advances the board while retaining Ringleader follow-up. NEXT: Accept the Matron trigger; tutor Goblin Warchief unless the next decision reveals a better immediate line. Keep Lackey alive, then use Ringleader when mana permits.
+[OPENROUTER Seat/smart] replied in 2028 ms with 1 tool call(s)
+[Seat] [ROUTER] confirm-trigger [Goblin Matron]: YES
+[OPENROUTER Seat/smart] replied in 10268 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: Goblin Warchief 1{R}{R} 2/2 @64 [Library, yours] -> Hand [Goblin Matron]
+[Seat] [TALLY] smart=38 fast=0 auto=1 ai=0 textParses=0 avgSmart=6552ms avgFast=6552ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5222 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 2 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8184 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: none
+[Seat] [TALLY] smart=40 fast=0 auto=1 ai=0 textParses=0 avgSmart=6560ms avgFast=6560ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3689 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7925 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Build board and preserve the Ringleader follow-up while using Lackey pressure. NEXT: Pass upkeep Vial window (no mana-value-1 Goblin in hand); untap, play Mountain, cast Goblin Warchief with three Mountains, then attack with Lackey and assess further options.
+[OPENROUTER Seat/smart] replied in 2203 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5985 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] blockers: 1 atk / 3 blk -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4167 ms with 1 tool call(s)
+[Seat] [ROUTER] blockers: NONE
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7312 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Keep Goblin Lackey pressure and develop mana to cast Warchief, then use Ringleader for card advantage. NEXT: Pass the opponent's spell; on my next turn play Mountain and cast Goblin Warchief if safe, retaining Ringleader for the following turn.
+[OPENROUTER Seat/smart] replied in 2310 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3225 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3937 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Develop pressure and use my mana efficiently while preserving Vial's growth toward deploying larger Goblins. NEXT: Resolve the upkeep trigger and add a Vial counter; play Mountain, then consider casting Warchief with three mana and attack with Lackey if safe.
+[OPENROUTER Seat/smart] replied in 1925 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[OPENROUTER Seat/smart] replied in 4430 ms with 1 tool call(s)
+[Seat] [ROUTER] confirm-trigger [Aether Vial]: YES
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6246 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5298 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=53 fast=0 auto=2 ai=0 textParses=0 avgSmart=6057ms avgFast=6057ms
+[Seat] [ROUTER] play(main): 3 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9520 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Develop board and set up a Ringleader while maintaining red mana. NEXT: Play Mountain, cast Goblin Warchief for three mana, then attack selectively; keep Lackey safe if Kin-Guard can block.
+[OPENROUTER Seat/smart] replied in 3117 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Mountain
+[Seat] [TALLY] smart=55 fast=0 auto=2 ai=0 textParses=0 avgSmart=6067ms avgFast=6067ms
+[Seat] [ROUTER] play(main): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9503 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Goblin Ringleader 2/2 @67 3{R} [Haste (This creature can attack and {T} as soon as it comes under your control.) When Goblin Ringleader enters, reveal the top four cards of your library. Put all Goblin cards revealed this way into your hand and the rest on the bottom of your library in any order.]
+[Seat] [TALLY] smart=56 fast=0 auto=2 ai=0 textParses=0 avgSmart=6128ms avgFast=6128ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4354 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=57 fast=0 auto=2 ai=0 textParses=0 avgSmart=6097ms avgFast=6097ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4011 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[OPENROUTER Seat/smart] replied in 7770 ms with 1 tool call(s)
+[Seat] [ROUTER] order [Goblin Ringleader] -> Library: Wasteland, Rishadan Port, Cavern of Souls, Mountain
+[Seat] [TALLY] smart=59 fast=0 auto=2 ai=0 textParses=0 avgSmart=6090ms avgFast=6090ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7859 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 4 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8889 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Goblin Lackey, Goblin Matron, Goblin Matron, Goblin Ringleader
+[Seat] [ROUTER] damage-assign: all 1 -> Search Party Captain (forced)
+[OPENROUTER Seat/smart] replied in 4788 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Use the Lackey trigger to develop the board for free and keep pressure on the white deck. NEXT: Put Goblin Warchief onto the battlefield; next turn use Aether Vial and available lands to continue deploying Goblins while attacking around the Kin-Guard.
+[OPENROUTER Seat/smart] replied in 4713 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: Goblin Warchief 1{R}{R} 2/2 @75 [Hand, yours] -> Battlefield [Goblin Lackey]
+[Seat] [TALLY] smart=63 fast=0 auto=2 ai=0 textParses=0 avgSmart=6120ms avgFast=6120ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6925 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3921 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Keep attacking with the Goblin board and use the free land drop to support pressure while preserving Aether Vial. NEXT: Pass upkeep; in main phase play a land, then attack with the untapped Warchief and deploy any useful Goblins drawn or gained.
+[OPENROUTER Seat/smart] replied in 2338 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: White creature-based deck so far; respect additional blockers and possible creature removal, but exact archetype and interaction are unknown.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3956 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5958 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4912 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] blockers: 1 atk / 1 blk -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4316 ms with 1 tool call(s)
+[Seat] [ROUTER] blockers: NONE
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4983 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7197 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Build board pressure while using Aether Vial for future Goblins and keep mana for main-phase plays. NEXT: Pass priority to resolve the Vial upkeep trigger and add a charge counter; play a land in main phase, then attack and use available mana.
+[OPENROUTER Seat/smart] replied in 2373 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[OPENROUTER Seat/smart] replied in 6946 ms with 1 tool call(s)
+[Seat] [ROUTER] confirm-trigger [Aether Vial]: YES
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6230 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6107 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=76 fast=0 auto=3 ai=0 textParses=0 avgSmart=5944ms avgFast=5944ms
+[Seat] [ROUTER] play(main): 2 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9362 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Wasteland
+[Seat] [TALLY] smart=77 fast=0 auto=3 ai=0 textParses=0 avgSmart=5988ms avgFast=5988ms
+[Seat] [ROUTER] play(main): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4894 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 4 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 13499 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Goblin Lackey, Goblin Matron, Goblin Ringleader, Goblin Warchief
+[Seat] [ROUTER] damage-assign: all 1 -> Search Party Captain (forced)
+[Seat] [ROUTER] damage-assign: all 2 -> Leonardo, Big Brother (forced)
+[Seat] [AUTO-LEGAL] order(forced: Graveyard has no order to choose)->as-is
+[Seat] [TALLY] smart=79 fast=0 auto=4 ai=0 textParses=0 avgSmart=6069ms avgFast=6069ms
+[Seat] [ROUTER] play(main): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7156 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Preserve resources and get to the next turn; use Vial after its next upkeep counter if a Goblin becomes available. NEXT: Pass through the opponent's turn while responding to any meaningful spell or ability; on my next upkeep advance Vial to four counters and reassess after drawing.
+[OPENROUTER Seat/smart] replied in 2457 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4546 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Survive the opponent's turn, then use my next draw and Vial at four counters to rebuild. NEXT: Pass now; preserve Vial and lands. Reassess any opponent plays or combat, then advance Vial on my upkeep and use a creature if drawn.
+[OPENROUTER Seat/smart] replied in 1959 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3263 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7483 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5753 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Advance Vial toward four counters and look for any opportunity to survive the opponent's lethal attack. NEXT: Pass the upkeep priority window; put the fourth counter on Vial when its trigger resolves, then reassess any opponent actions and combat.
+[OPENROUTER Seat/smart] replied in 2274 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[OPENROUTER Seat/smart] replied in 3873 ms with 1 tool call(s)
+[Seat] [ROUTER] confirm-trigger [Aether Vial]: YES
+[Seat] [AUTO-LEGAL] counter-type(forced-only-legal)
+[Seat] [ROUTER] play(react): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7633 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5855 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=90 fast=0 auto=5 ai=0 textParses=0 avgSmart=5908ms avgFast=5908ms
+[Seat] [ROUTER] play(main): 4 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8273 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Mountain
+[Seat] [TALLY] smart=91 fast=0 auto=5 ai=0 textParses=0 avgSmart=5934ms avgFast=5934ms
+[Seat] [ROUTER] play(main): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6612 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Maximize damage this turn; the hand has no creature to deploy with Vial, and no available action stops their lethal board attack. NEXT: Pass through to combat, attack with Lackey and Warchief, then reassess any opponent plays and try to find a way to survive their next attack.
+[OPENROUTER Seat/smart] replied in 2605 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 2 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5418 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Goblin Lackey, Goblin Warchief
+[Seat] [ROUTER] damage-assign: all 2 -> Salt Road Packbeast (forced)
+[Seat] [TALLY] smart=94 fast=0 auto=5 ai=0 textParses=0 avgSmart=5900ms avgFast=5900ms
+[Seat] [ROUTER] play(main): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4222 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+========== GAME OVER ==========
+outcome: B after 12 turns (AllOpponentsLost) in 570s
+--- full game log ---
+  MULLIGAN: ForgeAI has mulliganed down to 6 cards.
+  MULLIGAN: Seat has kept a hand of 7 cards
+  MULLIGAN: ForgeAI has kept a hand of 6 cards
+  TURN: Turn 1 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Mountain (31)
+  MANA: Mountain (31) - {T}: Add {R}.
+  STACK_ADD: Seat cast Goblin Lackey
+  STACK_RESOLVE: Goblin Lackey - Creature 1 / 1
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 2 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Plains (115)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 3 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Mountain (37)
+  MANA: Mountain (31) - {T}: Add {R}.
+  STACK_ADD: Seat cast Aether Vial
+  STACK_RESOLVE: Aether Vial
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Goblin Lackey (8) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Goblin Lackey (8).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Goblin Lackey (8) deals 1 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 20 > 19
+  STACK_ADD: Seat triggered Goblin Lackey
+  STACK_RESOLVE: Whenever Goblin Lackey deals damage to a player, you may put a Goblin permanent card from your hand onto the battlefield. [Damage Source: Goblin Lackey (8), Damaged: ForgeAI, Amount: 1]
+  STACK_ADD: Seat triggered Goblin Matron
+  STACK_RESOLVE: When Goblin Matron enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle. [Zone Changer: Goblin Matron (53)]
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 4 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Plains (109)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Plains (115) - {T}: Add {W}.
+  MANA: Plains (109) - {T}: Add {W}.
+  STACK_ADD: ForgeAI cast Fortress Kin-Guard
+  STACK_RESOLVE: Fortress Kin-Guard - Creature 1 / 2
+  STACK_ADD: ForgeAI triggered Fortress Kin-Guard
+  STACK_RESOLVE: When this creature enters, it endures 1. (Put a +1/+1 counter on it or create a 1/1 white Spirit creature token.) [Zone Changer: Fortress Kin-Guard (75)]
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 5 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  STACK_ADD: Seat triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Seat]
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Mountain (20)
+  MANA: Mountain (31) - {T}: Add {R}.
+  MANA: Mountain (37) - {T}: Add {R}.
+  MANA: Mountain (20) - {T}: Add {R}.
+  STACK_ADD: Seat cast Goblin Matron
+  STACK_RESOLVE: Goblin Matron - Creature 1 / 1
+  STACK_ADD: Seat triggered Goblin Matron
+  STACK_RESOLVE: When Goblin Matron enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle. [Zone Changer: Goblin Matron (55)]
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 6 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Plains (113)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Fortress Kin-Guard (75) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Fortress Kin-Guard (75).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Fortress Kin-Guard (75) deals 2 combat damage to Seat.
+  LIFE: Life: Seat 20 > 18
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Plains (115) - {T}: Add {W}.
+  MANA: Plains (109) - {T}: Add {W}.
+  MANA: Plains (113) - {T}: Add {W}.
+  STACK_ADD: ForgeAI cast Search Party Captain
+  STACK_RESOLVE: Search Party Captain - Creature 2 / 2
+  STACK_ADD: ForgeAI triggered Search Party Captain
+  STACK_RESOLVE: When Search Party Captain enters, draw a card. [Zone Changer: Search Party Captain (81)]
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 7 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  STACK_ADD: Seat triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Seat]
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Mountain (19)
+  MANA: Mountain (31) - {T}: Add {R}.
+  MANA: Mountain (37) - {T}: Add {R}.
+  MANA: Mountain (20) - {T}: Add {R}.
+  MANA: Mountain (19) - {T}: Add {R}.
+  STACK_ADD: Seat cast Goblin Ringleader
+  STACK_RESOLVE: Goblin Ringleader - Creature 2 / 2
+  STACK_ADD: Seat triggered Goblin Ringleader
+  STACK_RESOLVE: When Goblin Ringleader enters, reveal the top four cards of your library. Put all Goblin cards revealed this way into your hand and the rest on the bottom of your library in any order. [Zone Changer: Goblin Ringleader (3)]
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Goblin Lackey (8), Goblin Matron (53), Goblin Matron (55) and Goblin Ringleader (3) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Goblin Lackey (8).
+ForgeAI assigned Search Party Captain (81) to block Goblin Matron (53).
+ForgeAI didn't block Goblin Matron (55).
+ForgeAI didn't block Goblin Ringleader (3).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Goblin Lackey (8) deals 1 combat damage to ForgeAI.
+  DAMAGE: Goblin Matron (53) deals 1 damage to Search Party Captain (81).
+  DAMAGE: Goblin Matron (55) deals 1 combat damage to ForgeAI.
+  DAMAGE: Goblin Ringleader (3) deals 2 combat damage to ForgeAI.
+  DAMAGE: Search Party Captain (81) deals 2 damage to Goblin Matron (53).
+  LIFE: Life: ForgeAI 19 > 15
+  ZONE_CHANGE: Goblin Matron (53) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat triggered Goblin Lackey
+  STACK_RESOLVE: Whenever Goblin Lackey deals damage to a player, you may put a Goblin permanent card from your hand onto the battlefield. [Damage Source: Goblin Lackey (8), Damaged: ForgeAI, Amount: 1]
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 8 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Fortress Kin-Guard (75) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Fortress Kin-Guard (75).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Fortress Kin-Guard (75) deals 2 combat damage to Seat.
+  LIFE: Life: Seat 18 > 16
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Plains (115) - {T}: Add {W}.
+  MANA: Plains (109) - {T}: Add {W}.
+  MANA: Plains (113) - {T}: Add {W}.
+  STACK_ADD: ForgeAI cast Leonardo, Big Brother
+  STACK_RESOLVE: Leonardo, Big Brother - Creature 1 / 3
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 9 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  STACK_ADD: Seat triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Seat]
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Wasteland (48)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Goblin Lackey (8), Goblin Matron (55), Goblin Ringleader (3) and Goblin Warchief (15) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Goblin Lackey (8).
+ForgeAI assigned Search Party Captain (81) to block Goblin Matron (55).
+ForgeAI assigned Leonardo, Big Brother (83) to block Goblin Ringleader (3).
+ForgeAI didn't block Goblin Warchief (15).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Goblin Lackey (8) deals 1 combat damage to ForgeAI.
+  DAMAGE: Goblin Matron (55) deals 1 damage to Search Party Captain (81).
+  DAMAGE: Goblin Ringleader (3) deals 2 damage to Leonardo, Big Brother (83).
+  DAMAGE: Goblin Warchief (15) deals 2 combat damage to ForgeAI.
+  DAMAGE: Leonardo, Big Brother (83) deals 3 damage to Goblin Ringleader (3).
+  DAMAGE: Search Party Captain (81) deals 2 damage to Goblin Matron (55).
+  LIFE: Life: ForgeAI 15 > 12
+  ZONE_CHANGE: Goblin Matron (55) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Goblin Ringleader (3) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat triggered Goblin Lackey
+  STACK_RESOLVE: Whenever Goblin Lackey deals damage to a player, you may put a Goblin permanent card from your hand onto the battlefield. [Damage Source: Goblin Lackey (8), Damaged: ForgeAI, Amount: 1]
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 10 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Plains (108)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Leonardo, Big Brother (83), Fortress Kin-Guard (75) and Search Party Captain (81) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Leonardo, Big Brother (83).
+Seat didn't block Fortress Kin-Guard (75).
+Seat didn't block Search Party Captain (81).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Leonardo, Big Brother (83) deals 3 combat damage to Seat.
+  DAMAGE: Fortress Kin-Guard (75) deals 2 combat damage to Seat.
+  DAMAGE: Search Party Captain (81) deals 2 combat damage to Seat.
+  LIFE: Life: Seat 16 > 9
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Plains (115) - {T}: Add {W}.
+  MANA: Plains (109) - {T}: Add {W}.
+  MANA: Plains (113) - {T}: Add {W}.
+  STACK_ADD: ForgeAI cast Salt Road Packbeast
+  STACK_RESOLVE: Salt Road Packbeast - Creature 4 / 3
+  STACK_ADD: ForgeAI triggered Salt Road Packbeast
+  STACK_RESOLVE: When this creature enters, draw a card. [Zone Changer: Salt Road Packbeast (96)]
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 11 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  STACK_ADD: Seat triggered Aether Vial
+  STACK_RESOLVE: At the beginning of your upkeep, you may put a charge counter on Aether Vial. [Phase: Seat]
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Mountain (34)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Goblin Lackey (8) and Goblin Warchief (15) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Goblin Lackey (8).
+ForgeAI assigned Salt Road Packbeast (96) to block Goblin Warchief (15).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Goblin Lackey (8) deals 1 combat damage to ForgeAI.
+  DAMAGE: Goblin Warchief (15) deals 2 damage to Salt Road Packbeast (96).
+  DAMAGE: Salt Road Packbeast (96) deals 4 damage to Goblin Warchief (15).
+  LIFE: Life: ForgeAI 12 > 11
+  ZONE_CHANGE: Goblin Warchief (15) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat triggered Goblin Lackey
+  STACK_RESOLVE: Whenever Goblin Lackey deals damage to a player, you may put a Goblin permanent card from your hand onto the battlefield. [Damage Source: Goblin Lackey (8), Damaged: ForgeAI, Amount: 1]
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 12 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Plains (107)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Leonardo, Big Brother (83), Salt Road Packbeast (96), Fortress Kin-Guard (75) and Search Party Captain (81) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Leonardo, Big Brother (83).
+Seat didn't block Salt Road Packbeast (96).
+Seat didn't block Fortress Kin-Guard (75).
+Seat didn't block Search Party Captain (81).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Leonardo, Big Brother (83) deals 4 combat damage to Seat.
+  DAMAGE: Salt Road Packbeast (96) deals 4 combat damage to Seat.
+  DAMAGE: Fortress Kin-Guard (75) deals 2 combat damage to Seat.
+  DAMAGE: Search Party Captain (81) deals 2 combat damage to Seat.
+  LIFE: Life: Seat 9 > -3
+  PLAYER_CONTROL: Seat has restored control over themself
+  PLAYER_CONTROL: ForgeAI has restored control over themself
+  GAME_OUTCOME: Match Duration 9m : 19s
+  GAME_OUTCOME: Turn 6
+  GAME_OUTCOME: Seat has lost because life total reached 0
+  GAME_OUTCOME: ForgeAI has won because all opponents have lost
+  MATCH_RESULTS: Seat: 0 ForgeAI: 1 
+===============================

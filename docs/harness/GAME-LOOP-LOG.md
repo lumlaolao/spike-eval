@@ -859,3 +859,9 @@ replacement order; optional costs with none payable), TAKEN 0, LOST 0, SKIP 0, T
 12 min. First clean game on epoch 55.
 - note  plan_audit change (commit "holding mana for a card..."): its message says the g10-g19 flags fell from 9 to 3;
   measured with the previous script it is 8 to 3.
+
+### g21  2026-10-18  seed 4121  Goblins (seat) vs Pauper White Weenie (Forge AI)  LOST T12  $0.06  harness-epoch-55
+Sheet clean: 74 model decisions, 9 forced picks (4 single damage-assigns to one blocker, 4 counter kinds, a graveyard
+order), TAKEN 0, LOST 0, SKIP 0, TOOL 3 of 3 served (inspect 3), ai_tier_count=0, 10 min. Two block asks, both NONE
+(model's choice with one attacker against three blockers). Second clean game on epoch 55; epoch 56 (combat damage
+asked as amounts under the free-division rule) is built from what the rules puzzles found and restarts the count.
