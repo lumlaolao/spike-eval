@@ -8,7 +8,7 @@ when an item is finished or a new one is agreed, so the next session can pick up
 
 State of `main`: harness-epoch-46 (third engine patch — a resolving state-dependent spell's line is captured
 before its effect applies, `forge/game/zone/MagicStack.java`). Full acceptance PASS (17/17, 767 Java, 381
-Python, floor A/108/1828 and random Mac B/50/273 unchanged; `runs/harness-acceptance/20261018T013426Z`), and
+Python, floor A/108/1804 and random B/50/273 (plain Mac pins) unchanged; `runs/harness-acceptance/20261018T013426Z`), and
 all three gauntlet arms clean on new seeds (84 games, 0 defect lines). The Forge checkout was rebuilt from
 it; on the Mac set `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home` for everything
 below. The epoch-46 fix, eval sharpenings and g05/g06 records are committed locally and not yet pushed or
@@ -22,12 +22,12 @@ Next steps, in order:
    sheet. Bad play with the full state shown is a puzzle candidate, not a defect; do not fix play.
 2. **After any harness change** rerun all three gauntlets with new seeds (`FORGE_HOME=$HOME/code/forge
    GAUNTLET_POLICY=random GAUNTLET_SEED=<salt> bash eval/keyword_gauntlet.sh <out> 6`, again with
-   `GAUNTLET_TOOLS=1 GAUNTLET_SEED=<salt>`; the picker takes the newest `2026*` acceptance build only —
+   `GAUNTLET_TOOLS=1 GAUNTLET_SEED=<salt>`; the picker takes the newest `2*` acceptance build only —
    stale `stdpin*` dirs are not builds). `python3 eval/gauntlet_scan.py <out>` must say 0 defect lines.
-3. **Closed:** the yes/no-`simulate` classification question (point 3 below) is settled in code —
+3. **Closed:** the yes/no-`simulate` classification question is settled in code —
    `tool_audit.classify` files the preview guard under `empty`, with a test (commit 521735c1).
 4. Owner decisions still open (do not start without them): E4, E6, E5, then E7 (paid, cost first); the Luna
-   puzzle run; C3; and now the merge path for the epoch-46 + g05/g06 commits.
+   puzzle run; C3.
 
 The merge path is currently an open question with the owner: this week's PRs were opened and merged directly
 with the body line "Review skills: not run (owner: merge directly, without the review skills)" — confirm that

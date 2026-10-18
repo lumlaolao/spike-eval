@@ -2860,7 +2860,7 @@ public class GoldenChecksTest {
      *  stack says "+3/+0". The resolve line (STACK_RESOLVE — the event the seat's GAME HISTORY shows) used to
      *  be built AFTER the pump had applied: X re-read the already-pumped creature and the same spell showed
      *  "+6/+0" in history while the preview still said "+3/+0", both in the seat (g06 seed 4106, T7: preview
-     *  "+5/+0", history E103 "+10/+0" in one prompt). The applied amount is +3 (Giant ends at 6) either way —
+     *  "+5/+0", history E103 "+10/+0" in the same turn's adjacent prompts). The applied amount is +3 (Giant ends at 6) either way —
      *  only the log lied. MagicStack must capture the resolving spell's own stack description before it
      *  applies. HARNESS PATCH of forge/game/zone/MagicStack.java. */
     @Test

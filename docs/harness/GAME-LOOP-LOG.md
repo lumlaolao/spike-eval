@@ -687,13 +687,13 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
 - FIXED  (setup, before the game) the first Mac acceptance run on this clone since the epochs-40/41 changes
   failed only `canary-random`: those epochs re-rolled the random walk and re-pinned only Linux (A/59/397),
   leaving the plain Mac pin STALE until measured there. Measured on this Mac: winner B/50/273, reproduced
-  twice in one class-load build; floor unchanged A/108/1828; full acceptance PASS on the re-pinned keys
+  twice in one class-load build; floor unchanged A/108/1804 (plain Mac pin); full acceptance PASS on the re-pinned keys
   (runs/harness-acceptance/20261018T000454Z). Commit 487b6022; no code change, main untouched.
 - clean  TAKEN 0, LOST 0, SKIP 0, ai=0; tools 10/10 served; mulligan, fetch zone choices, mana keeps, all
   by call. The combo turn ran on the schema as designed: the Cabal Therapy flashback asked its sacrifice
   with an eight-line menu and a cancel, answered by pick numbers, and the win (Cabal Therapy flashback
   sacrificing Oracle, Dread Return flashback reanimating it on an empty library) executed exactly as chosen.
-- model  the first Cabal Therapy name was "Dark Tactics" — a LAND. The ask carried "Choose a nonland card name."
+- model  the first Cabal Therapy name was "Dark Depths" — a LAND. The ask carried "Choose a nonland card name."
   in its own text; the refusal reason said "is not a card that can be named here"; the model's second reply
   named a legal card (answer invalid 1 in the row, corrected in the same conversation). A model mistake, not
   a harness defect. Side note, not acted on: the ask also echoes the engine's validation string
@@ -709,8 +709,9 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
   produced a second red source: Sneak Attack stayed in hand the whole game ("need 1 more R" printed on
   nearly every prompt) with Show and Tell on the library bottom, and the seat lost to the T7 Infect
   pump kill (Blighted Agent 5/5 -> Might + Berserk + Vines, 14 poison) with no instant in hand.
-- FIXED  a state-dependent pump's resolve line contradicted the stack preview in one prompt: the T7
-  rows showed Berserk as "+5/+0" (STACK preview) and "+10/+0" (GAME HISTORY [E103]) for the same burst;
+- FIXED  a state-dependent pump's resolve line contradicted the stack preview in the same turn's consecutive
+  prompts: the T7 rows showed Berserk as "+5/+0" (STACK preview) and "+10/+0" (GAME HISTORY [E103]) for the
+  same burst;
   the effect applied +5 (damage 5+5+4 = 14). Root: MagicStack fires the resolved event after the spell
   applies and PumpEffect re-evaluates SVar X (= the target's power) against the pumped creature. Test
   first: GoldenChecksTest.aPumpResolveLineSaysWhatTheStackPreviewSays failed on the checkout (Hill Giant

@@ -567,7 +567,7 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   - The resolve line of a state-dependent pump (+X where X is the target's power, e.g. Berserk) reads the
     target's power before the effect applies, through the third engine patch (MagicStack built the GAME
     HISTORY's resolve line after the pump and made it contradict the stack preview the seat was shown: g06
-    seed 4106 T7 showed "+5/+0" and "+10/+0" in one prompt).
+    seed 4106 T7 showed "+5/+0" and "+10/+0" in the same turn's consecutive prompts).
   - **Mechanics no deck in the pool reaches:** dice, stickers, contraptions.
 - **Mana payment:** the engine maps the chosen sources to the cost. The seat decides which sources stay
   untapped when it matters (`keep_untapped`, or the mana-sources ask). The planner can be more hopeful than the
