@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 175 - Amareth looks on resolution
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Amareth, the Lustrous and no other permanents, have not played a land this turn, and have Mishra's Factory in hand. The top card of your library is Darksteel Myr. End the turn with Darksteel Myr in your hand.
+Rule:ask-a-magic-judge-be9a3882e51e3a01 | Amareth's trigger checks the permanent's types as it resolves (CR 608.2h): a Mishra's Factory animated in response is an artifact creature land
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Mishra's Factory
+p0battlefield=Amareth, the Lustrous|SummonSick
+p0library=Darksteel Myr;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Hand "Darksteel Myr" = 1

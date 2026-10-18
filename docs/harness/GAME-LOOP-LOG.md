@@ -880,3 +880,9 @@ game on epoch 56. No multi-blocker or trample assignment came up, so the new amo
   which the harness cannot reach. GameCopier is now patched (ENGINE-PATCHES.md) and the parking is gone. The fixture
   test fails without the patch; a cast-preview test that passed without it was dropped. harness-epoch-58.
 - checked  29 forced picks: 17 counter kinds, 4 replacement orders, 6 single-blocker damage-assigns, 2 single targets.
+
+### g24  2026-10-18  seed 4124  Mono-Green Landfall (seat) vs Modern Rakdos Delirium (Forge AI)  WON T17  $0.07  harness-epoch-58
+Sheet clean: 64 model decisions, 7 forced picks (each a single non-trample blocker: Mightform Harmonizer doubled to 16
+into Moonshadow had no trample, so all 16 to it was the only split), TAKEN 0, LOST 0, SKIP 0, TOOL 5 of 5 served,
+ai_tier_count=0, 7 min. First game on epoch 58; no preview failed (Carnivorous Cultivator was in the deck but the
+failing state did not recur, so the GameCopier patch was not exercised live).

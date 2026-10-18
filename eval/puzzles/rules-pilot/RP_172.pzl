@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 172 - The check land does not see itself
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:The opponent controls Urborg, Tomb of Yawgmoth. You control no lands, have not played a land this turn, and have Woodland Cemetery, Forest and Llanowar Elves in hand. End the turn with Llanowar Elves on the battlefield.
+Rule:rulesguru-f5a5b3cd8cd697af | Whether a land enters tapped is decided before it enters (CR 614.12): Woodland Cemetery does not count itself as a Swamp under Urborg
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Woodland Cemetery;Forest;Llanowar Elves
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Urborg, Tomb of Yawgmoth
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Llanowar Elves" = 1

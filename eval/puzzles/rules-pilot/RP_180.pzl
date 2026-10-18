@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot 180 - The Baloth arrives before the sacrifice
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent has cast Smallpox. You are at 20 life and control Grizzly Bears and two Forests; your hand is Obstinate Baloth and Colossal Dreadmaw. End the turn with Obstinate Baloth on the battlefield.
+Rule:rulesguru-885c810bc3a5c196 | A spell's instructions happen in order (CR 608.2c): an Obstinate Baloth discarded to Smallpox enters before the sacrifice step, so it could be sacrificed, and Grizzly Bears can be sacrificed instead
+[state]
+turn=1
+activeplayer=p1
+activephase=MAIN2
+p0life=20
+p0hand=Obstinate Baloth;Colossal Dreadmaw
+p0battlefield=Grizzly Bears;Forest;Forest
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Swamp;Swamp
+p1library=Plains;Plains;Plains
+p1putonstack=Smallpox
+[acceptance]
+count p0 Battlefield "Obstinate Baloth" = 1
+count p0 Graveyard "Grizzly Bears" = 1

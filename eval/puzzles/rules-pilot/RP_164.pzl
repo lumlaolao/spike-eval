@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 164 - The tax is mana spent
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is the opponent's turn (main phase 2). The opponent controls Lavinia, Azorius Renegade and Tithe Taker. You control five lands (two Mountains, two Forests, a Plains) and have Violent Outburst in hand. The top card of your library is Grizzly Bears. End the turn with Grizzly Bears on the battlefield.
+Rule:ask-a-magic-judge-3a7e97f8eef8eae0 | Tithe Taker's tax is an additional cost (CR 601.2f), so a cascaded spell cast without paying its mana cost still has mana spent and Lavinia does not counter it
+[state]
+turn=1
+activeplayer=p1
+activephase=MAIN2
+p0life=20
+p0hand=Violent Outburst
+p0battlefield=Mountain;Mountain;Forest;Forest;Plains
+p0library=Grizzly Bears;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Lavinia, Azorius Renegade;Tithe Taker
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Grizzly Bears" = 1

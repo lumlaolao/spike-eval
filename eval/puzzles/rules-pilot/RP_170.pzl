@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 170 - The tax adds a colour
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Lodestone Golem, a Plains and a Swamp and have Prismatic Ending in hand. The opponent controls Merfolk Branchwalker. End the turn with Merfolk Branchwalker in exile.
+Rule:rulesguru-d0b1b37a1213f5c2 | Any nonland permanent can be targeted by Prismatic Ending, and mana paid for Lodestone Golem's tax counts for converge (CR 702.112): X=0 paid with W and B exiles a mana value 2 permanent
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Prismatic Ending
+p0battlefield=Lodestone Golem|SummonSick;Plains;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Merfolk Branchwalker
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Exile "Merfolk Branchwalker" = 1

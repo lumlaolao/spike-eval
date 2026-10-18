@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 166 - Strive on a free spell
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Omniscience and three Swamps and have Silence the Believers in hand. The opponent controls Grizzly Bears and Hill Giant. End the turn with both opponent's creatures in exile.
+Rule:ask-a-magic-judge-9ceadd426c1f413a | Additional costs such as strive can be paid when a spell is cast without paying its mana cost (CR 118.9d, 601.2f)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Silence the Believers
+p0battlefield=Omniscience;Swamp;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Grizzly Bears;Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Exile "Grizzly Bears" = 1
+count p1 Exile "Hill Giant" = 1

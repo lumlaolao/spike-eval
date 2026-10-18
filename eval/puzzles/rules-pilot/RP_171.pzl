@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 171 - Returned Auras do not target
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control four Plains and have Replenish in hand; Control Magic is in your graveyard. The opponent controls Gladecover Scout (hexproof) and Grizzly Bears. End the turn controlling Gladecover Scout.
+Rule:wizards-official-card-rulings-a9e1f3854f20309a | An Aura put onto the battlefield without being cast does not target what it enchants (CR 303.4f), so it can be attached to a hexproof creature
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Replenish
+p0battlefield=Plains;Plains;Plains;Plains
+p0graveyard=Control Magic
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Gladecover Scout;Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Gladecover Scout" = 1

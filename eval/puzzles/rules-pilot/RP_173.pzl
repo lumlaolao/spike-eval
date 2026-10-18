@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 173 - The returned Angel is a new object
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is the end of the opponent's turn; your upkeep is next. You are at 20 life. Firemane Angel is in your graveyard, and you control two Boros Garrisons and three Sol Rings. End your turn at 21 life with Firemane Angel on the battlefield.
+Rule:rulesguru-e825c4530ed0aa1b | An intervening-if trigger rechecks its condition on resolution (CR 603.4) for the same object; Firemane Angel returned with the trigger on the stack is a new object (CR 400.7), so no life is gained
+[state]
+turn=1
+activeplayer=p1
+activephase=CLEANUP
+activephaseadvance=UPKEEP
+p0life=20
+p0battlefield=Boros Garrison;Boros Garrison;Sol Ring;Sol Ring;Sol Ring
+p0graveyard=Firemane Angel
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+life p0 = 21
+count p0 Battlefield "Firemane Angel" = 1

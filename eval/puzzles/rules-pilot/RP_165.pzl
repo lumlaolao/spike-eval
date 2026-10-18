@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 165 - The discount is locked in
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Underworld Breach and two Mountains. Your graveyard holds Bedlam Reveler and six Shocks. Your hand is empty. End the turn with Bedlam Reveler on the battlefield.
+Rule:ask-a-magic-judge-617486161e9ec63a | The total cost is locked in before costs are paid (CR 601.2f-h): exiling instants for escape does not raise Bedlam Reveler's cost
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0battlefield=Underworld Breach;Mountain;Mountain
+p0graveyard=Bedlam Reveler;Shock;Shock;Shock;Shock;Shock;Shock
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Bedlam Reveler" = 1

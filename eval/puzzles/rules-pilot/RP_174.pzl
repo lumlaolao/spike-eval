@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 174 - No cycling trigger under the Jailer
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:The opponent controls Yixlid Jailer. You control four Forests and have Shefet Monitor and Rampant Growth in hand. Your library holds Forests and Colossal Dreadmaws. End the turn controlling five Forests.
+Rule:rulesguru-c87ac8aeb01f2163 | A cycled card is in the graveyard when its cycling trigger would trigger (CR 702.29c); under Yixlid Jailer it has no abilities, so Shefet Monitor does not fetch a land
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Shefet Monitor;Rampant Growth
+p0battlefield=Forest;Forest;Forest;Forest
+p0library=Colossal Dreadmaw;Forest;Colossal Dreadmaw;Forest
+p1life=20
+p1battlefield=Yixlid Jailer
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Forest" = 5
