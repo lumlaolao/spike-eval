@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/.." && pwd)"
 FORGE="${FORGE_HOME:-$HOME/code/forge}"
 OUT="${1:-$REPO/runs/keyword-gauntlet/$(date -u +%Y%m%dT%H%M%SZ)}"
 PAR="${2:-4}"
-RUN="$(ls -d "$REPO"/runs/harness-acceptance/* 2>/dev/null | tail -1)"
+RUN="$(for d in "$REPO"/runs/harness-acceptance/2*; do [ -d "$d/classes" ] && [ -f "$d/classpath.txt" ] && echo "$d"; done | tail -1)"
 CLASSES="${GAUNTLET_CLASSES:-$RUN/classes}"
 CP_FILE="$RUN/classpath.txt"
 [ -d "$CLASSES" ] && [ -f "$CP_FILE" ] || { echo "no acceptance build: run eval/harness_acceptance.sh first"; exit 2; }

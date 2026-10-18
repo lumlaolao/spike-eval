@@ -45,6 +45,10 @@ def classify(request, result):
     first = result.split("\n", 1)[0]
     if result.startswith("ERROR: tool budget exhausted"):
         return "exhausted"
+    # A preview guard on a decision that is neither a priority menu nor an aim is the tool's documented
+    # `empty` (the model gets a corrective hint; no lookup is spent), not a refused form.
+    if result.startswith("ERROR: `simulate` previews an option of your priority menu"):
+        return "empty"
     # A well-formed call naming an option that is not there. Checked before the form refusals because
     # a bad-args message can open with a backticked argument name ("`option` must be ..."), which the
     # "ERROR: `" form prefix below would otherwise claim as a refusal (runs/loop/g03 line 211).

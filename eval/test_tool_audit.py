@@ -56,6 +56,14 @@ class ToolAuditTest(unittest.TestCase):
         # Recorded (runs/lines/ctl/native-lookahead): a preview that threw is a failed tool, not a served one.
         self.assertEqual(ta.classify("TOOL CALL simulate {\"option\":1}", "LOOKAHEAD (option 1): (preview failed: RuntimeException)"), "FAILED")
         self.assertEqual(ta.classify("x", "LOOKAHEAD (option 2): (lookahead v1 supports spell options only)"), "empty")
+        # Recorded (GAUNTLET_TOOLS=1, seed t4, arm 3 on epoch 46 - e46-random-t4-tools-20261017 g-kw04:284): the
+        # preview guard on a decision that is neither a priority menu nor an aim is the tool's documented
+        # `empty`, not a refused form: the model gets its corrective hint and no lookup was spent.
+        self.assertEqual(
+            ta.classify("TOOL CALL simulate {\"option\": 1}",
+                        "ERROR: `simulate` previews an option of your priority menu, or a target while you aim a play you are making; "
+                        "this decision is neither, so nothing was previewed. Answer the decision."),
+            "empty")
         self.assertEqual(ta.classify("x", "ERROR: `option` must be the number of a SPELL option (1..2)."), "bad-args")
         # Recorded (runs/loop/g03 line 211): a well-formed call naming a menu option the preview does
         # not cover. It is a bad argument, not a form refusal, even though the message opens with a
