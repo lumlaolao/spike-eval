@@ -1,12 +1,12 @@
 [metadata]
 Name:Rules pilot 177 - You choose which replacement
 Goal:Survive
-Turns:1
+Turns:2
 Difficulty:Hard
 Description:It is your upkeep. You control Possessed Portal and Underrealm Lich and no lands; your hand is one Colossal Dreadmaw. The top three cards of your library are Island, Island and Lightning Bolt. End the turn at 20 life with Lightning Bolt in hand and both Possessed Portal and Underrealm Lich on the battlefield.
 Rule:rulesguru-9f9f504f8f099535 | The affected player chooses which draw replacement applies (CR 616.1): applying Underrealm Lich instead of Possessed Portal turns the draw into look at three, keep one
 [state]
-turn=1
+turn=2
 activeplayer=p0
 activephase=UPKEEP
 p0life=20
