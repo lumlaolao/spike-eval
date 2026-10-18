@@ -831,3 +831,9 @@ ai_tier_count=0, 14 min. First game on epoch 53.
 - checked  35 forced picks: 25 counter-type (Mossborn Hydra and landfall counters, one kind each), 6
   replacement-order (one option), 2 damage-assign to a single blocker, 1 target, 1 graveyard order.
 - not exercised  the whole-block-set check: Moonshadow attacked into one possible blocker; the seat declared none.
+
+### g17  2026-10-18  seed 4117  Burn (seat) vs Goblins (Forge AI)  WON T11  $0.04  harness-epoch-54
+Sheet clean: 61 model decisions, 0 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 6 of 6 served (simulate 6),
+ai_tier_count=0, 9 min. First game on epoch 54 (AiCache cleared at the seat's priority ask).
+- checked  plan_audit HOLD-VIOLATION T11 Fireblast against "only if it creates lethal": it was the lethal turn.
+- clean  burn targets, previews. First clean game on epoch 54.
