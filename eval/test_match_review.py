@@ -224,6 +224,23 @@ class TimeSplitTest(unittest.TestCase):
         self.assertAlmostEqual(t["elapsed_ms"] / 60000.0, 10, delta=0.5)
 
 
+
+class LookupRoundsTest(unittest.TestCase):
+    def test_lookups_are_not_retries(self):
+        # runs/loop/g08 T8: the model read its archive three times before answering; 5 attempts, 1 a real retry.
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "game-1-0.jsonl")
+            look = {"t": "context_call", "raw_reply": "TOOL CALL memory_read {\"evidence_id\":1}"}
+            rows = [look, look, look, {"t": "context_call", "raw_reply": "TOOL CALL answer {\"option\":1}"},
+                    dict(dec("zone-change", "smart"), attempts=4, retry_ms=9000),
+                    look, dict(dec("zone-change", "smart"), attempts=3, retry_ms=7000),
+                    {"t": "game", "seed": 1, "swap": False, "winner": "A"}]
+            with open(p, "w") as f:
+                f.write("".join(json.dumps(r) + "\n" for r in rows))
+            r = mr.review(p)
+            self.assertEqual(r["counts"]["SLOW"], 1, mr.render(r))
+            self.assertIn("1 lookups, 1 retried", mr.render(r))
+
 class EngineFilterLintTest(unittest.TestCase):
     """The filter-syntax lint is one regex in three places: the sheet, AskContract and the harness (which says the
     filter in words). They had drifted apart once; this keeps them equal and pins what they catch."""

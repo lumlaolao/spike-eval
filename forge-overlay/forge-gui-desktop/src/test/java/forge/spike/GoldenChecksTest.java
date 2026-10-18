@@ -276,6 +276,13 @@ public class GoldenChecksTest {
         Assert.assertEquals(library.size(), 5, "the library is the pile: " + library);
         Assert.assertEqualsNoOrder(library.toArray(), pile, "the five the seat picked: " + library);
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0, "Forge's AI decided nothing");
+        // Each later pick says what is already in the pile (runs/loop/g08 T8 searched its archive for its own picks).
+        String last = model.prompts.stream().filter(q -> q.contains("(5 / 5)")).reduce((a, b) -> b).orElse("");
+        String said = last.substring(Math.max(0, last.indexOf("Already picked for this effect:")));
+        Assert.assertTrue(said.startsWith("Already picked for this effect:"), "the fifth pick names the first four: " + last);
+        for (String n : java.util.Arrays.copyOf(pile, 4)) Assert.assertTrue(said.contains(n), n + " is named: " + said);
+        Assert.assertFalse(model.prompts.stream().filter(q -> q.contains("(1 / 5)")).anyMatch(q -> q.contains("Already picked")),
+                "the first pick has nothing picked yet");
     }
 
     /** Ad Nauseam's repeat is the seat's (owner, 2026-10-16: combo lines must play out): each "repeat?" is asked, and
