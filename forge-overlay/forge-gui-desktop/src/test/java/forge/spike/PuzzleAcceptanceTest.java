@@ -21,7 +21,6 @@ public class PuzzleAcceptanceTest {
             public String name() { return name; }
             public boolean token() { return token; }
             public int counters(String type) { return c.getOrDefault(type.toUpperCase(), 0); }
-            public String counterSummary() { return new java.util.TreeMap<>(c).toString(); }
         };
     }
 
@@ -69,37 +68,6 @@ public class PuzzleAcceptanceTest {
         PuzzleAcceptance.Verdict v = a.evaluate(board());
         Assert.assertEquals(v.failed, Arrays.asList("count p0 Battlefield \"goblin\" = 2 (was 0)",
                 "winner p1 (was p0)"));
-    }
-
-    /** Rules pilot batch 2: two solutions differing only in a mode, a clone pick or a face-up choice have the same
-     *  game-log actions, so uniqueness compares the final state too: the same board in another order is one state,
-     *  a counter more is another. */
-    @Test
-    public void theStateDigestSeesCountersButNotOrder() {
-        PuzzleAcceptance.View a = board();
-        Map<String, List<PuzzleAcceptance.CardFacts>> zones = new HashMap<>();
-        List<PuzzleAcceptance.CardFacts> bf = new ArrayList<>(a.cards(0, "Battlefield"));
-        Collections.reverse(bf);
-        zones.put("0:Battlefield", bf);
-        zones.put("1:Graveyard", a.cards(1, "Graveyard"));
-        PuzzleAcceptance.View reordered = view(zones, 7, 0);
-        Assert.assertEquals(PuzzleAcceptance.digest(reordered), PuzzleAcceptance.digest(a));
-        List<PuzzleAcceptance.CardFacts> more = new ArrayList<>(bf);
-        more.set(0, card("Walking Ballista", false, "P1P1", 4));
-        zones.put("0:Battlefield", more);
-        Assert.assertNotEquals(PuzzleAcceptance.digest(view(zones, 7, 0)), PuzzleAcceptance.digest(a));
-        Assert.assertNotEquals(PuzzleAcceptance.digest(view(new HashMap<>(), 7, 0)),
-                PuzzleAcceptance.digest(view(new HashMap<>(), 6, 0)));
-    }
-
-    static PuzzleAcceptance.View view(Map<String, List<PuzzleAcceptance.CardFacts>> zones, int life0, int life1) {
-        return new PuzzleAcceptance.View() {
-            public int life(int p) { return p == 0 ? life0 : life1; }
-            public List<PuzzleAcceptance.CardFacts> cards(int p, String zone) {
-                return zones.getOrDefault(p + ":" + zone, new ArrayList<>());
-            }
-            public String winner() { return "p0"; }
-        };
     }
 
     @Test

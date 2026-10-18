@@ -272,6 +272,11 @@ final class PuzzleArms {
             this.maxDraws = maxDraws;
         }
 
+        /** What the solver chose where the game log does not say (LlmSpikeGui.noteSolverChoice), in order. */
+        final List<String> choices = new ArrayList<>();
+
+        synchronized void note(String choice) { if (!stopped) choices.add(choice); }
+
         /** True once the rollout passed {@link #maxDraws}: the runner ends the game, unsolved. */
         boolean stopped() { return stopped; }
 

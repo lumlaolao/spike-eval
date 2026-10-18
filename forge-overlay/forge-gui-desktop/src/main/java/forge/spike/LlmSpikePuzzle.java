@@ -364,15 +364,16 @@ public final class LlmSpikePuzzle {
                 return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), false, "rollout threw: " + e);
             }
             if (!p.healthy) broken[0] = true;
+            // A game the engine keeps looping without asking anyone (prove-v2-drift PS_M204, PS_MKM4) is ended by the
+            // wall-clock cap: not a solve. Only a game thread that outlived the cap makes the JVM unsafe (broken).
             if ("invalid".equals(p.status) && line.drift == null)
-                return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), false, "rollout hit the wall-clock cap");
+                return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), false, p.healthy ? null : "rollout hit the wall-clock cap");
             boolean solved = p.cleanSolve() && !line.stopped();
-            // What tells two solutions apart: the solver's game-log actions, and the final state (a mode, a clone
-            // pick or a face-up choice changes the state but not the log's actions).
-            String state = "";
-            try { state = PuzzleAcceptance.digest(PuzzleAcceptance.of(p.game)); } catch (Exception ignore) { }
+            // What tells two solutions apart: the solver's game-log actions, and what it chose where the log does not
+            // say (a mode, a clone pick, a number). Not the final state: the opponent's replies change that too
+            // (RP_045: the opponent's Scavenging Ooze exiled a card on one line and not the other).
             return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), solved, line.drift,
-                    String.join("\n", solverActions(p.logLines, "Solver")) + "\n#state\n" + state);
+                    String.join("\n", solverActions(p.logLines, "Solver")) + "\n#choices\n" + String.join("\n", line.choices));
         };
         long t0 = System.currentTimeMillis();
         PuzzleSearch searcher = new PuzzleSearch(g, "Solver", budget, lines, seed);
@@ -406,6 +407,14 @@ public final class LlmSpikePuzzle {
                 Played second = replay(file, id, sections, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
                         new PuzzleArms.Line(u.second, 0));
                 extra.put("uniqueness_second_actions", solverActions(second.logLines, "Solver"));
+                if (u.mainPrint != null && u.secondPrint != null) {
+                    // The lines of the two fingerprints that differ: what made the second line another solution.
+                    List<String> a = java.util.Arrays.asList(u.mainPrint.split("\n")), b = java.util.Arrays.asList(u.secondPrint.split("\n"));
+                    List<String> diff = new ArrayList<>();
+                    for (String l : a) if (!b.contains(l)) diff.add("main: " + l);
+                    for (String l : b) if (!a.contains(l)) diff.add("second: " + l);
+                    extra.put("uniqueness_difference", diff);
+                }
             }
             if (u.drift != null) extra.put("uniqueness_drift", u.drift);
             System.out.println("[PZL] search " + id + ": uniqueness " + u.verdict + " (" + u.deviations
@@ -430,6 +439,7 @@ public final class LlmSpikePuzzle {
             extra.put("opponent_choice_points", r.opponentChoicePoints);
             extra.put("opponent_branches_beaten", r.opponentBranches);
             if (r.drift != null) extra.put("search_drift", r.drift);
+            if (r.exhausted) extra.put("search_exhausted", true);
             if (r.line != null) extra.put("line", PuzzleSearch.lineText(r.line));
         }
         if (main != null) {

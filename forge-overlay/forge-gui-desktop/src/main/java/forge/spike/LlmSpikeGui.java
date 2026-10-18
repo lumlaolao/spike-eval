@@ -1884,6 +1884,17 @@ public final class LlmSpikeGui {
             return decideOne(b, type, question, options, noneLabel, null);
         }
 
+        /** The puzzle prover's record of what the solver chose where the game log does not say (a mode, a clone pick,
+         *  a number, a card named): two solving lines that differ only there are two solutions (PuzzleSearch.unique).
+         *  Card handles and the "#1"/"#2" that tell repeated labels apart are dropped, so the same card under another
+         *  handle, or two identical triggers in either order, is the same choice (RP_021). */
+        private void noteSolverChoice(String type, String label) {
+            if (!(rnd instanceof PuzzleArms.Search) || !"Solver".equals(((PuzzleArms.Search) rnd).seat)) return;
+            PuzzleArms.Line l = PuzzleArms.searchLine;
+            if (l != null && label != null && !label.startsWith("PASS"))
+                l.note((type == null ? "choice" : type) + ": " + label.replaceAll(" ?@\\d+", "").replaceAll(" #\\d+(?=[,\\]]|$)", ""));
+        }
+
         /** {@code simulate}: the `simulate` call for this decision (a target choice of a play), or null. */
         private int decideOne(LLMBridge b, String type, String question, List<String> options, String noneLabel,
                               java.util.function.Function<String, String> simulate) {
@@ -1900,6 +1911,7 @@ public final class LlmSpikeGui {
                 if (n == 0) return -1;
                 int c = PuzzleArms.pick(rnd, n, noneLabel != null);
                 int res = c >= options.size() ? -1 : c;
+                noteSolverChoice(type, res < 0 ? noneLabel : options.get(res));
                 if (type != null) evalDec(type, options.size(), res, tierOf(b == smart), System.currentTimeMillis() - t0, null, options);
                 return res;
             }
@@ -1973,6 +1985,10 @@ public final class LlmSpikeGui {
                         : PuzzleArms.subset(rnd, options.size(), Math.max(0, min), Math.min(max, options.size()));
                 if (res == null) return null;
                 lastPicks = res;
+                List<String> picked = new ArrayList<>();
+                for (int i : res) picked.add(options.get(i));
+                if (!order) java.util.Collections.sort(picked);
+                noteSolverChoice(type, String.valueOf(picked));
                 if (type != null) evalDec(type, options.size(), res.size(), tierOf(b == smart), System.currentTimeMillis() - t0, null, options);
                 return res;
             }
@@ -2033,6 +2049,10 @@ public final class LlmSpikeGui {
                 int n = Math.max(1, Math.min(num, 8));
                 for (int i = 0; i < n; i++) res.add(rnd.nextInt(options.size()));
                 lastPicks = res;
+                List<String> picked = new ArrayList<>();
+                for (int i : res) picked.add(options.get(i));
+                java.util.Collections.sort(picked);   // the modes chosen, not the order they were named in (RP_034)
+                noteSolverChoice("modes", String.valueOf(picked));
                 evalDec("modes", options.size(), res.size(), tierOf(b == smart), System.currentTimeMillis() - t0, null, options);
                 return res;
             }
@@ -5568,6 +5588,7 @@ public final class LlmSpikeGui {
                 }
                 if (rnd != null) {
                     int value = (int) rnd.nextLong((long) min, (long) max + 1);
+                    noteSolverChoice("number", (title == null ? "" : title + " ") + value);
                     auto("number(random)->" + value); return value;
                 }
                 // A range is a legal domain, not a three-option approximation. Avoid constructing
@@ -5787,6 +5808,7 @@ public final class LlmSpikeGui {
                 if (faces == null || faces.isEmpty()) { auto("card-name(list:empty)->none"); return ""; }
                 if (rnd != null) { // random arm: uniform over the list — never the model, never the AI
                     String pick = faces.get(rnd.nextInt(faces.size())).getName();
+                    noteSolverChoice("card-name", pick);
                     auto("card-name(random)->" + pick);
                     return pick;
                 }

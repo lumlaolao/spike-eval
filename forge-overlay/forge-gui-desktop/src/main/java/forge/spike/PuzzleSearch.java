@@ -53,6 +53,8 @@ final class PuzzleSearch {
         int opponentBranches = 0;        // opponent alternatives the proof had to beat
         int opponentChoicePoints = 0;    // points on the main line where the opponent had 2+ options
         String drift = null;
+        /** Every line from the start was played: NOT_FOUND then means no line wins against these replies. */
+        boolean exhausted = false;
         /** When not proven: an opponent reply no line the search found could beat, as the line reaching it. */
         List<Step> refutation = null;
     }
@@ -62,6 +64,7 @@ final class PuzzleSearch {
     static final class Uniqueness {
         String verdict = "unique";
         List<Step> second = null;
+        String mainPrint = null, secondPrint = null;   // what told them apart (fingerprints: actions, then state)
         int deviations = 0;             // solver choices on the main line, each other option searched
         int exhausted = 0;              // deviations whose every line was played: none of them is a solution
         int replays = 0;
@@ -120,6 +123,7 @@ final class PuzzleSearch {
             for (Step s : main) if (!s.seat.equals(solverSeat) && s.bound > 1) r.opponentChoicePoints++;
         } else {
             r.refutation = refutation;
+            r.exhausted = exhausted(new ArrayList<>());
         }
         return r;
     }
@@ -162,6 +166,8 @@ final class PuzzleSearch {
             if (Boolean.TRUE.equals(prove(devs.get(i), found, mainPrint, true))) {
                 u.verdict = "multiple";
                 u.second = found;
+                u.mainPrint = mainPrint;
+                u.secondPrint = fingerprint(solves.get(key(found, found.size())));
                 break;
             }
         }

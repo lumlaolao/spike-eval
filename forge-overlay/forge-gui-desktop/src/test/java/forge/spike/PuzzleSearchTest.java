@@ -98,8 +98,13 @@ public class PuzzleSearchTest {
     @Test
     public void anUnsolvablePuzzleSpendsTheBudgetAndIsNotFound() {
         PuzzleSearch s = new PuzzleSearch(toy((a, b, c) -> false), "Solver", 60, 4, 7L);
-        Assert.assertEquals(s.prove().verdict, PuzzleSearch.Verdict.NOT_FOUND);
+        PuzzleSearch.Result r = s.prove();
+        Assert.assertEquals(r.verdict, PuzzleSearch.Verdict.NOT_FOUND);
         Assert.assertTrue(s.replays() <= 60);
+        // prove-v2-drift PS_DOM0 stopped after 73 of 1500 rollouts: every line was played, and the row should say
+        // so ("no line wins", not "none found in the budget").
+        Assert.assertTrue(r.exhausted, "all 12 lines were played");
+        Assert.assertTrue(s.replays() <= 12 + 1, "and no line twice: " + s.replays());
     }
 
     @Test

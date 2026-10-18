@@ -33,8 +33,6 @@ final class PuzzleAcceptance {
         String name();
         boolean token();
         int counters(String type);
-        /** Every counter on the card, in a fixed order (the state digest). */
-        default String counterSummary() { return ""; }
     }
 
     /** What a condition can see of the final state. */
@@ -176,27 +174,6 @@ final class PuzzleAcceptance {
         return new Verdict(failed);
     }
 
-    /** The final state as text, for telling two solutions apart (PuzzleSearch.unique): each player's life and, per
-     *  zone but the library, the cards by name with token and counters, sorted. Tapped status and library order are
-     *  left out: which land paid is not another solution. */
-    static String digest(View v) {
-        StringBuilder sb = new StringBuilder();
-        for (int p = 0; p < 2; p++) {
-            sb.append("p").append(p).append(" life ").append(v.life(p)).append('\n');
-            for (String zone : ZONES) {
-                if ("Library".equals(zone)) continue;
-                List<String> cards = new ArrayList<>();
-                for (CardFacts f : v.cards(p, zone))
-                    cards.add(f.name() + (f.token() ? " (token)" : "") + (f.counterSummary().isEmpty()
-                            || "{}".equals(f.counterSummary()) ? "" : " " + f.counterSummary()));
-                java.util.Collections.sort(cards);
-                if (!cards.isEmpty()) sb.append("p").append(p).append(' ').append(zone).append(' ').append(cards).append('\n');
-            }
-            sb.append("p").append(p).append(" library ").append(v.cards(p, "Library").size()).append('\n');
-        }
-        return sb.toString();
-    }
-
     private static boolean holds(int a, String op, int b) {
         switch (op) {
             case "=": return a == b;
@@ -222,12 +199,6 @@ final class PuzzleAcceptance {
                         public int counters(String type) {
                             CounterType t = CounterType.getType(type);
                             return t == null ? 0 : c.getCounters(t);
-                        }
-                        public String counterSummary() {
-                            java.util.TreeMap<String, Integer> m = new java.util.TreeMap<>();
-                            for (com.google.common.collect.Multiset.Entry<CounterType> e : c.getCounters().entrySet())
-                                if (e.getCount() > 0) m.put(e.getElement().getName(), e.getCount());
-                            return m.toString();
                         }
                     });
                 }
