@@ -279,7 +279,8 @@ public final class LlmSpikeGui {
      *  a bare filter as a plural; an unsayable condition reads "the creatures the card describes" (v39). A pick that is
      *  one of several for the same effect ("(3 / 5)", Doomsday) says the cards already picked (g08).
      *  Epoch 50 (2026-10-18): the header before the first turn says "before the first turn (opening hands)", not
-     *  "Turn 0 null (active: ? | priority: ?)" (observation-faithful-v40; a sweep of runs/ found it on every mulligan). */
+     *  "Turn 0 null (active: ? | priority: ?)" (observation-faithful-v40; a sweep of runs/ found it on every mulligan);
+     *  no mana reads "none", and a subjectless stack sentence reads "It gains" (v41). */
     static final String HARNESS_EPOCH = "harness-epoch-50";
 
     static final class EvalLog {

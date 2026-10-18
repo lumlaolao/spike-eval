@@ -92,7 +92,9 @@ final class SeatObservation {
     // are said too; a condition that cannot be said reads "the creatures the card describes" (sweep of runs/).
     // v40 (2026-10-18): the header before the first turn says so ("before the first turn (opening hands)"), not
     // "Turn 0 null (active: ? | priority: ?)"; `inspect` by a token's name answers with the token you can see.
-    static final String VERSION = "observation-faithful-v40";
+    // v41 (2026-10-18): no mana reads "none (no untapped mana sources)", not "{} up to 0 mana"; a stack line's
+    // subjectless second sentence ("... battlefield. gains haste") reads "It gains".
+    static final String VERSION = "observation-faithful-v41";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
      *  Every section named here is one {@link #render} prints. */
@@ -205,7 +207,11 @@ final class SeatObservation {
      *  of Souls read to a judge as nine mana from four sources (runs/frontier/opus, T8). Since v30 the amounts
      *  are mana, not sources, and the total is stated ("up to 3 mana"), so Tron's seven mana reads as seven. */
     static String manaLine(Player p) {
-        return LlmSpikeGui.PlayerControllerLLM.manaAvailable(p).replace(" untapped sources",
+        String m = LlmSpikeGui.PlayerControllerLLM.manaAvailable(p);
+        // No source at all read "{} up to 0 mana (0 untapped sources; each counts its mana under every colour ...)"
+        // (runs/loop/g05-g09, 149 rows, mostly the opening turns).
+        if (m.startsWith("{}") && m.contains("up to 0 mana")) return "none (no untapped mana sources)";
+        return m.replace(" untapped sources",
                 " untapped sources; each counts its mana under every colour it can make, so the colours add up to more than can"
                 + " be spent");
     }
@@ -869,7 +875,10 @@ final class SeatObservation {
         sb.append(out, last, out.length());
         // Engine filters in words: Shallow Grave's stack line read "returns a Creature.TopGraveyardCreature+YouCtrl
         // card from their graveyard" (runs/loop/g07 T5).
-        return LlmSpikeGui.PlayerControllerLLM.plainFilters(sb.toString());
+        // The engine joins a spell's parts with the second part's subject left out: Shallow Grave read "... to the
+        // battlefield. gains haste until end of turn" (runs/loop/g07). A sentence never starts with a lower-case verb.
+        return LlmSpikeGui.PlayerControllerLLM.plainFilters(sb.toString())
+                .replaceAll("\\. (gains|gets|has|loses|deals|becomes) ", ". It $1 ");
     }
 
     /** {@link #redact} for text the seat is asked with (a stack description in a question). */

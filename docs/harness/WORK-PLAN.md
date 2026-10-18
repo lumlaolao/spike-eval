@@ -6,7 +6,7 @@ when an item is finished or a new one is agreed, so the next session can pick up
 
 ## Handoff (2026-10-18; read this first)
 
-State of `main`: harness-epoch-50 (observation-faithful-v40, seat-tools-v11, lookahead-preview-v11;
+State of `main`: harness-epoch-50 (observation-faithful-v41, seat-tools-v11, lookahead-preview-v11;
 three engine patches, `ENGINE-PATCHES.md`). Acceptance and the gauntlets were last run on epoch 46 (the owner asked to skip them on 2026-10-18 night). A new machine reinstalls and rebuilds Forge first (`install.sh`, then the `mvn` build); on the Mac,
 set `JAVA_HOME` to JDK 17.
 
