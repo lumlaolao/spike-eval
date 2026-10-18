@@ -87,6 +87,12 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   they lasted the whole game, and in the puzzle prover every finished game stayed in memory until the heap ran out.
 - A choice list's section headers are not options: Forge's "choose a source" puts divider cards ("--PERMANENTS:--",
   "--SPELLS ON THE STACK:--") into the list and asks again when one is picked (epoch 55, rules pilot RP_108).
+- Combat damage is divided as the attacker's controller chooses (the 2024 rules; our games build GameRules with
+  orderCombatants false): the seat gives an amount for each blocker and, with trample, the defending player; a split
+  that tramples over before every blocker has lethal goes back with the reason; an unusable answer cascades
+  lethal-first in the given order. Before epoch 56 the seat named only an order with that cascade, so "all six on the
+  second blocker" or "lethal plus one, trample the rest" were never on offer. The legacy rules (orderCombatants true)
+  keep the declared order. The prover's search arm branches over the splits.
 - A block set is checked as a whole, by the engine's `CombatUtil.validateBlocks`: requirements ("all creatures able
   to block it do so") and restrictions (menace). Forge runs that check only for its own GUI, so before epoch 52 any
   block set the seat or an arm declared stood. The `answer` call is corrected in the same conversation; a text reply

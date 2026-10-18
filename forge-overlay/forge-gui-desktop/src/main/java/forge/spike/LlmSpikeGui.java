@@ -294,8 +294,11 @@ public final class LlmSpikeGui {
      *  every copied zone (lookahead-preview-v13, runs/loop/g16).
      *  Epoch 55 (2026-10-18, rules puzzle batch 4): a choice list's section headers ("--PERMANENTS:--", Forge's
      *  divider cards in "choose a source") are not offered as options.
+     *  Epoch 56 (2026-10-18): combat damage divided as the attacker chooses (the 2024 rules, Forge's default here) is
+     *  asked as amounts per blocker and, with trample, the player, checked against the lethal-first trample rule; it was
+     *  an order with damage cascading lethal-first, which hid every other legal split.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-55";
+    static final String HARNESS_EPOCH = "harness-epoch-56";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -2124,8 +2127,23 @@ public final class LlmSpikeGui {
         /** The divided-allocation ask: `n` numbers, in target order, summing to `total`. Null when the
          *  reply does not give exactly `n`, so the caller can split evenly (legal). */
         private List<Integer> decideAllocation(LLMBridge b, String question, List<String> labels, int total) {
+            return decideAllocation(b, question, labels, total, null);
+        }
+
+        /** {@code rule}: the reason an allocation is not legal, or null (a trampler's lethal-first rule); an answer it
+         *  refuses is corrected in the conversation, or asked again with the reason. */
+        private List<Integer> decideAllocation(LLMBridge b, String question, List<String> labels, int total,
+                                               java.util.function.Function<List<Integer>, String> rule) {
             clearLast();
             int n = labels.size();
+            if (rnd instanceof PuzzleArms.Search) {
+                // The prover branches over the splits: each amount but the last drawn from what is left.
+                List<Integer> out = new ArrayList<>();
+                int left = total;
+                for (int i = 0; i < n - 1; i++) { int v = rnd.nextInt(left + 1); out.add(v); left -= v; }
+                out.add(left);
+                return rule == null || rule.apply(out) == null ? out : null;
+            }
             if (rnd != null) return evenSplit(total, n);   // RANDOM arm: the same deterministic legal split
             String base = buildDecideManyPrompt(snapshot(), question
                     + " (reply ALLOC: " + n + " numbers that sum to " + total + ")", labels, 1, Math.max(1, total),
@@ -2134,18 +2152,23 @@ public final class LlmSpikeGui {
             for (int attempt = 0; attempt < 2; attempt++) {
                 String prompt = attempt == 0 ? base
                         : base + "\n\n(Answer with ONE line only: ALLOC: <" + n + " numbers summing to " + total + ">.)";
-                offerAnswer(b, AnswerTool.Spec.alloc(n, total).labels(labels));
+                AnswerTool.Spec spec = AnswerTool.Spec.alloc(n, total).labels(labels);
+                if (rule != null) spec.check(ans -> rule.apply(ans.amounts));
+                offerAnswer(b, spec);
                 String reply = ask(b, prompt);
                 noteAnswerVia(attempt);
                 if (reply == null) return null;
                 AnswerTool.Answer ta = toolAnswer();
-                if (ta != null) return new ArrayList<>(ta.amounts);   // validated: n amounts summing to total
+                if (ta != null) return new ArrayList<>(ta.amounts);   // validated: n amounts summing to total, and the rule
                 String seg = textSegment(reply, "ALLOC:");
                 if (seg == null) continue;
                 List<Integer> out = new ArrayList<>();
                 Matcher m = Pattern.compile("\\d+").matcher(seg);
                 while (m.find() && out.size() < n) out.add(Integer.parseInt(m.group()));
-                if (out.size() == n) return out;           // the caller re-checks the sum
+                if (out.size() != n) continue;             // the caller re-checks the sum
+                String why = rule == null ? null : rule.apply(out);
+                if (why == null) return out;
+                base = base + "\n\nThat split is not legal: " + why + " Give another.";
             }
             return null;
         }
@@ -6992,6 +7015,10 @@ public final class LlmSpikeGui {
                 int damageDealt, GameEntity defender, boolean overrideOrder) {
             clearLast();
             try {
+                if (overrideOrder && blockers != null && !blockers.isEmpty() && damageDealt > 0) {
+                    Map<Card, Integer> free = assignFreeDivision(attacker, blockers, damageDealt, defender);
+                    if (free != null) return free;
+                }
                 if (blockers != null && blockers.size() == 1) {
                     Card single = blockers.getFirst();
                     boolean trample = defender != null && attacker.hasKeyword(Keyword.TRAMPLE);
@@ -7040,6 +7067,53 @@ public final class LlmSpikeGui {
             Map<Card, Integer> r = new java.util.HashMap<>();
             if (damageDealt > 0 && defender != null) r.put(null, damageDealt); // no blocker to eat it -> tramples/goes to defender
             evalDec("damage-assign", 0, 0, "auto", 0, "damage-assign(no-blockers)->defender", null);
+            return r;
+        }
+
+        /** Combat damage divided as the attacker's controller chooses (the 2024 rules; Forge's default here, GameRules
+         *  orderCombatants false): any amounts on the blockers, and with trample on the defending player once every
+         *  blocker has lethal. Asked as amounts, not as an order with damage cascading lethal-first, which hid every other
+         *  legal split (found writing rules puzzles, batch 5). Null when there is only one legal split (a single blocker
+         *  without trample, or not enough damage to trample over); an answer that cannot be used cascades lethal-first. */
+        private Map<Card, Integer> assignFreeDivision(Card attacker, CardCollectionView blockers, int damageDealt, GameEntity defender) {
+            List<Card> bl = new ArrayList<>(blockers);
+            boolean trample = defender != null && attacker.hasKeyword(Keyword.TRAMPLE);
+            List<Integer> lethal = new ArrayList<>();
+            int lethalSum = 0;
+            for (Card b : bl) { int l = ComputerUtilCombat.getEnoughDamageToKill(b, damageDealt, attacker, true); lethal.add(l); lethalSum += l; }
+            if (bl.size() == 1 && (!trample || lethalSum >= damageDealt)) return null;
+            List<String> labels = new ArrayList<>();
+            for (int i = 0; i < bl.size(); i++) labels.add(cardLabel(bl.get(i)) + " (lethal damage: " + lethal.get(i) + ")");
+            if (trample) labels.add(defender + " (the defending player: only once every blocker above has lethal)");
+            final int nb = bl.size();
+            java.util.function.Function<List<Integer>, String> rule = a -> {
+                if (!trample || a.get(nb) == 0) return null;
+                for (int i = 0; i < nb; i++)
+                    if (a.get(i) < lethal.get(i))
+                        return "with trample, damage goes to the player only once every blocker has lethal ("
+                                + safeName(bl.get(i)) + " needs " + lethal.get(i) + ").";
+                return null;
+            };
+            String q = "COMBAT DAMAGE ASSIGNMENT: " + safeName(attacker) + " deals " + damageDealt + " combat damage"
+                    + (nb > 1 ? " and is blocked by " + nb + " creatures" : " to its blocker " + safeName(bl.get(0)))
+                    + ". Divide it as you choose among the blockers" + (trample ? " and, with trample, the defending player" : "")
+                    + ". Give an amount for each, in the order listed, summing to " + damageDealt + ".";
+            List<Integer> a = decideAllocation(fastOk() ? fast : smart, q, labels, damageDealt, rule);
+            boolean used = a != null && a.size() == labels.size() && a.stream().mapToInt(Integer::intValue).sum() == damageDealt
+                    && rule.apply(a) == null;
+            Map<Card, Integer> r = new java.util.HashMap<>();
+            if (used) {
+                for (int i = 0; i < nb; i++) r.put(bl.get(i), a.get(i));
+                if (trample && a.get(nb) > 0) r.put(null, a.get(nb));
+            } else {
+                int left = damageDealt;                    // the fixed legal split: lethal-first in the given order
+                for (int i = 0; i < nb; i++) { int v = Math.min(lethal.get(i), left); r.put(bl.get(i), v); left -= v; }
+                if (left > 0) { if (trample) r.put(null, left); else r.put(bl.get(nb - 1), r.get(bl.get(nb - 1)) + left); }
+            }
+            evalDec("damage-assign", labels.size(), used ? 0 : -1, tierOf(!fastOk()), 0,
+                    used ? null : "damage-assign(unusable)->lethal-first", labels);
+            p("[ROUTER] damage-assign: " + r.entrySet().stream().map(e -> (e.getKey() == null ? String.valueOf(defender)
+                    : safeName(e.getKey())) + "=" + e.getValue()).collect(java.util.stream.Collectors.joining(", ")));
             return r;
         }
 

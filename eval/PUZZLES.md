@@ -92,7 +92,8 @@ python3 eval/puzzle_baselines.py prove --suite S.json [--ids a,b] --budget 1500 
   ends it, and those rollouts used to be reported as drift (prove-v1: PS_ELD1, PS_DOM0, PS_M204).
 - A subtree whose every line has been played is never replayed (rollouts are deterministic given their line),
   and its solves are remembered.
-- Not yet branched on: divided damage (the arms split it evenly) and the engine seed (one seed per proof).
+- Not yet branched on: the engine seed (one seed per proof). Since epoch 56 the search arm branches over every split
+  of combat damage and of a divided spell ("distribute 5 damage"); the other arms still split evenly.
 - Why: `BENCHMARK-V1.md`, "What a puzzle must pass before it is frozen".
 
 ## Rules puzzles: an acceptance state and one solution

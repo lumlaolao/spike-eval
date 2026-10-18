@@ -1523,9 +1523,10 @@ public class GoldenChecksTest {
         Assert.assertTrue(model.prompts.stream().noneMatch(q -> q.contains("COMBAT DAMAGE ASSIGNMENT")), "the declared order was asked again");
         Assert.assertTrue(r.get(first) >= 2, "lethal to the first in the declared order: " + r);
         Assert.assertEquals(r.values().stream().mapToInt(Integer::intValue).sum(), 6);
-        // With the order free (overrideOrder true), the split is the seat's.
-        Map<Card, Integer> free = ctrl.assignCombatDamage(attacker, new CardCollection(java.util.Arrays.asList(first, second)), null, 1, rival, true);
-        Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.contains("COMBAT DAMAGE ASSIGNMENT")), "a free split is asked");
+        // With damage divided as the attacker chooses (overrideOrder true), the amounts are the seat's.
+        Script free2 = new Script("CHOICE: 1").on("COMBAT DAMAGE ASSIGNMENT", p -> "ALLOC: 0, 1");
+        Map<Card, Integer> free = seat(g, free2, free2).assignCombatDamage(attacker, new CardCollection(java.util.Arrays.asList(first, second)), null, 1, rival, true);
+        Assert.assertTrue(free2.prompts.stream().anyMatch(q -> q.contains("COMBAT DAMAGE ASSIGNMENT")), "a free split is asked");
         Assert.assertEquals(free.get(second), Integer.valueOf(1), "the seat put its 1 damage on the Elves: " + free);
     }
 
@@ -2326,6 +2327,41 @@ public class GoldenChecksTest {
         Assert.assertEquals(one.get(bears), Integer.valueOf(6), "all to the blocker: " + one);
         Map<Card, Integer> two = ctrl.assignCombatDamage(wurm, new CardCollection(Arrays.asList(bears, lions)), new CardCollection(), 6, rival, false);
         Assert.assertEquals(two.get(lions), Integer.valueOf(1), "lethal to the Lions first: " + two);
+    }
+
+    /** Since the 2024 rules (Forge's default here: GameRules.orderCombatants false), an attacker divides its combat damage
+     *  among its blockers as its controller chooses. The seat was asked only an order, with damage cascading lethal-first,
+     *  so a split like "all 6 on the second blocker" was never on offer (a legal action hidden; found writing rules
+     *  puzzles, batch 5). The amounts are the seat's now. */
+    @Test
+    public void freelyDividedCombatDamageGoesWhereTheSeatSays() {
+        Game g = bareGame(PhaseType.COMBAT_DAMAGE);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card wurm = card("Craw Wurm", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield), elves = card("Llanowar Elves", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("COMBAT DAMAGE ASSIGNMENT", p -> "ALLOC: 0, 6");
+        Map<Card, Integer> r = seat(g, model, model).assignCombatDamage(wurm, new CardCollection(Arrays.asList(bears, elves)), null, 6, rival, true);
+        Assert.assertEquals(r.get(elves), Integer.valueOf(6), "all six on the Elves: " + r);
+        Assert.assertEquals(r.getOrDefault(bears, 0), Integer.valueOf(0));
+    }
+
+    /** A trampler over one blocker may give it more than lethal and trample the rest: any split with lethal on the
+     *  blocker is legal, not only "max trample" or "all to the blocker". A split that tramples over before the blocker
+     *  has lethal goes back to the seat with the reason. */
+    @Test
+    public void aTramplersSplitIsTheSeatsWithinTheRule() {
+        Game g = bareGame(PhaseType.COMBAT_DAMAGE);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card dreadmaw = card("Colossal Dreadmaw", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        List<String> asks = new ArrayList<>();
+        Script model = new Script("CHOICE: 1").on("COMBAT DAMAGE ASSIGNMENT", p -> { asks.add(p);
+            return asks.size() == 1 ? "ALLOC: 1, 5" : "ALLOC: 3, 3"; });
+        Map<Card, Integer> r = seat(g, model, model).assignCombatDamage(dreadmaw, new CardCollection(bears), null, 6, rival, true);
+        Assert.assertEquals(asks.size(), 2, "the split that skipped lethal was sent back");
+        Assert.assertTrue(asks.get(1).contains("lethal"), "with the reason:\n" + asks.get(1));
+        Assert.assertEquals(r.get(bears), Integer.valueOf(3), "three on the Bears: " + r);
+        Assert.assertEquals(r.get(null), Integer.valueOf(3), "three trample over: " + r);
     }
 
     /** The order an attacker assigns its damage among its blockers is the seat's (it was Forge's
