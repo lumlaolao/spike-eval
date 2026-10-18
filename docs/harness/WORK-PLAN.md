@@ -4,29 +4,36 @@ The living to-do list for the "the model is the only bottleneck" work. Only open
 what is done is in git history, `docs/harness/GAME-LOOP-LOG.md` and the run reports. Update this file
 when an item is finished or a new one is agreed, so the next session can pick up from it.
 
-## Handoff (2026-10-17, end of a Claude Code session; read this first)
+## Handoff (2026-10-17, game loop on the Mac clone; read this first)
 
-State of `main`: harness-epoch-45 (observation-faithful-v37, seat-tools-v11, lookahead-preview-v11). Full acceptance PASS on it (17/17, 765 Java, 381 Python, canaries floor A/108/1828 and random
-A/59/397). The Forge checkout at `/root/forge` was built from it; any new container must reinstall and rebuild.
+State of `main`: harness-epoch-46 (third engine patch — a resolving state-dependent spell's line is captured
+before its effect applies, `forge/game/zone/MagicStack.java`). Full acceptance PASS (17/17, 767 Java, 381
+Python, floor A/108/1828 and random Mac B/50/273 unchanged; `runs/harness-acceptance/20261018T013426Z`), and
+all three gauntlet arms clean on new seeds (84 games, 0 defect lines). The Forge checkout was rebuilt from
+it; on the Mac set `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home` for everything
+below. The epoch-46 fix, eval sharpenings and g05/g06 records are committed locally and not yet pushed or
+turned into PRs; ask the owner first whether to open a PR or merge directly (see below).
 
 Next steps, in order:
-1. **Next game is g05.** g01-g04 are logged (Elves won, Burn lost, Death and Taxes won, Goblins won; TAKEN 0, LOST 0,
-   ai=0 in all four). Play g05 on a deck not yet used this round (the `game-loop` skill, step 1), and keep going
-   until three games in a row put nothing new on the sheet (g04 still put one small fix there: the target
-   preview was offered for a trigger).
-2. **Gauntlets on epoch 45:** `first`, random (s5) and random with lookups (t3), 28 games each, 0 defect lines
-   (GAME-LOOP-LOG.md, "epoch-45 gauntlets"). Rerun all three with new seeds after any harness change:
-   `FORGE_HOME=/root/forge GAUNTLET_POLICY=random GAUNTLET_SEED=s6 bash eval/keyword_gauntlet.sh <out> 6`, and again
-   with `GAUNTLET_TOOLS=1 GAUNTLET_SEED=t4`; `python3 eval/gauntlet_scan.py <out>` must say 0 defect lines.
-3. **Known open:** `simulate` on a yes/no confirmation (g03 T14, Aether Vial's "Search your hand?") is refused with a
-   reason; there is nothing to preview. tool_audit still counts it as REFUSED. Decide whether that case should be
-   classified separately rather than built.
-4. Owner decisions still open (do not start without them): E4, E6, E5, then E7 (paid, cost first); the Luna puzzle
-   run; C3.
+1. **Next game is g07.** g05 (Cephalid Breakfast beat Lands, T14) and g06 (Sneak and Show lost to Infect, T7)
+   are logged. g06 put one harness defect on the sheet (the pump resolve line), now fixed as harness-epoch-46,
+   so the "three clean games in a row" counter restarted: g05-g06 count as clean since the fix landed — play
+   g07 (untouched decks, seed 4107), then g08, and stop after three consecutive games add nothing new to the
+   sheet. Bad play with the full state shown is a puzzle candidate, not a defect; do not fix play.
+2. **After any harness change** rerun all three gauntlets with new seeds (`FORGE_HOME=$HOME/code/forge
+   GAUNTLET_POLICY=random GAUNTLET_SEED=<salt> bash eval/keyword_gauntlet.sh <out> 6`, again with
+   `GAUNTLET_TOOLS=1 GAUNTLET_SEED=<salt>`; the picker takes the newest `2026*` acceptance build only —
+   stale `stdpin*` dirs are not builds). `python3 eval/gauntlet_scan.py <out>` must say 0 defect lines.
+3. **Closed:** the yes/no-`simulate` classification question (point 3 below) is settled in code —
+   `tool_audit.classify` files the preview guard under `empty`, with a test (commit 521735c1).
+4. Owner decisions still open (do not start without them): E4, E6, E5, then E7 (paid, cost first); the Luna
+   puzzle run; C3; and now the merge path for the epoch-46 + g05/g06 commits.
 
-How the owner has been merging this week: PRs opened and merged directly with the body line
-"Review skills: not run (owner: merge directly, without the review skills)". Ask the owner before assuming that
-still holds; otherwise `scripts/pr_merge.sh` and the three review skills are the gate.
+The merge path is currently an open question with the owner: this week's PRs were opened and merged directly
+with the body line "Review skills: not run (owner: merge directly, without the review skills)" — confirm that
+still holds, or else `scripts/pr_merge.sh` and the three review skills are the gate. The audits to run after
+each game stay the full free set (`match_review.py`, `tool_audit.py`, `plan_audit.py`, `defect_analyzer.py`,
+`cost_report.py`).
 
 ## Now (2026-10-17): real games on the finished harness, then the eval
 

@@ -702,3 +702,26 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
   (it resolved without winning); the seat kept Karakas untapped as it planned and reached the win anyway by
   flashing back Cabal Therapy (sacrificing Oracle) and Dread Return to reanimate it on an empty library.
   Noted, not a puzzle.
+
+### g06  2026-10-17  seed 4106  Sneak and Show (seat) vs Infect (Forge AI)  LOST T7  $0.03  overlay 30857a1e0f50
+- Time: 6 min (54 model calls, 64% cache hits; 0 waits to the deadline, 0 stalls, 0 provider errors).
+  Mull to 5 (both bottom choices and the keep by call), 2 lands in the kept 5, and the fetches never
+  produced a second red source: Sneak Attack stayed in hand the whole game ("need 1 more R" printed on
+  nearly every prompt) with Show and Tell on the library bottom, and the seat lost to the T7 Infect
+  pump kill (Blighted Agent 5/5 -> Might + Berserk + Vines, 14 poison) with no instant in hand.
+- FIXED  a state-dependent pump's resolve line contradicted the stack preview in one prompt: the T7
+  rows showed Berserk as "+5/+0" (STACK preview) and "+10/+0" (GAME HISTORY [E103]) for the same burst;
+  the effect applied +5 (damage 5+5+4 = 14). Root: MagicStack fires the resolved event after the spell
+  applies and PumpEffect re-evaluates SVar X (= the target's power) against the pumped creature. Test
+  first: GoldenChecksTest.aPumpResolveLineSaysWhatTheStackPreviewSays failed on the checkout (Hill Giant
+  fixture prints "+6/+0"), then the engine patch MagicStack.java (pre-capture of the resolving spell's
+  stack description), harness-epoch-46, three engine patches now. No decision hung on it this game.
+- model  the T5 plan cast Sneak Attack off Tomb + Island + City "leaving Volcanic untapped" — no source
+  in that arithmetic makes {R}, and the T4 Tarn fetch had chosen a basic Island over four listed
+  Volcanics (its own stated reason: nonbasic-land vulnerability) while Show and Tell sat on the bottom.
+  It never reconciled plan with the per-prompt "need 1 more R". PUZZLE candidate (row 98 / 137 / 145).
+- model  T6 upkeep Brainstorm buried City of Traitors — the card its own T5 plan said to play next —
+  and re-read known tops instead of drawing into them. Noted, not acted on (play, not harness).
+- clean  TAKEN 0, LOST 0, SKIP 0, ai=0; mulligan, bottom choices, Ponder orders + shuffle confirms, the
+  nine-card fetch menu, mana keeps, every opponent-ask window and the full kill window by call; plan
+  audit 0/5 hold violations; tools 43 answer + 11 set_plan accepted.
