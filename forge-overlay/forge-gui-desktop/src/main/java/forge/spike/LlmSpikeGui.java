@@ -280,7 +280,8 @@ public final class LlmSpikeGui {
      *  one of several for the same effect ("(3 / 5)", Doomsday) says the cards already picked (g08).
      *  Epoch 50 (2026-10-18): the header before the first turn says "before the first turn (opening hands)", not
      *  "Turn 0 null (active: ? | priority: ?)" (observation-faithful-v40; a sweep of runs/ found it on every mulligan);
-     *  no mana reads "none", and a subjectless stack sentence reads "It gains" (v41). */
+     *  no mana reads "none", and a subjectless stack sentence reads "It gains" (v41); "cast CAST", "Choose a Creature to
+     *  name" and "top of Seat library" read as English. */
     static final String HARNESS_EPOCH = "harness-epoch-50";
 
     static final class EvalLog {
@@ -3232,8 +3233,10 @@ public final class LlmSpikeGui {
             if (optional) {
                 if (!smartOk() && !fastOk()) { auto("play-from-effect(no-model)->decline"); return false; }
                 List<String> labels = Lists.newArrayList("Cast it", "Do not cast it");
-                int c = decideOne(smartOk() ? smart : fast, "play-from-effect", "An effect lets you cast "
-                        + verbOf(tgtSA) + " " + labelOf(tgtSA) + " now. Cast it?", labels, null);
+                // The label already opens with its verb: "An effect lets you cast CAST Rift Bolt" (runs/loop/g02).
+                int c = decideOne(smartOk() ? smart : fast, "play-from-effect", observer != null
+                        ? "An effect lets you play this now: " + labelOf(tgtSA) + ". Cast it?"
+                        : "An effect lets you cast " + verbOf(tgtSA) + " " + labelOf(tgtSA) + " now. Cast it?", labels, null);
                 if (c != 0) { if (c < 0) auto("play-from-effect(unparsed)->decline"); return false; }
             }
             if (tgtSA.getActivatingPlayer() == null) tgtSA.setActivatingPlayer(getPlayer());
@@ -3921,6 +3924,10 @@ public final class LlmSpikeGui {
                 List<String> labels = new ArrayList<>();
                 for (T t : opts) labels.add(labelOf(t));
                 String q = (title == null || title.isEmpty() ? "Choose one" : title) + srcAsk(sa);
+                // The engine names the seat by its label: "Choose card(s) to put on top of Seat library" (Thassa's Oracle,
+                // runs/loop/g08); the seat is "you" everywhere else.
+                if (observer != null) q = q.replace(getPlayer().getName() + "'s library", "your library")
+                        .replace(getPlayer().getName() + " library", "your library");
                 int c = decideOne(b, "entity", q, labels, isOptional ? "Decline / none" : null);
                 if (c == -2) { auto("choose-entity(bridge-down)->first" + srcOf(sa)); return isOptional ? null : opts.get(0); }
                 if (c < 0) { // decideOne's -1 also covers "still unparseable after retry", which (unlike an
@@ -5674,7 +5681,9 @@ public final class LlmSpikeGui {
             try {
                 if (validTypes != null && validTypes.size() >= 2 && smartOk()) {
                     List<String> opts = new ArrayList<>(validTypes);
-                    int pick = decideOne(smart, "some-type", (observer != null && "Card".equals(kindOfType) ? "Choose a card type"
+                    // Cavern of Souls read "Choose a Creature to name": it asks for a creature TYPE (runs/loop/g04, g05).
+                    int pick = decideOne(smart, "some-type", (observer != null
+                            ? "Choose a " + kindOfType.toLowerCase(Locale.ROOT) + " type"
                             : "Choose a " + kindOfType + " to name") + srcAsk(sa), opts, null);
                     if (pick >= 0 && pick < opts.size()) return opts.get(pick);
                 }
