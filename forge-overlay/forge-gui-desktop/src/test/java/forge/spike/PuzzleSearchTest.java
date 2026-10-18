@@ -208,9 +208,9 @@ public class PuzzleSearchTest {
     @Test
     public void choicesThatMakeNoSecondSolutionAreNotCompared() {
         for (String t : new String[] {"order", "trigger-order", "replacement-order", "mana-sources", "mana-from-pool", "color",
-                "scry", "confirm", "zone-change"})
+                "scry", "confirm", "zone-change", "target", "targets"})
             Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.UNIQUENESS_NEUTRAL.contains(t), t);
-        for (String t : new String[] {"modes", "number", "card-name", "targets", "some-type", "entity"})
+        for (String t : new String[] {"modes", "number", "card-name", "some-type", "entity"})
             Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.UNIQUENESS_NEUTRAL.contains(t), t);
     }
 

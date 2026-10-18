@@ -206,3 +206,19 @@ Newest last. Each entry says what was built, what it showed, and what is next.
   model in a real game.
 - **Next.** Re-verify batch 1 on epoch 52; batch 2 (30 questions) is being authored; then the rest of the 216
   good questions, then the maybes; Luna games on epoch 52 continue in the background.
+
+### 2026-10-18 (later)  91 rules questions attempted, 81 puzzles; seven more harness fixes (epochs 53-54)
+
+- **Rules puzzles.** Batches 2 and 3 (70 questions) brought the pilot to 91: 81 converted (proven against every
+  opponent reply, unique, the do-nothing arm rejected), 4 Forge disagreements, 5 not built, 1 for the author.
+  Details and the uniqueness rule's history: `eval/puzzles/rules-pilot/REPORT.md`.
+- **Harness fixes the puzzles found** (each with a test that failed first): an activated ability's alternative cost
+  offered (Forge Anew); an "up to one" target with one candidate asked; Forge's static AiCache cleared where its AI
+  clears it (a model seat read answers cached for the whole game, and the prover kept every finished game in memory
+  until the heap ran out: the last cause of drift); a preview survives a remembered card no copied zone holds (g16).
+- **prove-v1 drift is closed.** All six drifted puzzles now finish: PS_ELD1, PS_DOM0, PS_WAR1, PS_MKM4, PS_M204 and
+  PS_WAR0a are not found within the budget, heap flat at about 178 MB.
+- **Luna games** g12-g16: five wins, sheets clean except g16's two failed previews (fixed). The whole-block-set check
+  has not yet met a menace or "must block" attacker in a real game.
+- **Next.** The remaining good questions from the triage (about 140 not yet attempted), then the maybes; prove the
+  other Forge built-ins with the fixed prover; keep the game loop going on epoch 54.

@@ -228,3 +228,22 @@ None.
 6. **The pass arm auto-confirms an optional trigger** that has a single target (RP_056 v1 was solved by passing).
 7. Process: two diagnostic JVMs (`rp3v/RP_055d`) ran while both lanes were busy, so three JVMs ran at once for a
    few minutes.
+
+## Re-verification on the epoch 54 prover (2026-10-18)
+
+Every puzzle was re-run after the uniqueness rule settled: a second solution is a line, proven against every
+opponent reply, whose solver actions or outcome-bearing solver choices (modes as a set, numbers, card names, entity
+picks, "No target") differ as a set. Order, mana payment, colour of an any-colour source, scry, confirm prompts,
+declined searches and target labels (the log already names targets) are not compared.
+
+| Result | Count |
+|---|---|
+| converted (proven, unique, do-nothing arm rejected) | 81 |
+| Forge disagreement (RP_011, RP_024, RP_045, RP_065) | 4 |
+| not built | 5 |
+| multiple, for the author (RP_028: Gemrazer over or under Young Wolf both solve) | 1 |
+
+The rule's history, for the record: game-log actions alone missed modes and clone picks; the final-state digest
+counted the opponent's replies (RP_045, RP_007); noting every solver choice counted order and mana payment (18 of
+batch 3). Known blind spot: a "choose a color" effect shares the colour ask, so a second solution differing only in
+that colour is not seen.

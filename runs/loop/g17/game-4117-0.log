@@ -79,3 +79,519 @@ Read cards: 857 files in 0 ms (8 parts) using thread pool
 [Seat] [ROUTER] play: PASS
 [Seat] [TALLY] smart=14 fast=0 auto=0 ai=0 textParses=0 avgSmart=4645ms avgFast=4645ms
 [Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8862 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7039 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3492 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Monastery Swiftspear
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5008 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5948 ms with 1 tool call(s)
+hidden has neither ManaCost nor Color
+[Seat] [ROUTER] lookahead 1: if you cast Fireblast [assuming target: ForgeAI]: you board 3 -> 1; graveyard 1 -> 4; hand 4 -> 3; left the battlefield: Mountain, Mountain; ForgeAI life 19 -> 15. The engine chose what to sacrifice for this preview; in the real play YOU choose
+[OPENROUTER Seat/smart] replied in 6510 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=20 fast=0 auto=0 ai=0 textParses=0 avgSmart=5095ms avgFast=5095ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4780 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4312 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Race with Swiftspear and preserve burn for face; keep Fireblast as reach unless a critical threat demands it. NEXT: Pass through opponent's turn while responding to any relevant Goblin play; on my turn play a land, attack, and use burn for face.
+[OPENROUTER Seat/smart] replied in 2031 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5888 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6673 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 3: if you pass, nothing resolves: the board, hands, life and graveyards are unchanged. A preview cannot play out the opponent's turn.
+[OPENROUTER Seat/smart] replied in 2275 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7748 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Race with Swiftspear while preserving Fireblast as reach; avoid sacrificing both Mountains unless it secures lethal or prevents a decisive loss. NEXT: Pass through the Munitions Expert trigger, then on my turn play a land, attack with Swiftspear, and use burn toward the opponent's face.
+[OPENROUTER Seat/smart] replied in 3509 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7366 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=29 fast=0 auto=0 ai=0 textParses=0 avgSmart=5051ms avgFast=5051ms
+[Seat] [ROUTER] play(main): 2 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8007 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Mountain
+[Seat] [TALLY] smart=30 fast=0 auto=0 ai=0 textParses=0 avgSmart=5149ms avgFast=5149ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8891 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4488 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Monastery Swiftspear
+[Seat] [TALLY] smart=32 fast=0 auto=0 ai=0 textParses=0 avgSmart=5245ms avgFast=5245ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10893 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8410 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Race the Goblin deck with Swiftspear and burn, preserving Fireblast as reach. NEXT: Pass this upkeep; on my turn play a land, attack with Swiftspear, then prioritize face damage unless removal is needed to survive.
+[OPENROUTER Seat/smart] replied in 2204 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Likely Goblins: respect flash Munitions Expert and Goblin Lackey; preserve removal only if their board threatens the race.
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4463 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9208 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6035 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Race the Goblins while preserving Fireblast as lethal reach or emergency removal for Krenko. NEXT: Pass upkeep; on my main play a land and attack with Swiftspear, then use burn on their face unless Krenko or another threat must be removed to survive.
+[OPENROUTER Seat/smart] replied in 2117 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5427 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=40 fast=0 auto=0 ai=0 textParses=0 avgSmart=5415ms avgFast=5415ms
+[Seat] [ROUTER] play(main): 4 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 11775 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Mountain
+[Seat] [TALLY] smart=41 fast=0 auto=0 ai=0 textParses=0 avgSmart=5570ms avgFast=5570ms
+[Seat] [ROUTER] play(main): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4557 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 2: if you cast Rift Bolt [assuming target: ForgeAI]: you graveyard 1 -> 2; hand 4 -> 3; ForgeAI life 16 -> 13
+[OPENROUTER Seat/smart] replied in 2628 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 4035 ms with 1 tool call(s)
+[Seat] [ROUTER] target: opponent (ForgeAI) <- Rift Bolt @28 2{R} [Rift Bolt deals 3 damage to any target.]
+[Seat] [ROUTER] play: casts Rift Bolt @28 2{R} [Rift Bolt deals 3 damage to any target.]
+[Seat] [TALLY] smart=44 fast=0 auto=0 ai=0 textParses=0 avgSmart=5445ms avgFast=5445ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 12390 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Race the Goblins while keeping Fireblast available to kill the known Krenko if it is cast. NEXT: Pass this main phase and attack with Swiftspear; hold Fireblast, then respond to Krenko with it if needed.
+[OPENROUTER Seat/smart] replied in 3158 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4220 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Monastery Swiftspear
+[Seat] [TALLY] smart=47 fast=0 auto=0 ai=0 textParses=0 avgSmart=5518ms avgFast=5518ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6810 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4861 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Race the Goblins while preserving Fireblast as instant-speed removal for the known Krenko. NEXT: Pass through upkeep and opponent's turn unless they cast Krenko; respond to it with Fireblast if needed. On my turn, make a land drop, attack, and continue the face-damage race.
+[OPENROUTER Seat/smart] replied in 2133 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7115 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10679 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9562 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Preserve Fireblast as instant-speed removal for the known Krenko while continuing to race. NEXT: Pass upkeep and develop on my main phase; hold Fireblast through the opponent's turn and use it on Krenko if they cast it.
+[OPENROUTER Seat/smart] replied in 3496 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=54 fast=0 auto=0 ai=0 textParses=0 avgSmart=5630ms avgFast=5630ms
+[Seat] [ROUTER] play(main): 3 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7404 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 2: if you cast Goblin Guide: you board 5 -> 6; hand 4 -> 3; entered the battlefield: Goblin Guide; ForgeAI no change
+[OPENROUTER Seat/smart] replied in 5230 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Race with creatures while preserving Fireblast as removal for the known Krenko. NEXT: Cast Goblin Guide now, attack with both haste-capable creatures in combat, then play a land if appropriate; hold Fireblast for Krenko.
+[OPENROUTER Seat/smart] replied in 3229 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Goblin Guide 2/2 @39 {R} [Haste Whenever Goblin Guide attacks, defending player reveals the top card of their library. If it's a land card, that player puts it into their hand.]
+[Seat] [TALLY] smart=57 fast=0 auto=0 ai=0 textParses=0 avgSmart=5612ms avgFast=5612ms
+[Seat] [ROUTER] play(main): 2 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8685 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Bloodstained Mire
+[Seat] [TALLY] smart=58 fast=0 auto=0 ai=0 textParses=0 avgSmart=5665ms avgFast=5665ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9218 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 2 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7607 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Monastery Swiftspear, Goblin Guide
+[Seat] [TALLY] smart=60 fast=0 auto=0 ai=0 textParses=0 avgSmart=5756ms avgFast=5756ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7849 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6865 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Race while preserving Fireblast to answer the known Krenko if it threatens to take over. NEXT: Pass through their upkeep; hold Fireblast for Krenko or an urgent threat. On my turn, attack with Swiftspear and Guide, then use available burn/land sequencing for lethal pressure.
+[OPENROUTER Seat/smart] replied in 17998 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8945 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5954 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9803 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 15467 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 1: if you cast Fireblast [assuming target: ForgeAI]: you board 7 -> 5; graveyard 2 -> 5; hand 2 -> 1; left the battlefield: Mountain, Mountain; ForgeAI life 8 -> 4; board 9 -> 10; entered the battlefield: Aether Vial. What was already on the stack resolved after it, in order, with no other responses. The engine chose what to sacrifice for this preview; in the real play YOU choose
+[OPENROUTER Seat/smart] replied in 17522 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 22403 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Survive the Goblin board and preserve Fireblast to remove Krenko or another immediate lethal threat, then race with haste attackers and burn. NEXT: Pass this upkeep with Fireblast available. On my turn attack; use Fireblast face only if it creates lethal or otherwise hold it for Krenko/threat response.
+[OPENROUTER Seat/smart] replied in 9047 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Goblin tribal value/aggro: repeated Ringleaders and Matron build a wide board; respect the known Krenko and Munitions Expert, and keep Fireblast available to remove Krenko.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8927 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=71 fast=0 auto=0 ai=0 textParses=0 avgSmart=6707ms avgFast=6707ms
+[Seat] [ROUTER] play(main): 3 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 20853 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Mountain
+[Seat] [TALLY] smart=72 fast=0 auto=0 ai=0 textParses=0 avgSmart=6903ms avgFast=6903ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8444 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 5001 ms with 1 tool call(s)
+[Seat] [ROUTER] target: opponent (ForgeAI) <- Fireblast @4 — cost: Sacrifice two Mountains [You may sacrifice two Mountains rather than pay this spell's mana cost. Fireblast deals 4 damage to any target.]
+[Seat] [ROUTER] play: casts Fireblast @4 — cost: Sacrifice two Mountains [You may sacrifice two Mountains rather than pay this spell's mana cost. Fireblast deals 4 damage to any target.]
+[OPENROUTER Seat/smart] replied in 5301 ms with 1 tool call(s)
+[Seat] [ROUTER] sacrifice [Fireblast]: Mountain, Mountain
+[Seat] [TALLY] smart=75 fast=0 auto=0 ai=0 textParses=0 avgSmart=6877ms avgFast=6877ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5385 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=76 fast=0 auto=0 ai=0 textParses=0 avgSmart=6857ms avgFast=6857ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7239 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=77 fast=0 auto=0 ai=0 textParses=0 avgSmart=6862ms avgFast=6862ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7111 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Finish the opponent with the two haste attackers this combat; they are at 4 and their board is tapped. NEXT: Pass priority and attack with both Monastery Swiftspear and Goblin Guide for lethal; preserve the Mire unless it is needed later.
+[OPENROUTER Seat/smart] replied in 5305 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10244 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 2 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6472 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Monastery Swiftspear, Goblin Guide
+========== GAME OVER ==========
+outcome: A after 11 turns (AllOpponentsLost) in 564s
+--- full game log ---
+  MULLIGAN: Seat has kept a hand of 7 cards
+  MULLIGAN: ForgeAI has kept a hand of 7 cards
+  TURN: Turn 1 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Mountain (30)
+  MANA: Mountain (30) - {T}: Add {R}.
+  STACK_ADD: Seat cast Monastery Swiftspear
+  STACK_RESOLVE: Monastery Swiftspear - Creature 1 / 2
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Monastery Swiftspear (3) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Monastery Swiftspear (3).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (3) deals 1 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 20 > 19
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 2 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  EFFECT_REPLACED: As Cavern of Souls enters, choose a creature type.
+  LAND: ForgeAI played Cavern of Souls (61)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Cavern of Souls (61) - {T}: Add one mana of any color. Spend this mana only to cast a creature spell of the chosen type, and that spell can't be countered.
+  STACK_ADD: ForgeAI cast Goblin Lackey
+  STACK_RESOLVE: Goblin Lackey - Creature 1 / 1
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 3 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Mountain (33)
+  MANA: Mountain (30) - {T}: Add {R}.
+  STACK_ADD: Seat cast Chain Lightning targeting [Goblin Lackey (68)]
+  STACK_ADD: Seat triggered Monastery Swiftspear
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Chain Lightning (50), Activator: Seat, SpellAbility: Chain Lightning deals 3 damage to any target. Then that player or that permanent's controller may pay {R}{R}. If the player does, they may copy this spell and may choose a new target for that copy. ]
+  DAMAGE: Chain Lightning (50) deals 3 damage to Goblin Lackey (68).
+  STACK_RESOLVE: Chain Lightning (50) - Chain Lightning (50) deals 3 damage to Goblin Lackey (68). 
+  ZONE_CHANGE: Goblin Lackey (68) was put into Graveyard from Battlefield.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Monastery Swiftspear (3) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Monastery Swiftspear (3).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (3) deals 2 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 19 > 17
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 4 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Mountain (97)
+  MANA: Cavern of Souls (61) - {T}: Add one mana of any color. Spend this mana only to cast a creature spell of the chosen type, and that spell can't be countered.
+  MANA: Mountain (97) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Munitions Expert
+  STACK_RESOLVE: Munitions Expert - Creature 1 / 1
+  STACK_ADD: ForgeAI triggered Munitions Expert targeting [Monastery Swiftspear (3)]
+  STACK_RESOLVE: When Munitions Expert enters, you may have it deal damage to target creature or planeswalker equal to the number of Goblins you control. (Targeting: [[Monastery Swiftspear (3)]]) [Zone Changer: Munitions Expert (104)]
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 5 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Mountain (21)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Monastery Swiftspear (3) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Monastery Swiftspear (3).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (3) deals 1 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 17 > 16
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 6 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Rishadan Port (119)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Munitions Expert (104) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Munitions Expert (104).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Munitions Expert (104) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 20 > 19
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Mountain (97) - {T}: Add {R}.
+  MANA: Cavern of Souls (61) - {T}: Add one mana of any color. Spend this mana only to cast a creature spell of the chosen type, and that spell can't be countered.
+  MANA: Rishadan Port (119) - {T}: Add {C}.
+  STACK_ADD: ForgeAI cast Goblin Matron
+  STACK_RESOLVE: Goblin Matron - Creature 1 / 1
+  STACK_ADD: ForgeAI triggered Goblin Matron
+  STACK_RESOLVE: When Goblin Matron enters, you may search your library for a Goblin card, reveal that card, put it into your hand, then shuffle. [Zone Changer: Goblin Matron (115)]
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 7 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Mountain (28)
+  MANA: Mountain (30) - {T}: Add {R}.
+  MANA: Mountain (33) - {T}: Add {R}.
+  MANA: Mountain (21) - {T}: Add {R}.
+  STACK_ADD: Seat cast Rift Bolt targeting [ForgeAI]
+  STACK_ADD: Seat triggered Monastery Swiftspear
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Rift Bolt (48), Activator: Seat, SpellAbility: Rift Bolt deals 3 damage to any target.]
+  DAMAGE: Rift Bolt (48) deals 3 non-combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 16 > 13
+  STACK_RESOLVE: Rift Bolt (48) - Rift Bolt (48) deals 3 damage to ForgeAI.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Monastery Swiftspear (3) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Monastery Swiftspear (3).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (3) deals 2 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 13 > 11
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 8 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Mountain (79)
+  MANA: Mountain (97) - {T}: Add {R}.
+  MANA: Mountain (79) - {T}: Add {R}.
+  MANA: Cavern of Souls (61) - {T}: Add one mana of any color. Spend this mana only to cast a creature spell of the chosen type, and that spell can't be countered.
+  MANA: Rishadan Port (119) - {T}: Add {C}.
+  STACK_ADD: ForgeAI cast Goblin Ringleader
+  STACK_RESOLVE: Goblin Ringleader - Creature 2 / 2
+  STACK_ADD: ForgeAI triggered Goblin Ringleader
+  STACK_RESOLVE: When Goblin Ringleader enters, reveal the top four cards of your library. Put all Goblin cards revealed this way into your hand and the rest on the bottom of your library in any order. [Zone Changer: Goblin Ringleader (64)]
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Goblin Ringleader (64), Munitions Expert (104) and Goblin Matron (115) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Goblin Ringleader (64).
+Seat didn't block Munitions Expert (104).
+Seat didn't block Goblin Matron (115).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Goblin Ringleader (64) deals 2 combat damage to Seat.
+  DAMAGE: Munitions Expert (104) deals 1 combat damage to Seat.
+  DAMAGE: Goblin Matron (115) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 19 > 15
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 9 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  MANA: Mountain (30) - {T}: Add {R}.
+  STACK_ADD: Seat cast Goblin Guide
+  STACK_RESOLVE: Goblin Guide - Creature 2 / 2
+  LAND: Seat played Bloodstained Mire (37)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Monastery Swiftspear (3) and Goblin Guide (12) to attack ForgeAI.
+  STACK_ADD: Seat triggered Goblin Guide
+  STACK_RESOLVE: Whenever Goblin Guide attacks, defending player reveals the top card of their library. If it's a land card, that player puts it into their hand. [Attacker: Goblin Guide (12)]
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Monastery Swiftspear (3).
+ForgeAI didn't block Goblin Guide (12).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (3) deals 1 combat damage to ForgeAI.
+  DAMAGE: Goblin Guide (12) deals 2 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 11 > 8
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 10 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Mountain (80)
+  MANA: Mountain (97) - {T}: Add {R}.
+  MANA: Mountain (79) - {T}: Add {R}.
+  MANA: Mountain (80) - {T}: Add {R}.
+  MANA: Cavern of Souls (61) - {T}: Add one mana of any color. Spend this mana only to cast a creature spell of the chosen type, and that spell can't be countered.
+  STACK_ADD: ForgeAI cast Goblin Ringleader
+  STACK_RESOLVE: Goblin Ringleader - Creature 2 / 2
+  STACK_ADD: ForgeAI triggered Goblin Ringleader
+  STACK_RESOLVE: When Goblin Ringleader enters, reveal the top four cards of your library. Put all Goblin cards revealed this way into your hand and the rest on the bottom of your library in any order. [Zone Changer: Goblin Ringleader (63)]
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Goblin Ringleader (64), Goblin Ringleader (63), Munitions Expert (104) and Goblin Matron (115) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Goblin Ringleader (64).
+Seat didn't block Goblin Ringleader (63).
+Seat didn't block Munitions Expert (104).
+Seat didn't block Goblin Matron (115).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Goblin Ringleader (64) deals 2 combat damage to Seat.
+  DAMAGE: Goblin Ringleader (63) deals 2 combat damage to Seat.
+  DAMAGE: Munitions Expert (104) deals 1 combat damage to Seat.
+  DAMAGE: Goblin Matron (115) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 15 > 9
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Rishadan Port (119) - {T}: Add {C}.
+  STACK_ADD: ForgeAI cast Aether Vial
+  STACK_RESOLVE: Aether Vial
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 11 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Mountain (34)
+  ZONE_CHANGE: Mountain (30) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Mountain (33) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat cast Fireblast targeting [ForgeAI]
+  STACK_ADD: Seat triggered Monastery Swiftspear
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Fireblast (39), Activator: Seat, SpellAbility: Fireblast deals 4 damage to any target. (You may sacrifice two Mountains rather than pay this spell's mana cost.) ]
+  DAMAGE: Fireblast (39) deals 4 non-combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 8 > 4
+  STACK_RESOLVE: Fireblast (39) - Fireblast (39) deals 4 damage to ForgeAI.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Monastery Swiftspear (3) and Goblin Guide (12) to attack ForgeAI.
+  STACK_ADD: Seat triggered Goblin Guide
+  STACK_RESOLVE: Whenever Goblin Guide attacks, defending player reveals the top card of their library. If it's a land card, that player puts it into their hand. [Attacker: Goblin Guide (12)]
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Monastery Swiftspear (3).
+ForgeAI didn't block Goblin Guide (12).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Monastery Swiftspear (3) deals 2 combat damage to ForgeAI.
+  DAMAGE: Goblin Guide (12) deals 2 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 4 > 0
+  PLAYER_CONTROL: Seat has restored control over themself
+  PLAYER_CONTROL: ForgeAI has restored control over themself
+  GAME_OUTCOME: Match Duration 9m : 09s
+  GAME_OUTCOME: Turn 6
+  GAME_OUTCOME: Seat has won because all opponents have lost
+  GAME_OUTCOME: ForgeAI has lost because life total reached 0
+  MATCH_RESULTS: Seat: 1 ForgeAI: 0 
+===============================

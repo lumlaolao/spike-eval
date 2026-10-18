@@ -1908,7 +1908,7 @@ public final class LlmSpikeGui {
          *  differs in the solver's actions or in a choice that is noted. */
         static final java.util.Set<String> UNIQUENESS_NEUTRAL = new java.util.HashSet<>(java.util.Arrays.asList(
                 "order", "trigger-order", "replacement-order", "mana-sources", "mana-from-pool", "color", "scry", "confirm",
-                "zone-change"));
+                "zone-change", "target", "targets"));   // targets: the log's "targeting [...]" already says them (RP_022)
 
         /** {@code simulate}: the `simulate` call for this decision (a target choice of a play), or null. */
         private int decideOne(LLMBridge b, String type, String question, List<String> options, String noneLabel,
