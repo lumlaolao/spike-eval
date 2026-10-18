@@ -378,8 +378,12 @@ public final class LlmSpikePuzzle {
             // What tells two solutions apart: the solver's game-log actions, and what it chose where the log does not
             // say (a mode, a clone pick, a number). Not the final state: the opponent's replies change that too
             // (RP_045: the opponent's Scavenging Ooze exiled a card on one line and not the other).
-            return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), solved, line.drift,
-                    String.join("\n", solverActions(p.logLines, "Solver")) + "\n#choices\n" + String.join("\n", line.choices));
+            // As a set of lines: the same plays in another order (a pump before or after combat, both winning) are
+            // one solution with a variant, not two (rules pilot RP_005, RP_058, RP_059).
+            List<String> print = new ArrayList<>(solverActions(p.logLines, "Solver"));
+            print.addAll(line.choices);
+            java.util.Collections.sort(print);
+            return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), solved, line.drift, String.join("\n", print));
         };
         long t0 = System.currentTimeMillis();
         PuzzleSearch searcher = new PuzzleSearch(g, "Solver", budget, lines, seed);

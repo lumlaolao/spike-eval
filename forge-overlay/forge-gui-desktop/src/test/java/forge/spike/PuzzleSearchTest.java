@@ -207,9 +207,10 @@ public class PuzzleSearchTest {
      *  (the order of cards moved together, which identical land paid, a scry, a confirm). Those are not noted. */
     @Test
     public void choicesThatMakeNoSecondSolutionAreNotCompared() {
-        for (String t : new String[] {"order", "trigger-order", "replacement-order", "mana-sources", "scry", "confirm", "zone-change"})
+        for (String t : new String[] {"order", "trigger-order", "replacement-order", "mana-sources", "mana-from-pool", "color",
+                "scry", "confirm", "zone-change"})
             Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.UNIQUENESS_NEUTRAL.contains(t), t);
-        for (String t : new String[] {"modes", "number", "card-name", "targets", "some-type", "color"})
+        for (String t : new String[] {"modes", "number", "card-name", "targets", "some-type", "entity"})
             Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.UNIQUENESS_NEUTRAL.contains(t), t);
     }
 

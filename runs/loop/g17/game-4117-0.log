@@ -1,0 +1,65 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=36953 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 34086 files in 1 ms (25 parts) using thread pool
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 857 files in 0 ms (8 parts) using thread pool
+[SEED] 4117
+[EVAL] jsonl game-4117-1792335635506.jsonl
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/burn.plan
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/goblins.plan
+[DECK] loaded 'Seat': 60 main, 0 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/burn.txt)
+[DECK] loaded 'ForgeAI': 60 main, 0 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/goblins.txt)
+[SEATS] A=Seat(llm,openrouter:openai/gpt-6-luna) B=ForgeAI(ai,opus)
+[Seat] [OBSERVATION] observation-faithful-v41 (profile v4-faithful/379d6b7b5b6a)
+[HEADLESS] game starting (cap=120min)
+[OPENROUTER Seat/smart] replied in 4480 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: 4/7 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7573 ms with 1 tool call(s)
+[Seat] [ROUTER] plan: GOAL: Race with efficient burn and a haste threat; preserve Fireblast for lethal reach. NEXT: Play Mountain, cast Monastery Swiftspear, then attack; deploy burn to the opponent and use Fireblast when it closes the race.
+[OPENROUTER Seat/smart] replied in 2079 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: KEEP
+[Seat] [TALLY] smart=3 fast=0 auto=0 ai=0 textParses=0 avgSmart=4710ms avgFast=4710ms
+[Seat] [ROUTER] play(main): 0 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4736 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Mountain
+[Seat] [TALLY] smart=4 fast=0 auto=0 ai=0 textParses=0 avgSmart=4717ms avgFast=4717ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5523 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Race with a haste threat and efficient face damage; preserve Fireblast for lethal reach. NEXT: Cast Monastery Swiftspear now and attack; use future burn on the opponent and Fireblast to close the race.
+[OPENROUTER Seat/smart] replied in 3304 ms with 1 tool call(s)
+[Seat] [ROUTER] lines: Goblin Guide + burn spells -> haste pressure backed by direct damage; Monastery Swiftspear + cheap noncreature burn -> prowess damage; Price of Progress + nonbasic-heavy opponent -> potentially large face damage.
+[Seat] [ROUTER] profile: Unknown opponent on turn one; develop a fast clock and respect removal or combo from an unidentified Legacy deck.
+[Seat] [ROUTER] play: casts Monastery Swiftspear 1/2 @2 {R} [Haste Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.)]
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4930 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Monastery Swiftspear
+[Seat] [TALLY] smart=7 fast=0 auto=0 ai=0 textParses=0 avgSmart=4660ms avgFast=4660ms
+[Seat] [ROUTER] play(main): 2 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6829 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Race with Swiftspear and burn while maintaining mana development; avoid spending burn on creatures unless the Lackey threatens to end the game. NEXT: Play Mountain, then use available mana for face damage if no higher-priority threat; attack with Swiftspear next combat.
+[OPENROUTER Seat/smart] replied in 2047 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Mountain
+[Seat] [TALLY] smart=9 fast=0 auto=0 ai=0 textParses=0 avgSmart=4611ms avgFast=4611ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
