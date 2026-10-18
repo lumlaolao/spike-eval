@@ -3,6 +3,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import tempfile
 import unittest
 
@@ -118,11 +119,13 @@ class MatchReviewTest(unittest.TestCase):
             rows = [dec("confirm", "smart", prompt="STACK: #1 ability of Aether Vial @9 (you): Aether Vial (4) - You may"),
                     dec("play", "smart", prompt="NOT VISIBLE: ForgeAI's hand (7 cards) and library (50); your library (48)"),
                     dec("mana-sources", "smart", prompt="  2) Lotus Petal [untapped] @36 — {T}, Sacrifice CARDNAME: Add one mana"),
+                    dec("play", "smart", prompt="  1) CAST Force of Will @1 — cost: Pay 1 life, Exile a Card.Blue+Other card"),
                     {"t": "game", "seed": 1, "swap": False, "winner": "A"}]
             with open(p, "w") as f:
                 f.write("".join(json.dumps(r) + "\n" for r in rows))
             r = mr.review(p)
-            self.assertEqual(r["counts"]["LEAK"], 2, "an id and a placeholder, and the library counts are not ids")
+            self.assertEqual(r["counts"]["LEAK"], 3, "an id, a placeholder and a filter; the library counts are not ids")
+            self.assertIn("Card.Bl", mr.render(r))
             self.assertIn("Sacrifice CARDNAME", mr.render(r))
             self.assertIn("Vial (4)", mr.render(r))
 
@@ -219,6 +222,29 @@ class TimeSplitTest(unittest.TestCase):
         self.assertEqual((t["answers"], t["answers_ms"], t["deadline_waits"], t["deadline_ms"], t["provider_errors"]),
                          (2, 3000, 1, 300000, 1))
         self.assertAlmostEqual(t["elapsed_ms"] / 60000.0, 10, delta=0.5)
+
+
+class EngineFilterLintTest(unittest.TestCase):
+    """The filter-syntax lint is one regex in three places: the sheet, AskContract and the harness (which says the
+    filter in words). They had drifted apart once; this keeps them equal and pins what they catch."""
+
+    def test_the_three_copies_are_one_regex(self):
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        spike = os.path.join(root, "forge-overlay", "forge-gui-desktop", "src")
+        ask = open(os.path.join(spike, "test", "java", "forge", "spike", "AskContract.java"), encoding="utf-8").read()
+        gui = open(os.path.join(spike, "main", "java", "forge", "spike", "LlmSpikeGui.java"), encoding="utf-8").read()
+        java_ask = re.search(r'ENGINE_FILTER = Pattern\.compile\("((?:[^"\\]|\\.)*)"\)', ask).group(1)
+        java_gui = re.search(r'ENGINE_FILTER_REGEX = "((?:[^"\\]|\\.)*)"', gui).group(1)
+        unescape = lambda j: j.replace("\\\\", "\\")
+        self.assertEqual(unescape(java_ask), mr.ENGINE_FILTER.pattern)
+        self.assertEqual(unescape(java_gui), mr.ENGINE_FILTER.pattern)
+
+    def test_what_it_catches(self):
+        for leak in ("Exile a Card.Blue+Other card", "(must match: Card.nonLand)", "Sacrifice an Eldrazi.Spawn",
+                     "Creature.cmcEQX"):
+            self.assertTrue(mr.ENGINE_FILTER.search(leak), leak)
+        for prose in ("Pay 1 life. Exile a blue card", "your hand (7 cards). Library 50", "Aether Vial @9"):
+            self.assertFalse(mr.ENGINE_FILTER.search(prose), prose)
 
 if __name__ == "__main__":
     unittest.main()

@@ -270,8 +270,10 @@ public final class LlmSpikeGui {
      *  a preview restores every target it set, and a target choice of a play can be previewed (lookahead-preview-v10).
      *  Epoch 46 (2026-10-17): the resolve line of a state-dependent pump (+X where X is the target's power, e.g.
      *  Berserk) is captured before the effect applies (HARNESS PATCH of forge/game/zone/MagicStack.java), so the
-     *  seat's GAME HISTORY no longer contradicts the stack preview it was shown (g06 seed 4106 T7, "+5/+0" vs "+10/+0"). */
-    static final String HARNESS_EPOCH = "harness-epoch-46";
+     *  seat's GAME HISTORY no longer contradicts the stack preview it was shown (g06 seed 4106 T7, "+5/+0" vs "+10/+0").
+     *  Epoch 47 (2026-10-18): the engine's filter syntax is said in words: a cost label read "Exile a Card.Blue+Other
+     *  card" (Force of Will) and a card-name ask "(must match: Card.nonLand)" (g05, Cabal Therapy). */
+    static final String HARNESS_EPOCH = "harness-epoch-47";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -1435,7 +1437,7 @@ public final class LlmSpikeGui {
                 return hostRef + (mc == null ? "" : " " + mc) + body;
             }
             String cost = "";
-            try { if (sa.getPayCosts() != null) cost = paidCostString(sa).replace("CARDNAME", name).replaceFirst("^\\{0\\},?\\s*", "").trim(); } catch (Exception ignore) { }
+            try { if (sa.getPayCosts() != null) cost = plainCost(paidCostString(sa).replace("CARDNAME", name).replaceFirst("^\\{0\\},?\\s*", "").trim()); } catch (Exception ignore) { }
             return hostRef + (zone.isEmpty() ? "" : " from " + zone) + (alt.isEmpty() ? "" : " (" + alt + ")")
                     + " — cost: " + (cost.isEmpty() ? "none" : cost) + body;
         }
@@ -4054,7 +4056,7 @@ public final class LlmSpikeGui {
                     int most = 1 + payableKeywordTimes(sa, strive, hi - 1);
                     if (most < hi) p("[ROUTER] targets: strive can be paid for " + most + " target(s), not " + hi);
                     hi = Math.max(lo, most);
-                    striveNote = "; each target beyond the first adds strive " + strive.toSimpleString();
+                    striveNote = "; each target beyond the first adds strive " + costText(strive.toSimpleString());
                 }
                 List<Integer> tp;
                 if (cands.size() <= Math.max(1, min)) {         // forced: all candidates are needed
@@ -4390,7 +4392,7 @@ public final class LlmSpikeGui {
                 }
                 if (okFor("prevent-effect")) {
                     // Riot's and fabricate's choice is worded as a cost "Put a +1/+1 counter on CARDNAME".
-                    String desc = fit(named(cost.toSimpleString(), sa == null ? null : sa.getHostCard()));
+                    String desc = fit(named(costText(cost.toSimpleString()), sa == null ? null : sa.getHostCard()));
                     List<String> labels = Lists.newArrayList("Pay " + desc, "Decline (let it resolve)");
                     String q = "Pay " + desc + " to prevent " + (sa == null ? "the spell" : "the spell " + srcOf(sa))
                             + " from affecting you? Say 1 to pay or 2 to decline.";
@@ -5809,11 +5811,111 @@ public final class LlmSpikeGui {
             }
         }
 
+        private static final Set<String> CARD_TYPE_WORDS = Set.of("Artifact", "Battle", "Creature", "Enchantment",
+                "Instant", "Kindred", "Land", "Planeswalker", "Sorcery", "Tribal", "Permanent", "Spell");
+        /** Words that read before the type: supertypes and colours ("legendary", "blue"). */
+        private static final Set<String> ADJECTIVE_WORDS = Set.of("Basic", "Legendary", "Snow", "White", "Blue", "Black",
+                "Red", "Green", "Colorless", "Multicolor");
+
+        /** One alternative of an engine filter ("Card.nonLand", "Card.Blue+Other", "Creature.Black", "Planeswalker.Nissa")
+         *  as {words before the noun, the noun, "complete" or "partial"}: {"nonland", "card"}, {"other blue", "card"},
+         *  {"black", "creature"}, {"Nissa", "planeswalker"}. A property that is not a type, a real subtype, a colour or
+         *  "Other" (cmcEQX, OppOwn, Self, ManaCost=...) is left out and the result is "partial". */
+        static String[] filterParts(String alt) {
+            String[] seg = alt.trim().split("\\.", 2);
+            List<String> props = new ArrayList<>();
+            if (!seg[0].equals("Card")) props.add(seg[0]);
+            if (seg.length > 1) props.addAll(java.util.Arrays.asList(seg[1].split("\\+")));
+            List<String> adjectives = new ArrayList<>(), subtypes = new ArrayList<>(), types = new ArrayList<>();
+            boolean other = false, complete = true;
+            for (String w : props) {
+                if (w.equals("Other")) { other = true; continue; }
+                boolean non = w.startsWith("non") && w.length() > 3 && Character.isUpperCase(w.charAt(3));
+                String core = non ? w.substring(3) : w;
+                boolean type = CARD_TYPE_WORDS.contains(core), adjective = ADJECTIVE_WORDS.contains(core);
+                boolean subtype = !type && !adjective && core.matches("[A-Z][a-z]+") && forge.card.CardType.isASubType(core);
+                if (!type && !adjective && !subtype) { complete = false; continue; }
+                if (non) adjectives.add("non" + core.toLowerCase(Locale.ROOT));
+                else if (adjective) adjectives.add(core.toLowerCase(Locale.ROOT));
+                else if (type) types.add(core.toLowerCase(Locale.ROOT));
+                else subtypes.add(core);
+            }
+            List<String> before = new ArrayList<>();
+            if (other) before.add("other");
+            before.addAll(adjectives);
+            before.addAll(subtypes);
+            return new String[] {String.join(" ", before), types.isEmpty() ? "card" : String.join(" ", types),
+                    complete ? "complete" : "partial"};
+        }
+
+        private static String withArticle(String phrase) {
+            if (phrase.startsWith("other ")) return "an" + phrase;      // "another blue card"
+            return ("aeiou".indexOf(Character.toLowerCase(phrase.charAt(0))) >= 0 ? "an " : "a ") + phrase;
+        }
+
+        private static String plural(String noun) {
+            return noun.endsWith("y") ? noun.substring(0, noun.length() - 1) + "ies" : noun + "s";
+        }
+
+        /** The engine's filter for a name in words ("a nonland card", "a Nissa planeswalker card"), or null when an
+         *  alternative has a condition that cannot be said in words: the raw filter was shown to the seat as
+         *  "(must match: Card.nonLand)" (runs/loop/g05, Cabal Therapy). */
+        static String nameConstraint(String valid) {
+            if (valid == null || valid.trim().isEmpty()) return null;
+            List<String> alternatives = new ArrayList<>();
+            for (String alt : valid.trim().split(",")) {
+                String[] f = filterParts(alt);
+                if (!f[2].equals("complete")) return null;
+                String noun = f[1].equals("card") ? "card" : f[1] + " card";
+                alternatives.add(withArticle(f[0].isEmpty() ? noun : f[0] + " " + noun));
+            }
+            return String.join(" or ", alternatives);
+        }
+
+        /** Forge's filter syntax: a capitalised word, a dot, then a property ("Card.nonLand", "Eldrazi.Spawn",
+         *  "Creature.cmcEQX"). The same pattern is the lint in AskContract and match_review.py (test_match_review
+         *  keeps the three equal). */
+        static final String ENGINE_FILTER_REGEX = "\\b[A-Z][a-z]+\\.[a-z]*[A-Z!][A-Za-z]";
+        private static final Pattern COST_FILTER = Pattern.compile(
+                "\\b(?:(an?|one|two|three|four|five|six|seven|eight|nine|ten|X|\\d+) )?((?:untapped|tapped|other) )?([A-Z][a-z]+\\.[a-z]*[A-Z!][A-Za-z!+.=<>]*)(?: (cards?))?");
+
+        /** A cost description with every engine filter in words: Force of Will's pitch read "Exile a Card.Blue+Other card
+         *  from your hand" in ten recorded rows; now "Exile another blue card from your hand". A count above one makes
+         *  the noun plural; a condition that cannot be said in words is left out (the option quotes the card's text). */
+        static String plainCost(String cost) {
+            if (cost == null || cost.indexOf('.') < 0) return cost;
+            Matcher m = COST_FILTER.matcher(cost);
+            StringBuilder out = new StringBuilder();
+            while (m.find()) {
+                String[] f = filterParts(m.group(3));
+                String count = m.group(1);
+                boolean one = count == null || count.equals("a") || count.equals("an") || count.equals("one") || count.equals("1");
+                String noun = one ? f[1] : plural(f[1]);
+                String words = (m.group(2) == null ? "" : m.group(2)) + f[0];  // "untapped " stays before the filter's words
+                String phrase = words.trim().isEmpty() ? noun : words.trim() + " " + noun;
+                String said = count == null || count.equals("a") || count.equals("an") ? (count == null ? phrase : withArticle(phrase))
+                        : count + " " + phrase;
+                m.appendReplacement(out, Matcher.quoteReplacement(said));
+            }
+            m.appendTail(out);
+            return out.toString();
+        }
+
+        /** A cost as the seat reads it: under the faithful profile its filters are said in words; a legacy profile keeps
+         *  the engine's text byte for byte (docs/STANDARDS.md section 4). */
+        private String costText(String engineText) {
+            return observer != null ? plainCost(engineText) : engineText;
+        }
+
         /** Shared free-form "CARD: <name>" ask (one retry). Returns the raw name or null. `exists`
          *  (nullable): whether a name is one the caller would accept, checked on a tool answer. */
         private String askCardName(SpellAbility sa, String message, String valid, java.util.function.Predicate<String> exists) {
+            String mustBe = nameConstraint(valid);
+            if (observer != null && mustBe == null && valid != null && !valid.isEmpty())
+                p("[ROUTER] card-name: the filter " + valid + " cannot be said in words; the ask leaves it to the card's text");
             String q = snapshot() + "\nDECISION: NAME A CARD" + srcAsk(sa) + ": " + fit(message)
-                    + (valid != null && !valid.isEmpty() ? " (must match: " + fit(valid) + ")" : "")
+                    + (observer == null ? (valid != null && !valid.isEmpty() ? " (must match: " + fit(valid) + ")" : "")
+                       : mustBe != null ? " (it must be the name of " + mustBe + ")" : "")
                     + (observer != null
                         ? "." + targetNote(sa, getPlayer())
                             + " "   // facts only under the faithful profile (PROMPT-AUDIT.md C3): no advice on how to choose
@@ -5915,7 +6017,7 @@ public final class LlmSpikeGui {
                 List<String> labels = new ArrayList<>();
                 String host = sa.getHostCard() == null ? "" : safeName(sa.getHostCard());
                 for (AbilitySub ab : possible)
-                    labels.add((ab.hasParam("ModeCost") ? "+ " + new Cost(ab.getParam("ModeCost"), false).toSimpleString() + " — " : "")
+                    labels.add((ab.hasParam("ModeCost") ? "+ " + costText(new Cost(ab.getParam("ModeCost"), false).toSimpleString()) + " — " : "")
                             + (observer != null ? fit(ab.getDescription()).replace("CARDNAME", host).replace("NICKNAME", host) : oneLine(ab.getDescription())));
                 if (allowRepeat) {
                     List<Integer> rp = decideModesRepeat(smart, "MODAL SPELL — choose mode(s) for " + labelOf(sa) + xNote(sa)
@@ -5932,7 +6034,7 @@ public final class LlmSpikeGui {
                     return out;
                 }
                 String mq = "MODAL SPELL — choose mode(s) for " + labelOf(sa) + xNote(sa)
-                        + (escalateCost(sa) != null ? "; each mode beyond the first adds escalate " + escalateCost(sa).toSimpleString()
+                        + (escalateCost(sa) != null ? "; each mode beyond the first adds escalate " + costText(escalateCost(sa).toSimpleString())
                            : priced ? "; each mode adds its cost" : "") + ".";
                 List<Integer> picks = decideMany(smart, "modes", mq, labels, Math.max(0, min), Math.min(num, possible.size()));
                 for (int attempt = 0; priced && picks != null && picks.size() > 1 && !modesPayable(sa, pick(possible, picks)); attempt++) {
@@ -6225,7 +6327,7 @@ public final class LlmSpikeGui {
             if (max > 12) return chooseWideKeywordCost(sa, cost, prompt, max);
             List<String> labels = new ArrayList<>();
             for (int i = 0; i <= max; i++) labels.add(String.valueOf(i));
-            int c = askOne("keyword-cost", (prompt == null || prompt.isEmpty() ? "How many times do you pay " + cost.toSimpleString() : fit(prompt))
+            int c = askOne("keyword-cost", (prompt == null || prompt.isEmpty() ? "How many times do you pay " + costText(cost.toSimpleString()) : fit(prompt))
                     + srcAsk(sa) + "?", labels, null, 0);
             return Math.max(0, c);
         }
@@ -6263,7 +6365,7 @@ public final class LlmSpikeGui {
             if (!fastOk() && !smartOk()) { auto("keyword-cost(no-model)->0"); return 0; }
             LLMBridge b = smartOk() ? smart : fast;
             String base = snapshot() + (observer != null ? "\nDECISION: " : "\n")
-                    + (prompt == null || prompt.isEmpty() ? "How many times do you pay " + cost.toSimpleString() : fit(prompt))
+                    + (prompt == null || prompt.isEmpty() ? "How many times do you pay " + costText(cost.toSimpleString()) : fit(prompt))
                     + srcAsk(sa) + "\nEvery integer from 0 through " + max
                     + " inclusive is legal. Reply with exactly NUMBER: <integer>.";
             try {
@@ -6551,7 +6653,7 @@ public final class LlmSpikeGui {
         public boolean payCombatCost(Card card, Cost cost, SpellAbility sa, String prompt) {
             clearLast();
             if (!legallyPayable(sa, getPlayer(), sa != null && sa.isTrigger())) { auto("combat-cost(cannot-pay)->no"); return false; }
-            int c = askOne("combat-cost", (prompt == null || prompt.isEmpty() ? "Pay " + cost.toSimpleString() : seatText(prompt))
+            int c = askOne("combat-cost", (prompt == null || prompt.isEmpty() ? "Pay " + costText(cost.toSimpleString()) : seatText(prompt))
                     + " for " + labelOf(card) + "? If you do not pay, it does not attack or block.",
                     java.util.Arrays.asList("Pay", "Do not pay"), null, 0);
             return c == 0 && super.payCombatCost(card, cost, sa, prompt);

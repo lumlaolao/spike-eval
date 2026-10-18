@@ -679,50 +679,28 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
 - FIXED  (script) the gauntlet run without `FORGE_HOME` played 28 games that all exited 1; it now stops at once when
   the checkout is missing.
 
-### g05  2026-10-17  seed 4105  Cephalid Breakfast (seat) vs Lands (Forge AI)  WON T14  $0.12  harness-epoch-45  overlay 30857a1e0f50
-- Time: 20 min (158 model answers in the first game of this round played on the Mac clone; 0 waits to the
-  deadline, 0 stalls cut early, 0 provider errors). Deck-faithful play throughout: Tamiyo transformed T4 on
-  the third draw, Relic of Progenitus exiled both graveyards before Punishing Fire could recur, both
-  Illusionists were committed, and the combo assembled exactly as the deck plays it.
-- FIXED  (setup, before the game) the first Mac acceptance run on this clone since the epochs-40/41 changes
-  failed only `canary-random`: those epochs re-rolled the random walk and re-pinned only Linux (A/59/397),
-  leaving the plain Mac pin STALE until measured there. Measured on this Mac: winner B/50/273, reproduced
-  twice in one class-load build; floor unchanged A/108/1804 (plain Mac pin); full acceptance PASS on the re-pinned keys
-  (runs/harness-acceptance/20261018T001252Z; the measurement run 20261018T000454Z reads the walk and still
-  FAILs the old pin on purpose). Commit 487b6022; no code change, main untouched.
-- clean  TAKEN 0, LOST 0, SKIP 0, ai=0; tools 10/10 served; mulligan, fetch zone choices, mana keeps, all
-  by call. The combo turn ran on the schema as designed: the Cabal Therapy flashback asked its sacrifice
-  with an eight-line menu and a cancel, answered by pick numbers, and the win (Cabal Therapy flashback
-  sacrificing Oracle, Dread Return flashback reanimating it on an empty library) executed exactly as chosen.
-- model  the first Cabal Therapy name was "Dark Depths" — a LAND. The ask carried "Choose a nonland card name."
-  in its own text; the refusal reason said "is not a card that can be named here"; the model's second reply
-  named a legal card (answer invalid 1 in the row, corrected in the same conversation). A model mistake, not
-  a harness defect. Side note, not acted on: the ask also echoes the engine's validation string
-  "(must match: Card.nonLand)" beside the plain-English constraint.
-- model  cast a Thassa's Oracle against its own plan arithmetic while the library still held several cards
-  (it resolved without winning); the seat kept Karakas untapped as it planned and reached the win anyway by
-  flashing back Cabal Therapy (sacrificing Oracle) and Dread Return to reanimate it on an empty library.
-  Noted, not a puzzle.
+### g05  2026-10-17  seed 4105  Cephalid Breakfast (seat) vs Lands (Forge AI)  WON T14  $0.12  harness-epoch-45
+- Time: 20 min, 158 model answers; no waits to the deadline, no provider errors. First game on the Mac clone.
+- FIXED  (setup) the Mac's random canary pin was stale since epochs 40-41; re-measured B/50/273 and re-pinned (commit
+  487b6022). No code change.
+- clean  TAKEN 0, LOST 0, SKIP 0, ai=0; tools 10/10 served. The combo turn (Cabal Therapy flashback sacrificing
+  Thassa's Oracle, Dread Return on it with an empty library) ran as chosen.
+- FIXED  (2026-10-18, found reviewing this record) the card-name ask showed the engine's filter: "(must match:
+  Card.nonLand)". It now says "(it must be the name of a nonland card)", and Force of Will's cost label, which read
+  "Exile a Card.Blue+Other card", says "another blue card". AskContract and match_review flag the syntax now.
+  Tests `aNameFilterIsSaidInWords`, `aNamedCardIsTheModels`. harness-epoch-47.
+- model  the first Cabal Therapy name was Dark Depths, a land, though the ask said "nonland"; the refusal corrected it
+  in the same conversation.
+- model  cast Thassa's Oracle with cards still in the library (it resolved without winning); won anyway by the
+  flashback line above.
 
-### g06  2026-10-17  seed 4106  Sneak and Show (seat) vs Infect (Forge AI)  LOST T7  $0.03  harness-epoch-45  overlay 30857a1e0f50
-- Time: 6 min (54 model calls, 64% cache hits; 0 waits to the deadline, 0 stalls, 0 provider errors).
-  Mull to 5 (both bottom choices and the keep by call), 2 lands in the kept 5, and the fetches never
-  produced a second red source: Sneak Attack stayed in hand the whole game ("need 1 more R" printed on
-  nearly every prompt) with Show and Tell on the library bottom, and the seat lost to the T7 Infect
-  pump kill (Blighted Agent 5/5 -> Might + Berserk + Vines, 14 poison) with no instant in hand.
-- FIXED  a state-dependent pump's resolve line contradicted the stack preview in the same turn's consecutive
-  prompts: the T7 rows showed Berserk as "+5/+0" (STACK preview) and "+10/+0" (GAME HISTORY [E103]) for the
-  same burst; the effect applied +5 (damage 5+5+4 = 14). Root: MagicStack fires the resolved event after the
-  spell applies and PumpEffect re-evaluates SVar X (= the target's power) against the pumped creature. Test
-  first: GoldenChecksTest.aPumpResolveLineSaysWhatTheStackPreviewSays failed on the checkout (Hill Giant
-  fixture prints "+6/+0"), then the engine patch MagicStack.java (pre-capture of the resolving spell's
-  stack description), harness-epoch-46, three engine patches now. No decision hung on it this game.
-- model  the T5 plan cast Sneak Attack off Tomb + Island + City "leaving Volcanic untapped" — no source
-  in that arithmetic makes {R}, and the T4 Tarn fetch had chosen a basic Island over four listed
-  Volcanics (its own stated reason: nonbasic-land vulnerability) while Show and Tell sat on the bottom.
-  It never reconciled plan with the per-prompt "need 1 more R". PUZZLE candidate (row 98 / 137 / 145).
-- model  T6 upkeep Brainstorm buried City of Traitors — the card its own T5 plan said to play next —
-  and re-read known tops instead of drawing into them. Noted, not acted on (play, not harness).
-- clean  TAKEN 0, LOST 0, SKIP 0, ai=0; mulligan, bottom choices, Ponder orders + shuffle confirms, the
-  nine-card fetch menu, mana keeps, every opponent-ask window and the full kill window by call; plan
-  audit 0/5 hold violations; tools 43 answer + 11 set_plan accepted.
+### g06  2026-10-17  seed 4106  Sneak and Show (seat) vs Infect (Forge AI)  LOST T7  $0.03  harness-epoch-45
+- Time: 6 min, 54 model calls; no waits, no provider errors. Mulligan to 5 with two lands; no second red source, so
+  Sneak Attack stayed in hand. Lost to Blighted Agent pumped by Might, Berserk and Vines (14 poison).
+- FIXED  Berserk's resolve line in GAME HISTORY said "+10/+0" while the stack had said "+5/+0" and +5 applied:
+  MagicStack built the line after the pump, re-reading the pumped power. Engine patch 3 (`MagicStack.java`) captures
+  it before. Test `aPumpResolveLineSaysWhatTheStackPreviewSays` (failed before). harness-epoch-46.
+- model  PUZZLE candidate: T5 the plan cast Sneak Attack "leaving Volcanic untapped" with no red source in the arithmetic; T4 the fetch
+  took a basic Island over Volcanic Island (rows 98, 137, 145).
+- model  T6 Brainstorm put back City of Traitors, the land its own plan meant to play next.
+- clean  TAKEN 0, LOST 0, SKIP 0, ai=0; plan audit 0 of 5 hold violations.

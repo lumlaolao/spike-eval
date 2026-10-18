@@ -182,6 +182,7 @@ model's plan text (the "plan-named" fallbacks went in harness-epoch-30, review M
     | the shuffle after a Ponder order | the ability (`MayShuffle`, or a Shuffle effect), not the message wording |
     | X in the mode and target questions | the announced `getXManaCostPaid` of the spell |
     | a card's name in a question | the engine's name, with an effect's engine id removed (one function, `safeName`) |
+    | a filter in a cost or a name ask ("another blue card", "three black creatures", "a nonland card") | the engine's filter (`Card.Blue+Other`) said in words (`filterParts`, `plainCost`, `nameConstraint`), in every cost the seat reads under the faithful profile (legacy profiles keep the engine's text). A condition that is not a type, a real subtype, a colour or "other" is left out of a cost, and leaves a name ask to the card's own text |
     | CAST THIS GAME, LANDS PLAYED | the engine's `GameEventSpellAbilityCast` / `GameEventLandPlayed` (a copy is not a cast), not the log line's wording |
 
   - The one hint still worked out by the harness: "(need 1 more B)" compares the cost's coloured pips
@@ -460,8 +461,9 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
    - It never touches the Forge checkout.
 2. **Golden checks:** every decision type the seat owns, through the live controller, in both the text
    and the tool protocol.
-   - Every prompt a golden check asks is linted (`AskContract`): no CARDNAME, no engine card id, no Forge
-     debugging note on a trigger (the label words come from the engine's own localizer), no option cut short.
+   - Every prompt a golden check asks is linted (`AskContract`): no CARDNAME, no engine card id, no engine filter
+     syntax (`Card.nonLand`), no Forge debugging note on a trigger (the label words come from the engine's own
+     localizer), no option cut short. `match_review.py` flags the same in games as LEAK.
    - Acceptance stage `surfaces` (2026-10-16): the Java tests record, for each decision row, the engine hooks
      on its call stack (`-Dharness.surface.report`, off in play). Every hook the ledger marks as a decision
      the seat answers (`controller-ownership.tsv`, kind strategic or payment) must have been reached with the

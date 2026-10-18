@@ -27,6 +27,9 @@ final class AskContract {
     /** In the state a count follows a lower-case word ("library (50)"); an engine id follows a card name, whose
      *  last word is capitalised ("Aether Vial (4)", "Show and Tell (104)"). */
     static final Pattern STATE_ENGINE_ID = Pattern.compile("\\b[A-Z][A-Za-z']* \\(\\d+\\)");
+    /** Forge's filter syntax ("Card.nonLand", "Creature.cmcEQX", "Eldrazi.Spawn"): runs/loop/g05 showed it raw. The same
+     *  regex as LlmSpikeGui.ENGINE_FILTER_REGEX and match_review.ENGINE_FILTER (eval/test_match_review.py). */
+    static final Pattern ENGINE_FILTER = Pattern.compile("\\b[A-Z][a-z]+\\.[a-z]*[A-Z!][A-Za-z]");
     static final Pattern RANGE = Pattern.compile("Choose between (\\d+) and (\\d+) of these");
     static final Pattern NUMBER_RANGE = Pattern.compile("Every integer from (-?\\d+) through (-?\\d+) inclusive is legal");
     static final Pattern HAND_TAG = Pattern.compile("@(\\d+) \\((castable[^)]*|payable, not castable now|need [^)]*|not castable now)\\)");
@@ -98,6 +101,8 @@ final class AskContract {
         String own = question.replaceAll("\\[[^\\]]*\\]", "[]");
         for (String w : COACHING) Assert.assertFalse(own.contains(w), test + ": the question coaches a deck's line (" + w + "): " + question);
         Assert.assertFalse(decision.contains("CARDNAME") || decision.contains("NICKNAME"), test + ": an engine placeholder is shown instead of the card's name: " + decision);
+        Matcher filter = ENGINE_FILTER.matcher(decision);
+        if (filter.find()) Assert.fail(test + ": the engine's filter syntax is shown (" + filter.group() + "): " + decision);
 
         // Options: numbered 1..n in order, no label twice, no engine id.
         List<String> labels = new ArrayList<>();

@@ -76,6 +76,9 @@ FLOATING = re.compile(r"(?m)^YOU \[[^\]]*\][^\n]*\| mana pool (\{[^}]+\})")
 PASS_OPTION = re.compile(r"(?m)^\s*(\d+)\) PASS\b")
 # The engine's own name placeholders in ability text, where the card's name belongs (runs/c3 T7: "Sacrifice CARDNAME").
 PLACEHOLDER = re.compile(r".{0,30}\b(?:CARDNAME|NICKNAME)\b.{0,20}")
+# Forge's filter syntax where words belong (runs/loop/g05: "Exile a Card.Blue+Other card", "(must match: Card.nonLand)").
+# The same regex as AskContract.ENGINE_FILTER and LlmSpikeGui.ENGINE_FILTER_REGEX (test_match_review keeps them equal).
+ENGINE_FILTER = re.compile(r"\b[A-Z][a-z]+\.[a-z]*[A-Z!][A-Za-z]")
 ENGINE_ID = re.compile(r"\b[A-Z][A-Za-z']* \((\d+)\)")
 
 
@@ -107,6 +110,9 @@ def review(path):
                 placeholder = PLACEHOLDER.search(str(r.get("prompt") or ""))
                 if placeholder:
                     add("LEAK", r, "an engine placeholder is shown: '...%s...'" % placeholder.group())
+                engine_filter = ENGINE_FILTER.search(str(r.get("prompt") or ""))
+                if engine_filter:
+                    add("LEAK", r, "the engine's filter syntax is shown: '...%s...'" % engine_filter.group())
                 # The answer must be the one used: the last CHOICE in the reply against the recorded
                 # pick (9,570 replies checked over runs/loop and runs/lines: 2 differed, both attackers).
                 # Only a single-pick question has a CHOICE to compare: on a PICKS (subset) question the
