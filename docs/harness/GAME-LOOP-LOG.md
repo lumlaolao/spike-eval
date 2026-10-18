@@ -731,3 +731,15 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
 - FIXED  (sheet) match_review counted the model's lookup rounds as retries ("5 attempts, 12100ms wasted"); it now
   subtracts them and says "3 lookups, 1 retried".
 
+### g09  2026-10-18  seed 4109  ANT Storm (seat) vs Food Chain (Forge AI)  lost T13  $0.06  harness-epoch-49
+- Time: 9 min, 90 model answers; no waits, no provider errors.
+- clean  TAKEN 0, LOST 0, SKIP 0, ai=0; tools REFUSED 0. One empty lookup (T2, "ForgeAI hand revealed") came while
+  naming a card for Cabal Therapy, before the hand is revealed: correct. Nothing new on the sheet.
+
+### sweep for other engine words  2026-10-18  every decision prompt under runs/
+- FIXED  the header before the first turn read "== Turn 0 null (active: ? | priority: ?) ==" on every mulligan ask
+  (still in g07-g09). It says "before the first turn (opening hands)" and "none yet" now. Test
+  `theHeaderBeforeTheFirstTurnSaysSo`. observation-faithful-v40, harness-epoch-50.
+- checked  "stated at T3 null" in the plan line appears only in older runs (fixed before); "(X=2)" annotations on
+  stack lines are the engine's announced X, readable and kept; no "$", "%s" or SVar names reach a prompt.
+

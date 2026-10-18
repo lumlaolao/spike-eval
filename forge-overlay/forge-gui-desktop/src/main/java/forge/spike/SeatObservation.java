@@ -90,7 +90,9 @@ final class SeatObservation {
     // v38 (2026-10-18): engine filters in stack and history lines are said in words (runs/loop/g07 T5, Shallow Grave).
     // v39 (2026-10-18): who controls it, a chosen or shared name, and a bare filter ("creatures an opponent controls")
     // are said too; a condition that cannot be said reads "the creatures the card describes" (sweep of runs/).
-    static final String VERSION = "observation-faithful-v39";
+    // v40 (2026-10-18): the header before the first turn says so ("before the first turn (opening hands)"), not
+    // "Turn 0 null (active: ? | priority: ?)".
+    static final String VERSION = "observation-faithful-v40";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
      *  Every section named here is one {@link #render} prints. */
@@ -1016,9 +1018,12 @@ final class SeatObservation {
             PhaseHandler ph = game.getPhaseHandler();
             Player active = ph.getPlayerTurn();
             Player prio = ph.getPriorityPlayer();
-            s.append("== Turn ").append(ph.getTurn()).append(' ').append(ph.getPhase())
-             .append(" (active: ").append(active == null ? "?" : active.getName())
-             .append(" | priority: ").append(prio == null ? "?" : (prio == viewer ? "you" : prio.getName()));
+            // Before the first turn (the opening hands and mulligans) there is no phase and no active player: the
+            // header read "== Turn 0 null (active: ? | priority: ?) ==" (runs/loop/g07-g09, every mulligan ask).
+            s.append("== Turn ").append(ph.getTurn()).append(' ')
+             .append(ph.getPhase() == null ? "before the first turn (opening hands)" : ph.getPhase().toString())
+             .append(" (active: ").append(active == null ? "none yet" : active.getName())
+             .append(" | priority: ").append(prio == null ? "none" : (prio == viewer ? "you" : prio.getName()));
             // Day/night once it has begun (daybound, nightbound): it was nowhere in the state (surface check).
             try { if (game.isDay()) s.append(" | it is day"); else if (game.isNight()) s.append(" | it is night"); } catch (Exception ignore) { }
             s.append(") ==\n");
