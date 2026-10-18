@@ -15,7 +15,7 @@ measured and opted into as a separate condition.
 ## 1. The shape of it
 
 ```
- Forge rules engine (pinned commit; two marked patches, ENGINE-PATCHES.md)
+ Forge rules engine (pinned commit; three marked patches, ENGINE-PATCHES.md)
    │  asks the seat's PlayerController for every decision
    ▼
  PlayerControllerLLM  (forge-overlay/.../spike/LlmSpikeGui.java)
@@ -564,6 +564,10 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     first engine patch (`ComputerUtilMana`); a coloured shard forces its colour.
   - Whether to reveal a companion is the seat's (an optional choice); a declined companion is no companion, through
     the second engine patch (`Player.assignCompanion` crashed on it).
+  - The resolve line of a state-dependent pump (+X where X is the target's power, e.g. Berserk) reads the
+    target's power before the effect applies, through the third engine patch (MagicStack built the GAME
+    HISTORY's resolve line after the pump and made it contradict the stack preview the seat was shown: g06
+    seed 4106 T7 showed "+5/+0" and "+10/+0" in the same turn's consecutive prompts).
   - **Mechanics no deck in the pool reaches:** dice, stickers, contraptions.
 - **Mana payment:** the engine maps the chosen sources to the cost. The seat decides which sources stay
   untapped when it matters (`keep_untapped`, or the mana-sources ask). The planner can be more hopeful than the

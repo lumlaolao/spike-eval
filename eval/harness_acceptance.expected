@@ -76,8 +76,16 @@ random.seed=42
 # winner B, 70 turns; decisions 438 -> 450, all tier=auto, 0 Forge-AI rows, 0 silent drops, game not
 # capped (same two runs as the floor re-pin above). Same correction: the Linux random pin did not move on #216/#218.
 random.winner=B
-random.turns=70
-random.decisions=450
+# 2026-10-17: first macOS measurement of the random walk since the harness-epoch-40/41 play changes
+# ("a play that failed to pay is not offered again"; "a cost may be paid with the ability's own
+# target"), which re-rolled the walk on every OS: Linux was re-measured then (A/59/397 above) and
+# the plain Mac pin was left STALE until measured there. Measured on the Mac (JDK 17, engine
+# 34a8662b): winner B/50 turns/273 decisions, reproduced twice in the same class-load build
+# (acceptance 20261018T000454Z canary-random + runs/harness-acceptance/20261018T000454Z/
+# repin-confirm1, repin-confirm2). ai=0 rows, silent drops=0, game not capped. Re-pinned
+# deliberately. linux.random.* remain current (measured 2026-10-17 for the same epochs).
+random.turns=50
+random.decisions=273
 # Silent Forge-AI strategic/payment hooks reachable in Legacy play (ControllerOwnershipTest baseline).
 # 2026-10-15: trigger targets and modes are the seat's (orderAndPlaySimultaneousSa, playTrigger
 # overridden; Forge AI's doTrigger chose every trigger target before). 3 -> 1.
