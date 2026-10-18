@@ -760,4 +760,9 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
   every colour ...)" on 149 rows reads "none (no untapped mana sources)"; Shallow Grave's stack line "... to the
   battlefield. gains haste" reads "It gains haste". Test `aStackLineSaysItsFilterInWords` (extended).
   observation-faithful-v41.
+- FIXED  (every distinct question wording in g01-g09, read by hand) "An effect lets you cast CAST Rift Bolt" (the
+  verb doubled), "Choose a Creature to name" for Cavern of Souls (it asks for a creature type), "Choose card(s) to
+  put on top of Seat library" for Thassa's Oracle (the seat by its label, not "your"). Tests
+  `castingFromAnEffectIsTheModels`, `aTypeIsTheModels`, `anEntityPickIsTheModels` (extended). Faithful profile only;
+  folded into harness-epoch-50.
 

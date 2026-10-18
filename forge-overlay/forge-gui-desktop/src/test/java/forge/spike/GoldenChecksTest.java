@@ -1872,8 +1872,10 @@ public class GoldenChecksTest {
         Player me = g.getPlayers().get(0);
         card("Mountain", me, ZoneType.Battlefield);
         Card bolt = card("Lightning Bolt", me, ZoneType.Hand);
-        Script model = new Script("CHOICE: 1").on("An effect lets you cast", choice("Do not cast it"));
+        Script model = new Script("CHOICE: 1").on("An effect lets you play this now", choice("Do not cast it"));
         Assert.assertFalse(seat(g, model, model).playSaFromPlayEffect(spell(bolt, me)));
+        // The label opens with its verb: the question read "An effect lets you cast CAST Lightning Bolt" (runs/loop/g02).
+        Assert.assertFalse(model.prompts.stream().anyMatch(q -> q.contains("cast CAST")), "the verb is doubled");
         Assert.assertTrue(bolt.isInZone(ZoneType.Hand));
         source(bolt);
     }
@@ -2234,8 +2236,13 @@ public class GoldenChecksTest {
         FCollection<GameEntity> opts = new FCollection<>();
         opts.add(a); opts.add(b);
         Script model = new Script("CHOICE: 1").on("Choose a creature", choice("Grizzly Bears"));
-        GameEntity got = seat(g, model, model).chooseSingleEntityForEffect(opts, null, spell(src, me), "Choose a creature", false, null, null);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        GameEntity got = ctrl.chooseSingleEntityForEffect(opts, null, spell(src, me), "Choose a creature", false, null, null);
         Assert.assertEquals(got, b);
+        // The engine names the seat by its label (Thassa's Oracle: "put on top of Seat library", runs/loop/g08).
+        ctrl.chooseSingleEntityForEffect(opts, null, spell(src, me), "Choose card(s) to put on top of " + me.getName() + " library", false, null, null);
+        String last = model.prompts.get(model.prompts.size() - 1);
+        Assert.assertTrue(last.contains("put on top of your library"), last.substring(last.lastIndexOf("DECISION")));
         source(src);
     }
 
@@ -2637,7 +2644,8 @@ public class GoldenChecksTest {
         Game g = bareGame(PhaseType.MAIN1);
         Player me = g.getPlayers().get(0);
         Card src = card("Cavern of Souls", me, ZoneType.Battlefield);
-        Script model = new Script("CHOICE: 1").on("to name", choice("Elf"));
+        // It asks for a creature type: the question read "Choose a Creature to name" (runs/loop/g04, g05).
+        Script model = new Script("CHOICE: 1").on("Choose a creature type", choice("Elf"));
         Assert.assertEquals(seat(g, model, model).chooseSomeType("Creature", spell(src, me), Arrays.asList("Goblin", "Elf", "Human"), false), "Elf");
         source(src);
     }
