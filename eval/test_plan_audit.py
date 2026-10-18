@@ -76,6 +76,18 @@ class PlanAuditTest(unittest.TestCase):
             "The loop is the plan: keep targeting Illusionist to mill the library so Narcomoebas and "
             "Dread Return fill the graveyard.", "Dread Return"))
 
+    def test_holding_mana_for_a_card_is_not_holding_the_card(self):
+        # runs/loop/g18 T7-T9: "keep Counterspell mana available" then casting Counterspell is the plan carried out.
+        self.assertIsNone(pa.held_in("Develop the board; keep Counterspell mana available", "Counterspell"))
+        self.assertIsNone(pa.held_in("Pass; keep blue mana available for Dispel on the opponent's turn.", "Dispel"))
+        self.assertIsNotNone(pa.held_in("Hold Counterspell for their bomb", "Counterspell"))
+
+    def test_a_clause_that_says_to_play_the_card_is_not_a_hold(self):
+        # runs/loop/g18 T15: the keep is about the target ("keep it tapped"), the clause says to cast the card.
+        self.assertIsNone(pa.held_in("Escape Sleep of the Dead targeting Devourer of Destiny to keep it tapped "
+                                     "through their next untap", "Sleep of the Dead"))
+        self.assertIsNone(pa.held_in("Cast Lightning Bolt at their face and keep attacking", "Lightning Bolt"))
+
     def test_a_plan_does_not_govern_a_later_turn(self):
         res = self.audit_log(LOG)
         # Goblin Bombardment was cast on a Mardu turn with no plan of its own: not scored at all.
