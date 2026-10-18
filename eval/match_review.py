@@ -98,9 +98,16 @@ def review(path):
     def add(kind, r, text):
         out["findings"].append((kind, r.get("_line", 0), r.get("turn"), text))
         out["counts"][kind] += 1
+    lookup_rounds = 0   # model rounds since the last decision that were lookups (inspect, memory, simulate), not retries
     for r in rows:
         t = r.get("t")
+        if t == "context_call":
+            reply = str(r.get("raw_reply") or "")
+            calls = re.findall(r"TOOL CALL (\w+)", reply)
+            if calls and not any(c in ("answer", "set_plan") for c in calls):
+                lookup_rounds += 1
         if t == "decision":
+            looked, lookup_rounds = lookup_rounds, 0
             tier = r.get("tier")
             if tier in ("smart", "fast"):
                 out["counts"]["model decisions"] += 1
@@ -138,10 +145,13 @@ def review(path):
                 # (an unparsed play read as PASS, a block pair that named no legal block).
                 if LOST.search(str(r.get("fallback") or "")):
                     add("LOST", r, "%s: %s" % (r.get("type"), r.get("fallback")))
-                # `attempts` counts tool rounds too; a decision is slow when time was actually wasted.
-                if (r.get("retry_ms") or 0) > 0 or r.get("finish_reason") == "length":
-                    add("SLOW", r, "%s: %s attempts, %sms wasted, finish=%s" % (
-                        r.get("type"), r.get("attempts"), r.get("retry_ms"), r.get("finish_reason")))
+                # `attempts` and `retry_ms` count every round of the conversation, lookups included: a decision is
+                # slow when it needed more rounds than its lookups explain (runs/loop/g08 T8: 5 attempts, 3 of them
+                # the model reading its archive, read as 12 s wasted).
+                retries = (r.get("attempts") or 1) - 1 - looked
+                if ((r.get("retry_ms") or 0) > 0 and retries > 0) or r.get("finish_reason") == "length":
+                    add("SLOW", r, "%s: %s attempts (%d lookups, %d retried), %sms before the answering round, finish=%s" % (
+                        r.get("type"), r.get("attempts"), looked, max(retries, 0), r.get("retry_ms"), r.get("finish_reason")))
             elif tier == "ai":
                 add("LOST", r, "%s decided by the FORGE AI: %s" % (r.get("type"), r.get("fallback")))
             elif tier == "auto":

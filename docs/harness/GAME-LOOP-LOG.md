@@ -720,3 +720,14 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
   Creature.ControlledBy TargetedOrController" (200). Control, a chosen or shared name and a bare filter are said in
   words; an unsayable condition reads "the creatures the card describes". observation-faithful-v39, harness-epoch-49.
 
+### g08  2026-10-18  seed 4108  Doomsday (seat) vs Painter (Forge AI)  WON T10  $0.05  harness-epoch-48
+- Time: 12 min, 76 model answers; two provider stream errors (chunked transfer cut), both retried and answered.
+- clean  TAKEN 0, LOST 0, SKIP 0, ai=0; tools REFUSED 0; plans 13, hold violations 0. The combo played out: Doomsday
+  resolved with a five-card pile the seat chose and ordered, and Thassa's Oracle won.
+- FIXED  the pile is picked one card per question ("(3 / 5)"), and no question said which cards were already in it:
+  T8 the seat searched its archive for "Doomsday pile selected" (empty) and re-read an old state to recall its own
+  picks. Each later pick now says "Already picked for this effect: ...". Test `doomsdaysPileAndItsOrderAreTheSeats`
+  (extended). harness-epoch-49.
+- FIXED  (sheet) match_review counted the model's lookup rounds as retries ("5 attempts, 12100ms wasted"); it now
+  subtracts them and says "3 lookups, 1 retried".
+

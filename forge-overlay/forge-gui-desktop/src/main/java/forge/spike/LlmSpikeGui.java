@@ -276,7 +276,8 @@ public final class LlmSpikeGui {
      *  Epoch 48 (2026-10-18): the same in the state's stack and history lines (g07, Shallow Grave's "returns a
      *  Creature.TopGraveyardCreature+YouCtrl card"; observation-faithful-v38).
      *  Epoch 49 (2026-10-18): filters say who controls ("creatures an opponent controls"), a chosen or shared name, and
-     *  a bare filter as a plural; an unsayable condition reads "the creatures the card describes" (v39). */
+     *  a bare filter as a plural; an unsayable condition reads "the creatures the card describes" (v39). A pick that is
+     *  one of several for the same effect ("(3 / 5)", Doomsday) says the cards already picked (g08). */
     static final String HARNESS_EPOCH = "harness-epoch-49";
 
     static final class EvalLog {
@@ -3933,6 +3934,10 @@ public final class LlmSpikeGui {
 
         /** Route the reanimation / tutor target: "which card leaves this zone" (Reanimate, Animate Dead,
          *  Entomb, Unmarked Grave, fetch effects...). THE key strategic pick for the reanimator deck. */
+        /** The cards picked so far by the effect asking one pick at a time ({@link #chooseSingleCardForZoneChange}). */
+        private final List<String> zonePicks = new ArrayList<>();
+        private SpellAbility zonePicksFor;
+
         @Override
         public Card chooseSingleCardForZoneChange(ZoneType destination, List<ZoneType> origin, SpellAbility sa,
                 CardCollection fetchList, DelayedReveal delayedReveal, String selectPrompt, boolean isOptional, Player decider) {
@@ -3948,12 +3953,20 @@ public final class LlmSpikeGui {
                 if (!okFor("zone-change")) { auto("zone-change(no-budget)->first" + srcOf(sa)); return isOptional ? null : opts.get(0); }
                 List<String> labels = new ArrayList<>();
                 for (Card c : opts) labels.add(labelOf(c));
+                // A pick that is one of several for the same effect ("(3 / 5)": Doomsday, Brainstorm) says the cards
+                // already picked: runs/loop/g08 T8 searched its archive for "Doomsday pile selected" and re-read an old
+                // state to recall its own first two picks.
+                java.util.regex.Matcher kn = selectPrompt == null ? null : java.util.regex.Pattern.compile("\\((\\d+) / \\d+\\)").matcher(selectPrompt);
+                boolean later = kn != null && kn.find() && !kn.group(1).equals("1") && sa != null && sa == zonePicksFor;
+                if (!later) { zonePicks.clear(); zonePicksFor = sa; }
                 String q = (selectPrompt == null || selectPrompt.isEmpty() ? "Choose a card" : selectPrompt)
                         + " -> " + destination + srcAsk(sa)
                         // "reanimate your biggest threat" was appended to Brainstorm, Aether Vial and
                         // Stoneforge picks alike; the faithful profile states the choice and nothing else.
-                        + (observer != null ? "." : " (pick the card that best advances your game plan — e.g. reanimate your biggest threat).");
+                        + (observer != null ? "." : " (pick the card that best advances your game plan — e.g. reanimate your biggest threat).")
+                        + (observer != null && later && !zonePicks.isEmpty() ? " Already picked for this effect: " + String.join(", ", zonePicks) + "." : "");
                 int c = decideOne(bridgeFor("zone-change"), "zone-change", q, labels, isOptional ? "Decline / none" : null);
+                if (c >= 0) zonePicks.add(labels.get(c));
                 if (c == -2) { auto("zone-change(bridge-down)->first" + srcOf(sa)); return isOptional ? null : opts.get(0); }
                 if (c < 0) { // decideOne's -1 also covers "still unparseable after retry", which (unlike an
                              // explicit decline) decideOne does NOT log itself — never drop that case silently.
