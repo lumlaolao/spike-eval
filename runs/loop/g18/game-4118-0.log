@@ -1,0 +1,61 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=36953 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 34086 files in 1 ms (25 parts) using thread pool
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 857 files in 0 ms (8 parts) using thread pool
+[SEED] 4118
+[EVAL] jsonl game-4118-1792337454665.jsonl
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/pauper-mono-blue-delver.plan
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/modern-broodscale.plan
+[DECK] loaded 'Seat': 60 main, 15 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/pauper-mono-blue-delver.txt)
+[DECK] loaded 'ForgeAI': 60 main, 15 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/modern-broodscale.txt)
+[SEATS] A=Seat(llm,openrouter:openai/gpt-6-luna) B=ForgeAI(ai,opus)
+[Seat] [OBSERVATION] observation-faithful-v41 (profile v4-faithful/379d6b7b5b6a)
+[HEADLESS] game starting (cap=120min)
+[OPENROUTER Seat/smart] replied in 3414 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: 3/7 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4804 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: MULLIGAN
+[OPENROUTER Seat/smart] replied in 6726 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan-bottom: Deep Analysis
+[Seat] [ROUTER] mulligan: 2/6 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3650 ms with 1 tool call(s)
+[Seat] [ROUTER] plan: GOAL: Develop a blue tempo start, fuel Tolarian Terror with cheap spells, and protect threats with Counterspell. NEXT: Keep this two-Island hand; play Island, use cantrips to find resources and fill the graveyard, then deploy Terror when discounted while holding up interaction when possible.
+[OPENROUTER Seat/smart] replied in 1917 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: KEEP
+[Seat] [TALLY] smart=5 fast=0 auto=0 ai=0 textParses=0 avgSmart=4102ms avgFast=4102ms
+[Seat] [ROUTER] play(main): 0 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3657 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Island
+[Seat] [TALLY] smart=6 fast=0 auto=0 ai=0 textParses=0 avgSmart=4028ms avgFast=4028ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5302 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Build a blue tempo start, fill the graveyard with cheap spells, and deploy discounted Tolarian Terror while preserving Counterspell when possible. NEXT: Cast Mental Note now to draw and fuel the graveyard; use remaining cantrips to find lands and interaction, then develop Terror.
+[OPENROUTER Seat/smart] replied in 2653 ms with 1 tool call(s)
+[Seat] [ROUTER] lines: Mental Note + Tolarian Terror -> mill spells to discount Terror; Brainstorm + Ponder -> find needed lands or interaction; Murmuring Mystic + cheap cantrips -> build a flying-token board.
+[Seat] [ROUTER] profile: Unknown opponent; respect early threats and removal/countermagic until their land and first plays reveal the archetype.
+[Seat] [ROUTER] play: casts Mental Note @11 {U} [Mill two cards. Draw a card.]
+[Seat] [AUTO-LEGAL] order(forced: Graveyard has no order to choose)->as-is
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
