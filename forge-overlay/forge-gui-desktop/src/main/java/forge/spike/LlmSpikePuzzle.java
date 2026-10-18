@@ -218,9 +218,17 @@ public final class LlmSpikePuzzle {
      *  length of a line; the lines themselves are the readable form of a reference solution. */
     static List<String> solverActions(List<String> logLines, String solverName) {
         List<String> out = new ArrayList<>();
-        for (String l : logLines) {
-            int colon = l.indexOf(": ");
+        // A combat entry holds one line per attacker ("Solver didn't block A" then "Solver assigned B to block C"):
+        // each line is read, or a block after a "didn't block" line was lost (rules pilot RP_108).
+        List<String> lines = new ArrayList<>();
+        for (String entry : logLines) {
+            int colon = entry.indexOf(": ");
             if (colon < 0) continue;
+            String prefix = entry.substring(0, colon + 2);
+            for (String part : entry.substring(colon + 2).split("\n")) lines.add(prefix + part);
+        }
+        for (String l : lines) {
+            int colon = l.indexOf(": ");
             String type = l.substring(0, colon);
             String msg = l.substring(colon + 2);
             if (("STACK_ADD".equals(type) && (msg.startsWith(solverName + " cast ") || msg.startsWith(solverName + " activated ")))
@@ -380,7 +388,9 @@ public final class LlmSpikePuzzle {
             // (RP_045: the opponent's Scavenging Ooze exiled a card on one line and not the other).
             // As a set of lines: the same plays in another order (a pump before or after combat, both winning) are
             // one solution with a variant, not two (rules pilot RP_005, RP_058, RP_059).
-            List<String> print = new ArrayList<>(solverActions(p.logLines, "Solver"));
+            // Card ids dropped: playing Forest (2) or the identical Forest (3) is one play (RP_120).
+            List<String> print = new ArrayList<>();
+            for (String a : solverActions(p.logLines, "Solver")) print.add(a.replaceAll(" \\(\\d+\\)", ""));
             print.addAll(line.choices);
             java.util.Collections.sort(print);
             return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), solved, line.drift, String.join("\n", print));

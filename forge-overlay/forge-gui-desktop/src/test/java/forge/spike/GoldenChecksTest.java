@@ -2227,6 +2227,26 @@ public class GoldenChecksTest {
         forge.ai.AiCache.clear();
     }
 
+    /** Rules pilot RP_108 (2026-10-18): Deflecting Palm's "choose a source" offered Forge's section headers
+     *  ("--PERMANENTS:--", "--SPELLS ON THE STACK:--", ChooseSourceEffect's divider cards) as options; the engine asks
+     *  again when one is picked, so a model that picked one spent a call and was asked the same thing. Not options. */
+    @Test
+    public void choiceListDividersAreNotOptions() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card div = new Card(-1, g);
+        div.setName("--PERMANENTS:--");
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", rival, ZoneType.Battlefield);
+        forge.util.collect.FCollection<Card> list = new forge.util.collect.FCollection<>(Arrays.asList(div, bears, lions));
+        List<String> asks = new ArrayList<>();
+        Script model = new Script("CHOICE: 1").on("source", p -> { asks.add(p); return "CHOICE: 1"; });
+        Card pick = seat(g, model, model).chooseSingleEntityForEffect(list, null, null, "Choose a source", false, null, null);
+        Assert.assertEquals(pick, bears, "the first real source");
+        Assert.assertEquals(asks.size(), 1);
+        Assert.assertFalse(asks.get(0).contains("--PERMANENTS"), "no divider on the menu:\n" + asks.get(0));
+    }
+
     /** Rules pilot RP_007 (2026-10-18): the engine checks a block's requirements and restrictions only for its own
      *  GUI (InputBlock calls CombatUtil.validateBlocks), so a menace attacker blocked by one creature stood. An
      *  illegal block set goes back to the seat with the engine's reason. */

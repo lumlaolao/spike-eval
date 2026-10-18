@@ -174,4 +174,13 @@ public class LlmSpikePuzzleTest {
         Assert.assertEquals(LlmSpikePuzzle.sectionValue(meta, "Description", ""),
                 "Win this turn: attack with everything");
     }
+
+    /** Rules pilot RP_108: a combat entry holds one line per attacker; a block after a "didn't block" line counts. */
+    @Test
+    public void aBlockAfterADidntBlockLineIsASolverAction() {
+        java.util.List<String> acts = LlmSpikePuzzle.solverActions(java.util.Arrays.asList(
+                "COMBAT: Solver didn't block Goblin (4).\nSolver assigned Wall (2) to block Ogre (5).",
+                "COMBAT: Opponent assigned Ogre (5) and Goblin (4) to attack Solver."), "Solver");
+        org.testng.Assert.assertEquals(acts, java.util.Collections.singletonList("COMBAT: Solver assigned Wall (2) to block Ogre (5)."));
+    }
 }

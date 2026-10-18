@@ -85,6 +85,8 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - Forge's static `AiCache` is cleared where Forge's AI clears it, at the seat's priority ask (epoch 54). It holds
   answers keyed by the game (`isPreventCombatDamageThisTurn`) that the seat's pricing and combat helpers read; uncleared
   they lasted the whole game, and in the puzzle prover every finished game stayed in memory until the heap ran out.
+- A choice list's section headers are not options: Forge's "choose a source" puts divider cards ("--PERMANENTS:--",
+  "--SPELLS ON THE STACK:--") into the list and asks again when one is picked (epoch 55, rules pilot RP_108).
 - A block set is checked as a whole, by the engine's `CombatUtil.validateBlocks`: requirements ("all creatures able
   to block it do so") and restrictions (menace). Forge runs that check only for its own GUI, so before epoch 52 any
   block set the seat or an arm declared stood. The `answer` call is corrected in the same conversation; a text reply

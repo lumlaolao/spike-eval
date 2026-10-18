@@ -292,8 +292,10 @@ public final class LlmSpikeGui {
      *  Epoch 54 (2026-10-18): the seat clears Forge's static AiCache where Forge's AI does, so answers cached against
      *  this game (isPreventCombatDamageThisTurn) are not read stale; a preview survives a card remembered outside
      *  every copied zone (lookahead-preview-v13, runs/loop/g16).
+     *  Epoch 55 (2026-10-18, rules puzzle batch 4): a choice list's section headers ("--PERMANENTS:--", Forge's
+     *  divider cards in "choose a source") are not offered as options.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-54";
+    static final String HARNESS_EPOCH = "harness-epoch-55";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -1887,6 +1889,12 @@ public final class LlmSpikeGui {
             return decideOne(b, type, question, options, noneLabel, null);
         }
 
+        /** A section header Forge puts into a choice list (ChooseSourceEffect's "--PERMANENTS:--" cards, negative id):
+         *  not an option; the engine asks again when one is picked (rules pilot RP_108). */
+        static boolean isListDivider(Object o) {
+            return o instanceof Card && ((Card) o).getId() < 0 && String.valueOf(((Card) o).getName()).startsWith("--");
+        }
+
         /** The puzzle prover's record of what the solver chose where the game log does not say (a mode, a clone pick,
          *  a number, a card named): two solving lines that differ only there are two solutions (PuzzleSearch.unique).
          *  Card handles and the "#1"/"#2" that tell repeated labels apart are dropped, so the same card under another
@@ -1897,7 +1905,9 @@ public final class LlmSpikeGui {
             PuzzleArms.Line l = PuzzleArms.searchLine;
             if (l != null && label != null && !label.startsWith("PASS") && !"[]".equals(label))
                 l.note((type == null ? "choice" : type) + ": " + label.replaceAll(" ?@\\d+", "")
-                        .replaceAll(" #\\d+(?=[,\\]]|$)", "").replaceAll("\\[(un)?tapped\\]|\\[sick\\]", ""));
+                        .replaceAll(" #\\d+(?=[,\\]]|$)", "").replaceAll("\\[(un)?tapped\\]|\\[sick\\]", "")
+                        // the object's current size and counters: the same card before and after a counter (RP_127)
+                        .replaceAll(" ?\\(\\d+/\\d+\\)", "").replaceAll("\\[[^\\]]* x\\d+\\]", ""));
         }
 
         /** Choices that make no second solution on their own (rules puzzle batch 3: 18 correct puzzles were called
@@ -3995,7 +4005,7 @@ public final class LlmSpikeGui {
                 SpellAbility sa, String title, boolean isOptional, Player relatedPlayer, Map<String, Object> params) {
             clearLast();
             List<T> opts = new ArrayList<>();
-            for (T t : optionList) opts.add(t);
+            for (T t : optionList) if (!isListDivider(t)) opts.add(t);
             if (opts.isEmpty()) return null;   // nothing to choose from (Forge's AI was asked; it had nothing either)
             // delayedReveal carries a reveal side-effect: keep the engine's reveal semantics by
             // revealing BEFORE the pick (exactly PlayerControllerAi's order), then route the pick
@@ -9023,7 +9033,7 @@ public final class LlmSpikeGui {
         public <T extends GameEntity> T chooseSingleEntityForEffect(FCollectionView<T> optionList, DelayedReveal delayedReveal,
                 SpellAbility sa, String title, boolean isOptional, Player relatedPlayer, Map<String, Object> params) {
             List<T> opts = new ArrayList<>();
-            try { if (optionList != null) for (T t : optionList) opts.add(t); } catch (Exception ignore) { }
+            try { if (optionList != null) for (T t : optionList) if (!PlayerControllerLLM.isListDivider(t)) opts.add(t); } catch (Exception ignore) { }
             List<String> labels = null; String prompt = null;
             try {
                 // delayedReveal != null is delegated (not routed) by the LLM seat -> no "entity" row there.

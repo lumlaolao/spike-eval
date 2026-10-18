@@ -247,3 +247,86 @@ The rule's history, for the record: game-log actions alone missed modes and clon
 counted the opponent's replies (RP_045, RP_007); noting every solver choice counted order and mana payment (18 of
 batch 3). Known blind spot: a "choose a color" effect shares the colour ask, so a second solution differing only in
 that colour is not seen.
+
+# Batch 4: fifty more questions (RP_087 to RP_131)
+
+Source: `triage.jsonl`, `convert == "good"` questions not yet attempted (41), then `maybe` questions with acceptance
+and misread filled in (lines 18, 120, 339, 368, 404, 513, 598, 761, 955). Rule-level near-duplicates of batches 1 to
+3 were skipped as well as the TRIAGE.md pairs (for example LKI power, Tarmogoyf, Blood Moon layers, trample
+division, replacement ordering). Build: epoch 54 (`epoch54-build.txt`, re-read before every JVM). Gate: search arm
+(budget 600, cap 60 s), then the pass arm. 50 rows in `manifest.jsonl` (now 141), each with `verified_on`.
+
+## Counts
+
+| result | n | puzzles |
+|---|---|---|
+| converted | 38 | 087, 089-094, 096-102, 104-107, 109-115, 117-119, 121-126, 128-131 |
+| multiple, same play in substance | 5 | 088, 108, 116, 120, 127 (`multiple_review`) |
+| Forge disagreement | 2 | 095, 103 |
+| dropped (no board) | 5 | Phage/Gather Specimens, Necroduality/Grimgrin, Pir/Doubling Season, Custodi Soulbinders, Zada/Twinning Staff |
+
+The pass arm was rejected on all 45 boards. Uniqueness was exhaustive on 21 of the 38 conversions; the other 17 are
+"unique within the budget" (`uniqueness.exhausted` < `deviations` in each row; weakest RP_114 0/2 and RP_128 2/9).
+No JVM started while HOLD existed (every `.starts` line says `hold=N`). The two workers died once when the session
+paused; RP_125 and RP_126 were re-run from scratch. Effort: about 3.5 hours of wall time.
+
+## New setup tools (all from Forge's `GameState`)
+
+- `p1putonstack=Murder->1`: an opponent spell already on the stack, targeting card `Id:1` (RP_094, RP_113). It is
+  not a cast, so cast-dependent cards (Phage) cannot be built this way.
+- `p1precast=Giant Growth->1`, `p1precast=The One Ring:TrigPump`: resolve an effect during setup (RP_114, RP_106).
+- `p1counters=POISON=9`: player counters (RP_110, RP_114); `p0manapool=R R ...`: floating mana. Floating mana
+  removes the land mana abilities from the search tree (RP_103) and makes mana expire at the end of the phase
+  (RP_114).
+- `activephase=CLEANUP` of the opponent's turn with `activephaseadvance=UPKEEP` reaches the solver's upkeep
+  triggers; `activephase=UNTAP` is unscoreable.
+- A `t:` token without a `Keywords:` field crashes the loader (`TokenInfo.makeOneToken` NPE); RP_104 uses
+  Changeling Outcast as the Saproling.
+
+## Forge disagreements
+
+- **RP_095** (Tinybones, Fraying Omnipotence): Forge runs the spell as RepeatEach per player, so the caster
+  sacrifices Tinybones before the opponent discards. The card has every player do each step in turn.
+- **RP_103** (Yidaro): Forge counts resolved Yidaro triggers, not cycles. Cycling all four before any trigger
+  resolves still shuffles three away (search not found in 600; random arm, 12 seeds: always one Yidaro, none in the
+  graveyard).
+
+## Harness and prover findings
+
+1. **Choose-source menus list Forge's section headers as entities** (RP_108, Deflecting Palm): the solver was
+   offered `--PERMANENTS:--` and `--SPELLS ON THE STACK:--` (`[null]`), picked 15 times in the search log, each
+   followed by a second pick. The uniqueness check then calls a header pick a difference.
+2. **Land plays are compared with their card id** (RP_120): `LAND: Solver played Forest (2)` against `Forest (3)`,
+   two identical cards, is reported as a second solution.
+3. **Entity-pick labels carry the object's current state** (RP_127): the same Camera Launcher picked before and
+   after it got a counter (`Camera Launcher (3/3)[+1/+1 x1]`) counts as different.
+4. **How a cost pick is recorded depends on order** (RP_116): exiling three of four identical Bears is
+   `cards-for-effect`, the forced pick in the other order is a `choice`, so one play in two orders differs.
+5. **An Equipment is offered a noncreature attach target** (RP_088): Field-Tested Frying Pan could attach to the
+   Food token Peregrin Took added (CR 301.5c forbids it); the uniqueness check sees two lines.
+6. **Forge offers a loyalty counter for a returned creature** (RP_097 v1, Elspeth Conquers Death's
+   "P1P1,LOYALTY" choice); acceptance now pins the +1/+1 counter.
+7. **Blocks are not always game-log actions**: RP_108's proven line blocks (`blockers(random)->1`) but its
+   `actions` lists only the Palm, whereas RP_089's block is logged. A second solution that differs only in a block
+   may not be seen in such a puzzle.
+8. **Stony Silence did not stop The One Ring's tap ability** in RP_096 v3 (the ability was offered and tapped the
+   Ring). Not followed up; the board was rebuilt without it.
+
+## Board fixes during the gate
+
+- RP_097: acceptance pins the +1/+1 counter (finding 6). RP_109: Jace Beleren added so every attack picks a
+  defender. RP_114: floating B, because a Swamp let the Wound be cast on the opponent's turn on the 1/1 Scryer (a
+  real second solution). RP_117: Capridor tapped, because an extra block was a real second line. RP_118 and RP_120:
+  draws could find a land or a castable Bears. RP_096: four versions (see its row). RP_103: floating mana.
+
+### Batch 4 findings, handled (2026-10-18)
+
+- RP_108: Forge's "choose a source" divider cards were offered as options; fixed for every seat (harness-epoch-55,
+  `choiceListDividersAreNotOptions`).
+- RP_108: a block after a "didn't block" line in the same combat entry was not read as a solver action; fixed
+  (`aBlockAfterADidntBlockLineIsASolverAction`).
+- RP_120, RP_127: uniqueness now drops card ids from log actions and an object's size and counters from pick labels,
+  so the identical Forest (2)/(3) or the same creature before and after a counter is one play.
+- RP_088: with Peregrin Took, Forge's Field-Tested Frying Pan trigger remembers the extra Food tokens with the Halfling
+  and offers them as attach targets for the Equipment (a noncreature attach is not legal). A Forge issue, recorded, not
+  filtered by the harness.
