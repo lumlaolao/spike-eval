@@ -627,12 +627,10 @@ public class MagicStack /* extends MyObservable */ implements Iterable<SpellAbil
             sa.getActivatingPlayer().addController(sa.getControlledByPlayer().getLeft(), sa.getControlledByPlayer().getRight());
         }
 
-        // HARNESS PATCH: the resolved event's log line is built from the spell's own stack description.
-        // For a pump whose amount is state-dependent (+X where X is the target's power, e.g. Berserk),
-        // building it after the pump applied re-reads the pumped power, so the game log (and the seat's
-        // GAME HISTORY) said twice the applied amount: g06 seed 4106 T7 had the stack preview say
-        // "+5/+0" and the resolve line say "+10/+0" for the same burst (Giant fixture: +3/+6).
-        // Capture the description before the effect applies, so preview and resolve line agree.
+        // HARNESS PATCH: the resolved event's log line is built from the spell's stack description. Built after
+        // the effect, a state-dependent pump (+X where X is the target's power, e.g. Berserk) re-read the pumped
+        // power, and the seat's GAME HISTORY said twice the applied amount (g06 seed 4106 T7: stack "+5/+0",
+        // history "+10/+0"). Capture the description before the effect applies.
         final String stackDescriptionBeforeResolve = sa.getStackDescription();
 
         if (thisHasFizzled) { // Fizzle

@@ -2658,8 +2658,8 @@ public class GoldenChecksTest {
             int free;
             @Override public String ask(String prompt) {
                 prompts.add(prompt);
-                // The free-form ask (either protocol) names what the name must match.
-                if (prompt.contains("(must match:")) return free++ == 0 ? "Something with an activated ability." : "CARD: Grim Lavamancer";
+                // The free-form ask (either protocol) says in words what the name must be.
+                if (prompt.contains("(it must be the name of a nonland card)")) return free++ == 0 ? "Something with an activated ability." : "CARD: Grim Lavamancer";
                 return "CHOICE: " + opt(prompt, "Thoughtseize");
             }
         };
@@ -2667,7 +2667,28 @@ public class GoldenChecksTest {
         Assert.assertEquals(ctrl.chooseCardName(spell(src, me), faces, "Choose a card name."), "Thoughtseize");
         Assert.assertEquals(ctrl.chooseCardName(spell(src, me), f -> true, "Card.nonLand", "Choose a nonland card name."), "Grim Lavamancer");
         Assert.assertEquals(model.prompts.size(), 3, "the list ask, the free ask and its retry");
+        for (String q : model.prompts) Assert.assertFalse(q.contains("Card.nonLand"), "the engine's filter is shown: " + q);
         source(src);
+    }
+
+    /** The engine's name filter in words; a filter with anything but types and subtypes is left out, never shown raw
+     *  (runs/loop/g05: "(must match: Card.nonLand)" beside Cabal Therapy's own "Choose a nonland card name"). */
+    @Test
+    public void aNameFilterIsSaidInWords() {
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.nameConstraint("Card.nonLand"), "a nonland card");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.nameConstraint("Creature"), "a creature card");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.nameConstraint("Card.Land+nonBasic"), "a nonbasic land card");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.nameConstraint("Card.Artifact"), "an artifact card");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.nameConstraint("Planeswalker.Nissa"), "a Nissa planeswalker card");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.nameConstraint("Card.nonLand+nonCreature"), "a nonland noncreature card");
+        Assert.assertNull(LlmSpikeGui.PlayerControllerLLM.nameConstraint("Creature.cmcEQX"));
+        Assert.assertNull(LlmSpikeGui.PlayerControllerLLM.nameConstraint("Card.OppOwn+!token+nonCopiedSpell"));
+        Assert.assertNull(LlmSpikeGui.PlayerControllerLLM.nameConstraint(null));
+        // The same words in a cost: Force of Will's pitch read "Exile a Card.Blue+Other card from your hand".
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.plainCost("Pay 1 life, Exile a Card.Blue+Other card from your hand"),
+                "Pay 1 life, Exile another blue card from your hand");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.plainCost("Sacrifice a creature"), "Sacrifice a creature");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.plainCost("Exile a Card.cmcEQX card"), "Exile a card");
     }
 
     // ------------------------------------------------------------------ choices Forge's AI made outright until 2026-10-15
@@ -2856,13 +2877,9 @@ public class GoldenChecksTest {
         Assert.assertEquals(ctrl.aiDelegationsCount() + ctrl1.aiDelegationsCount(), 0);
     }
 
-    /** Berserk on a 3/3: its X is the target's power, so the STACK preview built when the spell went on the
-     *  stack says "+3/+0". The resolve line (STACK_RESOLVE — the event the seat's GAME HISTORY shows) used to
-     *  be built AFTER the pump had applied: X re-read the already-pumped creature and the same spell showed
-     *  "+6/+0" in history while the preview still said "+3/+0", both in the seat (g06 seed 4106, T7: preview
-     *  "+5/+0", history E103 "+10/+0" in the same turn's adjacent prompts). The applied amount is +3 (Giant ends at 6) either way —
-     *  only the log lied. MagicStack must capture the resolving spell's own stack description before it
-     *  applies. HARNESS PATCH of forge/game/zone/MagicStack.java. */
+    /** Berserk on a 3/3: X is the target's power, so the stack says "+3/+0". The resolve line (the seat's GAME
+     *  HISTORY) was built after the pump applied, re-read the pumped power and said "+6/+0"; the applied amount was +3
+     *  either way (g06 seed 4106 T7: "+5/+0" on the stack, "+10/+0" in history). HARNESS PATCH of MagicStack.java. */
     @Test
     public void aPumpResolveLineSaysWhatTheStackPreviewSays() {
         Game g = bareGame(PhaseType.MAIN1);

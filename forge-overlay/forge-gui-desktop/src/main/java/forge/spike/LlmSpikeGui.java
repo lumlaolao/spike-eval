@@ -270,8 +270,10 @@ public final class LlmSpikeGui {
      *  a preview restores every target it set, and a target choice of a play can be previewed (lookahead-preview-v10).
      *  Epoch 46 (2026-10-17): the resolve line of a state-dependent pump (+X where X is the target's power, e.g.
      *  Berserk) is captured before the effect applies (HARNESS PATCH of forge/game/zone/MagicStack.java), so the
-     *  seat's GAME HISTORY no longer contradicts the stack preview it was shown (g06 seed 4106 T7, "+5/+0" vs "+10/+0"). */
-    static final String HARNESS_EPOCH = "harness-epoch-46";
+     *  seat's GAME HISTORY no longer contradicts the stack preview it was shown (g06 seed 4106 T7, "+5/+0" vs "+10/+0").
+     *  Epoch 47 (2026-10-18): the engine's filter syntax is said in words: a cost label read "Exile a Card.Blue+Other
+     *  card" (Force of Will) and a card-name ask "(must match: Card.nonLand)" (g05, Cabal Therapy). */
+    static final String HARNESS_EPOCH = "harness-epoch-47";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -1435,7 +1437,7 @@ public final class LlmSpikeGui {
                 return hostRef + (mc == null ? "" : " " + mc) + body;
             }
             String cost = "";
-            try { if (sa.getPayCosts() != null) cost = paidCostString(sa).replace("CARDNAME", name).replaceFirst("^\\{0\\},?\\s*", "").trim(); } catch (Exception ignore) { }
+            try { if (sa.getPayCosts() != null) cost = plainCost(paidCostString(sa).replace("CARDNAME", name).replaceFirst("^\\{0\\},?\\s*", "").trim()); } catch (Exception ignore) { }
             return hostRef + (zone.isEmpty() ? "" : " from " + zone) + (alt.isEmpty() ? "" : " (" + alt + ")")
                     + " — cost: " + (cost.isEmpty() ? "none" : cost) + body;
         }
@@ -5809,11 +5811,84 @@ public final class LlmSpikeGui {
             }
         }
 
+        private static final java.util.Set<String> CARD_TYPE_WORDS = new java.util.HashSet<>(java.util.Arrays.asList(
+                "Artifact", "Battle", "Creature", "Enchantment", "Instant", "Kindred", "Land", "Planeswalker", "Sorcery",
+                "Tribal", "Permanent", "Spell"));
+        /** Words that read before the type: supertypes and colours ("legendary", "blue"). */
+        private static final java.util.Set<String> ADJECTIVE_WORDS = new java.util.HashSet<>(java.util.Arrays.asList(
+                "Basic", "Legendary", "Snow", "White", "Blue", "Black", "Red", "Green", "Colorless", "Multicolor"));
+
+        /** One alternative of an engine filter ("Card.nonLand", "Card.Blue+Other", "Planeswalker.Nissa") as words
+         *  without the article ("nonland card", "other blue card", "Nissa planeswalker card"), or null when it uses
+         *  anything but types, subtypes, colours and "Other" (cmcEQX, OppOwn, ManaCost=...). */
+        static String filterPhrase(String alt) {
+            String[] seg = alt.trim().split("\\.", 2);
+            List<String> props = new ArrayList<>();
+            if (!seg[0].equals("Card")) props.add(seg[0]);
+            if (seg.length > 1) props.addAll(java.util.Arrays.asList(seg[1].split("\\+")));
+            List<String> adjectives = new ArrayList<>(), subtypes = new ArrayList<>(), types = new ArrayList<>();
+            boolean other = false;
+            for (String w : props) {
+                if (w.equals("Other")) { other = true; continue; }
+                boolean non = w.startsWith("non") && w.length() > 3 && Character.isUpperCase(w.charAt(3));
+                String core = non ? w.substring(3) : w;
+                if (!core.matches("[A-Z][a-z]+")) return null;
+                if (non) adjectives.add("non" + core.toLowerCase(Locale.ROOT));
+                else if (ADJECTIVE_WORDS.contains(core)) adjectives.add(core.toLowerCase(Locale.ROOT));
+                else if (CARD_TYPE_WORDS.contains(core)) types.add(core.toLowerCase(Locale.ROOT));
+                else subtypes.add(core);
+            }
+            List<String> words = new ArrayList<>();
+            if (other) words.add("other");
+            words.addAll(adjectives);
+            words.addAll(subtypes);
+            words.addAll(types);
+            words.add("card");
+            return String.join(" ", words);
+        }
+
+        private static String withArticle(String phrase) {
+            if (phrase.startsWith("other ")) return "an" + phrase;      // "another blue card"
+            return ("aeiou".indexOf(phrase.charAt(0)) >= 0 ? "an " : "a ") + phrase;
+        }
+
+        /** The engine's filter for a name in words ("a nonland card"), or null when any alternative cannot be said in
+         *  words: the raw filter was shown to the seat as "(must match: Card.nonLand)" (runs/loop/g05, Cabal Therapy). */
+        static String nameConstraint(String valid) {
+            if (valid == null || valid.trim().isEmpty()) return null;
+            List<String> alternatives = new ArrayList<>();
+            for (String alt : valid.trim().split(",")) {
+                String phrase = filterPhrase(alt);
+                if (phrase == null) return null;
+                alternatives.add(withArticle(phrase));
+            }
+            return String.join(" or ", alternatives);
+        }
+
+        private static final Pattern COST_FILTER = Pattern.compile(
+                "\\b(?:(an?) )?((?:Card|Creature|Permanent|Land|Artifact|Enchantment|Planeswalker|Spell)\\.[A-Za-z!+.=]+)(?: cards?)?");
+
+        /** A cost description with every engine filter in words: Force of Will's pitch read "Exile a Card.Blue+Other card
+         *  from your hand" in ten recorded rows. A filter that cannot be said in words becomes "card" (the card's own
+         *  text, which the option quotes, says the rest). */
+        static String plainCost(String cost) {
+            if (cost == null || cost.indexOf('.') < 0) return cost;
+            Matcher m = COST_FILTER.matcher(cost);
+            StringBuffer out = new StringBuffer();
+            while (m.find()) {
+                String phrase = filterPhrase(m.group(2));
+                if (phrase == null) phrase = "card";
+                m.appendReplacement(out, Matcher.quoteReplacement(m.group(1) != null ? withArticle(phrase) : phrase));
+            }
+            m.appendTail(out);
+            return out.toString();
+        }
+
         /** Shared free-form "CARD: <name>" ask (one retry). Returns the raw name or null. `exists`
          *  (nullable): whether a name is one the caller would accept, checked on a tool answer. */
         private String askCardName(SpellAbility sa, String message, String valid, java.util.function.Predicate<String> exists) {
             String q = snapshot() + "\nDECISION: NAME A CARD" + srcAsk(sa) + ": " + fit(message)
-                    + (valid != null && !valid.isEmpty() ? " (must match: " + fit(valid) + ")" : "")
+                    + (nameConstraint(valid) != null ? " (it must be the name of " + nameConstraint(valid) + ")" : "")
                     + (observer != null
                         ? "." + targetNote(sa, getPlayer())
                             + " "   // facts only under the faithful profile (PROMPT-AUDIT.md C3): no advice on how to choose

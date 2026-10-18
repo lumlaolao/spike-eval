@@ -4,36 +4,27 @@ The living to-do list for the "the model is the only bottleneck" work. Only open
 what is done is in git history, `docs/harness/GAME-LOOP-LOG.md` and the run reports. Update this file
 when an item is finished or a new one is agreed, so the next session can pick up from it.
 
-## Handoff (2026-10-17, game loop on the Mac clone; read this first)
+## Handoff (2026-10-18; read this first)
 
-State of `main`: harness-epoch-46 (third engine patch — a resolving state-dependent spell's line is captured
-before its effect applies, `forge/game/zone/MagicStack.java`). Full acceptance PASS (17/17, 767 Java, 381
-Python, floor A/108/1804 and random B/50/273 (plain Mac pins) unchanged; `runs/harness-acceptance/20261018T013426Z`), and
-all three gauntlet arms clean on new seeds (84 games, 0 defect lines). The Forge checkout was rebuilt from
-it; on the Mac set `JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home` for everything
-below. The epoch-46 fix, eval sharpenings and g05/g06 records went in as the branch `fix/loop-epoch46`
-(merged through its PR); the merge-path note below is the standing answer for the next PR.
+State of `main`: harness-epoch-47 (observation-faithful-v37, seat-tools-v11, lookahead-preview-v11; three engine
+patches, `ENGINE-PATCHES.md`). Acceptance and the three gauntlets pass on it; the latest records are in
+`ACCEPTANCE.md`. A new machine reinstalls and rebuilds Forge first (`install.sh`, then the `mvn` build). On the Mac,
+set `JAVA_HOME` to JDK 17.
 
 Next steps, in order:
-1. **Next game is g07.** g05 (Cephalid Breakfast beat Lands, T14) and g06 (Sneak and Show lost to Infect, T7)
-   are logged. g06 put one harness defect on the sheet (the pump resolve line), now fixed as harness-epoch-46,
-   so the "three clean games in a row" counter restarted: g05-g06 count as clean since the fix landed — play
-   g07 (untouched decks, seed 4107), then g08, and stop after three consecutive games add nothing new to the
-   sheet. Bad play with the full state shown is a puzzle candidate, not a defect; do not fix play.
-2. **After any harness change** rerun all three gauntlets with new seeds (`FORGE_HOME=$HOME/code/forge
-   GAUNTLET_POLICY=random GAUNTLET_SEED=<salt> bash eval/keyword_gauntlet.sh <out> 6`, again with
-   `GAUNTLET_TOOLS=1 GAUNTLET_SEED=<salt>`; the picker takes the newest `2*` acceptance build only —
-   stale `stdpin*` dirs are not builds). `python3 eval/gauntlet_scan.py <out>` must say 0 defect lines.
-3. **Closed:** the yes/no-`simulate` classification question is settled in code —
-   `tool_audit.classify` files the preview guard under `empty`, with a test (commit 521735c1).
-4. Owner decisions still open (do not start without them): E4, E6, E5, then E7 (paid, cost first); the Luna
-   puzzle run; C3.
+1. **The game loop continues at g07.** g01-g06 are logged in GAME-LOOP-LOG.md. g06 and the review of g05 each found a
+   harness defect (fixed as epochs 46 and 47), so no game yet counts towards "three in a row with nothing new". Play
+   one game at a time on decks not used this round (the `game-loop` skill) until three in a row add nothing.
+2. **After any harness change**, rerun the three gauntlets with new seeds:
+   `FORGE_HOME=<checkout> bash eval/keyword_gauntlet.sh <out> 6`, then with `GAUNTLET_POLICY=random
+   GAUNTLET_SEED=<salt>`, then also with `GAUNTLET_TOOLS=1`; `python3 eval/gauntlet_scan.py <out>` must say 0 defect
+   lines each time.
+3. Owner decisions still open (do not start without them): E4, E6, E5, then E7 (paid, cost first); the Luna puzzle
+   run; C3.
 
-The merge gate this week: the owner asked for the full gate on the epoch-46 PR — `pr_format.py check-branch`
-and `check-pr`, the three review skills run fresh on the PR head, an acceptance run recorded on it, then
-`scripts/pr_merge.sh` (merge commit). Confirm the gate also applies to the next PR before merging without it.
-The audits to run after each game stay the full free set (`match_review.py`, `tool_audit.py`, `plan_audit.py`,
-`defect_analyzer.py`, `cost_report.py`).
+Merging: the owner asked for the full gate on the epoch-46 PR (`pr_format.py check-branch` and `check-pr`, the three
+review skills on the PR head, a recorded acceptance run, then `scripts/pr_merge.sh`). Use it unless the owner says
+otherwise.
 
 ## Now (2026-10-17): real games on the finished harness, then the eval
 
