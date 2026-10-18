@@ -678,3 +678,27 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
 - `first` 28 games, random (s5) 28 games, random with lookups (t3) 28 games: 0 defect lines each.
 - FIXED  (script) the gauntlet run without `FORGE_HOME` played 28 games that all exited 1; it now stops at once when
   the checkout is missing.
+
+### g05  2026-10-17  seed 4105  Cephalid Breakfast (seat) vs Lands (Forge AI)  WON T14  $0.12  overlay 30857a1e0f50
+- Time: 20 min (158 model answers in the first game of this round played on the Mac clone; 0 waits to the
+  deadline, 0 stalls cut early, 0 provider errors). Deck-faithful play throughout: Tamiyo transformed T4 on
+  the third draw, Relic of Progenitus exiled both graveyards before Punishing Fire could recur, both
+  Illusionists were committed, and the combo assembled exactly as the deck plays it.
+- FIXED  (setup, before the game) the first Mac acceptance run on this clone since the epochs-40/41 changes
+  failed only `canary-random`: those epochs re-rolled the random walk and re-pinned only Linux (A/59/397),
+  leaving the plain Mac pin STALE until measured there. Measured on this Mac: winner B/50/273, reproduced
+  twice in one class-load build; floor unchanged A/108/1828; full acceptance PASS on the re-pinned keys
+  (runs/harness-acceptance/20261018T000454Z). Commit 487b6022; no code change, main untouched.
+- clean  TAKEN 0, LOST 0, SKIP 0, ai=0; tools 10/10 served; mulligan, fetch zone choices, mana keeps, all
+  by call. The combo turn ran on the schema as designed: the Cabal Therapy flashback asked its sacrifice
+  with an eight-line menu and a cancel, answered by pick numbers, and the win (Cabal Therapy flashback
+  sacrificing Oracle, Dread Return flashback reanimating it on an empty library) executed exactly as chosen.
+- model  the first Cabal Therapy name was "Dark Tactics" — a LAND. The ask carried "Choose a nonland card name."
+  in its own text; the refusal reason said "is not a card that can be named here"; the model's second reply
+  named a legal card (answer invalid 1 in the row, corrected in the same conversation). A model mistake, not
+  a harness defect. Side note, not acted on: the ask also echoes the engine's validation string
+  "(must match: Card.nonLand)" beside the plain-English constraint.
+- model  cast a Thassa's Oracle against its own plan arithmetic while the library still held several cards
+  (it resolved without winning); the seat kept Karakas untapped as it planned and reached the win anyway by
+  flashing back Cabal Therapy (sacrificing Oracle) and Dread Return to reanimate it on an empty library.
+  Noted, not a puzzle.
