@@ -378,6 +378,15 @@ public final class LlmSpikePuzzle {
                 extra.put("search_drift", "the main line did not replay to the same solve");
             }
         }
+        if (r != null && r.refutation != null && !"proven".equals(status)) {
+            // The opponent reply that beat every line found, played out once, for the puzzle's audit.
+            Played ref = replay(file, id, sections, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
+                    new PuzzleArms.Line(r.refutation, 0));
+            List<String> opp = new ArrayList<>();
+            for (String l : ref.logLines) if (l.contains("Opponent")) opp.add(l);
+            extra.put("refutation_line", PuzzleSearch.lineText(r.refutation));
+            extra.put("refutation_opponent_log", opp);
+        }
         long durMs = System.currentTimeMillis() - t0;
         extra.put("pzl_sha256", pzlSha);
         extra.put("goal_bounded", bounded);

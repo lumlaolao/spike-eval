@@ -46,6 +46,8 @@ public class PuzzleSearchTest {
         PuzzleSearch.Result r = new PuzzleSearch(toy((a, b, c) -> a == 1 && b == 0), "Solver", 500, 4, 7L).prove();
         Assert.assertEquals(r.verdict, PuzzleSearch.Verdict.NOT_FOUND);
         Assert.assertNull(r.line);
+        // The audit gets the reply that beat it: a = 1, then the opponent's b = 1.
+        Assert.assertEquals(PuzzleSearch.lineText(r.refutation), "Solver:3:1 Opponent:2:1");
     }
 
     @Test

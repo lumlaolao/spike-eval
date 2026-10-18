@@ -51,6 +51,8 @@ final class PuzzleSearch {
         int opponentBranches = 0;        // opponent alternatives the proof had to beat
         int opponentChoicePoints = 0;    // points on the main line where the opponent had 2+ options
         String drift = null;
+        /** When not proven: an opponent reply no line the search found could beat, as the line reaching it. */
+        List<Step> refutation = null;
     }
 
     private final Game game;
@@ -67,6 +69,7 @@ final class PuzzleSearch {
     private final Map<String, Node> tree = new HashMap<>();
     private final Map<String, Boolean> proven = new HashMap<>();
     private int opponentBranches = 0;
+    private List<Step> refutation = null;
 
     private static final class Node {
         final String seat; final int bound;
@@ -99,6 +102,8 @@ final class PuzzleSearch {
             r.verdict = Verdict.PROVEN;
             r.line = main;
             for (Step s : main) if (!s.seat.equals(solverSeat) && s.bound > 1) r.opponentChoicePoints++;
+        } else {
+            r.refutation = refutation;
         }
         return r;
     }
@@ -132,7 +137,10 @@ final class PuzzleSearch {
                     opponentBranches++;
                     Boolean sub = prove(alt, null);
                     if (sub == null) return null;
-                    if (!sub) holds = false;
+                    if (!sub) {
+                        holds = false;
+                        if (refutation == null || alt.size() < refutation.size()) refutation = alt;
+                    }
                 }
             }
             if (holds) {

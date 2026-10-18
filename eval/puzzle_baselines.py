@@ -334,7 +334,7 @@ def proof_from_row(row, opponent, engine_sha, date):
         return None
     keep = ("search_replays", "search_budget", "search_lines_per_point", "opponent_choice_points",
             "opponent_branches_beaten", "search_drift", "line", "solver_actions", "actions", "log_sha256",
-            "duration_ms", "seed")
+            "duration_ms", "seed", "refutation_line", "refutation_opponent_log")
     proof = {"status": row.get("status"), "opponent": opponent, "engine_sha": engine_sha, "date": date}
     proof.update({k: row[k] for k in keep if row.get(k) not in (None, "")})
     return proof
