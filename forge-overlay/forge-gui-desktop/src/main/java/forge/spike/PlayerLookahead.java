@@ -51,7 +51,8 @@ final class PlayerLookahead {
     // stayed aimed, and the real cast never asked for it), and a target choice of a play can be previewed.
     // v11 (2026-10-17): the target preview is offered only while aiming a play from the priority menu; a trigger's
     // target cannot be replayed on the copy (runs/loop/g04 T5 got "unavailable").
-    static final String VERSION = "lookahead-preview-v11";
+    // v12 (2026-10-18): a mana ability is previewed as a step of a line, and the report shows the mana pool.
+    static final String VERSION = "lookahead-preview-v12";
 
     private PlayerLookahead() { }
 
@@ -139,6 +140,21 @@ final class PlayerLookahead {
      *  blue card). The simulator matches an ability by its text among the card's own abilities, where the alternative
      *  is not, and fell back to the hard cast, which the copy could not pay (runs/c3/doomsday-game T8, T19). Any other
      *  option is returned as it is, for the simulator to map. Targets set on the live option are carried over. */
+    /** The copy's version of mana ability {@code live}: the host's mana ability with the same description. */
+    static forge.game.spellability.SpellAbility manaAbilityOnCopy(forge.game.spellability.SpellAbility live, GameSimulator sim) {
+        try {
+            forge.game.card.Card copyHost = (forge.game.card.Card) sim.getGameCopier().find(live.getHostCard());
+            Player copySeat = (Player) sim.getGameCopier().find(live.getActivatingPlayer());
+            if (copyHost == null || copySeat == null) return null;
+            for (forge.game.spellability.SpellAbility s : copyHost.getManaAbilities()) {
+                if (!java.util.Objects.equals(s.getDescription(), live.getDescription())) continue;
+                s.setActivatingPlayer(copySeat);
+                return s;
+            }
+        } catch (RuntimeException ignore) { }
+        return null;
+    }
+
     static forge.game.spellability.SpellAbility alternativeOnCopy(forge.game.spellability.SpellAbility live, GameSimulator sim, Player seat) {
         try {
             forge.game.card.Card host = live.getHostCard();
@@ -234,6 +250,9 @@ final class PlayerLookahead {
         int yardAfter = after.getCardsIn(ZoneType.Graveyard).size();
         if (yardAfter != yardBefore) b.append("graveyard ").append(yardBefore).append(" -> ").append(yardAfter).append("; ");
         // Sizes of hidden zones are public; their contents are not and are never named.
+        // What a mana ability does is the mana it adds (runs/loop/g10: a line ending in Gaea's Cradle).
+        String poolBefore = SeatObservation.manaPool(before), poolAfter = SeatObservation.manaPool(after);
+        if (!poolAfter.equals(poolBefore)) b.append("mana pool ").append(poolBefore).append(" -> ").append(poolAfter).append("; ");
         int handBefore = before.getCardsIn(ZoneType.Hand).size(), handAfter = after.getCardsIn(ZoneType.Hand).size();
         if (handAfter != handBefore) b.append("hand ").append(handBefore).append(" -> ").append(handAfter).append("; ");
         int libBefore = before.getCardsIn(ZoneType.Library).size(), libAfter = after.getCardsIn(ZoneType.Library).size();
@@ -265,7 +284,7 @@ final class PlayerLookahead {
      *  for the seat and each opponent. Runs entirely inside one isolated RNG: the live game and its
      *  RNG stream are untouched (same guarantee as {@link #copyForPreview}).
      *
-     *  <p>It refuses mana abilities, and never reports hidden identities —
+     *  <p>It never reports hidden identities —
      *  this is a *rules preview* of the immediate resolution, not a win-probability rollout (see
      *  docs/harness/LOOKAHEAD-DESIGN.md). The opponent is played by the engine AI, and only
      *  libraries are shuffled and each opponent's hand is re-dealt from its hand and library
@@ -323,12 +342,9 @@ final class PlayerLookahead {
         // were for an activated ability (Goblin Bombardment, a planeswalker) and all were turned away.
         // v3 also plays a land drop: the seat asked for "land, then the spell it pays for" and was
         // refused (runs/loop/g02 turn 6, `simulate {"option":4,"then":[3]}`; 13 of 92 requests named a
-        // PLAY LAND option in runs/lines/ctl2/native-lookahead). A mana ability is still refused:
-        // "add one mana" resolves to nothing the report can show.
-        for (forge.game.spellability.SpellAbility o : liveOptions) {
-            if (o.isManaAbility())
-                return "(a preview covers CAST, ACTIVATE and PLAY LAND options, not mana abilities)";
-        }
+        // PLAY LAND option in runs/lines/ctl2/native-lookahead). v12 plays a mana ability too: it is an
+        // ACTIVATE option, and refusing it refused the whole line "cast Heritage Druid twice, then tap Gaea's
+        // Cradle" (runs/loop/g10 turn 6). The report shows the mana it adds.
         Random liveRandom = MyRandom.getRandom();
         // A live option carries no target until the model commits, so the engine cannot resolve a
         // targeting spell. Set first-legal targets for the preview and RESTORE them in the finally:
@@ -390,6 +406,15 @@ final class PlayerLookahead {
                     ok = copyDrop != null && copyDrop.canPlay();
                     if (ok) copyMe.playLand(copyLand, copyDrop);
                     ok = ok && copyLand.isInZone(ZoneType.Battlefield);
+                } else if (o.isManaAbility()) {
+                    // A mana ability uses no stack: the copy's own ability is paid for and resolved at once, and the
+                    // copy's pool holding more than before is the success test.
+                    Player copyMe = (Player) sim.getGameCopier().find(seat);
+                    forge.game.spellability.SpellAbility copyMana = manaAbilityOnCopy(o, sim);
+                    int before = copyMe == null ? 0 : copyMe.getManaPool().totalMana();
+                    ok = copyMana != null && copyMe != null
+                            && forge.ai.ComputerUtil.playNoStack(copyMe, copyMana, simGame, false)
+                            && copyMe.getManaPool().totalMana() > before;
                 } else {
                     // Play on the copy; the engine pays the costs there. The sentinel score is its way
                     // of saying it could not (no legal payment on the copy after earlier steps). Played

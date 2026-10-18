@@ -766,3 +766,14 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
   `castingFromAnEffectIsTheModels`, `aTypeIsTheModels`, `anEntityPickIsTheModels` (extended). Faithful profile only;
   folded into harness-epoch-50.
 
+
+### g10  2026-10-18  seed 4110  Elves (seat) vs Burn (Forge AI)  WON T8  $0.02  harness-epoch-50
+Sheet clean: 33 model decisions, TAKEN 0, LOST 0, SKIP 0, TOOL 3 of 3 served, ai_tier_count=0. The seat cast Glimpse
+of Nature twice, chained Heritage Druids, and on turn 8 tapped Gaea's Cradle for Green Sun's Zenith X=8 (Craterhoof).
+- FIXED  the ACTIVATE option read "Tap three untapped Elfs you control" (Forge's plural adds an "s"; six rows, turn 6
+  on). An option says a creature type in Forge's own plural ("Elves"). Test `aTypeIsSaidInItsOwnPlural`.
+- FIXED  `simulate {"option":2,"then":[4,6]}` (cast Heritage Druid, cast Heritage Druid, tap Gaea's Cradle) was
+  refused whole because option 6, an ACTIVATE option, is a mana ability. A preview plays a mana ability like any step
+  and its report shows the mana pool. Test `aTapAbilityAndAManaAbilityArePreviewed` (renamed).
+  lookahead-preview-v12. Both folded into harness-epoch-51.
+- clean  mulligan, blocks, the X announcement, the Zenith search, attackers, two lookups served.

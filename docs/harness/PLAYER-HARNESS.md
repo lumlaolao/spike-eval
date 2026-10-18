@@ -443,7 +443,7 @@ stamped). Three changes, each from what the first arms that could ask for a prev
 - **Previews work when a sideboard holds a characteristic-defining card**
   (`PlayerLookahead.UncopiedEffects`; ARCHITECTURE-REVIEW problem 13). Sixteen of the 38 died here.
 - **Activated abilities are previewed**, not only spells. Nineteen of the 38 were for one. A land
-  drop or a mana ability is still refused. When a cost holds a choice (sacrifice a creature) the
+  drop is previewed since v3 and a mana ability since v12 (its report shows the mana pool). When a cost holds a choice (sacrifice a creature) the
   engine pays it on the copy and the report says so: "The engine chose what to sacrifice for this
   preview; in the real play YOU choose".
 - **The report names what happened.** `if you activate Goblin Bombardment [assuming target: Rival]:
