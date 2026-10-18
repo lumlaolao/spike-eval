@@ -56,3 +56,18 @@ hidden has neither ManaCost nor Color
 [Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
 [Seat] [TALLY] smart=7 fast=0 auto=1 ai=0 textParses=0 avgSmart=5004ms avgFast=5004ms
 [Seat] [ROUTER] play(main): 1 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6174 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Develop an early threat while setting up disruption against a likely Eldrazi/ramp deck. NEXT: Play Overgrown Tomb untapped, cast Badgermole Cub using Blooming Marsh and Tomb, then preserve future removal for their larger threats.
+[OPENROUTER Seat/smart] replied in 2084 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Likely Eldrazi/ramp: Ancient Stirrings and Sowing Mycospawn; respect their ramp into large threats.
+[Seat] [ROUTER] play: land Overgrown Tomb
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[OPENROUTER Seat/smart] replied in 3597 ms with 1 tool call(s)
+[Seat] [ROUTER] prevent-effect: paid Pay 2 life -> true
+[Seat] [TALLY] smart=10 fast=0 auto=2 ai=0 textParses=0 avgSmart=4688ms avgFast=4688ms
+[Seat] [ROUTER] play(main): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4720 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 1: if you cast Badgermole Cub: you board 2 -> 3; hand 5 -> 4; entered the battlefield: Badgermole Cub; ForgeAI no change
+[OPENROUTER Seat/smart] replied in 3993 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Badgermole Cub 2/2 @10 1{G} [When this creature enters, earthbend 1. (Target land you control becomes a 0/0 creature with haste that's still a land. Put a +1/+1 counter on it. When it dies or is exiled, return it to the battlefield tapped.) Whenever you tap a creature for mana, add an additional {G}.]
+[Seat] [AUTO-LEGAL] color(forced)->first
