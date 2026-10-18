@@ -356,7 +356,13 @@ public final class LlmSpikePuzzle {
         PuzzleSearch.Game g = (prefix, completionSeed) -> {
             if (broken[0]) return new PuzzleSearch.Rollout(new ArrayList<>(prefix), false, "game thread outlived the cap");
             PuzzleArms.Line line = new PuzzleArms.Line(prefix, completionSeed);
-            if (n[0] > 0 && n[0] % 100 == 0) System.out.println("[PZL] search " + id + ": " + n[0] + " rollouts");
+            if (n[0] > 0 && n[0] % 100 == 0) {
+                // Heap after a collection: prove-v3 PS_M204 and PS_WAR0a ran out of heap after 500-600 rollouts.
+                System.gc();
+                Runtime rt = Runtime.getRuntime();
+                System.out.println("[PZL] search " + id + ": " + n[0] + " rollouts, heap "
+                        + (rt.totalMemory() - rt.freeMemory()) / (1024 * 1024) + " MB");
+            }
             Played p;
             try {
                 p = replay(file, id, sections, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded, line);
