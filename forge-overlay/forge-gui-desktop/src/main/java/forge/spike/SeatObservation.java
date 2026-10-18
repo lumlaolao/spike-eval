@@ -101,7 +101,8 @@ final class SeatObservation {
     static final String GUIDE =
               "Each message starts with the state of the game, then the decision.\n"
             + "- The header gives the turn number, the phase or step, whose turn it is (active) and who has priority. If the "
-            + "active player is not you, you are acting on their turn, at instant speed.\n"
+            + "active player is not you, you are acting on their turn, at instant speed. Before the first turn (the opening "
+            + "hands) there is no phase and no active player yet.\n"
             + "- YOU and OPP each start with a line of counts: life, poison (10 loses), any other counters, hand, library, "
             + "graveyard, exile, lands played this turn out of the lands allowed, mana in pool, and spells cast this turn.\n"
             + "- Your hand lists each card with its mana cost and, for a spell, whether you can cast it now: \"(castable)\", "
@@ -112,7 +113,7 @@ final class SeatObservation {
             + "creature that came under its controller's control this turn and cannot attack or use tap abilities yet.\n"
             + "- mana available is the mana your untapped sources can make right now, as the engine counts it (Ancient Tomb "
             + "makes 2; a summoning-sick creature makes none). Per colour it is the mana that can be made in that colour; a "
-            + "dual land counts under both of its colours, so the colours add up to more than can be spent. \"up to N mana\" "
+            + "dual land counts under both of its colours, so the colours add up to more than can be spent; \"none\" when no untapped source can make mana. \"up to N mana\" "
             + "is the total, and a source that makes more than one mana is named with its amount. Mana that can be spent only on "
             + "some spells is listed apart, in the card's own words, and not counted in the total.\n"
             + "- @N is your handle for one object, given when you first see it, and used the same way in the options. When an "
