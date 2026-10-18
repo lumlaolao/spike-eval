@@ -43,7 +43,9 @@ final class PuzzleSearch {
 
     enum Verdict { PROVEN, NOT_FOUND, DRIFT }
 
-    /** The answer: the verdict, the winning line the proof starts from, and the size of the proof. */
+    /** The answer: the verdict, the winning line the proof starts from, and the size of the proof.
+     *  For a uniqueness hunt ({@link #findAlternative}), secondLine is the SECOND accepted line when
+     *  one was found (null = none within the budget) and secondLineRollouts is what the hunt spent. */
     static final class Result {
         Verdict verdict = Verdict.NOT_FOUND;
         List<Step> line = null;          // the first winning line of the proof (the solver's main line)
@@ -53,6 +55,9 @@ final class PuzzleSearch {
         String drift = null;
         /** When not proven: an opponent reply no line the search found could beat, as the line reaching it. */
         List<Step> refutation = null;
+        // Uniqueness hunt fields (findAlternative):
+        List<Step> secondLine = null;
+        int secondLineRollouts = 0;
     }
 
     private final Game game;
@@ -64,6 +69,10 @@ final class PuzzleSearch {
     private long nextSeed;
     private int replays = 0;
     private String drift = null;
+
+    /** Uniqueness-hunt state: the main line's solver signature, if a hunt is on. A rollout whose
+     *  solver signature equals it does not count as the second line — it is the ONE line we know. */
+    private String huntMainSig = null;
 
     /** UCT statistics per choice point, keyed by the prefix that reaches it. */
     private final Map<String, Node> tree = new HashMap<>();
@@ -109,6 +118,91 @@ final class PuzzleSearch {
     }
 
     int replays() { return replays; }
+
+    // ================================================================================
+    // UNIQUENESS (eval/BENCHMARK-V1.md, "one solution"): a mode beside prove(). Given a proven
+    // main line, hunt a SECOND accepted line whose solver-action sequence differs beyond
+    // reordering. Lines whose solver entries are the same in a different order count as one
+    // line ({@link #solverSignature}); a hunt that finds none within its budget says "unique",
+    // bounded, never "no two solutions exist everywhere".
+    // ================================================================================
+
+    /**
+     * Hunt for a second accepted line. Runs fresh state (the caller normally passes a fresh
+     * instance), steering the UCT search away from the main line: every rollout that re-finds it
+     * scores zero, so untried branches keep being explored and only a genuinely different
+     * accepted line pays the tree.
+     */
+    Result findAlternative(List<Step> main) {
+        Result r = new Result();
+        // Fresh state: a hunt does not share the proof's tree or memo (a proof prunes the
+        // branches IT explored; the hunt must be free to visit others).
+        tree.clear();
+        proven.clear();
+        refutation = null;
+        opponentBranches = 0;
+        drift = null;
+        replays = 0;
+        huntMainSig = key(solverSignature(main, solverSeat), solverSignature(main, solverSeat).size());
+
+        while (!outOfBudget()) {
+            List<Step> start = select(new ArrayList<>());
+            Rollout ro = game.play(start, nextSeed++);
+            replays++;
+            r.secondLineRollouts = replays;
+            if (ro.drift != null) {
+                drift = ro.drift;
+                r.drift = drift;
+                r.verdict = Verdict.DRIFT;
+                return r;
+            }
+            if (!startsWith(ro.steps, new ArrayList<>())) {
+                drift = "rollout left its prefix";
+                r.drift = drift;
+                r.verdict = Verdict.DRIFT;
+                return r;
+            }
+            boolean hit = ro.solved && !key(solverSignature(ro.steps, solverSeat),
+                    solverSignature(ro.steps, solverSeat).size()).equals(huntMainSig);
+            update(ro, hit ? 1 : 0);
+            r.replays = replays;
+            if (hit) {
+                r.secondLine = ro.steps;
+                r.verdict = Verdict.PROVEN;
+                return r;
+            }
+        }
+        r.replays = replays;
+        return r;
+    }
+
+    /** The solver's own choice entries above one option (bound > 1), SORTED, so two lines that take
+     *  the same entries in different orders are the same line. Engine draws with a single option
+     *  (bound 1) are part of where the game is, never a decision, and separate nothing. */
+    static List<Step> solverSignature(List<Step> line, String solverSeat) {
+        List<Step> sig = new ArrayList<>();
+        for (Step s : line)
+            if (s.seat.equals(solverSeat) && s.bound > 1) sig.add(new Step(s.seat, s.bound, s.value));
+        sig.sort((a, b) -> a.bound != b.bound ? Integer.compare(a.bound, b.bound) : Integer.compare(a.value, b.value));
+        return sig;
+    }
+
+    /** The inverse of {@link #lineText}: "Solver:3:1 Opponent:2:0" back into steps. */
+    static List<Step> parseLine(String text) {
+        List<Step> out = new ArrayList<>();
+        if (text == null) return out;
+        for (String tok : text.trim().split("\\s+")) {
+            if (tok.isEmpty()) continue;
+            String[] parts = tok.split(":");
+            if (parts.length != 3) throw new RuntimeException("bad line step '" + tok + "' in '" + text + "'");
+            try {
+                out.add(new Step(parts[0], Integer.parseInt(parts[1]), Integer.parseInt(parts[2])));
+            } catch (NumberFormatException e) {
+                throw new RuntimeException("bad line step '" + tok + "' in '" + text + "'");
+            }
+        }
+        return out;
+    }
 
     private boolean outOfBudget() { return replays >= budget || drift != null; }
 
@@ -195,8 +289,9 @@ final class PuzzleSearch {
     }
 
     /** Count the rollout at every tree node it passed through, and add the first node it reached beyond. */
-    private void update(Rollout ro) {
-        int win = ro.solved ? 1 : 0;
+    private void update(Rollout ro) { update(ro, ro.solved ? 1 : 0); }
+
+    private void update(Rollout ro, int win) {
         for (int i = 0; i < ro.steps.size(); i++) {
             Step s = ro.steps.get(i);
             if (s.bound < 2) continue;

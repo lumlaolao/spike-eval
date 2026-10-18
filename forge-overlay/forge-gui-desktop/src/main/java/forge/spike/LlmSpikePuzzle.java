@@ -24,6 +24,7 @@ import forge.game.player.RegisteredPlayer;
 import forge.game.zone.ZoneType;
 import forge.gamemodes.puzzle.Puzzle;
 import forge.localinstance.properties.ForgeConstants;
+import forge.spike.PuzzleArms.Step;
 import forge.util.FileSection;
 import forge.util.FileUtil;
 import forge.util.MyRandom;
@@ -149,6 +150,236 @@ public final class LlmSpikePuzzle {
 
     static int intOr(String s, int def) {
         try { return Integer.parseInt(s.trim()); } catch (Exception e) { return def; }
+    }
+
+    // ================================================================================
+    // THE ACCEPTANCE STATE (eval/BENCHMARK-V1.md, "a start state, an acceptance state, one
+    // solution"). Forge's enforced goals bound the turns but ask only "win/survive/..."; a
+    // rules question is answered by what the ENGINE did, so the .pzl carries an [acceptance]
+    // section of conditions on the FINAL state (zones by card name, life, counters, tokens,
+    // who lost), all AND'd, written by the puzzle's author — never read from model text.
+    //
+    // One condition per line, fields colon-separated (card and counter names may hold spaces
+    // and commas, just not colons):
+    //   zone:<player>:<zone>:<name|*>:<exact|min|max|>=|<=>:<n>
+    //   life:<player>:<op>:<n>
+    //   counter:<player>:<zone>:<card name>:<counter name>:<op>:<n>
+    //   token:<player>:<zone>:<name|*>:<op>:<n>   tokens only (dealt in by isToken())
+    //   lost:<player>
+    // The conditions are AND'd; the runner evaluates them when the game ends and reports
+    // accepted/rejected in the result row.
+    // ================================================================================
+
+    /** The final state of a finished game, as the acceptance predicates see it: per player,
+     *  life, lost-flag, and every zone's cards by name (token flag, counters). Built once off
+     *  the engine after the game is over. The pure half the tests in LlmSpikePuzzleTest use. */
+    static final class Snapshot {
+        final List<PlayerInfo> players = new ArrayList<>();
+
+        static final class CardInfo {
+            final String name; final boolean token;
+            final Map<String, Integer> counters = new LinkedHashMap<>();
+            CardInfo(String name, boolean token) { this.name = name; this.token = token; }
+        }
+
+        static final class PlayerInfo {
+            int life = -1; boolean lost = false;
+            final Map<String, List<CardInfo>> zones = new LinkedHashMap<>();
+            List<CardInfo> zone(String z) { return zones.getOrDefault(z.toLowerCase(java.util.Locale.ROOT),
+                    java.util.Collections.emptyList()); }
+        }
+
+        static final class SnapshotBuilder {
+            private final Snapshot s = new Snapshot();
+
+            SnapshotBuilder player(int i) {
+                while (s.players.size() <= i) s.players.add(new PlayerInfo());
+                return this;
+            }
+            SnapshotBuilder life(int p, int v) { player(p); s.players.get(p).life = v; return this; }
+            SnapshotBuilder lost(int p) { player(p); s.players.get(p).lost = true; return this; }
+            private CardInfo addCard(int p, String z, String name, boolean token) {
+                player(p);
+                String key = z.toLowerCase(java.util.Locale.ROOT);
+                List<CardInfo> l = s.players.get(p).zones.get(key);
+                if (l == null) { l = new ArrayList<>(); s.players.get(p).zones.put(key, l); }
+                CardInfo c = new CardInfo(name, token); l.add(c); return c;
+            }
+            SnapshotBuilder card(int p, String z, String name, boolean token) { addCard(p, z, name, token); return this; }
+            /** The whole card list of one zone, engine-built. */
+            SnapshotBuilder zoneCards(int p, String z, List<CardInfo> cards) {
+                player(p);
+                s.players.get(p).zones.put(z.toLowerCase(java.util.Locale.ROOT), new ArrayList<>(cards));
+                return this;
+            }
+            /** The most recent card of this name in that player's zone receives the counters. */
+            SnapshotBuilder counter(int p, String z, String name, String counter, int n) {
+                List<CardInfo> l = s.players.get(p).zones.get(z.toLowerCase(java.util.Locale.ROOT));
+                for (int i = (l == null ? -1 : l.size() - 1); i >= 0; i--) {
+                    if (l.get(i).name.equals(name)) { l.get(i).counters.put(counter.toLowerCase(java.util.Locale.ROOT), n); return this; }
+                }
+                throw new IllegalArgumentException("no card named " + name + " to hold counter " + counter);
+            }
+            Snapshot build() { return s; }
+        }
+    }
+
+    /** One parsed [acceptance] line. `op` is null for "lost". */
+    static final class Condition {
+        final String kind, zone, name, counter, op; final int player, value;
+        Condition(String kind, int player, String zone, String name, String counter, String op, int value) {
+            this.kind = kind; this.player = player; this.zone = zone; this.name = name;
+            this.counter = counter; this.op = op; this.value = value;
+        }
+    }
+
+    static final java.util.Set<String> ACCEPTANCE_ZONES = new java.util.HashSet<>(java.util.Arrays.asList(
+            "battlefield", "graveyard", "exile", "hand", "library", "command"));
+
+    static List<Condition> parseAcceptance(List<String> lines) {
+        List<Condition> out = new ArrayList<>();
+        if (lines == null) return out;
+        for (String raw : lines) {
+            String line = raw == null ? "" : raw.trim();
+            if (line.isEmpty() || line.startsWith("#")) continue;
+            String[] f = line.split(":");
+            String kind = f[0].toLowerCase(java.util.Locale.ROOT);
+            try {
+                switch (kind) {
+                    case "life":   // life:<p>:<op>:<n>
+                    {
+                        int p = playerIndex(f[1]);
+                        out.add(new Condition("life", p, null, null, null, op(f[2]), intOf(f[3])));
+                        break;
+                    }
+                    case "lost":   // lost:<p>
+                        out.add(new Condition("lost", playerIndex(f[1]), null, null, null, null, 0));
+                        break;
+                    case "zone":   // zone:<p>:<zone>:<name>:<op>:<n>
+                    {
+                        String zone = zoneOf(f[2]);
+                        out.add(new Condition("zone", playerIndex(f[1]), zone, f[3], null, op(f[4]), intOf(f[5])));
+                        break;
+                    }
+                    case "token":  // token:<p>:<zone>:<name>:<op>:<n>
+                    {
+                        String zone = zoneOf(f[2]);
+                        out.add(new Condition("token", playerIndex(f[1]), zone, f[3], null, op(f[4]), intOf(f[5])));
+                        break;
+                    }
+                    case "counter": // counter:<p>:<zone>:<card>:<counter>:<op>:<n>
+                    {
+                        String zone = zoneOf(f[2]);
+                        out.add(new Condition("counter", playerIndex(f[1]), zone, f[3], f[4], op(f[5]), intOf(f[6])));
+                        break;
+                    }
+                    default:
+                        throw new RuntimeException("unknown acceptance kind '" + line + "'");
+                }
+            } catch (RuntimeException e) {
+                throw new RuntimeException("bad [acceptance] line '" + line + "': " + e.getMessage());
+            }
+        }
+        return out;
+    }
+
+    private static int playerIndex(String s) {
+        int p = intOr(s, -1);
+        if (p != 0 && p != 1) throw new RuntimeException("player must be 0 (solver) or 1 (opponent), got '" + s + "'");
+        return p;
+    }
+
+    private static String zoneOf(String s) {
+        String z = s.toLowerCase(java.util.Locale.ROOT);
+        if (!ACCEPTANCE_ZONES.contains(z)) throw new RuntimeException("unknown zone '" + s + "' (" + ACCEPTANCE_ZONES + ")");
+        return z;
+    }
+
+    /** exact / min|max (the >= and <= spellings read the same) — anything else is refused. */
+    private static String op(String s) {
+        String o = s.toLowerCase(java.util.Locale.ROOT);
+        if (o.equals(">=")) return "min";
+        if (o.equals("<=")) return "max";
+        if (!o.equals("exact") && !o.equals("min") && !o.equals("max"))
+            throw new RuntimeException("operator must be exact|min|max|>=|<=, got '" + s + "'");
+        return o;
+    }
+
+    private static int intOf(String s) {
+        try { return Integer.parseInt(s.trim()); }
+        catch (Exception e) { throw new RuntimeException("not an integer: '" + s + "'"); }
+    }
+
+    /** How many cards named `name` (case-insensitive, `*` = every card) sit in one player's zone. */
+    static int countInZone(Snapshot.PlayerInfo p, String zone, String name) {
+        int n = 0;
+        for (Snapshot.CardInfo c : p.zone(zone)) {
+            if ("*".equals(name) || c.name.equalsIgnoreCase(name)) n++;
+        }
+        return n;
+    }
+
+    /** How many TOKEN cards named `name` (`*` = any) sit in one player's zone. */
+    static int tokensInZone(Snapshot s, int player, String zone, String name) {
+        int n = 0;
+        List<Snapshot.CardInfo> l = s.players.get(player).zone(zone);
+        for (Snapshot.CardInfo c : l) if ((c.token) && ("*".equals(name) || c.name.equalsIgnoreCase(name))) n++;
+        return n;
+    }
+
+    /** The comparison one condition makes against a count, as parsed. */
+    private static boolean opHolds(String op, int count, int value) {
+        switch (op) {
+            case "exact": return count == value;
+            case "min":   return count >= value;
+            case "max":   return count <= value;
+            default: throw new RuntimeException("unhandled operator " + op);
+        }
+    }
+
+    /** True iff every condition holds against the final state (an empty list is trivially true). */
+    static boolean accepted(List<Condition> conds, Snapshot s) {
+        for (Condition c : conds) {
+            switch (c.kind) {
+                case "zone": {
+                    int n = countInZone(s.players.get(c.player), c.zone, c.name);
+                    if (!opHolds(c.op, n, c.value)) return false;
+                    break;
+                }
+                case "token": {
+                    int n = tokensInZone(s, c.player, c.zone, c.name);
+                    if (!opHolds(c.op, n, c.value)) return false;
+                    break;
+                }
+                case "counter": {
+                    int n = 0;
+                    for (Snapshot.CardInfo ci : s.players.get(c.player).zone(c.zone)) {
+                        if (!ci.name.equalsIgnoreCase(c.name)) continue;
+                        Integer v = ci.counters.get(c.counter.toLowerCase(java.util.Locale.ROOT));
+                        if (v != null && v > 0) n = v;   // first match, like a single named card
+                    }
+                    if (!opHolds(c.op, n, c.value)) return false;
+                    break;
+                }
+                case "life": {
+                    int life = s.players.get(c.player).life;
+                    if (!opHolds(c.op, life, c.value)) return false;
+                    break;
+                }
+                case "lost":
+                    if (!s.players.get(c.player).lost) return false;
+                    break;
+                default:
+                    throw new RuntimeException("unhandled acceptance kind " + c.kind);
+            }
+        }
+        return true;
+    }
+
+    /** The .pzl's [acceptance] section parsed. Empty section = no acceptance state (the Forge
+     *  goal alone decides); malformed lines throw at startup, never mid-game. */
+    static List<Condition> acceptanceOf(Map<String, List<String>> sections) {
+        return parseAcceptance(sections.get("acceptance"));
     }
 
     /** Is the turn limit actually reachable?
@@ -285,6 +516,11 @@ public final class LlmSpikePuzzle {
         requireEnforcedGoal(goal);
         final boolean bounded = goalIsBounded(sections);
         final String pzlSha = fileSha256(String.valueOf(file));
+        // The acceptance state, parsed ONCE so a malformed [acceptance] line fails loudly before
+        // a single rollout rather than silently deciding every result.
+        final List<Condition> acceptance = acceptanceOf(sections);
+        if (!acceptance.isEmpty() && "search".equals(System.getenv("CONTROLLER_A")))
+            System.out.println("[PZL] acceptance state: " + acceptance.size() + " condition(s)");
 
         String ctlA = System.getenv().getOrDefault("CONTROLLER_A", "llm");
         String ctlB = System.getenv().getOrDefault("CONTROLLER_B", "ai");
@@ -303,7 +539,7 @@ public final class LlmSpikePuzzle {
         }
 
         if ("search".equals(ctlA)) {
-            search(file, id, sections, goal, bounded, pzlSha, ctlB, smartA, fastA, capMs);
+            search(file, id, sections, goal, bounded, pzlSha, acceptance, ctlB, smartA, fastA, capMs);
             LlmSpikeGui.EvalLog.closeForTest();
             System.exit(0);
         }
@@ -325,7 +561,7 @@ public final class LlmSpikePuzzle {
                 LlmSpikeGui.EvalLog.closeForTest();
             }
             LlmSpikeGui.EvalLog.init(seed);
-            boolean healthy = runOnce(file, id, sections, goal, bounded, pzlSha, ctlA, ctlB, smartA, fastA,
+            boolean healthy = runOnce(file, id, sections, goal, bounded, acceptance, pzlSha, ctlA, ctlB, smartA, fastA,
                     seed, capMs, rollout++, keepAllTapes);
             if (!healthy) {
                 System.out.println("[PZL] the game thread outlived the cap at seed " + seed
@@ -339,9 +575,17 @@ public final class LlmSpikePuzzle {
 
     /** CONTROLLER_A=search: prove the puzzle on one engine seed and write one result row. Every rollout
      *  replays from the start position on the same seed; only the line of choices differs. The proof's main
-     *  line is then replayed twice more and must give the same game log both times, or the result is drift. */
+     *  line is then replayed twice more and must give the same game log both times, or the result is drift.
+     *  With [acceptance] present, "solved" for the search means the ACCEPTANCE STATE, not just Forge's goal.
+     *  PZL_PROBE="<Seat:bound:value ...>" runs only that fixed prefix once (a misreading probe: the play
+     *  a solver would make if they got the rule wrong) and reports whether it reaches the acceptance state. */
     static void search(File file, String id, Map<String, List<String>> sections, String goal, boolean bounded,
-                       String pzlSha, String ctlB, String smartA, String fastA, long capMs) throws Exception {
+                       String pzlSha, List<Condition> acceptance, String ctlB, String smartA, String fastA, long capMs) throws Exception {
+        String probe = System.getenv("PZL_PROBE");
+        if (probe != null && !probe.trim().isEmpty()) {
+            probeRun(file, id, sections, probe.trim(), bounded, acceptance, pzlSha, ctlB, smartA, fastA, capMs);
+            return;
+        }
         List<Long> seeds = parseSeeds(System.getenv("PZL_SEEDS"));
         final long seed = seeds != null && !seeds.isEmpty() ? seeds.get(0) : LlmSpikeGui.applySeed();
         int budget = intOr(System.getenv().getOrDefault("PZL_SEARCH_BUDGET", "2000"), 2000);
@@ -355,12 +599,12 @@ public final class LlmSpikePuzzle {
             if (n[0] > 0 && n[0] % 100 == 0) System.out.println("[PZL] search " + id + ": " + n[0] + " rollouts");
             Played p;
             try {
-                p = replay(file, id, sections, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded, line);
+                p = replay(file, id, sections, acceptance, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded, line);
             } catch (Exception e) {
                 return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), false, "rollout threw: " + e);
             }
             if (!p.healthy) broken[0] = true;
-            return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), p.cleanSolve(), line.drift);
+            return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), p.acceptedSolve(), line.drift);
         };
         long t0 = System.currentTimeMillis();
         PuzzleSearch.Result r = bounded ? new PuzzleSearch(g, "Solver", budget, lines, seed).prove() : null;
@@ -369,9 +613,9 @@ public final class LlmSpikePuzzle {
         Map<String, Object> extra = new LinkedHashMap<>();
         Played main = null;
         if ("proven".equals(status)) {
-            main = replay(file, id, sections, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
+            main = replay(file, id, sections, acceptance, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
                     new PuzzleArms.Line(r.line, 0));
-            Played again = replay(file, id, sections, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
+            Played again = replay(file, id, sections, acceptance, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
                     new PuzzleArms.Line(r.line, 0));
             if (!main.cleanSolve() || !logFingerprint(main.logLines).equals(logFingerprint(again.logLines))) {
                 status = "drift";
@@ -380,16 +624,34 @@ public final class LlmSpikePuzzle {
         }
         if (r != null && r.refutation != null && !"proven".equals(status)) {
             // The opponent reply that beat every line found, played out once, for the puzzle's audit.
-            Played ref = replay(file, id, sections, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
+            Played ref = replay(file, id, sections, acceptance, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
                     new PuzzleArms.Line(r.refutation, 0));
             List<String> opp = new ArrayList<>();
             for (String l : ref.logLines) if (l.contains("Opponent")) opp.add(l);
             extra.put("refutation_line", PuzzleSearch.lineText(r.refutation));
             extra.put("refutation_opponent_log", opp);
         }
+        // UNIQUENESS (eval/BENCHMARK-V1.md: "one solution"): hunt a second accepted line whose solver
+        // actions differ from the main line beyond reordering. "not found within the budget" is a bound,
+        // never a proof of absence.
+        if ("proven".equals(status) && r != null) {
+            int uBudget = intOr(System.getenv().getOrDefault("PZL_UNIQUE_BUDGET", "1500"), 1500);
+            PuzzleSearch uh = new PuzzleSearch(g, "Solver", uBudget, lines, seed);
+            List<Step> second = uh.findAlternative(r.line).secondLine;
+            extra.put("unique", second == null ? "yes" : "no");
+            extra.put("unique_replays", uh.replays());
+            extra.put("unique_budget", uBudget);
+            if (second != null) {
+                extra.put("second_line", PuzzleSearch.lineText(second));
+                System.out.println("[PZL] search " + id + ": a SECOND accepted line was found: "
+                        + PuzzleSearch.lineText(second));
+            }
+        }
         long durMs = System.currentTimeMillis() - t0;
         extra.put("pzl_sha256", pzlSha);
         extra.put("goal_bounded", bounded);
+        extra.put("acceptance_conditions", acceptance.size());
+        if (main != null) extra.put("acceptance", acceptanceStatus(main, acceptance));
         if (r != null) {
             extra.put("search_replays", r.replays);
             extra.put("search_budget", budget);
@@ -413,23 +675,53 @@ public final class LlmSpikePuzzle {
     }
 
     /** One search rollout: the engine re-seeded as for a fresh launch, both search seats drawing from {@code line}. */
-    static Played replay(File file, String id, Map<String, List<String>> sections, String ctlB, String smartA,
-                         String fastA, long seed, long capMs, int rollout, boolean bounded,
-                         PuzzleArms.Line line) throws Exception {
+    static Played replay(File file, String id, Map<String, List<String>> sections, List<Condition> acceptance,
+                         String ctlB, String smartA, String fastA, long seed, long capMs, int rollout,
+                         boolean bounded, PuzzleArms.Line line) throws Exception {
         MyRandom.setRandom(new java.util.Random(seed));
         LlmSpikeGui.SEED_USED = seed;
         PuzzleArms.searchLine = line;
         try {
-            return playOnce(file, id, sections, "search", ctlB, smartA, fastA, seed, capMs, rollout, bounded, true);
+            return playOnce(file, id, sections, acceptance, "search", ctlB, smartA, fastA, seed, capMs, rollout, bounded, true);
         } finally {
             PuzzleArms.searchLine = null;
         }
     }
 
+    /** PZL_PROBE: one scripted prefix played to game end, to a row whether the acceptance state was met at *all*.
+     *  The misreading probe is the play a solver makes if they got the rule wrong — it must NOT reach it. */
+    static void probeRun(File file, String id, Map<String, List<String>> sections, String probeLine, boolean bounded,
+                         List<Condition> acceptance, String pzlSha, String ctlB, String smartA, String fastA, long capMs) throws Exception {
+        List<Long> seeds = parseSeeds(System.getenv("PZL_SEEDS"));
+        final long seed = seeds != null && !seeds.isEmpty() ? seeds.get(0) : LlmSpikeGui.applySeed();
+        int completionSeed = intOr(System.getenv().getOrDefault("PZL_PROBE_COMPLETION_SEED", "0"), 0);
+        List<Step> prefix = PuzzleSearch.parseLine(probeLine);
+        long t0 = System.currentTimeMillis();
+        Played p = replay(file, id, sections, acceptance, ctlB, smartA, fastA, seed, capMs, 0, bounded,
+                new PuzzleArms.Line(prefix, completionSeed));
+        Map<String, Object> extra = new LinkedHashMap<>();
+        extra.put("kind", "probe");
+        extra.put("probe_line", probeLine);
+        extra.put("probe_completion_seed", completionSeed);
+        extra.put("acceptance_conditions", acceptance.size());
+        extra.put("acceptance", acceptanceStatus(p, acceptance));
+        extra.put("pzl_sha256", pzlSha);
+        extra.put("actions", solverActions(p.logLines, "Solver"));
+        writeRow(id, file, p.acceptanceMet ? "probe_accepted" : "probe_rejected", p.solved, p.turns, p.winCond,
+                System.currentTimeMillis() - t0, seed, "search", ctlB, "", p.goalInstalled, p.goalOracle, "", extra);
+    }
+
+    /** The row's acceptance field: none (no [acceptance]), accepted, rejected, or a read error. */
+    static String acceptanceStatus(Played p, List<Condition> acceptance) {
+        if (acceptance.isEmpty()) return "none";
+        if (p.acceptanceError != null) return "error";
+        return p.acceptanceMet ? "accepted" : "rejected";
+    }
+
     /** Play one rollout and read the outcome; {@code quiet} prints nothing (a search plays thousands). */
-    static Played playOnce(File file, String id, Map<String, List<String>> sections, String ctlA, String ctlB,
-                           String smartA, String fastA, long seed, long capMs, int rollout, boolean bounded,
-                           boolean quiet) throws Exception {
+    static Played playOnce(File file, String id, Map<String, List<String>> sections, List<Condition> acceptance,
+                           String ctlA, String ctlB, String smartA, String fastA, long seed, long capMs,
+                           int rollout, boolean bounded, boolean quiet) throws Exception {
         final Puzzle puzzle = new Puzzle(sections, id, false);
 
         // Empty decks and a zero-card opening hand: the [state] section IS the board. Anything drawn
@@ -549,6 +841,18 @@ public final class LlmSpikePuzzle {
         pl.winCond = winCond; pl.durMs = durMs; pl.goalInstalled = goalInstalled[0]; pl.goalOracle = goalOracle[0];
         pl.solverLoss = solverLoss; pl.oppLoss = oppLoss; pl.solverLossSpell = solverLossSpell;
         pl.oppLossSpell = oppLossSpell; pl.tainted = tainted; pl.logLines = logLines; pl.healthy = !worker.isAlive();
+        // ACCEPTANCE STATE, read off the finished engine (eval/BENCHMARK-V1.md). A snapshot build
+        // or evaluation that throws must fail the rollout loudly, never silently report an
+        // accepted state that was never read.
+        if (!acceptance.isEmpty()) {
+            try {
+                pl.acceptanceMet = accepted(acceptance, buildSnapshot(game));
+            } catch (Exception e) {
+                pl.acceptanceMet = false;
+                pl.acceptanceError = String.valueOf(e);
+                System.out.println("[PZL] acceptance read FAILED: " + e);
+            }
+        }
         return pl;
     }
 
@@ -558,20 +862,61 @@ public final class LlmSpikePuzzle {
         Game game; LobbyPlayer solverSeat;
         String status, winCond = "?", solverLoss, oppLoss, solverLossSpell, oppLossSpell;
         boolean solved, tainted, goalInstalled, healthy;
+        /** Whether the [acceptance] conditions held on the final state (trivially true when the
+         *  puzzle carries none): the acceptance-state answer for this rollout. */
+        boolean acceptanceMet = true;
+        String acceptanceError = null;
         String goalOracle = "";
         int turns = -1;
         long durMs;
         List<String> logLines = new ArrayList<>();
-        /** A solve that counts: Forge scored it solved, and no empty library decided it. */
+        /** A solve that counts: Forge scored it solved, no empty library decided it. */
         boolean cleanSolve() { return "solved".equals(status) && !tainted; }
+        /** The solve a puzzle with an acceptance state really asks for: Forge's goal AND our
+         *  conditions (eval/BENCHMARK-V1.md, "acceptance state"). The search proves this. */
+        boolean acceptedSolve() { return cleanSolve() && acceptanceMet; }
     }
+
+    /** Snapshot of the finished game for the acceptance predicates: every seat's life, lost flag
+     *  and zone contents by card name (token flag, counter multiset). The one place engine
+     *  objects are turned into the pure shapes the predicates compare. */
+    static Snapshot buildSnapshot(Game game) {
+        Snapshot.SnapshotBuilder b = new Snapshot.SnapshotBuilder();
+        // Game.getRegisteredPlayers() IS the stable all-players list (see outcomeOf); its elements
+        // are the Player objects, in seat order (0 = solver, 1 = opponent).
+        var seats = game.getRegisteredPlayers();
+        for (int i = 0; i < seats.size(); i++) {
+            forge.game.player.Player p = seats.get(i);
+            b.player(i);
+            b.life(i, p.getLife());
+            PlayerOutcome po = p.getOutcome();
+            if (po != null && po.lossState != null) b.lost(i);
+            for (ZoneType z : ACCEPT_ZONE_TYPES) {
+                List<Snapshot.CardInfo> zone = new ArrayList<>();
+                for (Card c : p.getZone(z).getCards()) {
+                    Snapshot.CardInfo ci = new Snapshot.CardInfo(c.getName(), c.isToken());
+                    for (com.google.common.collect.Multiset.Entry<forge.game.card.CounterType> e : c.getCounters().entrySet()) {
+                        if (e.getCount() > 0) ci.counters.put(e.getElement().getName()
+                                .toLowerCase(java.util.Locale.ROOT), e.getCount());
+                    }
+                    zone.add(ci);
+                }
+                b.zoneCards(i, z.name().toLowerCase(java.util.Locale.ROOT), zone);
+            }
+        }
+        return b.build();
+    }
+
+    /** The zones the predicates name, in the order the snapshot reads them. */
+    static final ZoneType[] ACCEPT_ZONE_TYPES = {
+            ZoneType.Battlefield, ZoneType.Graveyard, ZoneType.Exile, ZoneType.Hand, ZoneType.Library, ZoneType.Command };
 
     /** One rollout. Returns false when the game thread is still alive after the cap and its grace
      *  (the JVM is then not safe for another rollout). */
     static boolean runOnce(File file, String id, Map<String, List<String>> sections, String goal, boolean bounded,
-                           String pzlSha, String ctlA, String ctlB, String smartA, String fastA, long seed,
-                           long capMs, int rollout, boolean keepTape) throws Exception {
-        Played pl = playOnce(file, id, sections, ctlA, ctlB, smartA, fastA, seed, capMs, rollout, bounded, false);
+                           List<Condition> acceptance, String pzlSha, String ctlA, String ctlB, String smartA,
+                           String fastA, long seed, long capMs, int rollout, boolean keepTape) throws Exception {
+        Played pl = playOnce(file, id, sections, acceptance, ctlA, ctlB, smartA, fastA, seed, capMs, rollout, bounded, false);
         final Game game = pl.game;
         final LobbyPlayer solverSeat = pl.solverSeat;
         final boolean[] goalInstalled = {pl.goalInstalled};
@@ -587,6 +932,8 @@ public final class LlmSpikePuzzle {
         String status = pl.status;
         List<String> logLines = pl.logLines;
         List<String> actions = solverActions(logLines, "Solver");
+        boolean accMet = pl.acceptanceMet;
+        String accErr = pl.acceptanceError;
 
         System.out.println("========== PUZZLE OVER ==========");
         System.out.println("puzzle : " + id);
@@ -616,6 +963,9 @@ public final class LlmSpikePuzzle {
         extra.put("goal_bounded", bounded);
         extra.put("tainted_by_deckout", tainted);
         extra.put("taint_side", tainted ? ("Milled".equals(solverLoss) ? "solver" : "opponent") : "");
+        extra.put("acceptance", acceptanceStatus(pl, acceptance));
+        extra.put("acceptance_conditions", acceptance.size());
+        if (accErr != null) extra.put("acceptance_error", accErr);
         // Puzzle-suite fields (eval/PUZZLES.md), additive: which rollout, which exact position, a
         // fingerprint of what happened (the verifier compares it), and the line when it is wanted.
         extra.put("rollout", rollout);

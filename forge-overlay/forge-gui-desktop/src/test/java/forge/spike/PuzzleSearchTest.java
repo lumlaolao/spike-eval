@@ -30,6 +30,88 @@ public class PuzzleSearchTest {
         };
     }
 
+    // ================================================================================
+    // The uniqueness search (eval/BENCHMARK-V1.md: "exactly one solution"): a mode beside
+    // prove() that, given the proven main line, hunts for a SECOND accepted line whose
+    // solver-action sequence differs beyond reordering. Found = the puzzle accepts more than
+    // one intended play and must be redesigned; not found within the budget = unique (bounded,
+    // never a claim the hunt looked everywhere).
+    // ================================================================================
+
+    @Test
+    public void uniqueness_aSecondAcceptedLineIsFound() {
+        // Good solutions iff a == c (opponent b free): first line a=0,c=0; a different solver
+        // choice a=2,c=2 also reaches acceptance → multiple.
+        PuzzleSearch.Game twoLines = toy((a, b, c) -> a == c);
+        PuzzleSearch.Result r = new PuzzleSearch(twoLines, "Solver", 500, 4, 7L).prove();
+        Assert.assertEquals(r.verdict, PuzzleSearch.Verdict.PROVEN);
+        PuzzleSearch.Result second = new PuzzleSearch(twoLines, "Solver", 500, 4, 7L).findAlternative(r.line);
+        Assert.assertNotNull(second.secondLine, "a second accepted line exists and must be found");
+        Assert.assertNotEquals(PuzzleSearch.solverSignature(second.secondLine, "Solver"),
+                PuzzleSearch.solverSignature(r.line, "Solver"), "the second line is a different play");
+    }
+
+    @Test
+    public void uniqueness_aSingleSolutionFindsNoSecondLine() {
+        // One accepted solver-action sequence: a=2, c=0 (the opponent's reply is irrelevant).
+        PuzzleSearch.Game oneLine = toy((a, b, c) -> a == 2 && c == 0);
+        PuzzleSearch.Result r = new PuzzleSearch(oneLine, "Solver", 500, 4, 7L).prove();
+        Assert.assertEquals(r.verdict, PuzzleSearch.Verdict.PROVEN);
+        PuzzleSearch.Result second = new PuzzleSearch(oneLine, "Solver", 500, 4, 7L).findAlternative(r.line);
+        Assert.assertNull(second.secondLine, "no other accepted line exists");
+        Assert.assertTrue(second.secondLineRollouts > 0, "the budget was actually spent hunting");
+    }
+
+    @Test
+    public void uniqueness_theHuntSpendsAtMostItsOwnBudget() {
+        PuzzleSearch.Game oneLine = toy((a, b, c) -> a == 2 && c == 0);
+        PuzzleSearch.Result r = new PuzzleSearch(oneLine, "Solver", 500, 4, 7L).prove();
+        PuzzleSearch s = new PuzzleSearch(oneLine, "Solver", 70, 4, 7L);
+        PuzzleSearch.Result second = s.findAlternative(r.line);
+        Assert.assertNull(second.secondLine);
+        Assert.assertTrue(second.secondLineRollouts <= 70, "spent " + second.secondLineRollouts);
+    }
+
+    @Test
+    public void uniqueness_reorderingTheSolverChoicesIsTheSameLine() {
+        // Two solver-choice sequences that are permutations of each other are one line: the
+        // signature sorts them, so an alternative replay that takes the same entries in the other
+        // order must NOT count as a second line. In the toy the solver's a (b=3) and c (b=2) are
+        // independent of the rules, so a solved line keeps its entries under any order of drawing.
+        List<Step> line = java.util.Arrays.asList(
+                new Step("Solver", 3, 1), new Step("Opponent", 2, 1), new Step("Solver", 2, 0));
+        List<Step> permuted = java.util.Arrays.asList(
+                new Step("Solver", 2, 0), new Step("Solver", 3, 1), new Step("Opponent", 2, 1));
+        Assert.assertEquals(PuzzleSearch.solverSignature(line, "Solver"),
+                PuzzleSearch.solverSignature(permuted, "Solver"));
+        // …and a line with a different entry is a different signature.
+        List<Step> changed = java.util.Arrays.asList(
+                new Step("Solver", 3, 1), new Step("Opponent", 2, 1), new Step("Solver", 2, 1));
+        Assert.assertNotEquals(PuzzleSearch.solverSignature(line, "Solver"),
+                PuzzleSearch.solverSignature(changed, "Solver"));
+    }
+
+    @Test
+    public void uniqueness_forcedDrawsDoNotDistinguishLines() {
+        // A single-option menu (bound 1) has nothing to reorder or choose: it never separates lines.
+        List<Step> with = java.util.Arrays.asList(
+                new Step("Solver", 1, 0), new Step("Solver", 3, 1), new Step("Solver", 1, 0));
+        List<Step> without = java.util.Collections.singletonList(new Step("Solver", 3, 1));
+        Assert.assertEquals(PuzzleSearch.solverSignature(with, "Solver"),
+                PuzzleSearch.solverSignature(without, "Solver"));
+    }
+
+    @Test
+    public void uniqueness_aHuntFindsTheSecondLineEvenWithManySeeds() {
+        PuzzleSearch.Game twoLines = toy((a, b, c) -> a == c);
+        PuzzleSearch.Result r = new PuzzleSearch(twoLines, "Solver", 500, 4, 11L).prove();
+        Assert.assertEquals(r.verdict, PuzzleSearch.Verdict.PROVEN);
+        for (long seed : new long[] {3L, 11L, 21L, 101L}) {
+            PuzzleSearch.Result second = new PuzzleSearch(twoLines, "Solver", 400, 4, seed).findAlternative(r.line);
+            Assert.assertNotNull(second.secondLine, "seed " + seed + " found nothing");
+        }
+    }
+
     @Test
     public void aLineThatAnswersEveryOpponentReplyIsProven() {
         // a = 2, then c must equal b: a strategy exists, but only one that answers each reply differently.
