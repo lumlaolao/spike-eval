@@ -92,7 +92,9 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   that tramples over before every blocker has lethal goes back with the reason; an unusable answer cascades
   lethal-first in the given order. Before epoch 56 the seat named only an order with that cascade, so "all six on the
   second blocker" or "lethal plus one, trample the rest" were never on offer. The legacy rules (orderCombatants true)
-  keep the declared order. The prover's search arm branches over the splits.
+  keep the declared order. The prover's search arm branches over the splits. "Lethal" is the rule's (CR 702.19b:
+  toughness minus damage marked, 1 with deathtouch, power under Zilortha), not what would kill: epoch 57 replaced
+  Forge AI's estimate, which counted indestructible, protection, shields and doublers.
 - A block set is checked as a whole, by the engine's `CombatUtil.validateBlocks`: requirements ("all creatures able
   to block it do so") and restrictions (menace). Forge runs that check only for its own GUI, so before epoch 52 any
   block set the seat or an arm declared stood. The `answer` call is corrected in the same conversation; a text reply

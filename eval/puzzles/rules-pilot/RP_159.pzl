@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 159 - Zero is lethal
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Tangle Mantis (3/4 trample). The opponent is at 3 life and controls Yoked Ox (0/4) and a tapped Zilortha, Strength Incarnate. Win this turn.
+Rule:rulesguru-79ee460bdc4b6a91 | Under Zilortha, lethal damage to its controller's creatures is their power (CR 120.6, 702.19b): a 0-power blocker needs no damage, so a trampler assigns all of it to the player
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Tangle Mantis
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Yoked Ox;Zilortha, Strength Incarnate|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

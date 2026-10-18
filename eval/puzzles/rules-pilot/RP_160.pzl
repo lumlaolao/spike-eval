@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 160 - One is lethal
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Ferocious Werefox equipped with Hunter's Blowgun. The opponent is at 4 life and controls Zodiark, Umbral God (5/5 indestructible). Win this turn.
+Rule:rulesguru-b567ee0f427773fe | Any damage from a deathtouch source is lethal for assignment (CR 702.2c, 702.19b), even to an indestructible blocker, so a deathtouch trampler assigns 1 and tramples the rest
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Ferocious Werefox|Id:1;Hunter's Blowgun|AttachedTo:1
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1battlefield=Zodiark, Umbral God
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

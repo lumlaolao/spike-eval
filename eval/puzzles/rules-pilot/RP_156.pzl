@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 156 - The shield does not raise lethal
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Colossal Dreadmaw (6/6 trample). The opponent is at 2 life and controls Giant Spider (2/4) with a shield counter. Win this turn.
+Rule:ask-a-magic-judge-8c8fee33775c50b3 | Lethal damage for trample ignores a shield counter (CR 702.19b, 120.4a): assign the blocker's toughness and trample the rest; the shield then prevents the blocker's damage
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Colossal Dreadmaw
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Giant Spider|Counters:SHIELD=1
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

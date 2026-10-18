@@ -19,3 +19,4 @@ p1library=Plains;Plains;Plains
 [acceptance]
 count p1 Exile "Perilous Myr" = 1
 life p0 = 2
+count p0 Battlefield "Dauthi Voidwalker" = 1

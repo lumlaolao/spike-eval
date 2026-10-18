@@ -2364,6 +2364,22 @@ public class GoldenChecksTest {
         Assert.assertEquals(r.get(null), Integer.valueOf(3), "three trample over: " + r);
     }
 
+    /** Rules puzzle batch 5 (RP_156-RP_160): "lethal damage" for assignment is the rule's (CR 702.19b: toughness minus
+     *  damage marked, 1 with deathtouch), not Forge AI's estimate of what kills (ComputerUtilCombat.getEnoughDamageToKill
+     *  counts indestructible, protection, shields and doublers). An indestructible blocker takes lethal at 1. */
+    @Test
+    public void lethalDamageForAssignmentIsTheRulesNotWhatKills() {
+        Game g = bareGame(PhaseType.COMBAT_DAMAGE);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card dreadmaw = card("Colossal Dreadmaw", me, ZoneType.Battlefield);
+        Card myr = card("Darksteel Myr", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("COMBAT DAMAGE ASSIGNMENT", p -> "ALLOC: 1, 5");
+        Map<Card, Integer> r = seat(g, model, model).assignCombatDamage(dreadmaw, new CardCollection(myr), null, 6, rival, true);
+        Assert.assertTrue(model.asked("COMBAT DAMAGE ASSIGNMENT"), "the split was asked, not forced");
+        Assert.assertEquals(r.get(myr), Integer.valueOf(1), "lethal to an indestructible 0/1 is 1: " + r);
+        Assert.assertEquals(r.get(null), Integer.valueOf(5), "the rest tramples over: " + r);
+    }
+
     /** The order an attacker assigns its damage among its blockers is the seat's (it was Forge's
      *  AiBlockController's, only logged). With no answer the order stays as given: never Forge's AI. */
     @Test

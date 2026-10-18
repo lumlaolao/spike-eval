@@ -330,3 +330,69 @@ paused; RP_125 and RP_126 were re-run from scratch. Effort: about 3.5 hours of w
 - RP_088: with Peregrin Took, Forge's Field-Tested Frying Pan trigger remembers the extra Food tokens with the Halfling
   and offers them as attach targets for the Equipment (a noncreature attach is not legal). A Forge issue, recorded, not
   filtered by the harness.
+
+# Batch 5: seventy more questions (RP_132 to RP_162)
+
+Source: every remaining `convert == "good"` question in `triage.jsonl` (80 after the five TRIAGE.md near-duplicates
+whose pair was already attempted), then `maybe` questions with acceptance and misread filled in (lines 12, 40, 142,
+163, 225, 254, 287, 300, 409, 495, 505, 621). 70 rows in `manifest.jsonl` (now 211). Builds: epoch 55 for RP_132 to
+RP_141 (and the RP_134, RP_136 rebuilds), epoch 56 (`epoch56-build.txt`, re-read before every JVM) for everything
+after; each row's `verified_on` names the build of its search run. Gate as before: search arm (budget 600, cap 60 s),
+then the pass arm. No JVM started while HOLD existed (every `.starts` line says `hold=N`).
+
+## Counts
+
+| result | n | puzzles |
+|---|---|---|
+| converted | 22 | 132-139, 141, 142, 144, 145, 147-155, 161 |
+| multiple, same play in substance | 2 | 146 (the countered original Grapeshot's target), 162 (repeated free Reconnaissance) |
+| Forge disagreement | 2 | 140, 143 |
+| harness bug (damage division) | 5 | 156-160 |
+| dropped (no board) | 39 | see each row's `note` |
+
+The pass arm was rejected on all 31 boards. Uniqueness was exhaustive on 12 of the 22 conversions; weakest RP_132
+(8/39) and RP_152 (9/20).
+
+Skipped without a row as rule-level near-duplicates of converted puzzles: LKI power (RP_016: two questions), a spell
+or ability whose targets all became illegal (RP_094: four), a blocked trampler whose blocker left (RP_007: three),
+LKI counters (RP_029/RP_032: two), Tarmogoyf (RP_031), CDA loss to Dress Down (RP_014), Life and Limb under Blood Moon
+(RP_010: two), priority between damage steps (RP_029), sequential modes and regeneration (RP_039: two), damage stays
+marked (RP_005), and the in-batch duplicates Murktide/Dress Down (RP_136), rebound order (557), Omnath/Yarok (RP_144).
+
+## Forge disagreements
+
+- **RP_140** (Lich and Exquisite Archangel): Forge's Lich trigger runs LosesGame when the damage exceeds the permanents
+  and skips the sacrifice, so Lich and Archangel stay on the battlefield (random arm, seeds 2 and 4: AllOpponentsLost
+  with both still there). CR 609.3 has both sacrificed first.
+- **RP_143** (Magus of the Moon, Turn): after Turn, Forge stops applying Magus's land-type change, so Mishra's Factory
+  can animate. With the Magus tapped (`rp5v/RP_143t.pzl`) "Turn on Magus, animate, attack" is a second solution, which
+  CR 613.5 forbids; the shipped board reads unique only because the Turned 0/1 Magus blocks.
+
+## Harness bug: damage-division lethal (epoch 56)
+
+Revisiting the nine questions dropped for damage division: five boards were built (RP_156 to RP_160) and four are the
+same rules (rows updated). All five hit one bug. The amounts ask in `LlmSpikeGui.java` (near line 7083) takes each
+blocker's lethal damage from `ComputerUtilCombat.getEnoughDamageToKill`, Forge's AI prediction, instead of CR 702.19b
+lethal (toughness minus marked damage, 1 with deathtouch):
+- shield counter (RP_156) and protection (RP_158): `damage-assign: all 6 -> <blocker> (forced)`, nothing tramples;
+- indestructible with deathtouch (RP_160): `all 5 -> Zodiark, Umbral God (forced)`; legal is 1 and 4 over;
+- Zilortha (RP_159): the blocker always gets at least 1; legal is 0 and all 3 over;
+- Gratuitous Violence (RP_157): the illegal `Opponent=2, Grizzly Bears=1` is offered, and the proof rests on it.
+
+The boards are kept: once lethal follows the rule they are ready gates (expected: proven, unique).
+
+## Board fixes during the gate
+
+- Acceptance: `winner p0` holds for any survived Survive puzzle, so "win this turn" boards use `life p1 <= 0`
+  (RP_132's first pass arm solved).
+- RP_134: Gather Courage left mana for a redundant fizzling activation (a second line); Bestow Greatness spends it.
+- RP_135: Putrid Imp's free repeatable discard blew up the tree (not found in 600); Insolent Neonate discards once.
+- RP_136: the opponent's Spike Feeder could remove its own counters and die (pass arm solved); Hagra Constrictor.
+- RP_149: the main line also sacrificed Dauthi Voidwalker to cast the exiled Myr; acceptance keeps the Voidwalker.
+
+### Batch 5 follow-up (2026-10-18)
+
+The damage-division rebuilds (RP_156-RP_160) exposed that the epoch-56 amounts ask took "lethal" from Forge AI's kill
+estimate (ComputerUtilCombat.getEnoughDamageToKill), which counts indestructible, protection, shields and doublers.
+Epoch 57 uses the rule (CR 702.19b: toughness minus marked damage, 1 with deathtouch; power under Zilortha), and all
+five are proven unique with the do-nothing arm rejected (`lethalDamageForAssignmentIsTheRulesNotWhatKills`).

@@ -297,8 +297,11 @@ public final class LlmSpikeGui {
      *  Epoch 56 (2026-10-18): combat damage divided as the attacker chooses (the 2024 rules, Forge's default here) is
      *  asked as amounts per blocker and, with trample, the player, checked against the lethal-first trample rule; it was
      *  an order with damage cascading lethal-first, which hid every other legal split.
+     *  Epoch 57 (2026-10-18): "lethal damage" for assignment is the rule's (toughness minus damage, 1 with deathtouch),
+     *  not Forge AI's estimate of what kills, which forced legal trample splits past indestructible, protected or
+     *  shielded blockers (rules pilot RP_156-RP_160).
      */
-    static final String HARNESS_EPOCH = "harness-epoch-56";
+    static final String HARNESS_EPOCH = "harness-epoch-57";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -6996,9 +6999,8 @@ public final class LlmSpikeGui {
          *  a forced, deterministic `tier=auto` (all damage to the one blocker, no choice exists); a
          *  single blocker WITH trample is a genuine strategic choice (max-trample-through vs. dump
          *  everything on the blocker for overkill/value) and gets a compact two-option decideOne menu.
-         *  `getEnoughDamageToKill` is Forge's pure lethal-damage-math helper (deathtouch/indestructible/
-         *  prevention aware) — reused the same way `ComputerUtilMana.canPayManaCost` already is elsewhere
-         *  in this file, NOT an AI strategy call.
+         *  "Lethal" is the rule's, {@link #lethalDamage} (CR 702.19b), not Forge AI's estimate of what kills
+         *  (getEnoughDamageToKill counted indestructible, protection, shields and doublers: rules pilot RP_156-RP_160).
          *  MULTI-BLOCKER (double/triple block etc.): report C1 follow-up — this used to be the
          *  "[AI-EXOTIC-DAMAGE]" escape hatch that handed the WHOLE decision to Forge's AI via
          *  `super.assignCombatDamage`, including routine cases (e.g. two blockers, 1 damage — there is
@@ -7006,7 +7008,7 @@ public final class LlmSpikeGui {
          *  combat-damage path may reach Forge AI. Instead we ask the model to PRIORITIZE the blockers
          *  (one bounded decideMany call, full permutation, reusing the same PICKS plumbing as
          *  orderMoveToZoneList above), then assign damage deterministically in that order — lethal
-         *  amount (via getEnoughDamageToKill) to each blocker before spilling over to the next, with any
+         *  amount (lethalDamage, the rule's) to each blocker before spilling over to the next, with any
          *  leftover tramples through if the attacker has trample and a defender exists, otherwise piles
          *  onto the last blocker in the chosen order. No-model / unparsed-after-retry falls back to the
          *  engine's own blocker order (tier=auto, "damage-assign(auto-in-order)") — still never Forge AI. */
@@ -7023,7 +7025,7 @@ public final class LlmSpikeGui {
                     Card single = blockers.getFirst();
                     boolean trample = defender != null && attacker.hasKeyword(Keyword.TRAMPLE);
                     int[] split = trample
-                            ? trampleSplit(damageDealt, ComputerUtilCombat.getEnoughDamageToKill(single, damageDealt, attacker, true))
+                            ? trampleSplit(damageDealt, lethalDamage(attacker, single))
                             : new int[]{damageDealt, 0};
                     int lethal = split[0], trampleOver = split[1];
                     Map<Card, Integer> r = new java.util.HashMap<>();
@@ -7080,7 +7082,7 @@ public final class LlmSpikeGui {
             boolean trample = defender != null && attacker.hasKeyword(Keyword.TRAMPLE);
             List<Integer> lethal = new ArrayList<>();
             int lethalSum = 0;
-            for (Card b : bl) { int l = ComputerUtilCombat.getEnoughDamageToKill(b, damageDealt, attacker, true); lethal.add(l); lethalSum += l; }
+            for (Card b : bl) { int l = lethalDamage(attacker, b); lethal.add(l); lethalSum += l; }
             if (bl.size() == 1 && (!trample || lethalSum >= damageDealt)) return null;
             List<String> labels = new ArrayList<>();
             for (int i = 0; i < bl.size(); i++) labels.add(cardLabel(bl.get(i)) + " (lethal damage: " + lethal.get(i) + ")");
@@ -7158,7 +7160,7 @@ public final class LlmSpikeGui {
                 if (remainingDmg <= 0) {
                     assign = 0;
                 } else {
-                    int lethal = ComputerUtilCombat.getEnoughDamageToKill(b, remainingDmg, attacker, true);
+                    int lethal = lethalDamage(attacker, b);
                     assign = Math.min(lethal, remainingDmg);
                 }
                 r.put(b, assign);
@@ -8350,11 +8352,18 @@ public final class LlmSpikeGui {
         }
 
         /** Pure trample-split math used by assignCombatDamage's single-blocker/trample menu: how much
-         *  of `damageDealt` is lethal-to-the-blocker vs. tramples over to the defender. `killDamage` is
-         *  whatever ComputerUtilCombat.getEnoughDamageToKill reports (may exceed damageDealt when the
-         *  blocker can't be killed with what's available — e.g. indestructible without deathtouch, or
-         *  simply not enough damage). Returns {lethal, trampleOver}; trampleOver is 0 whenever the
-         *  blocker can't be killed outright, since there's nothing to legally trample over then. */
+         *  of `damageDealt` is lethal-to-the-blocker vs. tramples over to the defender. `killDamage` is the
+         *  rule's lethal damage ({@link #lethalDamage}); it may exceed damageDealt, and then nothing tramples over.
+         *  Returns {lethal, trampleOver}. */
+        /** Lethal damage for assigning combat damage (CR 702.19b, 510.1c): the blocker's toughness (or what Forge's
+         *  getLethal says, e.g. power under Zilortha) minus damage already marked and assigned, and 1 at most when the
+         *  attacker has deathtouch (CR 702.2c). Whether the damage would kill (indestructible, protection, a shield
+         *  counter, a doubler) does not enter: rules pilot RP_156-RP_160 forced splits the rules allow. */
+        static int lethalDamage(Card attacker, Card blocker) {
+            int l = Math.max(0, blocker.getLethalDamage());
+            return attacker != null && attacker.hasKeyword(Keyword.DEATHTOUCH) ? Math.min(l, 1) : l;
+        }
+
         static int[] trampleSplit(int damageDealt, int killDamage) {
             int lethal = Math.min(Math.max(damageDealt, 0), Math.max(killDamage, 0));
             int trampleOver = damageDealt - lethal;
