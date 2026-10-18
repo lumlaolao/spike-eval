@@ -185,10 +185,17 @@ def seed_count(spec):
 
 # ------------------------------------------------------------------ pure decisions
 
+def accepted_row(row):
+    """One solved rollout counts only when the row's acceptance state allows it: an authored
+    puzzle's [acceptance] rejected the final state -- the goal alone is not the question asked."""
+    return row.get("status") == "solved" and not row.get("tainted_by_deckout") \
+        and row.get("acceptance") != "rejected"
+
+
 def summarize(rows, seeds_spec):
     """{solved, n, rate, seeds, invalid, tainted, unscoreable} for one arm's rows."""
     n = len(rows)
-    solved = sum(1 for r in rows if r.get("status") == "solved" and not r.get("tainted_by_deckout"))
+    solved = sum(1 for r in rows if accepted_row(r))
     return {
         "solved": solved, "n": n, "rate": (solved / n) if n else None, "seeds": seeds_spec,
         "invalid": sum(1 for r in rows if r.get("status") == "invalid"),
@@ -199,7 +206,7 @@ def summarize(rows, seeds_spec):
 
 def choose_line(rows):
     """The shortest solving rollout (fewest solver actions, then fewest draws, then lowest seed), or None."""
-    good = [r for r in rows if r.get("status") == "solved" and not r.get("tainted_by_deckout") and r.get("tape")]
+    good = [r for r in rows if accepted_row(r) and r.get("tape")]
     if not good:
         return None
     best = min(good, key=lambda r: (r.get("solver_actions", 99), r.get("draws", 10 ** 9), r.get("seed", 0)))
@@ -212,7 +219,7 @@ def choose_ai_line(rows):
     """A solving rollout of Forge's AI in the solver seat, when no random rollout solved. The AI's line is
     no tape (its choices are not draws), so it is replayed by seed and must reproduce the same game log:
     the proof that this position is solvable in this engine, for a puzzle random never solves."""
-    good = [r for r in rows if r.get("status") == "solved" and not r.get("tainted_by_deckout")]
+    good = [r for r in rows if accepted_row(r)]
     if not good:
         return None
     best = min(good, key=lambda r: (r.get("solver_actions", 99), r.get("seed", 0)))

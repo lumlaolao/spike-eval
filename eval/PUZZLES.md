@@ -24,7 +24,6 @@ Forge enforces ("Win" or "Survive" by turn N).
 | `eval/suites/puzzles-*.json` | frozen suites |
 
 ## A puzzle record (`puzzle.v1`)
-
 - `id`, `split` and `status`:
   - the split is `sha256(id)`: about 30% are held out, and no one picks which;
   - the status is `active` (scored), `dropped` (measured and excluded, with `flags` saying why) or
@@ -52,6 +51,43 @@ Forge enforces ("Win" or "Survive" by turn N).
 
 An active puzzle needs the three floor baselines (random, pass, first), a verified line and a tier.
 Random must solve it at most 20% of the time; anything easier measures luck and is dropped.
+
+## The acceptance state (authored rules puzzles)
+
+A Forge goal asks a question about winning; a rules question is answered by what the engine DID —
+a card in a graveyard, a life total, a token, a counter. Authored rules puzzles (the pilot,
+`eval/puzzles/rules-pilot/`) carry an `[acceptance]` section in the .pzl: one condition per line,
+all AND'd, on the FINAL engine state (player 0 is the solver, 1 the opponent):
+
+```
+zone:<player>:<zone>:<name|*>:<exact|min|max|>=|<=>:<n>
+life:<player>:<op>:<n>
+counter:<player>:<zone>:<card name>:<counter name>:<op>:<n>
+token:<player>:<zone>:<name|*>:<op>:<n>      tokens only (the engine's isToken flag)
+lost:<player>
+```
+
+`LlmSpikePuzzle` parses the section once (malformed lines fail at startup, never mid-game),
+evaluates it when the game ends off the same Game object the outcome is read from, and reports
+`acceptance: none|accepted|rejected|error` in every result row. With an acceptance state present,
+the search arm proves the ACCEPTANCE state, not just Forge's goal; the built-in Puzzle Goal card
+still bounds the turns. Baseline rows gate on the same flag: a row rejected on acceptance is not
+a solve.
+
+## The uniqueness hunt and the misreading probe
+
+The prover finds ONE accepted line; an acceptance-only position can hold several. After a proof,
+`LlmSpikePuzzle` runs `PuzzleSearch.findAlternative` (a mode beside `prove()`, budget
+`PZL_UNIQUE_BUDGET`, default 1500): a second, fresh search whose rollouts pay nothing when they
+re-find the main line's SOLVER CHOICES, so untried branches keep being explored and only a
+genuinely different accepted line wins the tree. A line's solver-action signature is its choices
+above one option (bound > 1), sorted: lines that take the same entries in another order are one
+line. `unique: yes|no` (and `second_line` on a hit) goes in the result row; "no" means no second
+line within the budget, never that none exists.
+
+`PZL_PROBE="<Seat:bound:value ...>"` plays one fixed prefix to game end in its own run and reports
+whether IT reached the acceptance state: the misreading probe, the play a solver makes if they got
+the rule wrong. A pilot puzzle's probe must be rejected.
 
 ## Building a suite
 

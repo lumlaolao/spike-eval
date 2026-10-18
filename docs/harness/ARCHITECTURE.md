@@ -403,6 +403,14 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   every leaf of it is a solve Forge scored. A decideMany subset is drawn through `PuzzleArms.subset`, which
   makes the old draws for every other arm (no canary moves) and one include-or-not per option for search.
 
+- **The acceptance state.** Authored rules puzzles put an `[acceptance]` section in the .pzl (conditions on the
+  final state: zones by name, life, counters, tokens, who lost; `eval/PUZZLES.md`). The runner parses it once at
+  startup, evaluates it off the finished `Game`, and reports `acceptance` in every row; with one present the
+  prover proves the acceptance state, not just Forge's goal. The Puzzle Goal card still bounds the turns.
+- **The uniqueness hunt** (`PuzzleSearch.findAlternative`, after a proof): a fresh second search that pays
+  nothing for re-finding the main line's solver choices, so only a different accepted line wins the tree; plus
+  `PZL_PROBE`, one fixed prefix played and reported (the misreading probe of a rules puzzle).
+
 - The seed-42 floor and random mirrors are pinned canaries, at A/108/1824 and A/45/368.
 - *Why:* a score is meaningless without the trivial baseline it beats (the "88% lesson" in `CLAUDE.md`).
   A canary that cannot move cannot catch a regression, so any change to an automatic path re-pins it
