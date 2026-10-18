@@ -59,3 +59,8 @@ Read cards: 857 files in 0 ms (8 parts) using thread pool
 [Seat] [ROUTER] play: casts Mental Note @11 {U} [Mill two cards. Draw a card.]
 [Seat] [AUTO-LEGAL] order(forced: Graveyard has no order to choose)->as-is
 [Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 14894 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Preserve interaction against the Eldrazi Temple start while developing toward a discounted Terror. NEXT: Pass upkeep; play the Island in hand during main phase and keep both Islands untapped to represent Counterspell on the opponent's turn.
+[OPENROUTER Seat/smart] replied in 2139 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
