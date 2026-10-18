@@ -846,3 +846,9 @@ ai_tier_count=0, 9 min. First loss of the run.
 - checked  `exile-cost(forced-only-legal)->3` (Sleep of the Dead's escape: exactly three other cards in the graveyard),
   5 damage-assign to a single blocker, 3 single-target picks, 2 graveyard orders.
 - clean  two block asks (NONE; one block), counter targets, escape cast. Second clean game on epoch 54.
+
+### g19  2026-10-18  seed 4119  Legacy Boros (seat) vs Legacy Elves (Forge AI)  WON T10  $0.03  harness-epoch-54
+Sheet clean: 35 model decisions, 7 forced picks (each one legal option: a target, two counter kinds, Amped Raptor's
+cast pick, Thalia's one ability, a colour, a replacement order), TAKEN 0, LOST 0, SKIP 0, TOOL 2 of 2 served,
+ai_tier_count=0, 5 min. Third clean game in a row on epoch 54 (g17-g19); epoch 55 (choice-list dividers) restarts
+the count. The whole-block-set check is still not exercised in a real game (no block asks).
