@@ -3,14 +3,14 @@ Name:Rules pilot 134 - Targets before costs
 Goal:Survive
 Turns:1
 Difficulty:Medium
-Description:The opponent has cast Murder targeting your Omnath, Locus of Mana. You have four green mana floating, Gather Courage in hand, and a tapped Spearbreaker Behemoth with a -1/-1 counter. Omnath is tapped. End the turn with Omnath on the battlefield.
+Description:The opponent has cast Murder targeting your Omnath, Locus of Mana. You have four green mana floating, Bestow Greatness in hand, and a tapped Spearbreaker Behemoth with a -1/-1 counter. Omnath is tapped. End the turn with Omnath on the battlefield.
 Rule:cranial-insertion-bc9c5e61b6212c4c | Targets are chosen before costs are paid (CR 601.2c, 602.2b): paying Spearbreaker's {1} shrinks Omnath below power 5, so the ability fails on resolution (CR 608.2b)
 [state]
 turn=1
 activeplayer=p0
 activephase=MAIN2
 p0life=20
-p0hand=Gather Courage
+p0hand=Bestow Greatness
 p0battlefield=Omnath, Locus of Mana|Id:1|Tapped;Spearbreaker Behemoth|Tapped|Counters:M1M1=1
 p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
 p0manapool=G G G G
