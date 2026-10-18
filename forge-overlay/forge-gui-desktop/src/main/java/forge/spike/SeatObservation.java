@@ -91,7 +91,7 @@ final class SeatObservation {
     // v39 (2026-10-18): who controls it, a chosen or shared name, and a bare filter ("creatures an opponent controls")
     // are said too; a condition that cannot be said reads "the creatures the card describes" (sweep of runs/).
     // v40 (2026-10-18): the header before the first turn says so ("before the first turn (opening hands)"), not
-    // "Turn 0 null (active: ? | priority: ?)".
+    // "Turn 0 null (active: ? | priority: ?)"; `inspect` by a token's name answers with the token you can see.
     static final String VERSION = "observation-faithful-v40";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
@@ -1396,7 +1396,18 @@ final class SeatObservation {
         }
         try {
             PaperCard pc = StaticData.instance().getCommonCards().getCard(a);
-            if (pc == null) return "ERROR: no card named '" + a + "' in the card database.";
+            if (pc == null) {
+                // A token has no database entry: `inspect "Cat Warrior Token"` found nothing (GAME-LOOP-LOG, OPEN since
+                // 2026-10-14). A current object the seat can see by that name answers instead, as its handle would.
+                String want = a.replaceFirst("(?i)\\s+token$", "");
+                for (Map.Entry<Integer, Tracked> e : byHandle.entrySet()) {
+                    String nm = e.getValue().lastKnownName;
+                    if (nm == null || !nm.replaceFirst("(?i)\\s+token$", "").equalsIgnoreCase(want)) continue;
+                    String seen = inspect("@" + e.getKey());
+                    if (seen.contains("(current)")) return seen;
+                }
+                return "ERROR: no card named '" + a + "' in the card database, and nothing you can see is called that.";
+            }
             forge.card.CardRules r = pc.getRules();
             StringBuilder b = new StringBuilder("CARD REFERENCE (public database text; not evidence that this card is in the game): ")
                     .append(r.getName());

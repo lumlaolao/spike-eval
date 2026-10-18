@@ -709,6 +709,12 @@ public class SeatObservationTest {
         Assert.assertNotEquals(o.handleOf(proto), o.handleOf(host), "a token must not share the host's handle");
         String r = render(o, "");
         Assert.assertTrue(r.contains("Goblin"), r);
+        // A token has no database entry: inspecting it by name answers with the object (it was "no card named").
+        for (String asked : new String[] {"Goblin", "Goblin Token", "goblin token"}) {
+            String seen = o.inspect(asked);
+            Assert.assertTrue(seen.contains("@" + o.handleOf(proto) + " (current)"), asked + " -> " + seen);
+        }
+        Assert.assertTrue(o.inspect("Nonexistent Thing").startsWith("ERROR"), "a name nothing has is still an error");
     }
 
     // ---- reveals through the live controller --------------------------------------------------

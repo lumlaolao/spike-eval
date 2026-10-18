@@ -743,3 +743,12 @@ Doomsday never resolved for the seat and ANT's Tutor-LED line never came up, so 
 - checked  "stated at T3 null" in the plan line appears only in older runs (fixed before); "(X=2)" annotations on
   stack lines are the engine's announced X, readable and kept; no "$", "%s" or SVar names reach a prompt.
 
+### open items re-checked  2026-10-18
+- FIXED  `inspect "Cat Warrior Token"` (OPEN since 2026-10-14): a token has no database entry, so a name found
+  nothing. A name that matches a current object the seat can see now answers as its handle would. Test
+  `tokensGetTheirOwnIdentityAndRender` (extended). Folded into observation-faithful-v40, harness-epoch-50.
+- closed by later work, not re-opened: previews of PLAY LAND and PASS (lookahead v3/v4), the mulligan heuristic
+  (off by default since 2026-10-15), the 4000-token cut-offs (32000 since harness-epoch-7), the one-preview budget
+  (removed, MODEL-LIMITS.md), Heritage Druid's tapped Elves (asked, `LlmSpikeTest` issue #105). The provider 300 s
+  stalls and stream cut-offs are the provider's, retried by the bridge.
+
