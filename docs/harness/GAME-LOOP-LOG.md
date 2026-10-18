@@ -793,3 +793,12 @@ Plowshares with a second Ephemerate.
   targeting ("neither target benefits"); the rebound trigger it declined was the other copy (@9). Model's choice.
 - checked  plan_audit HOLD-VIOLATION T14 (Ephemerate against "keep Ephemerate available"): model-chosen, not a defect.
 - clean  blink targets, Solitude evoke-free cast, impending Overlord, mana held. Second of three.
+
+### g13  2026-10-18  seed 4113  Death and Taxes (seat) vs TES (Forge AI)  WON T14  $0.05  harness-epoch-51
+Sheet clean: 67 model decisions, 4 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 7 of 7 served (inspect 2,
+simulate 5), ai_tier_count=0, 10 min. Forge's AI went off with Tendrils of Agony early; the seat survived it and won.
+- checked  passes with "2 castable" on turns 2-4 (Aether Vial at 0-1 counters, no one-drop in hand, Plains): the
+  model's reasons name the counters and the hand; the menu held everything legal.
+- checked  `counter-type(forced-only-legal)` x3 (Vial's upkeep counter: charge is the only kind).
+- clean  mulligan, Vial triggers, yields. Third clean game in a row on epoch 51; epoch 52 (rules pilot fixes:
+  "up to" targets, lethal tap damage, whole-block-set legality) restarts the count.
