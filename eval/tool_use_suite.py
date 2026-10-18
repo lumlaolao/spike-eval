@@ -8,7 +8,7 @@ tool. Each need-scenario also runs as a TWIN with the fact printed in the state;
 restraint and is the comprehension ceiling for the answer.
 
 Three protocol arms reach the same executor with the same budget (16 tools per ask; 2 before
-evidence-tools-v3):
+evidence-tools-v4):
 
   text-strict   evidence-tools-v1, what every game before 2026-10-13 ran: the WHOLE reply must be one
                 command line
@@ -54,7 +54,7 @@ SNIPPET = 240              # ContextMemory.snippet
 # Verbatim from ContextMemory.instructions() and SeatObservation.inspectInstructions(); the unit
 # test compares both against the Java sources so the text arm cannot drift from the shipped grammar.
 MEMORY_INSTRUCTIONS = (
-    "MEMORY TOOLS evidence-tools-v3: instead of an action, you may reply with exactly ONE line: "
+    "MEMORY TOOLS evidence-tools-v4: instead of an action, you may reply with exactly ONE line: "
     "MEMORY SEARCH <offset> <literal text> (50 matching evidence snippets per page), "
     "MEMORY READ <evidence id> <character offset> (20000 characters per page), or "
     "MEMORY NOTE <evidence id> <hypothesis or plan, max 2000 characters>. "

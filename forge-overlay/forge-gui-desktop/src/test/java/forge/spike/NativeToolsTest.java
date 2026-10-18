@@ -710,7 +710,14 @@ public class NativeToolsTest {
         Assert.assertTrue(literal.startsWith("Matches=1 next=END\nM1 (historical reveal)"), literal);
         String words = memory.execute("MEMORY SEARCH 0 Rival's hand");
         Assert.assertTrue(words.startsWith("Matches=1 next=END (no literal match; entries holding every word)\nM1 "), words);
-        Assert.assertEquals(memory.execute("MEMORY SEARCH 0 Rival's library"), "Matches=0 next=END\n");
+        // No entry holds every word: the entries holding some of them, most first (runs/loop/g08: "Doomsday pile
+        // selected" found nothing although the archive held the Doomsday picks).
+        String some = memory.execute("MEMORY SEARCH 0 Rival's library");
+        Assert.assertTrue(some.startsWith("Matches=2 next=END (no entry holds every word; entries holding some of them, most first)"), some);
+        memory.observe("[E12] T8 Doomsday: Seat picked Street Wraith, Street Wraith");
+        String pile = memory.execute("MEMORY SEARCH 0 Doomsday pile selected");
+        Assert.assertTrue(pile.contains("Doomsday: Seat picked Street Wraith"), pile);
+        Assert.assertEquals(memory.execute("MEMORY SEARCH 0 the of graveyard"), "Matches=0 next=END\n");
     }
 
     @Test

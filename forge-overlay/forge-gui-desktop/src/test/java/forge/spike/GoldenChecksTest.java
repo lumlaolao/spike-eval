@@ -2678,6 +2678,21 @@ public class GoldenChecksTest {
         source(src);
     }
 
+    /** A token is not a card name (rule 201.3): a seat that names one is not taken at its word, even though `inspect`
+     *  answers by a token's name. */
+    @Test
+    public void aTokenNameIsNotACardName() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card src = card("Pithing Needle", me, ZoneType.Battlefield);
+        Script model = new Script("CARD: Goblin Token");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        String named = ctrl.chooseCardName(spell(src, me), f -> true, "Card", "Choose a card name.");
+        Assert.assertNotEquals(named, "Goblin Token");
+        Assert.assertNotEquals(named, "Goblin");
+        source(src);
+    }
+
     /** The engine's name filter in words; a filter with anything but types and subtypes is left out, never shown raw
      *  (runs/loop/g05: "(must match: Card.nonLand)" beside Cabal Therapy's own "Choose a nonland card name"). */
     @Test
