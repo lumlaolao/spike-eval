@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot NNN - The threshold bonus survives Humility
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:You control Wayward Angel, Grizzly Bears with a +1/+1 counter, Muraganda Petroglyphs and two Mountains, have Fling in hand and seven cards in your graveyard. The opponent controls Humility and is at 6 life. Win this turn.
+Rule:rulesguru-de65e10751709976 | An effect that starts to apply in one layer keeps applying in later layers even if its ability is removed (CR 613.6, 613.4c): under Humility and Muraganda Petroglyphs, Wayward Angel with threshold is a 6/6, so Fling deals 6
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Fling
+p0battlefield=Wayward Angel;Grizzly Bears|Counters:P1P1=1;Muraganda Petroglyphs;Mountain;Mountain
+p0graveyard=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1battlefield=Humility
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0
+life p1 <= 0

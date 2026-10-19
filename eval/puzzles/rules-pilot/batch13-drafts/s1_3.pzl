@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Their Aura is no modification
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:Your Grizzly Bears is enchanted by the opponent's Pacifism. You control a Forest and three Mountains and have Flame Discharge and Battlegrowth in hand. The opponent controls Rumbling Baloth (4/4). End the turn with Rumbling Baloth in the opponent's graveyard.
+Rule:wizards-official-card-rulings-cb4fb354a0d69fae | A creature is modified only by Equipment, Auras its controller controls, and counters (CR 700.9): the opponent's Pacifism does not count, so put a counter on Grizzly Bears before casting Flame Discharge for X=2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Flame Discharge;Battlegrowth
+p0battlefield=Grizzly Bears|Id:1;Forest;Mountain;Mountain;Mountain
+p0library=Mountain;Mountain;Mountain
+p1life=20
+p1battlefield=Pacifism|AttachedTo:1;Rumbling Baloth
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Rumbling Baloth" = 1

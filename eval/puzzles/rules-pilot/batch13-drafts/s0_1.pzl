@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 224 - Deathtouch leaves with the Spirit
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Pestilent Spirit, Memnite, a Mountain and two Swamps, and have Fling and Village Rites in hand. The opponent controls Colossal Dreadmaw. End the turn with Colossal Dreadmaw in the opponent's graveyard and two cards drawn (three cards left in your library).
+Rule:ask-a-magic-judge-1738fe6fc11266be | Pestilent Spirit's deathtouch grant is a static ability that works only while it is on the battlefield (CR 604.1, 611.3a, 702.2b); a spell resolving after the Spirit left (sacrificed for Fling or Village Rites) has no deathtouch: Fling Memnite while the Spirit stays, then sacrifice the Spirit to Village Rites
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Fling;Village Rites
+p0battlefield=Pestilent Spirit;Memnite;Mountain;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Colossal Dreadmaw
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Colossal Dreadmaw" = 1
+count p0 Library * = 3

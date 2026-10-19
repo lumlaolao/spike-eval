@@ -1,0 +1,3 @@
+search {"status": "proven", "acceptance": "accepted", "acceptance_failed": [], "line": "Solver:6:2 Solver:6:4 Solver:5:0 Solver:4:0", "search_replays": 14, "opponent_branches_beaten": 0, "actions": ["STACK_ADD: Solver cast Contentious Plan", "STACK_ADD: Solver cast Voidwing Hybrid"], "search_drift": null, "uniqueness": "unique", "uniqueness_deviations": 17, "uniqueness_exhausted": 9, "uniqueness_replays": 403, "uniqueness_unproven_alternatives": 0}
+pass {"status": "failed", "acceptance": "rejected", "acceptance_failed": ["count p0 Battlefield \"Voidwing Hybrid\" = 1 (was 0)"], "line": null, "search_replays": null, "opponent_branches_beaten": null, "actions": null, "search_drift": null}
+secs 300

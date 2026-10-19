@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 223 - Lifelink counts the damage
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Bloodletter of Aclazotz, Soulfire Grand Master, a Mountain and a Plains, and have Lightning Bolt and Healing Salve in hand. End the turn at exactly 26 life with the opponent at 14 life.
+Rule:cranial-insertion-01f70dbb23033620 | Bloodletter of Aclazotz doubles the life the opponent loses, not the damage dealt (CR 120.3a, 614.1a), and lifelink gains life equal to the damage dealt (CR 702.15b): a 3-damage lifelink Bolt gains 3, not 6
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lightning Bolt;Healing Salve
+p0battlefield=Bloodletter of Aclazotz;Soulfire Grand Master;Mountain;Plains
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+life p0 = 26
+life p1 = 14

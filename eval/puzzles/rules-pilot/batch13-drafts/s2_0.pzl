@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - Grenzo looks in exile
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Grenzo, Dungeon Warden (2/2), Rest in Peace, a Forest and a Mountain, and have Naturalize in hand. The bottom card of your library is Goblin Hero (2/2). End the turn with Goblin Hero on your battlefield.
+Rule:rulesguru-c1484eb6e55d14f9 | An effect that moves a card and then acts on it finds the card in the zone a replacement effect sent it to (CR 400.7j, 614.6): under Rest in Peace, Grenzo's milled Goblin Hero is exiled and still put onto the battlefield
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Naturalize
+p0battlefield=Grenzo, Dungeon Warden;Rest in Peace;Forest;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Goblin Hero
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Goblin Hero" = 1

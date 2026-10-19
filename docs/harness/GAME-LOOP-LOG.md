@@ -957,3 +957,12 @@ ai_tier_count=0, 95 calls, 13 min; the first game on epoch 63.
 - checked  TOOL empty x1 (T3): `simulate` asked during an Overgrown-style "pay 2 life" replacement, which is not a
   priority menu; the harness said so and the seat answered the decision. Not a defect.
 - checked  LOG exception x1: the provider's chunked-transfer error again (g31), retried by the bridge.
+
+### g33  2026-10-19  seed 4133  Vintage Esper Control (seat) vs Pioneer Red Deck Wins (Forge AI)  WON T14  $0.13  harness-epoch-64
+Sheet: 130 model decisions, 18 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 34 of 36 served, plan holds 1 of 22,
+ai_tier_count=0, 183 calls, 23 min. The most expensive loop game so far (control asks often), within the $0.40 budget.
+- FIXED  LEAK x2 (T13): the opponent's command zone read "Kumano Faces Kakkazan (111)'s Effect's Effect"; an effect
+  of an effect kept its source effect's engine id (observation-faithful-v42). Test:
+  PromptFidelityTest.anEffectOfAnEffectCarriesNoEngineId, watched failing first.
+- checked  TOOL empty x2: `simulate` outside a priority menu, refused with the reason, as in g32.
+- not read  the one plan hold and the play-by-play; the sheet was all this session read before it stopped.

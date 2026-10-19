@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 223 - Haunt is not doubled
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Teysa Karlov, Blind Hunter, Memnite, Spawning Pit and a Mountain, and have Shock in hand. End the turn with the opponent at exactly 16 life and Teysa Karlov still on your battlefield.
+Rule:ask-a-magic-judge-8f22bb2608e03761 | Teysa doubles only triggered abilities of permanents (CR 603.2d, 603.10a); a haunt trigger belongs to the exiled haunting card (CR 702.55c), which is not a permanent, so it triggers once: the haunted Memnite's death drains 2, and Shock to the face makes 4
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Shock
+p0battlefield=Teysa Karlov;Blind Hunter;Memnite;Spawning Pit;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 = 16
+count p0 Battlefield "Teysa Karlov" = 1

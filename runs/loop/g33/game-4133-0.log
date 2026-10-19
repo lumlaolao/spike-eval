@@ -318,3 +318,628 @@ ComputerUtilMana: payManaCost() cost was not paid for Bilbo, Thief in the Night 
 [OPENROUTER Seat/smart] replied in 5373 ms with 1 tool call(s)
 [Seat] [ROUTER] play: PASS
 [Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 12757 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 1: if you activate Black Lotus: you board 6 -> 5; graveyard 5 -> 6; mana pool empty -> {W:3}; left the battlefield: Black Lotus; ForgeAI board 3 -> 4; entered the battlefield: Soul-Scar Mage. What was already on the stack resolved after it, in order, with no other responses. The engine chose what to sacrifice for this preview; in the real play YOU choose
+[OPENROUTER Seat/smart] replied in 10412 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Remove Soul-Scar Mage with Swords while preserving Sink into Stupor, then stabilize against red aggro. NEXT: Sacrifice Black Lotus for white mana; after Soul-Scar Mage resolves, cast Swords to Plowshares on it if priority allows.
+[OPENROUTER Seat/smart] replied in 3532 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Black Lotus @114 [{T}, Sacrifice Black Lotus: Add three mana of any one color.]
+[Seat] [AUTO-LEGAL] color(forced)->first
+[Seat] [ROUTER] play(react): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9462 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 1: if you cast Swords to Plowshares [assuming target: Mutavault]: you graveyard 6 -> 7; mana pool {W:3} -> {W:2}; hand 3 -> 2; ForgeAI life 12 -> 14; exile 1 -> 2; left the battlefield: Mutavault; entered the battlefield: Soul-Scar Mage. What was already on the stack resolved after it, in order, with no other responses
+[OPENROUTER Seat/smart] replied in 7426 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 5198 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead target 1: if you cast Swords to Plowshares [assuming target: Bilbo, Thief in the Night]: you life 13 -> 15; board 5 -> 4; graveyard 6 -> 7; exile 3 -> 4; mana pool {W:3} -> {W:2}; hand 3 -> 2; left the battlefield: Bilbo, Thief in the Night; ForgeAI board 3 -> 4; entered the battlefield: Soul-Scar Mage. What was already on the stack resolved after it, in order, with no other responses
+[OPENROUTER Seat/smart] replied in 6212 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead target 2: if you cast Swords to Plowshares [assuming target: Mutavault]: you graveyard 6 -> 7; mana pool {W:3} -> {W:2}; hand 3 -> 2; ForgeAI life 12 -> 14; exile 1 -> 2; left the battlefield: Mutavault; entered the battlefield: Soul-Scar Mage. What was already on the stack resolved after it, in order, with no other responses
+[OPENROUTER Seat/smart] replied in 5053 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Mutavault 2/2 [tapped] @41 [Battlefield, opponent's] <- Swords to Plowshares @129 {W} [Exile target creature.]
+[Seat] [ROUTER] play: casts Swords to Plowshares @129 {W} [Exile target creature.]
+[Seat] [ROUTER] play(react): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9656 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Stabilize against red aggro by using Bilbo to recast Swords to Plowshares on Soul-Scar Mage, while preserving Sink into Stupor for a more important threat. NEXT: Pass upkeep; in combat attack with Bilbo and use its trigger to cast Swords from the graveyard targeting Soul-Scar Mage. Keep Sink available for opposing threats.
+[OPENROUTER Seat/smart] replied in 1962 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4238 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=111 fast=0 auto=10 ai=0 textParses=0 avgSmart=7099ms avgFast=7099ms
+[Seat] [ROUTER] play(main): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3648 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=112 fast=0 auto=10 ai=0 textParses=0 avgSmart=7068ms avgFast=7068ms
+[Seat] [ROUTER] play(main): 8 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] error: java.io.IOException: chunked transfer encoding, state: READING_LENGTH
+[Seat] [BRIDGE Seat/smart] no reply (attempt 2/3) -> restarting session, retrying in 500ms
+[OPENROUTER Seat/smart] replied in 8310 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Stabilize against red aggro while preserving Sink into Stupor for a larger threat. NEXT: Play Tundra now; attack with the existing Bilbo and use its trigger to recast Swords to Plowshares from the graveyard targeting Soul-Scar Mage. Keep Sink into Stupor available.
+[OPENROUTER Seat/smart] replied in 2756 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Tundra
+[Seat] [TALLY] smart=114 fast=0 auto=10 ai=0 textParses=0 avgSmart=7041ms avgFast=7041ms
+[Seat] [ROUTER] play(main): 8 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 12344 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 8: if you activate Urza's Saga: you board 6 -> 7; entered the battlefield: Construct Token; ForgeAI no change
+[OPENROUTER Seat/smart] replied in 6565 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Urza's Saga @121 [{2}, {T}: Create a 0/0 colorless Construct artifact creature token with "This token gets +1/+1 for each artifact you control."]
+[OPENROUTER Seat/smart] replied in 8455 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 2 for ACTIVATE Urza's Saga @121 [{2}, {T}: Create a 0/0 colorless Construct artifact creature token with "This token gets +1/+1 for each artifact you control."]
+[Seat] [TALLY] smart=117 fast=0 auto=10 ai=0 textParses=0 avgSmart=7094ms avgFast=7094ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5594 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=118 fast=0 auto=10 ai=0 textParses=0 avgSmart=7081ms avgFast=7081ms
+[Seat] [ROUTER] play(main): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 12479 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Bilbo, Thief in the Night 2/2 @136 1{U} [Spells you cast from anywhere other than your hand cost {1} less to cast. Whenever Bilbo attacks, you may cast an artifact, instant, or sorcery spell from your graveyard. If an instant or sorcery spell cast this way would be put into your graveyard, exile it instead.]
+[OPENROUTER Seat/smart] replied in 4109 ms with 1 tool call(s)
+[Seat] [ROUTER] choose-entity: Bilbo, Thief in the Night 2/2 [untapped] @31 (was @30) [Battlefield, yours] []
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4686 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Bilbo, Thief in the Night
+[OPENROUTER Seat/smart] replied in 6150 ms with 1 tool call(s)
+[Seat] [ROUTER] confirm-trigger [Bilbo, Thief in the Night]: YES
+[OPENROUTER Seat/smart] replied in 5893 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 2253 ms with 1 tool call(s)
+[Seat] [ROUTER] choose-entity: Swords to Plowshares {W} @134 (was @129) [Graveyard, yours] [Bilbo, Thief in the Night]
+[Seat] [AUTO-LEGAL] ability-to-play(forced-only-legal)[Swords to Plowshares]
+[OPENROUTER Seat/smart] replied in 5755 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 5452 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Soul-Scar Mage 1/2 [untapped] [sick] [prowess] @135 (was @131) [Battlefield, opponent's] <- Swords to Plowshares @134 from your GRAVEYARD — cost: {W} [Exile target creature.]
+[Seat] [ROUTER] blockers: 1 atk / 1 blk -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9469 ms with 1 tool call(s)
+[Seat] [ROUTER] blockers: NONE
+[Seat] [ROUTER] play(react): 7 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 14730 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Stabilize against red aggro, grow the artifact board, and keep Sink into Stupor for a larger threat. NEXT: Activate Urza's Saga now to make another Construct before its chapter III; in main phase attack with Bilbo and recast Swords to Plowshares from the graveyard targeting Soul-Scar Mage. Preserve Sink into Stupor if possible.
+[OPENROUTER Seat/smart] replied in 2032 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Red aggro with haste threats; respect Screaming Nemesis, the known Academic Disputes and Reckless Rage, and preserve life.
+[Seat] [ROUTER] play: activates Urza's Saga @121 [{2}, {T}: Create a 0/0 colorless Construct artifact creature token with "This token gets +1/+1 for each artifact you control."]
+[OPENROUTER Seat/smart] replied in 7198 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 2 for ACTIVATE Urza's Saga @121 [{2}, {T}: Create a 0/0 colorless Construct artifact creature token with "This token gets +1/+1 for each artifact you control."]
+[Seat] [ROUTER] play(react): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5205 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 5: if you pass, nothing resolves: the board, hands, life and graveyards are unchanged. A preview cannot play out the opponent's turn.
+[OPENROUTER Seat/smart] replied in 2325 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5751 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Stabilize against red aggro, preserve Sink into Stupor for a larger threat, and use the fresh Construct to pressure. NEXT: Pass upkeep; after draw, Saga reaches chapter III and find an artifact (likely value/board); in main attack with Bilbo and both Constructs where sensible, then consider replaying Swords from graveyard via Bilbo targeting Soul-Scar Mage.
+[OPENROUTER Seat/smart] replied in 2254 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5233 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[OPENROUTER Seat/smart] replied in 10059 ms with 1 tool call(s)
+[Seat] [ROUTER] zone-change: Sol Ring {1} @80 [Library, yours] -> Battlefield [Urza's Saga]
+[Seat] [TALLY] smart=136 fast=0 auto=11 ai=0 textParses=0 avgSmart=6960ms avgFast=6960ms
+[Seat] [ROUTER] play(main): 5 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 13932 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Close the game with combat while preserving Sink into Stupor for a major opposing threat. NEXT: Play Underground Sea, then attack aggressively with Bilbo and both Constructs; keep Sink available for their next significant threat if possible.
+[OPENROUTER Seat/smart] replied in 2520 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Underground Sea
+[Seat] [TALLY] smart=138 fast=0 auto=11 ai=0 textParses=0 avgSmart=6979ms avgFast=6979ms
+[Seat] [ROUTER] play(main): 7 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 12713 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 2 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5902 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Bilbo, Thief in the Night, Construct Token
+[OPENROUTER Seat/smart] replied in 11005 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 2469 ms with 1 tool call(s)
+[Seat] [ROUTER] confirm-trigger [Bilbo, Thief in the Night]: YES
+[OPENROUTER Seat/smart] replied in 9869 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 3007 ms with 1 tool call(s)
+[Seat] [ROUTER] choose-entity: Stock Up 2{U} @130 (was @127) [Graveyard, yours] [Bilbo, Thief in the Night]
+[Seat] [AUTO-LEGAL] ability-to-play(forced-only-legal)[Stock Up]
+[OPENROUTER Seat/smart] replied in 6848 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 2907 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 14610 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 2 for CAST Stock Up @153 2{U} [Look at the top five cards of your library. Put two of them into your hand and the rest on the bottom of your library in any order.]
+[OPENROUTER Seat/smart] replied in 11694 ms with 1 tool call(s)
+[Seat] [ROUTER] choose-entity: Yawgmoth's Will 2{B} @60 [Library, yours] [Stock Up]
+[OPENROUTER Seat/smart] replied in 16030 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 7056 ms with 1 tool call(s)
+[Seat] [ROUTER] choose-entity: Mox Jet @98 [Library, yours] [Stock Up]
+[OPENROUTER Seat/smart] replied in 6765 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 2441 ms with 1 tool call(s)
+[Seat] [ROUTER] order [Stock Up] -> Library: Flusterstorm, Gifts Ungiven, Mox Pearl
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[Seat] [TALLY] smart=152 fast=0 auto=13 ai=0 textParses=0 avgSmart=7081ms avgFast=7081ms
+[Seat] [ROUTER] play(main): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8141 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Mox Jet @154 [Mox Jet]
+[Seat] [TALLY] smart=153 fast=0 auto=13 ai=0 textParses=0 avgSmart=7088ms avgFast=7088ms
+[Seat] [ROUTER] play(main): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 12048 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 7: if you pass, nothing resolves: the board, hands, life and graveyards are unchanged. A preview cannot play out the opponent's turn.
+[OPENROUTER Seat/smart] replied in 2231 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10980 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Survive the opponent's turn and preserve the lethal attack next turn, keeping Sink into Stupor for an important threat. NEXT: Pass through upkeep; respond to a dangerous opposing spell or permanent with Sink if warranted, then untap and attack for lethal.
+[OPENROUTER Seat/smart] replied in 2585 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 12187 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 6: if you pass, nothing resolves: the board, hands, life and graveyards are unchanged. A preview cannot play out the opponent's turn.
+[OPENROUTER Seat/smart] replied in 4526 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 19029 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 21189 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 4725 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Pompous Battlemage {R} 1/1 @159 [Stack, opponent's] <- Sink into Stupor @126 1{U}{U} [Return target spell or nonland permanent an opponent controls to its owner's hand.]
+[Seat] [ROUTER] play: casts Sink into Stupor @126 1{U}{U} [Return target spell or nonland permanent an opponent controls to its owner's hand.]
+[Seat] [ROUTER] play(react): 8 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8650 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Preserve the lethal attack next turn while surviving the opponent's turn. NEXT: Pass through upkeep and respond to any meaningful opposing action if needed; on my turn, attack with Bilbo and both Constructs for lethal.
+[OPENROUTER Seat/smart] replied in 2755 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=164 fast=0 auto=13 ai=0 textParses=0 avgSmart=7228ms avgFast=7228ms
+[Seat] [ROUTER] play(main): 11 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 21603 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Protect lethal next-turn combat by removing Soul-Scar Mage before the opponent can exploit it with the known Reckless Rage. NEXT: Cast Yawgmoth's Will, then cast Swords to Plowshares from the graveyard targeting Soul-Scar Mage; preserve the two Constructs and Bilbo for lethal.
+[OPENROUTER Seat/smart] replied in 2272 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Yawgmoth's Will @155 2{B} [Until end of turn, you may play lands and cast spells from your graveyard. If a card would be put into your graveyard from anywhere this turn, exile that card instead.]
+[OPENROUTER Seat/smart] replied in 16214 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 5 for CAST Yawgmoth's Will @165 2{B} [Until end of turn, you may play lands and cast spells from your graveyard. If a card would be put into your graveyard from anywhere this turn, exile that card instead.]
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[Seat] [TALLY] smart=167 fast=0 auto=14 ai=0 textParses=0 avgSmart=7338ms avgFast=7338ms
+[Seat] [ROUTER] play(main): 22 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 12412 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 3358 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Soul-Scar Mage 1/2 [untapped] [prowess] @135 (was @131) [Battlefield, opponent's] <- Swords to Plowshares @134 from your GRAVEYARD — cost: {W} [Exile target creature. by Yawgmoth's Will @166]
+[Seat] [ROUTER] play: casts Swords to Plowshares @134 from your GRAVEYARD — cost: {W} [Exile target creature. by Yawgmoth's Will @166]
+[OPENROUTER Seat/smart] replied in 7138 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 4 for CAST Swords to Plowshares @168 {W} [Exile target creature. by Yawgmoth's Will @166]
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[Seat] [TALLY] smart=170 fast=0 auto=15 ai=0 textParses=0 avgSmart=7344ms avgFast=7344ms
+[Seat] [ROUTER] play(main): 20 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 14802 ms with 1 tool call(s)
+ComputerUtilMana: payManaCost() cost was not paid for Draw three cards. (Lórien Revealed). Didn't find what to pay for {1}
+[Seat] AI failed to play Lórien Revealed (17) [Stack]
+[Seat] [ROUTER] lookahead 9, then 1: if you cast Black Lotus: you board 10 -> 11; graveyard 8 -> 7; entered the battlefield: Black Lotus; ForgeAI exile 4 -> 3. After that the engine could NOT pay for or play Lórien Revealed on the copy, so the line stops there
+[OPENROUTER Seat/smart] replied in 7216 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Black Lotus @132 from your GRAVEYARD — cost: none [Black Lotus by Yawgmoth's Will @166]
+[Seat] [TALLY] smart=172 fast=0 auto=15 ai=0 textParses=0 avgSmart=7386ms avgFast=7386ms
+[Seat] [ROUTER] play(main): 19 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7516 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 22: if you pass, nothing resolves: the board, hands, life and graveyards are unchanged. A preview cannot play out the opponent's turn.
+[OPENROUTER Seat/smart] replied in 2769 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 3 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10148 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 3340 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Bilbo, Thief in the Night, Construct Token, Construct Token
+[OPENROUTER Seat/smart] replied in 6440 ms with 1 tool call(s)
+[Seat] [ROUTER] confirm-trigger [Bilbo, Thief in the Night]: YES
+[OPENROUTER Seat/smart] replied in 12226 ms with 1 tool call(s)
+[Seat] [ROUTER] choose-entity: Lórien Revealed 3{U}{U} @107 (was @106) [Graveyard, yours] [Bilbo, Thief in the Night]
+[Seat] [AUTO-LEGAL] ability-to-play(forced-only-legal)[Lórien Revealed]
+[OPENROUTER Seat/smart] replied in 8000 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Preserve the attackers for lethal and use the postcombat window to maintain protection against the opponent's known burn/combat tricks. NEXT: Cast Lórien Revealed from the graveyard to draw three; then resolve combat damage. Keep interaction for the opponent's turn if the new cards provide it.
+[OPENROUTER Seat/smart] replied in 1883 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 12023 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 1 for CAST Lórien Revealed @173 3{U}{U} [Draw three cards.]
+[OPENROUTER Seat/smart] replied in 5712 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 4225 ms with 1 tool call(s)
+[Seat] [ROUTER] damage-assign: all 6 -> Pompous Battlemage (forced)
+========== GAME OVER ==========
+outcome: A after 14 turns (AllOpponentsLost) in 1370s
+--- full game log ---
+  MULLIGAN: Seat has mulliganed down to 6 cards.
+  MULLIGAN: Seat has mulliganed down to 5 cards.
+  MULLIGAN: ForgeAI has kept a hand of 7 cards
+  MULLIGAN: Seat has kept a hand of 5 cards
+  TURN: Turn 1 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Mountain (107)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 2 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Tundra (45)
+  STACK_ADD: Seat cast Black Lotus
+  STACK_RESOLVE: Black Lotus
+  STACK_ADD: Seat cast Mox Ruby
+  STACK_RESOLVE: Mox Ruby
+  ZONE_CHANGE: Black Lotus (55) was put into Graveyard from Battlefield.
+  MANA: Black Lotus (55) - {T}, Sacrifice Black Lotus: Add three mana of any one color.
+  STACK_ADD: Seat cast Bilbo, Thief in the Night
+  MANA: Tundra (45) - {T}: Add {U}.
+  STACK_RESOLVE: Bilbo, Thief in the Night - Creature 2 / 2
+  STACK_ADD: Seat cast Time Walk
+  STACK_RESOLVE: Time Walk (23) - Seat takes an extra turn after this one.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 3 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  MANA: Tundra (45) - {T}: Add {U}.
+  MANA: Mox Ruby (15) - {T}: Add {R}.
+  STACK_ADD: Seat cast Flow State
+  STACK_RESOLVE: Flow State (7) - Seat looks at the top three cards of their library. They put one of them into their hand and put the rest on the bottom of their library in any order.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Bilbo, Thief in the Night (52) to attack ForgeAI.
+  STACK_ADD: Seat triggered Bilbo, Thief in the Night
+  STACK_RESOLVE: Whenever Bilbo attacks, you may cast an artifact, instant, or sorcery spell from your graveyard. If an instant or sorcery spell cast this way would be put into your graveyard, exile it instead. [Attacker: Bilbo, Thief in the Night (52)]
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Bilbo, Thief in the Night (52).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Bilbo, Thief in the Night (52) deals 2 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 20 > 18
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 4 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Mutavault (135)
+  MANA: Mountain (107) - {T}: Add {R}.
+  MANA: Mutavault (135) - {T}: Add {C}.
+  STACK_ADD: ForgeAI cast Emberheart Challenger
+  STACK_RESOLVE: Emberheart Challenger - Creature 2 / 2
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Emberheart Challenger (92) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Emberheart Challenger (92).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Emberheart Challenger (92) deals 2 combat damage to Seat.
+  LIFE: Life: Seat 20 > 18
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 5 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LIFE: Life: Seat 18 > 16
+  STACK_ADD: Seat cast Gitaxian Probe targeting [ForgeAI]
+  STACK_RESOLVE: Gitaxian Probe (30) - Seat looks at ForgeAI's hand. Seat draws a card.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Bilbo, Thief in the Night (52) to attack ForgeAI.
+  STACK_ADD: Seat triggered Bilbo, Thief in the Night
+  MANA: Tundra (45) - {T}: Add {U}.
+  STACK_ADD: Seat cast Time Walk
+  STACK_RESOLVE: Whenever Bilbo attacks, you may cast an artifact, instant, or sorcery spell from your graveyard. If an instant or sorcery spell cast this way would be put into your graveyard, exile it instead. [Attacker: Bilbo, Thief in the Night (52)]
+  STACK_RESOLVE: Time Walk (23) - Seat takes an extra turn after this one.
+  EFFECT_REPLACED: If that card would be put into your graveyard this turn, exile it instead.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Bilbo, Thief in the Night (52).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Bilbo, Thief in the Night (52) deals 2 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 18 > 16
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 6 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  MANA: Mox Ruby (15) - {T}: Add {R}.
+  DISCARD: Seat discards Lórien Revealed (19).
+  STACK_ADD: Seat activated Lórien Revealed
+  STACK_RESOLVE: Lórien Revealed (19) - Seat searches their library for an Island card, reveals it, puts it into their hand, then shuffles.
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Island (28)
+  MANA: Tundra (45) - {T}: Add {W}.
+  MANA: Island (28) - {T}: Add {U}.
+  STACK_ADD: Seat cast Prismatic Ending targeting [Emberheart Challenger (92)]
+  ZONE_CHANGE: Emberheart Challenger (92) was put into Exile from Battlefield.
+  STACK_RESOLVE: Prismatic Ending (60) - Exile Emberheart Challenger (92). (X=1)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Bilbo, Thief in the Night (52) to attack ForgeAI.
+  STACK_ADD: Seat triggered Bilbo, Thief in the Night
+  STACK_ADD: Seat cast Black Lotus
+  STACK_RESOLVE: Whenever Bilbo attacks, you may cast an artifact, instant, or sorcery spell from your graveyard. If an instant or sorcery spell cast this way would be put into your graveyard, exile it instead. [Attacker: Bilbo, Thief in the Night (52)]
+  STACK_RESOLVE: Black Lotus
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Bilbo, Thief in the Night (52).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Bilbo, Thief in the Night (52) deals 2 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 16 > 14
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 7 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Mountain (95)
+  MANA: Mountain (107) - {T}: Add {R}.
+  MANA: Mountain (95) - {T}: Add {R}.
+  MANA: Mutavault (135) - {T}: Add {C}.
+  STACK_ADD: ForgeAI cast Screaming Nemesis
+  LIFE: Life: Seat 16 > 15
+  STACK_ADD: Seat cast Force of Will targeting [Screaming Nemesis - Creature 3 / 3]
+  ZONE_CHANGE: Send countered spell to Graveyard
+  STACK_RESOLVE: Force of Will (11) - Counter Screaming Nemesis (117).
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 8 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  EFFECT_REPLACED: Urza's Saga enters with a lore counter on it.
+  LAND: Seat played Urza's Saga (49)
+  STACK_ADD: Seat triggered Urza's Saga
+  STACK_RESOLVE: I — Urza's Saga gains "{T}: Add {C}." [Added once: Urza's Saga (49)]
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Bilbo, Thief in the Night (52) to attack ForgeAI.
+  STACK_ADD: Seat triggered Bilbo, Thief in the Night
+  MANA: Island (28) - {T}: Add {U}.
+  STACK_ADD: Seat cast Flow State
+  STACK_RESOLVE: Whenever Bilbo attacks, you may cast an artifact, instant, or sorcery spell from your graveyard. If an instant or sorcery spell cast this way would be put into your graveyard, exile it instead. [Attacker: Bilbo, Thief in the Night (52)]
+  STACK_RESOLVE: Flow State (7) - Seat looks at the top three cards of their library. They put two of them into their hand and put the rest on the bottom of their library in any order.
+  EFFECT_REPLACED: If that card would be put into your graveyard this turn, exile it instead.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Bilbo, Thief in the Night (52).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Bilbo, Thief in the Night (52) deals 2 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 14 > 12
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  MANA: Tundra (45) - {T}: Add {U}.
+  MANA: Urza's Saga (49) - {T}: Add {C}.
+  MANA: Mox Ruby (15) - {T}: Add {R}.
+  STACK_ADD: Seat cast Stock Up
+  STACK_RESOLVE: Stock Up (32) - Seat looks at the top five cards of their library. They put two of them into their hand and put the rest on the bottom of their library in any order.
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 9 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  PHASE: ForgeAI's Beginning of Combat Step
+  MANA: Mountain (107) - {T}: Add {R}.
+  STACK_ADD: ForgeAI activated Mutavault
+  STACK_RESOLVE: Mutavault (135) - Mutavault (135) has base power and toughness 2/2  and becomes a creature until end of turn.
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Mutavault (135) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Mutavault (135).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Mutavault (135) deals 2 combat damage to Seat.
+  LIFE: Life: Seat 15 > 13
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Mountain (95) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Soul-Scar Mage
+  ZONE_CHANGE: Black Lotus (55) was put into Graveyard from Battlefield.
+  MANA: Black Lotus (55) - {T}, Sacrifice Black Lotus: Add three mana of any one color.
+  STACK_ADD: Seat cast Swords to Plowshares targeting [Mutavault (135)]
+  ZONE_CHANGE: Mutavault (135) was put into Exile from Battlefield.
+  LIFE: Life: ForgeAI 12 > 14
+  STACK_RESOLVE: Swords to Plowshares (40) - Exile Mutavault (135). ForgeAI gains life equal to its power.
+  STACK_RESOLVE: Soul-Scar Mage - Creature 1 / 2
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 10 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  STACK_ADD: Seat triggered Urza's Saga
+  STACK_RESOLVE: II — Urza's Saga gains "{2}, {T}: Create a 0/0 colorless Construct artifact creature token with 'This token gets +1/+1 for each artifact you control.'" [Added once: Urza's Saga (49)]
+  LAND: Seat played Tundra (46)
+  MANA: Mox Ruby (15) - {T}: Add {R}.
+  MANA: Island (28) - {T}: Add {U}.
+  STACK_ADD: Seat activated Urza's Saga
+  STACK_RESOLVE: Urza's Saga (49) - Seat creates a 0/0 colorless Construct artifact creature token with "This token gets +1/+1 for each artifact they control."
+  MANA: Tundra (45) - {T}: Add {U}.
+  MANA: Tundra (46) - {T}: Add {U}.
+  STACK_ADD: Seat cast Bilbo, Thief in the Night
+  STACK_RESOLVE: Bilbo, Thief in the Night - Creature 2 / 2
+  ZONE_CHANGE: Bilbo, Thief in the Night (53) was put into Graveyard from Battlefield.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Bilbo, Thief in the Night (52) to attack ForgeAI.
+  STACK_ADD: Seat triggered Bilbo, Thief in the Night
+  STACK_RESOLVE: Whenever Bilbo attacks, you may cast an artifact, instant, or sorcery spell from your graveyard. If an instant or sorcery spell cast this way would be put into your graveyard, exile it instead. [Attacker: Bilbo, Thief in the Night (52)]
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Bilbo, Thief in the Night (52).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Bilbo, Thief in the Night (52) deals 2 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 14 > 12
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 11 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  MANA: Mountain (107) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Kumano Faces Kakkazan
+  STACK_ADD: ForgeAI triggered Soul-Scar Mage
+  STACK_RESOLVE: Prowess (Whenever you cast a noncreature spell, this creature gets +1/+1 until end of turn.) [Card: Kumano Faces Kakkazan (111), Activator: ForgeAI, SpellAbility: Kumano Faces Kakkazan]
+  EFFECT_REPLACED: Kumano Faces Kakkazan enters with a lore counter on it.
+  STACK_RESOLVE: Kumano Faces Kakkazan
+  STACK_ADD: ForgeAI triggered Kumano Faces Kakkazan
+  DAMAGE: Kumano Faces Kakkazan (111) deals 1 non-combat damage to Seat.
+  LIFE: Life: Seat 13 > 12
+  STACK_RESOLVE: I — Kumano Faces Kakkazan deals 1 damage to each opponent and 1 damage to each planeswalker they control. [Added once: Kumano Faces Kakkazan (111)]
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Soul-Scar Mage (131) to attack Seat.
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Soul-Scar Mage (131).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Soul-Scar Mage (131) deals 2 combat damage to Seat.
+  LIFE: Life: Seat 12 > 10
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 12 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  MANA: Mox Ruby (15) - {T}: Add {R}.
+  MANA: Tundra (46) - {T}: Add {U}.
+  STACK_ADD: Seat activated Urza's Saga
+  STACK_RESOLVE: Urza's Saga (49) - Seat creates a 0/0 colorless Construct artifact creature token with "This token gets +1/+1 for each artifact they control."
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  STACK_ADD: Seat triggered Urza's Saga
+  STACK_RESOLVE: III — Search your library for an artifact card with mana cost {0} or {1}, put it onto the battlefield, then shuffle. [Added once: Urza's Saga (49)]
+  ZONE_CHANGE: Urza's Saga (49) was put into Graveyard from Battlefield.
+  LAND: Seat played Underground Sea (27)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Bilbo, Thief in the Night (52) and Construct Token (154) to attack ForgeAI.
+  STACK_ADD: Seat triggered Bilbo, Thief in the Night
+  MANA: Tundra (45) - {T}: Add {U}.
+  MANA: Sol Ring (4) - {T}: Add {C}{C}.
+  STACK_ADD: Seat cast Stock Up
+  STACK_RESOLVE: Whenever Bilbo attacks, you may cast an artifact, instant, or sorcery spell from your graveyard. If an instant or sorcery spell cast this way would be put into your graveyard, exile it instead. [Attacker: Bilbo, Thief in the Night (52)]
+  STACK_RESOLVE: Stock Up (32) - Seat looks at the top five cards of their library. They put two of them into their hand and put the rest on the bottom of their library in any order.
+  EFFECT_REPLACED: If that card would be put into your graveyard this turn, exile it instead.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Bilbo, Thief in the Night (52).
+ForgeAI didn't block Construct Token (154).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Bilbo, Thief in the Night (52) deals 2 combat damage to ForgeAI.
+  DAMAGE: Construct Token (154) deals 4 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 12 > 6
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  STACK_ADD: Seat cast Mox Jet
+  STACK_RESOLVE: Mox Jet
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 13 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  STACK_ADD: ForgeAI triggered Kumano Faces Kakkazan
+  STACK_RESOLVE: II — When you cast your next creature spell this turn, that creature enters with an additional +1/+1 counter on it. [Added once: Kumano Faces Kakkazan (111)]
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Mountain (107) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Pompous Battlemage
+  MANA: Island (28) - {T}: Add {U}.
+  MANA: Underground Sea (27) - {T}: Add {U}.
+  MANA: Mox Jet (39) - {T}: Add {B}.
+  STACK_ADD: Seat cast Sink into Stupor targeting [Pompous Battlemage (123)]
+  STACK_RESOLVE: Sink into Stupor (20) - Return Pompous Battlemage (123) to its owner's hand.
+  MANA: Mountain (95) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Pompous Battlemage
+  EFFECT_REPLACED: This creature enters prepared. (While it's prepared, you may cast a copy of its spell. Doing so unprepares it.)
+  STACK_RESOLVE: Pompous Battlemage - Creature 1 / 1
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 14 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  MANA: Mox Jet (39) - {T}: Add {B}.
+  MANA: Sol Ring (4) - {T}: Add {C}{C}.
+  STACK_ADD: Seat cast Yawgmoth's Will
+  STACK_RESOLVE: Yawgmoth's Will (36) - Until end of turn, you may play lands and cast spells from your graveyard. If a card would be put into your graveyard from anywhere this turn, exile that card instead.
+  EFFECT_REPLACED: If a card would be put into your graveyard from anywhere, exile it instead.
+  MANA: Tundra (46) - {T}: Add {W}.
+  STACK_ADD: Seat cast Swords to Plowshares targeting [Soul-Scar Mage (131)]
+  ZONE_CHANGE: Soul-Scar Mage (131) was put into Exile from Battlefield.
+  LIFE: Life: ForgeAI 6 > 7
+  STACK_RESOLVE: Swords to Plowshares (40) - Exile Soul-Scar Mage (131). ForgeAI gains life equal to its power.
+  EFFECT_REPLACED: If a card would be put into your graveyard from anywhere, exile it instead.
+  STACK_ADD: Seat cast Black Lotus
+  STACK_RESOLVE: Black Lotus
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Bilbo, Thief in the Night (52), Construct Token (154) and Construct Token (157) to attack ForgeAI.
+  STACK_ADD: Seat triggered Bilbo, Thief in the Night
+  MANA: Island (28) - {T}: Add {U}.
+  MANA: Tundra (45) - {T}: Add {U}.
+  MANA: Mox Ruby (15) - {T}: Add {R}.
+  MANA: Underground Sea (27) - {T}: Add {B}.
+  STACK_ADD: Seat cast Lórien Revealed
+  STACK_RESOLVE: Whenever Bilbo attacks, you may cast an artifact, instant, or sorcery spell from your graveyard. If an instant or sorcery spell cast this way would be put into your graveyard, exile it instead. [Attacker: Bilbo, Thief in the Night (52)]
+  STACK_RESOLVE: Lórien Revealed (19) - Seat draws three cards.
+  EFFECT_REPLACED: If a card would be put into your graveyard from anywhere, exile it instead.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Bilbo, Thief in the Night (52).
+ForgeAI assigned Pompous Battlemage (123) to block Construct Token (154).
+ForgeAI didn't block Construct Token (157).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Bilbo, Thief in the Night (52) deals 2 combat damage to ForgeAI.
+  DAMAGE: Construct Token (154) deals 6 damage to Pompous Battlemage (123).
+  DAMAGE: Construct Token (157) deals 6 combat damage to ForgeAI.
+  DAMAGE: Pompous Battlemage (123) deals 2 damage to Construct Token (154).
+  LIFE: Life: ForgeAI 7 > -1
+  PLAYER_CONTROL: Seat has restored control over themself
+  PLAYER_CONTROL: ForgeAI has restored control over themself
+  GAME_OUTCOME: Match Duration 21m : 50s
+  GAME_OUTCOME: Turn 7
+  GAME_OUTCOME: Seat has won because all opponents have lost
+  GAME_OUTCOME: ForgeAI has lost because life total reached 0
+  MATCH_RESULTS: Seat: 1 ForgeAI: 0 
+===============================

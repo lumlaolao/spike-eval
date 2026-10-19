@@ -1,0 +1,3 @@
+search {"status": "not_found", "acceptance": null, "acceptance_failed": null, "line": null, "search_replays": 600, "opponent_branches_beaten": 0, "actions": null, "search_drift": null}
+pass {"status": "failed", "acceptance": "rejected", "acceptance_failed": ["count p1 Exile * = 4 (was 0)"], "line": null, "search_replays": null, "opponent_branches_beaten": null, "actions": null, "search_drift": null}
+secs 398

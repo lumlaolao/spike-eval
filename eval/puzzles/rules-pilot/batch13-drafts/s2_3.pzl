@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Proliferating nothing
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control two Islands, a Swamp and a Forest, and have Contentious Plan and Servant of the Scale in hand. Voidwing Hybrid is in your graveyard. No permanent or player has a counter. End the turn with Voidwing Hybrid on your battlefield.
+Rule:wizards-official-card-rulings-c04f26cff086979b | Proliferate lets you choose no permanents or players and you have still proliferated (CR 701.34a, 603.2): Contentious Plan with nothing to add to returns Voidwing Hybrid
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Contentious Plan;Servant of the Scale
+p0battlefield=Island;Island;Swamp;Forest
+p0graveyard=Voidwing Hybrid
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Voidwing Hybrid" = 1
