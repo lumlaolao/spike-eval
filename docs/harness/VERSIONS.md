@@ -6,12 +6,12 @@ Versions are not in the model's prompt: the model gains nothing from them, and a
 
 | stamp | value | game line | a change means |
 |---|---|---|---|
-| `LlmSpikeGui.HARNESS_EPOCH` | `harness-epoch-60` | `harness_epoch` | the interface the model plays through, as one number: any change to what the seat is asked or shown, or to how its answer is carried out. Results pool only within one epoch. |
+| `LlmSpikeGui.HARNESS_EPOCH` | `harness-epoch-61` | `harness_epoch` | the interface the model plays through, as one number: any change to what the seat is asked or shown, or to how its answer is carried out. Results pool only within one epoch. |
 | `SeatObservation.VERSION` | `observation-faithful-v41` | `observation_version` | the faithful state the seat reads: the blocks, their labels and their order. |
 | `AnswerTool.VERSION` | `answer-tool-v11` | `answer_tool_version` | the `answer` and `set_plan` functions and their validation. |
 | `NativeTools.VERSION` | `seat-tools-v11` | `native_tools_version` | the lookup tools' definitions (inspect, search, read, simulate). |
 | `ContextMemory.VERSION` | `evidence-tools-v4` | `memory_tools_version` | what the evidence lookups return. |
-| `PlayerLookahead.VERSION` | `lookahead-preview-v14` | `lookahead_version` | the `simulate` preview and the attack outlook. |
+| `PlayerLookahead.VERSION` | `lookahead-preview-v15` | `lookahead_version` | the `simulate` preview and the attack outlook. |
 | `RulesTool.VERSION` | `rules-tool-v1` | `rules_tool_version` | the comprehensive-rules lookup. |
 | `ChatSessionBridge.VERSION` | `one-chat-v3` | `one_chat_version` | the one-conversation-per-seat arm (ONE_CHAT). |
 | `ChatSessionBridge.TURN_VERSION` | `turn-chat-v1` | `turn_chat_version` | the conversation bounded by the turn (TURN_CHAT). |

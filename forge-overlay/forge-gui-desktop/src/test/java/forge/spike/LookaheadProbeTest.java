@@ -578,6 +578,31 @@ public class LookaheadProbeTest {
         Assert.assertTrue(report.contains("Rival graveyard 0 -> 1"), "Show and Tell was countered on the copy: " + report);
     }
 
+    /** runs/loop/g28 T6 (jsonl:308): on the opponent's turn, Force of Negation's pitch (exile another blue card) against
+     *  Seam Rip came back "preview unavailable", though the engine offered it; the seat cast Mental Misstep instead. */
+    @Test
+    public void aForceOfNegationPitchOnTheOpponentsTurnIsPreviewed() {
+        Game g = LineFindingProbeTest.bareGame(forge.game.phase.PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        LineFindingProbeTest.card("Force of Negation", me, forge.game.zone.ZoneType.Hand);
+        LineFindingProbeTest.card("Force of Will", me, forge.game.zone.ZoneType.Hand);
+        LineFindingProbeTest.card("Mental Misstep", me, forge.game.zone.ZoneType.Hand);
+        LineFindingProbeTest.card("Tropical Island", me, forge.game.zone.ZoneType.Battlefield);
+        LineFindingProbeTest.rivalCasts(g, "Seam Rip", null);
+        g.getAction().checkStaticAbilities();
+        forge.game.spellability.SpellAbility pitch = null;
+        for (forge.game.spellability.SpellAbility o : LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, false, true).spells)
+            if (o.getHostCard() != null && o.getHostCard().getName().equals("Force of Negation") && o.getDescription().contains("rather than pay")) pitch = o;
+        Assert.assertNotNull(pitch, "fixture: Force of Negation has its pitch cost on the opponent's turn");
+        pitch.setActivatingPlayer(me);
+        String report = PlayerLookahead.previewCast(g, me, pitch, 5L, "Seam Rip");
+        System.out.println("[LOOKAHEAD] " + report);
+        Assert.assertFalse(report.startsWith("(preview unavailable"), report);
+        Assert.assertTrue(report.contains("Force of Negation"), report);
+        Assert.assertTrue(report.contains("Rival exile 0 -> 1") && !report.contains("entered the battlefield: Seam Rip"),
+                "Seam Rip was countered and exiled on the copy: " + report);
+    }
+
     /** The model can aim the preview: a hint naming a legal target is honoured. */
     @Test
     public void previewCastHonoursATargetHint() {

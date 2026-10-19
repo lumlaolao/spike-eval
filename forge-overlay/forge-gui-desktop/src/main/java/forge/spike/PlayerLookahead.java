@@ -56,7 +56,9 @@ final class PlayerLookahead {
     // the copy (runs/loop/g16 and g23: "Couldn't map Enroot", Carnivorous Cultivator's prepared spell); since g23 showed
     // the simulator's own internal copy failing too, this is an engine patch to GameCopier (ENGINE-PATCHES.md).
     // v14 (2026-10-18): the same, for every copy: GameCopier is patched, and the harness-side parking is gone.
-    static final String VERSION = "lookahead-preview-v14";
+    // v15 (2026-10-19, runs/loop/g28 T6): a counterspell is aimed at the spell on the copy's stack (Force of Negation
+    // against Seam Rip was unavailable, then countered nothing), and the delta reports exile counts.
+    static final String VERSION = "lookahead-preview-v15";
 
     private PlayerLookahead() { }
 
@@ -162,23 +164,28 @@ final class PlayerLookahead {
     static forge.game.spellability.SpellAbility alternativeOnCopy(forge.game.spellability.SpellAbility live, GameSimulator sim, Player seat) {
         try {
             forge.game.card.Card host = live.getHostCard();
-            if (host == null || !live.isSpell() || host.getSpellAbilities().contains(live)) return live;
+            if (host == null || !live.isSpell()) return live;
+            boolean plain = host.getSpellAbilities().contains(live);
+            if (plain && !targetsTheStack(live)) return live;
             forge.game.card.Card copyHost = (forge.game.card.Card) sim.getGameCopier().find(host);
             Player copySeat = (Player) sim.getGameCopier().find(seat);
             if (copyHost == null || copySeat == null) return live;
             for (forge.game.spellability.SpellAbility base : copyHost.getSpellAbilities()) {
                 if (!base.isSpell()) continue;
                 base.setActivatingPlayer(copySeat);
-                for (forge.game.spellability.SpellAbility alt : forge.game.GameActionUtil.getAlternativeCosts(base, copySeat, false)) {
+                java.util.List<forge.game.spellability.SpellAbility> versions = plain
+                        ? java.util.Collections.singletonList(base)
+                        : forge.game.GameActionUtil.getAlternativeCosts(base, copySeat, false);
+                for (forge.game.spellability.SpellAbility alt : versions) {
                     if (!java.util.Objects.equals(alt.getDescription(), live.getDescription())) continue;
                     alt.setActivatingPlayer(copySeat);
                     forge.game.spellability.SpellAbility a = alt, l = live;
                     for (; a != null && l != null; a = a.getSubAbility(), l = l.getSubAbility()) {
                         if (l.getTargets() == null) continue;
+                        a.resetTargets();
                         for (forge.game.GameObject t : l.getTargets()) {
-                            Object ct = t instanceof forge.game.GameEntity || t instanceof forge.game.spellability.SpellAbility
-                                    ? sim.getGameCopier().find(t) : null;
-                            if (ct instanceof forge.game.GameObject) a.getTargets().add((forge.game.GameObject) ct);
+                            forge.game.GameObject ct = targetOnCopy(t, sim);
+                            if (ct != null) a.getTargets().add(ct);
                         }
                     }
                     return alt;
@@ -186,6 +193,30 @@ final class PlayerLookahead {
             }
         } catch (RuntimeException ignore) { }
         return live;
+    }
+
+    /** True when an ability of {@code sa}'s chain is aimed at a spell on the stack. */
+    static boolean targetsTheStack(forge.game.spellability.SpellAbility sa) {
+        for (forge.game.spellability.SpellAbility s = sa; s != null; s = s.getSubAbility())
+            if (s.getTargets() != null)
+                for (forge.game.GameObject t : s.getTargets())
+                    if (t instanceof forge.game.spellability.SpellAbility) return true;
+        return false;
+    }
+
+    /** The copy's version of target {@code t}. A spell on the stack is the copy's stack entry with the same card: the
+     *  copier maps cards and players only, and a counter aimed at the spell's card fizzles (runs/loop/g28 T6, Force of
+     *  Negation against Seam Rip: the preview showed Seam Rip entering). */
+    static forge.game.GameObject targetOnCopy(forge.game.GameObject t, GameSimulator sim) {
+        try {
+            if (!(t instanceof forge.game.spellability.SpellAbility)) return sim.getGameCopier().find(t);
+            forge.game.card.Card liveHost = ((forge.game.spellability.SpellAbility) t).getHostCard();
+            forge.game.card.Card copyHost = liveHost == null ? null : (forge.game.card.Card) sim.getGameCopier().find(liveHost);
+            if (copyHost == null) return null;
+            for (forge.game.spellability.SpellAbilityStackInstance si : copyHost.getGame().getStack())
+                if (si.getSpellAbility() != null && si.getSpellAbility().getHostCard() == copyHost) return si.getSpellAbility();
+        } catch (RuntimeException ignore) { }
+        return null;
     }
 
     /** The engine's copier leaves imprinted cards behind, so a Chrome Mox on the copy makes no mana and the preview
@@ -240,7 +271,7 @@ final class PlayerLookahead {
     }
 
     /** Objective, public-only delta between two states of the same seat: life totals and board /
-     *  graveyard sizes. Deliberately narrow — it reports counts, never hidden identities, so it is
+     *  graveyard / exile sizes. Deliberately narrow — it reports counts, never hidden identities, so it is
      *  safe to show the model. Returns "no change" when nothing moved. */
     static String publicDelta(Player before, Player after) {
         if (before == null || after == null) return "(state unavailable)";
@@ -253,6 +284,10 @@ final class PlayerLookahead {
         int yardBefore = before.getCardsIn(ZoneType.Graveyard).size();
         int yardAfter = after.getCardsIn(ZoneType.Graveyard).size();
         if (yardAfter != yardBefore) b.append("graveyard ").append(yardBefore).append(" -> ").append(yardAfter).append("; ");
+        // Exile is public: a counterspell that exiles, a pitched card, a removal spell that exiles (runs/loop/g28 T6, Force
+        // of Negation exiling Seam Rip read "Rival no change").
+        int exileBefore = before.getCardsIn(ZoneType.Exile).size(), exileAfter = after.getCardsIn(ZoneType.Exile).size();
+        if (exileAfter != exileBefore) b.append("exile ").append(exileBefore).append(" -> ").append(exileAfter).append("; ");
         // Sizes of hidden zones are public; their contents are not and are never named.
         // What a mana ability does is the mana it adds (runs/loop/g10: a line ending in Gaea's Cradle).
         String poolBefore = SeatObservation.manaPool(before), poolAfter = SeatObservation.manaPool(after);
@@ -487,6 +522,14 @@ final class PlayerLookahead {
                 if (s.getTargets() != null && !s.getTargets().isEmpty()) continue;
                 forge.game.spellability.TargetRestrictions tr = s.getTargetRestrictions();
                 if (tr == null) continue;
+                // A counterspell targets the spells on the stack, as the seat's menu offers them; the engine's card
+                // candidates came back empty for a permanent spell, so Force of Negation's preview against Seam Rip
+                // was unavailable (runs/loop/g28 T6).
+                if (tr.getZone() != null && tr.getZone().size() == 1 && tr.getZone().get(0) == ZoneType.Stack) {
+                    String spell = aimStackTarget(s, tr, hint);
+                    if (spell != null) assumed.append(assumed.length() > 0 ? ", " : "").append(spell);
+                    continue;
+                }
                 java.util.List<forge.game.GameEntity> cands = tr.getAllCandidates(s, false);
                 if (cands == null || cands.isEmpty()) continue;
                 int min = Math.max(1, s.getMinTargets());
@@ -502,6 +545,35 @@ final class PlayerLookahead {
             } catch (Exception ignore) { }
         }
         return assumed.toString();
+    }
+
+    /** Aims {@code s} at a spell on the stack, chosen among the engine's stack targets: the one whose card's name
+     *  matches {@code hint}, else the top one an opponent controls, else the top one. Returns the card's name, or null
+     *  when nothing can be targeted. */
+    private static String aimStackTarget(forge.game.spellability.SpellAbility s,
+            forge.game.spellability.TargetRestrictions tr, String hint) {
+        java.util.List<forge.game.GameObject> cands = LlmSpikeGui.PlayerControllerLLM.targetCandidates(s, tr);
+        forge.game.spellability.SpellAbility pick = null;
+        String h = hint == null ? "" : hint.trim().toLowerCase(Locale.ROOT);
+        int bestLen = 0;
+        for (forge.game.GameObject o : cands) {
+            forge.game.spellability.SpellAbility sa = (forge.game.spellability.SpellAbility) o;
+            String n = sa.getHostCard() == null ? "" : sa.getHostCard().getName().toLowerCase(Locale.ROOT);
+            if (!h.isEmpty() && !n.isEmpty() && (n.contains(h) || h.contains(n)) && n.length() > bestLen) {
+                pick = sa; bestLen = n.length();
+            }
+        }
+        forge.game.player.Player me = s.getActivatingPlayer();
+        for (forge.game.GameObject o : cands) {
+            if (pick != null) break;
+            forge.game.spellability.SpellAbility sa = (forge.game.spellability.SpellAbility) o;
+            if (me != null && sa.getActivatingPlayer() != null && me.isOpponentOf(sa.getActivatingPlayer())) pick = sa;
+        }
+        if (pick == null && !cands.isEmpty()) pick = (forge.game.spellability.SpellAbility) cands.get(0);
+        if (pick == null || pick.getHostCard() == null) return null;
+        s.resetTargets();
+        s.getTargets().add(pick);
+        return pick.getHostCard().getName();
     }
 
     /** A candidate whose name matches {@code hint}, else the default. The hint is whatever the seat

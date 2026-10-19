@@ -307,8 +307,10 @@ public final class LlmSpikeGui {
      *  block requirement instead of keeping an illegal one after 64 draws.
      *  Epoch 60 (2026-10-19, runs/loop/g27): a card pays for its own ability only when the two do not both tap it;
      *  epoch 59 offered Rishadan Port's tap ability with Port as the only source, and the activation failed.
+     *  Epoch 61 (2026-10-19, runs/loop/g28): a preview aims a counterspell at the spell on the copy's stack, and reports
+     *  exile counts (lookahead-preview-v15).
      */
-    static final String HARNESS_EPOCH = "harness-epoch-60";
+    static final String HARNESS_EPOCH = "harness-epoch-61";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats

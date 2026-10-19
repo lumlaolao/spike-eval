@@ -908,3 +908,16 @@ mirror of patience, still inside the $0.40 budget. Third clean game in a row on 
   watched failing without the fix.
 - checked  plan_audit HOLD-VIOLATION T7 and T9 Wasteland: the plan recovers Wasteland with Life from the Loam next
   turn, which presumes it is sacrificed now; model-chosen, a matcher artefact.
+
+### g28  2026-10-19  seed 4128  Vintage Oath of Druids (seat) vs Standard UW Control (Forge AI)  WON T9  $0.08  harness-epoch-60
+95 model decisions, 19 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 8 of 9 served, ai_tier_count=0, 16 min.
+- FIXED  T6 (jsonl:308) the seat previewed Force of Negation's pitch against Seam Rip and got "preview unavailable":
+  the preview took a counterspell's targets from the engine's card candidates, empty for a permanent spell. Aimed at
+  the card instead it fizzled on the copy and showed Seam Rip resolving. It is now aimed at the copy's stack entry,
+  and the report counts exile (lookahead-preview-v15, epoch 61). Test:
+  LookaheadProbeTest.aForceOfNegationPitchOnTheOpponentsTurnIsPreviewed, watched failing first. The seat cast Mental
+  Misstep instead, which was its choice with the preview missing.
+- FIXED (test bridge)  GoldenChecksToolTest's block re-asks failed since epoch 59: ToolAnswerBridge showed the script
+  only the first message, not the rejected answer's reason a model reads. Now 828/828.
+- checked  plan_audit HOLD-VIOLATION T5 Stock Up: the clause weighs "develop with Stock Up or hold up protection";
+  model-chosen, a matcher artefact.
