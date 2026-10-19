@@ -1,4 +1,4 @@
-# Handoff: keep working the puzzles (2026-10-19)
+# Handoff: keep working the puzzles (2026-10-19, updated after batches 10 and 11)
 
 For a fresh session. Branch `feat/puzzle-search-prover` (pushed, not yet a PR). Read `CLAUDE.md`, then
 `eval/PUZZLES.md` (the prover, acceptance, uniqueness) and `eval/puzzles/rules-pilot/REPORT.md` (batches 1 to 9),
@@ -21,7 +21,9 @@ model identifiers in commits. Skip acceptance and the gauntlets unless asked (ow
 
 ## State of the code
 
-harness-epoch-62, lookahead-preview-v15 (`docs/harness/VERSIONS.md`). Epochs 60 to 62 on this branch: Port-style
+harness-epoch-63, lookahead-preview-v15. Epoch 63: a play a static forbids (Pithing Needle, Null Rod, Gaddock
+Teeg) is no longer on the menu; Forge's canPlay() leaves those to checkRestrictions (RP_207, REPORT.md batch 10).
+Before that: harness-epoch-62 (`docs/harness/VERSIONS.md`). Epochs 60 to 62 on this branch: Port-style
 "tap a land" costs can't also tap the source for mana; the lookahead previews stack-targeting spells (Force of
 Negation) and shows exile counts; payment sacrifices, a forced free cast's tax and an already-confirmed optional cast
 are the seat's; `PuzzleArms.SETUP` makes choices during puzzle setup non-draws; named cards survive puzzle setup.
@@ -29,31 +31,12 @@ Details: `docs/harness/ARCHITECTURE.md`, `docs/harness/ENGINE-PATCHES.md`, last 
 
 ## Track 1: the rules backlog
 
-- `eval/puzzles/rules-pilot/manifest.jsonl`: 701 rows (191 converted, 488 dropped with a note, 10 Forge
-  disagreements, 9 multiple-review, 3 harness bugs). 218 `.pzl` files, last one RP_216.
-- Triage is 216 good / 559 maybe / 221 no. **Every good question has a row.** Without a row: **74 maybes and all
-  221 no's.** List them:
-  ```bash
-  python3 -c "import json;m={json.loads(l)['question_id'] for l in open('eval/puzzles/rules-pilot/manifest.jsonl')}
-  [print(r['id'],r['convert'],r['note'][:90]) for r in map(json.loads,open('eval/puzzles/rules/triage.jsonl')) if r['id'] not in m]"
-  ```
-- **Batch 10 is half done and has no manifest rows or REPORT section yet.** Results from the old container (all on
-  epoch 62, budget 600, cap 60 s; every one proven, accepted, and the pass arm rejected):
-  | puzzle | search replays | note |
-  |---|---|---|
-  | RP_197 | 4 | re-gate after the epoch 60-62 fixes |
-  | RP_198 | 37 | re-gate |
-  | RP_207 | 2 | re-gate |
-  | RP_209 | 8 | re-gate |
-  | RP_214, RP_215, RP_216 | 2, 10, 4 | new drafts (committed in 09c8a14) |
-  Re-run them with the gate below (cheap, about 1 to 4 minutes each) to get uniqueness fields, then write their rows
-  and a "Batch 10" section in REPORT.md in the style of batches 5 to 9.
-- Still deferred inside batch 10: triage lines L542, L61 and the face-down questions (L292, L425, L477, L491, L500).
-  Face-down cards are turned face up on loss (`Game.onPlayerLost`), so acceptance must not depend on a face-down
-  card staying hidden; see PUZZLES.md.
-- Known reasons to drop (write the reason in the row's `note`): replacement-order and cost-order questions (Forge
-  never offers the order); questions needing a card Forge lacks; near-duplicates (name the puzzle repeated).
-- Known gap: a setup-time choice under a *model* solver still asks the model (`SETUP` covers only the arms).
+**Done.** `eval/puzzles/rules-pilot/manifest.jsonl` has 996 rows, one per triage question: 199 converted, 10 Forge
+disagreements, 8 multiple-review, 779 dropped with a reason, no harness bug. Batch 10 re-gated RP_197, RP_198, RP_207,
+RP_209 and added RP_214 to RP_217; batch 11 rowed the 74 maybes and 221 no's. What is left is new questions, or
+boards for drops whose reason a harness change removes. Known reasons to drop: replacement- and cost-order questions
+(Forge never offers the order), a card Forge lacks, near-duplicates (name the puzzle), legality questions (the engine
+offers only legal plays). A setup-time choice under a *model* solver still asks the model (`SETUP` covers the arms).
 
 ### The gate (helpers in `scripts/puzzle-gate/`)
 
@@ -74,19 +57,16 @@ and the pass arm is `rejected`; a pass that wins means the puzzle is trivial.
 
 ## Track 2: Forge built-in puzzles
 
-`runs/puzzles/prove-all-e60-b200` (budget 200, epoch 60) **died** at 36 of 333 (35 not_found, 1 proven:
-MTGP_06); the JVM was gone when this was written. `runs/puzzles/` is git-ignored, so a new container has no copy.
-Restart it detached (`setsid nohup ... &`), with `--budget 200 -j 2`, on the current build (command in
-PUZZLES.md, "prove"), and resume rather than restart if the directory survives. Then a second pass at a higher
-budget (1500) over the not_found ones. Not-found at budget 200 means nothing yet: most Forge puzzles need longer
-lines.
+Running: `runs/puzzles/prove-all-e63-b200` (368 candidates from `forge-candidates`, budget 200, `-j 2`, epoch 63;
+launcher `/tmp/puzzle-scratch/prove63.sh`; restarted twice as the epoch-63 fix landed). `prove` has no resume and
+writes `--write` after each puzzle. Then a second pass at budget 1500 over the not_found ids (`--ids`). Not found at
+budget 200 means nothing yet: most Forge puzzles need longer lines. `runs/puzzles/` is git-ignored.
 
 ## Track 3: Luna games
 
-Last logged game g29 (clean). **g30 is played but not reviewed:** `runs/loop/g30` (seed 4130, epoch 62, Jund
-Sacrifice, $0.05, 99 calls). Run the sheet (`match_review.py`, `tool_audit.py`, `plan_audit.py`,
-`defect_analyzer.py`, `cost_report.py`), read the sacrifice payments (the new epoch-62 path), log it in
-`docs/harness/GAME-LOOP-LOG.md`, then play g31 on a deck and seed not used yet. `scripts/puzzle-gate/waitg.sh NN`
+g30 and g31 are logged (`docs/harness/GAME-LOOP-LOG.md`). Games run from a copy of the checkout built for them
+(`/root/forge-games`, `--forge-home /root/forge-games`, `/tmp/forge_cp.txt` with its module classes first), so a
+rebuild never swaps classes under the prover. Next: g32 on a deck and seed not used yet. `scripts/puzzle-gate/waitg.sh NN`
 waits for a game in `$SCRATCH/live/gNN` (pgrep with a bracketed pattern so it can't match itself).
 
 ## Then

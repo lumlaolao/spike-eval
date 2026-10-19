@@ -597,3 +597,85 @@ None new. Uniqueness hit the 600-replay budget on RP_211 (1/7 exhausted) and RP_
 the budget". Process note: RP_211 was edited (Kefnet made SummonSick) just after its first run started, so it was
 queued again; the two runs overlapped for a few seconds and the shipped result is the second run's (its `starts`
 file, start-search 1792385643).
+
+# Batch 10: the epoch 60-62 re-gates, the face-down questions and three new boards (RP_214 to RP_217)
+
+Source: the four batch 7-8 boards that waited on harness fixes (RP_197, RP_198, RP_207, RP_209), the deferred
+face-down questions (L61, L292, L425, L477, L491, L500) and the Sphere free-cast question (L542). Build: epoch 62
+(`epoch62-build.txt`, a fresh isolated build in this container) for everything except RP_207, which ends on epoch 63
+(`epoch63-build.txt`, finding 1). Gate as before: search arm (budget 600, cap 60 s), then the pass arm, through
+`scripts/puzzle-gate/gate10.sh`; at most two of this batch's JVMs at once and none while HOLD existed.
+
+## Counts
+
+| result | n | puzzles |
+|---|---|---|
+| converted (re-gated) | 4 | 197, 198, 207, 209 |
+| converted (new) | 4 | 214 (L61), 215 (L425), 216, 217 (L491) |
+| dropped: near-duplicates | 3 | L292, L477 (RP_214), L542 (RP_197) |
+| dropped: no solver choice | 1 | L500 |
+
+Every board: search proven and accepted, pass arm rejected, Forge agreeing with the judge. Uniqueness exhaustive on
+RP_197 (6/6), RP_207 (8/8), RP_209 (4/4), RP_214 (4/4), RP_216 (5/5) and RP_217 (7/7); RP_198 8/12, RP_215 6/14. The
+three batch 7-8 harness bugs are fixed: RP_197 declines Sphere's tax (epoch 62), RP_198's payment sacrifice is the
+seat's (epoch 62), RP_209's suspend decline is asked once and is no longer "multiple" (epoch 62).
+
+## Harness and prover findings
+
+1. **The seat was offered plays a static forbids** (RP_207, fixed in epoch 63). On epoch 62 RP_207 read "multiple":
+   the search's first rollout activated Endbringer under a Pithing Needle naming it, and "ping, then mutate" was a
+   second line (`rp10/keep/RP_207-search-e62`). The Needle did name exactly Endbringer (epoch 62's NamedCard restore
+   works; `PuzzleSetupTest`). Forge's `canPlay()` leaves out the statics that forbid a play, which it checks only as
+   a play is made (`checkRestrictions`), and the menu never asked. This is not a puzzle-only bug: Pithing Needle, Null
+   Rod, Gaddock Teeg, Rule of Law and Grafdigger's Cage were all open to the seat in real games. Epoch 63 asks it the
+   way Forge's AI does (a spell as an LKI copy on the stack cast from its zone; asked about the card in hand, Drannith
+   Magistrate would hide every hand spell), and checks again once the card is on the stack. RP_207 on epoch 63 is
+   proven and unique, and its ping comes from the merged Pouncing Shoreshark.
+2. **A face-down cast always costs {3}** (RP_217 v1): with two Forests, Zoetic Cavern's face-down cast was never
+   offered and the search exhausted in 6 rollouts. Not a harness bug; the board was wrong (morph {2} is the cost to
+   turn it face up).
+3. Process: the two gate chains waited forever on their first start because `gate10.sh` counted any process whose
+   command line held its JVM pattern, the launching shells included; it now counts `java` processes only.
+
+## Board notes
+
+- L61 is RP_214 and L425 is RP_215 (drafted in the old container). L292 and L477 are RP_214's rule (the top card of a
+  merged permanent decides face up or down, and with the face-down card on top there are no abilities and no mutate
+  trigger). L500 (Samurai of the Pale Curtain exiles a dying manifest) has no solver choice; RP_215 is its converse.
+- Face-down acceptance: none of these boards names a face-down permanent, so revealing face-down cards on a loss
+  (`Game.onPlayerLost`) cannot decide them.
+
+# Batch 11: the rest of the backlog (74 maybe and 221 no questions)
+
+Source: every `triage.jsonl` question that still had no row after batch 10. 295 rows; `manifest.jsonl` now has 996,
+one per triage question (199 converted, 10 Forge disagreements, 8 multiple-review, 779 dropped, no harness bug left).
+
+## Counts
+
+| triage | result | n |
+|---|---|---|
+| maybe | converted (RP_216, its own question) | 1 |
+| maybe | dropped: rule-level near-duplicate, the puzzle named | 62 |
+| maybe | dropped: no solver choice | 9 |
+| maybe | dropped: replacement-order question (Forge never offers the order) | 2 |
+| no | dropped: legality question | 81 |
+| no | dropped: unobservable in the final state | 62 |
+| no | dropped: multiplayer or commander | 54 |
+| no | dropped: procedure outside a position | 12 |
+| no | dropped: hidden or random information | 6 |
+| no | dropped: random, a missing card (Zethi) or no observable difference | 6 |
+
+**The maybes.** Most had been named as near-duplicates in batches 5 to 9's reports without a row; each row now names
+the converted puzzle with the same rule (layer 6 timestamps RP_152, CR 614.12 enters-with checks RP_172, LKI power
+RP_015, a draw on an empty library RP_016, double strike per damage step RP_075, and so on). The nine with no solver
+choice are the new-mechanic questions whose outcome follows with nothing to decide (offspring, gift, Aveline,
+Rayblade) and becoming a copy.
+
+**The no's.** Each row gives its bucket's reason with the rule. A legality question ("crew can't be activated from the
+graveyard") cannot be a puzzle here: the engine offers only legal plays, so no menu option expresses the misread and
+the board would test Forge's legality check, not a choice. An unobservable one leaves the same final state under both
+readings, so no acceptance state tells them apart. Multiplayer and commander questions need more than the two-player
+format; procedure questions (Karn's restart, companions, mulligans) have no position to start from.
+
+No board was built in this batch, so nothing was gated; the rows were written from the triage and the converted
+puzzles (`verified_on` names epoch 63, the build in use).
