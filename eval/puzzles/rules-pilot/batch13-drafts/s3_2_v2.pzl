@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 225 - Pair as it enters
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Mutavault, have {G}{G}{G}{G}{G}{G} floating, and have Wolfir Silverheart in hand. The opponent controls no creatures. It is your first main phase. End the turn with the opponent at 14 life.
+Rule:rulesguru-5842753004989acb | Soulbond triggers only when the soulbond creature or another creature enters (CR 702.95a, 603.4): a land animated after Wolfir Silverheart entered can never be paired, so Mutavault must already be a creature as Silverheart enters
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Wolfir Silverheart
+p0manapool=G G G G G G
+p0battlefield=Mutavault
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 = 14
