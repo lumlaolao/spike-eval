@@ -21,7 +21,9 @@ model identifiers in commits. Skip acceptance and the gauntlets unless asked (ow
 
 ## State of the code
 
-harness-epoch-63, lookahead-preview-v15. Epoch 63: a play a static forbids (Pithing Needle, Null Rod, Gaddock
+harness-epoch-64, observation-faithful-v42, lookahead-preview-v15. Epoch 64: a divided split gives each target at
+least 1 and takes no more targets than its total (RP_221). v42: an effect of an effect carries no engine id (g33).
+Epoch 63: a play a static forbids (Pithing Needle, Null Rod, Gaddock
 Teeg) is no longer on the menu; Forge's canPlay() leaves those to checkRestrictions (RP_207, REPORT.md batch 10).
 Before that: harness-epoch-62 (`docs/harness/VERSIONS.md`). Epochs 60 to 62 on this branch: Port-style
 "tap a land" costs can't also tap the source for mana; the lookahead previews stack-targeting spells (Force of
@@ -37,6 +39,15 @@ RP_209 and added RP_214 to RP_217; batch 11 rowed the 74 maybes and 221 no's. Wh
 boards for drops whose reason a harness change removes. Known reasons to drop: replacement- and cost-order questions
 (Forge never offers the order), a card Forge lacks, near-duplicates (name the puzzle), legality questions (the engine
 offers only legal plays). A setup-time choice under a *model* solver still asks the model (`SETUP` covers the arms).
+
+Batch 12 (RP_218 to RP_222) re-read the legality and unobservable drops: 204 converted now. **Next: batch 13.** Four
+agents re-screened the 485 drops of batches 1-9 and proposed 19 boards, in `eval/puzzles/rules-pilot/batch13-drafts/`
+(`partN.candidates.md` with the reasoning, `sN_K.pzl` drafts, `V_sN_K.summary` gate results on epoch 64). 8 were
+gated: proven, unique, pass arm rejected for s0_1, s0_2, s2_0, s2_1, s2_3, s2_4; not found for s0_0 (Teysa/haunt)
+and s2_2 (Ancient Vendetta). Still to gate: s0_3, s0_4, s1_0-3, s3_0-4. For each keeper: number it RP_223+ (fix the
+`Name:` line), re-gate from the committed file, row it (`scripts/puzzle-gate/` helpers; the row writer used last is
+a copy of batch 10's: one `converted(...)` call per puzzle, replacing the question's dropped row), and add a REPORT
+section. Not found means read the search log: a board error or a Forge disagreement.
 
 ### The gate (helpers in `scripts/puzzle-gate/`)
 
@@ -57,16 +68,17 @@ and the pass arm is `rejected`; a pass that wins means the puzzle is trivial.
 
 ## Track 2: Forge built-in puzzles
 
-Running: `runs/puzzles/prove-all-e63-b200` (368 candidates from `forge-candidates`, budget 200, `-j 2`, epoch 63;
-launcher `/tmp/puzzle-scratch/prove63.sh`; restarted twice as the epoch-63 fix landed). `prove` has no resume and
+Running when this was written: `runs/puzzles/prove-all-e64-b200` (368 candidates from `forge-candidates`, budget
+200, `-j 2`, epoch 64; launcher `/tmp/puzzle-scratch/prove64.sh`, then `prove64-pass2.sh` runs budget 1500 over the
+not_found ids by itself). A new container has neither: regenerate the candidates and start it again. `prove` has no resume and
 writes `--write` after each puzzle. Then a second pass at budget 1500 over the not_found ids (`--ids`). Not found at
 budget 200 means nothing yet: most Forge puzzles need longer lines. `runs/puzzles/` is git-ignored.
 
 ## Track 3: Luna games
 
-g30 and g31 are logged (`docs/harness/GAME-LOOP-LOG.md`). Games run from a copy of the checkout built for them
+g30 to g33 are logged (`docs/harness/GAME-LOOP-LOG.md`). Games run from a copy of the checkout built for them
 (`/root/forge-games`, `--forge-home /root/forge-games`, `/tmp/forge_cp.txt` with its module classes first), so a
-rebuild never swaps classes under the prover. Next: g32 on a deck and seed not used yet. `scripts/puzzle-gate/waitg.sh NN`
+rebuild never swaps classes under the prover. Next: g34 on a deck and seed not used yet (seeds 4101-4133 are used). `scripts/puzzle-gate/waitg.sh NN`
 waits for a game in `$SCRATCH/live/gNN` (pgrep with a bracketed pattern so it can't match itself).
 
 ## Then
