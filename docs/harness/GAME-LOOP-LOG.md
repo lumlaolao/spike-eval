@@ -921,3 +921,8 @@ mirror of patience, still inside the $0.40 budget. Third clean game in a row on 
   only the first message, not the rejected answer's reason a model reads. Now 828/828.
 - checked  plan_audit HOLD-VIOLATION T5 Stock Up: the clause weighs "develop with Stock Up or hold up protection";
   model-chosen, a matcher artefact.
+
+### g29  2026-10-19  seed 4129  Pauper Grixis Affinity (seat) vs Legacy UR Tempo (Forge AI)  WON T17  $0.07  harness-epoch-60
+Sheet clean: 93 model decisions, 5 forced picks (2 forced colours, 2 single replacement orders, a single target),
+TAKEN 0, LOST 0, SKIP 0, TOOL 11 of 11 served (simulate 10, inspect 1), plan holds 0, ai_tier_count=0, 17 min.
+The sacrifice for Eviscerator's Insight's additional cost was the seat's (Giant's Boulder).
