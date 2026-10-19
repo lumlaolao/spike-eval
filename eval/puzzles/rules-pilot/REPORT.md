@@ -453,3 +453,68 @@ Skipped without a row as rule-level near-duplicates: X on the stack (RP_070), al
   comes first.
 - RP_173: the misread order (return the Angel with its trigger on the stack) was checked with the random arm (seeds 1
   and 3 in `rp6/RP_173-rand`): no prompt, life stays 20. Forge agrees with the judge.
+
+# Batch 7: one hundred more "maybe" questions (RP_189 to RP_204)
+
+Source: `triage.jsonl` questions with `convert == "maybe"` not yet attempted, screened as in batch 6 (a solver choice
+the rule decides, no reliance on an opponent action, two players, no randomness, no replacement-order questions).
+16 boards were built and 84 questions were dropped with a reason in each row's `note`. 100 rows in `manifest.jsonl`
+(now 411). Build: epoch 59 (`epoch59-build.txt`, re-read before every JVM); epoch 60 arrived after the last gate and
+changes nothing these boards use. Gate as before: search arm (budget 600, cap 60 s), then the pass arm. No JVM started
+while HOLD existed (every `rp7/*.starts` line says `hold=N`), and at most two of this batch's JVMs ran at once.
+
+## Counts
+
+| result | n | puzzles |
+|---|---|---|
+| converted | 14 | 189-196, 199-204 |
+| harness bug | 2 | 197 (free-cast tax), 198 (sacrifice during payment) |
+| dropped (no board) | 84 | see each row's `note` |
+
+The pass arm was rejected on all 16 final boards. Uniqueness was exhaustive on 9 of the 14 conversions; the weakest
+are RP_192 (3/4), RP_189 (4/5) and RP_194 (8/12). Skipped without a row as rule-level near-duplicates: layer 6
+timestamps (RP_152: Kasmina's Transmutation, Melira and Inkmoth), trample assignment before doubling (RP_157: Obosh),
+copied permanent spells not created (RP_040: Ivy), all targets illegal (RP_094: Skullbomb), Dauthi exile (RP_149),
+Yidaro counts (RP_103), additional costs on a free cast (RP_166: Vadrok kicker), resolution-time checks (RP_175:
+Tribute to the World Tree), face-down replacements (RP_124: Nexus of Fate twice, manifest), LKI power (RP_015:
+Elenda), your own trigger order (RP_002: Font and Puzzle Box), indestructible and marked damage (RP_004), draws on
+empty library (RP_016, RP_093), CR 614.12 enters checks (RP_001, RP_136, RP_172: Arixmethes, Rusted Relic, Solemnity,
+Three Tree City, Conspiracy, Erebos, Humility), layer 4 timestamps (RP_098: Iroas and Opalescence), Magus under
+ability loss (RP_143), Dearly Departed (RP_065), Dryad Militant (RP_122), marked damage then a toughness drop (RP_050),
+sacrifice during payment (RP_198: Teshar and Lurrus), and the in-batch pairs Reprobation/Gemrazer (RP_189) and Green
+Slime APNAP (RP_190).
+
+## Harness and prover findings
+
+1. **A free cast's tax is paid automatically; declining is never offered** (RP_197). Omen Machine casts Terminus
+   "without paying its mana cost if able"; under the opponent's Sphere of Resistance the {1} was paid by tapping a
+   Mountain with no seat decision (pass arm: `MANA: Mountain (7)` then `Solver cast Terminus`). CR 118.3c and the
+   judge's answer let the player decline, which is the puzzle's solution. The search arm also ended after one rollout
+   with `goal_enforcement_installed=false`, `turns=-1` and no game log: the Omen Machine prompts came before goal
+   enforcement (board starts at turn 2 upkeep). Evidence: `rp7/RP_197-search`, `rp7/RP_197-pass`.
+2. **A sacrifice-cost mana ability used during payment picks its sacrifice without asking** (RP_198). Fury Sliver cast
+   from Hostage Taker's exile with five Mountains: Thermopod's "Sacrifice a creature: Add {R}" was activated inside
+   payment and Hostage Taker sacrificed, with no ROUTER sacrifice line (random arm `rp7/RP_198-rand` game 1). From the
+   menu the same ability asks (`sacrifice [Thermopod]: Hostage Taker`). The seat never chooses what the payment
+   sacrifices, so uniqueness cannot see the Thermopod-sacrifices-itself line. Forge agrees with the judge on the rule.
+3. **An opponent's pointless mana tap opens branches where a misread line wins** (RP_192 v1). Llanowar Elves tapped
+   for mana before blocks let the Bears token through, so uniqueness reported a second solution under that opponent
+   reply. Not a prover bug (the proof is a strategy over replies), but boards should give the opponent blockers with
+   no mana abilities.
+4. **Land mana abilities on the menu starve combat lines** (RP_204 v1): with Vengeant Earth on a land, the search
+   tapped the animated land for mana before attacks in nearly every rollout and stopped at 373 rollouts not_found;
+   floating mana fixed it. The new block-requirement enumeration then worked: the opponent's only legal block set
+   put Savannah Lions on the animated Memnite (`blockers(search)->... legal sets`).
+5. **A face-down permanent counts under its real name in acceptance** (RP_199 v1): `count p0 Battlefield "Exalted
+   Angel" = 1` held for the face-down card, so the pass arm solved. Megamorph's counter was used instead. Turning a
+   permanent face up is not a game-log action (`actions: []`).
+6. Minor: the opponent was offered Mind Stone's "{1}, {T}, Sacrifice: Draw" with only Mind Stone as a source
+   (`FAILED to pay for Mind Stone ... nothing was played`, `rp7/RP_189-search`): an unpayable option on the menu.
+
+## Board fixes during the gate
+
+- RP_190: the misread (Murder on your own turn) logs the same action as the solution, so it was checked with
+  `rp7v/RP_190t1.pzl` (Turns:1): not_found, exhausted in 27 rollouts.
+- RP_191: Lightning Bolt to Flame Rift (no targets) after v1 was not found in 600 rollouts.
+- RP_192: Llanowar Elves to Savannah Lions (finding 3). RP_199: Exalted Angel to Hidden Dragonslayer (finding 5).
+  RP_204: lands to floating mana and Memnite (finding 4).
