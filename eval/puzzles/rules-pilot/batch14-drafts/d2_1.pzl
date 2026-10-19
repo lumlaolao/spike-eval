@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Redirect your own land
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control a Plains and Sulfurous Springs, and have Harm's Way and Shock in hand. The opponent is at 3 life. Reduce the opponent to 0 life this turn without losing any life yourself.
+Rule:rulesguru-ff30a7a5c6261126 | Harm's Way redirects the next 2 damage from a source of your choice to you or your permanents, whoever controls that source (CR 615.1, 615.5): choose your own Sulfurous Springs, then its 1 damage for {R} goes to the opponent
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Harm's Way;Shock
+p0battlefield=Plains;Sulfurous Springs
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
+life p0 = 20

@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Sneaked in untapped
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Uphill Battle and is at 6 life with no creatures. You control Sneak Attack, have Ball Lightning in hand and R R R floating. Reduce the opponent to 0 life this turn.
+Rule:rulesguru-b34da09fc6bf15e3 | To play a card means to play it as a land or cast it as a spell (CR 701.18b); a creature put onto the battlefield by Sneak Attack was not played, so Uphill Battle does not make it enter tapped, while a cast Ball Lightning enters tapped and cannot attack
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Ball Lightning
+p0battlefield=Sneak Attack
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1battlefield=Uphill Battle
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

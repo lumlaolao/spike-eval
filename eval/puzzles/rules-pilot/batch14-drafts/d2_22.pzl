@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Allay lands before the Leyline leaves
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:The opponent controls Leyline of the Void and Glorious Anthem. You have Allay and Snapcaster Mage in hand and W W W W U U floating. End the turn with both enchantments in the opponent's graveyard.
+Rule:rulesguru-5ffe544be39b6e05 | Putting the spell into its owner's graveyard is the last step of resolution (CR 608.2n), after Leyline of the Void is destroyed, so Allay aimed at the Leyline goes to the graveyard; Snapcaster Mage then gives it flashback for the Anthem
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Allay;Snapcaster Mage
+p0manapool=W W W W U U
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Leyline of the Void;Glorious Anthem
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Leyline of the Void" = 1
+count p1 Graveyard "Glorious Anthem" = 1
