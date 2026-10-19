@@ -6,25 +6,22 @@ when an item is finished or a new one is agreed, so the next session can pick up
 
 ## The plan (owner, 2026-10-19; this comes before every list below)
 
-The deliverable is the benchmark's PUZ score. The 996 rules questions are all sorted
-(`eval/puzzles/rules-pilot/manifest.jsonl`): 204 converted, 10 Forge disagreements, 8 multiple-review,
-774 dropped with a reason. Going back over the drops yields less each pass (batches 7-9: 14, 4, 3; batch 12: 5;
-batch 13: 6 of 8 gated drafts), so more passes are not the route to a larger suite. In order:
+**Priority 1, the only focus until done: digitize 250 puzzles.** A digitized puzzle is a converted rules puzzle
+(`eval/puzzles/rules-pilot/manifest.jsonl`, `result: converted`): search proven, acceptance accepted, unique, the
+pass arm rejected. 210 on 2026-10-19 (RP_001-RP_228). Sources, in order:
+- batch 13's remaining re-screen drafts (`batch13-drafts/`);
+- new RulesGuru questions (`puzzles/modern/harvest.py fetch-rulesguru`; earlier "good" questions converted almost all);
+- re-screens of dropped questions (low yield now).
+No Luna runs, baselines or suite scoring until 250 are digitized.
 
-1. ~~**Land PR #268**~~ (done 2026-10-19, merge e68c47d: batches 1-12, epochs 52-65, full acceptance 18/18;
-   the review's deferred LOWs are issue #269).
-2. **A first PUZ score** on the converted puzzles: build the rules suite (`eval/PUZZLES.md`, "The rules suite":
-   `rules-candidates`, baselines in 20-puzzle chunks, freeze), then `eval/puzzle_solve.py` with GPT-6 Luna and
-   `eval/puzzle_score.py`: its confidence interval and the trivial baseline it beats. Paid: state the cost first.
-   First chunk: random play solves 3 of the first 8 rules puzzles more than 20% of the time (RP_001 17/50,
-   RP_004 24/50), so they drop; the rest are active.
-3. **Decide whether the suite is big enough.** If not, find a new source of puzzles (for example the PUZZLE
-   candidates in `GAME-LOOP-LOG.md`), not another pass over the dropped rules questions. The 11 ungated
-   batch-13 drafts (`batch13-drafts/`) are finished only if cheap.
-4. **Games, the built-in prover and harness fixes only when they serve 1-3**: a harness defect that makes a
-   puzzle mis-adjudicate is fixed (as epoch 63 was for RP_207); open-ended game-loop play waits.
+**Then: the benchmark on a sample.** Take a sample of the puzzles and run GPT-6 Luna on each about 10 times with the
+tools on and with them off (the rules lookup above all): solve rate, which tools it calls (does it look up the
+rules?), and time per puzzle, for each condition (for example: 60% solved with the rules lookup, 20% without). That
+comparison is the point of the benchmark. Paid: state the cost first.
 
-Revise this section when a step finishes or the owner changes the order.
+Done: PR #268 merged 2026-10-19 (e68c47d: batches 1-12, epochs 52-65, full acceptance 18/18; deferred LOWs in #269).
+Parked: the rules-suite baselines (`rules-candidates`, 20-puzzle chunks; chunk 0 had 10 of 20 dropped because random
+play solves them more than 20% of the time), resumable with `puzzle_baselines.py run --resume`.
 
 ## Handoff (2026-10-18)
 
