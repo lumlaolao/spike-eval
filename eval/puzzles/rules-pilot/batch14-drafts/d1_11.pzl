@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot NNN - The Arbiter discounts a jump-start
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Grand Arbiter Augustin IV, have Shock in hand and {U}{R} in your mana pool; Beacon Bolt and two Opts are in your graveyard. The opponent controls Hill Giant (3/3). End the turn with Hill Giant in the opponent's graveyard.
+Rule:rulesguru-36006fee251ef90a | A cost reduction applies to a spell whatever zone it is cast from (CR 601.2f, 702.133a): Augustin makes Beacon Bolt's jump-start cost {U}{R}, and discarding Shock makes it a third instant in your graveyard, so the Bolt deals 3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0manapool=U R
+p0hand=Shock
+p0battlefield=Grand Arbiter Augustin IV
+p0graveyard=Beacon Bolt;Opt;Opt
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Hill Giant" = 1

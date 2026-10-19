@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - The umbra'd creature is not destroyed
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You have Naturalize and Decree of Pain in hand and {B}{B}{B}{G} plus seven {C} in your mana pool. The opponent controls Raptor Companion enchanted with Eland Umbra, and Grizzly Bears. End the turn having drawn exactly two cards (three left in your library) with Raptor Companion in the opponent's graveyard.
+Rule:rulesguru-ed6832ad42fd86f6 | Umbra armor replaces the creature's destruction with the Aura's (CR 702.89a), so the creature is not "destroyed this way" and Decree of Pain draws nothing for it: destroy Eland Umbra first, then cast Decree for two cards
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0manapool=B B B G C C C C C C C
+p0hand=Naturalize;Decree of Pain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Raptor Companion|Id:1;Eland Umbra|AttachedTo:1;Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Library * = 3
+count p1 Graveyard "Raptor Companion" = 1

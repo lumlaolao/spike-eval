@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Urborg changes types, not names
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:You control Urborg, Tomb of Yawgmoth, a Swamp and three Mountains, have Extraplanar Lens and Blaze in hand and {C}{C}{C} in your mana pool. The opponent is at 5 life. Reduce the opponent to 0 life this turn.
+Rule:rulesguru-82384a118b1b83a9 | Urborg gives every land the Swamp type but not the name (CR 205.3, 201.2): Extraplanar Lens adds mana only for lands named like the exiled card, so imprint a Mountain (the other two give two each: six mana, Blaze for 5), not the Swamp
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0manapool=C C C
+p0hand=Extraplanar Lens;Blaze
+p0battlefield=Urborg, Tomb of Yawgmoth;Swamp;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

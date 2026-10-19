@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Two riots, two choices
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Domri, Chaos Bringer (5 loyalty), have Gruul Spellbreaker (riot) in hand and {R}{R} in your mana pool. The opponent is at 4 life with no creatures. Reduce the opponent to 0 life this turn.
+Rule:rulesguru-9edaa8334bcdf4c9 | Each instance of riot works separately (CR 702.136b): Spellbreaker cast with Domri's mana has two, so it can enter with a +1/+1 counter from one and haste from the other and attack as a 4/4
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0manapool=R R
+p0hand=Gruul Spellbreaker
+p0battlefield=Domri, Chaos Bringer|Counters:LOYALTY=5
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
