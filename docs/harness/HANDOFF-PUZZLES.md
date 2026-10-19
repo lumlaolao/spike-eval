@@ -1,4 +1,4 @@
-# Handoff: keep working the puzzles (2026-10-19, updated after batches 10 and 11)
+# Handoff: keep working the puzzles (2026-10-19, updated after batch 12 and the PR #268 review)
 
 For a fresh session. Branch `feat/puzzle-search-prover` (PR #268, open). Read `CLAUDE.md`, then
 `eval/PUZZLES.md` (the prover, acceptance, uniqueness) and `eval/puzzles/rules-pilot/REPORT.md` (batches 1 to 9),
@@ -24,7 +24,8 @@ model identifiers in commits. Skip acceptance and the gauntlets unless asked (ow
 
 ## State of the code
 
-harness-epoch-64, observation-faithful-v42, lookahead-preview-v15. Epoch 64: a divided split gives each target at
+harness-epoch-65, observation-faithful-v42, lookahead-preview-v15. Epoch 65: a source whose tap damage is lethal
+pays last for a harness seat (City of Brass after Llanowar Elves). Epoch 64: a divided split gives each target at
 least 1 and takes no more targets than its total (RP_221). v42: an effect of an effect carries no engine id (g33).
 Epoch 63: a play a static forbids (Pithing Needle, Null Rod, Gaddock
 Teeg) is no longer on the menu; Forge's canPlay() leaves those to checkRestrictions (RP_207, REPORT.md batch 10).
@@ -74,7 +75,7 @@ and the pass arm is `rejected`; a pass that wins means the puzzle is trivial.
 Last run: `python3 eval/puzzle_baselines.py prove --suite runs/puzzles/candidates.json --budget 200 -j 2` (368
 candidates from `forge-candidates`, epoch 64, out `runs/puzzles/prove-all-e64-b200`; the run directory was not kept).
 Stopped on request at 25 of 368 (4 proven: MTGP_02, MTGP_06, MTGP_08,
-PC_020216; the rest not found at budget 200). A new container has neither: regenerate the candidates and start it again. `prove` has no resume and
+PC_020216; the rest not found at budget 200). To run it again, regenerate the candidates first. `prove` has no resume and
 writes `--write` after each puzzle. Then a second pass at budget 1500 over the not_found ids (`--ids`). Not found at
 budget 200 means nothing yet: most Forge puzzles need longer lines. `runs/puzzles/` is git-ignored.
 
