@@ -1,0 +1,13 @@
+========================================================================
+  EXPLORATORY MODE — numbers from this run are NOT citable.
+  Mirror-deck / forced-heuristics-off / jobs=1 guards are DISABLED.
+  Re-run without --exploratory (and a mirror deck) for a citable batch.
+========================================================================
+[provenance] engine=unknown overlay=8a6887f419b8 deck=d6b675df753e discipline=exploratory
+[provenance] checkpoint=unknown seed_bank=dev-lane
+[condition] context_profile=(unset: default v4-faithful) memory_tools=1
+[warn] no --checkpoint given: the game line will not say which weights played. The endpoint's served_* fields are then the only identity, and an alias spec (e.g. openrouter:default_model) may not resolve to one.
+[out] /home/user/mtg-forge-llm-agent/runs/loop/g33
+Running 1 games (jobs=1, out=/home/user/mtg-forge-llm-agent/runs/loop/g33, forge_home=/root/forge-games)
+[budget] this directory may spend up to $0.40 (already $0.00); a game is not started past that, so the overshoot is at most the 1 games in flight
+[start] seed=4133 swap=0 -> game-4133-0.log
