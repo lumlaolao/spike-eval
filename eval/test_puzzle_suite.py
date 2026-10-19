@@ -261,7 +261,7 @@ class BaselineDecisionTest(unittest.TestCase):
         self.assertEqual((r["source"]["kind"], r["source"]["question_id"]), ("rules", "q1"))
         self.assertEqual(r["pzl_sha256"], pf.sha256_file(d / "RP_001.pzl"))
         self.assertEqual(pf.pzl_path(r, repo), d / "RP_001.pzl")
-        self.assertEqual(pf.validate_puzzle(dict(r, status="candidate"), check_files=False), [])
+        self.assertEqual(pf.validate_puzzle(r, check_files=False), [])
         self.assertEqual(skipped, [])
 
     def test_tier_and_status(self):

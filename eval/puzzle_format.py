@@ -335,6 +335,12 @@ def freeze(manifest):
     return manifest
 
 
+def candidate_suite(suite, version, engine_sha, recs):
+    """A candidate manifest's header around its records (frozen later, by `freeze`)."""
+    return {"schema": SUITE_SCHEMA, "suite": suite, "version": version, "engine_sha": engine_sha,
+            "canary": CANARY, "frozen": False, "puzzles": recs}
+
+
 def forge_candidates(suite, version, engine_sha, puzzle_dir=None):
     """A candidate manifest of every puzzle Forge ships whose goal Forge enforces and whose turn limit
     fires. Baselines, reference lines, tiers and status come later (puzzle_baselines.py run)."""
@@ -358,8 +364,7 @@ def forge_candidates(suite, version, engine_sha, puzzle_dir=None):
                        "url": section_value(meta, "URL", "")},
             "pzl": FORGE_PREFIX + f.name, "pzl_sha256": sha256_file(f),
         })
-    return {"schema": SUITE_SCHEMA, "suite": suite, "version": version, "engine_sha": engine_sha,
-            "canary": CANARY, "frozen": False, "puzzles": recs}, skipped
+    return candidate_suite(suite, version, engine_sha, recs), skipped
 
 
 def rules_candidates(manifest, suite, version, engine_sha, repo=REPO):
@@ -383,8 +388,7 @@ def rules_candidates(manifest, suite, version, engine_sha, repo=REPO):
             "source": {"kind": "rules", "question_id": row.get("question_id"), "rule": row.get("rule")},
             "pzl": f.resolve().relative_to(repo.resolve()).as_posix(), "pzl_sha256": sha256_file(f),
         })
-    return {"schema": SUITE_SCHEMA, "suite": suite, "version": version, "engine_sha": engine_sha,
-            "canary": CANARY, "frozen": False, "puzzles": recs}, skipped
+    return candidate_suite(suite, version, engine_sha, recs), skipped
 
 
 def main(argv=None):

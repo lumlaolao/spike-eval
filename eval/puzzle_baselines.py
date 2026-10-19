@@ -344,15 +344,16 @@ def verify_puzzle(build, rec, out_root):
     if not pf.has_line(line):
         return dict(rec, verification={"status": "unverified", "reason": "no reference line", "date": stamp})
     out = Path(out_root) / rec["id"] / "verify"
+    check = check_replay
     if line.get("arm") == "ai":
         rows = run_arm(build, pf.pzl_path(rec), "ai", str(line["seed"]), out)
     elif line.get("arm") == "search":
         rows = run_arm(build, pf.pzl_path(rec), "search", str(line["seed"]), out, search_env(line["budget"]))
+        check = check_search_replay
     else:
         tape = Path(tempfile.mkdtemp(prefix="pzl-tape-")) / "tape.txt"
         tape.write_text(line["tape"])
         rows = run_arm(build, pf.pzl_path(rec), "script", str(line["seed"]), out, {"PZL_TAPE": str(tape)})
-    check = check_search_replay if line.get("arm") == "search" else check_replay
     problems = check(line, rows[0] if rows else None)
     engine = (REPO / "FORGE_COMMIT").read_text().strip() if (REPO / "FORGE_COMMIT").is_file() else "unknown"
     ver = {"status": "verified" if not problems else "failed", "engine_sha": engine, "date": stamp,
@@ -360,7 +361,6 @@ def verify_puzzle(build, rec, out_root):
     if problems:
         ver["problems"] = problems
     return dict(rec, verification=ver)
-
 
 
 def proof_from_row(row, opponent, engine_sha, date):
@@ -373,7 +373,7 @@ def proof_from_row(row, opponent, engine_sha, date):
             "acceptance", "acceptance_failed")
     proof = {"status": row.get("status"), "opponent": opponent, "engine_sha": engine_sha, "date": date}
     proof.update({k: row[k] for k in row
-                  if (k in keep or k.startswith("uniqueness")) and row.get(k) not in (None, "")})
+                  if (k in keep or k.startswith("uniqueness")) and row[k] not in (None, "")})
     return proof
 
 
