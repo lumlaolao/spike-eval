@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Still painted after Dress Down
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Painter's Servant (blue chosen) and Grizzly Bears. You control two Islands and two Swamps and have Dress Down and two Ultimate Price in hand. End the turn with Grizzly Bears in the opponent's graveyard.
+Rule:rulesguru-43faa9943e1b39b8 | Painter's Servant's colour effect applies in layer 5, before Dress Down removes abilities in layer 6 (CR 613.1e, 613.1f), so under Dress Down the Bears stay green and blue: Ultimate Price must kill the Servant before the Bears are monocoloured
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Dress Down;Ultimate Price;Ultimate Price
+p0battlefield=Island;Island;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Painter's Servant|ChosenColor:blue;Grizzly Bears
+p1library=Forest;Forest;Forest
+[acceptance]
+count p1 Graveyard "Grizzly Bears" = 1

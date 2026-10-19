@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Cleanup comes around again
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control The Gitrog Monster and no lands. Your hand is Colossal Dreadmaw and seven Forests, and the only card in your library is Lightning Bolt. End the turn with Lightning Bolt in your hand and Colossal Dreadmaw in your graveyard.
+Rule:rulesguru-c6027549bf7e2575 | A land discarded to hand size in the cleanup step triggers The Gitrog Monster; the trigger is put on the stack, players get priority, and then a new cleanup step begins (CR 514.1, 514.3a): discard a Forest to draw Lightning Bolt, then the Dreadmaw in the second cleanup (a second land would draw from the empty library)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Colossal Dreadmaw;Forest;Forest;Forest;Forest;Forest;Forest;Forest
+p0battlefield=The Gitrog Monster
+p0library=Lightning Bolt
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Hand "Lightning Bolt" = 1
+count p0 Graveyard "Colossal Dreadmaw" = 1
