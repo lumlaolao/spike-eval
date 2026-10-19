@@ -620,6 +620,30 @@ public class PromptFidelityTest {
         Assert.assertTrue(ref.contains("The Wondrous Wasp's Effect"), ref);
     }
 
+    /** runs/loop/g33 T13: the opponent's command zone read "Kumano Faces Kakkazan (111)'s Effect's Effect": an effect
+     *  whose source is itself an effect was rebuilt from the source effect's name, which still held the id. */
+    @Test
+    public void anEffectOfAnEffectCarriesNoEngineId() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card saga = card("Kumano Faces Kakkazan", me, ZoneType.Battlefield);
+        // An effect card with an id of 0 or less prints as its bare name (CardView.toString), so its effect's name
+        // matched it as a prefix and kept the id it carries.
+        Card first = new Card(-7, g);
+        first.setOwner(me);
+        first.setName(saga + "'s Effect");
+        first.setEffectSource(saga);
+        me.getZone(ZoneType.Command).add(first);
+        Card second = card("Lightning Bolt", me, ZoneType.Command);
+        second.setName(first.getName() + "'s Effect");
+        second.setEffectSource(first);
+        Assert.assertTrue(second.getName().matches("Kumano Faces Kakkazan \\(\\d+\\)'s Effect's Effect"), second.getName());
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, new Recorder("CHOICE: 1"), new Recorder("CHOICE: 1"));
+        String ref = ctrl.observer().shortRef(second);
+        Assert.assertFalse(ref.matches(".*\\(\\d+\\).*"), "an engine id in a name: " + ref);
+        Assert.assertTrue(ref.contains("Kumano Faces Kakkazan's Effect's Effect"), ref);
+    }
+
     /** runs/luna-modern/g11, T2: a question's title read "[Devourer of Destiny (48)'s Effect]": the questions named
      *  cards with the engine's raw name, not the observation's. Every card name in a question now goes through one
      *  function, which drops the id and reveals nothing (a face-down card keeps its empty name). */
