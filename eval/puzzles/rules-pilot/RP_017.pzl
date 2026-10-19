@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 017 - City of Brass at 1 life
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:You are at 1 life and the opponent's Grizzly Bears is attacking you. Survive the turn, ending it at exactly 1 life.
+Rule:rulesguru-0acc79e57ae9d2c3 | City of Brass's damage is a triggered ability, while its mana ability resolves at once (CR 605.3b); make the mana first and cast Angel's Grace above the trigger
+[state]
+turn=1
+activeplayer=p1
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=1
+p0hand=Angel's Grace
+p0battlefield=City of Brass
+p0library=Plains;Plains;Plains
+p1life=20
+p1battlefield=Grizzly Bears|Attacking|Tapped
+p1library=Forest;Forest;Forest
+[acceptance]
+life p0 = 1
+winner p0

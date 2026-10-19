@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot 167 - The crime sees the cost
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Forsaken Miner, Grizzly Bears and two Swamps and have Bone Splinters in hand. The opponent controls Hill Giant. End the turn with Hill Giant in the opponent's graveyard and both Forsaken Miner and Grizzly Bears on your battlefield.
+Rule:cranial-insertion-a4790b926099ffcc | A crime is committed once the spell is cast, after its costs are paid (CR 700.13, 601.2i): a Forsaken Miner sacrificed to Bone Splinters is already in the graveyard and triggers
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Bone Splinters
+p0battlefield=Forsaken Miner;Grizzly Bears;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Hill Giant" = 1
+count p0 Battlefield "Forsaken Miner" = 1
+count p0 Battlefield "Grizzly Bears" = 1

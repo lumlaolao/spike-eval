@@ -1,0 +1,754 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=37571 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 34086 files in 1 ms (25 parts) using thread pool
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 857 files in 0 ms (8 parts) using thread pool
+[SEED] 4131
+[EVAL] jsonl game-4131-1792435200366.jsonl
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/pauper-hot-dogs.plan
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/standard-dimir-control.plan
+[DECK] loaded 'Seat': 60 main, 15 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/pauper-hot-dogs.txt)
+[DECK] loaded 'ForgeAI': 60 main, 15 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/standard-dimir-control.txt)
+[SEATS] A=Seat(llm,openrouter:openai/gpt-6-luna) B=ForgeAI(ai,opus)
+[Seat] [OBSERVATION] observation-faithful-v41 (profile v4-faithful/379d6b7b5b6a)
+[HEADLESS] game starting (cap=120min)
+[Seat] [ROUTER] mulligan: 1/7 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5441 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: MULLIGAN
+[OPENROUTER Seat/smart] replied in 9319 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan-bottom: Twinned Vision
+[Seat] [ROUTER] mulligan: 2/6 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5474 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: KEEP
+[Seat] [TALLY] smart=3 fast=0 auto=0 ai=0 textParses=0 avgSmart=6744ms avgFast=6744ms
+[Seat] [ROUTER] play(main): 0 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4354 ms with 1 tool call(s)
+[Seat] [ROUTER] plan: GOAL: Develop quickly with cheap draw/discard spells and pressure, then convert spell chains into burn damage. NEXT: Play Mountain now; on the next turn assess whether Guttersnipe or a draw spell best advances pressure, preserving burn for lethal or relevant threats.
+[OPENROUTER Seat/smart] replied in 2880 ms with 1 tool call(s)
+[Seat] [ROUTER] lines: Faithless Looting + Sneaky Snacker -> draw the third card in a turn and return Snacker from the graveyard to the battlefield tapped. Kiln Fiend + cheap instants/sorceries -> grow Fiend by +3/+0 per spell, enabling a fast attack. Guttersnipe + a chain of instants/sorceries -> deal 2 damage to the opponent for each spell cast.
+[Seat] [ROUTER] play: land Mountain
+[Seat] [TALLY] smart=5 fast=0 auto=0 ai=0 textParses=0 avgSmart=5493ms avgFast=5493ms
+[Seat] [ROUTER] play(main): 1 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3979 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Build early red pressure and use draw/discard spells to fuel a spell chain, while converting burn into damage. NEXT: Play Mountain as the land drop; use the resulting two mana on the strongest available draw/discard or pressure play, and reassess before committing more.
+[OPENROUTER Seat/smart] replied in 2016 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Unknown blue-black deck from Watery Grave and Restless Reef; respect possible countermagic and removal, but its exact plan is not yet known.
+[Seat] [ROUTER] play: land Mountain
+[Seat] [TALLY] smart=7 fast=0 auto=0 ai=0 textParses=0 avgSmart=4780ms avgFast=4780ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 66503 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Grab the Prize @14 1{R} [As an additional cost to cast this spell, discard a card. Draw two cards. If the discarded card wasn't a land card, Grab the Prize deals 2 damage to each opponent.]
+[OPENROUTER Seat/smart] replied in 10547 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 2429 ms with 1 tool call(s)
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 12871 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Develop red pressure while preserving mana for a main-phase play and maximizing draw/discard value. NEXT: Pass through upkeep; in main phase play Mountain, then cast Kiln Fiend or a draw/discard spell based on the resulting options.
+[OPENROUTER Seat/smart] replied in 2095 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5000 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 7273 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=14 fast=0 auto=0 ai=0 textParses=0 avgSmart=10012ms avgFast=10012ms
+[Seat] [ROUTER] play(main): 5 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4377 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Develop a fast red threat while using remaining draw/discard spells to find burn and pressure. NEXT: Play the Mountain, then cast Kiln Fiend; preserve Highway Robbery and Vision of Love for a later turn unless the hand or response changes.
+[OPENROUTER Seat/smart] replied in 1993 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Mountain
+[Seat] [TALLY] smart=16 fast=0 auto=0 ai=0 textParses=0 avgSmart=9159ms avgFast=9159ms
+[Seat] [ROUTER] play(main): 8 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5900 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Kiln Fiend 1/2 @25 1{R} [Whenever you cast an instant or sorcery spell, Kiln Fiend gets +3/+0 until end of turn.]
+[Seat] [ROUTER] play(react): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6149 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Use Vision of Love to discard Sneaky Snacker and set up its return on the turn's normal draw, then develop red pressure. NEXT: Cast Vision of Love now, discard Sneaky Snacker, draw two; play a Mountain in main phase and deploy the best threat or hold burn based on the hand.
+[OPENROUTER Seat/smart] replied in 3316 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Vision of Love @16 1{R} [You may sacrifice an artifact or discard a card. If you do, draw two cards.]
+[OPENROUTER Seat/smart] replied in 18923 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 4114 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 6238 ms with 1 tool call(s)
+[Seat] [ROUTER] prevent-effect: paid Discard a card -> true
+[Seat] [ROUTER] play(react): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10929 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4089 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7411 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=25 fast=0 auto=0 ai=0 textParses=0 avgSmart=8544ms avgFast=8544ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7481 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 3440 ms with 1 tool call(s)
+[Seat] [ROUTER] target: opponent (ForgeAI) <- Lightning Bolt @34 {R} [Lightning Bolt deals 3 damage to any target.]
+[Seat] [ROUTER] play: casts Lightning Bolt @34 {R} [Lightning Bolt deals 3 damage to any target.]
+[Seat] [ROUTER] play(react): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10724 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Develop red pressure while finding a way to answer Superior Spider-Man; preserve burn until it can be used efficiently. NEXT: Pass upkeep, draw for turn, play a Mountain in main phase, then reassess whether to develop Guttersnipe or use landfall Searing Blaze plus Lava Dart to clear the 4/4.
+[OPENROUTER Seat/smart] replied in 2641 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Blue-black control/value with Deceit and Superior Spider-Man; respect removal/countermagic and the 4/4 threat.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5384 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=30 fast=0 auto=0 ai=0 textParses=0 avgSmart=8109ms avgFast=8109ms
+[Seat] [ROUTER] play(main): 7 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8165 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Use landfall Searing Blaze and Lava Dart to remove Superior Spider-Man while dealing damage, then continue red pressure. NEXT: Play Mountain, then cast Searing Blaze targeting opponent and Spider-Man for 3 each, followed by Lava Dart to Spider-Man to finish it.
+[OPENROUTER Seat/smart] replied in 1968 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Mountain
+[Seat] [TALLY] smart=32 fast=0 auto=0 ai=0 textParses=0 avgSmart=7919ms avgFast=7919ms
+[Seat] [ROUTER] play(main): 7 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5668 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 8109 ms with 1 tool call(s)
+[Seat] [ROUTER] target: opponent (ForgeAI) <- Searing Blaze @38 {R}{R} [Searing Blaze deals 1 damage to target player or planeswalker and 1 damage to target creature that player or that planeswalker's controller controls. Landfall — If you had a land enter the battlefield under your control this turn, Searing Blaze deals 3 damage to that player or planeswalker and 3 damage to that creature instead.]
+[Seat] [ROUTER] target: Superior Spider-Man 4/4 [untapped] [sick] @45 [Battlefield, opponent's] <- Searing Blaze @38 in your HAND (only legal)
+[Seat] [ROUTER] play: casts Searing Blaze @38 {R}{R} [Searing Blaze deals 1 damage to target player or planeswalker and 1 damage to target creature that player or that planeswalker's controller controls. Landfall — If you had a land enter the battlefield under your control this turn, Searing Blaze deals 3 damage to that player or planeswalker and 3 damage to that creature instead.]
+[Seat] [TALLY] smart=34 fast=0 auto=0 ai=0 textParses=0 avgSmart=7858ms avgFast=7858ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5452 ms with 1 tool call(s)
+hidden has neither ManaCost nor Color
+Searing Blaze (43) - [Couldn't add to stack, failed to target] - CARDNAME deals 1 damage to target player or planeswalker and 1 damage to target creature that player or that planeswalker's controller controls. Landfall — If you had a land enter the battlefield under your control this turn, CARDNAME deals 3 damage to that player or planeswalker and 3 damage to that creature instead.[[ForgeAI], []]
+[Seat] [ROUTER] lookahead 1: if you cast Lava Dart [assuming target: Superior Spider-Man]: you graveyard 5 -> 6; hand 5 -> 4; ForgeAI no change. What was already on the stack resolved after it, in order, with no other responses
+[OPENROUTER Seat/smart] replied in 2116 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 5499 ms with 1 tool call(s)
+Searing Blaze (43) - [Couldn't add to stack, failed to target] - CARDNAME deals 1 damage to target player or planeswalker and 1 damage to target creature that player or that planeswalker's controller controls. Landfall — If you had a land enter the battlefield under your control this turn, CARDNAME deals 3 damage to that player or planeswalker and 3 damage to that creature instead.[[ForgeAI], []]
+[Seat] [ROUTER] lookahead target 3: if you cast Lava Dart [assuming target: Superior Spider-Man]: you graveyard 5 -> 6; hand 5 -> 4; ForgeAI no change. What was already on the stack resolved after it, in order, with no other responses
+[OPENROUTER Seat/smart] replied in 2306 ms with 1 tool call(s)
+[Seat] [ROUTER] target: Superior Spider-Man 4/4 [untapped] [sick] @45 [Battlefield, opponent's] <- Lava Dart @35 {R} [Lava Dart deals 1 damage to any target.]
+[Seat] [ROUTER] play: casts Lava Dart @35 {R} [Lava Dart deals 1 damage to any target.]
+[Seat] [TALLY] smart=38 fast=0 auto=0 ai=0 textParses=0 avgSmart=7436ms avgFast=7436ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6115 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=39 fast=0 auto=0 ai=0 textParses=0 avgSmart=7402ms avgFast=7402ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8180 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 1: if you cast Lava Dart [assuming target: ForgeAI]: you board 4 -> 3; exile 0 -> 1; left the battlefield: Mountain; ForgeAI life 12 -> 11. The engine chose what to sacrifice for this preview; in the real play YOU choose
+[OPENROUTER Seat/smart] replied in 10873 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 5097 ms with 1 tool call(s)
+[Seat] [ROUTER] target: opponent (ForgeAI) <- Lava Dart @49 from your GRAVEYARD (Flashback) — cost: Sacrifice a Mountain [Lava Dart deals 1 damage to any target. Flashback—Sacrifice a Mountain. (You may cast this card from your graveyard for its flashback cost. Then exile it.)]
+[Seat] [ROUTER] play: casts Lava Dart @49 from your GRAVEYARD (Flashback) — cost: Sacrifice a Mountain [Lava Dart deals 1 damage to any target. Flashback—Sacrifice a Mountain. (You may cast this card from your graveyard for its flashback cost. Then exile it.)]
+[OPENROUTER Seat/smart] replied in 9589 ms with 1 tool call(s)
+[Seat] [ROUTER] sacrifice [Lava Dart]: Mountain
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[Seat] [AUTO-LEGAL] order(forced: Graveyard has no order to choose)->as-is
+[Seat] [ROUTER] play(react): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5693 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Preserve mana and land count while continuing to race the opponent's control deck. NEXT: Take the Reef hit rather than sacrifice a Mountain for a single point; on my turn play a fourth Mountain and use available draw/burn to pressure ForgeAI.
+[OPENROUTER Seat/smart] replied in 2041 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 4 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] error: java.io.IOException: chunked transfer encoding, state: READING_LENGTH
+[Seat] [BRIDGE Seat/smart] no reply (attempt 2/3) -> restarting session, retrying in 500ms
+[OPENROUTER Seat/smart] replied in 6229 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Race the control deck while preserving resources and use the fourth Mountain to develop pressure this turn. NEXT: Pass upkeep; in main phase play Mountain, then evaluate draw/discard spells and burn to pressure ForgeAI while respecting possible interaction.
+[OPENROUTER Seat/smart] replied in 2026 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 40935 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 6: if you pass, nothing resolves: the board, hands, life and graveyards are unchanged. A preview cannot play out the opponent's turn.
+[OPENROUTER Seat/smart] replied in 12775 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=49 fast=0 auto=2 ai=0 textParses=0 avgSmart=8002ms avgFast=8002ms
+[Seat] [ROUTER] play(main): 8 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 11911 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 4: if you cast Guttersnipe: you board 3 -> 4; hand 5 -> 4; entered the battlefield: Guttersnipe; ForgeAI no change
+[OPENROUTER Seat/smart] replied in 3350 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Guttersnipe 2/2 @12 2{R} [Whenever you cast an instant or sorcery spell, Guttersnipe deals 2 damage to each opponent.]
+[Seat] [TALLY] smart=51 fast=0 auto=2 ai=0 textParses=0 avgSmart=7987ms avgFast=7987ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4901 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=52 fast=0 auto=2 ai=0 textParses=0 avgSmart=7928ms avgFast=7928ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 17347 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 4710 ms with 1 tool call(s)
+[Seat] [ROUTER] target: opponent (ForgeAI) <- Lava Dart @52 from your GRAVEYARD (Flashback) — cost: Sacrifice a Mountain [Lava Dart deals 1 damage to any target. Flashback—Sacrifice a Mountain. (You may cast this card from your graveyard for its flashback cost. Then exile it.)]
+[Seat] [ROUTER] play: casts Lava Dart @52 from your GRAVEYARD (Flashback) — cost: Sacrifice a Mountain [Lava Dart deals 1 damage to any target. Flashback—Sacrifice a Mountain. (You may cast this card from your graveyard for its flashback cost. Then exile it.)]
+[OPENROUTER Seat/smart] replied in 7011 ms with 1 tool call(s)
+[Seat] [ROUTER] sacrifice [Lava Dart]: Mountain
+[Seat] [TALLY] smart=55 fast=0 auto=2 ai=0 textParses=0 avgSmart=8024ms avgFast=8024ms
+[Seat] [ROUTER] play(main): 1 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 46616 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 4317 ms with 1 tool call(s)
+[Seat] [ROUTER] target: opponent (ForgeAI) <- Lava Dart @53 from your GRAVEYARD (Flashback) — cost: Sacrifice a Mountain [Lava Dart deals 1 damage to any target. Flashback—Sacrifice a Mountain. (You may cast this card from your graveyard for its flashback cost. Then exile it.)]
+[Seat] [ROUTER] play: casts Lava Dart @53 from your GRAVEYARD (Flashback) — cost: Sacrifice a Mountain [Lava Dart deals 1 damage to any target. Flashback—Sacrifice a Mountain. (You may cast this card from your graveyard for its flashback cost. Then exile it.)]
+[OPENROUTER Seat/smart] replied in 10022 ms with 1 tool call(s)
+[Seat] [ROUTER] sacrifice [Lava Dart]: Mountain
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[Seat] [AUTO-LEGAL] order(forced: Graveyard has no order to choose)->as-is
+[Seat] [AUTO-LEGAL] order(forced: Graveyard has no order to choose)->as-is
+[Seat] [AUTO-LEGAL] order(forced: Graveyard has no order to choose)->as-is
+[Seat] [AUTO-LEGAL] order(forced: Graveyard has no order to choose)->as-is
+========== GAME OVER ==========
+outcome: B after 21 turns (AllOpponentsLost) in 522s
+--- full game log ---
+  MULLIGAN: Seat has mulliganed down to 6 cards.
+  MULLIGAN: ForgeAI has kept a hand of 7 cards
+  MULLIGAN: Seat has kept a hand of 6 cards
+  TURN: Turn 1 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  EFFECT_REPLACED: As Watery Grave enters, you may pay 2 life. If you don't, it enters tapped.
+  LAND: ForgeAI played Watery Grave (96)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 2 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Mountain (19)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 3 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  EFFECT_REPLACED: Restless Reef enters tapped.
+  LAND: ForgeAI played Restless Reef (89)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 4 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Mountain (33)
+  MANA: Mountain (19) - {T}: Add {R}.
+  MANA: Mountain (33) - {T}: Add {R}.
+  DISCARD: Seat discards Sneaky Snacker (2).
+  STACK_ADD: Seat cast Grab the Prize
+  DAMAGE: Grab the Prize (15) deals 2 non-combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 20 > 18
+  STACK_RESOLVE: Grab the Prize (15) - Seat draws two cards. Grab the Prize (15) deals 2 damage to something.
+  STACK_ADD: Seat triggered Sneaky Snacker
+  STACK_RESOLVE: When you draw your third card in a turn, return Sneaky Snacker from your graveyard to the battlefield tapped. [Player: Seat]
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 5 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  EFFECT_REPLACED: Shipwreck Marsh enters tapped unless you control two or more other lands.
+  LAND: ForgeAI played Shipwreck Marsh (85)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Shipwreck Marsh (85) - {T}: Add {U} or {B}.
+  MANA: Watery Grave (96) - {T}: Add {U}.
+  STACK_ADD: ForgeAI cast Deceit
+  STACK_RESOLVE: Deceit (Evoked)
+  STACK_ADD: ForgeAI triggered Deceit targeting [Sneaky Snacker (2)]
+  STACK_ADD: ForgeAI triggered Deceit
+  ZONE_CHANGE: Deceit (112) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Evoke (You may cast this spell for its evoke cost. If you do, it's sacrificed when it enters.) [Zone Changer: Deceit (112)]
+  STACK_RESOLVE: When this creature enters, if {U}{U} was spent to cast it, return up to one other target nonland permanent to its owner's hand. (Targeting: [[Sneaky Snacker (2)]]) [Zone Changer: Deceit (112)]
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 6 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Mountain (23)
+  MANA: Mountain (19) - {T}: Add {R}.
+  MANA: Mountain (33) - {T}: Add {R}.
+  STACK_ADD: Seat cast Kiln Fiend
+  STACK_RESOLVE: Kiln Fiend - Creature 1 / 2
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 7 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  MANA: Shipwreck Marsh (85) - {T}: Add {U} or {B}.
+  MANA: Watery Grave (96) - {T}: Add {B}.
+  STACK_ADD: ForgeAI cast Theorix Charm
+  STACK_RESOLVE: Theorix Charm (83) -  Target creature gets -2/-2 until end of turn. (Targeting: Kiln Fiend (55))
+  ZONE_CHANGE: Kiln Fiend (55) was put into Graveyard from Battlefield.
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Swamp (119)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Swamp (119) - {T}: Add {B}.
+  MANA: Restless Reef (89) - {T}: Add {U} or {B}.
+  STACK_ADD: ForgeAI cast Deceit
+  STACK_RESOLVE: Deceit (Evoked)
+  STACK_ADD: ForgeAI triggered Deceit
+  ZONE_CHANGE: Deceit (111) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Evoke (You may cast this spell for its evoke cost. If you do, it's sacrificed when it enters.) [Zone Changer: Deceit (111)]
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 8 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  MANA: Mountain (19) - {T}: Add {R}.
+  MANA: Mountain (33) - {T}: Add {R}.
+  STACK_ADD: Seat cast Vision of Love
+  DISCARD: Seat discards Sneaky Snacker (2).
+  STACK_RESOLVE: Vision of Love (13) - Seat chooses from a list.
+  PHASE: Seat's Draw step
+  STACK_ADD: Seat triggered Sneaky Snacker
+  STACK_RESOLVE: When you draw your third card in a turn, return Sneaky Snacker from your graveyard to the battlefield tapped. [Player: Seat]
+  PHASE: Seat's Main phase, precombat
+  MANA: Mountain (23) - {T}: Add {R}.
+  STACK_ADD: Seat cast Lightning Bolt targeting [ForgeAI]
+  DAMAGE: Lightning Bolt (5) deals 3 non-combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 18 > 15
+  STACK_RESOLVE: Lightning Bolt (5) - Lightning Bolt (5) deals 3 damage to ForgeAI.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 9 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  EFFECT_REPLACED: As Watery Grave enters, you may pay 2 life. If you don't, it enters tapped.
+  LAND: ForgeAI played Watery Grave (94)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Shipwreck Marsh (85) - {T}: Add {U} or {B}.
+  MANA: Swamp (119) - {T}: Add {B}.
+  MANA: Watery Grave (96) - {T}: Add {B}.
+  MANA: Restless Reef (89) - {T}: Add {U} or {B}.
+  STACK_ADD: ForgeAI cast Superior Spider-Man
+  EFFECT_REPLACED: Mind Swap — You may have Superior Spider-Man enter as a copy of any creature card in a graveyard, except his name is Superior Spider-Man and he's a 4/4 Spider Human Hero in addition to his other types. When you do, exile that card.
+  STACK_RESOLVE: Superior Spider-Man - Creature 4 / 4
+  STACK_ADD: ForgeAI triggered Superior Spider-Man
+  STACK_ADD: ForgeAI triggered Superior Spider-Man targeting [Sneaky Snacker (2)]
+  STACK_ADD: ForgeAI triggered Superior Spider-Man targeting [Seat]
+  DISCARD: Seat discards Guttersnipe (51).
+  STACK_RESOLVE: When this creature enters, if {B}{B} was spent to cast it, target opponent reveals their hand. You choose a nonland card from it. That player discards that card. (Targeting: [[Seat]]) [Zone Changer: Superior Spider-Man (125)]
+  STACK_RESOLVE: When this creature enters, if {U}{U} was spent to cast it, return up to one other target nonland permanent to its owner's hand. (Targeting: [[Sneaky Snacker (2)]]) [Zone Changer: Superior Spider-Man (125)]
+  STACK_RESOLVE: When you do, exile that card. ([Deceit (112)])
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 10 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Mountain (24)
+  MANA: Mountain (19) - {T}: Add {R}.
+  MANA: Mountain (33) - {T}: Add {R}.
+  STACK_ADD: Seat cast Searing Blaze targeting [ForgeAI] [Superior Spider-Man (125)]
+  MANA: Mountain (23) - {T}: Add {R}.
+  STACK_ADD: Seat cast Lava Dart targeting [Superior Spider-Man (125)]
+  DAMAGE: Lava Dart (38) deals 1 damage to Superior Spider-Man (125).
+  STACK_RESOLVE: Lava Dart (38) - Lava Dart (38) deals 1 damage to Superior Spider-Man (125).
+  DAMAGE: Searing Blaze (43) deals 3 non-combat damage to ForgeAI.
+  DAMAGE: Searing Blaze (43) deals 3 damage to Superior Spider-Man (125).
+  LIFE: Life: ForgeAI 15 > 12
+  STACK_RESOLVE: Searing Blaze (43) - Searing Blaze (43) deals 3 damage to ForgeAI. Searing Blaze (43) deals 3 damage to Superior Spider-Man (125). 
+  ZONE_CHANGE: Superior Spider-Man (125) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Mountain (19) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat cast Lava Dart targeting [ForgeAI]
+  DAMAGE: Lava Dart (38) deals 1 non-combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 12 > 11
+  STACK_RESOLVE: Lava Dart (38) - Lava Dart (38) deals 1 damage to ForgeAI.
+  EFFECT_REPLACED: Flashback—Sacrifice a Mountain. (You may cast this card from your graveyard for its flashback cost. Then exile it.)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 11 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Swamp (120)
+  PHASE: ForgeAI's Beginning of Combat Step
+  MANA: Shipwreck Marsh (85) - {T}: Add {U} or {B}.
+  MANA: Swamp (119) - {T}: Add {B}.
+  MANA: Swamp (120) - {T}: Add {B}.
+  MANA: Watery Grave (96) - {T}: Add {B}.
+  STACK_ADD: ForgeAI activated Restless Reef
+  STACK_RESOLVE: Restless Reef (89) - Restless Reef (89) has base power and toughness 4/4  and becomes blue and black a creature Shark and  gains deathtouch until end of turn.
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Restless Reef (89) to attack Seat.
+  STACK_ADD: ForgeAI triggered Restless Reef targeting [Seat]
+  ZONE_CHANGE: Seat milled Lava Dart (39), Mountain (22), Guttersnipe (52) and Lava Dart (36).
+  STACK_RESOLVE: Whenever Restless Reef attacks, target player mills 4 cards. (Targeting: [[Seat]]) [Attacker: Restless Reef (89)]
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Restless Reef (89).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Restless Reef (89) deals 4 combat damage to Seat.
+  LIFE: Life: Seat 20 > 16
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 12 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  MANA: Mountain (33) - {T}: Add {R}.
+  MANA: Mountain (23) - {T}: Add {R}.
+  MANA: Mountain (24) - {T}: Add {R}.
+  STACK_ADD: Seat cast Guttersnipe
+  STACK_RESOLVE: Guttersnipe - Creature 2 / 2
+  ZONE_CHANGE: Mountain (24) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat cast Lava Dart targeting [ForgeAI]
+  STACK_ADD: Seat triggered Guttersnipe
+  ZONE_CHANGE: Mountain (33) was put into Graveyard from Battlefield.
+  STACK_ADD: Seat cast Lava Dart targeting [ForgeAI]
+  STACK_ADD: Seat triggered Guttersnipe
+  DAMAGE: Guttersnipe (50) deals 2 non-combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 11 > 9
+  STACK_RESOLVE: Whenever you cast an instant or sorcery spell, Guttersnipe deals 2 damage to each opponent. [Card: Lava Dart (36), Activator: Seat, SpellAbility: Lava Dart deals 1 damage to any target.]
+  DAMAGE: Lava Dart (36) deals 1 non-combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 9 > 8
+  STACK_RESOLVE: Lava Dart (36) - Lava Dart (36) deals 1 damage to ForgeAI.
+  EFFECT_REPLACED: Flashback—Sacrifice a Mountain. (You may cast this card from your graveyard for its flashback cost. Then exile it.)
+  DAMAGE: Guttersnipe (50) deals 2 non-combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 8 > 6
+  STACK_RESOLVE: Whenever you cast an instant or sorcery spell, Guttersnipe deals 2 damage to each opponent. [Card: Lava Dart (39), Activator: Seat, SpellAbility: Lava Dart deals 1 damage to any target.]
+  DAMAGE: Lava Dart (39) deals 1 non-combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 6 > 5
+  STACK_RESOLVE: Lava Dart (39) - Lava Dart (39) deals 1 damage to ForgeAI.
+  EFFECT_REPLACED: Flashback—Sacrifice a Mountain. (You may cast this card from your graveyard for its flashback cost. Then exile it.)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 13 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  EFFECT_REPLACED: Shipwreck Marsh enters tapped unless you control two or more other lands.
+  LAND: ForgeAI played Shipwreck Marsh (88)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Shipwreck Marsh (85) - {T}: Add {U} or {B}.
+  MANA: Shipwreck Marsh (88) - {T}: Add {U} or {B}.
+  MANA: Swamp (119) - {T}: Add {B}.
+  MANA: Swamp (120) - {T}: Add {B}.
+  STACK_ADD: ForgeAI cast The Theorist, Jace Beleren
+  EFFECT_REPLACED: The Theorist, Jace Beleren enters with three loyalty counters on it.
+  STACK_RESOLVE: The Theorist, Jace Beleren
+  STACK_ADD: ForgeAI activated The Theorist, Jace Beleren targeting [Guttersnipe (50)]
+  STACK_RESOLVE: The Theorist, Jace Beleren (81) - Return Guttersnipe (50) to its owner's hand.
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 14 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  STACK_ADD: ForgeAI triggered The Theorist, Jace Beleren
+  STACK_RESOLVE: At the beginning of each opponent's draw step, you draw a card. [Phase: Seat]
+  PHASE: Seat's Main phase, precombat
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 15 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  PHASE: ForgeAI's Beginning of Combat Step
+  MANA: Shipwreck Marsh (85) - {T}: Add {U} or {B}.
+  MANA: Swamp (119) - {T}: Add {B}.
+  MANA: Swamp (120) - {T}: Add {B}.
+  MANA: Shipwreck Marsh (88) - {T}: Add {U} or {B}.
+  STACK_ADD: ForgeAI activated Restless Reef
+  STACK_RESOLVE: Restless Reef (89) - Restless Reef (89) has base power and toughness 4/4  and becomes blue and black a creature Shark and  gains deathtouch until end of turn.
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Restless Reef (89) to attack Seat.
+  STACK_ADD: ForgeAI triggered Restless Reef targeting [Seat]
+  ZONE_CHANGE: Seat milled Highway Robbery (48), Grab the Prize (14), Faithless Looting (12) and Mountain (21).
+  STACK_RESOLVE: Whenever Restless Reef attacks, target player mills 4 cards. (Targeting: [[Seat]]) [Attacker: Restless Reef (89)]
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Restless Reef (89).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Restless Reef (89) deals 4 combat damage to Seat.
+  LIFE: Life: Seat 16 > 12
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  STACK_ADD: ForgeAI activated The Theorist, Jace Beleren
+  STACK_RESOLVE: The Theorist, Jace Beleren (81) - ForgeAI creates a 1/1 blue Illusion creature token.
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 16 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  STACK_ADD: ForgeAI triggered The Theorist, Jace Beleren
+  STACK_RESOLVE: At the beginning of each opponent's draw step, you draw a card. [Phase: Seat]
+  PHASE: Seat's Main phase, precombat
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 17 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  PHASE: ForgeAI's Beginning of Combat Step
+  MANA: Shipwreck Marsh (85) - {T}: Add {U} or {B}.
+  MANA: Swamp (119) - {T}: Add {B}.
+  MANA: Swamp (120) - {T}: Add {B}.
+  MANA: Shipwreck Marsh (88) - {T}: Add {U} or {B}.
+  STACK_ADD: ForgeAI activated Restless Reef
+  STACK_RESOLVE: Restless Reef (89) - Restless Reef (89) has base power and toughness 4/4  and becomes blue and black a creature Shark and  gains deathtouch until end of turn.
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Restless Reef (89) and Illusion Token (155) to attack Seat.
+  STACK_ADD: ForgeAI triggered Restless Reef targeting [Seat]
+  ZONE_CHANGE: Seat milled Witch's Mark (59), Sneaky Snacker (4), Mountain (32) and Mountain (27).
+  STACK_RESOLVE: Whenever Restless Reef attacks, target player mills 4 cards. (Targeting: [[Seat]]) [Attacker: Restless Reef (89)]
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Restless Reef (89).
+Seat didn't block Illusion Token (155).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Restless Reef (89) deals 4 combat damage to Seat.
+  DAMAGE: Illusion Token (155) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 12 > 7
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  STACK_ADD: ForgeAI activated The Theorist, Jace Beleren
+  STACK_RESOLVE: The Theorist, Jace Beleren (81) - ForgeAI creates a 1/1 blue Illusion creature token.
+  MANA: Watery Grave (96) - {T}: Add {B}.
+  MANA: Watery Grave (94) - {T}: Add {B}.
+  STACK_ADD: ForgeAI cast Deceit
+  STACK_RESOLVE: Deceit (Evoked)
+  STACK_ADD: ForgeAI triggered Deceit
+  STACK_ADD: ForgeAI triggered Deceit targeting [Seat]
+  DISCARD: Seat discards Searing Blaze (45).
+  STACK_RESOLVE: When this creature enters, if {B}{B} was spent to cast it, target opponent reveals their hand. You choose a nonland card from it. That player discards that card. (Targeting: [[Seat]]) [Zone Changer: Deceit (110)]
+  ZONE_CHANGE: Deceit (110) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Evoke (You may cast this spell for its evoke cost. If you do, it's sacrificed when it enters.) [Zone Changer: Deceit (110)]
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 18 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  STACK_ADD: ForgeAI triggered The Theorist, Jace Beleren
+  STACK_RESOLVE: At the beginning of each opponent's draw step, you draw a card. [Phase: Seat]
+  PHASE: Seat's Main phase, precombat
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 19 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  EFFECT_REPLACED: Restless Reef enters tapped.
+  LAND: ForgeAI played Restless Reef (91)
+  PHASE: ForgeAI's Beginning of Combat Step
+  MANA: Shipwreck Marsh (85) - {T}: Add {U} or {B}.
+  MANA: Swamp (119) - {T}: Add {B}.
+  MANA: Swamp (120) - {T}: Add {B}.
+  MANA: Shipwreck Marsh (88) - {T}: Add {U} or {B}.
+  STACK_ADD: ForgeAI activated Restless Reef
+  STACK_RESOLVE: Restless Reef (89) - Restless Reef (89) has base power and toughness 4/4  and becomes blue and black a creature Shark and  gains deathtouch until end of turn.
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Restless Reef (89), Illusion Token (155) and Illusion Token (160) to attack Seat.
+  STACK_ADD: ForgeAI triggered Restless Reef targeting [Seat]
+  ZONE_CHANGE: Seat milled Mountain (30), Lightning Bolt (8), Mountain (18) and Searing Blaze (44).
+  STACK_RESOLVE: Whenever Restless Reef attacks, target player mills 4 cards. (Targeting: [[Seat]]) [Attacker: Restless Reef (89)]
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Restless Reef (89).
+Seat didn't block Illusion Token (155).
+Seat didn't block Illusion Token (160).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Restless Reef (89) deals 4 combat damage to Seat.
+  DAMAGE: Illusion Token (155) deals 1 combat damage to Seat.
+  DAMAGE: Illusion Token (160) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 7 > 1
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  STACK_ADD: ForgeAI activated The Theorist, Jace Beleren
+  STACK_RESOLVE: The Theorist, Jace Beleren (81) - ForgeAI creates a 1/1 blue Illusion creature token.
+  MANA: Watery Grave (96) - {T}: Add {B}.
+  MANA: Watery Grave (94) - {T}: Add {B}.
+  STACK_ADD: ForgeAI cast Deceit
+  STACK_RESOLVE: Deceit (Evoked)
+  STACK_ADD: ForgeAI triggered Deceit
+  STACK_ADD: ForgeAI triggered Deceit targeting [Seat]
+  DISCARD: Seat discards Witch's Mark (60).
+  STACK_RESOLVE: When this creature enters, if {B}{B} was spent to cast it, target opponent reveals their hand. You choose a nonland card from it. That player discards that card. (Targeting: [[Seat]]) [Zone Changer: Deceit (113)]
+  ZONE_CHANGE: Deceit (113) was put into Graveyard from Battlefield.
+  STACK_RESOLVE: Evoke (You may cast this spell for its evoke cost. If you do, it's sacrificed when it enters.) [Zone Changer: Deceit (113)]
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 20 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  STACK_ADD: ForgeAI triggered The Theorist, Jace Beleren
+  STACK_RESOLVE: At the beginning of each opponent's draw step, you draw a card. [Phase: Seat]
+  PHASE: Seat's Main phase, precombat
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 21 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Gloomlake Verge (108)
+  PHASE: ForgeAI's Beginning of Combat Step
+  MANA: Shipwreck Marsh (85) - {T}: Add {U} or {B}.
+  MANA: Swamp (119) - {T}: Add {B}.
+  MANA: Swamp (120) - {T}: Add {B}.
+  MANA: Shipwreck Marsh (88) - {T}: Add {U} or {B}.
+  STACK_ADD: ForgeAI activated Restless Reef
+  STACK_RESOLVE: Restless Reef (89) - Restless Reef (89) has base power and toughness 4/4  and becomes blue and black a creature Shark and  gains deathtouch until end of turn.
+  PHASE: ForgeAI's Declare Attackers Step
+  COMBAT: ForgeAI assigned Restless Reef (89), Illusion Token (155), Illusion Token (160) and Illusion Token (165) to attack Seat.
+  STACK_ADD: ForgeAI triggered Restless Reef targeting [Seat]
+  ZONE_CHANGE: Seat milled Kiln Fiend (54), Faithless Looting (10), Faithless Looting (9) and Fireblast (42).
+  STACK_RESOLVE: Whenever Restless Reef attacks, target player mills 4 cards. (Targeting: [[Seat]]) [Attacker: Restless Reef (89)]
+  PHASE: ForgeAI's Declare Blockers Step
+  COMBAT: Seat didn't block Restless Reef (89).
+Seat didn't block Illusion Token (155).
+Seat didn't block Illusion Token (160).
+Seat didn't block Illusion Token (165).
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  DAMAGE: Restless Reef (89) deals 4 combat damage to Seat.
+  DAMAGE: Illusion Token (155) deals 1 combat damage to Seat.
+  DAMAGE: Illusion Token (160) deals 1 combat damage to Seat.
+  DAMAGE: Illusion Token (165) deals 1 combat damage to Seat.
+  LIFE: Life: Seat 1 > -6
+  PLAYER_CONTROL: Seat has restored control over themself
+  PLAYER_CONTROL: ForgeAI has restored control over themself
+  GAME_OUTCOME: Match Duration 8m : 20s
+  GAME_OUTCOME: Turn 11
+  GAME_OUTCOME: Seat has lost because life total reached 0
+  GAME_OUTCOME: ForgeAI has won because all opponents have lost
+  MATCH_RESULTS: Seat: 0 ForgeAI: 1 
+===============================

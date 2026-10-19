@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 182 - Green reduction pays the tax
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control High Seas and nine Grizzly Bears and no lands; your hand is Khalni Hydra. End the turn with Khalni Hydra on the battlefield.
+Rule:rulesguru-b2d94e7029fe740b | Cost reductions apply to the total cost including additional costs (CR 601.2f, 118.7c): Khalni Hydra's {G} reductions also pay High Seas's {1}
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Khalni Hydra
+p0battlefield=High Seas;Grizzly Bears|SummonSick;Grizzly Bears|SummonSick;Grizzly Bears|SummonSick;Grizzly Bears|SummonSick;Grizzly Bears|SummonSick;Grizzly Bears|SummonSick;Grizzly Bears|SummonSick;Grizzly Bears|SummonSick;Grizzly Bears|SummonSick
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Khalni Hydra" = 1

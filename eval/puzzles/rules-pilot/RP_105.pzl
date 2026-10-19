@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 105 - Five cascades
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control Imoti, Celebrant of Bounty and ten Forests, and have Apex Devastator in hand. Your library is six Grizzly Bears. End the turn with five Grizzly Bears on your battlefield.
+Rule:rulesguru-dcb7cf1303d5fa79 | Multiple instances of cascade each trigger separately (CR 702.85c): Apex Devastator's four plus the one Imoti grants make five
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Apex Devastator
+p0battlefield=Imoti, Celebrant of Bounty;Forest;Forest;Forest;Forest;Forest;Forest;Forest;Forest;Forest;Forest
+p0library=Grizzly Bears;Grizzly Bears;Grizzly Bears;Grizzly Bears;Grizzly Bears;Grizzly Bears
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Grizzly Bears" = 5

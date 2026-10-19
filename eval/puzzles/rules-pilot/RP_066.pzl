@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 066 - Mites outlive the Thane
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Geth, Thane of Contracts and seven Plains, and have White Sun's Twilight in hand. End the turn with exactly five Phyrexian Mite tokens.
+Rule:rulesguru-96bb33d58d36afc2 | State-based actions are not checked during a spell's resolution (CR 704.3), so Geth is destroyed before its -1/-1 can kill the new 1/1 Mites
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=White Sun's Twilight
+p0battlefield=Geth, Thane of Contracts;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+tokens p0 Battlefield "Phyrexian Mite Token" = 5

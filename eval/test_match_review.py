@@ -223,6 +223,19 @@ class TimeSplitTest(unittest.TestCase):
                          (2, 3000, 1, 300000, 1))
         self.assertAlmostEqual(t["elapsed_ms"] / 60000.0, 10, delta=0.5)
 
+    def test_the_game_rows_duration_beats_the_log_mtime(self):
+        # runs/loop/g30 read "TIME 803 min" in a fresh clone: the log's mtime is the checkout, not the game's end.
+        # The game row's duration_ms (736192, 12 min) is what the game took.
+        import tempfile, time
+        with tempfile.NamedTemporaryFile("w", suffix=".log", delete=False) as f:
+            f.write("")
+        try:
+            start = int(time.time() * 1000) - 803 * 60000
+            t = mr.time_split("", "/x/game-7-%d.jsonl" % start, f.name, duration_ms=736192)
+        finally:
+            os.unlink(f.name)
+        self.assertEqual(t["elapsed_ms"], 736192)
+
 
 
 class LookupRoundsTest(unittest.TestCase):

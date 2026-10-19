@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 021 - Two snakes for the pit
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is the start of the opponent's upkeep and the opponent is at 2 life. You control Ophiomancer, Harmonic Prodigy, Bastion of Remembrance and Glimmer Bairn, and no Snakes. Win this turn with Ophiomancer and Harmonic Prodigy still on your battlefield.
+Rule:cranial-insertion-3fbf5047f436dcae | An intervening-if trigger rechecks its condition on resolution (CR 603.4): the doubled Ophiomancer trigger makes a second Snake only if the first is gone by then
+[state]
+turn=1
+activeplayer=p0
+activephase=CLEANUP
+activephaseadvance=UPKEEP
+p0life=20
+p0battlefield=Ophiomancer;Harmonic Prodigy;Bastion of Remembrance;Glimmer Bairn
+p0library=Island;Island;Island
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0
+count p0 Battlefield "Ophiomancer" = 1
+count p0 Battlefield "Harmonic Prodigy" = 1

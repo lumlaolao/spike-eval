@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 054 - Big enough on arrival
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control Elesh Norn, Grand Cenobite, Garruk's Packleader and four Islands, and have Fortress Crab in hand. Your library has three cards. End the turn with exactly two cards in your library.
+Rule:rulesguru-582ca6852548cc9b | A static power boost applies to a creature as it enters, so an enters trigger that checks power sees it (CR 603.6b, 613)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Fortress Crab
+p0battlefield=Elesh Norn, Grand Cenobite;Garruk's Packleader;Island;Island;Island;Island
+p0library=Fortress Crab;Fortress Crab;Fortress Crab
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Library * = 2

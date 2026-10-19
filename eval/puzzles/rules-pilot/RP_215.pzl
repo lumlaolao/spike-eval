@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 215 - A creature when it died
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Dryad Militant, Spawning Pit, three Islands and a face-down (manifested) Think Twice; your hand is empty. End the turn with a card in hand.
+Rule:rulesguru-83767b7a61d4bc35 | Replacement effects look at the object as it is just before the event (CR 614.6, 614.4): the face-down Think Twice dies as a creature, so Dryad Militant does not exile it and it can be flashed back from the graveyard
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0battlefield=Dryad Militant|SummonSick;Spawning Pit;Think Twice|FaceDown;Island;Island;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Hand * = 1

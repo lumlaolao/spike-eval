@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 218 - Suspending is not casting
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control Rule of Law and four Mountains, and have Shivan Meteor (suspend 2 - {1}{R}{R}) and Lightning Bolt in hand. End the turn with Shivan Meteor suspended and the opponent at 17 life.
+Rule:rulesguru-e0cbcd7e6781c18b | Suspending a card is a special action, not casting a spell (CR 702.62a, 116.2f), so it does not count toward Rule of Law's one spell: suspend Shivan Meteor and cast Lightning Bolt
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Shivan Meteor;Lightning Bolt
+p0battlefield=Rule of Law;Mountain;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+counters p0 Exile "Shivan Meteor" TIME = 2
+life p1 = 17

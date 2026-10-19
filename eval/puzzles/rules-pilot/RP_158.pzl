@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 158 - Protection still takes lethal
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Skaab Goliath (6/9 trample, a Zombie). The opponent is at 4 life and controls Elite Inquisitor (protection from Zombies). Win this turn.
+Rule:rulesguru-f6b18a305316ba1e | Protection prevents the damage but does not change damage assignment (CR 702.16e, 702.19b): a trampler must still assign lethal damage to a blocker with protection from it
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Skaab Goliath
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1battlefield=Elite Inquisitor
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

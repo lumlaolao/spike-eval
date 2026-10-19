@@ -1,10 +1,30 @@
-# Work plan: what is left (updated 2026-10-17)
+# Work plan: what is left (updated 2026-10-19)
 
 The living to-do list for the "the model is the only bottleneck" work. Only open work is listed here;
 what is done is in git history, `docs/harness/GAME-LOOP-LOG.md` and the run reports. Update this file
 when an item is finished or a new one is agreed, so the next session can pick up from it.
 
-## Handoff (2026-10-18; read this first)
+## The plan (owner, 2026-10-19; this comes before every list below)
+
+The deliverable is the benchmark's PUZ score. The 996 rules questions are all sorted
+(`eval/puzzles/rules-pilot/manifest.jsonl`): 204 converted, 10 Forge disagreements, 8 multiple-review,
+774 dropped with a reason. Going back over the drops yields less each pass (batches 7-9: 14, 4, 3; batch 12: 5;
+batch 13: 6 of 8 gated drafts), so more passes are not the route to a larger suite. In order:
+
+1. **Land PR #268** (`feat/puzzle-search-prover`): update its description past epoch 63, run the full Java
+   suite on the head (not re-run since observation-faithful-v42), then `pr-review`, `simplify`, `standards`,
+   and `scripts/pr_merge.sh`. Nothing from batches 1-13 or epochs 52-64 is on `main` until it lands.
+2. **A first PUZ score** on the converted puzzles: `eval/puzzle_score.py` with GPT-6 Luna, its confidence
+   interval and the trivial baseline it beats. Paid: state the cost first and get the owner's go.
+3. **Decide whether the suite is big enough.** If not, find a new source of puzzles (for example the PUZZLE
+   candidates in `GAME-LOOP-LOG.md`), not another pass over the dropped rules questions. The 11 ungated
+   batch-13 drafts (`batch13-drafts/`) are finished only if cheap.
+4. **Games, the built-in prover and harness fixes only when they serve 1-3**: a harness defect that makes a
+   puzzle mis-adjudicate is fixed (as epoch 63 was for RP_207); open-ended game-loop play waits.
+
+Revise this section when a step finishes or the owner changes the order.
+
+## Handoff (2026-10-18)
 
 State of `main`: harness-epoch-51 (observation-faithful-v41, seat-tools-v11, lookahead-preview-v12;
 three engine patches, `ENGINE-PATCHES.md`). Acceptance and the gauntlets were last run on epoch 46 (the owner asked to skip them on 2026-10-18 night). A new machine reinstalls and rebuilds Forge first (`install.sh`, then the `mvn` build); on the Mac,

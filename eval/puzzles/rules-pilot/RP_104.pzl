@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 104 - Slimefoot remembers lifelink
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You are at 20 life and control Slimefoot, the Stowaway (2/3), Changeling Outcast (a 1/1 changeling, so a Saproling), a Mountain, a Plains and a Swamp, and have Deafening Clarion in hand. The opponent is at 20 life. End the turn at 22 life with the opponent at 19.
+Rule:rulesguru-a00d57537498cfb5 | Slimefoot's trigger looks back in time and its damage uses Slimefoot's last-known information, lifelink included (CR 603.10a, 702.15c)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Deafening Clarion
+p0battlefield=Slimefoot, the Stowaway;Changeling Outcast;Mountain;Plains;Swamp
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+life p0 = 22
+life p1 = 19

@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 008 - Cavalcade feeds the Spitfire
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:The opponent is at 15 life with no creatures. Win this turn.
+Rule:ask-a-magic-judge-469e5669db2e323e | Cavalcade of Calamity triggers for each attacker with power 1 or less as it attacks; each noncombat hit pumps Chandra's Spitfire
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Cavalcade of Calamity;Chandra's Spitfire;Raging Goblin;Raging Goblin
+p0library=Mountain;Mountain;Mountain
+p1life=15
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

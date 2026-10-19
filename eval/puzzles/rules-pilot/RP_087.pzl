@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 087 - No target yet
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Termagant Swarm with three +1/+1 counters, Death's Presence, two Mountains and a Forest, and have Fling, Llanowar Elves and Giant Growth in hand. The opponent is at 20 life. End the turn with the opponent at 17 life or less and a creature with three or more +1/+1 counters on your battlefield.
+Rule:ask-a-magic-judge-bbdd635eb73c8347 | A trigger's targets are chosen as it is put on the stack (CR 603.3d), before the simultaneous dies trigger has made its token, so Death's Presence cannot target the new token
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Fling;Llanowar Elves;Giant Growth
+p0battlefield=Termagant Swarm|Counters:P1P1=3;Death's Presence;Mountain;Mountain;Forest
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 17
+counters p0 Battlefield * P1P1 >= 3

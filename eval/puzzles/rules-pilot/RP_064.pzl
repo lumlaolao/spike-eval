@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 064 - The Jailer looks away
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:The opponent is at 20 life and controls Yixlid Jailer. You control Geralf's Messenger (no counters) and Spawning Pit. End the turn with the opponent at 18 life and a +1/+1 counter on Geralf's Messenger.
+Rule:rulesguru-f4c201a6d80e9ce8 | Undying is a dies trigger that works from the battlefield (CR 603.10a, 702.93a), so Yixlid Jailer's graveyard ability loss does not stop it
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0battlefield=Geralf's Messenger;Spawning Pit
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Yixlid Jailer
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 = 18
+counters p0 Battlefield "Geralf's Messenger" P1P1 = 1

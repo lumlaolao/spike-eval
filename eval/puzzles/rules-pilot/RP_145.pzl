@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 145 - Teysa sees her own death
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Teysa Karlov, Vindictive Vampire and Goblin Bombardment. The opponent is at 4 life. Win this turn.
+Rule:rulesguru-3fb92b202c170cf2 | Dies triggers look back in time (CR 603.10a), so Teysa Karlov's doubling applies to triggers from her own death
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0battlefield=Teysa Karlov;Vindictive Vampire;Goblin Bombardment
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

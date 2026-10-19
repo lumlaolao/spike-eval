@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 081 - Blood for blood
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:The opponent is at 20 life. You control Bloodthirsty Conqueror, Marauding Blight-Priest and a Plains, and have Healing Salve in hand. Win this turn.
+Rule:cranial-insertion-14b6d535d759c528 | Each trigger's event triggers the other again (CR 603.2): life gained drains, the drain is life lost and gains life, until the opponent is at 0
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Healing Salve
+p0battlefield=Bloodthirsty Conqueror;Marauding Blight-Priest;Plains
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

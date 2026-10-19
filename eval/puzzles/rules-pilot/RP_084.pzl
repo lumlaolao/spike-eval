@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 084 - The Butcher answers
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:Your library is Kozilek, Butcher of Truth, Darksteel Colossus, Grizzly Bears and two Islands. You control an Island, a Swamp, a Mountain and five more Islands, and have Sauron, Lord of the Rings in hand. End the turn with Kozilek on your battlefield.
+Rule:cranial-insertion-caf86515d6dbf1e0 | Kozilek's shuffle is a triggered ability that waits until Sauron's trigger has resolved (CR 603.3), so Kozilek can be returned; Darksteel Colossus's replacement never lets it reach the graveyard
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Sauron, Lord of the Rings
+p0battlefield=Island;Swamp;Mountain;Island;Island;Island;Island;Island
+p0library=Kozilek, Butcher of Truth;Darksteel Colossus;Grizzly Bears;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Kozilek, Butcher of Truth" = 1

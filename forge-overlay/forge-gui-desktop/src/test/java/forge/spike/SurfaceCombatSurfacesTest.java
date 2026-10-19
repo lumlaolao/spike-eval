@@ -278,7 +278,7 @@ public class SurfaceCombatSurfacesTest {
         Card wurm = card("Pelakka Wurm", me, ZoneType.Battlefield);
         Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
         Script model = new Script("CHOICE: 1")
-                .on("COMBAT DAMAGE ASSIGNMENT", choice("ALL TO BLOCKER"));
+                .on("COMBAT DAMAGE ASSIGNMENT", p -> "ALLOC: 7, 0");   // amounts: the engine's rules divide freely
         LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
         Combat combat = new Combat(me);
         combat.addAttacker(wurm, rival);

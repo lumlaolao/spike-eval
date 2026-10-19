@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 039 - No afterlife
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:The opponent controls Imperious Oligarch. End the turn with Imperious Oligarch off the battlefield and the opponent controlling no Spirit tokens.
+Rule:rulesguru-41022c8eb2f4fece | A creature exiled instead of going to the graveyard did not die, so its afterlife does not trigger (CR 700.4, 702.135a)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Scorchmark;Shock
+p0battlefield=Mountain;Mountain
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Imperious Oligarch
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Battlefield "Imperious Oligarch" = 0
+tokens p1 Battlefield "Spirit Token" = 0

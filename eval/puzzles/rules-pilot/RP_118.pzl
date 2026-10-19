@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot 118 - The curse falls off
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:The opponent's Overwhelming Splendor enchants you (your creatures lose all abilities and you can't activate non-mana abilities). You control Prodigal Pyromancer and four Wastes, and have The One Ring in hand. The opponent is at 20 life. Your library is three Grizzly Bears. End the turn with the opponent at 19 life and no card drawn.
+Rule:cranial-insertion-9b8b233c2d86f619 | Protection from everything makes an Aura enchanting you an illegal attachment, so it is put into the graveyard as a state-based action (CR 702.16c, 704.5m)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=The One Ring
+p0battlefield=Prodigal Pyromancer;Wastes;Wastes;Wastes;Wastes
+p0library=Grizzly Bears;Grizzly Bears;Grizzly Bears
+p1life=20
+p1battlefield=Overwhelming Splendor|EnchantingPlayer:p0
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 = 19
+count p1 Graveyard "Overwhelming Splendor" = 1
+count p0 Library * = 3

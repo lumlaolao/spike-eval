@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 074 - Fallen together
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control Anafenza, Unyielding Lineage, two Grizzly Bears and two Mountains, and have Pyroclasm in hand. End the turn with two Spirit tokens.
+Rule:wizards-of-the-coast-release-notes-f29d2eb6983db047 | Leaves-the-battlefield abilities look back in time (CR 603.10a), so Anafenza dying with other creatures still triggers for each of them
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Pyroclasm
+p0battlefield=Anafenza, Unyielding Lineage;Grizzly Bears;Grizzly Bears;Mountain;Mountain
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+tokens p0 Battlefield "Spirit Token" = 2

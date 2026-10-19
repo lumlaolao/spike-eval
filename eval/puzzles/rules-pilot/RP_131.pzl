@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 131 - Tap the old Opal first
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Mox Opal and two Ornithopters (metalcraft is on), and have a second Mox Opal and Grizzly Bears in hand. You control no lands. End the turn with Grizzly Bears on your battlefield.
+Rule:rulesguru-19f262a2a27fb884 | The legend rule is a state-based action checked before anyone gets priority (CR 704.5j, 117.5), so the old Mox Opal must be tapped before the new one is cast
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Mox Opal;Grizzly Bears
+p0battlefield=Mox Opal;Ornithopter;Ornithopter
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Grizzly Bears" = 1

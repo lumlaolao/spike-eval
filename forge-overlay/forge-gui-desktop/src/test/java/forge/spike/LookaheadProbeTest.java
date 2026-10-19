@@ -59,6 +59,33 @@ public class LookaheadProbeTest {
 
     // ---- copy mechanism -----------------------------------------------------------------------
 
+    /** runs/loop/g16 T8 (2026-10-18): two `simulate` calls failed with "Couldn't map Enroot (151)". Carnivorous
+     *  Cultivator enters prepared: an effect remembers a copy of the card in its prepared-spell state that is in no
+     *  zone the copier copies, so GameCopier.find threw, in the preview's copy and (g23) in the simulator's own. */
+    @Test
+    public void aPreparedCardsRememberedSpellDoesNotBreakThePreview() {
+        Game g = SeatObservationTest.bareGame();
+        forge.game.player.Player me = g.getPlayers().get(0);
+        // Entering from hand runs the card's "enters prepared" replacement, as casting it did in g16.
+        forge.game.card.Card inHand = SeatObservationTest.card("Carnivorous Cultivator", me, forge.game.zone.ZoneType.Hand);
+        forge.game.card.Card cult = g.getAction().moveTo(forge.game.zone.ZoneType.Battlefield, inHand, null, null);
+        Assert.assertTrue(cult.isPrepared(), "the fixture prepared the card");
+        // g16's state: the effect remembers the prepared spell (Enroot), whose zone is set, but no copied zone holds
+        // it. Entering prepared here leaves Enroot in exile, so the fixture takes it out of the exile list the way the
+        // game had it; the route the game took to that state is not reproduced yet.
+        forge.game.card.Card enroot = null;
+        for (forge.game.card.Card c : g.getCardsIn(forge.game.zone.ZoneType.Command))
+            for (Object o : c.getRemembered()) if (o instanceof forge.game.card.Card) enroot = (forge.game.card.Card) o;
+        Assert.assertNotNull(enroot, "the prepared effect remembers its spell");
+        enroot.getZone().remove(enroot);
+        Assert.assertNotNull(enroot.getZone(), "its zone is still set");
+        // GameCopier is patched (ENGINE-PATCHES.md): the copy is made, every copy, the simulator's internal ones too
+        // (runs/loop/g23 failed inside GameStateEvaluator.simulateUpcomingCombatThisTurn).
+        Game copy = new forge.ai.simulation.GameCopier(g).makeCopy();
+        Assert.assertNotNull(copy);
+        Assert.assertTrue(cult.isPrepared(), "the live card is untouched");
+    }
+
     @Test
     public void gameCopierBehaviorProbe() {
         Game g = SeatObservationTest.bareGame();
@@ -549,6 +576,31 @@ public class LookaheadProbeTest {
         // The copy holds the stack: the response is previewed against the spell it answers (the engine's copy has no
         // stack by default, so a counterspell's preview showed the opponent unchanged).
         Assert.assertTrue(report.contains("Rival graveyard 0 -> 1"), "Show and Tell was countered on the copy: " + report);
+    }
+
+    /** runs/loop/g28 T6 (jsonl:308): on the opponent's turn, Force of Negation's pitch (exile another blue card) against
+     *  Seam Rip came back "preview unavailable", though the engine offered it; the seat cast Mental Misstep instead. */
+    @Test
+    public void aForceOfNegationPitchOnTheOpponentsTurnIsPreviewed() {
+        Game g = LineFindingProbeTest.bareGame(forge.game.phase.PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        LineFindingProbeTest.card("Force of Negation", me, forge.game.zone.ZoneType.Hand);
+        LineFindingProbeTest.card("Force of Will", me, forge.game.zone.ZoneType.Hand);
+        LineFindingProbeTest.card("Mental Misstep", me, forge.game.zone.ZoneType.Hand);
+        LineFindingProbeTest.card("Tropical Island", me, forge.game.zone.ZoneType.Battlefield);
+        LineFindingProbeTest.rivalCasts(g, "Seam Rip", null);
+        g.getAction().checkStaticAbilities();
+        forge.game.spellability.SpellAbility pitch = null;
+        for (forge.game.spellability.SpellAbility o : LlmSpikeGui.PlayerControllerLLM.enumeratePlayOptions(me, false, true).spells)
+            if (o.getHostCard() != null && o.getHostCard().getName().equals("Force of Negation") && o.getDescription().contains("rather than pay")) pitch = o;
+        Assert.assertNotNull(pitch, "fixture: Force of Negation has its pitch cost on the opponent's turn");
+        pitch.setActivatingPlayer(me);
+        String report = PlayerLookahead.previewCast(g, me, pitch, 5L, "Seam Rip");
+        System.out.println("[LOOKAHEAD] " + report);
+        Assert.assertFalse(report.startsWith("(preview unavailable"), report);
+        Assert.assertTrue(report.contains("Force of Negation"), report);
+        Assert.assertTrue(report.contains("Rival exile 0 -> 1") && !report.contains("entered the battlefield: Seam Rip"),
+                "Seam Rip was countered and exiled on the copy: " + report);
     }
 
     /** The model can aim the preview: a hint naming a legal target is honoured. */

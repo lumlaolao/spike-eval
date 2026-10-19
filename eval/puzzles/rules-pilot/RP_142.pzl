@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 142 - Put onto the battlefield attacking
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Kaalia of the Vast and have Master of Cruelties and Lord of the Pit in hand. The opponent is at 20 life with no creatures. Win this turn.
+Rule:rulesguru-cd16a3486a6cac49 | A creature put onto the battlefield attacking never attacked (CR 508.4), but an 'attacks and isn't blocked' ability still triggers for it when no blockers are declared (CR 509.3g)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Master of Cruelties;Lord of the Pit
+p0battlefield=Kaalia of the Vast
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

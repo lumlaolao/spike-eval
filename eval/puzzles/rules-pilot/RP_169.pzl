@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot 169 - No mana cost, no life
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Bolas's Citadel and a Plains, and have already played a land this turn. The top card of your library is Restore Balance; the next two are Plains. The opponent controls three Plains, Grizzly Bears, Hill Giant and Craw Wurm. End the turn with the opponent controlling no creatures.
+Rule:rulesguru-608875022d1e1568 | Bolas's Citadel's alternative cost works for a card with no mana cost (CR 118.9, 202.3a): Restore Balance is cast for 0 life
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0landsplayed=1
+p0battlefield=Bolas's Citadel;Plains
+p0library=Restore Balance;Plains;Plains
+p1life=20
+p1battlefield=Plains;Plains;Plains;Grizzly Bears;Hill Giant;Craw Wurm
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Battlefield "Grizzly Bears" = 0
+count p1 Battlefield "Hill Giant" = 0
+count p1 Battlefield "Craw Wurm" = 0

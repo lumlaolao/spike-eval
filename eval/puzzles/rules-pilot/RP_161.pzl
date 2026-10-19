@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 161 - The Arbor was not cast
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Containment Priest. You control no lands and have Dryad Arbor, a Forest and Llanowar Elves in hand, and have not played a land this turn. End the turn with Llanowar Elves on the battlefield.
+Rule:rulesguru-92ab79aa03423b65 | Playing a land is not casting (CR 305.1): Containment Priest exiles a played Dryad Arbor, and the land drop is still used
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Dryad Arbor;Forest;Llanowar Elves
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Containment Priest
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Llanowar Elves" = 1

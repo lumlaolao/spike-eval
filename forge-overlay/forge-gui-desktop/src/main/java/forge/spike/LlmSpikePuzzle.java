@@ -59,6 +59,10 @@ import forge.util.MyRandom;
  *   PZL_SEEDS=1..200     many rollouts in one JVM, one result row each (default: one at GAME_SEED)
  *   PZL_TAPE=<file>      the draw tape the script arm replays (a stored reference line)
  *   PZL_TAPE_ALL=1       keep every rollout's tape (default: only solved rollouts and single runs)
+ *   CONTROLLER_A=search  prove the puzzle with {@link PuzzleSearch} instead of one rollout per seed. With
+ *                        CONTROLLER_B=search every opponent choice must be beaten; with ai, the Forge AI's.
+ *   PZL_SEARCH_BUDGET=N  rollouts the search may play (default 2000); PZL_SEARCH_LINES=N winning lines
+ *                        tried per choice point before giving up on it (default 32)
  *   SMART_MODEL_A / FAST_MODEL_A / GAME_SEED / EVAL_OUT / GAME_CAP_MS as usual.
  *
  * Run: PUZZLE=PS_MSH1 CONTROLLER_A=random bash run-llm-headless.sh
@@ -87,6 +91,22 @@ public final class LlmSpikePuzzle {
             }
         }
         throw new RuntimeException("PUZZLE=" + spec + " not found; tried: " + tried);
+    }
+
+    /** A card name chosen while the board is put down ("As Pithing Needle enters, choose a card name") is added to by
+     *  the .pzl's {@code NamedCard:}, not replaced (GameState.handleChosenEntities uses addNamedCard), so the Needle
+     *  held both names (rules pilot RP_207). The .pzl's names are set exactly; GameState keeps them in a private
+     *  map, read here. */
+    @SuppressWarnings("unchecked")
+    static void restoreNamedCards(forge.game.GameState state) {
+        try {
+            java.lang.reflect.Field f = forge.game.GameState.class.getDeclaredField("cardToNamedCard");
+            f.setAccessible(true);
+            for (Map.Entry<Card, List<String>> e : ((Map<Card, List<String>>) f.get(state)).entrySet())
+                e.getKey().setNamedCards(new java.util.ArrayList<>(e.getValue()));
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            System.out.println("[PZL] NamedCard not restored: " + e);
+        }
     }
 
     static List<String> searchDirs() {
@@ -180,7 +200,7 @@ public final class LlmSpikePuzzle {
     /** Arms that may sit in the solver seat. Plain "ai" cannot (see requireOverridableSolver); any
      *  other value would be built as a model seat, so a typo must not silently call a model. */
     static final java.util.Set<String> SOLVER_ARMS = new java.util.HashSet<>(java.util.Arrays.asList(
-            "llm", "random", "floor", "ai-log", "pass", "first", "script"));
+            "llm", "random", "floor", "ai-log", "pass", "first", "script", "search"));
 
     static void requireSolverArm(String ctl) {
         requireOverridableSolver(ctl);
@@ -214,9 +234,17 @@ public final class LlmSpikePuzzle {
      *  length of a line; the lines themselves are the readable form of a reference solution. */
     static List<String> solverActions(List<String> logLines, String solverName) {
         List<String> out = new ArrayList<>();
-        for (String l : logLines) {
-            int colon = l.indexOf(": ");
+        // A combat entry holds one line per attacker ("Solver didn't block A" then "Solver assigned B to block C"):
+        // each line is read, or a block after a "didn't block" line was lost (rules pilot RP_108).
+        List<String> lines = new ArrayList<>();
+        for (String entry : logLines) {
+            int colon = entry.indexOf(": ");
             if (colon < 0) continue;
+            String prefix = entry.substring(0, colon + 2);
+            for (String part : entry.substring(colon + 2).split("\n")) lines.add(prefix + part);
+        }
+        for (String l : lines) {
+            int colon = l.indexOf(": ");
             String type = l.substring(0, colon);
             String msg = l.substring(colon + 2);
             if (("STACK_ADD".equals(type) && (msg.startsWith(solverName + " cast ") || msg.startsWith(solverName + " activated ")))
@@ -279,6 +307,8 @@ public final class LlmSpikePuzzle {
             if (kv.length == 2 && "Goal".equalsIgnoreCase(kv[0].trim())) goal = kv[1].trim();
         }
         requireEnforcedGoal(goal);
+        // A rules puzzle's acceptance state: read now, so a line it cannot read stops the run before any game.
+        if (sections.get("acceptance") != null) PuzzleAcceptance.parse(sections.get("acceptance"));
         final boolean bounded = goalIsBounded(sections);
         final String pzlSha = fileSha256(String.valueOf(file));
 
@@ -296,6 +326,12 @@ public final class LlmSpikePuzzle {
             if (tapeFile == null || tapeFile.trim().isEmpty())
                 throw new RuntimeException("CONTROLLER_A=script needs PZL_TAPE=<file holding the draw tape>");
             PuzzleArms.scriptTape = FileUtil.readFileToString(new File(tapeFile.trim())).trim();
+        }
+
+        if ("search".equals(ctlA)) {
+            search(file, id, sections, goal, bounded, pzlSha, ctlB, smartA, fastA, capMs);
+            LlmSpikeGui.EvalLog.closeForTest();
+            System.exit(0);
         }
 
         // Many rollouts share one JVM (startup is ~10 s, a puzzle ~1 s). Each rollout re-seeds the
@@ -327,11 +363,155 @@ public final class LlmSpikePuzzle {
         System.exit(0);
     }
 
-    /** One rollout. Returns false when the game thread is still alive after the cap and its grace
-     *  (the JVM is then not safe for another rollout). */
-    static boolean runOnce(File file, String id, Map<String, List<String>> sections, String goal, boolean bounded,
-                           String pzlSha, String ctlA, String ctlB, String smartA, String fastA, long seed,
-                           long capMs, int rollout, boolean keepTape) throws Exception {
+    /** CONTROLLER_A=search: prove the puzzle on one engine seed and write one result row. Every rollout
+     *  replays from the start position on the same seed; only the line of choices differs. The proof's main
+     *  line is then replayed twice more and must give the same game log both times, or the result is drift. */
+    static void search(File file, String id, Map<String, List<String>> sections, String goal, boolean bounded,
+                       String pzlSha, String ctlB, String smartA, String fastA, long capMs) throws Exception {
+        List<Long> seeds = parseSeeds(System.getenv("PZL_SEEDS"));
+        final long seed = seeds != null && !seeds.isEmpty() ? seeds.get(0) : LlmSpikeGui.applySeed();
+        int budget = intOr(System.getenv().getOrDefault("PZL_SEARCH_BUDGET", "2000"), 2000);
+        // Lines tried per choice point before it is given up: 4 gave up on RP_034 (four Fiery Confluence lines, each
+        // beaten by Welding Jar) where 40 proved it; the budget bounds the total either way.
+        int lines = intOr(System.getenv().getOrDefault("PZL_SEARCH_LINES", "32"), 32);
+        System.out.println("[PZL] search " + id + " opponent=" + ctlB + " seed=" + seed + " budget=" + budget);
+        final int[] n = {0};
+        final boolean[] broken = {false};
+        PuzzleSearch.Game g = (prefix, completionSeed) -> {
+            if (broken[0]) return new PuzzleSearch.Rollout(new ArrayList<>(prefix), false, "game thread outlived the cap");
+            PuzzleArms.Line line = new PuzzleArms.Line(prefix, completionSeed);
+            if (n[0] > 0 && n[0] % 100 == 0) {
+                // Heap after a collection: prove-v3 PS_M204 and PS_WAR0a ran out of heap after 500-600 rollouts.
+                System.gc();
+                Runtime rt = Runtime.getRuntime();
+                System.out.println("[PZL] search " + id + ": " + n[0] + " rollouts, heap "
+                        + (rt.totalMemory() - rt.freeMemory()) / (1024 * 1024) + " MB");
+            }
+            Played p;
+            try {
+                p = replay(file, id, sections, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded, line);
+            } catch (Exception e) {
+                return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), false, "rollout threw: " + e);
+            }
+            if (!p.healthy) broken[0] = true;
+            // A game the engine keeps looping without asking anyone (prove-v2-drift PS_M204, PS_MKM4) is ended by the
+            // wall-clock cap: not a solve. Only a game thread that outlived the cap makes the JVM unsafe (broken).
+            if ("invalid".equals(p.status) && line.drift == null)
+                return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), false, p.healthy ? null : "rollout hit the wall-clock cap");
+            boolean solved = p.cleanSolve() && !line.stopped();
+            // What tells two solutions apart: the solver's game-log actions, and what it chose where the log does not
+            // say (a mode, a clone pick, a number). Not the final state: the opponent's replies change that too
+            // (RP_045: the opponent's Scavenging Ooze exiled a card on one line and not the other).
+            // As a set of lines: the same plays in another order (a pump before or after combat, both winning) are
+            // one solution with a variant, not two (rules pilot RP_005, RP_058, RP_059).
+            // Card ids dropped: playing Forest (2) or the identical Forest (3) is one play (RP_120).
+            List<String> print = new ArrayList<>();
+            for (String a : solverActions(p.logLines, "Solver")) print.add(a.replaceAll(" \\(\\d+\\)", ""));
+            print.addAll(line.choices);
+            java.util.Collections.sort(print);
+            return new PuzzleSearch.Rollout(new ArrayList<>(line.taken), solved, line.drift, String.join("\n", print));
+        };
+        long t0 = System.currentTimeMillis();
+        PuzzleSearch searcher = new PuzzleSearch(g, "Solver", budget, lines, seed);
+        PuzzleSearch.Result r = bounded ? searcher.prove() : null;
+        String status = r == null ? "unscoreable" : r.verdict == PuzzleSearch.Verdict.PROVEN ? "proven"
+                : r.verdict == PuzzleSearch.Verdict.DRIFT ? "drift" : "not_found";
+        Map<String, Object> extra = new LinkedHashMap<>();
+        Played main = null;
+        if ("proven".equals(status)) {
+            main = replay(file, id, sections, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
+                    new PuzzleArms.Line(r.line, 0));
+            Played again = replay(file, id, sections, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
+                    new PuzzleArms.Line(r.line, 0));
+            if (!main.cleanSolve() || !logFingerprint(main.logLines).equals(logFingerprint(again.logLines))) {
+                status = "drift";
+                extra.put("search_drift", "the main line did not replay to the same solve");
+            }
+        }
+        // One solution (eval/BENCHMARK-V1.md): a rules puzzle is searched for a second one by default.
+        int uniqueBudget = intOr(System.getenv().getOrDefault("PZL_UNIQUE_BUDGET",
+                sections.get("acceptance") != null ? String.valueOf(budget) : "0"), 0);
+        if ("proven".equals(status) && uniqueBudget > 0) {
+            PuzzleSearch.Uniqueness u = searcher.unique(r.line, uniqueBudget);
+            extra.put("uniqueness", u.verdict);
+            extra.put("uniqueness_deviations", u.deviations);
+            extra.put("uniqueness_exhausted", u.exhausted);
+            extra.put("uniqueness_replays", u.replays);
+            extra.put("uniqueness_unproven_alternatives", u.unprovenAlternatives);
+            if (u.second != null) {
+                extra.put("uniqueness_second_line", PuzzleSearch.lineText(u.second));
+                Played second = replay(file, id, sections, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
+                        new PuzzleArms.Line(u.second, 0));
+                extra.put("uniqueness_second_actions", solverActions(second.logLines, "Solver"));
+                if (u.mainPrint != null && u.secondPrint != null) {
+                    // The lines of the two fingerprints that differ: what made the second line another solution.
+                    List<String> a = java.util.Arrays.asList(u.mainPrint.split("\n")), b = java.util.Arrays.asList(u.secondPrint.split("\n"));
+                    List<String> diff = new ArrayList<>();
+                    // As multisets: a second line with one more of the same action (RP_056: another sacrifice) differs.
+                    List<String> onlyB = new ArrayList<>(b);
+                    for (String l : a) if (!onlyB.remove(l)) diff.add("main: " + l);
+                    for (String l : onlyB) diff.add("second: " + l);
+                    extra.put("uniqueness_difference", diff);
+                }
+            }
+            if (u.drift != null) extra.put("uniqueness_drift", u.drift);
+            System.out.println("[PZL] search " + id + ": uniqueness " + u.verdict + " (" + u.deviations
+                    + " deviations, " + u.exhausted + " played out, " + u.replays + " rollouts)");
+        }
+        if (r != null && r.refutation != null && !"proven".equals(status)) {
+            // The opponent reply that beat every line found, played out once, for the puzzle's audit.
+            Played ref = replay(file, id, sections, ctlB, smartA, fastA, seed, capMs, n[0]++, bounded,
+                    new PuzzleArms.Line(r.refutation, 0));
+            List<String> opp = new ArrayList<>();
+            for (String l : ref.logLines) if (l.contains("Opponent")) opp.add(l);
+            extra.put("refutation_line", PuzzleSearch.lineText(r.refutation));
+            extra.put("refutation_opponent_log", opp);
+        }
+        long durMs = System.currentTimeMillis() - t0;
+        extra.put("pzl_sha256", pzlSha);
+        extra.put("goal_bounded", bounded);
+        if (r != null) {
+            extra.put("search_replays", r.replays);
+            extra.put("search_budget", budget);
+            extra.put("search_lines_per_point", lines);
+            extra.put("opponent_choice_points", r.opponentChoicePoints);
+            extra.put("opponent_branches_beaten", r.opponentBranches);
+            if (r.drift != null) extra.put("search_drift", r.drift);
+            if (r.exhausted) extra.put("search_exhausted", true);
+            if (r.line != null) extra.put("line", PuzzleSearch.lineText(r.line));
+        }
+        if (main != null) {
+            List<String> actions = solverActions(main.logLines, "Solver");
+            putAcceptance(extra, main);
+            extra.put("log_sha256", logFingerprint(main.logLines));
+            extra.put("solver_actions", actions.size());
+            extra.put("actions", actions);
+        }
+        System.out.println("[PZL] search " + id + ": " + status + (r == null ? "" : " after " + r.replays
+                + " rollouts, " + r.opponentBranches + " opponent replies beaten") + " (" + (durMs / 1000) + "s)");
+        writeRow(id, file, status, "proven".equals(status), main == null ? -1 : main.turns,
+                main == null ? "?" : main.winCond, durMs, seed, "search", ctlB, "",
+                main != null && main.goalInstalled, main == null ? "" : main.goalOracle, goal, extra);
+    }
+
+    /** One search rollout: the engine re-seeded as for a fresh launch, both search seats drawing from {@code line}. */
+    static Played replay(File file, String id, Map<String, List<String>> sections, String ctlB, String smartA,
+                         String fastA, long seed, long capMs, int rollout, boolean bounded,
+                         PuzzleArms.Line line) throws Exception {
+        MyRandom.setRandom(new java.util.Random(seed));
+        LlmSpikeGui.SEED_USED = seed;
+        PuzzleArms.searchLine = line;
+        try {
+            return playOnce(file, id, sections, "search", ctlB, smartA, fastA, seed, capMs, rollout, bounded, true);
+        } finally {
+            PuzzleArms.searchLine = null;
+        }
+    }
+
+    /** Play one rollout and read the outcome; {@code quiet} prints nothing (a search plays thousands). */
+    static Played playOnce(File file, String id, Map<String, List<String>> sections, String ctlA, String ctlB,
+                           String smartA, String fastA, long seed, long capMs, int rollout, boolean bounded,
+                           boolean quiet) throws Exception {
         final Puzzle puzzle = new Puzzle(sections, id, false);
 
         // Empty decks and a zero-card opening hand: the [state] section IS the board. Anything drawn
@@ -357,8 +537,8 @@ public final class LlmSpikePuzzle {
         Match match = new Match(rules, players, "LlmPuzzle");
         final Game game = match.createGame();
 
-        if (rollout == 0) System.out.println("[PZL] " + id + "  goal=" + puzzle.getGoalDescription().replace("\n", " | "));
-        System.out.println("[PZL] solver=" + ctlA + " opponent=" + ctlB + " seed=" + seed
+        if (rollout == 0 && !quiet) System.out.println("[PZL] " + id + "  goal=" + puzzle.getGoalDescription().replace("\n", " | "));
+        if (!quiet) System.out.println("[PZL] solver=" + ctlA + " opponent=" + ctlB + " seed=" + seed
                 + " cap=" + (capMs / 1000) + "s rollout=" + rollout);
 
         // Set inside the start-game hook, immediately after the board is applied. This observes the
@@ -371,14 +551,19 @@ public final class LlmSpikePuzzle {
         Thread worker = new Thread(() -> {
             try {
                 match.startGame(game, () -> {
-                    puzzle.applyToGame(game);
+                    PuzzleArms.SETUP = true;
+                    try { puzzle.applyToGame(game); } finally { PuzzleArms.SETUP = false; }
+                    restoreNamedCards(puzzle);
+                    // Choices made while the board is put down (Roaming Throne's type) are the puzzle's, not a play.
+                    PuzzleArms.Line setupLine = PuzzleArms.searchLine;
+                    if (setupLine != null) setupLine.clearChoices();
                     for (Card c : game.getPlayers().get(0).getZone(ZoneType.Command)) {
                         if ("Puzzle Goal".equals(c.getName())) {
                             goalInstalled[0] = true;
                             goalOracle[0] = String.valueOf(c.getOracleText());
                         }
                     }
-                    System.out.println("[PZL] goal enforcement installed: " + goalInstalled[0]);
+                    if (!quiet) System.out.println("[PZL] goal enforcement installed: " + goalInstalled[0]);
                 });
             } catch (Throwable t) {
                 System.out.println("[PZL] game thread threw: " + t);
@@ -395,7 +580,16 @@ public final class LlmSpikePuzzle {
         }, "Game-puzzle");
         worker.setDaemon(true);
         worker.start();
-        worker.join(capMs);
+        // A search rollout past its choice cap is ended here, unsolved (PuzzleArms.Line.maxDraws).
+        PuzzleArms.Line searchLine = PuzzleArms.searchLine;
+        while (worker.isAlive() && System.currentTimeMillis() - t0 < capMs) {
+            worker.join(Math.max(1, Math.min(200, capMs - (System.currentTimeMillis() - t0))));
+            if (searchLine != null && searchLine.stopped() && worker.isAlive()) {
+                game.setGameOver(GameEndReason.Draw);
+                worker.join(10_000L);
+                break;
+            }
+        }
         boolean capped = worker.isAlive();
         if (capped) {
             System.out.println("[PZL] wall-clock cap reached; this puzzle is INVALID, not a failure");
@@ -407,6 +601,8 @@ public final class LlmSpikePuzzle {
             worker.join(LlmSpikeGui.ModelCfg.maxDecisionMs() + 10_000L);
         }
         long durMs = System.currentTimeMillis() - t0;
+        // The static AiCache holds the game it was filled for: cleared after every rollout so a search keeps one.
+        forge.ai.AiCache.clear();
 
         // A run where the goal card never got installed is UNSCOREABLE, not a loss: without it the
         // solver simply never loses on time, so "not solved" would be indistinguishable from
@@ -436,6 +632,15 @@ public final class LlmSpikePuzzle {
 
         // An unbounded goal is UNSCOREABLE, not a result: the card is installed and the game runs,
         // but the limit never arrives, so a "solve" means "won eventually" rather than "won in N".
+        // A rules puzzle is solved when its acceptance state holds at the end, whoever won (PuzzleAcceptance).
+        List<String> acceptanceFailed = null;
+        if (sections.get("acceptance") != null && !capped) {
+            PuzzleAcceptance.Verdict av = PuzzleAcceptance.parse(sections.get("acceptance"))
+                    .evaluate(PuzzleAcceptance.of(game));
+            solved = av.accepted;
+            acceptanceFailed = av.failed;
+        }
+
         String status = capped ? "invalid"
                 : (!goalInstalled[0] || !bounded) ? "unscoreable"
                 : (solved ? "solved" : "failed");
@@ -446,6 +651,55 @@ public final class LlmSpikePuzzle {
         } catch (Exception e) {
             logLines.add("INFORMATION: (log unavailable: " + e + ")");
         }
+        Played pl = new Played();
+        pl.game = game; pl.status = status; pl.solved = solved; pl.turns = turns;
+        pl.winCond = winCond; pl.durMs = durMs; pl.goalInstalled = goalInstalled[0]; pl.goalOracle = goalOracle[0];
+        pl.solverLoss = solverLoss; pl.oppLoss = oppLoss; pl.solverLossSpell = solverLossSpell;
+        pl.oppLossSpell = oppLossSpell; pl.tainted = tainted; pl.logLines = logLines; pl.healthy = !worker.isAlive();
+        pl.acceptanceFailed = acceptanceFailed;
+        return pl;
+    }
+
+
+    /** The acceptance verdict on a result row, when the puzzle has an acceptance state. */
+    static void putAcceptance(Map<String, Object> extra, Played p) {
+        if (p.acceptanceFailed == null) return;
+        extra.put("acceptance", p.acceptanceFailed.isEmpty() ? "accepted" : "rejected");
+        extra.put("acceptance_failed", p.acceptanceFailed);
+    }
+
+    /** What one rollout did, read off the finished game. */
+    static final class Played {
+        Game game;
+        String status, winCond = "?", solverLoss, oppLoss, solverLossSpell, oppLossSpell;
+        boolean solved, tainted, goalInstalled, healthy;
+        /** Null without an [acceptance] section; else the conditions that did not hold (empty: accepted). */
+        List<String> acceptanceFailed;
+        String goalOracle = "";
+        int turns = -1;
+        long durMs;
+        List<String> logLines = new ArrayList<>();
+        /** A solve that counts: Forge scored it solved, and no empty library decided it. */
+        boolean cleanSolve() { return "solved".equals(status) && !tainted; }
+    }
+
+    /** One rollout. Returns false when the game thread is still alive after the cap and its grace
+     *  (the JVM is then not safe for another rollout). */
+    static boolean runOnce(File file, String id, Map<String, List<String>> sections, String goal, boolean bounded,
+                           String pzlSha, String ctlA, String ctlB, String smartA, String fastA, long seed,
+                           long capMs, int rollout, boolean keepTape) throws Exception {
+        Played pl = playOnce(file, id, sections, ctlA, ctlB, smartA, fastA, seed, capMs, rollout, bounded, false);
+        final Game game = pl.game;
+        boolean capped = "invalid".equals(pl.status);
+        boolean solved = pl.solved;
+        int turns = pl.turns;
+        String winCond = pl.winCond;
+        long durMs = pl.durMs;
+        String solverLoss = pl.solverLoss, oppLoss = pl.oppLoss;
+        String solverLossSpell = pl.solverLossSpell, oppLossSpell = pl.oppLossSpell;
+        boolean tainted = pl.tainted;
+        String status = pl.status;
+        List<String> logLines = pl.logLines;
         List<String> actions = solverActions(logLines, "Solver");
 
         System.out.println("========== PUZZLE OVER ==========");
@@ -454,7 +708,7 @@ public final class LlmSpikePuzzle {
                 + "  (turns=" + turns + ", " + winCond + ", " + (durMs / 1000) + "s)");
         System.out.println("loss   : solver=" + solverLoss + (solverLossSpell.isEmpty() ? "" : "/" + solverLossSpell)
                 + "  opponent=" + oppLoss + (oppLossSpell.isEmpty() ? "" : "/" + oppLossSpell));
-        if (!goalInstalled[0] && !capped)
+        if (!pl.goalInstalled && !capped)
             System.out.println("WARNING: no 'Puzzle Goal' card in the solver's command zone -- the turn "
                     + "limit was NOT enforced, so this result is not a score.");
         if (!bounded)
@@ -475,6 +729,7 @@ public final class LlmSpikePuzzle {
         extra.put("opponent_loss_spell", oppLossSpell);
         extra.put("goal_bounded", bounded);
         extra.put("tainted_by_deckout", tainted);
+        putAcceptance(extra, pl);
         extra.put("taint_side", tainted ? ("Milled".equals(solverLoss) ? "solver" : "opponent") : "");
         // Puzzle-suite fields (eval/PUZZLES.md), additive: which rollout, which exact position, a
         // fingerprint of what happened (the verifier compares it), and the line when it is wanted.
@@ -502,8 +757,8 @@ public final class LlmSpikePuzzle {
         }
         if (keepTape || solved) extra.put("actions", actions);
         writeRow(id, file, status, solved, turns, winCond, durMs, seed, ctlA, ctlB,
-                smartA, goalInstalled[0], goalOracle[0], goal, extra);
-        return !worker.isAlive();
+                smartA, pl.goalInstalled, pl.goalOracle, goal, extra);
+        return pl.healthy;
     }
 
     /** Seat i's PlayerOutcome, read off the STABLE player list.

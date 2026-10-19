@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 162 - Still attacking after damage
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Prodigal Pyromancer and Reconnaissance. The opponent is at 2 life with no creatures. Win this turn.
+Rule:rulesguru-51e2b48e1930ec9c | A creature remains an attacking creature until the end of combat (CR 506.4, 508.1k), so Reconnaissance can untap it after combat damage
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Prodigal Pyromancer;Reconnaissance
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

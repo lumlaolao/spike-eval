@@ -133,9 +133,15 @@ linux.floor.decisions=1828
 # 2026-10-17 (harness-epoch-41, "a legal action is never hidden"): a cost may be paid with the ability's own
 # target. The random arm's Goblin Bombardment aimed at its own Orcish Bowmasters now sacrifices it instead of
 # failing to pay (first divergence diffed), and the walk re-rolls: A/59/397. Reproduced twice. Floor unchanged.
+# 2026-10-19 (harness-epoch-62, PR #268): an optional cast the engine just confirmed ("Do you want to play X?",
+# then playSaFromPlayEffect) is not asked again (suspend, rules pilot RP_209). At decision 205 (T31, Mardu Energy)
+# main asked "Cast it / Do not cast it" a second time; the head goes straight to the target, so the random arm's
+# draws shift and the walk re-rolls (first divergence diffed against main's canary, A/59/397 reproduced there):
+# A/55/365. ai=0, silent drops=0, not capped. Floor unchanged (A/108/1828). The Mac random pin is STALE until
+# measured there.
 linux.random.winner=A
-linux.random.turns=59
+linux.random.turns=55
 # 2026-10-15 (fix/no-engine-fallback-rare): six replacement-order and two counter-type choices with one
 # legal option each are now recorded (forced-only-legal): A/45/376, the same game otherwise (diffed per
 # type).
-linux.random.decisions=397
+linux.random.decisions=365

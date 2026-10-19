@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 098 - No longer a frog
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:Your Prodigal Pyromancer is enchanted by the opponent's Frogify. You control four Islands and have One with the Stars in hand. The opponent is at 20 life. End the turn with the opponent at 19 life.
+Rule:rulesguru-10bde8fbfc7cc169 | One with the Stars (later timestamp, layer 4) makes the creature a noncreature enchantment, so Frogify is put into the graveyard as a state-based action (CR 704.5m) and the abilities come back
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=One with the Stars
+p0battlefield=Prodigal Pyromancer|Id:1;Island;Island;Island;Island
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Frogify|AttachedTo:1
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 = 19
+count p1 Graveyard "Frogify" = 1

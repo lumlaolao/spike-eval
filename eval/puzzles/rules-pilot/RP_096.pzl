@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot 096 - The burden remembers
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You are at 1 life and your turn is about to begin. You control The One Ring with three burden counters, a Plains and an Island, and have Hurkyl's Recall and Whitesun's Passage in hand. Your library is three Grizzly Bears. Survive the turn with The One Ring still on your battlefield and Hurkyl's Recall still in hand.
+Rule:cranial-insertion-9becd5a1575029e0 | A trigger whose source has left uses its last-known information (CR 608.2h), so removing The One Ring in response does not stop the life loss
+[state]
+turn=1
+activeplayer=p1
+activephase=CLEANUP
+activephaseadvance=UPKEEP
+p0life=1
+p0hand=Hurkyl's Recall;Whitesun's Passage
+p0battlefield=The One Ring|Counters:BURDEN=3;Plains;Island
+p0library=Grizzly Bears;Grizzly Bears;Grizzly Bears
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+life p0 >= 1
+count p0 Battlefield "The One Ring" = 1
+count p0 Hand "Hurkyl's Recall" = 1

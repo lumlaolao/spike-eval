@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 119 - Surveil it home
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control an Island and have Consider in hand. The top card of your library is Blood Operative, then two Grizzly Bears. End the turn with exactly two cards in your hand.
+Rule:rulesguru-f6e95c85784a06a3 | Blood Operative's ability triggers on the surveil that put it into the graveyard (CR 603.2, 701.42): it is in the graveyard by the time the trigger checks
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Consider
+p0battlefield=Island
+p0library=Blood Operative;Grizzly Bears;Grizzly Bears
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Hand * = 2

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 073 - Growth under the Moon
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Blood Moon and Grizzly Bears. You control Great Furnace and a Forest, and have Abundant Growth and Unsummon in hand. End the turn with Grizzly Bears in the opponent's hand.
+Rule:rulesguru-59b766c80b3c4488 | Blood Moon changes types in layer 4; an ability an Aura grants applies later, in layer 6 (CR 613.1d, 613.1f), so the Mountain keeps "add one mana of any color"
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Abundant Growth;Unsummon
+p0battlefield=Great Furnace;Forest
+p0library=Fortress Crab;Fortress Crab;Fortress Crab
+p1life=20
+p1battlefield=Blood Moon;Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Hand "Grizzly Bears" = 1

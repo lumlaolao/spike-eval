@@ -11,12 +11,18 @@ Every arm here is free: no model is called and nothing leaves the machine.
 
   python3 eval/puzzle_baselines.py run    --suite S.json [--ids a,b] [--rollouts 200] [-j 4] --write S.json
   python3 eval/puzzle_baselines.py verify --suite S.json [-j 4]
+  python3 eval/puzzle_baselines.py prove  --suite S.json [--ids a,b] [--budget 2000] [-j 4] --write S.json
 
 `run` measures every arm, takes the shortest solving random rollout as the reference line when the
 puzzle has none (searching further seeds with --search N if the baseline rollouts found none),
 replays that line in a fresh JVM, and sets tier and status. A puzzle random solves more than 20% of
 the time is dropped. `verify` replays every stored line and exits 1 if an active puzzle's line no
 longer reaches the goal (an engine bump retires such a puzzle).
+
+`prove` runs the search prover (CONTROLLER_A=search, PuzzleSearch.java; eval/BENCHMARK-V1.md, phase 2) and
+stores its result as the record's `proof`: "proven" means a strategy that beats every opponent choice the
+engine offers (with --opponent ai, only the Forge AI's), every leaf a Forge-scored solve. "not_found" is a
+spent budget, never a claim that the puzzle is unsolvable.
 
 The Java side runs against an ISOLATED build: --build DIR holding classes/ and classpath.txt, as
 eval/harness_acceptance.sh writes them under runs/harness-acceptance/<stamp>/ (the newest one is the
@@ -154,6 +160,8 @@ def run_arm(build, pzl_path, arm, seeds, out_dir, extra_env=None):
     env = {"PUZZLE": str(Path(pzl_path).resolve()), "CONTROLLER_A": ARM_CONTROLLER.get(arm, arm),
            "CONTROLLER_B": "ai", "PZL_SEEDS": seeds, "GAME_CAP_MS": "120000"}
     env.update(extra_env or {})
+    # LlmSpikePuzzle appends its rows: without this a re-run read the last run's rows (another build, say).
+    (Path(out_dir) / "puzzle-results.jsonl").unlink(missing_ok=True)
     rc = build.run(env, out_dir)
     rows = read_results(out_dir)
     if rc != 0 and not rows:
@@ -212,6 +220,36 @@ def choose_ai_line(rows):
     best = min(good, key=lambda r: (r.get("solver_actions", 99), r.get("seed", 0)))
     return {"arm": "ai", "seed": best["seed"], "solver_actions": best.get("solver_actions"),
             "actions": best.get("actions", []), "log_sha256": best.get("log_sha256")}
+
+
+SEARCH_LINE_BUDGET = 600   # the rules-pilot gate's budget (scripts/puzzle-gate/gate10.sh)
+
+
+def search_env(budget):
+    """A proof against every opponent reply, with no uniqueness search (that is the gate's, not the line's)."""
+    return {"CONTROLLER_B": "search", "PZL_SEARCH_BUDGET": str(budget), "PZL_UNIQUE_BUDGET": "0",
+            "GAME_CAP_MS": "60000"}
+
+
+def choose_search_line(row):
+    """A rules puzzle's reference line from a search row: proven against every reply, its acceptance state held."""
+    if not row or row.get("status") != "proven" or row.get("acceptance") != "accepted" or not row.get("line"):
+        return None
+    return {"arm": "search", "seed": row.get("seed", 1), "budget": row.get("search_budget", SEARCH_LINE_BUDGET),
+            "line": row["line"], "solver_actions": row.get("solver_actions")}
+
+
+def check_search_replay(line, row):
+    """Problems with proving a search line again (empty = it verifies): proven and accepted. The line may differ: a
+    rollout capped under load steers the search elsewhere, and the puzzle is proven all the same."""
+    if row is None:
+        return ["no replay row"]
+    p = []
+    if row.get("status") != "proven":
+        p.append("replay status %s, not proven" % row.get("status"))
+    if row.get("acceptance") != "accepted":
+        p.append("acceptance %s" % row.get("acceptance"))
+    return p
 
 
 def check_replay(line, row):
@@ -288,6 +326,9 @@ def baseline_puzzle(build, rec, out_root, rollouts, random_base, search, arms):
             line = choose_line(run_arm(build, pzl, "random", seeds, out_root / pid / "search"))
         if line is None:
             line = choose_ai_line(ai_rows)
+        if line is None and (rec.get("source") or {}).get("kind") == "rules":
+            rows = run_arm(build, pzl, "search", "1", out_root / pid / "prove", search_env(SEARCH_LINE_BUDGET))
+            line = choose_search_line(rows[-1] if rows else None)
         if line is not None:
             rec["reference_line"] = line
     rec = verify_puzzle(build, rec, out_root)
@@ -304,19 +345,74 @@ def verify_puzzle(build, rec, out_root):
     if not pf.has_line(line):
         return dict(rec, verification={"status": "unverified", "reason": "no reference line", "date": stamp})
     out = Path(out_root) / rec["id"] / "verify"
+    check = check_replay
     if line.get("arm") == "ai":
         rows = run_arm(build, pf.pzl_path(rec), "ai", str(line["seed"]), out)
+    elif line.get("arm") == "search":
+        rows = run_arm(build, pf.pzl_path(rec), "search", str(line["seed"]), out, search_env(line["budget"]))
+        check = check_search_replay
     else:
         tape = Path(tempfile.mkdtemp(prefix="pzl-tape-")) / "tape.txt"
         tape.write_text(line["tape"])
         rows = run_arm(build, pf.pzl_path(rec), "script", str(line["seed"]), out, {"PZL_TAPE": str(tape)})
-    problems = check_replay(line, rows[0] if rows else None)
+    problems = check(line, rows[0] if rows else None)
     engine = (REPO / "FORGE_COMMIT").read_text().strip() if (REPO / "FORGE_COMMIT").is_file() else "unknown"
     ver = {"status": "verified" if not problems else "failed", "engine_sha": engine, "date": stamp,
            "replay_log_sha256": rows[0].get("log_sha256") if rows else None}
     if problems:
         ver["problems"] = problems
     return dict(rec, verification=ver)
+
+
+def proof_from_row(row, opponent, engine_sha, date):
+    """The record's `proof` from the search runner's one result row (None when the run wrote none)."""
+    if not row:
+        return None
+    keep = ("search_replays", "search_budget", "search_lines_per_point", "opponent_choice_points",
+            "opponent_branches_beaten", "search_drift", "line", "solver_actions", "actions", "log_sha256",
+            "duration_ms", "seed", "refutation_line", "refutation_opponent_log", "search_exhausted",
+            "acceptance", "acceptance_failed")
+    proof = {"status": row.get("status"), "opponent": opponent, "engine_sha": engine_sha, "date": date}
+    proof.update({k: row[k] for k in row
+                  if (k in keep or k.startswith("uniqueness")) and row[k] not in (None, "")})
+    return proof
+
+
+def prove_puzzle(build, rec, out_root, budget, opponent, seed=1):
+    out = Path(out_root) / rec["id"] / ("prove-%s" % opponent)
+    env = {"PUZZLE": str(pf.pzl_path(rec).resolve()), "CONTROLLER_A": "search", "CONTROLLER_B": opponent,
+           "PZL_SEEDS": str(seed), "GAME_CAP_MS": "60000", "PZL_SEARCH_BUDGET": str(budget)}
+    (out / "puzzle-results.jsonl").unlink(missing_ok=True)
+    build.run(env, out, timeout_s=max(3600, budget * 10))
+    rows = read_results(out)
+    engine = (REPO / "FORGE_COMMIT").read_text().strip() if (REPO / "FORGE_COMMIT").is_file() else "unknown"
+    proof = proof_from_row(rows[-1] if rows else None, opponent, engine, datetime.date.today().isoformat())
+    return dict(rec, proof=proof or {"status": "not_found", "opponent": opponent, "error": "no result row"})
+
+
+def cmd_prove(a):
+    build = Build(a.build, a.forge)
+    manifest = pf.load_suite(a.suite)
+    if manifest.get("frozen") and not a.write:
+        raise SystemExit("suite is frozen; a proof changes its records. Write to a new manifest with --write")
+    ids = set(a.ids.split(",")) if a.ids else None
+    out_root = Path(a.out_dir or REPO / "runs/puzzles" / ("%s-proofs" % manifest["suite"]))
+    todo = [r for r in manifest["puzzles"] if ids is None or r["id"] in ids]
+    manifest = dict(manifest, frozen=False, suite_sha256=None)
+    target = Path(a.write or a.suite)
+    done = {}
+    with ThreadPoolExecutor(max(1, a.jobs)) as ex:
+        futs = [ex.submit(prove_puzzle, build, r, out_root, a.budget, a.opponent) for r in todo]
+        for f in as_completed(futs):
+            r = f.result()
+            done[r["id"]] = r
+            m = dict(manifest, puzzles=[done.get(x["id"], x) for x in manifest["puzzles"]])
+            target.write_text(json.dumps(m, indent=2) + "\n", encoding="utf-8")
+            p = r["proof"]
+            print("%-24s %-10s rollouts=%s opponent_points=%s replies_beaten=%s actions=%s" % (
+                r["id"], p.get("status"), p.get("search_replays"), p.get("opponent_choice_points"),
+                p.get("opponent_branches_beaten"), p.get("solver_actions")), flush=True)
+    return 0
 
 
 def cmd_run(a):
@@ -402,8 +498,17 @@ def main(argv=None):
     v.add_argument("--suite", required=True)
     v.add_argument("-j", "--jobs", type=int, default=4)
     v.add_argument("--out-dir", default=None)
+    pr = sub.add_parser("prove")
+    pr.add_argument("--suite", required=True)
+    pr.add_argument("--ids", default=None)
+    pr.add_argument("--budget", type=int, default=2000, help="rollouts the search may play per puzzle")
+    pr.add_argument("--opponent", choices=("search", "ai"), default="search",
+                    help="search: beat every opponent choice; ai: beat the Forge AI's")
+    pr.add_argument("-j", "--jobs", type=int, default=4)
+    pr.add_argument("--out-dir", default=None)
+    pr.add_argument("--write", default=None, help="manifest to write (default: --suite in place)")
     a = ap.parse_args(argv)
-    return cmd_run(a) if a.cmd == "run" else cmd_verify(a)
+    return {"run": cmd_run, "verify": cmd_verify, "prove": cmd_prove}[a.cmd](a)
 
 
 if __name__ == "__main__":

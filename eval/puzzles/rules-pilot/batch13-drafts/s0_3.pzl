@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 226 - One draw per token event
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control Marneus Calgar, two Plains and two Forests, and have Raise the Alarm and Sprout in hand. End the turn having drawn exactly two cards (three cards left in your library).
+Rule:ask-a-magic-judge-1e3c7c2b6d8fe796 | "Whenever one or more tokens you control enter" triggers once per event however many tokens it makes (CR 603.2c): Raise the Alarm's two Soldiers draw one card, so Sprout is needed for the second
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Raise the Alarm;Sprout
+p0battlefield=Marneus Calgar;Plains;Plains;Forest;Forest
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Library * = 3

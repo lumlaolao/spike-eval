@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 061 - The Emperor's new voice
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:The opponent controls Light-Paws, Emperor's Voice and Grizzly Bears. You control four Islands and have Control Magic in hand; Holy Strength is in your library. End the turn with Holy Strength on your battlefield.
+Rule:ask-a-magic-judge-c8fb42c535bacc52 | Control Magic gives you control of the creature as it enters, so the stolen Light-Paws sees a cast Aura enter under your control and triggers (CR 603.6a, 603.2)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Control Magic
+p0battlefield=Island;Island;Island;Island
+p0library=Holy Strength;Island;Island
+p1life=20
+p1battlefield=Light-Paws, Emperor's Voice;Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Holy Strength" = 1

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 210 - The Scales still count
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Hardened Scales and four Islands, and have Rescuer Sphinx in hand. End the turn with Rescuer Sphinx carrying two +1/+1 counters and Hardened Scales in your hand.
+Rule:rulesguru-244d098162c51d07 | The return is chosen as Rescuer Sphinx's replacement effect applies but happens only as the Sphinx enters (CR 614.12a, 614.6): Hardened Scales still applies to the counter, so returning it still gives two
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Rescuer Sphinx
+p0battlefield=Hardened Scales;Island;Island;Island;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+counters p0 Battlefield "Rescuer Sphinx" P1P1 = 2
+count p0 Hand "Hardened Scales" = 1

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 135 - Progenitus never hits the graveyard
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Insolent Neonate, two Swamps and a Mountain, and have Progenitus, Grizzly Bears, Reanimate and Fling in hand. The opponent is at 2 life. Win this turn and keep Progenitus in hand.
+Rule:cranial-insertion-d7dac969e6f993f6 | Progenitus's shuffle is a replacement effect (CR 614.1), so a discarded Progenitus goes to the library and is never in the graveyard to reanimate
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Progenitus;Grizzly Bears;Reanimate;Fling
+p0battlefield=Insolent Neonate;Swamp;Swamp;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
+count p0 Hand "Progenitus" = 1

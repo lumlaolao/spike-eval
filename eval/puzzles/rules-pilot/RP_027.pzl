@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 027 - Cut the Rumbler down
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Char-Rumbler equipped with Cathar's Shield. End the turn with Char-Rumbler in the opponent's graveyard.
+Rule:ask-a-magic-judge-445291a82008b67d | Negative power counts as negative in a sum of power and toughness (CR 208.4): -1/6 totals 5
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Cut Down;Tragic Slip
+p0battlefield=Swamp
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Char-Rumbler|Id:1;Cathar's Shield|AttachedTo:1
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Char-Rumbler" = 1

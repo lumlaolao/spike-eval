@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 216 - Each extra trigger aims alone
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control Annie Joins Up and three Plains and have Momo, Rambunctious Rascal in hand. The opponent controls two tapped Hill Giants. End the turn with both Hill Giants in the opponent's graveyard.
+Rule:wizards-official-card-rulings-d9c75402626e65a4 | Annie Joins Up makes a legendary creature's trigger trigger an additional time; it is not a copy, so each instance chooses its own target (CR 603.2d, 603.3d)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Momo, Rambunctious Rascal
+p0battlefield=Annie Joins Up;Plains;Plains;Plains
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Hill Giant|Tapped;Hill Giant|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Hill Giant" = 2

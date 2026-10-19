@@ -10,6 +10,7 @@ with a current one, the current one is right. `eval/test_docs_index.py` fails wh
 |---|---|
 | ARCHITECTURE.md | every part of the harness and why it is built that way (kept true by every PR) |
 | WORK-PLAN.md | open work |
+| HANDOFF-PUZZLES.md | the puzzle-track handoff: the rules backlog, the built-in prover, the games |
 | REVIEW-2026-10-16.md | the independent review's findings and their status (R, S and E items) |
 | GAME-LOOP-LOG.md | what each real game found |
 | ACCEPTANCE.md | the acceptance suite and every recorded run |

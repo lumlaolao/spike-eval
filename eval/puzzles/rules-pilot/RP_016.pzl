@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 016 - Jace's last page
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:You have three cards in your library and Jace, Wielder of Mysteries with 8 loyalty. Win this turn.
+Rule:rulesguru-e6c313c8939bd034 | A player who drew from an empty library loses only at the next state-based action check (CR 704.3, 704.5b); Jace's ability wins during its own resolution first
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0battlefield=Jace, Wielder of Mysteries|Counters:LOYALTY=8
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

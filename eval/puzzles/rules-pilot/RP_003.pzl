@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 003 - Teysa and the leaving bird
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You are at 20 life. End the turn at exactly 24 life with Teysa Karlov still on your battlefield.
+Rule:ask-a-magic-judge-12784f4ce69d2c0d | Dying is leaving the battlefield, so a leaves-the-battlefield trigger caused by a creature dying is doubled by Teysa Karlov; leaving another way is not
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0battlefield=Teysa Karlov;Aven Riftwatcher;Spawning Pit
+p0library=Plains;Plains;Plains
+p1life=20
+p1library=Mountain;Mountain;Mountain
+[acceptance]
+life p0 = 24
+count p0 Battlefield "Teysa Karlov" = 1

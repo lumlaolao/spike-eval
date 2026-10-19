@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 110 - Toxic does not double
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:The opponent is at 20 life with eight poison counters and no creatures. You control Annex Sentry (1/4, toxic 1), Gratuitous Violence, Grafted Exoskeleton (unattached) and two Plains. Win this turn.
+Rule:wizards-official-card-rulings-9a937cd283a8e8d9 | Toxic gives a fixed number of poison counters (CR 702.164b); doubling the combat damage does not double them
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Annex Sentry;Gratuitous Violence;Grafted Exoskeleton;Plains;Plains
+p0library=Island;Island;Island
+p1life=20
+p1counters=POISON=8
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

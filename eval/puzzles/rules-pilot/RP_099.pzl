@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 099 - Thirty before the check
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You are at 29 life and control Serra Ascendant (1/1 lifelink; +5/+5 and flying at 30 or more life). The opponent controls an untapped Stoic Builder (2/3). End the turn at 30 life with Serra Ascendant on the battlefield.
+Rule:rulesguru-3f5c3e49f1dc47e8 | Combat damage and lifelink's life gain happen at once (CR 510.2, 702.15b), so Serra Ascendant is already 6/6 when state-based actions are checked
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=29
+p0battlefield=Serra Ascendant
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Stoic Builder
+p1library=Plains;Plains;Plains
+[acceptance]
+life p0 = 30
+count p0 Battlefield "Serra Ascendant" = 1

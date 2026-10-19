@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 220 - A rock taps the turn it arrives
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control two Wastes and have Mind Stone and Signal Pest in hand. End the turn with Mind Stone and Signal Pest on the battlefield.
+Rule:wizards-official-card-rulings-57cbce48b34f4bdd | Summoning sickness applies only to creatures (CR 302.6): a noncreature artifact's {T} ability can be activated the turn it comes under your control, so Mind Stone's mana pays for Signal Pest
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Mind Stone;Signal Pest
+p0battlefield=Wastes;Wastes
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Mind Stone" = 1
+count p0 Battlefield "Signal Pest" = 1

@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 222 - Suspend needs no target yet
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control three Mountains and have Shivan Meteor (suspend 2 - {1}{R}{R}) in hand. No creature is on the battlefield. End the turn with Shivan Meteor suspended.
+Rule:wizards-official-card-rulings-90d90be22781dd53 | A card may be suspended whenever it could begin to be cast; targets are chosen only when it is cast (CR 702.62a, 601.2c): Shivan Meteor can be suspended with no creature to target
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Shivan Meteor
+p0battlefield=Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+counters p0 Exile "Shivan Meteor" TIME = 2

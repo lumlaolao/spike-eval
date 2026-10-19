@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 198 - Sacrifice the jailer mid-cast
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:Your Hostage Taker has exiled the opponent's Fury Sliver. You control Hostage Taker, Thermopod and five Mountains. End the turn with Fury Sliver and Thermopod on your battlefield.
+Rule:rulesguru-69a63626b3b1c6b3 | A spell is put on the stack before its costs are paid (CR 601.2a, 601.2g, 400.7): sacrificing Hostage Taker to Thermopod while paying for Fury Sliver does not return the card, which is already a new object on the stack
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0battlefield=Hostage Taker|Id:7|SummonSick;Thermopod|SummonSick;Mountain;Mountain;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p0precast=7:TrigExile->1
+p1life=20
+p1battlefield=Fury Sliver|Id:1
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Fury Sliver" = 1
+count p0 Battlefield "Thermopod" = 1

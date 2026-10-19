@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 080 - The Shadow grows in time
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You are at 12 life and control Death's Shadow (1/1) and three Mountains, and have Flame Spill in hand. End the turn at 9 life with Death's Shadow on your battlefield.
+Rule:rulesguru-df6a5824209fc5f2 | Excess damage and the life it costs happen during the spell's resolution, and state-based actions see the grown Death's Shadow afterwards (CR 704.3, 120.4a)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=12
+p0hand=Flame Spill
+p0battlefield=Death's Shadow;Mountain;Mountain;Mountain
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+life p0 = 9
+count p0 Battlefield "Death's Shadow" = 1

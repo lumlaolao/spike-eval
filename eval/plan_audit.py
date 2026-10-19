@@ -74,6 +74,19 @@ def held_in(plan, name):
         # an untapped Forest now to improve next turn's mana", runs/loop/g01 T7).
         if re.search(r"\bnow\b", rest, re.I):
             continue
+        # Holding MANA for the card is a plan to cast it ("keep Counterspell mana available", runs/loop/g18 T7).
+        if re.search(r"\bmana\b", rest, re.I):
+            continue
+        # Getting the card back later presumes it is used now ("next turn use Life from the Loam to recover
+        # Wasteland", runs/loop/g27 T7).
+        if re.search(r"\b(recover|recovers|recovering|recur|recurs|recurring|regrow|regrowing|return|returning|"
+                     r"rebuy|rebuying)\s+" + re.escape(name), c, re.I):
+            continue
+        # A clause that opens by playing the card says to play it; a later "keep" is about something else
+        # ("Escape Sleep of the Dead targeting X to keep it tapped", runs/loop/g18 T15).
+        if re.match(r"\s*(cast|play|escape|flash|activate|use|evoke|foretell|flashback|equip)\s+" + re.escape(name),
+                    c, re.I):
+            continue
         if HOLD.search(rest):
             return c
     return None

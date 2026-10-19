@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 227 - Gravestorm counts late
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:You control Young Pyromancer, Spawning Pit and three Islands, and have Follow the Bodies in hand. End the turn with exactly two Clue tokens and Young Pyromancer still on your battlefield.
+Rule:rulesguru-2f62c3db5bed1507 | Gravestorm's trigger counts the permanents put into a graveyard this turn as it resolves (CR 702.69a, 608.2h): put Young Pyromancer's trigger on the stack above it (CR 603.3b), then sacrifice the new Elemental with gravestorm still waiting, for one copy
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Follow the Bodies
+p0battlefield=Young Pyromancer;Spawning Pit;Island;Island;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+tokens p0 Battlefield "Clue Token" = 2
+count p0 Battlefield "Young Pyromancer" = 1

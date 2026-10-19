@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot 155 - No target, no threshold
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent, with seven cards in their graveyard, has cast Epicenter targeting you. You control two Islands and have Lazotep Plating in hand. End the turn with both Islands.
+Rule:rulesguru-d7c5c2371deab17a | Targets are checked before a self-replacement changes what a spell does (CR 608.2b, 614.15): Epicenter whose only target became illegal does not resolve, so its threshold 'each player' part never happens
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lazotep Plating
+p0battlefield=Island;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Mountain
+p1graveyard=Grizzly Bears;Grizzly Bears;Grizzly Bears;Grizzly Bears;Grizzly Bears;Grizzly Bears;Grizzly Bears
+p1library=Plains;Plains;Plains
+p1putonstack=Epicenter->human
+[acceptance]
+count p0 Battlefield "Island" = 2

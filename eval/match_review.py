@@ -213,7 +213,7 @@ def review(path):
                 out["findings"].append(("LOG", 0, None, "seat %s: the model controller was built %d times (preview copies) (%s)"
                                         % (seat, n, os.path.basename(log))))
                 out["counts"]["LOG"] += 1
-        out["time"] = time_split(text, path, log)
+        out["time"] = time_split(text, path, log, game.get("duration_ms"))
         for name, pat in LOG_PATTERNS:
             n = len(re.findall(pat, text))
             if n:
@@ -222,16 +222,20 @@ def review(path):
     return out
 
 
-def time_split(text, jsonl_path, log_path):
+def time_split(text, jsonl_path, log_path, duration_ms=None):
     """Where a game's wall time went (owner, 2026-10-17: "why is it taking so long"): model answers, waits that ran
     to the call deadline (a provider that keeps the connection open sends no answer; a long think looks the same),
-    stalled connections cut early, and provider errors. Elapsed runs from the start stamp in the JSONL name to the
-    log's last write."""
+    stalled connections cut early, and provider errors. Elapsed is the game row's duration_ms; without one, the start
+    stamp in the JSONL name to the log's last write (a copied or checked-out log has a later mtime: g30 read 803 min
+    for a 12-minute game)."""
     ms = lambda pat: sum(int(x) for x in re.findall(pat, text))  # noqa: E731
     answers = ms(r"replied in (\d+) ms")
     deadline = re.findall(r"wall-clock timeout after (\d+) ms", text)
     started = re.search(r"game-\d+-(\d{13})\.jsonl$", jsonl_path)
-    elapsed = (os.path.getmtime(log_path) * 1000 - int(started.group(1))) if started else None
+    if duration_ms is not None:
+        elapsed = int(duration_ms)
+    else:
+        elapsed = (os.path.getmtime(log_path) * 1000 - int(started.group(1))) if started else None
     return {"elapsed_ms": elapsed, "answers_ms": answers, "answers": len(re.findall(r"replied in \d+ ms", text)),
             "deadline_waits": len(deadline), "deadline_ms": sum(int(x) for x in deadline),
             "stalls_cut": len(re.findall(r"stalled connection", text)), "provider_errors": len(re.findall(r"\] HTTP [45]\d\d", text))}

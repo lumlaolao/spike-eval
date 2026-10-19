@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 097 - The Saga is already gone
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your draw step. You control Elspeth Conquers Death with two lore counters, and your graveyard holds Monk Idealist and Pacifism. End the turn with Elspeth Conquers Death in your hand.
+Rule:rulesguru-922f8b2a0b43e7e4 | Triggered abilities are put on the stack only after state-based actions (CR 603.3, 704.3): the Saga is sacrificed first, so Monk Idealist's trigger can target it in the graveyard
+[state]
+turn=1
+activeplayer=p0
+activephase=DRAW
+p0life=20
+p0battlefield=Elspeth Conquers Death|Counters:LORE=2
+p0graveyard=Monk Idealist;Pacifism
+p0library=Grizzly Bears;Grizzly Bears;Grizzly Bears
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Hand "Elspeth Conquers Death" = 1
+counters p0 Battlefield "Monk Idealist" P1P1 = 1

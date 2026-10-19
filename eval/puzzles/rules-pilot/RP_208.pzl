@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 208 - Ten for a moment
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control nine permanents: three Islands, Wayward Swordtooth, Mox Amber and four Ornithopters. You have a second Mox Amber and Secrets of the Golden City in hand. End the turn with three cards in hand and a Mox Amber in your graveyard.
+Rule:wizards-official-card-rulings-4a57d3ca50ec341c | Ascend on a permanent gives the city's blessing as soon as you control ten permanents (CR 702.131b), before the legend rule removes one (CR 704.5j): the blessing stays and Secrets draws three
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Mox Amber;Secrets of the Golden City
+p0battlefield=Island;Island;Island;Wayward Swordtooth|SummonSick;Mox Amber;Ornithopter|SummonSick;Ornithopter|SummonSick;Ornithopter|SummonSick;Ornithopter|SummonSick
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Hand * = 3
+count p0 Graveyard "Mox Amber" = 1

@@ -75,6 +75,80 @@ python3 eval/puzzle_format.py check eval/suites/puzzles-forge-builtin-v1.json
 - `puzzle_baselines.py verify --suite S` replays every stored line. Run it after an engine bump: a
   puzzle whose line no longer reaches the goal is retired.
 
+## Proving a puzzle against every opponent reply
+
+```bash
+python3 eval/puzzle_baselines.py prove --suite S.json [--ids a,b] --budget 1500 -j 4 --write S2.json
+```
+
+- Runs `CONTROLLER_A=search CONTROLLER_B=search` (`PuzzleSearch.java`): both seats choose from the legal
+  menus through one shared line of choices, and the search finds a winning line, then beats every other
+  opponent choice on it, recursively. The result is the record's `proof`.
+- `proven`: a strategy that wins against every opponent choice the engine offers, each leaf a Forge-scored
+  solve; the main line replays twice to the same game log. `not_found`: the budget ran out, never "unsolvable".
+  `--opponent ai` proves against the Forge AI's replies only.
+- A rollout stops after `PZL_SEARCH_MAX_DRAWS` choices (default 3000), outside its prefix only, and counts as
+  not solved: a random completion can loop (an ability activated forever) until the wall-clock cap or the heap
+  ends it, and those rollouts used to be reported as drift (prove-v1: PS_ELD1, PS_DOM0, PS_M204).
+- A subtree whose every line has been played is never replayed (rollouts are deterministic given their line),
+  and its solves are remembered.
+- Not yet branched on: the engine seed (one seed per proof). Since epoch 56 the search arm branches over every split
+  of combat damage and of a divided spell ("distribute 5 damage"); the other arms still split evenly.
+- Why: `BENCHMARK-V1.md`, "What a puzzle must pass before it is frozen".
+
+## Rules puzzles: an acceptance state and one solution
+
+A rules puzzle (made from a question in `puzzles/modern/puzzles.jsonl`; triage in `eval/puzzles/rules/`) adds
+an `[acceptance]` section to its `.pzl`: one condition per line on the final engine state, all of which must hold.
+Forge ignores the section; `PuzzleAcceptance.java` reads it, and the puzzle is solved when the conditions hold
+when the game ends (the Forge goal, usually `Survive`, still bounds the turns), whoever won.
+
+```
+[acceptance]
+life p1 = 20                                       p0 is the solver, p1 the opponent
+count p1 Graveyard "Grizzly Bears" = 1             exact card name, or * for any card
+tokens p0 Battlefield "Goblin Token" = 2           tokens only (Forge names them "Goblin Token")
+counters p0 Battlefield "Walking Ballista" P1P1 >= 3
+winner p0                                          p0, p1 or none
+```
+
+A line it cannot read stops the run before any game. Result rows carry `acceptance` (accepted or rejected) and
+`acceptance_failed` (each failed condition with what was there).
+
+Two things the state does not say. When a player loses, Forge turns face up every face-down card that player owns
+(`Game.onPlayerLost`, CR 707.9), so a name condition on a face-down permanent reads its real name whenever the solver
+lost: condition on a counter or on `*` instead (RP_199). And setup counter names are case-sensitive with no warning:
+`Counters:FLYING=1` makes a custom counter that grants nothing, where `Flying` is the keyword counter (RP_205).
+
+**Uniqueness.** After a proof, a puzzle with an acceptance state (or any puzzle with `PZL_UNIQUE_BUDGET=N`) is
+searched for a second solution: every other option at every solver choice on the main line, looking for a line
+whose solver actions (its game-log actions) or solver choices the log does not show (a mode, a clone pick, a
+number, a card named; card handles dropped) differ, and which is itself proven against every opponent reply. The
+final state is deliberately not compared: the opponent's replies change it too (RP_045's first check called a line
+where the opponent's Scavenging Ooze ate a card a second solution). `uniqueness_difference` lists what differed.
+`PZL_SEARCH_LINES` (default 32; it was 4, which gave up on RP_034) bounds the lines tried per choice point.
+`uniqueness`: `unique` (none found) or `multiple` (`uniqueness_second_line` and `uniqueness_second_actions`
+show it); `uniqueness_exhausted` of `uniqueness_deviations` deviations were played out completely, and when all
+were, "unique" is exhaustive rather than "not found within the budget". `uniqueness_unproven_alternatives`
+counts other solving lines an opponent reply beat (not solutions). Smoke checks: `eval/puzzles/rules-pilot/
+RP_SMOKE.pzl` (unique) and `RP_SMOKE2.pzl` (multiple).
+
+### The rules suite
+
+The converted rules puzzles (`eval/puzzles/rules-pilot/manifest.jsonl`, `result: converted`) are built the same way:
+
+```bash
+python3 eval/puzzle_format.py rules-candidates --suite rules --out runs/puzzles/rules-candidates.json
+python3 eval/puzzle_baselines.py run --suite runs/puzzles/rules-candidates.json --rollouts 50 -j 2 --write runs/puzzles/rules-measured.json
+python3 eval/puzzle_format.py freeze runs/puzzles/rules-measured.json --out eval/suites/puzzles-rules-v1.json
+```
+
+A rules puzzle is solved when its acceptance state holds, so the arms and the scorer need nothing new. Its reference
+line may also be its search proof (`arm: search`): when neither a random rollout nor Forge's AI solves it, the search
+proves it again at the gate's budget (`SEARCH_LINE_BUDGET`, opponent `search`, no uniqueness search), and the
+verification proves it once more, which must come out proven and accepted (on any line: a rollout capped under load
+steers the search elsewhere).
+
 ## Running a model
 
 ```bash

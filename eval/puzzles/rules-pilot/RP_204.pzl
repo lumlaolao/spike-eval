@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 204 - The Elemental must be blocked
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Grizzly Bears and Memnite, have {G}{G} floating, and have Vengeant Earth in hand. The opponent is at 2 life and controls Savannah Lions. It is your first main phase. Win this turn.
+Rule:wizards-official-card-rulings-dbfce385c04647eb | A "must be blocked if able" requirement binds the defending player (CR 509.1c): the animated Memnite must be blocked by Savannah Lions, so Grizzly Bears is unblocked
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Vengeant Earth
+p0manapool=G G
+p0battlefield=Grizzly Bears;Memnite
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Savannah Lions
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

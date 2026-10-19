@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 100 - Char costs too much
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:You are at 2 life. The opponent is at -1 life and controls Platinum Angel. You control a Mountain and two Swamps, and have Char and Murder in hand. Win this turn.
+Rule:rulesguru-4d75ac4fa7aed235 | State-based actions happen at the same time (CR 704.3): Char's 2 damage to you and the Angel's lethal damage are seen together, so you lose before the Angel is gone
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=2
+p0hand=Char;Murder
+p0battlefield=Mountain;Swamp;Swamp
+p0library=Island;Island;Island
+p1life=-1
+p1battlefield=Platinum Angel
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

@@ -209,6 +209,108 @@ class BaselineDecisionTest(unittest.TestCase):
                     {"script_unconsumed": 2}, {"log_sha256": "other"}):
             self.assertTrue(pb.check_replay(line, dict({"status": "solved", "log_sha256": "L"}, **bad)), bad)
 
+    def test_a_search_row_becomes_the_proof_and_a_malformed_proof_is_named(self):
+        row = {"status": "proven", "search_replays": 62, "opponent_choice_points": 1, "line": "Solver:2:1",
+               "solver_actions": 6, "actions": ["LAND: Solver played Swamp"], "search_drift": "", "seed": 1}
+        proof = pb.proof_from_row(row, "search", "abc", "2026-10-18")
+        self.assertEqual((proof["status"], proof["opponent"], proof["line"]), ("proven", "search", "Solver:2:1"))
+        self.assertNotIn("search_drift", proof)          # empty fields are left out
+        # pr-review of PR #268: the proof kept no verdict of the rules puzzles' acceptance or uniqueness search.
+        verdicts = {"search_exhausted": True, "acceptance": "accepted", "acceptance_failed": ["life p1 = 0"],
+                    "uniqueness": "unique", "uniqueness_deviations": 4, "uniqueness_exhausted": 4}
+        kept = pb.proof_from_row(dict(row, **verdicts), "search", "abc", "2026-10-18")
+        self.assertEqual({k: kept.get(k) for k in verdicts}, verdicts)
+        self.assertIsNone(pb.proof_from_row(None, "search", "abc", "2026-10-18"))
+        rec_ = rec("p1", tempfile.mkdtemp())
+        self.assertEqual(pf.validate_puzzle(dict(rec_, proof=proof), check_files=False), [])
+        for bad in ({"status": "solved", "opponent": "search"}, {"status": "proven", "opponent": "human"},
+                    {"status": "proven", "opponent": "search", "solver_actions": 3}):
+            self.assertTrue(pf.validate_puzzle(dict(rec_, proof=bad), check_files=False), bad)
+
+    def test_a_proven_search_is_a_rules_puzzles_line_when_random_and_the_ai_never_solve(self):
+        # Most rules puzzles take a line random play and Forge's AI never find; the search proof is the line.
+        row = {"status": "proven", "acceptance": "accepted", "line": "Solver:3:1 Opponent:2:0", "seed": 1,
+               "solver_actions": 2, "search_budget": 600}
+        line = pb.choose_search_line(row)
+        self.assertEqual((line["arm"], line["seed"], line["line"], line["budget"]), ("search", 1, row["line"], 600))
+        self.assertTrue(pf.has_line(line))
+        self.assertFalse(pf.has_line(dict(line, budget=None)))      # a search line is replayed by re-proving
+        for bad in ({"status": "not_found"}, {"acceptance": "rejected"}, {"line": ""}):
+            self.assertIsNone(pb.choose_search_line(dict(row, **bad)), bad)
+        self.assertEqual(pb.check_search_replay(line, row), [])
+        self.assertTrue(pb.check_search_replay(line, None))
+        for bad in ({"status": "not_found"}, {"acceptance": "rejected"}):
+            self.assertTrue(pb.check_search_replay(line, dict(row, **bad)), bad)
+        # A rollout capped under load steers the search elsewhere: still proven and accepted, so still verified.
+        self.assertEqual(pb.check_search_replay(line, dict(row, line="Solver:3:2")), [])
+
+    def test_a_rules_puzzle_no_rollout_solves_gets_its_search_proof_as_a_verified_line(self):
+        calls = []
+
+        def fake_run_arm(build, pzl, arm, seeds, out_dir, extra_env=None):
+            calls.append((arm, (extra_env or {}).get("CONTROLLER_B")))
+            if arm == "search":
+                return [{"status": "proven", "acceptance": "accepted", "line": "Solver:2:1", "seed": 1,
+                         "solver_actions": 2, "search_budget": pb.SEARCH_LINE_BUDGET}]
+            return [{"status": "failed", "seed": s} for s in pb.expand_seeds(seeds)]
+
+        repo = tempfile.mkdtemp()
+        r = dict(rec("rules-RP_1", repo), source={"kind": "rules"}, baselines={}, reference_line=None,
+                 verification=None)
+        real, pb.run_arm = pb.run_arm, fake_run_arm
+        try:
+            out = pb.baseline_puzzle(None, dict(r, pzl=str(Path(repo) / r["pzl"])), Path(repo) / "out", 4, 1, 0,
+                                     ["random", "pass", "first", "ai"])
+        finally:
+            pb.run_arm = real
+        self.assertEqual(out["reference_line"]["arm"], "search")
+        self.assertEqual(out["verification"]["status"], "verified", out["verification"])
+        self.assertEqual((out["tier"], out["status"]), (2, "active"))
+        self.assertEqual(calls.count(("search", "search")), 2)   # found, then proven again to verify
+        # A Forge-builtin puzzle never gets one: the search proves against every reply, its line is a rules thing.
+        pb.run_arm = fake_run_arm
+        try:
+            out = pb.baseline_puzzle(None, dict(r, pzl=str(Path(repo) / r["pzl"]), source={"kind": "forge-builtin"}),
+                                     Path(repo) / "out", 4, 1, 0, ["random", "pass", "first", "ai"])
+        finally:
+            pb.run_arm = real
+        self.assertIsNone(out.get("reference_line"))
+
+    def test_a_rerun_arm_reads_only_its_own_rows(self):
+        # LlmSpikePuzzle appends to puzzle-results.jsonl: a second run read the first run's row (pr-review, PR #268).
+        out = Path(tempfile.mkdtemp())
+        (out / "puzzle-results.jsonl").write_text(json.dumps({"status": "solved", "seed": 1, "old": True}) + "\n")
+
+        class FakeBuild:
+            def run(self, env, out_dir, timeout_s=None):
+                with open(Path(out_dir) / "puzzle-results.jsonl", "a") as f:
+                    f.write(json.dumps({"status": "failed", "seed": 1}) + "\n")
+                return 0
+        rows = pb.run_arm(FakeBuild(), out / "x.pzl", "random", "1", out)
+        self.assertEqual(rows, [{"status": "failed", "seed": 1}])
+
+    def test_rules_candidates_are_the_converted_rows_with_their_files_and_questions(self):
+        repo = Path(tempfile.mkdtemp())
+        d = repo / "eval/puzzles/rules-pilot"
+        d.mkdir(parents=True)
+        for pid in ("RP_001", "RP_002"):
+            (d / (pid + ".pzl")).write_text(pzl("Survive", 3, pid), encoding="utf-8")
+        rows = [{"puzzle": "RP_001", "question_id": "q1", "rule": "CR 1", "result": "converted",
+                 "proof": {"status": "proven"}, "uniqueness": {"verdict": "unique"}},
+                {"puzzle": "RP_002", "question_id": "q2", "rule": "CR 2", "result": "multiple_review"},
+                {"puzzle": None, "question_id": "q3", "result": "dropped"}]
+        (d / "manifest.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+        m, skipped = pf.rules_candidates(d / "manifest.jsonl", "rules", "1", "abc", repo=repo)
+        self.assertEqual([r["id"] for r in m["puzzles"]], ["rules-RP_001"])
+        r = m["puzzles"][0]
+        self.assertEqual((r["pzl"], r["status"], r["goal"]), ("eval/puzzles/rules-pilot/RP_001.pzl", "candidate",
+                                                              {"engine_goal": "Survive", "turns": 3}))
+        self.assertEqual((r["source"]["kind"], r["source"]["question_id"]), ("rules", "q1"))
+        self.assertEqual(r["pzl_sha256"], pf.sha256_file(d / "RP_001.pzl"))
+        self.assertEqual(pf.pzl_path(r, repo), d / "RP_001.pzl")
+        self.assertEqual(pf.validate_puzzle(r, check_files=False), [])
+        self.assertEqual(skipped, [])
+
     def test_tier_and_status(self):
         self.assertEqual(pb.tier_for(0.75, 9), 1)
         self.assertEqual(pb.tier_for(0.0, 3), 2)

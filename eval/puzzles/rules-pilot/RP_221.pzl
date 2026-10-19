@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 221 - Only the half you cast
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control two Mountains and have Fire // Ice in hand. The opponent is at 2 life and controls Iona, Shield of Emeria (blue chosen). Win this turn.
+Rule:rulesguru-b5a191b2fadc70e2 | A split card cast as one half has only that half's characteristics on the stack (CR 709.3a): Fire is red, so Iona naming blue does not stop it, although the card in hand is blue and red
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Fire // Ice
+p0battlefield=Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Iona, Shield of Emeria|ChosenColor:blue
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

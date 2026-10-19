@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 178 - Power 4 when the chapter resolves
+Goal:Survive
+Turns:2
+Difficulty:Medium
+Description:It is your upkeep. You control The First Iroan Games with two lore counters, an Island and three Forests, and no creatures. Your hand is Mistbind Clique and Briarpack Alpha. End the turn with four cards in hand.
+Rule:rulesguru-1eca74016b46a49d | A chapter ability's condition is checked as it resolves (CR 608.2h): a Mistbind Clique with no Faerie to champion is sacrificed before chapter III resolves, so only a creature still there draws the two cards
+[state]
+turn=2
+activeplayer=p0
+activephase=UPKEEP
+p0life=20
+p0hand=Mistbind Clique;Briarpack Alpha
+p0battlefield=The First Iroan Games|Counters:LORE=2;Island;Forest;Forest;Forest
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Hand * = 4

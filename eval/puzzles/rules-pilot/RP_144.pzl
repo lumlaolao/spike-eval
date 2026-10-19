@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 144 - The second Omnath trigger
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Omnath, Locus of Creation and Elesh Norn, Mother of Machines and no lands. You have a Plains and Kynaios and Tiro of Meletis in hand. End the turn with Kynaios and Tiro on the battlefield.
+Rule:rulesguru-6582f3dcf598eaca | Elesh Norn makes Omnath's landfall trigger twice (CR 603.2d); Omnath counts resolutions, so the second one adds {R}{G}{W}{U}
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Plains;Kynaios and Tiro of Meletis
+p0battlefield=Omnath, Locus of Creation;Elesh Norn, Mother of Machines
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Kynaios and Tiro of Meletis" = 1

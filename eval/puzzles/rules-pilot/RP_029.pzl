@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 029 - Seven Kithkin
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Kinsbaile Borderguard with three +1/+1 counters and Spawning Pit. End the turn with seven Kithkin Soldier tokens.
+Rule:rulesguru-5f32e2748cc06cb8 | The dies trigger uses last-known information: the counters the creature had just before it died, including +1/+1 and -1/-1 counters removed by the same state-based check (CR 704.8, 704.5q)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Blight Rot
+p0battlefield=Kinsbaile Borderguard|Counters:P1P1=3;Spawning Pit;Swamp;Swamp;Swamp
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+tokens p0 Battlefield "Kithkin Soldier Token" = 7

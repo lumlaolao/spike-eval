@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 109 - Attacking nothing
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:The opponent is at 20 life and controls Liliana of the Veil and Jace Beleren, each with three loyalty counters. You control Hill Giant and three Swamps, and have Hero's Downfall in hand. End the turn with Liliana in the opponent's graveyard and the opponent at 17 life.
+Rule:rulesguru-1e1b43c9586c716f | A creature attacking a planeswalker that has left the battlefield is still attacking but deals no combat damage (CR 506.4c, 510.1b)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Hero's Downfall
+p0battlefield=Hill Giant;Swamp;Swamp;Swamp
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Liliana of the Veil|Counters:LOYALTY=3;Jace Beleren|Counters:LOYALTY=3
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Liliana of the Veil" = 1
+life p1 = 17

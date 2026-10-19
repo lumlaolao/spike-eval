@@ -170,6 +170,59 @@ public class GoldenChecksTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** Rules pilot RP_017 (2026-10-18): at 1 life with City of Brass, Angel's Grace was never offered. Forge AI's
+     *  mana sorter skips a source whose tap damage would be lethal; tapping it is legal (owner: a legal action is
+     *  never hidden), and here the Grace resolves before City's trigger. */
+    @Test
+    public void aSourceWhoseTapDamageIsLethalStillPaysForTheSeat() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        me.setLife(1, null);
+        card("City of Brass", me, ZoneType.Battlefield);
+        card("Angel's Grace", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        ctrl.chooseSpellAbilityToPlay();
+        String ask = PromptFidelityTest.promptWith(model, "You have priority");
+        Assert.assertTrue(ask.contains("CAST Angel's Grace"), "Angel's Grace is on the menu:\n" + ask);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** pr-review of PR #268 (2026-10-19): the patch above lifted Forge's exclusion outright, so at 1 life with City of
+     *  Brass and Llanowar Elves the engine's payment plan tapped City (any-colour lands sort before creatures) and
+     *  the seat died paying {1}. A lethal source pays last for a harness seat: still there, never first. */
+    @Test
+    public void aSourceWhoseTapDamageIsLethalPaysLast() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        me.setLife(1, null);
+        Card city = card("City of Brass", me, ZoneType.Battlefield);
+        Card elves = card("Llanowar Elves", me, ZoneType.Battlefield);
+        elves.setSickness(false);
+        seat(g, new Script("CHOICE: 1"), new Script("CHOICE: 1"));
+        forge.game.card.CardCollection order = forge.ai.ComputerUtilMana.getAvailableManaSources(me, true);
+        Assert.assertTrue(order.contains(city), "City of Brass still pays: " + order);
+        Assert.assertTrue(order.indexOf(elves) >= 0 && order.indexOf(elves) < order.indexOf(city),
+                "the lethal source pays after the safe one: " + order);
+    }
+
+    /** Rules pilot RP_006 (2026-10-18): Finale of Promise ("up to one target instant card and/or up to one target
+     *  sorcery card") was never offered with nothing in the graveyard: the menu demanded at least one target. A spell
+     *  whose targets are all "up to" is cast with none. */
+    @Test
+    public void aSpellWithOnlyUpToTargetsIsOfferedWithNoTarget() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Mountain", me, ZoneType.Battlefield);
+        card("Finale of Promise", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        ctrl.chooseSpellAbilityToPlay();
+        String ask = PromptFidelityTest.promptWith(model, "You have priority");
+        Assert.assertTrue(ask.contains("CAST Finale of Promise"), "Finale of Promise is on the menu:\n" + ask);
+    }
+
     /** runs/c3/ant-storm-default T7 (2026-10-16): {B:3} floating and two Lotus Petals, Ad Nauseam (3BB) offered as
      *  castable and chosen; the seat named a colour for one Petal, then "Didn't find what to pay for {1}" and nothing
      *  was cast. Two any-colour sources paying generic shards must both pay. */
@@ -1488,9 +1541,10 @@ public class GoldenChecksTest {
         Assert.assertTrue(model.prompts.stream().noneMatch(q -> q.contains("COMBAT DAMAGE ASSIGNMENT")), "the declared order was asked again");
         Assert.assertTrue(r.get(first) >= 2, "lethal to the first in the declared order: " + r);
         Assert.assertEquals(r.values().stream().mapToInt(Integer::intValue).sum(), 6);
-        // With the order free (overrideOrder true), the split is the seat's.
-        Map<Card, Integer> free = ctrl.assignCombatDamage(attacker, new CardCollection(java.util.Arrays.asList(first, second)), null, 1, rival, true);
-        Assert.assertTrue(model.prompts.stream().anyMatch(q -> q.contains("COMBAT DAMAGE ASSIGNMENT")), "a free split is asked");
+        // With damage divided as the attacker chooses (overrideOrder true), the amounts are the seat's.
+        Script free2 = new Script("CHOICE: 1").on("COMBAT DAMAGE ASSIGNMENT", p -> "ALLOC: 0, 1");
+        Map<Card, Integer> free = seat(g, free2, free2).assignCombatDamage(attacker, new CardCollection(java.util.Arrays.asList(first, second)), null, 1, rival, true);
+        Assert.assertTrue(free2.prompts.stream().anyMatch(q -> q.contains("COMBAT DAMAGE ASSIGNMENT")), "a free split is asked");
         Assert.assertEquals(free.get(second), Integer.valueOf(1), "the seat put its 1 damage on the Elves: " + free);
     }
 
@@ -2139,6 +2193,214 @@ public class GoldenChecksTest {
         Assert.assertTrue(combat.getBlockers(lions).contains(bears));
     }
 
+    /** Rules pilot RP_045 (2026-10-18): General Leo Cristophe's "return up to one target creature card" with one
+     *  creature card in the graveyard took it without asking ("(only legal)"); no target is legal too. An "up to one"
+     *  target with a single candidate is asked, with "No target" offered. */
+    @Test
+    public void anUpToOneTargetWithOneCandidateIsAskedWithNoTargetOffered() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card bears = card("Grizzly Bears", me, ZoneType.Graveyard);
+        Card leo = card("General Leo Cristophe", me, ZoneType.Battlefield);
+        SpellAbility trig = leo.getTriggers().iterator().next().ensureAbility();
+        trig.setActivatingPlayer(me);
+        List<String> asks = new ArrayList<>();
+        Script model = new Script("CHOICE: 1").on("TARGET", p -> { asks.add(p); return "CHOICE: 2"; });
+        Assert.assertTrue(seat(g, model, model).chooseTargetsFor(trig));
+        Assert.assertEquals(asks.size(), 1, "the seat was asked");
+        Assert.assertTrue(asks.get(0).contains("No target"), "no target is offered:\n" + asks.get(0));
+        Assert.assertFalse(trig.getTargets().contains(bears), "the seat's 'no target' stands");
+    }
+
+    /** Rules pilot RP_026 (2026-10-18): Forge Anew ("you may pay {0} rather than pay the equip cost of the first equip
+     *  ability you activate during each of your turns") with no mana: equip was legal and never on the menu, which
+     *  expanded alternative costs for spells only. */
+    @Test
+    public void anAlternativeCostForAnActivatedAbilityIsOffered() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Forge Anew", me, ZoneType.Battlefield);
+        card("Bonesplitter", me, ZoneType.Battlefield);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        g.getAction().checkStaticAbilities();
+        Script model = new Script("CHOICE: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        ctrl.chooseSpellAbilityToPlay();
+        String ask = PromptFidelityTest.promptWith(model, "You have priority");
+        Assert.assertTrue(ask.contains("Bonesplitter") && ask.contains("Equip"), "equip for {0} is on the menu:\n" + ask);
+    }
+
+    /** prove-v3 PS_WAR0a (2026-10-18): Forge's static AiCache is cleared only by Forge's AI, when it chooses a play
+     *  (AiController.chooseSpellAbilityToPlay). A model seat never cleared it: answers cached against this game
+     *  (isPreventCombatDamageThisTurn, keyed by the game) stayed for the whole game, and every finished game stayed
+     *  reachable (the puzzle prover ran out of heap after ~550 rollouts). The seat clears it where Forge's AI does. */
+    @Test
+    public void theSeatClearsForgesAiCacheWhereForgesAiDoes() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Object probe = new Object();
+        Assert.assertEquals((int) forge.ai.AiCache.getCached("harness-probe", () -> 1, null, probe), 1);
+        Assert.assertEquals((int) forge.ai.AiCache.getCached("harness-probe", () -> 2, null, probe), 1, "cached");
+        Script model = new Script("CHOICE: 1");
+        seat(g, model, model).chooseSpellAbilityToPlay();
+        Assert.assertEquals((int) forge.ai.AiCache.getCached("harness-probe", () -> 3, null, probe), 3, "cleared by the seat");
+        forge.ai.AiCache.clear();
+    }
+
+    /** Rules pilot RP_108 (2026-10-18): Deflecting Palm's "choose a source" offered Forge's section headers
+     *  ("--PERMANENTS:--", "--SPELLS ON THE STACK:--", ChooseSourceEffect's divider cards) as options; the engine asks
+     *  again when one is picked, so a model that picked one spent a call and was asked the same thing. Not options. */
+    @Test
+    public void choiceListDividersAreNotOptions() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card div = new Card(-1, g);
+        div.setName("--PERMANENTS:--");
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Card lions = card("Savannah Lions", rival, ZoneType.Battlefield);
+        forge.util.collect.FCollection<Card> list = new forge.util.collect.FCollection<>(Arrays.asList(div, bears, lions));
+        List<String> asks = new ArrayList<>();
+        Script model = new Script("CHOICE: 1").on("source", p -> { asks.add(p); return "CHOICE: 1"; });
+        Card pick = seat(g, model, model).chooseSingleEntityForEffect(list, null, null, "Choose a source", false, null, null);
+        Assert.assertEquals(pick, bears, "the first real source");
+        Assert.assertEquals(asks.size(), 1);
+        Assert.assertFalse(asks.get(0).contains("--PERMANENTS"), "no divider on the menu:\n" + asks.get(0));
+    }
+
+    /** Rules pilot RP_175 (2026-10-19): Mishra's Factory's "{1}: becomes a 2/2" was never offered when the Factory's own
+     *  mana was the only source; Forge AI's mana chooser skips an ability's own card ("this rarely seems like a good
+     *  idea"). Tapping it to pay is legal (owner: a legal action is never hidden). */
+    @Test
+    public void aCardMayPayForItsOwnAbility() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mishra's Factory", me, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1");
+        seat(g, model, model).chooseSpellAbilityToPlay();
+        String ask = PromptFidelityTest.promptWith(model, "You have priority");
+        Assert.assertTrue(ask.contains("ACTIVATE Mishra's Factory") && ask.contains("Assembly-Worker"),
+                "the animate ability is on the menu:\n" + ask);
+    }
+
+    /** Rules pilot RP_197 (2026-10-19): Omen Machine casts Terminus "without paying its mana cost if able" while the
+     *  opponent's Sphere of Resistance adds {1}. No player is made to activate a mana ability (CR 605.3a), so the seat
+     *  may leave the {1} unpaid and the spell is not cast; Forge paid it with a Mountain unasked. */
+    @Test
+    public void aForcedFreeCastWithATaxAsksWhetherToPayIt() {
+        Game g = bareGame(PhaseType.UPKEEP);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card mountain = card("Mountain", me, ZoneType.Battlefield);
+        card("Sphere of Resistance", rival, ZoneType.Battlefield);
+        Card terminus = card("Terminus", me, ZoneType.Exile);
+        g.getAction().checkStaticAbilities();
+        Script model = new Script("CHOICE: 2");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        SpellAbility free = terminus.getFirstSpellAbility().copyWithNoManaCost(me);
+        free.getPayCosts().setMandatory(true);
+        Assert.assertFalse(ctrl.playSaFromPlayEffect(free), "the seat declined the {1}: nothing is cast");
+        Assert.assertFalse(mountain.isTapped(), "the Mountain stays untapped");
+        Assert.assertTrue(terminus.isInZone(ZoneType.Exile), "Terminus stays in exile");
+        Assert.assertEquals(model.prompts.size(), 1, "one ask: pay the tax or not");
+        Assert.assertTrue(model.prompts.get(0).contains("{1}"), model.prompts.get(0));
+    }
+
+    /** Rules pilot RP_209 (2026-10-19): suspend's cast asked "Do you want to play Living End?" and, after YES, the
+     *  play-from-effect ask offered "Do not cast it" again: one decision asked twice. An optional cast the engine has
+     *  just confirmed for the card is not asked again. */
+    @Test
+    public void anOptionalCastAlreadyConfirmedIsNotAskedAgain() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card heist = card("Arcane Heist", me, ZoneType.Hand);
+        Card spike = card("Divination", me, ZoneType.Exile);   // no target, no mode: nothing else to ask
+        Script model = new Script("CHOICE: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        SpellAbility play = heist.getFirstSpellAbility();
+        play.setActivatingPlayer(me);
+        Assert.assertTrue(ctrl.confirmAction(play, null, "Do you want to play Divination?", null, spike, null));
+        SpellAbility free = spike.getFirstSpellAbility().copyWithNoManaCost(me);
+        ctrl.playSaFromPlayEffect(free);
+        Assert.assertEquals(model.prompts.size(), 1, "asked twice:\n" + String.join("\n----\n", model.prompts));
+    }
+
+    /** runs/loop/g27 T18 (2026-10-19): after epoch 59 let a card pay for its own ability, Rishadan Port's "{1}, {T}: Tap
+     *  target land" was offered with Port as the only source; Port cannot tap for mana and tap as the cost, so the cast
+     *  failed ("Didn't find what to pay"). A card pays for its own ability only when the two do not both tap it. */
+    @Test
+    public void aCardThatMustTapForItsAbilityCannotAlsoTapForItsMana() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Rishadan Port", me, ZoneType.Battlefield);
+        card("Island", rival, ZoneType.Battlefield);
+        card("Forest", me, ZoneType.Hand);   // a land drop on the menu, so the seat is asked; it pays for nothing
+        Script model = new Script("CHOICE: 1");
+        seat(g, model, model).chooseSpellAbilityToPlay();
+        String ask = PromptFidelityTest.promptWith(model, "You have priority");
+        Assert.assertFalse(ask.contains("Tap target land"), "Port's tap ability cannot be paid:\n" + ask);
+    }
+
+    /** Rules pilot RP_185 (2026-10-19): with a block requirement, the random and search arms redrew up to 64 times and
+     *  then kept an illegal block set (most draws break "all creatures able to block it do so"). A failed draw now takes
+     *  a legal block set from the engine's own check. Ten creatures must all block Prized Unicorn. */
+    @Test
+    public void anArmUnderABlockRequirementDeclaresALegalBlock() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        List<Card> mine = new ArrayList<>();
+        for (int i = 0; i < 10; i++) mine.add(card("Grizzly Bears", me, ZoneType.Battlefield));
+        Card unicorn = card("Prized Unicorn", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(g, me,
+                new forge.ai.LobbyPlayerAi("Seat", null), "Seat", "", model, model, "random");
+        me.dangerouslySetController(ctrl);
+        Combat combat = new Combat(rival);
+        combat.addAttacker(unicorn, me);
+        g.getAction().checkStaticAbilities();
+        ctrl.declareBlockers(me, combat);
+        Assert.assertNull(forge.game.combat.CombatUtil.validateBlocks(combat, me), "the block set is legal");
+        Assert.assertEquals(combat.getBlockers(unicorn).size(), 10, "every Bear blocks the Unicorn");
+    }
+
+    /** Rules pilot RP_007 (2026-10-18): the engine checks a block's requirements and restrictions only for its own
+     *  GUI (InputBlock calls CombatUtil.validateBlocks), so a menace attacker blocked by one creature stood. An
+     *  illegal block set goes back to the seat with the engine's reason. */
+    @Test
+    public void aMenaceAttackerBlockedByOneCreatureIsSentBack() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card brute = card("Boggart Brute", rival, ZoneType.Battlefield);
+        List<String> asks = new ArrayList<>();
+        Script model = new Script("CHOICE: 1").on("declare blockers", p -> {
+            asks.add(p);
+            return asks.size() == 1 ? "BLOCKS: Grizzly Bears->Boggart Brute" : "BLOCKS: NONE"; });
+        Combat combat = new Combat(rival);
+        combat.addAttacker(brute, me);
+        g.getAction().checkStaticAbilities();
+        seat(g, model, model).declareBlockers(me, combat);
+        Assert.assertTrue(combat.getBlockers(brute).isEmpty(), "one blocker on a menace creature does not stand");
+        Assert.assertEquals(asks.size(), 2, "the seat was asked again");
+        Assert.assertTrue(asks.get(1).contains("cannot be blocked with 1"), "with the engine's reason:\n" + asks.get(1));
+    }
+
+    /** Prized Unicorn: "All creatures able to block Prized Unicorn do so." A seat that blocks nothing is sent back. */
+    @Test
+    public void aBlockRequirementTheSeatIgnoredIsSentBack() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card bears = card("Grizzly Bears", me, ZoneType.Battlefield);
+        Card unicorn = card("Prized Unicorn", rival, ZoneType.Battlefield);
+        List<String> asks = new ArrayList<>();
+        Script model = new Script("CHOICE: 1").on("declare blockers", p -> {
+            asks.add(p);
+            return asks.size() == 1 ? "BLOCKS: NONE" : "BLOCKS: Grizzly Bears->Prized Unicorn"; });
+        Combat combat = new Combat(rival);
+        combat.addAttacker(unicorn, me);
+        g.getAction().checkStaticAbilities();
+        seat(g, model, model).declareBlockers(me, combat);
+        Assert.assertTrue(combat.getBlockers(unicorn).contains(bears), "the required block stands");
+        Assert.assertTrue(asks.size() == 2 && asks.get(1).contains("must block"), "sent back with the reason: " + asks);
+    }
+
     /** A creature that can block any number of creatures may block both attackers (each blocker blocked once,
      *  whatever the card said): the label says so, and both blocks stand. */
     @Test
@@ -2177,6 +2439,57 @@ public class GoldenChecksTest {
         Assert.assertEquals(one.get(bears), Integer.valueOf(6), "all to the blocker: " + one);
         Map<Card, Integer> two = ctrl.assignCombatDamage(wurm, new CardCollection(Arrays.asList(bears, lions)), new CardCollection(), 6, rival, false);
         Assert.assertEquals(two.get(lions), Integer.valueOf(1), "lethal to the Lions first: " + two);
+    }
+
+    /** Since the 2024 rules (Forge's default here: GameRules.orderCombatants false), an attacker divides its combat damage
+     *  among its blockers as its controller chooses. The seat was asked only an order, with damage cascading lethal-first,
+     *  so a split like "all 6 on the second blocker" was never on offer (a legal action hidden; found writing rules
+     *  puzzles, batch 5). The amounts are the seat's now. */
+    @Test
+    public void freelyDividedCombatDamageGoesWhereTheSeatSays() {
+        Game g = bareGame(PhaseType.COMBAT_DAMAGE);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card wurm = card("Craw Wurm", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield), elves = card("Llanowar Elves", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("COMBAT DAMAGE ASSIGNMENT", p -> "ALLOC: 0, 6");
+        Map<Card, Integer> r = seat(g, model, model).assignCombatDamage(wurm, new CardCollection(Arrays.asList(bears, elves)), null, 6, rival, true);
+        Assert.assertEquals(r.get(elves), Integer.valueOf(6), "all six on the Elves: " + r);
+        Assert.assertEquals(r.getOrDefault(bears, 0), Integer.valueOf(0));
+    }
+
+    /** A trampler over one blocker may give it more than lethal and trample the rest: any split with lethal on the
+     *  blocker is legal, not only "max trample" or "all to the blocker". A split that tramples over before the blocker
+     *  has lethal goes back to the seat with the reason. */
+    @Test
+    public void aTramplersSplitIsTheSeatsWithinTheRule() {
+        Game g = bareGame(PhaseType.COMBAT_DAMAGE);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card dreadmaw = card("Colossal Dreadmaw", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        List<String> asks = new ArrayList<>();
+        Script model = new Script("CHOICE: 1").on("COMBAT DAMAGE ASSIGNMENT", p -> { asks.add(p);
+            return asks.size() == 1 ? "ALLOC: 1, 5" : "ALLOC: 3, 3"; });
+        Map<Card, Integer> r = seat(g, model, model).assignCombatDamage(dreadmaw, new CardCollection(bears), null, 6, rival, true);
+        Assert.assertEquals(asks.size(), 2, "the split that skipped lethal was sent back");
+        Assert.assertTrue(asks.get(1).contains("lethal"), "with the reason:\n" + asks.get(1));
+        Assert.assertEquals(r.get(bears), Integer.valueOf(3), "three on the Bears: " + r);
+        Assert.assertEquals(r.get(null), Integer.valueOf(3), "three trample over: " + r);
+    }
+
+    /** Rules puzzle batch 5 (RP_156-RP_160): "lethal damage" for assignment is the rule's (CR 702.19b: toughness minus
+     *  damage marked, 1 with deathtouch), not Forge AI's estimate of what kills (ComputerUtilCombat.getEnoughDamageToKill
+     *  counts indestructible, protection, shields and doublers). An indestructible blocker takes lethal at 1. */
+    @Test
+    public void lethalDamageForAssignmentIsTheRulesNotWhatKills() {
+        Game g = bareGame(PhaseType.COMBAT_DAMAGE);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card dreadmaw = card("Colossal Dreadmaw", me, ZoneType.Battlefield);
+        Card myr = card("Darksteel Myr", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1").on("COMBAT DAMAGE ASSIGNMENT", p -> "ALLOC: 1, 5");
+        Map<Card, Integer> r = seat(g, model, model).assignCombatDamage(dreadmaw, new CardCollection(myr), null, 6, rival, true);
+        Assert.assertTrue(model.asked("COMBAT DAMAGE ASSIGNMENT"), "the split was asked, not forced");
+        Assert.assertEquals(r.get(myr), Integer.valueOf(1), "lethal to an indestructible 0/1 is 1: " + r);
+        Assert.assertEquals(r.get(null), Integer.valueOf(5), "the rest tramples over: " + r);
     }
 
     /** The order an attacker assigns its damage among its blockers is the seat's (it was Forge's
@@ -2276,6 +2589,46 @@ public class GoldenChecksTest {
         Assert.assertTrue(sa.getTargets().contains(lions) && sa.getTargets().contains(bears), sa.getTargets().toString());
         Assert.assertEquals(sa.getDividedValue(lions), Integer.valueOf(1));
         Assert.assertTrue(model.asked("Split 2"), PromptFidelityTest.decisions(model));
+    }
+
+    /** Each target of a divided spell gets at least one (CR 601.2d): the split [2 0] was accepted, so "Fire at the
+     *  opponent and Iona" dealt all 2 to the opponent (rules pilot batch 12, rp10/V_iona-search). */
+    @Test
+    public void aDividedSplitGivesEachTargetAtLeastOne() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card fb = card("Forked Bolt", me, ZoneType.Hand);
+        Card lions = card("Savannah Lions", rival, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1")
+                .on("Choose TARGETS", picks("Savannah Lions", "Grizzly Bears"))
+                .on("Split 2", p -> "ALLOC: 2, 0");
+        SpellAbility sa = spell(fb, me);
+        Assert.assertTrue(seat(g, model, model).chooseTargetsFor(sa));
+        Assert.assertEquals(sa.getDividedValue(lions), Integer.valueOf(1), "a target was given 0");
+        Assert.assertEquals(sa.getDividedValue(bears), Integer.valueOf(1), "a target was given 0");
+        Assert.assertTrue(model.asked("at least 1 each"), "the split question does not state the rule");
+    }
+
+    /** More targets than the divided total can never each get one: Rolling Thunder for X=2 among three picks fell back
+     *  to [1 1 0]. A divided spell takes at most as many targets as its total (review of epoch 64). */
+    @Test
+    public void aDividedSpellTakesNoMoreTargetsThanItsTotal() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card rt = card("Rolling Thunder", me, ZoneType.Hand);
+        card("Savannah Lions", rival, ZoneType.Battlefield);
+        card("Grizzly Bears", rival, ZoneType.Battlefield);
+        card("Hill Giant", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1")
+                .on("Choose TARGETS", picks("Savannah Lions", "Grizzly Bears", "Hill Giant"))
+                .on("Split 2", p -> "ALLOC: 1, 1");
+        SpellAbility sa = spell(rt, me);
+        sa.setXManaCostPaid(2);
+        Assert.assertTrue(seat(g, model, model).chooseTargetsFor(sa));
+        Assert.assertTrue(sa.getTargets().size() <= 2, "three targets for 2 damage: " + sa.getTargets());
+        for (forge.game.GameObject t : sa.getTargets())
+            Assert.assertTrue(sa.getDividedValue(t) != null && sa.getDividedValue(t) >= 1, "a target got 0: " + t);
     }
 
     /** Thoughtseize-style: which card the opponent discards is the model's. */

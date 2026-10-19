@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 125 - Adapt after annihilation
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Temperamental Oozewagg with one +1/+1 counter, a Swamp and three Forests, and have Virulent Wound in hand. End the turn with exactly two +1/+1 counters on Temperamental Oozewagg.
+Rule:rulesguru-8c467c1569f83ca3 | +1/+1 and -1/-1 counters annihilate as a state-based action (CR 704.5q), and adapt checks for +1/+1 counters only as it resolves (CR 701.46a), so it works again
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Virulent Wound
+p0battlefield=Temperamental Oozewagg|Counters:P1P1=1;Swamp;Forest;Forest;Forest
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+counters p0 Battlefield "Temperamental Oozewagg" P1P1 = 2

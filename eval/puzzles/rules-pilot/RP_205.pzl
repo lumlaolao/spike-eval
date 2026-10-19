@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 205 - The counter flies again
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Trained Armodon with a flying counter and a Mountain, and have Shock in hand. The opponent is at 3 life and controls Archetype of Imagination and Savannah Lions. It is your first main phase. Win this turn.
+Rule:rulesguru-55d3a160c61f491c | Continuous effects are re-evaluated all the time (CR 613.1, 122.1b): once Archetype of Imagination is gone, nothing stops the flying counter from giving Trained Armodon flying
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Shock
+p0battlefield=Trained Armodon|Counters:Flying=1;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Archetype of Imagination;Savannah Lions
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

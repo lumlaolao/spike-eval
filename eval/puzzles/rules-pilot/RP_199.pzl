@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 199 - Peeper mana turns it up
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control a face-down Hidden Dragonslayer (megamorph {2}{W}), Creeping Peeper and two Plains. End the turn with Hidden Dragonslayer face up with its +1/+1 counter.
+Rule:wizards-of-the-coast-release-notes-57c56952572b1ca5 | Creeping Peeper's restricted mana may pay the cost to turn a face-down permanent face up (CR 106.6, 702.37e): Peeper plus two Plains pays the megamorph cost
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0battlefield=Hidden Dragonslayer|FaceDown;Creeping Peeper;Plains;Plains
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+counters p0 Battlefield "Hidden Dragonslayer" P1P1 = 1

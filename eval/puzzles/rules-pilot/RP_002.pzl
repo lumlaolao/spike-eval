@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 002 - Battle cry for the latecomers
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:The opponent is at 28 life with no creatures. Win this turn: deal exactly enough combat damage to bring the opponent to 0 life or less.
+Rule:rulesguru-5a2ccec3176985e8 | You order your own simultaneous triggers (CR 603.3b); battle cry and Akroan Hoplite only count the Soldier tokens if the token trigger resolved first (CR 611.2c, 608.2h)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Hero of Bladehold;Nobilis of War;Akroan Hoplite
+p0library=Plains;Plains;Plains
+p1life=28
+p1library=Mountain;Mountain;Mountain
+[acceptance]
+life p1 <= 0

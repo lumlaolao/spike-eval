@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 038 - The last Cleric
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:The opponent is at 1 life. You control Relic Vial, Juniper Order Druid (which came in this turn) and two Forests. Win this turn.
+Rule:rulesguru-5c58a68b758b7fb1 | Leaves-the-battlefield triggers look back in time (CR 603.10a): Relic Vial still had its drain ability as the only Cleric died
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0battlefield=Relic Vial;Juniper Order Druid|SummonSick;Forest;Forest
+p0library=Island;Island;Island
+p1life=1
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

@@ -104,3 +104,121 @@ k, budget, and its interval. Best-of-N or consensus numbers are labelled as such
 | 7 | Games panel as the validity check, sized after the pilot | ~$50-100 |
 
 Paid phases state their cost first and pass `--budget-usd` (`CLAUDE.md`, "Cost of paid runs").
+
+## Idea (owner, 2026-10-18): turn the 996 rules questions into puzzles
+
+`puzzles/modern/puzzles.jsonl` holds 996 judge-sourced rules questions (978 marked machine-verifiable). Each
+names its cards (1 to 5, mostly 1-3) and a situation in prose, with a judge's answer. Rules areas: triggered
+abilities 310, zone changes 184, replacement 161, casting 124, keywords 114, continuous effects 112, combat
+94, state-based actions 81, copying 73, layers 68. Today they are text Q&A with no scorer. As puzzles they
+would test whether a model can *use* a rule at the table, not recite it.
+
+**How a question becomes a puzzle.**
+1. Build the board the question describes as a `.pzl` (the cards named, the situation set up), plus filler so
+   only the rule decides the result. A model can draft it; a person or the checks below accept it.
+2. Pick a goal Forge enforces whose outcome turns on the rule. "Does Tithe Taker's tax stop Lavinia from
+   countering the cascaded spell?" becomes "win this turn", where the win needs the cascaded spell to resolve.
+3. **Check Forge agrees with the judge first.** Play the position with the search prover: the outcome the
+   judge's answer predicts must be the one Forge produces. Where they differ, Forge has a rules bug: drop the
+   puzzle and note the bug. This also gives every puzzle a proven line.
+4. Guess-proof it like every puzzle: random play must solve it under 5%, so the right line has to rely on the
+   rule. A pair of near-identical positions where the rule flips the answer (one where the play works, one
+   where it does not) stops a model from scoring by always trying the flashy line.
+
+**The shape every puzzle takes (owner, 2026-10-18): a start state, an acceptance state, one solution.**
+- **Start state:** the exact board, hands, libraries, life, phase and turn, as the `.pzl` `[state]`.
+- **Acceptance state:** a predicate on the game state the engine reaches, checked by code at a fixed point
+  (the end of the turn limit), e.g. "opponent at 0 life", or "Lavinia's ability on the stack was countered
+  and the cascaded spell is on the battlefield", or "exactly two Clue tokens and Thraben Inspector in the
+  graveyard". Forge's built-in goals (win, survive, destroy or control specified permanents) cover some of
+  these; the rest need a small acceptance check of ours that reads the final engine state (zones, counters,
+  life, the stack), never the model's text. It belongs in the overlay with the puzzle runner, one place.
+- **One solution:** exactly one line of play (up to order that does not matter) reaches the acceptance state.
+  The prover checks this: it searches for a second line that reaches the acceptance state, and for lines that
+  apply the rule wrongly (the misreading the judge's answer corrects); a puzzle where a misreading also passes,
+  or where several unrelated lines pass, is redesigned or dropped. A single solution is what lets a pass mean
+  "the model knew the rule", and it lets the answer key be the line itself.
+- This shape is the target for every new puzzle, not only the rules ones: mined puzzles get an acceptance
+  state too ("win this turn" is just the most common one), and a mined position with many winning lines is
+  kept only if the acceptance state narrows it to one.
+
+**Which questions fit.** Questions about what happens on the board (triggers, replacement, combat, SBAs,
+copying, layers) convert well. Pure legality questions ("can you cast X now?") become a check that the play
+is or is not on the menu, which Forge decides; they suit a separate rules-knowledge score better than a
+puzzle. Questions about tournament procedure or hidden information do not convert.
+
+**Caveats.** The questions are public (judge blogs), so the converted puzzles are contaminated like the
+Possibility Storm set: they belong to the public pool, with perturbed copies, not the private headline split.
+The answers are paraphrased, so step 3 (Forge agrees with the judge) is the acceptance gate, not the text.
+
+**Next.** Build the acceptance-state check (a predicate file per puzzle, read by the runner at the turn
+limit) and the prover's uniqueness search. Then a pilot of 20 questions from the board-outcome areas: draft
+each start and acceptance state, prove it has one solution, record how many convert, how many expose a Forge disagreement, and the hours per puzzle. Then decide whether it scales.
+
+## Progress log
+
+Newest last. Each entry says what was built, what it showed, and what is next.
+
+### 2026-10-18  phase 2 started: the search prover
+
+- **Built.** `CONTROLLER_A=search` in `LlmSpikePuzzle` proves a puzzle with `PuzzleSearch.java`. Both seats
+  draw from one shared line of choices (`PuzzleArms.Search`, `PuzzleArms.Line`): a prefix to replay, then a
+  seeded uniform completion over the same legal menus the random arm uses. A rollout is a deterministic
+  function of the engine seed and that line, so the search replays prefixes and reads back who chose what
+  from how many options and whether Forge scored a solve. It finds a winning line by UCT (solver choices
+  maximise the solve rate, opponent choices minimise it), then proves every other opponent choice on that
+  line is also beaten, recursively. A proof is a strategy tree whose every leaf is a Forge-scored solve;
+  the main line is replayed twice more and must give the same game log. The budget bounds it, so "not
+  found" never means "unsolvable".
+- **One harness change for it.** A decideMany subset is now drawn through `PuzzleArms.subset`. The random,
+  pass and first arms make exactly the draws they made before (shuffle, then a size), so no stream or
+  canary moves (`PuzzleSearchTest.subsetMakesTheDrawsDecideManyAlwaysMadeForTheOtherArms`); the search
+  arm draws one include-or-not per option, so each subset is one line, not up to n! orders.
+- **Known limits of the opponent check.** The random arm splits divided damage evenly (`evenSplit`) and
+  keeps every mulligan, so a proof does not branch on those; it holds for one engine seed (library order,
+  coin flips), which puzzles with fixed libraries do not care about.
+- **Tests.** `PuzzleSearchTest` (8): a strategy that answers each opponent reply is proven; a win that
+  needs the opponent to err is not; drift is caught; every subset is reachable once.
+
+### 2026-10-18  prove-v1, the rules puzzles' shape, and the first 20 rules puzzles
+
+- **prove-v1 (34 tier-1 Forge built-ins, budget 1500, opponent = search):** 9 proven, 19 not found, 6 drift.
+  The drift was not non-determinism: a random completion looped (an ability activated forever) until the
+  wall-clock cap or the heap ended it (PS_ELD1, PS_DOM0 capped; PS_M204 OutOfMemoryError), and the truncated
+  rollout read as "left its prefix". A rollout now stops at `PZL_SEARCH_MAX_DRAWS` (3000) and counts as
+  unsolved. The 6 are re-run on the new build next; the 19 not found need more budget or are puzzles Forge's AI
+  "solved" only because its opponent erred (the refutation line says which reply beats them).
+- **Built for rules puzzles.** `[acceptance]` in a `.pzl` (`PuzzleAcceptance`): conditions on the final engine
+  state, solved when all hold. `PuzzleSearch.unique`: every other option at every solver choice on the main line
+  is searched for a proven line with other solver actions; a played-out subtree is never replayed, so a small
+  puzzle's "unique" is exhaustive (the Shock smoke puzzle: 19 rollouts, 3 of 3 deviations played out).
+- **Triage of the 996 questions** (`eval/puzzles/rules/TRIAGE.md`): 216 good, 559 maybe, 221 no; every card the
+  good ones need is in Forge; about 21 near-duplicate groups; a few answers to check (634 names the wrong card;
+  129 and 961 rest on 2024 rules changes the pinned Forge may not have).
+- **Pilot batch 1** (`eval/puzzles/rules-pilot/`, 20 questions, about 5 minutes each): 18 pass the gate (proven,
+  unique, the do-nothing arm rejected, the line exercises the rule); RP_011 is a Forge disagreement (Doubling
+  Season with compleated: the order is never offered and varies between games on one seed).
+- **What the pilot found in the harness** (fixed, harness-epoch-52): Finale of Promise ("up to" targets) never
+  offered with no target; City of Brass at 1 life never paid (Forge AI's mana sorter); block sets never checked as
+  a whole (menace, "must block"; Forge validates only for its GUI). In the prover: the search arm had a smaller
+  menu than the model (no floating mana), and never varied an order (trigger order puzzles passed on Forge's
+  default). Each of these could have made a puzzle look unique when it was not, or hidden a legal play from the
+  model in a real game.
+- **Next.** Re-verify batch 1 on epoch 52; batch 2 (30 questions) is being authored; then the rest of the 216
+  good questions, then the maybes; Luna games on epoch 52 continue in the background.
+
+### 2026-10-18 (later)  91 rules questions attempted, 81 puzzles; seven more harness fixes (epochs 53-54)
+
+- **Rules puzzles.** Batches 2 and 3 (70 questions) brought the pilot to 91: 81 converted (proven against every
+  opponent reply, unique, the do-nothing arm rejected), 4 Forge disagreements, 5 not built, 1 for the author.
+  Details and the uniqueness rule's history: `eval/puzzles/rules-pilot/REPORT.md`.
+- **Harness fixes the puzzles found** (each with a test that failed first): an activated ability's alternative cost
+  offered (Forge Anew); an "up to one" target with one candidate asked; Forge's static AiCache cleared where its AI
+  clears it (a model seat read answers cached for the whole game, and the prover kept every finished game in memory
+  until the heap ran out: the last cause of drift); a preview survives a remembered card no copied zone holds (g16).
+- **prove-v1 drift is closed.** All six drifted puzzles now finish: PS_ELD1, PS_DOM0, PS_WAR1, PS_MKM4, PS_M204 and
+  PS_WAR0a are not found within the budget, heap flat at about 178 MB.
+- **Luna games** g12-g16: five wins, sheets clean except g16's two failed previews (fixed). The whole-block-set check
+  has not yet met a menace or "must block" attacker in a real game.
+- **Next.** The remaining good questions from the triage (about 140 not yet attempted), then the maybes; prove the
+  other Forge built-ins with the fixed prover; keep the game loop going on epoch 54.

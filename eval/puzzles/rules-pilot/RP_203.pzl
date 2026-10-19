@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 203 - The Phoenix answers its own trigger
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Spawning Pit and four Mountains and have Retriever Phoenix in hand. End the turn with Retriever Phoenix on the battlefield and exactly one charge counter on Spawning Pit.
+Rule:wizards-official-card-rulings-2d4f8a2cd8c41b71 | A triggered ability resolves independently of its source (CR 113.7a): Retriever Phoenix sacrificed with its learn trigger on the stack is in the graveyard when that trigger resolves, so its replacement returns it
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Retriever Phoenix
+p0battlefield=Spawning Pit;Mountain;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Retriever Phoenix" = 1
+counters p0 Battlefield "Spawning Pit" CHARGE = 1

@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 213 - The copy is kicked too
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control five Mountains and two Islands and have Burst Lightning and Twincast in hand. The opponent is at 8 life. Win this turn.
+Rule:wizards-official-card-rulings-18ee81dd1e190eca | A copy of a spell copies the choices made for it, including a paid kicker (CR 707.10): Twincast copying a kicked Burst Lightning deals 4 as well
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Burst Lightning;Twincast
+p0battlefield=Mountain;Mountain;Mountain;Mountain;Mountain;Island;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=8
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 019 - Vindicator's revenge comes late
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:You and the opponent are both at 2 life; the opponent has an untapped Phyrexian Vindicator. Win this turn.
+Rule:rulesguru-f6372b612682d855 | Phyrexian Vindicator's redirected damage is a triggered ability; state-based actions end the game for the player at 0 life before it goes on the stack (CR 704.3, 603.3)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=2
+p0battlefield=Durable Coilbug;Bellowing Crier
+p0library=Swamp;Swamp;Swamp
+p1life=2
+p1battlefield=Phyrexian Vindicator
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

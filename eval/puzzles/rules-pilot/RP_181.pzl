@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 181 - The turn ends before the arrows fly
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You are at 3 life and control three Islands; your hand is Day's Undoing. The opponent controls Orcish Bowmasters. End the turn at 3 life with seven cards in hand.
+Rule:rulesguru-c46e24027455221b | Abilities that trigger while a spell ends the turn are exiled with the stack and never put onto it (CR 723.1a-b): Day's Undoing's seven draws give no Bowmasters damage
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=3
+p0hand=Day's Undoing
+p0battlefield=Island;Island;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Orcish Bowmasters
+p1library=Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains;Plains
+[acceptance]
+life p0 = 3
+count p0 Hand * = 7

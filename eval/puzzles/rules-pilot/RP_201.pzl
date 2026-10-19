@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 201 - New tokens can pay Baylen
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control Baylen, the Haymaker and three creature tokens that entered this turn; your hand is empty. End the turn with a card in hand.
+Rule:wizards-of-the-coast-release-notes-f119a2d65c997634 | Summoning sickness stops only {T} and {Q} costs of a creature's own abilities (CR 302.6): tapping untapped tokens to pay Baylen's cost is allowed for tokens that entered this turn
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0battlefield=Baylen, the Haymaker|SummonSick;Grizzly Bears|IsToken|SummonSick;Grizzly Bears|IsToken|SummonSick;Grizzly Bears|IsToken|SummonSick
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Hand * = 1

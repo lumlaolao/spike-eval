@@ -1,0 +1,19 @@
+========================================================================
+  EXPLORATORY MODE — numbers from this run are NOT citable.
+  Mirror-deck / forced-heuristics-off / jobs=1 guards are DISABLED.
+  Re-run without --exploratory (and a mirror deck) for a citable batch.
+========================================================================
+[provenance] engine=unknown overlay=8832618792f9 deck=182c29105803 discipline=exploratory
+[provenance] checkpoint=unknown seed_bank=dev-lane
+[condition] context_profile=(unset: default v4-faithful) memory_tools=1
+[warn] no --checkpoint given: the game line will not say which weights played. The endpoint's served_* fields are then the only identity, and an alias spec (e.g. openrouter:default_model) may not resolve to one.
+[out] /home/user/mtg-forge-llm-agent/runs/loop/g31
+Running 1 games (jobs=1, out=/home/user/mtg-forge-llm-agent/runs/loop/g31, forge_home=/root/forge-games)
+[budget] this directory may spend up to $0.40 (already $0.00); a game is not started past that, so the overshoot is at most the 1 games in flight
+[start] seed=4131 swap=0 -> game-4131-0.log
+[done] seed=4131 swap=0
+
+=== batch summary ===
+completed: 1  skipped(resume): 0  problems: 0
+[cost] /home/user/mtg-forge-llm-agent/runs/loop/g31: 1 games, 58 model calls, 0.41M prompt + 0.02M completion tokens -> $0.02 ($0.025 per game started)  (66% of prompt tokens read from cache)
+Aggregate with: python3 /home/user/mtg-forge-llm-agent/eval/aggregate.py /home/user/mtg-forge-llm-agent/runs/loop/g31

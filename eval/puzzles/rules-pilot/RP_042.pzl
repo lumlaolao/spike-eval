@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 042 - Hunger with a sting
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:The opponent controls Axebane Stag (6/7). You control Typhoid Rats and Hill Giant. End the turn with Axebane Stag in the opponent's graveyard and Hill Giant on your battlefield.
+Rule:ask-a-magic-judge-d24473c791398186 | Deathtouch applies to any damage, not only combat damage (CR 702.2b)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Cosmic Hunger
+p0battlefield=Typhoid Rats;Hill Giant;Forest;Forest
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Axebane Stag
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Axebane Stag" = 1
+count p0 Battlefield "Hill Giant" = 1

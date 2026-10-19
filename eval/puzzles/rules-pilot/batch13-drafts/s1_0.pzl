@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Same creature, same timestamp
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:Your Eager Cadet is equipped with Cursed Windbreaker (equip {3}) and enchanted by the opponent's Grounded, which came later. You also control Grizzly Bears, which came under your control this turn, and six Plains. The opponent controls Moat and is at 20 life. End the turn with the opponent at 19 life.
+Rule:rulesguru-f9baca61ea79bba9 | Equipping a creature to the creature it is already on does nothing and gives no new timestamp (CR 701.3b, 613.7e), so Grounded still wins (CR 613.7); equip Grizzly Bears and then Eager Cadet again, and the Windbreaker's flying applies after Grounded
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=
+p0battlefield=Eager Cadet|Id:1;Cursed Windbreaker|AttachedTo:1;Grizzly Bears|SummonSick;Plains;Plains;Plains;Plains;Plains;Plains
+p0library=Plains;Plains;Plains
+p1life=20
+p1battlefield=Grounded|AttachedTo:1;Moat
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 = 19

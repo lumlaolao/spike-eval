@@ -41,7 +41,16 @@ final class ToolAnswerBridge implements LLMBridge {
         String prompt = msgs.get(0).getAsJsonObject().get("content").getAsString();
         String leak = AnswerTool.textFormatLeak(prompt);
         if (leak != null && msgs.size() == 1) leaks.add(leak);
-        String args = toArgs(script.ask(prompt), prompt);   // the script itself, not counted as a text ask
+        // What came back after the first message (a rejected answer's reason, a nudge) is what a model reads next; the
+        // script sees it after the ask, as the conversation carries it (GoldenChecksToolTest, block re-asks).
+        StringBuilder seen = new StringBuilder(prompt);
+        for (int i = 1; i < msgs.size(); i++) {
+            JsonObject m = msgs.get(i).getAsJsonObject();
+            String role = m.has("role") ? m.get("role").getAsString() : "";
+            if ((role.equals("tool") || role.equals("user")) && m.has("content") && m.get("content").isJsonPrimitive())
+                seen.append("\n\n").append(m.get("content").getAsString());
+        }
+        String args = toArgs(script.ask(seen.toString()), prompt);   // the script itself, not counted as a text ask
         NativeTools.Call call = new NativeTools.Call("t" + (++seq), AnswerTool.NAME, args);
         JsonObject msg = new JsonObject();
         msg.addProperty("role", "assistant");

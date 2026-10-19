@@ -1,0 +1,19 @@
+========================================================================
+  EXPLORATORY MODE — numbers from this run are NOT citable.
+  Mirror-deck / forced-heuristics-off / jobs=1 guards are DISABLED.
+  Re-run without --exploratory (and a mirror deck) for a citable batch.
+========================================================================
+[provenance] engine=34a8662b7966a6ee757411feae2ae8ff38cce436 overlay=52bd112f3ae1 deck=6514c71c2476 discipline=exploratory
+[provenance] checkpoint=unknown seed_bank=dev-lane
+[condition] context_profile=(unset: default v4-faithful) memory_tools=1
+[warn] no --checkpoint given: the game line will not say which weights played. The endpoint's served_* fields are then the only identity, and an alias spec (e.g. openrouter:default_model) may not resolve to one.
+[out] /tmp/claude-0/-home-user-mtg-forge-llm-agent/74426204-d28e-5201-8e89-7dad65d3aeb0/scratchpad/live/g24
+Running 1 games (jobs=1, out=/tmp/claude-0/-home-user-mtg-forge-llm-agent/74426204-d28e-5201-8e89-7dad65d3aeb0/scratchpad/live/g24, forge_home=/root/forge)
+[budget] this directory may spend up to $0.40 (already $0.00); a game is not started past that, so the overshoot is at most the 1 games in flight
+[start] seed=4124 swap=0 -> game-4124-0.log
+[done] seed=4124 swap=0
+
+=== batch summary ===
+completed: 1  skipped(resume): 0  problems: 0
+[cost] /tmp/claude-0/-home-user-mtg-forge-llm-agent/74426204-d28e-5201-8e89-7dad65d3aeb0/scratchpad/live/g24: 1 games, 82 model calls, 1.04M prompt + 0.03M completion tokens -> $0.07 ($0.071 per game started)  (50% of prompt tokens read from cache)
+Aggregate with: python3 /home/user/mtg-forge-llm-agent/eval/aggregate.py /tmp/claude-0/-home-user-mtg-forge-llm-agent/74426204-d28e-5201-8e89-7dad65d3aeb0/scratchpad/live/g24

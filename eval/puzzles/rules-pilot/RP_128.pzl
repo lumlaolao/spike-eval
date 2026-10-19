@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 128 - Counters count on the way in
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Garruk's Uprising and eight Wastes, and have Walking Ballista in hand. Your library is three Grizzly Bears. End the turn with exactly two cards in your library and Walking Ballista on your battlefield with four +1/+1 counters.
+Rule:wizards-official-card-rulings-038ccfc6af23bc72 | Replacement effects that apply as a creature enters, such as entering with +1/+1 counters, count when checking its power for an enters trigger (CR 614.12, 603.6a)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Walking Ballista
+p0battlefield=Garruk's Uprising;Wastes;Wastes;Wastes;Wastes;Wastes;Wastes;Wastes;Wastes
+p0library=Grizzly Bears;Grizzly Bears;Grizzly Bears
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Library * = 2
+counters p0 Battlefield "Walking Ballista" P1P1 = 4

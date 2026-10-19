@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 187 - X first, then the floor
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Trinisphere and three Forests and have Green Sun's Zenith in hand. Your library holds Grizzly Bears, Llanowar Elves and Colossal Dreadmaws. End the turn with Grizzly Bears on the battlefield.
+Rule:rulesguru-ef019a6f8680d74e | X is chosen before Trinisphere raises the total cost (CR 601.2b, 601.2f): Green Sun's Zenith for X=2 costs three and finds a mana value 2 creature
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Green Sun's Zenith
+p0battlefield=Trinisphere;Forest;Forest;Forest
+p0library=Colossal Dreadmaw;Grizzly Bears;Llanowar Elves;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Grizzly Bears" = 1

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Naming a basic land
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control four Swamps and have Ancient Vendetta in hand. The opponent's graveyard holds Plains, Serra Angel and Wrath of God; their hand is empty and their library is three Plains and two Islands. End the turn with four of the opponent's cards in exile.
+Rule:wizards-of-the-coast-release-notes-fbc08b02cb53d6d9 | A "choose a card name" effect can name any card, basic lands included, unless the card says otherwise (CR 201.3): Ancient Vendetta naming Plains exiles four cards
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Ancient Vendetta
+p0battlefield=Swamp;Swamp;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1graveyard=Plains;Serra Angel;Wrath of God
+p1library=Plains;Plains;Plains;Island;Island
+[acceptance]
+count p1 Exile * = 4

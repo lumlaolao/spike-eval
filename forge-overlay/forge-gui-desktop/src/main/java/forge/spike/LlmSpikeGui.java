@@ -284,8 +284,43 @@ public final class LlmSpikeGui {
      *  name" and "top of Seat library" read as English.
      *  Epoch 51 (2026-10-18): a creature type is said in its own plural on an option ("Elves", not Forge's "Elfs"),
      *  and a preview plays a mana ability and shows the mana it adds.
+     *  Epoch 52 (2026-10-18, rules puzzle pilot): a spell whose targets are all "up to" is offered with none to target
+     *  (Finale of Promise); a source whose tap damage is lethal pays (City of Brass at 1 life, an engine patch); a
+     *  block set the engine objects to (menace, "must block") goes back to the seat with the engine's reason.
+     *  Epoch 53 (2026-10-18, rules puzzle batch 2): an activated ability's alternative cost is offered (Forge Anew:
+     *  equip for {0}); an "up to one" target with a single candidate is asked, with "No target" offered.
+     *  Epoch 54 (2026-10-18): the seat clears Forge's static AiCache where Forge's AI does, so answers cached against
+     *  this game (isPreventCombatDamageThisTurn) are not read stale; a preview survives a card remembered outside
+     *  every copied zone (lookahead-preview-v13, runs/loop/g16).
+     *  Epoch 55 (2026-10-18, rules puzzle batch 4): a choice list's section headers ("--PERMANENTS:--", Forge's
+     *  divider cards in "choose a source") are not offered as options.
+     *  Epoch 56 (2026-10-18): combat damage divided as the attacker chooses (the 2024 rules, Forge's default here) is
+     *  asked as amounts per blocker and, with trample, the player, checked against the lethal-first trample rule; it was
+     *  an order with damage cascading lethal-first, which hid every other legal split.
+     *  Epoch 57 (2026-10-18): "lethal damage" for assignment is the rule's (toughness minus damage, 1 with deathtouch),
+     *  not Forge AI's estimate of what kills, which forced legal trample splits past indestructible, protected or
+     *  shielded blockers (rules pilot RP_156-RP_160).
+     *  Epoch 58 (2026-10-18): a preview no longer fails on a prepared card (Enroot) in any copy, the simulator's internal
+     *  ones included: an engine patch to GameCopier (runs/loop/g23), lookahead-preview-v14.
+     *  Epoch 59 (2026-10-19, rules puzzle batch 6): a card may pay for its own ability (Mishra's Factory tapping itself
+     *  for its animate; Forge AI's mana chooser skipped it), an engine patch; the arms take a legal block set under a
+     *  block requirement instead of keeping an illegal one after 64 draws.
+     *  Epoch 60 (2026-10-19, runs/loop/g27): a card pays for its own ability only when the two do not both tap it;
+     *  epoch 59 offered Rishadan Port's tap ability with Port as the only source, and the activation failed.
+     *  Epoch 61 (2026-10-19, runs/loop/g28): a preview aims a counterspell at the spell on the copy's stack, and reports
+     *  exile counts (lookahead-preview-v15).
+     *  Epoch 62 (2026-10-19, rules pilot batches 7-8): a mana ability's sacrifice cost inside a payment is the seat's
+     *  (Thermopod, RP_198); a forced free cast that still costs mana asks whether to pay (Sphere, RP_197); an optional
+     *  cast the engine just confirmed is not asked again (suspend, RP_209); setup choices draw nothing (RP_207).
+     *  Epoch 63 (2026-10-19, rules pilot batch 10): a play a static forbids (Pithing Needle, Null Rod, Gaddock Teeg) is
+     *  not on the menu; the engine's canPlay() leaves those statics to checkRestrictions, which the menu never asked
+     *  (Endbringer's ping under a Needle naming it was offered and played, RP_207).
+     *  Epoch 64 (2026-10-19, rules pilot batch 12): each target of a divided spell gets at least 1 (CR 601.2d); the split
+     *  [2 0] was taken, so Fire at two targets dealt all 2 to one.
+     *  Epoch 65 (2026-10-19, pr-review of PR #268): a source whose tap damage is lethal pays last for a harness seat,
+     *  not first; at 1 life with City of Brass and Llanowar Elves the payment plan tapped City for {1}.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-51";
+    static final String HARNESS_EPOCH = "harness-epoch-65";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -748,6 +783,9 @@ public final class LlmSpikeGui {
         static {
             forge.ai.ComputerUtilMana.HARNESS_SEAT_CHOOSES_ANY_COLOR = p -> p.getController() instanceof PlayerControllerLLM
                     && ((PlayerControllerLLM) p.getController()).choosesOwnColours();
+            // Every harness seat may pay with a source whose tap damage is lethal (a legal action is never hidden):
+            // Forge's AI skipped City of Brass at 1 life, so Angel's Grace was never offered (rules pilot RP_017).
+            forge.ai.ComputerUtilMana.HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE = p -> p.getController() instanceof PlayerControllerLLM;
         }
         boolean choosesOwnColours() { return "llm".equals(mode) && rnd == null; }
         private static final int MAX_PLAY_DECISIONS_PER_TURN = 25;
@@ -1194,7 +1232,7 @@ public final class LlmSpikeGui {
             this.mode = mode == null || mode.isEmpty() ? "llm" : mode;
             // The random arm and the other zero-model puzzle arms (PuzzleArms: script, pass, first) share
             // the random arm's decision paths; each draws the same one long from MyRandom here.
-            this.rnd = PuzzleArms.isArm(this.mode) ? PuzzleArms.forMode(this.mode, MyRandom.getRandom().nextLong()) : null;
+            this.rnd = PuzzleArms.isArm(this.mode) ? PuzzleArms.forMode(this.mode, MyRandom.getRandom().nextLong(), seat) : null;
             this.smart = smartBridge;
             this.fast  = fastBridge;
             this.ctx = profile();
@@ -1876,6 +1914,37 @@ public final class LlmSpikeGui {
             return decideOne(b, type, question, options, noneLabel, null);
         }
 
+        /** A section header Forge puts into a choice list (ChooseSourceEffect's "--PERMANENTS:--" cards, negative id):
+         *  not an option; the engine asks again when one is picked (rules pilot RP_108). */
+        static boolean isListDivider(Object o) {
+            return o instanceof Card && ((Card) o).getId() < 0 && String.valueOf(((Card) o).getName()).startsWith("--");
+        }
+
+        /** The puzzle prover's record of what the solver chose where the game log does not say (a mode, a clone pick,
+         *  a number, a card named): two solving lines that differ only there are two solutions (PuzzleSearch.unique).
+         *  Card handles and the "#1"/"#2" that tell repeated labels apart are dropped, so the same card under another
+         *  handle, or two identical triggers in either order, is the same choice (RP_021). */
+        private void noteSolverChoice(String type, String label) {
+            if (!(rnd instanceof PuzzleArms.Search) || !"Solver".equals(((PuzzleArms.Search) rnd).seat)) return;
+            if (type != null && UNIQUENESS_NEUTRAL.contains(type)) return;
+            PuzzleArms.Line l = PuzzleArms.searchLine;
+            if (l != null && label != null && !label.startsWith("PASS") && !"[]".equals(label))
+                l.note((type == null ? "choice" : type) + ": " + label.replaceAll(" ?@\\d+", "")
+                        .replaceAll(" #\\d+(?=[,\\]]|$)", "").replaceAll("\\[(un)?tapped\\]|\\[sick\\]", "")
+                        // the object's current size and counters: the same card before and after a counter (RP_127)
+                        .replaceAll(" ?\\(\\d+/\\d+\\)", "").replaceAll("\\[[^\\]]* x\\d+\\]", ""));
+        }
+
+        /** Choices that make no second solution on their own (rules puzzle batch 3: 18 correct puzzles were called
+         *  "multiple" for them): the order of cards moved together or of triggers and replacements, which source paid,
+         *  a scry, a confirm prompt, a library pick declined and made again, mana paid from the pool or the colour an
+         *  any-colour source made (a "choose a color" effect is asked under this type too, a known blind spot). Where one
+         *  decides the result, the result
+         *  differs in the solver's actions or in a choice that is noted. */
+        static final java.util.Set<String> UNIQUENESS_NEUTRAL = new java.util.HashSet<>(java.util.Arrays.asList(
+                "order", "trigger-order", "replacement-order", "mana-sources", "mana-from-pool", "color", "scry", "confirm",
+                "zone-change", "target", "targets"));   // targets: the log's "targeting [...]" already says them (RP_022)
+
         /** {@code simulate}: the `simulate` call for this decision (a target choice of a play), or null. */
         private int decideOne(LLMBridge b, String type, String question, List<String> options, String noneLabel,
                               java.util.function.Function<String, String> simulate) {
@@ -1892,6 +1961,7 @@ public final class LlmSpikeGui {
                 if (n == 0) return -1;
                 int c = PuzzleArms.pick(rnd, n, noneLabel != null);
                 int res = c >= options.size() ? -1 : c;
+                noteSolverChoice(type, res < 0 ? noneLabel : options.get(res));
                 if (type != null) evalDec(type, options.size(), res, tierOf(b == smart), System.currentTimeMillis() - t0, null, options);
                 return res;
             }
@@ -1958,13 +2028,17 @@ public final class LlmSpikeGui {
             long t0 = System.currentTimeMillis();
             // RANDOM arm: uniformly sized random subset of the same legal menu.
             if (rnd != null) {
-                List<Integer> all = new ArrayList<>();
-                for (int i = 0; i < options.size(); i++) all.add(i);
-                PuzzleArms.shuffle(all, rnd);
-                int lo = Math.max(0, min), hi = Math.min(max, options.size());
-                if (hi < lo) return null;
-                List<Integer> res = new ArrayList<>(all.subList(0, PuzzleArms.subsetSize(rnd, lo, hi)));
+                // An order ask (every option, in an order) is searched over its orders; the other arms keep their stream.
+                boolean order = ("trigger-order".equals(type) || "order".equals(type))
+                        && min == options.size() && max == options.size();
+                List<Integer> res = order && rnd instanceof PuzzleArms.Search ? PuzzleArms.permutation(rnd, options.size())
+                        : PuzzleArms.subset(rnd, options.size(), Math.max(0, min), Math.min(max, options.size()));
+                if (res == null) return null;
                 lastPicks = res;
+                List<String> picked = new ArrayList<>();
+                for (int i : res) picked.add(options.get(i));
+                if (!order) java.util.Collections.sort(picked);
+                noteSolverChoice(type, String.valueOf(picked));
                 if (type != null) evalDec(type, options.size(), res.size(), tierOf(b == smart), System.currentTimeMillis() - t0, null, options);
                 return res;
             }
@@ -2025,6 +2099,10 @@ public final class LlmSpikeGui {
                 int n = Math.max(1, Math.min(num, 8));
                 for (int i = 0; i < n; i++) res.add(rnd.nextInt(options.size()));
                 lastPicks = res;
+                List<String> picked = new ArrayList<>();
+                for (int i : res) picked.add(options.get(i));
+                java.util.Collections.sort(picked);   // the modes chosen, not the order they were named in (RP_034)
+                noteSolverChoice("modes", String.valueOf(picked));
                 evalDec("modes", options.size(), res.size(), tierOf(b == smart), System.currentTimeMillis() - t0, null, options);
                 return res;
             }
@@ -2071,8 +2149,33 @@ public final class LlmSpikeGui {
         /** The divided-allocation ask: `n` numbers, in target order, summing to `total`. Null when the
          *  reply does not give exactly `n`, so the caller can split evenly (legal). */
         private List<Integer> decideAllocation(LLMBridge b, String question, List<String> labels, int total) {
+            return decideAllocation(b, question, labels, total, null);
+        }
+
+        /** Each target of a divided spell or ability gets at least one (CR 601.2d); the split [2 0] was accepted, so
+         *  Fire at two targets dealt all 2 to one (rules pilot batch 12). Combat damage may give a creature 0. */
+        static final java.util.function.Function<List<Integer>, String> EACH_TARGET_AT_LEAST_ONE = a ->
+                a.stream().anyMatch(v -> v < 1) ? "each chosen target must get at least 1 (CR 601.2d)." : null;
+
+        /** {@code rule}: the reason an allocation is not legal, or null (a trampler's lethal-first rule); an answer it
+         *  refuses is corrected in the conversation, or asked again with the reason. */
+        private List<Integer> decideAllocation(LLMBridge b, String question, List<String> labels, int total,
+                                               java.util.function.Function<List<Integer>, String> rule) {
             clearLast();
             int n = labels.size();
+            if (rnd instanceof PuzzleArms.Search) {
+                // The prover branches over the splits: each amount but the last drawn from what is left.
+                List<Integer> out = new ArrayList<>();
+                int left = total;
+                int least = rule == EACH_TARGET_AT_LEAST_ONE ? 1 : 0;
+                for (int i = 0; i < n - 1; i++) {
+                    int most = left - least * (n - 1 - i);   // leave the targets after this one their minimum
+                    int v = least + rnd.nextInt(Math.max(0, most - least) + 1);
+                    out.add(v); left -= v;
+                }
+                out.add(left);
+                return rule == null || rule.apply(out) == null ? out : null;
+            }
             if (rnd != null) return evenSplit(total, n);   // RANDOM arm: the same deterministic legal split
             String base = buildDecideManyPrompt(snapshot(), question
                     + " (reply ALLOC: " + n + " numbers that sum to " + total + ")", labels, 1, Math.max(1, total),
@@ -2081,18 +2184,23 @@ public final class LlmSpikeGui {
             for (int attempt = 0; attempt < 2; attempt++) {
                 String prompt = attempt == 0 ? base
                         : base + "\n\n(Answer with ONE line only: ALLOC: <" + n + " numbers summing to " + total + ">.)";
-                offerAnswer(b, AnswerTool.Spec.alloc(n, total).labels(labels));
+                AnswerTool.Spec spec = AnswerTool.Spec.alloc(n, total).labels(labels);
+                if (rule != null) spec.check(ans -> rule.apply(ans.amounts));
+                offerAnswer(b, spec);
                 String reply = ask(b, prompt);
                 noteAnswerVia(attempt);
                 if (reply == null) return null;
                 AnswerTool.Answer ta = toolAnswer();
-                if (ta != null) return new ArrayList<>(ta.amounts);   // validated: n amounts summing to total
+                if (ta != null) return new ArrayList<>(ta.amounts);   // validated: n amounts summing to total, and the rule
                 String seg = textSegment(reply, "ALLOC:");
                 if (seg == null) continue;
                 List<Integer> out = new ArrayList<>();
                 Matcher m = Pattern.compile("\\d+").matcher(seg);
                 while (m.find() && out.size() < n) out.add(Integer.parseInt(m.group()));
-                if (out.size() == n) return out;           // the caller re-checks the sum
+                if (out.size() != n) continue;             // the caller re-checks the sum
+                String why = rule == null ? null : rule.apply(out);
+                if (why == null) return out;
+                base = base + "\n\nThat split is not legal: " + why + " Give another.";
             }
             return null;
         }
@@ -2427,7 +2535,7 @@ public final class LlmSpikeGui {
             ManaSource(String name, int amount) { this.name = name; this.amount = amount; }
         }
         static boolean canActivateNow(SpellAbility ab, Player pl) {
-            try { ab.setActivatingPlayer(pl); return ab.canPlay(); } catch (Exception e) { return false; }
+            try { ab.setActivatingPlayer(pl); return PlayerControllerLLM.playable(ab, pl); } catch (Exception e) { return false; }
         }
         static List<ManaSource> manaSources(Player pl) {
             List<ManaSource> out = new ArrayList<>();
@@ -3225,6 +3333,9 @@ public final class LlmSpikeGui {
             return options.get(0);
         }
 
+        /** The card the seat just agreed to play when the engine asked "Do you want to play X?" (a Play effect). */
+        private Card playConfirmed;
+
         /** A spell cast by an effect (cascade, suspend, Dreadhorde Arcanist, "you may cast it"): whether
          *  to cast it when it is optional, then X, modes and targets, all the seat's. The inherited version
          *  asked Forge AI whether to cast it and let doTrigger-style AI logic target it (Rift Bolt off
@@ -3234,7 +3345,28 @@ public final class LlmSpikeGui {
             clearLast();
             if (!(tgtSA instanceof forge.game.spellability.Spell)) return true;
             boolean optional = !tgtSA.getPayCosts().isMandatory();
-            if (optional) {
+            // The engine has just asked "Do you want to play X?" for this card and the seat said yes: asking again
+            // offered the decline twice (suspend, rules pilot RP_209).
+            boolean confirmed = playConfirmed != null && playConfirmed == tgtSA.getHostCard();
+            playConfirmed = null;
+            if (!optional) {
+                // A cast the effect makes "if able" can still cost mana (Sphere of Resistance on a free spell). No player
+                // is made to activate a mana ability (CR 605.3a): left unpaid, the spell is not cast (rules pilot RP_197).
+                String tax = null;
+                try {
+                    forge.game.mana.ManaCostBeingPaid due = ComputerUtilMana.calculateManaCost(tgtSA.getPayCosts(), tgtSA,
+                            getPlayer(), true, 0, false);
+                    if (due != null && !due.isPaid()) tax = due.toString();
+                } catch (Exception e) { tax = null; }
+                if (tax != null) {
+                    if (!smartOk() && !fastOk()) { auto("play-from-effect(no-model)->decline"); return false; }
+                    List<String> labels = Lists.newArrayList("Cast it, paying " + tax, "Do not pay " + tax + ": it is not cast");
+                    int c = decideOne(smartOk() ? smart : fast, "play-from-effect", "An effect casts this now if you pay "
+                            + tax + ": " + labelOf(tgtSA) + ". Pay it?", labels, null);
+                    if (c != 0) { if (c < 0) auto("play-from-effect(unparsed)->decline"); return false; }
+                }
+            }
+            if (optional && !confirmed) {
                 if (!smartOk() && !fastOk()) { auto("play-from-effect(no-model)->decline"); return false; }
                 List<String> labels = Lists.newArrayList("Cast it", "Do not cast it");
                 // The label already opens with its verb: "An effect lets you cast CAST Rift Bolt" (runs/loop/g02).
@@ -3270,6 +3402,61 @@ public final class LlmSpikeGui {
             return player;
         }
 
+        /** The engine's reason the last block set was not legal, put into the re-ask; set only during that re-ask. */
+        private String blockCorrection = null;
+
+        /** The engine's objection to these blocks (requirements such as "all creatures able to block it do so",
+         *  restrictions such as menace), or null. The engine checks them only for its own GUI (InputBlock calls
+         *  CombatUtil.validateBlocks), so every other controller's blocks stood whatever they were (rules pilot
+         *  RP_007). The pairs (blocker, attacker) are added, checked and removed again. */
+        static String blocksError(Combat combat, Player defender, List<Card[]> pairs) {
+            for (Card[] pr : pairs) combat.addBlocker(pr[1], pr[0]);
+            try { return CombatUtil.validateBlocks(combat, defender); }
+            catch (Exception e) { return null; }
+            finally { for (Card[] pr : pairs) combat.removeBlockAssignment(pr[1], pr[0]); }
+        }
+
+        /** Every block set the engine accepts (CombatUtil.validateBlocks) where each blocker blocks one attacker or none,
+         *  or null when there are more than {@link #MAX_BLOCK_SETS} combinations to try. An arm that cannot draw a legal
+         *  set under a block requirement takes one of these (rules pilot RP_185: ten creatures that must block a Lure). */
+        static List<List<Card[]>> legalBlockSets(Combat combat, Player defender, List<Card> blockers, List<Card> attackers) {
+            List<List<Card>> options = new ArrayList<>();
+            long combos = 1;
+            for (Card b : blockers) {
+                List<Card> o = new ArrayList<>();
+                o.add(null);
+                for (Card a : attackers) if (CombatUtil.canBlock(a, b, combat)) o.add(a);
+                options.add(o);
+                combos *= o.size();
+                if (combos > MAX_BLOCK_SETS) return null;
+            }
+            List<List<Card[]>> out = new ArrayList<>();
+            int[] idx = new int[blockers.size()];
+            for (long n = 0; n < combos; n++) {
+                List<Card[]> pairs = new ArrayList<>();
+                for (int i = 0; i < blockers.size(); i++) {
+                    Card a = options.get(i).get(idx[i]);
+                    if (a != null) pairs.add(new Card[] {blockers.get(i), a});
+                }
+                if (blocksError(combat, defender, pairs) == null) out.add(pairs);
+                for (int i = 0; i < idx.length; i++) { if (++idx[i] < options.get(i).size()) break; idx[i] = 0; }
+            }
+            return out;
+        }
+        static final int MAX_BLOCK_SETS = 4096;
+
+        /** Blocks the seat declared that the engine objects to are removed and the seat is asked once more with the
+         *  reason; a second illegal set is logged and left as no blocks. */
+        private void illegalBlocks(Player defender, Combat combat, String err) {
+            for (Card b : CardLists.filterControlledBy(combat.getAllBlockers(), defender)) combat.undoBlockingAssignment(b);
+            if (blockCorrection == null) {
+                blockCorrection = err;
+                try { declareBlockers(defender, combat); } finally { blockCorrection = null; }
+                return;
+            }
+            p("[BLOCK-INVALID] the second block set was not legal either (" + err + "): no blocks");
+        }
+
         @Override
         public void declareBlockers(Player defender, Combat combat) {
             clearLast();
@@ -3288,14 +3475,37 @@ public final class LlmSpikeGui {
                 // "student choice" was never a choice at all.
                 final Integer shadowBlk = shadowBlockers(defender, combat, blockers.size());
                 if (rnd != null) { // random arm: each legal blocker blocks a random attacker or not, 50/50
-                    int assignedR = 0;
-                    for (Card b : blockers) {
-                        if (rnd.nextBoolean()) continue;
-                        Card a = attackers.get(rnd.nextInt(attackers.size()));
-                        if (CombatUtil.canBlock(a, b, combat)) { combat.addBlocker(a, b); assignedR++; }
+                    // The prover picks among the legal block sets, one draw for the whole set (each set is one line).
+                    if (rnd instanceof PuzzleArms.Search) {
+                        List<List<Card[]>> legal = legalBlockSets(combat, defender, new ArrayList<>(blockers), attackers);
+                        if (legal != null && !legal.isEmpty()) {
+                            List<Card[]> pick = legal.get(rnd.nextInt(legal.size()));
+                            for (Card[] pr : pick) combat.addBlocker(pr[1], pr[0]);
+                            auto("blockers(search)->" + pick.size() + " of " + legal.size() + " legal sets");
+                            return;
+                        }
                     }
-                    auto("blockers(random)->" + assignedR);
-                    return;
+                    // A draw the engine objects to (menace, a block requirement) is drawn again, and after a few, a
+                    // legal set is taken from the engine's own check; a legal first draw leaves the arm's stream as it was.
+                    for (int draw = 0; ; draw++) {
+                        List<Card[]> pairs = new ArrayList<>();
+                        for (Card b : blockers) {
+                            if (rnd.nextBoolean()) continue;
+                            Card a = attackers.get(rnd.nextInt(attackers.size()));
+                            if (CombatUtil.canBlock(a, b, combat)) pairs.add(new Card[] {b, a});
+                        }
+                        String err = blocksError(combat, defender, pairs);
+                        if (err != null && draw >= 3) {
+                            List<List<Card[]>> legal = legalBlockSets(combat, defender, new ArrayList<>(blockers), attackers);
+                            if (legal != null && !legal.isEmpty()) { pairs = legal.get(rnd.nextInt(legal.size())); err = null; }
+                        }
+                        if (err == null || draw >= 63) {
+                            for (Card[] pr : pairs) combat.addBlocker(pr[1], pr[0]);
+                            if (err != null) p("[BLOCK-INVALID] arm: no legal block set in 64 draws (" + err + ")");
+                            auto("blockers(random)->" + pairs.size() + (draw > 0 ? " (draw " + (draw + 1) + ")" : ""));
+                            return;
+                        }
+                    }
                 }
                 // No model available -> deterministic NO BLOCKS (the fallback policy), never the engine AI.
                 if (!smartOk()) { auto("blockers(no-model)->none"); return; }
@@ -3318,6 +3528,8 @@ public final class LlmSpikeGui {
                 // Every other ask names its DECISION; the one-chat history keeps an earlier ask from that
                 // line on, so without it a block kept its whole stale state (PromptFidelityTest contract).
                 if (observer != null) prompt = prompt.replace("\nCOMBAT — declare blockers.", "\nDECISION: COMBAT — declare blockers.");
+                if (blockCorrection != null)
+                    prompt += "\n\nThe blocks you declared are not legal (the engine says: " + blockCorrection + "). Declare blockers again.";
                 p("[ROUTER] blockers: " + attackers.size() + " atk / " + blockers.size() + " blk -> " + routeLabel(smart.getModel(), rnd != null));
                 // The answer tool names blocks by NUMBER: the two lists, numbered, and every pair checked
                 // against the engine before it is accepted (an illegal block is corrected in the same
@@ -3326,11 +3538,15 @@ public final class LlmSpikeGui {
                 for (Card a : attackers) atkLabels.add(observer != null ? observer.shortRef(a) : a.getName() + " (" + a.getNetPower() + "/" + a.getNetToughness() + ")");
                 final List<Card> blkList = new ArrayList<>(blockers), atkList = new ArrayList<>(attackers);
                 AnswerTool.Spec blockSpec = AnswerTool.Spec.blocks(blkLabels, atkLabels, blkLimits).check(ans -> {
-                    for (int[] pr : ans.blocks)
+                    List<Card[]> pairs = new ArrayList<>();
+                    for (int[] pr : ans.blocks) {
                         if (!CombatUtil.canBlock(atkList.get(pr[1] - 1), blkList.get(pr[0] - 1), combat))
                             return "blocker " + pr[0] + " (" + blkLabels.get(pr[0] - 1) + ") cannot block attacker "
                                     + pr[1] + " (" + atkLabels.get(pr[1] - 1) + ").";
-                    return null;
+                        pairs.add(new Card[] {blkList.get(pr[0] - 1), atkList.get(pr[1] - 1)});
+                    }
+                    String err = blocksError(combat, defender, pairs);
+                    return err == null ? null : "these blocks are not legal together: " + err;
                 });
                 String numbered = "\nATTACKERS: " + numberedList(atkLabels) + "\nYOUR BLOCKERS: " + numberedList(blkLabels) + "\n";
                 String line = null;
@@ -3368,6 +3584,8 @@ public final class LlmSpikeGui {
                     lastShadowChoice = shadowBlk; // genuine model-consulted decision -> label it
                     evalDec("blockers", blkLabels.size(), 0, "smart", 0, null, blkLabels);
                     p("[ROUTER] blockers: NONE");
+                    String none = blocksError(combat, defender, new ArrayList<>());
+                    if (none != null) illegalBlocks(defender, combat, none);
                     return;
                 }
                 int assigned = 0;
@@ -3385,6 +3603,8 @@ public final class LlmSpikeGui {
                 evalDec("blockers", blockers.size() + assigned, assigned, "smart", 0,
                         dropped.isEmpty() ? null : "blockers(unparsed-pairs:" + dropped.size() + ")", blkLabels); // choice = # blocks
                 p("[ROUTER] blockers: assigned " + assigned + (dropped.isEmpty() ? "" : ", not used: " + String.join("; ", dropped)));
+                String err = blocksError(combat, defender, new ArrayList<>());
+                if (err != null) illegalBlocks(defender, combat, err);
             } catch (Exception e) {
                 // Same rule as declareAttackers (#126): a deterministic LEGAL default, never the AI.
                 // Declaring no blockers is legal.
@@ -3399,6 +3619,10 @@ public final class LlmSpikeGui {
             // which spins the priority loop ~999x ("AI looped too much"). So PASS must be null, never empty.
             final List<SpellAbility> PASS = null;
             clearLast();
+            // Forge's static AiCache is cleared where Forge's AI chooses a play (AiController.chooseSpellAbilityToPlay);
+            // the seat's pricing and combat helpers read it too, so the seat clears it in the same place. Uncleared,
+            // answers keyed by this game lasted the whole game and every finished game stayed reachable (prove-v3).
+            forge.ai.AiCache.clear();
             try {
                 Player me = getPlayer();
                 PhaseHandler phh = me.getGame().getPhaseHandler();
@@ -3434,7 +3658,7 @@ public final class LlmSpikeGui {
 
                 // Enumerate castable spells + distinct playable lands (shared with the ai-teacher seat so
                 // both build the byte-identical option menu — see enumeratePlayOptions).
-                PlayOptions po = enumeratePlayOptions(me, ownMain, observer != null);
+                PlayOptions po = enumeratePlayOptions(me, ownMain, faithfulMenu(observer != null, rnd));
                 List<SpellAbility> options = po.spells;
                 if (!failedInWindow.isEmpty() && options.removeIf(sa -> failedInWindow.contains(failedPlayKey(sa))))
                     p("[ROUTER] play: a play that failed to pay in this window is not offered again");
@@ -3903,7 +4127,7 @@ public final class LlmSpikeGui {
                 SpellAbility sa, String title, boolean isOptional, Player relatedPlayer, Map<String, Object> params) {
             clearLast();
             List<T> opts = new ArrayList<>();
-            for (T t : optionList) opts.add(t);
+            for (T t : optionList) if (!isListDivider(t)) opts.add(t);
             if (opts.isEmpty()) return null;   // nothing to choose from (Forge's AI was asked; it had nothing either)
             // delayedReveal carries a reveal side-effect: keep the engine's reveal semantics by
             // revealing BEFORE the pick (exactly PlayerControllerAi's order), then route the pick
@@ -4037,7 +4261,8 @@ public final class LlmSpikeGui {
                 // needs an allocation per target. Both route through the same menu (#124); the
                 // division is the model's, with an even split as the deterministic legal fallback.
                 if (sa.getMaxTargets() > 1 || sa.isDividedAsYouChoose()) return chooseManyTargets(sa, cands, labels, min);
-                if (cands.size() > 1 && okFor("targets")) {
+                // "Up to one" with one candidate is still a choice: that one, or none (rules pilot RP_045).
+                if ((cands.size() > 1 || min == 0) && okFor("targets")) {
                     String q = "Choose the TARGET for " + copyOf(sa) + labelOf(sa) + xNote(sa) + " (the spell/ability resolves against whatever you pick).";
                     int c = decideOne(bridgeFor("targets"), "targets", q, labels, min == 0 ? "No target (decline)" : null);
                     // bridge dead -> the same deterministic path as an unparsed reply (decline when
@@ -4080,6 +4305,14 @@ public final class LlmSpikeGui {
             int max = sa.getMaxTargets();
             boolean divided = sa.isDividedAsYouChoose();
                 int lo = Math.max(divided ? 1 : 0, min), hi = Math.min(Math.max(max, 1), cands.size());
+                // Each target of a divided spell gets at least 1 (CR 601.2d), so it has at most as many targets as
+                // its total: Rolling Thunder for X=2 among three picks fell back to [1 1 0].
+                int dividedTotal = 0;
+                if (divided) {
+                    try { dividedTotal = forge.game.ability.AbilityUtils.calculateAmount(
+                            sa.getHostCard(), sa.getParam("DividedAsYouChoose"), sa); } catch (Exception ignore) { }
+                    if (dividedTotal > 0) hi = Math.max(lo, Math.min(hi, dividedTotal));
+                }
                 // Strive adds its cost for each target beyond the first: as many targets as the cast can pay for.
                 Cost strive = keywordCost(sa, "Strive:");
                 String striveNote = "";
@@ -4113,6 +4346,8 @@ public final class LlmSpikeGui {
                 // Read only now: before clearTargets() a fresh divided spell's total is null, so the
                 // split was never asked and the targets had no allocation (GoldenChecksTest).
                 int divideTotal = divided && sa.getDividedValue() != null ? sa.getDividedValue() : 0;
+                if (divided && dividedTotal > 0 && tp.size() > Math.max(lo, dividedTotal))
+                    tp = new ArrayList<>(tp.subList(0, Math.max(lo, dividedTotal)));
                 for (int i : tp) sa.getTargets().add(cands.get(i));
                 if (min > 0 && sa.getTargets().size() < min) return firstLegalTargets(sa, "targets(multi,short)"); // safety net
                 StringBuilder split = new StringBuilder();
@@ -4120,7 +4355,8 @@ public final class LlmSpikeGui {
                     List<String> tl = new ArrayList<>();
                     for (int i : tp) tl.add(labels.get(i));
                     List<Integer> alloc = decideAllocation(bridgeFor("targets"), "Split " + divideTotal
-                            + " for " + labelOf(sa) + " among the chosen targets, in order.", tl, divideTotal);
+                            + " for " + labelOf(sa) + " among the chosen targets, in order, at least 1 each.", tl,
+                            divideTotal, EACH_TARGET_AT_LEAST_ONE);
                     if (alloc == null || alloc.size() != tp.size()
                             || alloc.stream().mapToInt(Integer::intValue).sum() != divideTotal)
                         alloc = evenSplit(divideTotal, tp.size());
@@ -4224,7 +4460,7 @@ public final class LlmSpikeGui {
                     int min = Math.max(1, sa.getMinTargets());
                     int pick = 0; // first legal candidate beats leaving it untargeted (which fizzles)
                     String fb = null; // non-null when the pick is a deterministic fallback, not a model choice
-                    if (cands.size() > 1 && okFor("target")) {
+                    if ((cands.size() > 1 || sa.getMinTargets() == 0) && okFor("target")) {
                         List<String> labels = new ArrayList<>();
                         for (forge.game.GameObject ge : cands) labels.add(targetLabel(ge));
                         if (cancellable) labels.add(CANCEL_LABEL);
@@ -4269,7 +4505,8 @@ public final class LlmSpikeGui {
                         List<String> tl = new ArrayList<>();
                         for (forge.game.GameObject ge : sa.getTargets()) tl.add(targetLabel(ge));
                         List<Integer> alloc = decideAllocation(bridgeFor("target"), "Split " + dt + " for "
-                                + labelOf(sa) + " among the chosen targets, in order.", tl, dt);
+                                + labelOf(sa) + " among the chosen targets, in order, at least 1 each.", tl, dt,
+                                EACH_TARGET_AT_LEAST_ONE);
                         if (alloc == null || alloc.size() != tl.size()
                                 || alloc.stream().mapToInt(Integer::intValue).sum() != dt)
                             alloc = evenSplit(dt, tl.size());
@@ -4595,6 +4832,7 @@ public final class LlmSpikeGui {
             final Card source = sa.getHostCard();
             final Game game = source.getGame();
             final forge.game.zone.Zone hz = source.isCopiedSpell() ? null : source.getZone();
+            final int hzPos = hz == null ? 0 : hz.getCards().indexOf(source);
             source.setSplitStateToPlayAbility(sa);
             if (sa.isSpell() && !source.isCopiedSpell()) {
                 sa = forge.game.ability.AbilityUtils.addSpliceEffects(sa);
@@ -4608,6 +4846,14 @@ public final class LlmSpikeGui {
             }
             if (!sa.isCopied()) { sa.resetPaidHash(); sa.setPaidLife(0); }
             sa = forge.game.GameActionUtil.addExtraKeywordCost(sa);
+            // The engine routine's own check, once the card is on the stack (ComputerUtil.handlePlayingSpellAbility):
+            // a static that forbids the play stops it here even if a menu missed it (rules pilot RP_207).
+            if (!sa.checkRestrictions(ai)) {
+                p("[ROUTER] play: " + labelOf(sa) + " is forbidden by a static -> nothing was played");
+                failedInWindow.add(chosenKey);
+                forge.game.GameActionUtil.rollbackAbility(sa, hz, hzPos, new CostPayment(sa.getPayCosts(), sa), source);
+                return true;
+            }
             if (sa.getApi() == ApiType.Charm && !modesChosen && !forge.game.ability.effects.CharmEffect.makeChoices(sa)) return true;
 
             game.getStack().freezeStack(sa);
@@ -4947,7 +5193,7 @@ public final class LlmSpikeGui {
                     for (SpellAbility ma : host.getManaAbilities()) {
                         if (!hasTapTypeCost(ma)) continue;
                         ma.setActivatingPlayer(me);
-                        if (!ma.canPlay() || !CostPayment.canPayAdditionalCosts(ma.getPayCosts(), ma, effect)) {
+                        if (!playable(ma, me) || !CostPayment.canPayAdditionalCosts(ma.getPayCosts(), ma, effect)) {
                             said.add(host);
                             costDecisionFellBack("mana-tap-cost", host.getName() + " cannot be activated first");
                             break;
@@ -4997,8 +5243,16 @@ public final class LlmSpikeGui {
             return need;
         }
 
+        /** A mana ability whose cost names cards to tap (Heritage Druid) or a permanent to sacrifice (Thermopod, rules
+         *  pilot RP_198: Forge's AI chose Hostage Taker inside the payment). A sacrifice of the source itself is no
+         *  choice. */
         private static boolean hasTapTypeCost(SpellAbility ma) {
-            return ma.getPayCosts() != null && ma.getPayCosts().hasSpecificCostType(forge.game.cost.CostTapType.class);
+            if (ma.getPayCosts() == null) return false;
+            if (ma.getPayCosts().hasSpecificCostType(forge.game.cost.CostTapType.class)) return true;
+            for (forge.game.cost.CostPart part : ma.getPayCosts().getCostParts())
+                if (part instanceof forge.game.cost.CostSacrifice && !((forge.game.cost.CostSacrifice) part).payCostFromSource())
+                    return true;
+            return false;
         }
 
         /** Simultaneous-trigger ORDER (trigger targeting stays the engine's — the inherited
@@ -5492,6 +5746,7 @@ public final class LlmSpikeGui {
                 if (c == -1) evalDec("confirm", 2, 1, tierOf(false), 0, "confirm(unparsed)->NO", yn);
                 else if (c == -2) evalDec("confirm", 2, 1, "auto", 0, "confirm(bridge-down)->NO", yn);
                 boolean yes = (c == 0);
+                playConfirmed = yes && sa != null && sa.getApi() == ApiType.Play ? cardToShow : null;
                 p("[ROUTER] confirm(" + oneLine(message == null ? String.valueOf(mode) : message) + "): " + (yes ? "YES" : "NO"));
                 return yes;
             } catch (Exception e) {
@@ -5514,6 +5769,7 @@ public final class LlmSpikeGui {
                 }
                 if (rnd != null) {
                     int value = (int) rnd.nextLong((long) min, (long) max + 1);
+                    noteSolverChoice("number", (title == null ? "" : title + " ") + value);
                     auto("number(random)->" + value); return value;
                 }
                 // A range is a legal domain, not a three-option approximation. Avoid constructing
@@ -5733,6 +5989,7 @@ public final class LlmSpikeGui {
                 if (faces == null || faces.isEmpty()) { auto("card-name(list:empty)->none"); return ""; }
                 if (rnd != null) { // random arm: uniform over the list — never the model, never the AI
                     String pick = faces.get(rnd.nextInt(faces.size())).getName();
+                    noteSolverChoice("card-name", pick);
                     auto("card-name(random)->" + pick);
                     return pick;
                 }
@@ -6868,9 +7125,8 @@ public final class LlmSpikeGui {
          *  a forced, deterministic `tier=auto` (all damage to the one blocker, no choice exists); a
          *  single blocker WITH trample is a genuine strategic choice (max-trample-through vs. dump
          *  everything on the blocker for overkill/value) and gets a compact two-option decideOne menu.
-         *  `getEnoughDamageToKill` is Forge's pure lethal-damage-math helper (deathtouch/indestructible/
-         *  prevention aware) — reused the same way `ComputerUtilMana.canPayManaCost` already is elsewhere
-         *  in this file, NOT an AI strategy call.
+         *  "Lethal" is the rule's, {@link #lethalDamage} (CR 702.19b), not Forge AI's estimate of what kills
+         *  (getEnoughDamageToKill counted indestructible, protection, shields and doublers: rules pilot RP_156-RP_160).
          *  MULTI-BLOCKER (double/triple block etc.): report C1 follow-up — this used to be the
          *  "[AI-EXOTIC-DAMAGE]" escape hatch that handed the WHOLE decision to Forge's AI via
          *  `super.assignCombatDamage`, including routine cases (e.g. two blockers, 1 damage — there is
@@ -6878,7 +7134,7 @@ public final class LlmSpikeGui {
          *  combat-damage path may reach Forge AI. Instead we ask the model to PRIORITIZE the blockers
          *  (one bounded decideMany call, full permutation, reusing the same PICKS plumbing as
          *  orderMoveToZoneList above), then assign damage deterministically in that order — lethal
-         *  amount (via getEnoughDamageToKill) to each blocker before spilling over to the next, with any
+         *  amount (lethalDamage, the rule's) to each blocker before spilling over to the next, with any
          *  leftover tramples through if the attacker has trample and a defender exists, otherwise piles
          *  onto the last blocker in the chosen order. No-model / unparsed-after-retry falls back to the
          *  engine's own blocker order (tier=auto, "damage-assign(auto-in-order)") — still never Forge AI. */
@@ -6887,11 +7143,15 @@ public final class LlmSpikeGui {
                 int damageDealt, GameEntity defender, boolean overrideOrder) {
             clearLast();
             try {
+                if (overrideOrder && blockers != null && !blockers.isEmpty() && damageDealt > 0) {
+                    Map<Card, Integer> free = assignFreeDivision(attacker, blockers, damageDealt, defender);
+                    if (free != null) return free;
+                }
                 if (blockers != null && blockers.size() == 1) {
                     Card single = blockers.getFirst();
                     boolean trample = defender != null && attacker.hasKeyword(Keyword.TRAMPLE);
                     int[] split = trample
-                            ? trampleSplit(damageDealt, ComputerUtilCombat.getEnoughDamageToKill(single, damageDealt, attacker, true))
+                            ? trampleSplit(damageDealt, lethalDamage(attacker, single))
                             : new int[]{damageDealt, 0};
                     int lethal = split[0], trampleOver = split[1];
                     Map<Card, Integer> r = new java.util.HashMap<>();
@@ -6938,6 +7198,53 @@ public final class LlmSpikeGui {
             return r;
         }
 
+        /** Combat damage divided as the attacker's controller chooses (the 2024 rules; Forge's default here, GameRules
+         *  orderCombatants false): any amounts on the blockers, and with trample on the defending player once every
+         *  blocker has lethal. Asked as amounts, not as an order with damage cascading lethal-first, which hid every other
+         *  legal split (found writing rules puzzles, batch 5). Null when there is only one legal split (a single blocker
+         *  without trample, or not enough damage to trample over); an answer that cannot be used cascades lethal-first. */
+        private Map<Card, Integer> assignFreeDivision(Card attacker, CardCollectionView blockers, int damageDealt, GameEntity defender) {
+            List<Card> bl = new ArrayList<>(blockers);
+            boolean trample = defender != null && attacker.hasKeyword(Keyword.TRAMPLE);
+            List<Integer> lethal = new ArrayList<>();
+            int lethalSum = 0;
+            for (Card b : bl) { int l = lethalDamage(attacker, b); lethal.add(l); lethalSum += l; }
+            if (bl.size() == 1 && (!trample || lethalSum >= damageDealt)) return null;
+            List<String> labels = new ArrayList<>();
+            for (int i = 0; i < bl.size(); i++) labels.add(cardLabel(bl.get(i)) + " (lethal damage: " + lethal.get(i) + ")");
+            if (trample) labels.add(defender + " (the defending player: only once every blocker above has lethal)");
+            final int nb = bl.size();
+            java.util.function.Function<List<Integer>, String> rule = a -> {
+                if (!trample || a.get(nb) == 0) return null;
+                for (int i = 0; i < nb; i++)
+                    if (a.get(i) < lethal.get(i))
+                        return "with trample, damage goes to the player only once every blocker has lethal ("
+                                + safeName(bl.get(i)) + " needs " + lethal.get(i) + ").";
+                return null;
+            };
+            String q = "COMBAT DAMAGE ASSIGNMENT: " + safeName(attacker) + " deals " + damageDealt + " combat damage"
+                    + (nb > 1 ? " and is blocked by " + nb + " creatures" : " to its blocker " + safeName(bl.get(0)))
+                    + ". Divide it as you choose among the blockers" + (trample ? " and, with trample, the defending player" : "")
+                    + ". Give an amount for each, in the order listed, summing to " + damageDealt + ".";
+            List<Integer> a = decideAllocation(fastOk() ? fast : smart, q, labels, damageDealt, rule);
+            boolean used = a != null && a.size() == labels.size() && a.stream().mapToInt(Integer::intValue).sum() == damageDealt
+                    && rule.apply(a) == null;
+            Map<Card, Integer> r = new java.util.HashMap<>();
+            if (used) {
+                for (int i = 0; i < nb; i++) r.put(bl.get(i), a.get(i));
+                if (trample && a.get(nb) > 0) r.put(null, a.get(nb));
+            } else {
+                int left = damageDealt;                    // the fixed legal split: lethal-first in the given order
+                for (int i = 0; i < nb; i++) { int v = Math.min(lethal.get(i), left); r.put(bl.get(i), v); left -= v; }
+                if (left > 0) { if (trample) r.put(null, left); else r.put(bl.get(nb - 1), r.get(bl.get(nb - 1)) + left); }
+            }
+            evalDec("damage-assign", labels.size(), used ? 0 : -1, tierOf(!fastOk()), 0,
+                    used ? null : "damage-assign(unusable)->lethal-first", labels);
+            p("[ROUTER] damage-assign: " + r.entrySet().stream().map(e -> (e.getKey() == null ? String.valueOf(defender)
+                    : safeName(e.getKey())) + "=" + e.getValue()).collect(java.util.stream.Collectors.joining(", ")));
+            return r;
+        }
+
         /** Multi-blocker damage split, model-prioritized (see assignCombatDamage's javadoc above).
          *  Returns a lethal-first assignment in the model's (or, on failure, the engine's) blocker
          *  order — every path deterministic Java, never Forge's combat AI. */
@@ -6979,7 +7286,7 @@ public final class LlmSpikeGui {
                 if (remainingDmg <= 0) {
                     assign = 0;
                 } else {
-                    int lethal = ComputerUtilCombat.getEnoughDamageToKill(b, remainingDmg, attacker, true);
+                    int lethal = lethalDamage(attacker, b);
                     assign = Math.min(lethal, remainingDmg);
                 }
                 r.put(b, assign);
@@ -8170,12 +8477,19 @@ public final class LlmSpikeGui {
             return -1;
         }
 
+        /** Lethal damage for assigning combat damage (CR 702.19b, 510.1c): the blocker's toughness (or what Forge's
+         *  getLethal says, e.g. power under Zilortha) minus damage already marked and assigned, and 1 at most when the
+         *  attacker has deathtouch (CR 702.2c). Whether the damage would kill (indestructible, protection, a shield
+         *  counter, a doubler) does not enter: rules pilot RP_156-RP_160 forced splits the rules allow. */
+        static int lethalDamage(Card attacker, Card blocker) {
+            int l = Math.max(0, blocker.getLethalDamage());
+            return attacker != null && attacker.hasKeyword(Keyword.DEATHTOUCH) ? Math.min(l, 1) : l;
+        }
+
         /** Pure trample-split math used by assignCombatDamage's single-blocker/trample menu: how much
-         *  of `damageDealt` is lethal-to-the-blocker vs. tramples over to the defender. `killDamage` is
-         *  whatever ComputerUtilCombat.getEnoughDamageToKill reports (may exceed damageDealt when the
-         *  blocker can't be killed with what's available — e.g. indestructible without deathtouch, or
-         *  simply not enough damage). Returns {lethal, trampleOver}; trampleOver is 0 whenever the
-         *  blocker can't be killed outright, since there's nothing to legally trample over then. */
+         *  of `damageDealt` is lethal-to-the-blocker vs. tramples over to the defender. `killDamage` is the
+         *  rule's lethal damage ({@link #lethalDamage}); it may exceed damageDealt, and then nothing tramples over.
+         *  Returns {lethal, trampleOver}. */
         static int[] trampleSplit(int damageDealt, int killDamage) {
             int lethal = Math.min(Math.max(damageDealt, 0), Math.max(killDamage, 0));
             int trampleOver = damageDealt - lethal;
@@ -8191,6 +8505,14 @@ public final class LlmSpikeGui {
             PlayOptions(List<SpellAbility> spells, List<SpellAbility> landPlays, List<Card> landCards) {
                 this.spells = spells; this.landPlays = landPlays; this.landCards = landCards;
             }
+        }
+
+        /** The faithful menu (every land, every mana ability that floats) for a model seat and for the puzzle prover:
+         *  a prover with a smaller menu than the model's misses lines, and calls a puzzle unique that has a second
+         *  solution (rules pilot RP_017: City of Brass tapped before Angel's Grace was never on the search arm's menu).
+         *  The other zero-model arms keep the legacy menu, so the canaries do not move. */
+        static boolean faithfulMenu(boolean modelSeat, java.util.Random arm) {
+            return modelSeat || arm instanceof PuzzleArms.Search;
         }
 
         /** Enumerate the play menu exactly as {@link #chooseSpellAbilityToPlay} builds it — castable,
@@ -8218,7 +8540,8 @@ public final class LlmSpikeGui {
             for (SpellAbility sa : ComputerUtilAbility.getSpellAbilities(
                     ComputerUtilAbility.getAvailableCards(me.getGame(), me), me)) {
                 candidates.add(sa);
-                if (!sa.isSpell() || sa.getAlternativeCost() != null) continue;
+                // An activated ability has alternative costs too (Forge Anew: equip for {0}, rules pilot RP_026).
+                if ((!sa.isSpell() && !sa.isActivatedAbility()) || sa.isManaAbility() || sa.getAlternativeCost() != null) continue;
                 try {
                     for (SpellAbility alt : GameActionUtil.getAlternativeCosts(sa, me, false)) {
                         candidates.add(alt); altCosts.add(alt);
@@ -8270,10 +8593,28 @@ public final class LlmSpikeGui {
             return new PlayOptions(options, landPlays, landCards);
         }
 
-        /** Whether the play menu offers {@code sa} now: playable (timing, restrictions), payable, and with
-         *  a legal target when it targets. {@code alt}: an alternative cost, which is rarely mana alone
-         *  (exile a card, pay life, return an Island), so it is checked as a whole cost; the normal cast
-         *  keeps its historical mana check. */
+        /** The engine's own "may this be played now": canPlay() leaves out the statics that forbid a play (Pithing Needle,
+         *  Null Rod, Gaddock Teeg, Rule of Law), which Forge checks only as the play is made (checkRestrictions); the
+         *  seat's menu offered Endbringer's ping under a Needle naming it and the harness played it (rules pilot RP_207,
+         *  batch 10). */
+        static boolean playable(SpellAbility sa, Player me) {
+            if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(me);
+            if (!sa.canPlay()) return false;
+            // A spell's restrictions are about it on the stack, cast from its zone, as Forge's AI asks them
+            // (AiController.canPlaySa): asked about the card in hand, Drannith Magistrate's "not cast from their hand"
+            // hid every hand spell, and Grafdigger's Cage's graveyard origin never matched a flashback.
+            Card host = sa.getHostCard();
+            if (sa.isSpell() && host != null) {
+                Card lki = forge.game.card.CardCopyService.getLKICopy(host);
+                lki.setLKICMC(-1);
+                lki.setLastKnownZone(me.getGame().getStackZone());
+                lki.setCastFrom(host.getZone());
+                lki.setSplitStateToPlayAbility(sa);  // the face being cast (an adventure, a split half, an MDFC back)
+                return sa.checkRestrictions(lki, me);
+            }
+            return sa.checkRestrictions(me);
+        }
+
         /** A mana ability whose cost is more than tapping (Lion's Eye Diamond's sacrifice and discard, Lotus Petal's
          *  sacrifice, a Spirit Guide exiled from hand) is a decision a combo turns on: crack LED in response to your own
          *  Infernal Tutor to be hellbent when it resolves. Offered on the faithful seat's menu when it can be activated
@@ -8289,7 +8630,7 @@ public final class LlmSpikeGui {
                     || c.hasSpecificCostType(forge.game.cost.CostPutCounter.class)
                     || c.hasSpecificCostType(forge.game.cost.CostRemoveCounter.class) || sa.isPwAbility();
             if (!beyondTap) return false;
-            try { sa.setActivatingPlayer(me); return sa.canPlay() && legallyPayable(sa, me, false); }
+            try { sa.setActivatingPlayer(me); return playable(sa, me) && legallyPayable(sa, me, false); }
             catch (Exception e) { return false; }
         }
 
@@ -8331,13 +8672,17 @@ public final class LlmSpikeGui {
         /** A mana ability that only taps (or costs mana), activatable now: floating mana is legal, so it is on the menu. */
         static boolean floatableMana(SpellAbility sa, Player me) {
             if (!sa.isManaAbility() || sa.getPayCosts() == null) return false;
-            try { sa.setActivatingPlayer(me); return sa.canPlay() && legallyPayable(sa, me, false); }
+            try { sa.setActivatingPlayer(me); return playable(sa, me) && legallyPayable(sa, me, false); }
             catch (Exception e) { return false; }
         }
 
+        /** Whether the play menu offers {@code sa} now: playable (timing, restrictions), payable, and with
+         *  a legal target when it targets. {@code alt}: an alternative cost, which is rarely mana alone
+         *  (exile a card, pay life, return an Island), so it is checked as a whole cost; the normal cast
+         *  keeps its historical mana check. */
         static boolean offerable(SpellAbility sa, Player me, boolean alt) {
             if (sa.isLandAbility() || sa.isManaAbility()) return false;
-            if (!sa.canPlay()) return false;
+            if (!playable(sa, me)) return false;
             // The cost check prices the menu and the hand tags (SeatObservation.handList's castTag):
             // its adjust consults the controller on cost reductions (CostAdjustment's reduction loop),
             // and an ask inside a snapshot build re-enters renderSnapshot forever. See PRICING_FOR_SNAPSHOT.
@@ -8376,7 +8721,8 @@ public final class LlmSpikeGui {
                 try {
                     if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(me);
                     TargetRestrictions tr = sa.getTargetRestrictions();
-                    if (tr != null && targetCandidates(sa, tr).size() < Math.max(1, sa.getMinTargets())) return false;
+                    // Only the targets it must have: "up to one target" casts with none (Finale of Promise, RP_006).
+                    if (tr != null && targetCandidates(sa, tr).size() < sa.getMinTargets()) return false;
                 } catch (Exception ignore) { /* can't evaluate -> offer it, prior behavior */ }
             }
             return true;
@@ -8918,7 +9264,7 @@ public final class LlmSpikeGui {
         public <T extends GameEntity> T chooseSingleEntityForEffect(FCollectionView<T> optionList, DelayedReveal delayedReveal,
                 SpellAbility sa, String title, boolean isOptional, Player relatedPlayer, Map<String, Object> params) {
             List<T> opts = new ArrayList<>();
-            try { if (optionList != null) for (T t : optionList) opts.add(t); } catch (Exception ignore) { }
+            try { if (optionList != null) for (T t : optionList) if (!PlayerControllerLLM.isListDivider(t)) opts.add(t); } catch (Exception ignore) { }
             List<String> labels = null; String prompt = null;
             try {
                 // delayedReveal != null is delegated (not routed) by the LLM seat -> no "entity" row there.

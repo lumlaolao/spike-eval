@@ -77,6 +77,56 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   replicate), escalate's modes and strive's targets stop at what the engine says the cast can pay, so no answer
   the seat may give fails the cast (harness-epoch-43).
 - A creature that can block more than one attacker may: its label says how many, and the `answer` schema allows it.
+- A spell whose targets are all "up to" is offered with nothing to target (Finale of Promise), and a mana source whose
+  tap damage would be lethal still pays (City of Brass at 1 life; Forge's AI skips it, an engine patch lifts that for
+  harness seats), but last, after every safe source (epoch 65). Both were found by the rules puzzle pilot (harness-epoch-52). So were these (epoch 53): an
+  activated ability's alternative cost is offered (Forge Anew: equip for {0}; the menu expanded alternative costs for
+  spells only), and an "up to one" target with a single candidate is asked with "No target" offered.
+- Forge's static `AiCache` is cleared where Forge's AI clears it, at the seat's priority ask (epoch 54). It holds
+  answers keyed by the game (`isPreventCombatDamageThisTurn`) that the seat's pricing and combat helpers read; uncleared
+  they lasted the whole game, and in the puzzle prover every finished game stayed in memory until the heap ran out.
+- A choice list's section headers are not options: Forge's "choose a source" puts divider cards ("--PERMANENTS:--",
+  "--SPELLS ON THE STACK:--") into the list and asks again when one is picked (epoch 55, rules pilot RP_108).
+- Combat damage is divided as the attacker's controller chooses (the 2024 rules; our games build GameRules with
+  orderCombatants false): the seat gives an amount for each blocker and, with trample, the defending player; a split
+  that tramples over before every blocker has lethal goes back with the reason; an unusable answer cascades
+  lethal-first in the given order. Before epoch 56 the seat named only an order with that cascade, so "all six on the
+  second blocker" or "lethal plus one, trample the rest" were never on offer. The legacy rules (orderCombatants true)
+  keep the declared order. The prover's search arm branches over the splits. A divided spell's or ability's
+  split gives each chosen target at least 1 (CR 601.2d), so it takes at most as many targets as its total; before
+  epoch 64 a model or prover split of [2 0] was taken, and Rolling Thunder for 2 could aim at three targets. "Lethal" is the rule's (CR 702.19b:
+  toughness minus damage marked, 1 with deathtouch, power under Zilortha), not what would kill: epoch 57 replaced
+  Forge AI's estimate, which counted indestructible, protection, shields and doublers.
+- A `simulate` preview copies the game with Forge's GameCopier, which threw on a card no copied zone holds (a prepared
+  card's spell, Enroot), in the preview's copy and in the simulator's own internal ones. GameCopier is patched to skip
+  such a card (epoch 58, ENGINE-PATCHES.md).
+- A card may pay for its own ability (Mishra's Factory tapping itself for its {1} animate): Forge AI's mana chooser
+  skipped an ability's own card, and a manland already animated this turn, as a taste (epoch 59, ENGINE-PATCHES.md).
+  Not when both the ability and the mana ability tap the card (Rishadan Port cannot pay its own {1}; epoch 60,
+  runs/loop/g27).
+- A mana ability whose cost sacrifices a permanent of the seat's choice (Thermopod) is activated by the seat before the
+  engine's payment, as a tap-type cost already was (#105); Forge's payment chose the creature with its AI (epoch 62,
+  rules pilot RP_198). The payment's other planned sources stay out of the sacrifice while enough remain.
+- A cast an effect makes "if able" that still costs mana (Sphere of Resistance on Omen Machine's free spell) asks
+  whether to pay: no player is made to activate a mana ability (CR 605.3a), and unpaid the spell is not cast. An
+  optional cast the engine has just confirmed ("Do you want to play X?", suspend) is not asked a second time (epoch
+  62, RP_197, RP_209).
+- Puzzles: while the board is put down, the arms take the first option and draw nothing, and the .pzl's `NamedCard`
+  is set exactly afterwards (GameState adds it to the name chosen during setup; RP_207).
+- A play is on the menu only if the engine's `canPlay()` and `checkRestrictions` both allow it. `canPlay()` leaves out
+  the statics that forbid a play (Pithing Needle, Null Rod, Gaddock Teeg, Rule of Law), which Forge checks only as a
+  human's play is made; before epoch 63 the seat was offered, and the harness played, Endbringer's ping under a Needle
+  naming it (rules pilot RP_207, batch 10). A spell is asked as Forge's AI asks it, as an LKI copy on the stack cast
+  from its zone (asked about the card in hand, Drannith Magistrate's "not cast from their hand" hid every hand spell and
+  Grafdigger's Cage never matched a flashback). The same check covers the mana abilities offered and activated first,
+  the lookahead's mana steps, and the play itself once the card is on the stack (the engine routine's check).
+- Under a block requirement the zero-model arms take a legal block set from the engine's check (each blocker one
+  attacker or none, up to 4096 combinations) instead of keeping an illegal draw; the prover's search arm draws once
+  among the legal sets (epoch 59, rules pilot RP_185).
+- A block set is checked as a whole, by the engine's `CombatUtil.validateBlocks`: requirements ("all creatures able
+  to block it do so") and restrictions (menace). Forge runs that check only for its own GUI, so before epoch 52 any
+  block set the seat or an arm declared stood. The `answer` call is corrected in the same conversation; a text reply
+  is asked once more with the engine's reason; an arm draws again (a legal first draw keeps its stream).
 - The one exception: a window whose only option is floating mana that changes nothing passes unasked, as an empty
   one: a land's ability costing only {T} and mana that only adds mana, into a pool that empties without burn, with no
   trigger on a tap or on mana added. Floating that does change the game (a creature tapped and unable to block,
@@ -181,7 +231,7 @@ model's plan text (the "plan-named" fallbacks went in harness-epoch-30, review M
     | [sick], [tapped] | `Card.isSick()` / `isTapped()` |
     | the shuffle after a Ponder order | the ability (`MayShuffle`, or a Shuffle effect), not the message wording |
     | X in the mode and target questions | the announced `getXManaCostPaid` of the spell |
-    | a card's name in a question | the engine's name, with an effect's engine id removed (one function, `safeName`) |
+    | a card's name in a question | the engine's name, with an effect's engine id removed, its source's too when the source is an effect (one function, `safeName`; observation-faithful-v42, g33) |
     | a filter in a cost or a name ask ("another blue card", "three black creatures", "a nonland card") | the engine's filter (`Card.Blue+Other`) said in words (`filterParts`, `plainFilters`, `nameConstraint`), in every cost the seat reads and in the state's stack and history lines (`SeatObservation.redact`), under the faithful profile (legacy profiles keep the engine's text). Control and ownership ("creatures an opponent controls"), a chosen or shared name, and a bare filter (a plural) are said too. Any other condition is left out of a counted phrase ("a card"), reads "the creatures the card describes" in a bare one, and leaves a name ask to the card's own text. A creature type Forge pluralised with an "s" takes its own plural from Forge's type list (`typePlurals`: "Elfs" reads "Elves", g10) |
     | CAST THIS GAME, LANDS PLAYED | the engine's `GameEventSpellAbilityCast` / `GameEventLandPlayed` (a copy is not a cast), not the log line's wording |
 
@@ -314,7 +364,7 @@ lookahead seat, declared on every ask. A call that does not apply gets an error 
 | `memory_search`, `memory_read` | the evidence archive of this game, which the brief summarises |
 | `memory_note` | the seat's own notebook |
 | `rules_lookup` | the comprehensive rules, effective date stated (`docs/harness/RULES-TOOL.md`) |
-| `simulate` | the lookahead: what an option resolves to, on a copy of the game (`LOOKAHEAD-DESIGN.md`). The copy shuffles every library and re-deals each opponent's hand from its hand and library, so a preview reveals no hidden card (lookahead-preview-v6, `LookaheadProbeTest.hiddenCardsDoNotChangeThePreview`). While the seat aims a play it is making, `option` is a target's number and the play is previewed at it (lookahead-preview-v10, seat-tools-v11; g03 asked there and was refused). A preview restores the targets of every ability of the chain it aimed (`aPreviewLeavesNoTargetOnAnyAbilityOfTheChain`: Arc Trail's second target stayed set, and the real cast skipped asking for it). A mana ability is a step like any other and the report shows the mana pool (lookahead-preview-v12; g10's line "cast Heritage Druid twice, then tap Gaea's Cradle" was refused whole) |
+| `simulate` | the lookahead: what an option resolves to, on a copy of the game (`LOOKAHEAD-DESIGN.md`). The copy shuffles every library and re-deals each opponent's hand from its hand and library, so a preview reveals no hidden card (lookahead-preview-v6, `LookaheadProbeTest.hiddenCardsDoNotChangeThePreview`). While the seat aims a play it is making, `option` is a target's number and the play is previewed at it (lookahead-preview-v10, seat-tools-v11; g03 asked there and was refused). A preview restores the targets of every ability of the chain it aimed (`aPreviewLeavesNoTargetOnAnyAbilityOfTheChain`: Arc Trail's second target stayed set, and the real cast skipped asking for it). A mana ability is a step like any other and the report shows the mana pool (lookahead-preview-v12; g10's line "cast Heritage Druid twice, then tap Gaea's Cradle" was refused whole). A counterspell's preview is aimed at the spell on the copy's stack (the copier maps only cards and players, and a counter aimed at the card fizzled), and the report counts exile as well as graveyards (lookahead-preview-v15, g28: Force of Negation against Seam Rip was unavailable, then showed Seam Rip resolving; `aForceOfNegationPitchOnTheOpponentsTurnIsPreviewed`) |
 | `report_unclear_decision` | the model reports a confusing ask, which feeds the defect backlog |
 
 Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
@@ -396,6 +446,12 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
 | `random` | uniform over the same legal menus |
 | `ai` | Forge's AI, the opponent and a baseline |
 | `pass`, `first`, `script` | puzzle arms |
+| `search` | the puzzle prover: both seats draw from one shared line of choices (`PuzzleArms.Search`), and `PuzzleSearch` replays prefixes to find a winning line and beat every opponent reply on it, then (rules puzzles) searches each solver deviation for a second solution; a rule puzzle's `[acceptance]` section (`PuzzleAcceptance`) decides what a solve is |
+
+- *Why the prover:* Forge's puzzle mode tests one opponent line, its AI's, so a solve can come from the AI
+  blocking badly. A proof (`eval/BENCHMARK-V1.md`, phase 2) beats every opponent choice the engine offers, and
+  every leaf of it is a solve Forge scored. A decideMany subset is drawn through `PuzzleArms.subset`, which
+  makes the old draws for every other arm (no canary moves) and one include-or-not per option for search.
 
 - The seed-42 floor and random mirrors are pinned canaries, at A/108/1824 and A/45/368.
 - *Why:* a score is meaningless without the trivial baseline it beats (the "88% lesson" in `CLAUDE.md`).
@@ -440,7 +496,8 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
     the pilot condition (profile, tiers, answer tool, tools, lookahead, chat windows, plans): `run_batch.py
     --panel` launches and `panel_score.py` scores no other. *Why:* a score is a property of one seat; two
     settings under one name would be two benchmarks.
-  - **STR-HELDOUT:** the same on a held-out seed band.
+  - **STR-HELDOUT:** the same on a held-out seed band; to become the private mined puzzle split
+    (`eval/BENCHMARK-V1.md`, owner decision 2026-10-18).
   - **PUZ:** the puzzle suite (`eval/PUZZLES.md`), where Forge enforces the goal and a solve is judged
     by the engine.
 - **Ratings (`rating.py`):** Bradley-Terry with the Forge AI pinned at 1500, a first-player term, a

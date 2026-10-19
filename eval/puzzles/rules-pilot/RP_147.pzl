@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 147 - Counted on resolution
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Tezzeret, Master of the Bridge (5 loyalty), five Darksteel Relics and two Mountains, and have Shrapnel Blast in hand. The opponent is at 10 life. Win this turn.
+Rule:rulesguru-00f95f86f9825cef | An ability counts as it resolves (CR 608.2h): an artifact sacrificed before Tezzeret's +2 resolves is not counted
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Shrapnel Blast
+p0battlefield=Tezzeret, Master of the Bridge|Counters:LOYALTY=5;Darksteel Relic;Darksteel Relic;Darksteel Relic;Darksteel Relic;Darksteel Relic;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=10
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

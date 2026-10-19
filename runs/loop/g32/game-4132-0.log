@@ -1,0 +1,722 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=37571 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 34086 files in 1 ms (25 parts) using thread pool
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 857 files in 0 ms (8 parts) using thread pool
+[SEED] 4132
+[EVAL] jsonl game-4132-1792438490913.jsonl
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/pioneer-dimir-kaito.plan
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/pauper-madness-burn.plan
+[DECK] loaded 'Seat': 60 main, 15 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/pioneer-dimir-kaito.txt)
+[DECK] loaded 'ForgeAI': 60 main, 15 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/pauper-madness-burn.txt)
+[SEATS] A=Seat(llm,openrouter:openai/gpt-6-luna) B=ForgeAI(ai,opus)
+[Seat] [OBSERVATION] observation-faithful-v41 (profile v4-faithful/379d6b7b5b6a)
+[HEADLESS] game starting (cap=120min)
+[OPENROUTER Seat/smart] replied in 8336 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: 5/7 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7921 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: MULLIGAN
+[OPENROUTER Seat/smart] replied in 8049 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan-bottom: Unholy Annex // Ritual Chamber
+[Seat] [ROUTER] mulligan: 1/6 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5411 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: MULLIGAN
+[OPENROUTER Seat/smart] replied in 13174 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan-bottom: Otawara, Soaring City, Watery Grave
+[Seat] [ROUTER] mulligan: 3/5 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 21163 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: KEEP
+[Seat] [TALLY] smart=6 fast=0 auto=0 ai=0 textParses=0 avgSmart=10675ms avgFast=10675ms
+[Seat] [ROUTER] play(main): 0 castable + 3 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 17154 ms with 1 tool call(s)
+[Seat] [ROUTER] plan: GOAL: Use the turn-one black source to disrupt the opponent, then develop the Dimir tempo game. NEXT: Play Darkslick Shores untapped and cast Thoughtseize if offered; follow with evasive creatures and ninjutsu/value.
+[OPENROUTER Seat/smart] replied in 2697 ms with 1 tool call(s)
+[Seat] [ROUTER] lines: Thoughtseize + evasive attackers -> clear a blocker or key answer, then connect and enable Moon-Circuit Hacker/Kaito ninjutsu. Floodpits Drowner + Mutavault -> tap down a threat, then activate Drowner to shuffle it away.
+[Seat] [ROUTER] play: land Darkslick Shores
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[Seat] [TALLY] smart=8 fast=0 auto=1 ai=0 textParses=0 avgSmart=10488ms avgFast=10488ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4117 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 2365 ms with 1 tool call(s)
+[Seat] [ROUTER] target: opponent (ForgeAI) <- Thoughtseize @15 {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Seat] [ROUTER] play: casts Thoughtseize @15 {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Seat] [AUTO-LEGAL] color(forced)->first
+[OPENROUTER Seat/smart] replied in 27593 ms with 1 tool call(s)
+[Seat] [ROUTER] discard(strip ForgeAI): Fireblast
+Highway Robbery Did not have activator set in SpellAbilityRestriction.canPlay()
+Highway Robbery Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+[Seat] [TALLY] smart=11 fast=0 auto=2 ai=0 textParses=0 avgSmart=10725ms avgFast=10725ms
+[Seat] [ROUTER] play(main): 2 castable + 3 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10970 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Disrupt the burn/value plan, preserve life where possible, and develop the Dimir mana base for evasive threats. NEXT: Cast Thoughtseize using Darkslick Shores, take the most threatening Highway Robbery; then play Watery Grave tapped to avoid unnecessary life loss.
+[OPENROUTER Seat/smart] replied in 3820 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Red burn/value: Highway Robbery fuels card advantage and Fireblast is a major burst-damage threat; respect both while protecting life.
+[OPENROUTER Seat/smart] replied in 4378 ms with 1 tool call(s)
+[Seat] [ROUTER] target: opponent (ForgeAI) <- Thoughtseize @16 {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Seat] [ROUTER] play: casts Thoughtseize @16 {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Seat] [AUTO-LEGAL] color(forced)->first
+[OPENROUTER Seat/smart] replied in 6791 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Disrupt red burn/value while preserving life and develop mana for evasive threats. NEXT: Take Fireblast with Thoughtseize; then play Watery Grave tapped to avoid further life loss and continue building Dimir mana.
+[OPENROUTER Seat/smart] replied in 3909 ms with 1 tool call(s)
+[Seat] [ROUTER] discard(strip ForgeAI): Fireblast
+[Seat] [TALLY] smart=16 fast=0 auto=3 ai=0 textParses=0 avgSmart=9240ms avgFast=9240ms
+[Seat] [ROUTER] play(main): 0 castable + 3 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 12776 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Watery Grave
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[OPENROUTER Seat/smart] replied in 10638 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 2242 ms with 1 tool call(s)
+[Seat] [ROUTER] prevent-effect: declined Pay 2 life
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+[Seat] [TALLY] smart=19 fast=0 auto=4 ai=0 textParses=0 avgSmart=9131ms avgFast=9131ms
+[Seat] [ROUTER] play(main): 4 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10061 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Develop evasive pressure while keeping enough colored mana to follow up and avoid unnecessary life loss against red burn. NEXT: Play Mutavault, then cast Moon-Circuit Hacker with the two colored sources; attack next turn and use ninjutsu if profitable.
+[OPENROUTER Seat/smart] replied in 2120 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Mutavault
+[Seat] [TALLY] smart=21 fast=0 auto=4 ai=0 textParses=0 avgSmart=8842ms avgFast=8842ms
+[Seat] [ROUTER] play(main): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7451 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Moon-Circuit Hacker 2/1 @38 1{U} [Ninjutsu {U} ({U}, Return an unblocked attacker you control to hand: Put this card onto the battlefield from your hand tapped and attacking.) Whenever Moon-Circuit Hacker deals combat damage to a player, you may draw a card. If you do, discard a card unless Moon-Circuit Hacker entered this turn.]
+[OPENROUTER Seat/smart] replied in 13596 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 1 for CAST Moon-Circuit Hacker 2/1 @43 1{U} [Ninjutsu {U} ({U}, Return an unblocked attacker you control to hand: Put this card onto the battlefield from your hand tapped and attacking.) Whenever Moon-Circuit Hacker deals combat damage to a player, you may draw a card. If you do, discard a card unless Moon-Circuit Hacker entered this turn.]
+[Seat] [AUTO-LEGAL] color(forced)->first
+[Seat] [TALLY] smart=23 fast=0 auto=5 ai=0 textParses=0 avgSmart=8988ms avgFast=8988ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7297 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=24 fast=0 auto=5 ai=0 textParses=0 avgSmart=8917ms avgFast=8917ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8600 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Build evasive pressure and draw value while keeping life safe against red burn. NEXT: Pass through to the opponent's turn; next turn attack with Hacker, consider ninjutsu only when the value and mana justify it, and keep Mutavault available to animate.
+[OPENROUTER Seat/smart] replied in 2866 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=26 fast=0 auto=5 ai=0 textParses=0 avgSmart=8672ms avgFast=8672ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4078 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+[Seat] [ROUTER] play(react): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 11500 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Stay alive against red burn and rebuild evasive pressure after the Hacker is removed. NEXT: Let Lava Dart resolve; on my turn play Island, then prioritize a threat/value play while preserving life and respecting possible burn.
+[OPENROUTER Seat/smart] replied in 2056 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5097 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Rebuild board presence while conserving life against the red burn deck. NEXT: Pass upkeep; in main phase play Island, then assess draws and available plays before committing.
+[OPENROUTER Seat/smart] replied in 1802 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=31 fast=0 auto=5 ai=0 textParses=0 avgSmart=8065ms avgFast=8065ms
+[Seat] [ROUTER] play(main): 6 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 14922 ms with 1 tool call(s)
+hidden has neither ManaCost nor Color
+[Seat] [ROUTER] lookahead 7, then 1: if you play Island, then cast Mockingbird: you board 3 -> 5; hand 2 -> 0; entered the battlefield: Island, Mockingbird; ForgeAI no change
+[OPENROUTER Seat/smart] replied in 8582 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Island
+[Seat] [TALLY] smart=33 fast=0 auto=5 ai=0 textParses=0 avgSmart=8288ms avgFast=8288ms
+[Seat] [ROUTER] play(main): 7 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 13166 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Mutavault @42 [{1}: Mutavault becomes a 2/2 creature with all creature types until end of turn. It's still a land.]
+[OPENROUTER Seat/smart] replied in 13373 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 2 for ACTIVATE Mutavault @42 [{1}: Mutavault becomes a 2/2 creature with all creature types until end of turn. It's still a land.]
+[Seat] [TALLY] smart=35 fast=0 auto=5 ai=0 textParses=0 avgSmart=8573ms avgFast=8573ms
+[Seat] [ROUTER] play(main): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 16789 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 1: if you cast Mockingbird: you board 4 -> 5; hand 1 -> 0; entered the battlefield: Mutavault; ForgeAI no change
+[OPENROUTER Seat/smart] replied in 10690 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 17873 ms with 1 tool call(s)
+[Seat] [ROUTER] X = 0 for Mockingbird 1/1 @50 {X}{U} [Flying You may have Mockingbird enter the battlefield as a copy of any creature on the battlefield with mana value less than or equal to the amount of mana spent to cast Mockingbird, except it's a Bird in addition to its other types and it has flying.]
+[Seat] [ROUTER] play: casts Mockingbird 1/1 @50 {X}{U} [Flying You may have Mockingbird enter the battlefield as a copy of any creature on the battlefield with mana value less than or equal to the amount of mana spent to cast Mockingbird, except it's a Bird in addition to its other types and it has flying.]
+[OPENROUTER Seat/smart] replied in 11126 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 2 for CAST Mockingbird 1/1 @52 {X}{U} [Flying You may have Mockingbird enter the battlefield as a copy of any creature on the battlefield with mana value less than or equal to the amount of mana spent to cast Mockingbird, except it's a Bird in addition to its other types and it has flying.]
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[OPENROUTER Seat/smart] replied in 14974 ms with 1 tool call(s)
+[Seat] [ROUTER] confirm-replacement [Mockingbird]: NO
+[Seat] [TALLY] smart=40 fast=0 auto=6 ai=0 textParses=0 avgSmart=9288ms avgFast=9288ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8907 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=41 fast=0 auto=6 ai=0 textParses=0 avgSmart=9278ms avgFast=9278ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 11948 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=42 fast=0 auto=6 ai=0 textParses=0 avgSmart=9342ms avgFast=9342ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 11351 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Use Mutavault to pressure the burn opponent while rebuilding threats and preserving life. NEXT: Pass through main phase and attack with animated Mutavault; keep future mana for interaction and develop creatures.
+[OPENROUTER Seat/smart] replied in 2239 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3923 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Mutavault
+[Seat] [TALLY] smart=45 fast=0 auto=6 ai=0 textParses=0 avgSmart=9108ms avgFast=9108ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9777 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7741 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Rebuild pressure while preserving life against the red burn/value deck. NEXT: Pass upkeep; draw for turn, make the best land drop, and use Mutavault to attack while keeping mana available for useful interaction if drawn.
+[OPENROUTER Seat/smart] replied in 2819 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Red burn/value: Highway Robbery drives card advantage, Lava Dart picks off small threats, and Fireblast is the burst-damage threat to respect.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 13969 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=49 fast=0 auto=6 ai=0 textParses=0 avgSmart=9065ms avgFast=9065ms
+[Seat] [ROUTER] play(main): 6 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4926 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Rebuild pressure while preserving life against the red burn/value deck. NEXT: Play Swamp as the land drop, attack with Mutavault in combat, and keep mana available for interaction or threats.
+[OPENROUTER Seat/smart] replied in 1855 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Swamp
+[Seat] [TALLY] smart=51 fast=0 auto=6 ai=0 textParses=0 avgSmart=8842ms avgFast=8842ms
+[Seat] [ROUTER] play(main): 7 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5417 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 8: if you pass, nothing resolves: the board, hands, life and graveyards are unchanged. A preview cannot play out the opponent's turn.
+[OPENROUTER Seat/smart] replied in 2464 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 7 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6487 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Mutavault @42 [{1}: Mutavault becomes a 2/2 creature with all creature types until end of turn. It's still a land.]
+[OPENROUTER Seat/smart] replied in 7528 ms with 1 tool call(s)
+[Seat] [ROUTER] play(react): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4890 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9270 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 3974 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Mutavault
+[Seat] [ROUTER] play(react): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4361 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 6: if you pass, nothing resolves: the board, hands, life and graveyards are unchanged. A preview cannot play out the opponent's turn.
+[OPENROUTER Seat/smart] replied in 3011 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4583 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=61 fast=0 auto=6 ai=0 textParses=0 avgSmart=8245ms avgFast=8245ms
+[Seat] [ROUTER] play(main): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5566 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6196 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Survive the opponent's red value/burn turn and rebuild pressure with Mutavault next turn. NEXT: Pass through empty priority windows, respond to any spell or activation; on my turn attack with Mutavault and use available mana for a drawn threat or interaction.
+[OPENROUTER Seat/smart] replied in 2691 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 5 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8288 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 7 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5007 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Use this turn's draw to rebuild while preserving interaction against the opponent's burn/value plays. NEXT: Pass upkeep; in my main phase draw and make the best land drop or play available, then attack with Mutavault if safe.
+[OPENROUTER Seat/smart] replied in 4209 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=67 fast=0 auto=6 ai=0 textParses=0 avgSmart=7983ms avgFast=7983ms
+[Seat] [ROUTER] play(main): 8 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9725 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Stabilize with Sheoldred and pressure the red draw/burn plan. NEXT: Cast Sheoldred now, then use Mutavault to attack if safe; keep Sheoldred back as a strong blocker.
+[OPENROUTER Seat/smart] replied in 2303 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Sheoldred, the Apocalypse 4/5 @63 2{B}{B} [Deathtouch Whenever you draw a card, you gain 2 life. Whenever an opponent draws a card, they lose 2 life.]
+[OPENROUTER Seat/smart] replied in 9220 ms with 1 tool call(s)
+[Seat] [AUTO-LEGAL] color(forced)->first
+[Seat] [TALLY] smart=70 fast=0 auto=7 ai=0 textParses=0 avgSmart=7945ms avgFast=7945ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9587 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Mutavault @42 [{1}: Mutavault becomes a 2/2 creature with all creature types until end of turn. It's still a land.]
+[Seat] [ROUTER] play(react): 7 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7907 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Protect life total from the red burn deck while using Sheoldred and Mutavault to pressure them. NEXT: Pass through upkeep; in main phase attack with Mutavault if safe, keep Sheoldred available to block, and preserve mana if a relevant instant-speed response is needed.
+[OPENROUTER Seat/smart] replied in 4622 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until my-next-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=73 fast=0 auto=7 ai=0 textParses=0 avgSmart=7921ms avgFast=7921ms
+[Seat] [ROUTER] play(main): 7 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 12187 ms with 1 tool call(s)
+[Seat] [ROUTER] lookahead 8: if you play Swamp: you board 6 -> 7; hand 1 -> 0; entered the battlefield: Swamp; ForgeAI no change
+[OPENROUTER Seat/smart] replied in 3772 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Swamp
+[Seat] [TALLY] smart=75 fast=0 auto=7 ai=0 textParses=0 avgSmart=7923ms avgFast=7923ms
+[Seat] [ROUTER] play(main): 7 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9180 ms with 1 tool call(s)
+[Seat] [ROUTER] play: activates Mutavault @42 [{1}: Mutavault becomes a 2/2 creature with all creature types until end of turn. It's still a land.]
+[OPENROUTER Seat/smart] replied in 8896 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 4 for ACTIVATE Mutavault @42 [{1}: Mutavault becomes a 2/2 creature with all creature types until end of turn. It's still a land.]
+[Seat] [TALLY] smart=77 fast=0 auto=7 ai=0 textParses=0 avgSmart=7952ms avgFast=7952ms
+[Seat] [ROUTER] play(main): 7 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 9095 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 2 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 13033 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Mutavault, Sheoldred, the Apocalypse
+[Seat] [ROUTER] damage-assign: all 2 -> Guttersnipe (forced)
+[Seat] [TALLY] smart=79 fast=0 auto=7 ai=0 textParses=0 avgSmart=8030ms avgFast=8030ms
+[Seat] [ROUTER] play(main): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 12581 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Close the game with Sheoldred while staying out of reach of burn. NEXT: Proceed to combat and attack with Sheoldred; keep Moon-Circuit Hacker in hand and use it only if a safe ninjutsu line is valuable. Preserve life and respond to relevant burn or threats.
+[OPENROUTER Seat/smart] replied in 3065 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Red burn/value deck: Highway Robbery for card advantage and Lava Dart/Fireblast-style direct damage; respect burn at instant speed.
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5078 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Sheoldred, the Apocalypse
+[Seat] [ROUTER] play(react): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 16016 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=83 fast=0 auto=7 ai=0 textParses=0 avgSmart=8086ms avgFast=8086ms
+[Seat] [ROUTER] play(main): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7196 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=84 fast=0 auto=7 ai=0 textParses=0 avgSmart=8075ms avgFast=8075ms
+[Seat] [ROUTER] play(main): 6 castable + 1 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 11966 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Finish the opponent with Sheoldred this turn while preserving the winning board. NEXT: Play Mutavault as the land drop, then attack with Sheoldred for lethal; avoid unnecessary exposure to burn.
+[OPENROUTER Seat/smart] replied in 3679 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Mutavault
+[Seat] [TALLY] smart=86 fast=0 auto=7 ai=0 textParses=0 avgSmart=8070ms avgFast=8070ms
+[Seat] [ROUTER] play(main): 8 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4815 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Win with Sheoldred's lethal attack this turn. NEXT: Pass through main phase, then attack with Sheoldred; don't expose extra creatures or spend mana unnecessarily.
+[OPENROUTER Seat/smart] replied in 2192 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 7 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 14017 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] attackers: 1 can attack -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8530 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 2435 ms with 1 tool call(s)
+[Seat] [ROUTER] attackers: Sheoldred, the Apocalypse
+[Seat] [ROUTER] play(react): 7 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] error: java.io.IOException: chunked transfer encoding, state: READING_LENGTH
+[Seat] [BRIDGE Seat/smart] no reply (attempt 2/3) -> restarting session, retrying in 500ms
+[OPENROUTER Seat/smart] replied in 11561 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] damage-assign: all 4 -> Guttersnipe (forced)
+[Seat] [TALLY] smart=92 fast=0 auto=7 ai=0 textParses=0 avgSmart=8017ms avgFast=8017ms
+[Seat] [ROUTER] play(main): 8 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6244 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+[Seat] [ROUTER] play(react): 7 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 6542 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Win with Sheoldred's lethal attack this turn. NEXT: Pass through the opponent's turn without tapping lands; if they make no relevant play, attack with Sheoldred on my turn for lethal.
+[OPENROUTER Seat/smart] replied in 3628 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS, yield until end-of-turn
+[Seat] [ROUTER] play: PASS
+========== GAME OVER ==========
+outcome: A after 18 turns (AllOpponentsLost) in 774s
+--- full game log ---
+  MULLIGAN: Seat has mulliganed down to 6 cards.
+  MULLIGAN: ForgeAI has mulliganed down to 6 cards.
+  MULLIGAN: Seat has mulliganed down to 5 cards.
+  MULLIGAN: Seat has kept a hand of 5 cards
+  MULLIGAN: ForgeAI has kept a hand of 6 cards
+  TURN: Turn 1 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  EFFECT_REPLACED: Darkslick Shores enters tapped unless you control two or fewer other lands.
+  LAND: Seat played Darkslick Shores (11)
+  MANA: Darkslick Shores (11) - {T}: Add {U} or {B}.
+  STACK_ADD: Seat cast Thoughtseize targeting [ForgeAI]
+  DISCARD: ForgeAI discards Fireblast (120).
+  LIFE: Life: Seat 20 > 18
+  STACK_RESOLVE: Thoughtseize (27) - ForgeAI reveals their hand. Seat chooses a nonland card from it. ForgeAI discards that card. Seat loses 2 life.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 2 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Mountain (102)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 3 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  MANA: Darkslick Shores (11) - {T}: Add {U} or {B}.
+  STACK_ADD: Seat cast Thoughtseize targeting [ForgeAI]
+  DISCARD: ForgeAI discards Fireblast (118).
+  LIFE: Life: Seat 18 > 16
+  STACK_RESOLVE: Thoughtseize (25) - ForgeAI reveals their hand. Seat chooses a nonland card from it. ForgeAI discards that card. Seat loses 2 life.
+  EFFECT_REPLACED: As Watery Grave enters, you may pay 2 life. If you don't, it enters tapped.
+  LAND: Seat played Watery Grave (3)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 4 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Mountain (99)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Mountain (102) - {T}: Add {R}.
+  MANA: Mountain (99) - {T}: Add {R}.
+  STACK_RESOLVE: ForgeAI has plotted Highway Robbery (128)
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 5 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Mutavault (47)
+  MANA: Darkslick Shores (11) - {T}: Add {U} or {B}.
+  MANA: Watery Grave (3) - {T}: Add {B}.
+  STACK_ADD: Seat cast Moon-Circuit Hacker
+  STACK_RESOLVE: Moon-Circuit Hacker - Creature 2 / 1
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 6 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  MANA: Mountain (102) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Lava Dart targeting [Moon-Circuit Hacker (53)]
+  DAMAGE: Lava Dart (117) deals 1 damage to Moon-Circuit Hacker (53).
+  STACK_RESOLVE: Lava Dart (117) - Lava Dart (117) deals 1 damage to Moon-Circuit Hacker (53).
+  ZONE_CHANGE: Moon-Circuit Hacker (53) was put into Graveyard from Battlefield.
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Mountain (97)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Mountain (99) - {T}: Add {R}.
+  MANA: Mountain (97) - {T}: Add {R}.
+  STACK_RESOLVE: ForgeAI has plotted Highway Robbery (131)
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 7 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Island (51)
+  MANA: Island (51) - {T}: Add {U}.
+  STACK_ADD: Seat activated Mutavault
+  STACK_RESOLVE: Mutavault (47) - Mutavault (47) has base power and toughness 2/2  and becomes a creature until end of turn.
+  MANA: Watery Grave (3) - {T}: Add {U}.
+  STACK_ADD: Seat cast Mockingbird
+  STACK_RESOLVE: Mockingbird - Creature 1 / 1 (X=0)
+  ZONE_CHANGE: Mountain (97) was put into Graveyard from Battlefield.
+  STACK_ADD: ForgeAI cast Lava Dart targeting [Mockingbird (43)]
+  DAMAGE: Lava Dart (117) deals 1 damage to Mockingbird (43).
+  STACK_RESOLVE: Lava Dart (117) - Lava Dart (117) deals 1 damage to Mockingbird (43).
+  EFFECT_REPLACED: Flashback—Sacrifice a Mountain. (You may cast this card from your graveyard for its flashback cost. Then exile it.)
+  ZONE_CHANGE: Mockingbird (43) was put into Graveyard from Battlefield.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Mutavault (47) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Mutavault (47).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Mutavault (47) deals 2 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 20 > 18
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 8 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Mountain (100)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 9 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Swamp (22)
+  PHASE: Seat's Beginning of Combat Step
+  MANA: Island (51) - {T}: Add {U}.
+  STACK_ADD: Seat activated Mutavault
+  STACK_RESOLVE: Mutavault (47) - Mutavault (47) has base power and toughness 2/2  and becomes a creature until end of turn.
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Mutavault (47) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Mutavault (47).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Mutavault (47) deals 2 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 18 > 16
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 10 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  PHASE: ForgeAI's Main phase, precombat
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Mountain (102) - {T}: Add {R}.
+  MANA: Mountain (99) - {T}: Add {R}.
+  MANA: Mountain (100) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Guttersnipe
+  STACK_RESOLVE: Guttersnipe - Creature 2 / 2
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 11 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  PHASE: Seat's Main phase, precombat
+  MANA: Swamp (22) - {T}: Add {B}.
+  MANA: Darkslick Shores (11) - {T}: Add {U} or {B}.
+  MANA: Island (51) - {T}: Add {U}.
+  MANA: Watery Grave (3) - {T}: Add {B}.
+  STACK_ADD: Seat cast Sheoldred, the Apocalypse
+  STACK_RESOLVE: Sheoldred, the Apocalypse - Creature 4 / 5
+  MANA: Mutavault (47) - {T}: Add {C}.
+  STACK_ADD: Seat activated Mutavault
+  STACK_RESOLVE: Mutavault (47) - Mutavault (47) has base power and toughness 2/2  and becomes a creature until end of turn.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  PHASE: Seat's Declare Blockers Step
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 12 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  STACK_ADD: Seat triggered Sheoldred, the Apocalypse
+  LIFE: Life: ForgeAI 16 > 14
+  STACK_RESOLVE: Whenever an opponent draws a card, they lose 2 life. [Player: ForgeAI]
+  PHASE: ForgeAI's Main phase, precombat
+  LAND: ForgeAI played Mountain (106)
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 13 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  STACK_ADD: Seat triggered Sheoldred, the Apocalypse
+  LIFE: Life: Seat 16 > 18
+  STACK_RESOLVE: Whenever you draw a card, you gain 2 life. [Player: Seat]
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Swamp (23)
+  MANA: Swamp (23) - {T}: Add {B}.
+  STACK_ADD: Seat activated Mutavault
+  STACK_RESOLVE: Mutavault (47) - Mutavault (47) has base power and toughness 2/2  and becomes a creature until end of turn.
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Mutavault (47) and Sheoldred, the Apocalypse (59) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI assigned Guttersnipe (127) to block Mutavault (47).
+ForgeAI didn't block Sheoldred, the Apocalypse (59).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Mutavault (47) deals 2 damage to Guttersnipe (127).
+  DAMAGE: Sheoldred, the Apocalypse (59) deals 4 combat damage to ForgeAI.
+  DAMAGE: Guttersnipe (127) deals 2 damage to Mutavault (47).
+  LIFE: Life: ForgeAI 14 > 10
+  ZONE_CHANGE: Mutavault (47) was put into Graveyard from Battlefield.
+  ZONE_CHANGE: Guttersnipe (127) was put into Graveyard from Battlefield.
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 14 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  STACK_ADD: Seat triggered Sheoldred, the Apocalypse
+  LIFE: Life: ForgeAI 10 > 8
+  STACK_RESOLVE: Whenever an opponent draws a card, they lose 2 life. [Player: ForgeAI]
+  PHASE: ForgeAI's Main phase, precombat
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 15 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  STACK_ADD: Seat triggered Sheoldred, the Apocalypse
+  LIFE: Life: Seat 18 > 20
+  STACK_RESOLVE: Whenever you draw a card, you gain 2 life. [Player: Seat]
+  PHASE: Seat's Main phase, precombat
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Sheoldred, the Apocalypse (59) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI didn't block Sheoldred, the Apocalypse (59).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Sheoldred, the Apocalypse (59) deals 4 combat damage to ForgeAI.
+  LIFE: Life: ForgeAI 8 > 4
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 16 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  STACK_ADD: Seat triggered Sheoldred, the Apocalypse
+  LIFE: Life: ForgeAI 4 > 2
+  STACK_RESOLVE: Whenever an opponent draws a card, they lose 2 life. [Player: ForgeAI]
+  PHASE: ForgeAI's Main phase, precombat
+  PHASE: ForgeAI's Beginning of Combat Step
+  PHASE: ForgeAI's Declare Attackers Step
+  PHASE: ForgeAI's Declare Blockers Step
+  PHASE: ForgeAI's First Strike Damage Step
+  PHASE: ForgeAI's Combat Damage Step
+  PHASE: ForgeAI's End of Combat Step
+  PHASE: ForgeAI's Main phase, postcombat
+  MANA: Mountain (102) - {T}: Add {R}.
+  MANA: Mountain (99) - {T}: Add {R}.
+  MANA: Mountain (100) - {T}: Add {R}.
+  STACK_ADD: ForgeAI cast Guttersnipe
+  STACK_RESOLVE: Guttersnipe - Creature 2 / 2
+  PHASE: ForgeAI's End step
+  PHASE: ForgeAI's Cleanup step
+  TURN: Turn 17 (Seat)
+  PHASE: Seat's Untap step
+  PHASE: Seat's Upkeep step
+  PHASE: Seat's Draw step
+  STACK_ADD: Seat triggered Sheoldred, the Apocalypse
+  LIFE: Life: Seat 20 > 22
+  STACK_RESOLVE: Whenever you draw a card, you gain 2 life. [Player: Seat]
+  PHASE: Seat's Main phase, precombat
+  LAND: Seat played Mutavault (48)
+  PHASE: Seat's Beginning of Combat Step
+  PHASE: Seat's Declare Attackers Step
+  COMBAT: Seat assigned Sheoldred, the Apocalypse (59) to attack ForgeAI.
+  PHASE: Seat's Declare Blockers Step
+  COMBAT: ForgeAI assigned Guttersnipe (125) to block Sheoldred, the Apocalypse (59).
+  PHASE: Seat's First Strike Damage Step
+  PHASE: Seat's Combat Damage Step
+  DAMAGE: Sheoldred, the Apocalypse (59) deals 4 damage (Deathtouch) to Guttersnipe (125).
+  DAMAGE: Guttersnipe (125) deals 2 damage to Sheoldred, the Apocalypse (59).
+  ZONE_CHANGE: Guttersnipe (125) was put into Graveyard from Battlefield.
+  PHASE: Seat's End of Combat Step
+  PHASE: Seat's Main phase, postcombat
+  PHASE: Seat's End step
+  PHASE: Seat's Cleanup step
+  TURN: Turn 18 (ForgeAI)
+  PHASE: ForgeAI's Untap step
+  PHASE: ForgeAI's Upkeep step
+  PHASE: ForgeAI's Draw step
+  STACK_ADD: Seat triggered Sheoldred, the Apocalypse
+  LIFE: Life: ForgeAI 2 > 0
+  STACK_RESOLVE: Whenever an opponent draws a card, they lose 2 life. [Player: ForgeAI]
+  PLAYER_CONTROL: Seat has restored control over themself
+  PLAYER_CONTROL: ForgeAI has restored control over themself
+  GAME_OUTCOME: Match Duration 11m : 48s
+  GAME_OUTCOME: Turn 9
+  GAME_OUTCOME: Seat has won because all opponents have lost
+  GAME_OUTCOME: ForgeAI has lost because life total reached 0
+  MATCH_RESULTS: Seat: 1 ForgeAI: 0 
+===============================

@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 163 - A sorcery mid-resolution
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is the opponent's end step. The opponent is at 20 life and controls Darksteel Myr (indestructible). You control four Mountains and have Electrodominance and Chainer's Edict in hand. End the turn with the opponent at 18 life and Darksteel Myr in their graveyard.
+Rule:ask-a-magic-judge-76a00804727d25a5 | A spell cast while another spell resolves ignores card-type timing (CR 608.2g, 307.1): Electrodominance can cast the sorcery Chainer's Edict on the opponent's turn
+[state]
+turn=1
+activeplayer=p1
+activephase=END_OF_TURN
+p0life=20
+p0hand=Electrodominance;Chainer's Edict
+p0battlefield=Mountain;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Darksteel Myr
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 = 18
+count p1 Graveyard "Darksteel Myr" = 1

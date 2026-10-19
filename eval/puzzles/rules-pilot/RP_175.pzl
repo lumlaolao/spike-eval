@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 175 - Amareth looks on resolution
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Amareth, the Lustrous and two Forests, have not played a land this turn, and have Treetop Village in hand. The top card of your library is Grizzly Bears. End the turn with Grizzly Bears in your hand.
+Rule:ask-a-magic-judge-be9a3882e51e3a01 | Amareth's trigger checks the permanent's types as it resolves (CR 608.2h): a creature land animated in response shares the creature type
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Treetop Village
+p0battlefield=Amareth, the Lustrous|SummonSick;Forest;Forest
+p0library=Grizzly Bears;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Hand "Grizzly Bears" = 1

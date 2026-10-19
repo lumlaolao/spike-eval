@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 030 - The Clique persists
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:The opponent is at 6 life with no creatures; Craw Wurm is in the opponent's graveyard. You control The Ozolith (with a +1/+1 counter), Puppeteer Clique (with a -1/-1 counter) and Spawning Pit. Win this turn with Puppeteer Clique on your battlefield.
+Rule:rulesguru-0a08c6fcf75dc6b0 | The Ozolith copies a dying creature's counters without removing them, so persist still sees the -1/-1 counter (CR 603.10a, 702.79a); the counter must be gone before the Clique dies
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=The Ozolith|Counters:P1P1=1;Puppeteer Clique|Counters:M1M1=1;Spawning Pit
+p0library=Island;Island;Island
+p1life=6
+p1graveyard=Craw Wurm
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0
+count p0 Battlefield "Puppeteer Clique" = 1

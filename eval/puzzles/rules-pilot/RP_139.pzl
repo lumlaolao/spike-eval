@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 139 - Dying together still returns
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control four Plains and five Islands and have Fool's Demise and Wrath of God in hand. The opponent controls Serra Angel. End the turn controlling Serra Angel.
+Rule:rulesguru-9abd27ca918d9e5d | Leaves-the-battlefield triggers look back in time (CR 603.10a): Fool's Demise destroyed together with its creature still triggers and returns it
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Fool's Demise;Wrath of God
+p0battlefield=Plains;Plains;Plains;Plains;Island;Island;Island;Island;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Serra Angel
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Serra Angel" = 1

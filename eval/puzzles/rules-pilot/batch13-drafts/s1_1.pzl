@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Animate before the Moon
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Mutavault and four Mountains and have Magus of the Moon in hand. The opponent controls Glacial Chasm and is at 20 life. End the turn with the opponent at 18 life.
+Rule:rulesguru-4434799761610007 | A nonbasic land that becomes a Mountain loses the abilities from its rules text, but not the effect of an animation ability that has already resolved (CR 305.7, 613.1d): animate Mutavault before Magus of the Moon arrives; afterwards the ability is gone
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Magus of the Moon
+p0battlefield=Mutavault;Mountain;Mountain;Mountain;Mountain
+p0library=Mountain;Mountain;Mountain
+p1life=20
+p1battlefield=Glacial Chasm
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 = 18

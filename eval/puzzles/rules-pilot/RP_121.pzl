@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 121 - Kick it back to hand
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Feather, the Redeemed, three Plains and a Mountain, and have Orim's Thunder in hand. The opponent controls Ornithopter. End the turn with Ornithopter in the opponent's graveyard and Orim's Thunder in your hand.
+Rule:ask-a-magic-judge-c6b6d4642fc1f69a | Kicker is chosen before targets (CR 601.2b-c): only kicked Orim's Thunder has a creature target, so only then does Feather return it
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Orim's Thunder
+p0battlefield=Feather, the Redeemed;Plains;Plains;Plains;Mountain
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Ornithopter
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Ornithopter" = 1
+count p0 Hand "Orim's Thunder" = 1

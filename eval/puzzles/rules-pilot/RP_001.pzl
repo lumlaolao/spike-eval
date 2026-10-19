@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 001 - Depths under the Moon
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Blood Moon. End the turn with a Marit Lage token on your battlefield and Blood Moon in the opponent's graveyard.
+Rule:rulesguru-0bd0c6801d4ab6ae | A land entering while Blood Moon removes its abilities does not get its own enters-with counters (CR 614.12); Dark Depths with no ice counters triggers once the Moon is gone
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Dark Depths;Ray of Revelation
+p0battlefield=Plains;Plains
+p0library=Plains;Plains;Plains
+p1life=20
+p1battlefield=Blood Moon
+p1library=Mountain;Mountain;Mountain
+[acceptance]
+tokens p0 Battlefield "Marit Lage" = 1
+count p1 Graveyard "Blood Moon" = 1

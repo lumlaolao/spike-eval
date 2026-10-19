@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 078 - Two Thrones
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control two Roaming Thrones (both naming Goblin) and five Mountains, and have Siege-Gang Commander and two Goblin Instigators in hand. End the turn with exactly nine Goblin tokens.
+Rule:wizards-official-card-rulings-882a68af60174d13 | Each Roaming Throne adds one more trigger (CR 603.2d): with two Thrones a Goblin's enters trigger triggers three times
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Siege-Gang Commander;Goblin Instigator;Goblin Instigator
+p0battlefield=Roaming Throne|ChosenType:Goblin;Roaming Throne|ChosenType:Goblin;Mountain;Mountain;Mountain;Mountain;Mountain
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+tokens p0 Battlefield "Goblin Token" = 9

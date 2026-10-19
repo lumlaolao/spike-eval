@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 226 - The cost is not doubled
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Doubling Season, Sorin, Vengeful Bloodlord (4 loyalty) and three Islands, and have Steady Progress in hand. End the turn with exactly 8 loyalty counters on Sorin, Vengeful Bloodlord.
+Rule:rulesguru-a751678cf7a59ea6 | Doubling Season doubles counters put by effects, not counters put as a loyalty cost (CR 606.4, 609.1): Sorin's +2 adds 2, and a proliferate (an effect, CR 701.34a) adds 2 more
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Steady Progress
+p0battlefield=Doubling Season;Sorin, Vengeful Bloodlord|Counters:LOYALTY=4;Island;Island;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+counters p0 Battlefield "Sorin, Vengeful Bloodlord" LOYALTY = 8

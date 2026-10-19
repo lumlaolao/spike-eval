@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 013 - Stop the Abomination cold
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent's Abomination of Llanowar is 5/5. End the turn with Abomination of Llanowar in the opponent's graveyard.
+Rule:cranial-insertion-8ada733c808c6e1e | Losing all abilities (layer 6) removes a characteristic-defining ability, so a */* creature becomes 0/0 and dies (CR 613.1f, 704.5f)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Stop Cold;Shock
+p0battlefield=Island;Island;Island;Mountain
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Abomination of Llanowar
+p1graveyard=Llanowar Elves;Llanowar Elves;Llanowar Elves;Llanowar Elves
+p1library=Forest;Forest;Forest
+[acceptance]
+count p1 Graveyard "Abomination of Llanowar" = 1

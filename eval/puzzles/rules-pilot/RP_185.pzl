@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 185 - One damage to each blocker
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:Your Hill Giant (3/3), enchanted with Lure, is attacking. You control two Mountains, and have Pyroclasm in hand. The opponent controls three Centaur Coursers (3/3). End the turn with all three Centaur Coursers in the opponent's graveyard.
+Rule:cranial-insertion-adf5a24808a46a8d | Since Foundations an attacker blocked by several creatures divides its combat damage among them freely (CR 510.1c); 1 to each of three 3/3s lets Pyroclasm finish all of them
+[state]
+turn=1
+activeplayer=p0
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=20
+p0hand=Pyroclasm
+p0battlefield=Hill Giant|Id:1|Attacking|Tapped;Lure|AttachedTo:1;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Centaur Courser;Centaur Courser;Centaur Courser
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Centaur Courser" = 3

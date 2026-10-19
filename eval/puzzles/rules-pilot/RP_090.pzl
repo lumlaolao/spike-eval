@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 090 - A second strike mid-combat
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:Your Eager Trufflesnout is attacking and the opponent has no creatures. You control three Plains and have Twinblade Blessing in hand. End the turn with two Food tokens.
+Rule:cranial-insertion-edacfbd4aab19eb3 | A creature that gains double strike after attackers are declared still gets a first-strike damage step (CR 510.4), so its combat-damage trigger triggers twice
+[state]
+turn=1
+activeplayer=p0
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=20
+p0hand=Twinblade Blessing
+p0battlefield=Eager Trufflesnout|Attacking|Tapped;Plains;Plains;Plains
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+tokens p0 Battlefield "Food Token" = 2

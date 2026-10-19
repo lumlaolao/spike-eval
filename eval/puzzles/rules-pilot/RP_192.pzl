@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 192 - The Gift sets four
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control God-Pharaoh's Gift. Your graveyard holds Splinterfright and Grizzly Bears. The opponent is at 3 life and controls Savannah Lions. It is your first main phase. Win this turn.
+Rule:cranial-insertion-63256902880a0164 | God-Pharaoh's Gift's copy sets the token's power and toughness to 4/4 (CR 707.9b), overriding Splinterfright's characteristic-defining */*: the token is a 4/4 trampler with haste
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=God-Pharaoh's Gift
+p0graveyard=Splinterfright;Grizzly Bears
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Savannah Lions
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

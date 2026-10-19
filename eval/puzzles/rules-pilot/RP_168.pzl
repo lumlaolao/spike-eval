@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 168 - Madness in the cleanup step
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control no lands and have eight cards in hand: Blazing Rootwalla and seven Colossal Dreadmaws. End the turn with Blazing Rootwalla on the battlefield.
+Rule:cranial-insertion-e5bb51f607248a38 | A trigger in the cleanup step gives players priority (CR 514.3a): a Blazing Rootwalla discarded to hand size can be cast for madness
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Blazing Rootwalla
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Blazing Rootwalla" = 1

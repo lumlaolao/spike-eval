@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 212 - Storm copies keep the splice
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control a Forest and five Plains and have Ornithopter, Chatterstorm and Splicer's Skill in hand. End the turn with two Phyrexian Golem tokens.
+Rule:rulesguru-e9baf97410fb821c | A copy copies the choices made when the spell was cast, splices included (CR 707.10, 702.47a): Chatterstorm spliced with Splicer's Skill after one earlier spell makes two Golems
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Ornithopter;Chatterstorm;Splicer's Skill
+p0battlefield=Forest;Plains;Plains;Plains;Plains;Plains
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+tokens p0 Battlefield "Phyrexian Golem Token" = 2

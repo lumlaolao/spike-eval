@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 154 - Untap before it resolves
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Merieke Ri Berit (untapped) and Kiora's Follower. The opponent controls Dross Crocodile and Volunteer Militia. End the turn controlling both.
+Rule:rulesguru-b24cda3476971406 | Merieke's destroy trigger is set up only as her ability resolves (CR 603.7): untapping her while the first ability is still on the stack creates no trigger for it
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0battlefield=Merieke Ri Berit;Kiora's Follower
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Dross Crocodile;Volunteer Militia
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Dross Crocodile" = 1
+count p0 Battlefield "Volunteer Militia" = 1

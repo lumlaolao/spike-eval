@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 138 - Your Aura, your Saprolings
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Bramble Elemental and Serra Angel. You control five Islands and have Corrupted Conscience in hand. End the turn with two Saproling tokens of your own.
+Rule:rulesguru-1e6576e3b85f89cd | Control changes as the Aura enters (CR 613), and the trigger's controller is checked after (CR 603.3a): the new controller of Bramble Elemental gets the Saprolings
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Corrupted Conscience
+p0battlefield=Island;Island;Island;Island;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Bramble Elemental;Serra Angel
+p1library=Plains;Plains;Plains
+[acceptance]
+tokens p0 Battlefield "Saproling Token" = 2
+tokens p1 Battlefield "Saproling Token" = 0

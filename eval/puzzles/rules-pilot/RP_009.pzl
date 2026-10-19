@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 009 - Purified under the Moon
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Blood Moon and Grizzly Bears. End the turn with Grizzly Bears in the opponent's hand.
+Rule:ask-a-magic-judge-e8fd98a72768f96f | Blood Moon depends on Rootpath Purifier (CR 613.8): your lands become basic first, so Blood Moon no longer changes them
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Rootpath Purifier;Unsummon
+p0battlefield=Forest;Forest;Forest;Forest;Tropical Island
+p0library=Forest;Forest;Forest
+p1life=20
+p1battlefield=Blood Moon;Grizzly Bears
+p1library=Mountain;Mountain;Mountain
+[acceptance]
+count p1 Hand "Grizzly Bears" = 1

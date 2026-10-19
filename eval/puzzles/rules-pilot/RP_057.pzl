@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 057 - Damage without life loss
+Goal:Win
+Turns:1
+Difficulty:Easy
+Description:The opponent is at 20 life and controls a tapped Platinum Emperion. You control Etali, Primal Sickness. Win this turn.
+Rule:ask-a-magic-judge-a0dd7ebfc4bc2088 | Damage is still dealt to a player whose life total can't change (CR 120.3, 119.7), so a "deals combat damage to a player" trigger still happens
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Etali, Primal Conqueror|Transformed
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Platinum Emperion|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

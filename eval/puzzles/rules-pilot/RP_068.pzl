@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 068 - The Hydra counts first
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Ulvenwald Hydra and four Forests, and have Entish Restoration and Rancor in hand; your library is five Forests. End the turn controlling six Forests.
+Rule:rulesguru-01adb90bc259fe65 | A spell's instructions are carried out in order (CR 608.2c): after Entish Restoration's sacrifice the Hydra is smaller, and the lands it fetches come too late to count
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Entish Restoration;Rancor
+p0battlefield=Ulvenwald Hydra;Forest;Forest;Forest;Forest
+p0library=Forest;Forest;Forest;Forest;Forest
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Forest" = 6

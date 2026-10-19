@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 206 - A copy takes the name
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control two Islands and have Metamorphic Alteration in hand. The opponent controls Isamaru, Hound of Konda and Grizzly Bears, and their graveyard is empty. End the turn with a card in the opponent's graveyard.
+Rule:rulesguru-b71abf89baa9b4a8 | A copy effect copies the name and the legendary supertype (CR 707.2): Grizzly Bears enchanted to copy Isamaru is a second legendary Isamaru, and the legend rule puts one into the graveyard (CR 704.5j)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Metamorphic Alteration
+p0battlefield=Island;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Isamaru, Hound of Konda;Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard * = 1

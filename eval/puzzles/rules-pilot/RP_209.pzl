@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot 209 - Suspend may be declined
+Goal:Survive
+Turns:2
+Difficulty:Medium
+Description:It is the opponent's cleanup step; your turn is next. You control Wall of Wood and a Mountain and have Lava Spike in hand. Living End is suspended in your exile with one time counter, and your graveyard is empty. The opponent is at 3 life. Win your turn with Wall of Wood still on the battlefield.
+Rule:wizards-official-card-rulings-df37b53bcf7f8938 | Under the current suspend rule you may cast the card when its last time counter is removed, but you are not required to (CR 702.62a): decline Living End, keep Wall of Wood, and Lava Spike the opponent
+[state]
+turn=1
+activeplayer=p1
+activephase=CLEANUP
+activephaseadvance=UPKEEP
+p0life=20
+p0hand=Lava Spike
+p0battlefield=Wall of Wood;Mountain
+p0exile=Living End|Counters:TIME=1
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
+count p0 Battlefield "Wall of Wood" = 1

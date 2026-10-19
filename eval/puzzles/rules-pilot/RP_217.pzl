@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 217 - The spell was a creature
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Possibility Storm and three Forests and have Zoetic Cavern in hand (cast face down for {3}). Your library, top first: Forest, Lightning Bolt, Colossal Dreadmaw, Forest. End the turn with Colossal Dreadmaw on the battlefield.
+Rule:rulesguru-d89c645ad8b2f3ef | Possibility Storm uses the card type the spell had on the stack (CR 608.2h, 702.37a): Zoetic Cavern cast face down is a creature spell, so the exile runs to a creature card, not a land
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Zoetic Cavern
+p0battlefield=Possibility Storm;Forest;Forest;Forest
+p0library=Forest;Lightning Bolt;Colossal Dreadmaw;Forest
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Colossal Dreadmaw" = 1

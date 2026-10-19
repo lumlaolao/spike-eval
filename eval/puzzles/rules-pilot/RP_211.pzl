@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 211 - Kefnet's copy can overload
+Goal:Survive
+Turns:2
+Difficulty:Medium
+Description:It is your upkeep. You control God-Eternal Kefnet and five Islands; the top card of your library is Cyclonic Rift. The opponent controls three Grizzly Bears. End the turn with the opponent controlling no permanents.
+Rule:rulesguru-feb43ce141706022 | Casting Kefnet's copy follows the normal casting rules, so an alternative cost such as overload may be chosen (CR 601.2b, 702.96a): the copy overloaded costs {4}{U}
+[state]
+turn=2
+activeplayer=p0
+activephase=UPKEEP
+p0life=20
+p0battlefield=God-Eternal Kefnet|SummonSick;Island;Island;Island;Island;Island
+p0library=Cyclonic Rift;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Grizzly Bears;Grizzly Bears;Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Battlefield * = 0

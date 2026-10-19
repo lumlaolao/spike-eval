@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 076 - Three hits at once
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:The opponent controls a tapped mutated creature (Gemrazer on top of Bear Cub and Dirge Bat) and a tapped Grizzly Bears. You control Etrata, the Silencer. Win this turn.
+Rule:cranial-insertion-b0e86e89577b6d71 | A merged permanent leaves the battlefield as one object and becomes its component cards (CR 721.3), so each card is exiled with a hit counter
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Etrata, the Silencer
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Gemrazer|MergedCards:Bear Cub,Dirge Bat|Tapped;Grizzly Bears|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

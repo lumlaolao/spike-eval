@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 132 - Pump after the creature
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You have Grizzly Bears, Charge and Fling in hand and two each of Forest, Plains and Mountain. The opponent is at 3 life. Win this turn.
+Rule:ask-a-magic-judge-2644a8fabecdc359 | A resolved effect that changes characteristics affects only the permanents there as it resolves (CR 611.2c), so a creature that enters later is not pumped
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Grizzly Bears;Charge;Fling
+p0battlefield=Forest;Forest;Plains;Plains;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

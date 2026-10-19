@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 202 - Each reflected mana copies
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:You control Pyromancer's Goggles and Mana Reflection and no lands, and have Lightning Strike and Shock in hand. The opponent is at 9 life. Win this turn.
+Rule:rulesguru-cdb48543aa54ecf2 | Mana Reflection doubles the Goggles' mana, and each {R} carries its own delayed trigger (CR 106.6a, 614.1a): Lightning Strike paid with both is copied twice
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lightning Strike;Shock
+p0battlefield=Pyromancer's Goggles;Mana Reflection
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=9
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

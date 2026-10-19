@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 043 - Order in the Machine
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Omen Machine. End the turn with Omen Machine in the opponent's hand and one card in your hand.
+Rule:cranial-insertion-e1fbd9614ec87462 | A spell's instructions are followed in printed order (CR 608.2c): once Omen Machine is bounced, the later draw is no longer stopped
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Cryptic Command
+p0battlefield=Island;Island;Island;Island
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Omen Machine
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Hand "Omen Machine" = 1
+count p0 Hand * = 1

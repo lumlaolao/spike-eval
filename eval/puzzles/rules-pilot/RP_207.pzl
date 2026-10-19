@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 207 - The shark on top renames it
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Endbringer and four Islands, and have Pouncing Shoreshark in hand. The opponent is at 1 life and controls Pithing Needle naming Endbringer. Win this turn.
+Rule:rulesguru-0295060674a539c8 | A merged permanent has the characteristics of its top card (CR 702.140e, 729.2a): with Pouncing Shoreshark on top it is no longer named Endbringer, so Pithing Needle stops nothing
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Pouncing Shoreshark
+p0battlefield=Endbringer;Island;Island;Island;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=1
+p1battlefield=Pithing Needle|NamedCard:Endbringer
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

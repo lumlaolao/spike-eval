@@ -94,7 +94,9 @@ final class SeatObservation {
     // "Turn 0 null (active: ? | priority: ?)"; `inspect` by a token's name answers with the token you can see.
     // v41 (2026-10-18): no mana reads "none (no untapped mana sources)", not "{} up to 0 mana"; a stack line's
     // subjectless second sentence ("... battlefield. gains haste") reads "It gains".
-    static final String VERSION = "observation-faithful-v41";
+    // v42 (2026-10-19): an effect whose source is an effect carries no engine id ("Kumano Faces Kakkazan (111)'s
+    // Effect's Effect", runs/loop/g33 T13).
+    static final String VERSION = "observation-faithful-v42";
     /** How to read the state each message carries, said once in the system prompt (it is fixed text, so it
      *  caches). Part of the prompt bytes and therefore of this VERSION: change it and bump the version.
      *  Every section named here is one {@link #render} prints. */
@@ -749,9 +751,17 @@ final class SeatObservation {
      *  the source card itself; the id filter is only the fallback for a name whose source is gone (no card name
      *  holds "(digits)": test_deck_legality). Reveals nothing: it only removes. */
     static String withoutEngineId(Card c, String n) {
+        return withoutEngineId(c, n, 4);
+    }
+
+    /** An effect's source can be an effect (runs/loop/g33: "Kumano Faces Kakkazan (111)'s Effect's Effect"), whose own
+     *  name holds the id: the source's name is cleaned the same way, a few levels deep. */
+    private static String withoutEngineId(Card c, String n, int depth) {
         try {
             Card src = c.getEffectSource();
-            if (src != null && n.startsWith(src.toString())) return src.getName() + n.substring(src.toString().length());
+            if (depth > 0 && src != null && src != c && n.startsWith(src.toString()))
+                return withoutEngineId(src, src.getName(), depth - 1)
+                        + ENGINE_ID.matcher(n.substring(src.toString().length())).replaceAll("");
         } catch (Exception ignore) { }
         return ENGINE_ID.matcher(n).replaceAll("");
     }

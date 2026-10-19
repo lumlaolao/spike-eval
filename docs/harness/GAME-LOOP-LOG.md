@@ -783,3 +783,186 @@ Sheet clean: 164 model decisions, 20 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL
 simulate 7), ai_tier_count=0, 22 min. The seat held Rishadan Port on the opponent's lands, then on turn 21 copied
 Dark Depths with Thespian's Stage for Marit Lage, which survived its upkeep trigger and attacked for 20.
 - clean  the combo line, the Port activations, the Marit Lage upkeep trigger, mulligan, blocks. First of three.
+
+### g12  2026-10-18  seed 4112  Esper Blink (seat) vs Mardu Energy (Forge AI)  WON T18  $0.15  harness-epoch-51
+Sheet clean: 110 model decisions, 18 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 11 of 11 served (inspect 2,
+simulate 9), ai_tier_count=0, 20 min. The seat exiled Orcish Bowmasters with Emperor of Bones, Solitude'd Hexing
+Squelcher through ward, Ephemerated Overlord with its trigger on the stack, and saved Emperor from Swords to
+Plowshares with a second Ephemerate.
+- checked  "play: cancelled Ephemerate @122 -> re-ask" (line 352): the model chose the cast, then the cancel option at
+  targeting ("neither target benefits"); the rebound trigger it declined was the other copy (@9). Model's choice.
+- checked  plan_audit HOLD-VIOLATION T14 (Ephemerate against "keep Ephemerate available"): model-chosen, not a defect.
+- clean  blink targets, Solitude evoke-free cast, impending Overlord, mana held. Second of three.
+
+### g13  2026-10-18  seed 4113  Death and Taxes (seat) vs TES (Forge AI)  WON T14  $0.05  harness-epoch-51
+Sheet clean: 67 model decisions, 4 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 7 of 7 served (inspect 2,
+simulate 5), ai_tier_count=0, 10 min. Forge's AI went off with Tendrils of Agony early; the seat survived it and won.
+- checked  passes with "2 castable" on turns 2-4 (Aether Vial at 0-1 counters, no one-drop in hand, Plains): the
+  model's reasons name the counters and the hand; the menu held everything legal.
+- checked  `counter-type(forced-only-legal)` x3 (Vial's upkeep counter: charge is the only kind).
+- clean  mulligan, Vial triggers, yields. Third clean game in a row on epoch 51; epoch 52 (rules pilot fixes:
+  "up to" targets, lethal tap damage, whole-block-set legality) restarts the count.
+
+### g14  2026-10-18  seed 4114  Pauper White Weenie (seat) vs Rakdos Delirium (Forge AI)  WON T14  $0.03  harness-epoch-52
+Sheet clean: 43 model decisions, 2 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 6 of 6 served (simulate 6),
+ai_tier_count=0, 8 min. First game on epoch 52; no [BLOCK-INVALID] and no block sent back.
+- not exercised  the whole-block-set check: Moonshadow (menace) never came down; one block ask, answered NONE.
+- clean  attacks with the Inspectors and Raffine's Informant, the block ask, previews. First clean game on epoch 52
+  (epoch 53, from rules puzzle batch 2, is built and starts the count again once installed).
+
+### g15  2026-10-18  seed 4115  The Rock (seat) vs Broodscale (Forge AI)  WON T15  $0.07  harness-epoch-53
+Sheet clean: 87 model decisions, 13 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 6 of 6 served (simulate 6),
+ai_tier_count=0, 14 min. First game on epoch 53.
+- checked  13 forced picks: 7 `color(forced)` (a dual paying a shard only one of its colours fits: Badgermole Cub,
+  Abrupt Decay), 5 `replacement-order(forced-only-legal)` (one option each), 1 counter-type.
+- not exercised  the whole-block-set check again (no block ask with menace or a requirement).
+- clean  Abrupt Decay on Basking Broodscale, earthbend target, previews. First clean game on epoch 53.
+
+### g16  2026-10-18  seed 4116  Mono-Green Landfall (seat) vs Legacy Hogaak (Forge AI)  WON T14  $0.07  harness-epoch-53
+64 model decisions, 35 forced picks, TAKEN 0, LOST 0, SKIP 0, ai_tier_count=0, 11 min. TOOL 5 of 7 served.
+- FIXED  two `simulate` calls failed, "Couldn't map Enroot (151)" (lines 134, 169, T6-T8): Carnivorous Cultivator
+  enters prepared and an effect remembers its prepared spell, which no copied zone held, so Forge's GameCopier threw.
+  The preview parks such remembered cards, and static effects that affect them, for the copy and restores them
+  exactly. Test `aPreparedCardsRememberedSpellDoesNotBreakThePreview` (the fixture builds the end state; the game's
+  route to it is not reproduced). lookahead-preview-v13.
+- FIXED  (found tracing the prover's heap) Forge's static AiCache was never cleared for a model seat, so answers
+  keyed by the game lasted the whole game. The seat clears it where Forge's AI does. Test
+  `theSeatClearsForgesAiCacheWhereForgesAiDoes`. Both folded into harness-epoch-54.
+- checked  35 forced picks: 25 counter-type (Mossborn Hydra and landfall counters, one kind each), 6
+  replacement-order (one option), 2 damage-assign to a single blocker, 1 target, 1 graveyard order.
+- not exercised  the whole-block-set check: Moonshadow attacked into one possible blocker; the seat declared none.
+
+### g17  2026-10-18  seed 4117  Burn (seat) vs Goblins (Forge AI)  WON T11  $0.04  harness-epoch-54
+Sheet clean: 61 model decisions, 0 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 6 of 6 served (simulate 6),
+ai_tier_count=0, 9 min. First game on epoch 54 (AiCache cleared at the seat's priority ask).
+- checked  plan_audit HOLD-VIOLATION T11 Fireblast against "only if it creates lethal": it was the lethal turn.
+- clean  burn targets, previews. First clean game on epoch 54.
+
+### g18  2026-10-18  seed 4118  Pauper Mono-Blue Delver (seat) vs Broodscale (Forge AI)  LOST T18  $0.04  harness-epoch-54
+Sheet clean: 58 model decisions, 11 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 5 of 5 served (simulate 5),
+ai_tier_count=0, 9 min. First loss of the run.
+- checked  plan_audit HOLD-VIOLATIONS x4 (Counterspell T7, T8, Dispel T9, Sleep of the Dead T15): each is the spell
+  the plan held mana for, cast; the matcher reads "keep mana for X" as a hold. Model-chosen.
+- checked  `exile-cost(forced-only-legal)->3` (Sleep of the Dead's escape: exactly three other cards in the graveyard),
+  5 damage-assign to a single blocker, 3 single-target picks, 2 graveyard orders.
+- clean  two block asks (NONE; one block), counter targets, escape cast. Second clean game on epoch 54.
+
+### g19  2026-10-18  seed 4119  Legacy Boros (seat) vs Legacy Elves (Forge AI)  WON T10  $0.03  harness-epoch-54
+Sheet clean: 35 model decisions, 7 forced picks (each one legal option: a target, two counter kinds, Amped Raptor's
+cast pick, Thalia's one ability, a colour, a replacement order), TAKEN 0, LOST 0, SKIP 0, TOOL 2 of 2 served,
+ai_tier_count=0, 5 min. Third clean game in a row on epoch 54 (g17-g19); epoch 55 (choice-list dividers) restarts
+the count. The whole-block-set check is still not exercised in a real game (no block asks).
+
+### g20  2026-10-18  seed 4120  Modern Urzatron (seat) vs Death and Taxes (Forge AI)  WON T15  $0.05  harness-epoch-55
+Sheet clean: 60 model decisions, 6 forced picks (2 single targets, 2 damage-assigns to one blocker, a counter kind, a
+replacement order; optional costs with none payable), TAKEN 0, LOST 0, SKIP 0, TOOL 5 of 5 served, ai_tier_count=0,
+12 min. First clean game on epoch 55.
+- note  plan_audit change (commit "holding mana for a card..."): its message says the g10-g19 flags fell from 9 to 3;
+  measured with the previous script it is 8 to 3.
+
+### g21  2026-10-18  seed 4121  Goblins (seat) vs Pauper White Weenie (Forge AI)  LOST T12  $0.06  harness-epoch-55
+Sheet clean: 74 model decisions, 9 forced picks (4 single damage-assigns to one blocker, 4 counter kinds, a graveyard
+order), TAKEN 0, LOST 0, SKIP 0, TOOL 3 of 3 served (inspect 3), ai_tier_count=0, 10 min. Two block asks, both NONE
+(model's choice with one attacker against three blockers). Second clean game on epoch 55; epoch 56 (combat damage
+asked as amounts under the free-division rule) is built from what the rules puzzles found and restarts the count.
+
+### g22  2026-10-18  seed 4122  Modern Rakdos Delirium (seat) vs Pioneer The Rock (Forge AI)  WON T11  $0.07  harness-epoch-56
+Sheet clean: 66 model decisions, 4 forced picks (3 single-option replacement orders; all 5 to a lone non-trample
+blocker), TAKEN 0, LOST 0, SKIP 0, TOOL 11 of 11 served (inspect 3, simulate 8), ai_tier_count=0, 9 min. First clean
+game on epoch 56. No multi-blocker or trample assignment came up, so the new amounts ask was not exercised live.
+
+### g23  2026-10-18  seed 4123  Mono-Green Landfall (seat) vs Pauper White Weenie (Forge AI)  WON T14  $0.11  harness-epoch-56
+87 model decisions, 29 forced picks, TAKEN 0, LOST 0, SKIP 0, ai_tier_count=0, 14 min. TOOL 10 of 12 served.
+- exercised  the amounts ask, live: a trampler over three blockers, "ForgeAI=51, Martyr's Soul=2, Leonardo=3, Raffine's
+  Informant=2" (each blocker its lethal, the rest over). First real game to meet it.
+- FIXED  two `simulate` calls failed again with "Couldn't map Enroot" (T12, T14), on a build carrying epoch 54's
+  harness-side parking: this time inside the simulator's own copy (GameStateEvaluator.simulateUpcomingCombatThisTurn),
+  which the harness cannot reach. GameCopier is now patched (ENGINE-PATCHES.md) and the parking is gone. The fixture
+  test fails without the patch; a cast-preview test that passed without it was dropped. harness-epoch-58.
+- checked  29 forced picks: 17 counter kinds, 4 replacement orders, 6 single-blocker damage-assigns, 2 single targets.
+
+### g24  2026-10-18  seed 4124  Mono-Green Landfall (seat) vs Modern Rakdos Delirium (Forge AI)  WON T17  $0.07  harness-epoch-58
+Sheet clean: 64 model decisions, 7 forced picks (each a single non-trample blocker: Mightform Harmonizer doubled to 16
+into Moonshadow had no trample, so all 16 to it was the only split), TAKEN 0, LOST 0, SKIP 0, TOOL 5 of 5 served,
+ai_tier_count=0, 7 min. First game on epoch 58; no preview failed (Carnivorous Cultivator was in the deck but the
+failing state did not recur, so the GameCopier patch was not exercised live).
+
+### g25  2026-10-18  seed 4125  Legacy Elves (seat) vs Goblins (Forge AI)  WON T10  $0.05  harness-epoch-58
+Sheet clean: 55 model decisions, 5 forced picks (2 single targets, 3 damage-assigns to a lone non-trample blocker),
+TAKEN 0, LOST 0, SKIP 0, TOOL 10 of 10 served (simulate 10), ai_tier_count=0, 8 min. Second clean game on epoch 58.
+
+### g26  2026-10-19  seed 4126  Miracles (seat) vs Legacy Hogaak (Forge AI)  WON T28  $0.32  harness-epoch-58
+Sheet clean: 269 model decisions, 20 forced picks (11 Counterbalance reveals of the one top card, 4 identical trigger
+pairs, 2 single targets, a cost it could not pay), TAKEN 0, LOST 0, SKIP 0, TOOL 37 of 37 served (inspect 11,
+simulate 25, memory_search 1), ai_tier_count=0, 39 min: the longest and most expensive game of the run, a control
+mirror of patience, still inside the $0.40 budget. Third clean game in a row on epoch 58 (g24-g26).
+- checked  plan_audit HOLD-VIOLATION T20 Counterbalance: the clause holds "the known top sequence", Counterbalance only
+  named inside its parenthesis; a matcher artefact, model-chosen.
+
+### g27  2026-10-19  seed 4127  Lands (seat) vs Modern Urzatron (Forge AI)  lost T26  $0.13  harness-epoch-59
+127 model decisions, 15 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 12 of 14 served, ai_tier_count=0, 20 min.
+- FIXED  T18 "ACTIVATE Rishadan Port [{1}, {T}: Tap target land.]" offered with Port the only untapped source; the two
+  simulate calls on it came back "preview unavailable" and the engine logged "Didn't find what to pay". Epoch 59's
+  self-pay patch let Port tap for the {1} its own {T} cost needs. A card pays for its own ability now only when the
+  two do not both tap it (epoch 60). Test: GoldenChecksTest.aCardThatMustTapForItsAbilityCannotAlsoTapForItsMana,
+  watched failing without the fix.
+- checked  plan_audit HOLD-VIOLATION T7 and T9 Wasteland: the plan recovers Wasteland with Life from the Loam next
+  turn, which presumes it is sacrificed now; model-chosen, a matcher artefact.
+
+### g28  2026-10-19  seed 4128  Vintage Oath of Druids (seat) vs Standard UW Control (Forge AI)  WON T9  $0.08  harness-epoch-60
+95 model decisions, 19 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 8 of 9 served, ai_tier_count=0, 16 min.
+- FIXED  T6 (jsonl:308) the seat previewed Force of Negation's pitch against Seam Rip and got "preview unavailable":
+  the preview took a counterspell's targets from the engine's card candidates, empty for a permanent spell. Aimed at
+  the card instead it fizzled on the copy and showed Seam Rip resolving. It is now aimed at the copy's stack entry,
+  and the report counts exile (lookahead-preview-v15, epoch 61). Test:
+  LookaheadProbeTest.aForceOfNegationPitchOnTheOpponentsTurnIsPreviewed, watched failing first. The seat cast Mental
+  Misstep instead, which was its choice with the preview missing.
+- FIXED (test bridge)  GoldenChecksToolTest's block re-asks failed since epoch 59: ToolAnswerBridge showed the script
+  only the first message, not the rejected answer's reason a model reads. Now 828/828.
+- checked  plan_audit HOLD-VIOLATION T5 Stock Up: the clause weighs "develop with Stock Up or hold up protection";
+  model-chosen, a matcher artefact.
+
+### g29  2026-10-19  seed 4129  Pauper Grixis Affinity (seat) vs Legacy UR Tempo (Forge AI)  WON T17  $0.07  harness-epoch-60
+Sheet clean: 93 model decisions, 5 forced picks (2 forced colours, 2 single replacement orders, a single target),
+TAKEN 0, LOST 0, SKIP 0, TOOL 11 of 11 served (simulate 10, inspect 1), plan holds 0, ai_tier_count=0, 17 min.
+The sacrifice for Eviscerator's Insight's additional cost was the seat's (Giant's Boulder).
+
+### g30  2026-10-19  seed 4130  Pioneer Jund Sacrifice (seat) vs Standard Izzet Spellementals (Forge AI)  WON T11  $0.05  harness-epoch-62
+Sheet clean: 82 model decisions, 22 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 4 of 4 served (simulate),
+plan holds 0 of 17, ai_tier_count=0, 99 calls, 12 min.
+- clean  sacrifice payments (the epoch-62 path): Deadly Dispute's additional cost asked the seat with a CANCEL
+  option on T5 (Treasure) and T7 (Greedy Freebooter); Sackville-Bagginses' and Lively Dirge's sacrifices asked.
+- checked  two `sacrifice(forced)` lines on Sackville-Bagginses' "may sacrifice another" (T3, T7): the "may" was
+  asked (confirm-trigger YES) and one candidate was left each time (T3 Cauldron Familiar; T7 both Treasures had
+  just paid for the second Sackville, and the legend rule, asked as choose-entity, kept the other copy).
+- FIXED (sheet)  match_review's TIME read 803 min: elapsed was the log's mtime minus the start stamp, and this clone
+  checked the log out hours later. It now takes the game row's duration_ms (12 min). Test:
+  TimeSplitTest.test_the_game_rows_duration_beats_the_log_mtime, watched failing first.
+
+### g31  2026-10-19  seed 4131  Pauper Hot Dogs (seat) vs Standard Dimir Control (Forge AI)  lost T21  $0.02  harness-epoch-62
+Sheet: 42 model decisions, 9 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 7 of 7 served (simulate 5, inspect 2), plan
+holds 0 of 10, ai_tier_count=0, 58 calls, 9 min. Built from a copy of the checkout (/root/forge-games) so the running
+prover's classes were not rebuilt under it.
+- checked  LOG exception x1 (T11): a provider `IOException: chunked transfer encoding`; the bridge restarted the session
+  and the retry answered (the SLOW row, 2 retries).
+- checked  every window from T13 on was `nothing-usable` (castable 0), the seat's own mains included: one Mountain
+  left and RR spells in hand; Restless Reef milled three Mountains and no land was drawn.
+- PUZZLE  T10-T12 the seat cast Lava Dart's flashback three times, sacrificing three of its four Mountains (opponent
+  20 -> 5 with Guttersnipe), and never cast a spell again; it had weighed this on T11 ("take the Reef hit rather than
+  sacrifice a Mountain") and then did it on T12.
+
+### g32  2026-10-19  seed 4132  Pioneer Dimir Kaito (seat) vs Pauper Madness Burn (Forge AI)  WON T18  $0.04  harness-epoch-63
+Sheet clean: 70 model decisions (all smart), 9 forced picks, TAKEN 0, LOST 0, SKIP 0, plan holds 0 of 9,
+ai_tier_count=0, 95 calls, 13 min; the first game on epoch 63.
+- checked  TOOL empty x1 (T3): `simulate` asked during an Overgrown-style "pay 2 life" replacement, which is not a
+  priority menu; the harness said so and the seat answered the decision. Not a defect.
+- checked  LOG exception x1: the provider's chunked-transfer error again (g31), retried by the bridge.
+
+### g33  2026-10-19  seed 4133  Vintage Esper Control (seat) vs Pioneer Red Deck Wins (Forge AI)  WON T14  $0.13  harness-epoch-64
+Sheet: 130 model decisions, 18 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 34 of 36 served, plan holds 1 of 22,
+ai_tier_count=0, 183 calls, 23 min. The most expensive loop game so far (control asks often), within the $0.40 budget.
+- FIXED  LEAK x2 (T13): the opponent's command zone read "Kumano Faces Kakkazan (111)'s Effect's Effect"; an effect
+  of an effect kept its source effect's engine id (observation-faithful-v42). Test:
+  PromptFidelityTest.anEffectOfAnEffectCarriesNoEngineId, watched failing first.
+- checked  TOOL empty x2: `simulate` outside a priority menu, refused with the reason, as in g32.
+- not read  the one plan hold and the play-by-play; the sheet was all this session read before it stopped.

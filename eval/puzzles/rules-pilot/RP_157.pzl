@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 157 - Assign before doubling
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control War Mammoth (3/3 trample) and Gratuitous Violence. The opponent is at 2 life and controls Grizzly Bears. Win this turn.
+Rule:ask-a-magic-judge-63ade1a50afd8aa2 | Combat damage is assigned before replacement effects double it (CR 510.1c-d, 702.19b): a trampler must assign the blocker's full toughness, and only what is left over is doubled
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=War Mammoth;Gratuitous Violence
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

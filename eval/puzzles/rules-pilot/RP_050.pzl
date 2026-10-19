@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 050 - The Lord falls first
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:The opponent controls Lord of Atlantis and Merfolk of the Pearl Trident, which has 1 damage marked on it. You have Shock in hand. End the turn with both creatures in the opponent's graveyard.
+Rule:cranial-insertion-5f9182a917497801 | When the Lord dies, the Merfolk loses its bonus; its marked damage stays, so the next state-based check destroys it (CR 704.3, 704.5g)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Shock
+p0battlefield=Mountain
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Lord of Atlantis;Merfolk of the Pearl Trident|Damage:1
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Lord of Atlantis" = 1
+count p1 Graveyard "Merfolk of the Pearl Trident" = 1

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 113 - A new Dryad
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:The opponent has cast Final Reward targeting your Tendershoot Dryad. You control two Islands and have Siren's Ruse in hand. End the turn with Tendershoot Dryad on the battlefield.
+Rule:rulesguru-a175d56d27eac7ef | A permanent that leaves and returns is a new object (CR 400.7), so the spell targeting the old one has no legal target and does not resolve (CR 608.2b)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Siren's Ruse
+p0battlefield=Tendershoot Dryad|Id:1;Island;Island
+p0library=Island;Island;Island
+p1life=20
+p1library=Plains;Plains;Plains
+p1putonstack=Final Reward->1
+[acceptance]
+count p0 Battlefield "Tendershoot Dryad" = 1

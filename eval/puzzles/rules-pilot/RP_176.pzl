@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 176 - The Sentry meets its own condition
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:The opponent is at 6 life and controls no creatures. You control Bristlepack Sentry (3/3 defender) and a Forest and have Giant Growth in hand. Reduce the opponent to 0 life this turn.
+Rule:wizards-of-the-coast-release-notes-2123d8ac42584923 | Bristlepack Sentry's own power counts for its condition: at power 4 or greater it can attack as though it didn't have defender
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Giant Growth
+p0battlefield=Bristlepack Sentry;Forest
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

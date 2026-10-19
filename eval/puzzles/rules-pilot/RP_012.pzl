@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 012 - Nine lives, doubled
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:Your Nine-Lives Familiar has five revival counters. End the turn with Nine-Lives Familiar on your battlefield with at least 8 revival counters.
+Rule:cranial-insertion-985469215b2360f5 | Doubling Season doubles the counters a permanent enters the battlefield with (CR 122.6, 614.1c)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0battlefield=Doubling Season;Nine-Lives Familiar|Counters:REVIVAL=5;Spawning Pit
+p0library=Swamp;Swamp;Swamp
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+counters p0 Battlefield "Nine-Lives Familiar" REVIVAL >= 8

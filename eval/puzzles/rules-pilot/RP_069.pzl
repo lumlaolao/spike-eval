@@ -1,0 +1,23 @@
+[metadata]
+Name:Rules pilot 069 - The Crawler is watching
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You are at 2 life. The opponent controls Scrawling Crawler. You control Augur of Bolas, two Islands and two Mountains, and have Flame of Anor and Flame Slash in hand; your library has three cards. End the turn at 2 life with Scrawling Crawler in the opponent's graveyard, Augur of Bolas on your battlefield and one card left in your library.
+Rule:rulesguru-5f56ca747beaedb3 | A creature dealt lethal damage stays on the battlefield until state-based actions are checked after the spell resolves (CR 704.3), so it sees draws made later in the same spell
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=2
+p0hand=Flame of Anor;Flame Slash
+p0battlefield=Augur of Bolas;Island;Island;Mountain;Mountain
+p0library=Fortress Crab;Fortress Crab;Fortress Crab
+p1life=20
+p1battlefield=Scrawling Crawler
+p1library=Plains;Plains;Plains
+[acceptance]
+life p0 = 2
+count p1 Graveyard "Scrawling Crawler" = 1
+count p0 Battlefield "Augur of Bolas" = 1
+count p0 Library * = 1

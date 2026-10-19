@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 148 - Four times the draw
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You are at max speed and control Vnwxt, Verbose Host, Thought Reflection and four Islands, with Divination and Concentrate in hand and ten cards in your library. End the turn with at least eight cards in hand.
+Rule:wizards-of-the-coast-release-notes-dd14a8fbcde99161 | Two draw replacements each apply to every draw (CR 616.1, 121.6), so with Vnwxt at max speed and Thought Reflection each draw becomes four
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0speed=4
+p0hand=Divination;Concentrate
+p0battlefield=Vnwxt, Verbose Host;Thought Reflection;Island;Island;Island;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Hand * >= 8
+winner p0
