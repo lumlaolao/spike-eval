@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 287 - Ward cannot counter the uncounterable
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase and you have R R R floating. You have Combust and Lightning Bolt in hand. The opponent is at 20 life and controls Waterfall Aerialist (3/1 flying, ward {2}). End the turn with Waterfall Aerialist in the opponent's graveyard and the opponent at 17 life.
+Rule:authored-ward-uncounterable | Ward is a triggered ability that counters the targeting spell unless its cost is paid (CR 702.21a); a spell that can't be countered is not countered by it (CR 101.2, 701.6a): Combust kills the Aerialist without paying {2}, leaving {R} for Lightning Bolt to the face
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Lightning Bolt;Combust
+p0manapool=R R R
+p0library=Mountain;Mountain;Mountain
+p1life=20
+p1battlefield=Waterfall Aerialist
+p1library=Island;Island;Island
+[acceptance]
+count p1 Graveyard "Waterfall Aerialist" = 1
+life p1 = 17

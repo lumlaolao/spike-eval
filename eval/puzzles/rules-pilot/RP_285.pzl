@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 285 - Counters stop persist
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You are at 2 life. The opponent's Kitchen Finks (3/2, persist) and Grizzly Bears (2/2) are attacking you. You control Cystbearer (2/3, infect) and Hill Giant (3/3). End the turn with no creatures on the opponent's battlefield.
+Rule:authored-persist-infect | Infect damage to a creature is dealt as -1/-1 counters (CR 702.90c, 120.3d), and persist returns a creature only if it had no -1/-1 counters on it (CR 702.79a): Finks killed by Cystbearer stays dead, while Finks killed by Hill Giant's ordinary damage returns
+[state]
+turn=1
+activeplayer=p1
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=2
+p0battlefield=Hill Giant;Cystbearer
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Kitchen Finks|Attacking|Tapped;Grizzly Bears|Attacking|Tapped
+p1library=Forest;Forest;Forest
+[acceptance]
+count p1 Battlefield * = 0
+life p0 = 2

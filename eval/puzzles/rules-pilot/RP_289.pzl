@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 289 - Blocking can cost life
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You are at 4 life. The opponent's Frontline Devastator (3/3, afflict 2) and Grizzly Bears (2/2) are attacking you. You control Wall of Stone (0/8). Survive the turn.
+Rule:authored-afflict | Afflict is a triggered ability: whenever the creature becomes blocked, the defending player loses N life (CR 702.130a): blocking Frontline Devastator costs 2 life plus the Bears' 2, so block the smaller attacker and take 3
+[state]
+turn=1
+activeplayer=p1
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=4
+p0battlefield=Wall of Stone
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Frontline Devastator|Attacking|Tapped;Grizzly Bears|Attacking|Tapped
+p1library=Mountain;Mountain;Mountain
+[acceptance]
+life p0 = 1
