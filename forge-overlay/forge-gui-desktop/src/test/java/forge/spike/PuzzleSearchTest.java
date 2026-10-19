@@ -225,10 +225,20 @@ public class PuzzleSearchTest {
     @Test
     public void choicesThatMakeNoSecondSolutionAreNotCompared() {
         for (String t : new String[] {"order", "trigger-order", "replacement-order", "mana-sources", "mana-from-pool", "color",
-                "scry", "confirm", "zone-change", "target", "targets"})
+                "scry", "clash", "confirm", "zone-change", "target", "targets"})
             Assert.assertTrue(LlmSpikeGui.PlayerControllerLLM.UNIQUENESS_NEUTRAL.contains(t), t);
         for (String t : new String[] {"modes", "number", "card-name", "some-type", "entity"})
             Assert.assertFalse(LlmSpikeGui.PlayerControllerLLM.UNIQUENESS_NEUTRAL.contains(t), t);
+    }
+
+    /** Batch 14d2 (2026-10-19): Mystic Subdual then Shock, or Shock then Subdual, both kill Fiend Artisan; the one
+     *  choice that told them apart was the target's size, "(5/5)" against "(-1/1)", and a negative size was kept. */
+    @Test
+    public void aChoiceKeyDropsTheObjectsSizeEvenWhenNegative() {
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.choiceKey("choice", "Fiend Artisan (-1/1) [Opponent's Battlefield]"),
+                LlmSpikeGui.PlayerControllerLLM.choiceKey("choice", "Fiend Artisan (5/5) [Opponent's Battlefield]"));
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.choiceKey("choice", "Grizzly Bears (2/-3)@41 #2"), "choice: Grizzly Bears");
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.choiceKey(null, "Hill Giant (3/3)[tapped]"), "choice: Hill Giant");
     }
 
     @Test

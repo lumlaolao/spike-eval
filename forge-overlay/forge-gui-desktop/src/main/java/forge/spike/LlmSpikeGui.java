@@ -1928,21 +1928,26 @@ public final class LlmSpikeGui {
             if (!(rnd instanceof PuzzleArms.Search) || !"Solver".equals(((PuzzleArms.Search) rnd).seat)) return;
             if (type != null && UNIQUENESS_NEUTRAL.contains(type)) return;
             PuzzleArms.Line l = PuzzleArms.searchLine;
-            if (l != null && label != null && !label.startsWith("PASS") && !"[]".equals(label))
-                l.note((type == null ? "choice" : type) + ": " + label.replaceAll(" ?@\\d+", "")
-                        .replaceAll(" #\\d+(?=[,\\]]|$)", "").replaceAll("\\[(un)?tapped\\]|\\[sick\\]", "")
-                        // the object's current size and counters: the same card before and after a counter (RP_127)
-                        .replaceAll(" ?\\(\\d+/\\d+\\)", "").replaceAll("\\[[^\\]]* x\\d+\\]", ""));
+            if (l != null && label != null && !label.startsWith("PASS") && !"[]".equals(label)) l.note(choiceKey(type, label));
+        }
+
+        /** A solver choice as the uniqueness search compares it: handles, repeat markers, tapped/sick marks, the
+         *  object's current size (negative too: Fiend Artisan (-1/1), batch 14d2) and counters dropped (RP_127). */
+        static String choiceKey(String type, String label) {
+            return (type == null ? "choice" : type) + ": " + label.replaceAll(" ?@\\d+", "")
+                    .replaceAll(" #\\d+(?=[,\\]]|$)", "").replaceAll("\\[(un)?tapped\\]|\\[sick\\]", "")
+                    .replaceAll(" ?\\(-?\\d+/-?\\d+\\)", "").replaceAll("\\[[^\\]]* x\\d+\\]", "");
         }
 
         /** Choices that make no second solution on their own (rules puzzle batch 3: 18 correct puzzles were called
          *  "multiple" for them): the order of cards moved together or of triggers and replacements, which source paid,
-         *  a scry, a confirm prompt, a library pick declined and made again, mana paid from the pool or the colour an
+         *  a scry or a clash (top or bottom, batch 14b2), a confirm prompt, a library pick declined and made again, mana paid from the pool or the colour an
          *  any-colour source made (a "choose a color" effect is asked under this type too, a known blind spot). Where one
          *  decides the result, the result
          *  differs in the solver's actions or in a choice that is noted. */
         static final java.util.Set<String> UNIQUENESS_NEUTRAL = new java.util.HashSet<>(java.util.Arrays.asList(
-                "order", "trigger-order", "replacement-order", "mana-sources", "mana-from-pool", "color", "scry", "confirm",
+                "order", "trigger-order", "replacement-order", "mana-sources", "mana-from-pool", "color", "scry", "clash",
+                "confirm",
                 "zone-change", "target", "targets"));   // targets: the log's "targeting [...]" already says them (RP_022)
 
         /** {@code simulate}: the `simulate` call for this decision (a target choice of a play), or null. */
