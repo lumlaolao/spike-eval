@@ -518,3 +518,44 @@ Slime APNAP (RP_190).
 - RP_191: Lightning Bolt to Flame Rift (no targets) after v1 was not found in 600 rollouts.
 - RP_192: Llanowar Elves to Savannah Lions (finding 3). RP_199: Exalted Angel to Hidden Dragonslayer (finding 5).
   RP_204: lands to floating mana and Memnite (finding 4).
+
+# Batch 8: one hundred more "maybe" questions (RP_205 to RP_210)
+
+Source: the remaining `convert == "maybe"` questions in `triage.jsonl`, screened as in batches 6 and 7. The pool left
+after batch 7 is mostly opponent-driven, choice-free or replacement-order questions: 6 boards were built and 94
+questions were dropped with a reason in each row's `note`. 100 rows in `manifest.jsonl` (now 511). Build: epoch 60
+(`epoch60-build.txt`, re-read before every JVM). Gate as before; at most two of this batch's JVMs at once and none
+while HOLD existed (every `rp8/*.starts` line says `hold=N`). Boards that would depend on the fixes in progress
+(sacrifice during payment, the free-cast tax, face-down names in acceptance) were not built: the mutate-on-a-face-down
+question (L61) and the Sphere free-cast question (L542, a near-duplicate of RP_197) wait for them.
+
+## Counts
+
+| result | n | puzzles |
+|---|---|---|
+| converted | 4 | 205, 206, 208, 210 |
+| multiple, same play in substance | 1 | 209 (`multiple_review`) |
+| harness bug | 1 | 207 (setup name choice) |
+| dropped (no board) | 94 | see each row's `note` |
+
+The pass arm was rejected on all 6 boards. Uniqueness was exhaustive on RP_206 and RP_210; RP_205 6/7, RP_208 9/17.
+Forge agreed with the judge on every converted board, including two that looked like possible disagreements:
+returning Hardened Scales to Rescuer Sphinx still gives two counters (RP_210), and the city's blessing from a tenth
+permanent survives the legend rule (RP_208). Skipped without a row as rule-level near-duplicates (in addition to
+batch 7's list): Extus targets before the spell resolves (RP_087), Containment Priest and Grist and Alpine Moon's
+enter checks (CR 614.12), Roaming Throne's once-per-turn limit (RP_078), resolving permanent-spell copies (RP_040),
+LKI power (RP_015).
+
+## Harness and prover findings
+
+1. **A setup-time name choice overrides `NamedCard:`** (RP_207). Pithing Needle's "as this enters, choose a card name"
+   is asked of the opponent while the state loads and answered at random
+   (`[Opponent] [AUTO-LEGAL] card-name(random)->A-Capenna Express`), so `NamedCard:Endbringer` is lost, most games have
+   no lock, and the search branches over card names (394 opponent replies, not_found at 600). Same class as RP_078's
+   `ChosenType`. Evidence: `rp8/RP_207-search/jvm.log`.
+2. **Declining a "you may cast it" is offered twice** (RP_209). Suspend's cast asks "Do you want to play Living End?"
+   and, after YES, the play-from-effect menu offers "Do not cast it"; uniqueness reports the two declines as two
+   solutions (`second: play-from-effect: Do not cast it`).
+3. **Counter names in setup are case-sensitive for keyword counters** (RP_205 v1): `Counters:FLYING=1` loads a custom
+   counter shown as `[FLYING x1]` that grants nothing; `Counters:Flying=1` is the keyword counter. Not a harness bug,
+   but nothing warns at load.
