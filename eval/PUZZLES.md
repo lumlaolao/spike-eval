@@ -146,7 +146,8 @@ python3 eval/puzzle_format.py freeze runs/puzzles/rules-measured.json --out eval
 A rules puzzle is solved when its acceptance state holds, so the arms and the scorer need nothing new. Its reference
 line may also be its search proof (`arm: search`): when neither a random rollout nor Forge's AI solves it, the search
 proves it again at the gate's budget (`SEARCH_LINE_BUDGET`, opponent `search`, no uniqueness search), and the
-verification proves it once more and must reach the same line, proven and accepted.
+verification proves it once more, which must come out proven and accepted (on any line: a rollout capped under load
+steers the search elsewhere).
 
 ## Running a model
 

@@ -17,7 +17,7 @@ startgate() {  # $1 = tag ; prints a starts line
   while [ -e $S/HOLD ] || [ $(jvms) -ge 2 ]; do sleep 20; done
   echo "start-$1 $(date +%s) hold=$( [ -e $S/HOLD ] && echo Y || echo N) jvms=$(jvms)"
 }
-release() { n0=$1; for i in $(seq 1 30); do [ $(jvms) -gt $n0 ] && break; sleep 1; done; sleep 2; rmdir $S/rp10/start.lock; }
+release() { n0=$1; for i in $(seq 1 30); do [ $(jvms) -gt $n0 ] && break; sleep 1; done; sleep 2; rmdir $S/rp10/start.lock; trap - EXIT; }
 if [[ $1 == R_* ]]; then
   id=${1#R_}; seeds=${2:-1,2,3,4}; P=$(pz $id); rm -rf $D/$id-rand
   startgate rand >> $D/$id.starts; B=$(cat ${BUILD_FILE:-$S/epoch62-build.txt}); echo "build-rand $B" >> $D/$id.starts

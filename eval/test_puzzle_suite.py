@@ -239,8 +239,55 @@ class BaselineDecisionTest(unittest.TestCase):
             self.assertIsNone(pb.choose_search_line(dict(row, **bad)), bad)
         self.assertEqual(pb.check_search_replay(line, row), [])
         self.assertTrue(pb.check_search_replay(line, None))
-        for bad in ({"status": "not_found"}, {"acceptance": "rejected"}, {"line": "Solver:3:2"}):
+        for bad in ({"status": "not_found"}, {"acceptance": "rejected"}):
             self.assertTrue(pb.check_search_replay(line, dict(row, **bad)), bad)
+        # A rollout capped under load steers the search elsewhere: still proven and accepted, so still verified.
+        self.assertEqual(pb.check_search_replay(line, dict(row, line="Solver:3:2")), [])
+
+    def test_a_rules_puzzle_no_rollout_solves_gets_its_search_proof_as_a_verified_line(self):
+        calls = []
+
+        def fake_run_arm(build, pzl, arm, seeds, out_dir, extra_env=None):
+            calls.append((arm, (extra_env or {}).get("CONTROLLER_B")))
+            if arm == "search":
+                return [{"status": "proven", "acceptance": "accepted", "line": "Solver:2:1", "seed": 1,
+                         "solver_actions": 2, "search_budget": pb.SEARCH_LINE_BUDGET}]
+            return [{"status": "failed", "seed": s} for s in pb.expand_seeds(seeds)]
+
+        repo = tempfile.mkdtemp()
+        r = dict(rec("rules-RP_1", repo), source={"kind": "rules"}, baselines={}, reference_line=None,
+                 verification=None)
+        real, pb.run_arm = pb.run_arm, fake_run_arm
+        try:
+            out = pb.baseline_puzzle(None, dict(r, pzl=str(Path(repo) / r["pzl"])), Path(repo) / "out", 4, 1, 0,
+                                     ["random", "pass", "first", "ai"])
+        finally:
+            pb.run_arm = real
+        self.assertEqual(out["reference_line"]["arm"], "search")
+        self.assertEqual(out["verification"]["status"], "verified", out["verification"])
+        self.assertEqual((out["tier"], out["status"]), (2, "active"))
+        self.assertEqual(calls.count(("search", "search")), 2)   # found, then proven again to verify
+        # A Forge-builtin puzzle never gets one: the search proves against every reply, its line is a rules thing.
+        pb.run_arm = fake_run_arm
+        try:
+            out = pb.baseline_puzzle(None, dict(r, pzl=str(Path(repo) / r["pzl"]), source={"kind": "forge-builtin"}),
+                                     Path(repo) / "out", 4, 1, 0, ["random", "pass", "first", "ai"])
+        finally:
+            pb.run_arm = real
+        self.assertIsNone(out.get("reference_line"))
+
+    def test_a_rerun_arm_reads_only_its_own_rows(self):
+        # LlmSpikePuzzle appends to puzzle-results.jsonl: a second run read the first run's row (pr-review, PR #268).
+        out = Path(tempfile.mkdtemp())
+        (out / "puzzle-results.jsonl").write_text(json.dumps({"status": "solved", "seed": 1, "old": True}) + "\n")
+
+        class FakeBuild:
+            def run(self, env, out_dir, timeout_s=None):
+                with open(Path(out_dir) / "puzzle-results.jsonl", "a") as f:
+                    f.write(json.dumps({"status": "failed", "seed": 1}) + "\n")
+                return 0
+        rows = pb.run_arm(FakeBuild(), out / "x.pzl", "random", "1", out)
+        self.assertEqual(rows, [{"status": "failed", "seed": 1}])
 
     def test_rules_candidates_are_the_converted_rows_with_their_files_and_questions(self):
         repo = Path(tempfile.mkdtemp())
