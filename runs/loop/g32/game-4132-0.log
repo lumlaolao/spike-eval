@@ -93,3 +93,22 @@ Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
 Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
 [Seat] [TALLY] smart=19 fast=0 auto=4 ai=0 textParses=0 avgSmart=9131ms avgFast=9131ms
 [Seat] [ROUTER] play(main): 4 castable + 2 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10061 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Develop evasive pressure while keeping enough colored mana to follow up and avoid unnecessary life loss against red burn. NEXT: Play Mutavault, then cast Moon-Circuit Hacker with the two colored sources; attack next turn and use ninjutsu if profitable.
+[OPENROUTER Seat/smart] replied in 2120 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Mutavault
+[Seat] [TALLY] smart=21 fast=0 auto=4 ai=0 textParses=0 avgSmart=8842ms avgFast=8842ms
+[Seat] [ROUTER] play(main): 6 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7451 ms with 1 tool call(s)
+[Seat] [ROUTER] play: casts Moon-Circuit Hacker 2/1 @38 1{U} [Ninjutsu {U} ({U}, Return an unblocked attacker you control to hand: Put this card onto the battlefield from your hand tapped and attacking.) Whenever Moon-Circuit Hacker deals combat damage to a player, you may draw a card. If you do, discard a card unless Moon-Circuit Hacker entered this turn.]
+[OPENROUTER Seat/smart] replied in 13596 ms with 1 tool call(s)
+[Seat] [ROUTER] mana: keep untapped 1 for CAST Moon-Circuit Hacker 2/1 @43 1{U} [Ninjutsu {U} ({U}, Return an unblocked attacker you control to hand: Put this card onto the battlefield from your hand tapped and attacking.) Whenever Moon-Circuit Hacker deals combat damage to a player, you may draw a card. If you do, discard a card unless Moon-Circuit Hacker entered this turn.]
+[Seat] [AUTO-LEGAL] color(forced)->first
+[Seat] [TALLY] smart=23 fast=0 auto=5 ai=0 textParses=0 avgSmart=8988ms avgFast=8988ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7297 ms with 1 tool call(s)
+[Seat] [ROUTER] play: PASS
+[Seat] [TALLY] smart=24 fast=0 auto=5 ai=0 textParses=0 avgSmart=8917ms avgFast=8917ms
+[Seat] [ROUTER] play(main): 2 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 8600 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Build evasive pressure and draw value while keeping life safe against red burn. NEXT: Pass through to the opponent's turn; next turn attack with Hacker, consider ninjutsu only when the value and mana justify it, and keep Mutavault available to animate.
