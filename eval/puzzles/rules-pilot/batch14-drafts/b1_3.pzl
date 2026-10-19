@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - First strike, too late to skip
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:You control Altac Bloodseeker and Practiced Scrollsmith equipped with Goldvein Pick, no lands, and have Shock in hand. The opponent is at 20 life and controls a tapped Willow Elf. End the turn with Willow Elf in the opponent's graveyard and the opponent at exactly 12 life.
+Rule:rulesguru-a963d778c9e7fb73 | A creature that gains first strike after the first-strike combat damage step still deals its damage in the regular step (CR 510.4, 702.7c): kill Willow Elf with the Treasure's Shock between the steps and Altac Bloodseeker deals 4 as a first striker that had not yet dealt damage
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Shock
+p0battlefield=Altac Bloodseeker;Practiced Scrollsmith|Id:1;Goldvein Pick|AttachedTo:1
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Willow Elf|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Willow Elf" = 1
+life p1 = 12

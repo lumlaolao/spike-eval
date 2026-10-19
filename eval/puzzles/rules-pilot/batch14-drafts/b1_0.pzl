@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - The trigger outlives its source
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:You control Thing in the Ice with two ice counters on it, Grizzly Bears and six Islands, and have Divination and Snakeform in hand. End the turn with Awoken Horror and Grizzly Bears on your battlefield.
+Rule:rulesguru-6c7ca7e941f641bd | A triggered ability on the stack exists independently of its source (CR 113.7a): Thing in the Ice that lost its abilities still loses its last ice counter and transforms, but it is the same object, so Snakeform's ability loss persists (CR 712.18) and Awoken Horror's transform trigger does not exist: cast Divination, then Snakeform Thing in the Ice in response to its trigger
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Divination;Snakeform
+p0battlefield=Thing in the Ice|Counters:ICE=2;Grizzly Bears;Island;Island;Island;Island;Island;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Awoken Horror" = 1
+count p0 Battlefield "Grizzly Bears" = 1
