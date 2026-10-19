@@ -926,3 +926,15 @@ mirror of patience, still inside the $0.40 budget. Third clean game in a row on 
 Sheet clean: 93 model decisions, 5 forced picks (2 forced colours, 2 single replacement orders, a single target),
 TAKEN 0, LOST 0, SKIP 0, TOOL 11 of 11 served (simulate 10, inspect 1), plan holds 0, ai_tier_count=0, 17 min.
 The sacrifice for Eviscerator's Insight's additional cost was the seat's (Giant's Boulder).
+
+### g30  2026-10-19  seed 4130  Pioneer Jund Sacrifice (seat) vs Standard Izzet Spellementals (Forge AI)  WON T11  $0.05  harness-epoch-62
+Sheet clean: 82 model decisions, 22 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 4 of 4 served (simulate),
+plan holds 0 of 17, ai_tier_count=0, 99 calls, 12 min.
+- clean  sacrifice payments (the epoch-62 path): Deadly Dispute's additional cost asked the seat with a CANCEL
+  option on T5 (Treasure) and T7 (Greedy Freebooter); Sackville-Bagginses' and Lively Dirge's sacrifices asked.
+- checked  two `sacrifice(forced)` lines on Sackville-Bagginses' "may sacrifice another" (T3, T7): the "may" was
+  asked (confirm-trigger YES) and one candidate was left each time (T3 Cauldron Familiar; T7 both Treasures had
+  just paid for the second Sackville, and the legend rule, asked as choose-entity, kept the other copy).
+- FIXED (sheet)  match_review's TIME read 803 min: elapsed was the log's mtime minus the start stamp, and this clone
+  checked the log out hours later. It now takes the game row's duration_ms (12 min). Test:
+  TimeSplitTest.test_the_game_rows_duration_beats_the_log_mtime, watched failing first.
