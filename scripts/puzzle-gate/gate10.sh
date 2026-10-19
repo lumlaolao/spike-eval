@@ -1,6 +1,7 @@
 #!/bin/bash
 mkdir -p "${SCRATCH:-/tmp/puzzle-scratch}/rp10" "${SCRATCH:-/tmp/puzzle-scratch}/rp10v"
-# gate10.sh ID : search arm then pass arm on the build named in $S/epoch62-build.txt, summary to $S/rp10/ID.summary
+# gate10.sh ID : search arm then pass arm on the build named in $BUILD_FILE (default $S/epoch62-build.txt),
+#   summary to $S/rp10/ID.summary
 #   V_<name> : scratch variant $S/rp10v/<name>.pzl ; R_<ID>[:seeds] : random arm, logs only
 S=${SCRATCH:-/tmp/puzzle-scratch}
 D=$S/rp10
@@ -16,16 +17,16 @@ startgate() {  # $1 = tag ; prints a starts line
 release() { ( n0=$1; for i in $(seq 1 30); do [ $(jvms) -gt $n0 ] && break; sleep 1; done; sleep 2; flock -u 9 ) ; exec 9>&-; }
 if [[ $1 == R_* ]]; then
   id=${1#R_}; seeds=${2:-1,2,3,4}; P=$(pz $id); rm -rf $D/$id-rand
-  startgate rand >> $D/$id.starts; B=$(cat $S/epoch62-build.txt); echo "build-rand $B" >> $D/$id.starts
+  startgate rand >> $D/$id.starts; B=$(cat ${BUILD_FILE:-$S/epoch62-build.txt}); echo "build-rand $B" >> $D/$id.starts
   n0=$(jvms); python3 /home/user/mtg-forge-llm-agent/scripts/puzzle-gate/run_one.py $B $P $D/$id-rand random search PZL_SEEDS=$seeds GAME_CAP_MS=60000 > $D/$id.rand.out 2>&1 &
   release $n0; wait; exit 0
 fi
 id=$1; P=$(pz $id); rm -rf $D/$id-search $D/$id-pass; : > $D/$id.starts
 t0=$(date +%s)
-startgate search >> $D/$id.starts; B=$(cat $S/epoch62-build.txt); echo "build-search $B" >> $D/$id.starts
+startgate search >> $D/$id.starts; B=$(cat ${BUILD_FILE:-$S/epoch62-build.txt}); echo "build-search $B" >> $D/$id.starts
 n0=$(jvms); python3 /home/user/mtg-forge-llm-agent/scripts/puzzle-gate/run_one.py $B $P $D/$id-search search search PZL_SEARCH_BUDGET=600 GAME_CAP_MS=60000 > $D/$id.search.out 2>&1 &
 release $n0; wait
-startgate pass >> $D/$id.starts; B=$(cat $S/epoch62-build.txt); echo "build-pass $B" >> $D/$id.starts
+startgate pass >> $D/$id.starts; B=$(cat ${BUILD_FILE:-$S/epoch62-build.txt}); echo "build-pass $B" >> $D/$id.starts
 n0=$(jvms); python3 /home/user/mtg-forge-llm-agent/scripts/puzzle-gate/run_one.py $B $P $D/$id-pass pass search GAME_CAP_MS=60000 > $D/$id.pass.out 2>&1 &
 release $n0; wait
 python3 - $D/$id $(( $(date +%s) - t0 )) > $D/$id.summary <<'PY'

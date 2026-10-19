@@ -938,3 +938,15 @@ plan holds 0 of 17, ai_tier_count=0, 99 calls, 12 min.
 - FIXED (sheet)  match_review's TIME read 803 min: elapsed was the log's mtime minus the start stamp, and this clone
   checked the log out hours later. It now takes the game row's duration_ms (12 min). Test:
   TimeSplitTest.test_the_game_rows_duration_beats_the_log_mtime, watched failing first.
+
+### g31  2026-10-19  seed 4131  Pauper Hot Dogs (seat) vs Standard Dimir Control (Forge AI)  lost T21  $0.02  harness-epoch-62
+Sheet: 42 model decisions, 9 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 7 of 7 served (simulate 5, inspect 2), plan
+holds 0 of 10, ai_tier_count=0, 58 calls, 9 min. Built from a copy of the checkout (/root/forge-games) so the running
+prover's classes were not rebuilt under it.
+- checked  LOG exception x1 (T11): a provider `IOException: chunked transfer encoding`; the bridge restarted the session
+  and the retry answered (the SLOW row, 2 retries).
+- checked  every window from T13 on was `nothing-usable` (castable 0), the seat's own mains included: one Mountain
+  left and RR spells in hand; Restless Reef milled three Mountains and no land was drawn.
+- PUZZLE  T10-T12 the seat cast Lava Dart's flashback three times, sacrificing three of its four Mountains (opponent
+  20 -> 5 with Guttersnipe), and never cast a spell again; it had weighed this on T11 ("take the Reef hit rather than
+  sacrifice a Mountain") and then did it on T12.
