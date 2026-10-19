@@ -312,8 +312,11 @@ public final class LlmSpikeGui {
      *  Epoch 62 (2026-10-19, rules pilot batches 7-8): a mana ability's sacrifice cost inside a payment is the seat's
      *  (Thermopod, RP_198); a forced free cast that still costs mana asks whether to pay (Sphere, RP_197); an optional
      *  cast the engine just confirmed is not asked again (suspend, RP_209); setup choices draw nothing (RP_207).
+     *  Epoch 63 (2026-10-19, rules pilot batch 10): a play a static forbids (Pithing Needle, Null Rod, Gaddock Teeg) is
+     *  not on the menu; the engine's canPlay() leaves those statics to checkRestrictions, which the menu never asked
+     *  (Endbringer's ping under a Needle naming it was offered and played, RP_207).
      */
-    static final String HARNESS_EPOCH = "harness-epoch-62";
+    static final String HARNESS_EPOCH = "harness-epoch-63";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -2518,7 +2521,7 @@ public final class LlmSpikeGui {
             ManaSource(String name, int amount) { this.name = name; this.amount = amount; }
         }
         static boolean canActivateNow(SpellAbility ab, Player pl) {
-            try { ab.setActivatingPlayer(pl); return ab.canPlay(); } catch (Exception e) { return false; }
+            try { ab.setActivatingPlayer(pl); return PlayerControllerLLM.playable(ab, pl); } catch (Exception e) { return false; }
         }
         static List<ManaSource> manaSources(Player pl) {
             List<ManaSource> out = new ArrayList<>();
@@ -4803,6 +4806,7 @@ public final class LlmSpikeGui {
             final Card source = sa.getHostCard();
             final Game game = source.getGame();
             final forge.game.zone.Zone hz = source.isCopiedSpell() ? null : source.getZone();
+            final int hzPos = hz == null ? 0 : hz.getCards().indexOf(source);
             source.setSplitStateToPlayAbility(sa);
             if (sa.isSpell() && !source.isCopiedSpell()) {
                 sa = forge.game.ability.AbilityUtils.addSpliceEffects(sa);
@@ -4816,6 +4820,14 @@ public final class LlmSpikeGui {
             }
             if (!sa.isCopied()) { sa.resetPaidHash(); sa.setPaidLife(0); }
             sa = forge.game.GameActionUtil.addExtraKeywordCost(sa);
+            // The engine routine's own check, once the card is on the stack (ComputerUtil.handlePlayingSpellAbility):
+            // a static that forbids the play stops it here even if a menu missed it (rules pilot RP_207).
+            if (!sa.checkRestrictions(ai)) {
+                p("[ROUTER] play: " + labelOf(sa) + " is forbidden by a static -> nothing was played");
+                failedInWindow.add(chosenKey);
+                forge.game.GameActionUtil.rollbackAbility(sa, hz, hzPos, new CostPayment(sa.getPayCosts(), sa), source);
+                return true;
+            }
             if (sa.getApi() == ApiType.Charm && !modesChosen && !forge.game.ability.effects.CharmEffect.makeChoices(sa)) return true;
 
             game.getStack().freezeStack(sa);
@@ -5155,7 +5167,7 @@ public final class LlmSpikeGui {
                     for (SpellAbility ma : host.getManaAbilities()) {
                         if (!hasTapTypeCost(ma)) continue;
                         ma.setActivatingPlayer(me);
-                        if (!ma.canPlay() || !CostPayment.canPayAdditionalCosts(ma.getPayCosts(), ma, effect)) {
+                        if (!playable(ma, me) || !CostPayment.canPayAdditionalCosts(ma.getPayCosts(), ma, effect)) {
                             said.add(host);
                             costDecisionFellBack("mana-tap-cost", host.getName() + " cannot be activated first");
                             break;
@@ -8555,10 +8567,28 @@ public final class LlmSpikeGui {
             return new PlayOptions(options, landPlays, landCards);
         }
 
-        /** Whether the play menu offers {@code sa} now: playable (timing, restrictions), payable, and with
-         *  a legal target when it targets. {@code alt}: an alternative cost, which is rarely mana alone
-         *  (exile a card, pay life, return an Island), so it is checked as a whole cost; the normal cast
-         *  keeps its historical mana check. */
+        /** The engine's own "may this be played now": canPlay() leaves out the statics that forbid a play (Pithing Needle,
+         *  Null Rod, Gaddock Teeg, Rule of Law), which Forge checks only as the play is made (checkRestrictions); the
+         *  seat's menu offered Endbringer's ping under a Needle naming it and the harness played it (rules pilot RP_207,
+         *  batch 10). */
+        static boolean playable(SpellAbility sa, Player me) {
+            if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(me);
+            if (!sa.canPlay()) return false;
+            // A spell's restrictions are about it on the stack, cast from its zone, as Forge's AI asks them
+            // (AiController.canPlaySa): asked about the card in hand, Drannith Magistrate's "not cast from their hand"
+            // hid every hand spell, and Grafdigger's Cage's graveyard origin never matched a flashback.
+            Card host = sa.getHostCard();
+            if (sa.isSpell() && host != null) {
+                Card lki = forge.game.card.CardCopyService.getLKICopy(host);
+                lki.setLKICMC(-1);
+                lki.setLastKnownZone(me.getGame().getStackZone());
+                lki.setCastFrom(host.getZone());
+                lki.setSplitStateToPlayAbility(sa);  // the face being cast (an adventure, a split half, an MDFC back)
+                return sa.checkRestrictions(lki, me);
+            }
+            return sa.checkRestrictions(me);
+        }
+
         /** A mana ability whose cost is more than tapping (Lion's Eye Diamond's sacrifice and discard, Lotus Petal's
          *  sacrifice, a Spirit Guide exiled from hand) is a decision a combo turns on: crack LED in response to your own
          *  Infernal Tutor to be hellbent when it resolves. Offered on the faithful seat's menu when it can be activated
@@ -8574,7 +8604,7 @@ public final class LlmSpikeGui {
                     || c.hasSpecificCostType(forge.game.cost.CostPutCounter.class)
                     || c.hasSpecificCostType(forge.game.cost.CostRemoveCounter.class) || sa.isPwAbility();
             if (!beyondTap) return false;
-            try { sa.setActivatingPlayer(me); return sa.canPlay() && legallyPayable(sa, me, false); }
+            try { sa.setActivatingPlayer(me); return playable(sa, me) && legallyPayable(sa, me, false); }
             catch (Exception e) { return false; }
         }
 
@@ -8616,13 +8646,17 @@ public final class LlmSpikeGui {
         /** A mana ability that only taps (or costs mana), activatable now: floating mana is legal, so it is on the menu. */
         static boolean floatableMana(SpellAbility sa, Player me) {
             if (!sa.isManaAbility() || sa.getPayCosts() == null) return false;
-            try { sa.setActivatingPlayer(me); return sa.canPlay() && legallyPayable(sa, me, false); }
+            try { sa.setActivatingPlayer(me); return playable(sa, me) && legallyPayable(sa, me, false); }
             catch (Exception e) { return false; }
         }
 
+        /** Whether the play menu offers {@code sa} now: playable (timing, restrictions), payable, and with
+         *  a legal target when it targets. {@code alt}: an alternative cost, which is rarely mana alone
+         *  (exile a card, pay life, return an Island), so it is checked as a whole cost; the normal cast
+         *  keeps its historical mana check. */
         static boolean offerable(SpellAbility sa, Player me, boolean alt) {
             if (sa.isLandAbility() || sa.isManaAbility()) return false;
-            if (!sa.canPlay()) return false;
+            if (!playable(sa, me)) return false;
             // The cost check prices the menu and the hand tags (SeatObservation.handList's castTag):
             // its adjust consults the controller on cost reductions (CostAdjustment's reduction loop),
             // and an ask inside a snapshot build re-enters renderSnapshot forever. See PRICING_FOR_SNAPSHOT.

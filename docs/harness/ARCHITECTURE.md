@@ -111,6 +111,13 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   62, RP_197, RP_209).
 - Puzzles: while the board is put down, the arms take the first option and draw nothing, and the .pzl's `NamedCard`
   is set exactly afterwards (GameState adds it to the name chosen during setup; RP_207).
+- A play is on the menu only if the engine's `canPlay()` and `checkRestrictions` both allow it. `canPlay()` leaves out
+  the statics that forbid a play (Pithing Needle, Null Rod, Gaddock Teeg, Rule of Law), which Forge checks only as a
+  human's play is made; before epoch 63 the seat was offered, and the harness played, Endbringer's ping under a Needle
+  naming it (rules pilot RP_207, batch 10). A spell is asked as Forge's AI asks it, as an LKI copy on the stack cast
+  from its zone (asked about the card in hand, Drannith Magistrate's "not cast from their hand" hid every hand spell and
+  Grafdigger's Cage never matched a flashback). The same check covers the mana abilities offered and activated first,
+  the lookahead's mana steps, and the play itself once the card is on the stack (the engine routine's check).
 - Under a block requirement the zero-model arms take a legal block set from the engine's check (each blocker one
   attacker or none, up to 4096 combinations) instead of keeping an illegal draw; the prover's search arm draws once
   among the legal sets (epoch 59, rules pilot RP_185).

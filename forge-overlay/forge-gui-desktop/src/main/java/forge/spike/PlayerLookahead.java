@@ -451,7 +451,8 @@ final class PlayerLookahead {
                     Player copyMe = (Player) sim.getGameCopier().find(seat);
                     forge.game.spellability.SpellAbility copyMana = manaAbilityOnCopy(o, sim);
                     int before = copyMe == null ? 0 : copyMe.getManaPool().totalMana();
-                    ok = copyMana != null && copyMe != null
+                    // playNoStack asks no static (Null Rod put into play by an earlier step), so the menu's test does.
+                    ok = copyMana != null && copyMe != null && LlmSpikeGui.PlayerControllerLLM.playable(copyMana, copyMe)
                             && forge.ai.ComputerUtil.playNoStack(copyMe, copyMana, simGame, false)
                             && copyMe.getManaPool().totalMana() > before;
                 } else {
