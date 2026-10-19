@@ -1,8 +1,11 @@
 # Handoff: keep working the puzzles (2026-10-19, updated after batches 10 and 11)
 
-For a fresh session. Branch `feat/puzzle-search-prover` (pushed, not yet a PR). Read `CLAUDE.md`, then
+For a fresh session. Branch `feat/puzzle-search-prover` (PR #268, open). Read `CLAUDE.md`, then
 `eval/PUZZLES.md` (the prover, acceptance, uniqueness) and `eval/puzzles/rules-pilot/REPORT.md` (batches 1 to 9),
 then this file.
+
+**The order of work is now `docs/harness/WORK-PLAN.md`, "The plan (owner, 2026-10-19)"**: land PR #268,
+score PUZ, then decide on the suite's size. The tracks below are its detail, not its order.
 
 ## The owner's ask
 
