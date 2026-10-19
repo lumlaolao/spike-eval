@@ -93,6 +93,22 @@ public final class LlmSpikePuzzle {
         throw new RuntimeException("PUZZLE=" + spec + " not found; tried: " + tried);
     }
 
+    /** A card name chosen while the board is put down ("As Pithing Needle enters, choose a card name") is added to by
+     *  the .pzl's {@code NamedCard:}, not replaced (GameState.handleChosenEntities uses addNamedCard), so the Needle
+     *  held both names (rules pilot RP_207). The .pzl's names are set exactly; GameState keeps them in a private
+     *  map, read here. */
+    @SuppressWarnings("unchecked")
+    static void restoreNamedCards(forge.game.GameState state) {
+        try {
+            java.lang.reflect.Field f = forge.game.GameState.class.getDeclaredField("cardToNamedCard");
+            f.setAccessible(true);
+            for (Map.Entry<Card, List<String>> e : ((Map<Card, List<String>>) f.get(state)).entrySet())
+                e.getKey().setNamedCards(new java.util.ArrayList<>(e.getValue()));
+        } catch (ReflectiveOperationException | RuntimeException e) {
+            System.out.println("[PZL] NamedCard not restored: " + e);
+        }
+    }
+
     static List<String> searchDirs() {
         String env = System.getenv("PUZZLE_DIRS");
         List<String> dirs = new ArrayList<>();
@@ -535,7 +551,9 @@ public final class LlmSpikePuzzle {
         Thread worker = new Thread(() -> {
             try {
                 match.startGame(game, () -> {
-                    puzzle.applyToGame(game);
+                    PuzzleArms.SETUP = true;
+                    try { puzzle.applyToGame(game); } finally { PuzzleArms.SETUP = false; }
+                    restoreNamedCards(puzzle);
                     // Choices made while the board is put down (Roaming Throne's type) are the puzzle's, not a play.
                     PuzzleArms.Line setupLine = PuzzleArms.searchLine;
                     if (setupLine != null) setupLine.clearChoices();

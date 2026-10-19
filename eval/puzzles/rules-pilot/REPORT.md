@@ -559,3 +559,41 @@ LKI power (RP_015).
 3. **Counter names in setup are case-sensitive for keyword counters** (RP_205 v1): `Counters:FLYING=1` loads a custom
    counter shown as `[FLYING x1]` that grants nothing; `Counters:Flying=1` is the keyword counter. Not a harness bug,
    but nothing warns at load.
+
+# Batch 9: the last 27 "good" questions and 73 "maybe" questions (RP_211 to RP_213)
+
+Source: first the 27 `convert == "good"` questions that had no manifest row, then `maybe` questions. 100 rows in
+`manifest.jsonl` (now 611; every good question now has a row). Build: epoch 61 (`epoch61-build.txt`, re-read before
+every JVM). Gate as before; at most two of this batch's JVMs at once and none while HOLD existed. Maybes whose answer
+turns on the opponent's choice, or that have no solver decision, were dropped without a board, as asked.
+
+## Counts
+
+| result | n | puzzles |
+|---|---|---|
+| converted | 3 | 211, 212, 213 |
+| dropped: good questions, near-duplicates | 27 | see each row's `note` |
+| dropped: maybe questions | 70 | see each row's `note` |
+
+**The 27 good questions.** All 27 had been skipped in batch 5 as rule-level near-duplicates of converted puzzles,
+without a row; each now has a row naming the puzzle it repeats: LKI power and abilities (RP_015, RP_104), an only
+target gone (RP_094, RP_155: five questions), a trampler whose blocker left or that has none in the second damage
+step (RP_007: three), Murktide under Dress Down (RP_136), simultaneous counter annihilation and death (RP_029, RP_125:
+two), Death's Shadow (RP_080), Tarmogoyf (RP_031), unpreventable damage against protection (RP_106), a CDA lost to
+ability loss (RP_013, RP_014), Life and Limb with Blood Moon (RP_009, RP_010: three), rebound order (RP_002),
+priority between damage steps (RP_026), regeneration within one spell (RP_034, RP_039: two), Omnath doubled
+(RP_144), marked damage after a boost ends (RP_050), toxic (RP_110). One (Hardened Scales with Doubling Season) is a
+replacement-order question, which Forge never asks (RP_011, RP_024). None was missing a card.
+
+**The maybe questions.** Still deferred for the fixes in progress, and given rows saying so: the face-down questions
+(L292, L425, L477, L491, L500). Five replacement- or cost-order questions were dropped for the known reason (Forge
+never offers the order). The three boards: God-Eternal Kefnet's copy of Cyclonic Rift cast for overload (RP_211),
+storm copies keeping a splice (RP_212), and Twincast copying a kicked Burst Lightning (RP_213). Forge agreed with the
+judge on all three; the pass arm was rejected on all three.
+
+## Harness and prover findings
+
+None new. Uniqueness hit the 600-replay budget on RP_211 (1/7 exhausted) and RP_212 (2/10); both are "unique within
+the budget". Process note: RP_211 was edited (Kefnet made SummonSick) just after its first run started, so it was
+queued again; the two runs overlapped for a few seconds and the shipped result is the second run's (its `starts`
+file, start-search 1792385643).

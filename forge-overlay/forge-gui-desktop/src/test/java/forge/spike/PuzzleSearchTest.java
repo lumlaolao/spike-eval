@@ -38,6 +38,23 @@ public class PuzzleSearchTest {
         return s.unique(r.line, extra);
     }
 
+    /** Rules pilot RP_207 (2026-10-19): the opponent named a card for Pithing Needle while the board was put down,
+     *  drawing from the search line, so the search branched over card names the .pzl had already fixed. A choice made
+     *  during setup takes the first option and is no draw. */
+    @Test
+    public void aChoiceDuringSetupIsNoDraw() {
+        PuzzleArms.Line line = new PuzzleArms.Line(new java.util.ArrayList<>(), 7L);
+        PuzzleArms.SETUP = true;
+        try {
+            org.testng.Assert.assertEquals(line.draw("Opponent", 50), 0);
+        } finally {
+            PuzzleArms.SETUP = false;
+        }
+        org.testng.Assert.assertTrue(line.taken.isEmpty(), "a setup choice was recorded: " + line.taken);
+        line.draw("Solver", 3);
+        org.testng.Assert.assertEquals(line.taken.size(), 1);
+    }
+
     @Test
     public void aPuzzleWithOneSolvingStrategyIsUnique() {
         PuzzleSearch.Uniqueness u = unique(toy((a, b, c) -> a == 2 && c == b), 300);

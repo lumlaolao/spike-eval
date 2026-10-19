@@ -309,8 +309,11 @@ public final class LlmSpikeGui {
      *  epoch 59 offered Rishadan Port's tap ability with Port as the only source, and the activation failed.
      *  Epoch 61 (2026-10-19, runs/loop/g28): a preview aims a counterspell at the spell on the copy's stack, and reports
      *  exile counts (lookahead-preview-v15).
+     *  Epoch 62 (2026-10-19, rules pilot batches 7-8): a mana ability's sacrifice cost inside a payment is the seat's
+     *  (Thermopod, RP_198); a forced free cast that still costs mana asks whether to pay (Sphere, RP_197); an optional
+     *  cast the engine just confirmed is not asked again (suspend, RP_209); setup choices draw nothing (RP_207).
      */
-    static final String HARNESS_EPOCH = "harness-epoch-61";
+    static final String HARNESS_EPOCH = "harness-epoch-62";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -3317,12 +3320,36 @@ public final class LlmSpikeGui {
          *  to cast it when it is optional, then X, modes and targets, all the seat's. The inherited version
          *  asked Forge AI whether to cast it and let doTrigger-style AI logic target it (Rift Bolt off
          *  suspend got an AI target). */
+        /** The card the seat just agreed to play when the engine asked "Do you want to play X?" (a Play effect). */
+        private Card playConfirmed;
+
         @Override
         public boolean playSaFromPlayEffect(SpellAbility tgtSA) {
             clearLast();
             if (!(tgtSA instanceof forge.game.spellability.Spell)) return true;
             boolean optional = !tgtSA.getPayCosts().isMandatory();
-            if (optional) {
+            // The engine has just asked "Do you want to play X?" for this card and the seat said yes: asking again
+            // offered the decline twice (suspend, rules pilot RP_209).
+            boolean confirmed = playConfirmed != null && playConfirmed == tgtSA.getHostCard();
+            playConfirmed = null;
+            if (!optional) {
+                // A cast the effect makes "if able" can still cost mana (Sphere of Resistance on a free spell). No player
+                // is made to activate a mana ability (CR 605.3a): left unpaid, the spell is not cast (rules pilot RP_197).
+                String tax = null;
+                try {
+                    forge.game.mana.ManaCostBeingPaid due = ComputerUtilMana.calculateManaCost(tgtSA.getPayCosts(), tgtSA,
+                            getPlayer(), true, 0, false);
+                    if (due != null && !due.isPaid()) tax = due.toString();
+                } catch (Exception e) { tax = null; }
+                if (tax != null) {
+                    if (!smartOk() && !fastOk()) { auto("play-from-effect(no-model)->decline"); return false; }
+                    List<String> labels = Lists.newArrayList("Cast it, paying " + tax, "Do not pay " + tax + ": it is not cast");
+                    int c = decideOne(smartOk() ? smart : fast, "play-from-effect", "An effect casts this now if you pay "
+                            + tax + ": " + labelOf(tgtSA) + ". Pay it?", labels, null);
+                    if (c != 0) { if (c < 0) auto("play-from-effect(unparsed)->decline"); return false; }
+                }
+            }
+            if (optional && !confirmed) {
                 if (!smartOk() && !fastOk()) { auto("play-from-effect(no-model)->decline"); return false; }
                 List<String> labels = Lists.newArrayList("Cast it", "Do not cast it");
                 // The label already opens with its verb: "An effect lets you cast CAST Rift Bolt" (runs/loop/g02).
@@ -5178,8 +5205,16 @@ public final class LlmSpikeGui {
             return need;
         }
 
+        /** A mana ability whose cost names cards to tap (Heritage Druid) or a permanent to sacrifice (Thermopod, rules
+         *  pilot RP_198: Forge's AI chose Hostage Taker inside the payment). A sacrifice of the source itself is no
+         *  choice. */
         private static boolean hasTapTypeCost(SpellAbility ma) {
-            return ma.getPayCosts() != null && ma.getPayCosts().hasSpecificCostType(forge.game.cost.CostTapType.class);
+            if (ma.getPayCosts() == null) return false;
+            if (ma.getPayCosts().hasSpecificCostType(forge.game.cost.CostTapType.class)) return true;
+            for (forge.game.cost.CostPart part : ma.getPayCosts().getCostParts())
+                if (part instanceof forge.game.cost.CostSacrifice && !((forge.game.cost.CostSacrifice) part).payCostFromSource())
+                    return true;
+            return false;
         }
 
         /** Simultaneous-trigger ORDER (trigger targeting stays the engine's — the inherited
@@ -5673,6 +5708,7 @@ public final class LlmSpikeGui {
                 if (c == -1) evalDec("confirm", 2, 1, tierOf(false), 0, "confirm(unparsed)->NO", yn);
                 else if (c == -2) evalDec("confirm", 2, 1, "auto", 0, "confirm(bridge-down)->NO", yn);
                 boolean yes = (c == 0);
+                playConfirmed = yes && sa != null && sa.getApi() == ApiType.Play ? cardToShow : null;
                 p("[ROUTER] confirm(" + oneLine(message == null ? String.valueOf(mode) : message) + "): " + (yes ? "YES" : "NO"));
                 return yes;
             } catch (Exception e) {

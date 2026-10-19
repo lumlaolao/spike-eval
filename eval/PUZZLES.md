@@ -115,6 +115,11 @@ winner p0                                          p0, p1 or none
 A line it cannot read stops the run before any game. Result rows carry `acceptance` (accepted or rejected) and
 `acceptance_failed` (each failed condition with what was there).
 
+Two things the state does not say. When a player loses, Forge turns face up every face-down card that player owns
+(`Game.onPlayerLost`, CR 707.9), so a name condition on a face-down permanent reads its real name whenever the solver
+lost: condition on a counter or on `*` instead (RP_199). And setup counter names are case-sensitive with no warning:
+`Counters:FLYING=1` makes a custom counter that grants nothing, where `Flying` is the keyword counter (RP_205).
+
 **Uniqueness.** After a proof, a puzzle with an acceptance state (or any puzzle with `PZL_UNIQUE_BUDGET=N`) is
 searched for a second solution: every other option at every solver choice on the main line, looking for a line
 whose solver actions (its game-log actions) or solver choices the log does not show (a mode, a clone pick, a

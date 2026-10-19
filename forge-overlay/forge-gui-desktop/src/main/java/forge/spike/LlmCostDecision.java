@@ -100,6 +100,13 @@ final class LlmCostDecision extends AiCostDecision {
             }
             typeList = new CardCollection(CardLists.filter(typeList, CardPredicates.canBeSacrificedBy(ability, isEffect())));
             if (typeList.size() < amount) return null; // engine handles the impossible case
+            // Inside a payment (Thermopod paying for a spell, rules pilot RP_198), the sources the rest of the payment
+            // still needs stay out when enough remain, as for a tap part.
+            if (manaFor != null) {
+                CardCollection spare = new CardCollection(typeList);
+                spare.removeAll(tapped);
+                if (spare.size() >= amount) typeList = spare;
+            }
             candidates = typeList;
             need = amount;
 

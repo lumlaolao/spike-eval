@@ -102,6 +102,15 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   skipped an ability's own card, and a manland already animated this turn, as a taste (epoch 59, ENGINE-PATCHES.md).
   Not when both the ability and the mana ability tap the card (Rishadan Port cannot pay its own {1}; epoch 60,
   runs/loop/g27).
+- A mana ability whose cost sacrifices a permanent of the seat's choice (Thermopod) is activated by the seat before the
+  engine's payment, as a tap-type cost already was (#105); Forge's payment chose the creature with its AI (epoch 62,
+  rules pilot RP_198). The payment's other planned sources stay out of the sacrifice while enough remain.
+- A cast an effect makes "if able" that still costs mana (Sphere of Resistance on Omen Machine's free spell) asks
+  whether to pay: no player is made to activate a mana ability (CR 605.3a), and unpaid the spell is not cast. An
+  optional cast the engine has just confirmed ("Do you want to play X?", suspend) is not asked a second time (epoch
+  62, RP_197, RP_209).
+- Puzzles: while the board is put down, the arms take the first option and draw nothing, and the .pzl's `NamedCard`
+  is set exactly afterwards (GameState adds it to the name chosen during setup; RP_207).
 - Under a block requirement the zero-model arms take a legal block set from the engine's check (each blocker one
   attacker or none, up to 4096 combinations) instead of keeping an illegal draw; the prover's search arm draws once
   among the legal sets (epoch 59, rules pilot RP_185).

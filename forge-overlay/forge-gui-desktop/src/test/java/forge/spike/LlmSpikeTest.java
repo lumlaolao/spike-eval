@@ -1943,6 +1943,35 @@ public class LlmSpikeTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** Rules pilot RP_198 (2026-10-19): a mana ability's SACRIFICE cost (Thermopod, "Sacrifice a creature: Add {R}") was
+     *  paid inside the engine's payment by Forge's AI, which chose the creature: Hostage Taker went, unasked. Paying
+     *  {R}{R} with a Mountain and Thermopod must ask what Thermopod sacrifices. The seat sacrifices Thermopod itself. */
+    @Test
+    public void aManaAbilitysSacrificeCostIsTheSeatsChoice() {
+        Game game = buildBareGame();
+        Player me = game.getPlayers().get(0);
+        Card pod = addBattlefieldCard("Thermopod", me);
+        Card bears = addBattlefieldCard("Grizzly Bears", me);
+        addBattlefieldCard("Mountain", me);
+        Card hauler = addHandCard("Ember Hauler", me);
+        FixedReplyBridge bridge = new FixedReplyBridge("CHOICE: 1\nPICKS: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(game, me,
+                new LobbyPlayerAi("cd-test", null), "cd-test", "", bridge, bridge, "llm");
+        me.dangerouslySetController(ctrl);
+        forge.game.spellability.SpellAbility spell = hauler.getFirstSpellAbility();
+        spell.setActivatingPlayer(me);
+
+        Assert.assertTrue(ctrl.payManaCost(spell.getPayCosts().getCostMana(), spell, null, null, false),
+                "the {R}{R} was not paid");
+        Assert.assertFalse(bridge.prompts.isEmpty(), "what Thermopod sacrifices was not asked");
+        Assert.assertTrue(bridge.prompts.get(0).contains("Grizzly Bears") && bridge.prompts.get(0).contains("Thermopod"),
+                "both creatures are offered: " + bridge.prompts.get(0));
+        Assert.assertTrue(pod.isInZone(ZoneType.Graveyard) && bears.isInZone(ZoneType.Battlefield),
+                "the seat's pick (Thermopod) was not used: pod in " + pod.getZone() + ", bears in " + bears.getZone()
+                        + "; asked: " + bridge.prompts);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
     /** The Druid's tap must not take an Elf the rest of the payment taps for mana: {G}{G}{G}{G} needs
      *  the Druid's GGG AND Llanowar Elves' G, so Llanowar is not offered. */
     @Test

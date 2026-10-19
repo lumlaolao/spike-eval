@@ -2263,6 +2263,47 @@ public class GoldenChecksTest {
                 "the animate ability is on the menu:\n" + ask);
     }
 
+    /** Rules pilot RP_197 (2026-10-19): Omen Machine casts Terminus "without paying its mana cost if able" while the
+     *  opponent's Sphere of Resistance adds {1}. No player is made to activate a mana ability (CR 605.3a), so the seat
+     *  may leave the {1} unpaid and the spell is not cast; Forge paid it with a Mountain unasked. */
+    @Test
+    public void aForcedFreeCastWithATaxAsksWhetherToPayIt() {
+        Game g = bareGame(PhaseType.UPKEEP);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card mountain = card("Mountain", me, ZoneType.Battlefield);
+        card("Sphere of Resistance", rival, ZoneType.Battlefield);
+        Card terminus = card("Terminus", me, ZoneType.Exile);
+        g.getAction().checkStaticAbilities();
+        Script model = new Script("CHOICE: 2");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        SpellAbility free = terminus.getFirstSpellAbility().copyWithNoManaCost(me);
+        free.getPayCosts().setMandatory(true);
+        Assert.assertFalse(ctrl.playSaFromPlayEffect(free), "the seat declined the {1}: nothing is cast");
+        Assert.assertFalse(mountain.isTapped(), "the Mountain stays untapped");
+        Assert.assertTrue(terminus.isInZone(ZoneType.Exile), "Terminus stays in exile");
+        Assert.assertEquals(model.prompts.size(), 1, "one ask: pay the tax or not");
+        Assert.assertTrue(model.prompts.get(0).contains("{1}"), model.prompts.get(0));
+    }
+
+    /** Rules pilot RP_209 (2026-10-19): suspend's cast asked "Do you want to play Living End?" and, after YES, the
+     *  play-from-effect ask offered "Do not cast it" again: one decision asked twice. An optional cast the engine has
+     *  just confirmed for the card is not asked again. */
+    @Test
+    public void anOptionalCastAlreadyConfirmedIsNotAskedAgain() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        Card heist = card("Arcane Heist", me, ZoneType.Hand);
+        Card spike = card("Divination", me, ZoneType.Exile);   // no target, no mode: nothing else to ask
+        Script model = new Script("CHOICE: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        SpellAbility play = heist.getFirstSpellAbility();
+        play.setActivatingPlayer(me);
+        Assert.assertTrue(ctrl.confirmAction(play, null, "Do you want to play Divination?", null, spike, null));
+        SpellAbility free = spike.getFirstSpellAbility().copyWithNoManaCost(me);
+        ctrl.playSaFromPlayEffect(free);
+        Assert.assertEquals(model.prompts.size(), 1, "asked twice:\n" + String.join("\n----\n", model.prompts));
+    }
+
     /** runs/loop/g27 T18 (2026-10-19): after epoch 59 let a card pay for its own ability, Rishadan Port's "{1}, {T}: Tap
      *  target land" was offered with Port as the only source; Port cannot tap for mana and tap as the cost, so the cast
      *  failed ("Didn't find what to pay"). A card pays for its own ability only when the two do not both tap it. */

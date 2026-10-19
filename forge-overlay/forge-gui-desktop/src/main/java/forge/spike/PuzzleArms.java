@@ -69,12 +69,14 @@ final class PuzzleArms {
 
     /** One choice from {@code n} options; {@code lastIsDecline} says option n-1 is the do-nothing one. */
     static int pick(Random r, int n, boolean lastIsDecline) {
+        if (SETUP) return 0;
         if (r instanceof ArmRandom) return ((ArmRandom) r).choose(n, lastIsDecline);
         return r.nextInt(n);
     }
 
     /** How many items a random subset of lo..hi takes (draws only when hi > lo, as the old code did). */
     static int subsetSize(Random r, int lo, int hi) {
+        if (SETUP) return lo;
         if (r instanceof ArmRandom) return ((ArmRandom) r).size(lo, hi);
         return lo + (hi > lo ? r.nextInt(hi - lo + 1) : 0);
     }
@@ -240,6 +242,10 @@ final class PuzzleArms {
      *  uniform draws from {@code completion}. Set by the search driver before each rollout. */
     static volatile Line searchLine = null;
 
+    /** True while the puzzle's board is put down: a choice asked then (Pithing Needle's name, rules pilot RP_207) is
+     *  the .pzl's to set, so every arm takes the first option and nothing is drawn or recorded. */
+    static volatile boolean SETUP = false;
+
     /** One draw of a search rollout: the seat that drew, how many options it had, which it took. */
     static final class Step {
         final String seat; final int bound; final int value;
@@ -283,6 +289,7 @@ final class PuzzleArms {
         boolean stopped() { return stopped; }
 
         synchronized int draw(String seat, int bound) {
+            if (SETUP) return 0;
             int at = taken.size();
             int v;
             if (drift == null && at < prefix.size()) {
