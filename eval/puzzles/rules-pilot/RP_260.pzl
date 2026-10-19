@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 260 - A merged creature dies as three cards
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Bloodchief Ascension with three quest counters, have Cast Down and Thought Scour in hand and {B}{U} in your mana pool. The opponent is at 6 life and controls Plated Wurm merged with two Huntmaster Ligers (Plated Wurm on top). Reduce the opponent to 0 life this turn.
+Rule:rulesguru-61aef9d2e62bb4a8 | A merged permanent that dies is put into the graveyard as each of its cards (CR 729.3, 721.3), so "whenever a card is put into an opponent's graveyard" triggers once per card: killing the three-card merged creature drains 6, more than milling two cards
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0manapool=B U
+p0hand=Cast Down;Thought Scour
+p0battlefield=Bloodchief Ascension|Counters:QUEST=3
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1battlefield=Plated Wurm|MergedCards:Huntmaster Liger,Huntmaster Liger
+p1library=Plains;Plains;Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 259 - The Closet keeps what it returns
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Conjurer's Closet and Elvish Visionary, have Act of Treason in hand and {R}{R}{R} in your mana pool. The opponent controls Sworn Guardian. End the turn controlling Sworn Guardian (checked after your cleanup step).
+Rule:rulesguru-6d58637ef6f16b0d | Conjurer's Closet returns the exiled card to the battlefield under your control (its own instruction), and the returned card is a new object the temporary control effect no longer touches (CR 400.7, 611.2c): flicker the stolen Sworn Guardian and it stays yours after Act of Treason's effect ends
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0manapool=R R R
+p0hand=Act of Treason
+p0battlefield=Conjurer's Closet;Elvish Visionary
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Sworn Guardian
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Sworn Guardian" = 1
