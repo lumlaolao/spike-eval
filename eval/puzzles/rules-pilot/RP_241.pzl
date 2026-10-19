@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 241 - The Rune flies later
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Tobias Andrion, Magebane Armor enchanted with Rune of Flight, an Island and a Plains, and have Jump in hand. The opponent is at 6 life and controls Wall of Stone. Reduce the opponent to 0 life this turn.
+Rule:rulesguru-ba2da7f391d32917 | Ability-adding and ability-removing effects apply in timestamp order in layer 6 (CR 613.7, 613.7a): the "equipped creature has flying" Rune of Flight grants the Armor applies after the Armor's own "loses flying", so equipped Tobias is a 6/8 flier
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Jump
+p0battlefield=Tobias Andrion;Magebane Armor|Id:1;Rune of Flight|AttachedTo:1;Island;Plains
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1battlefield=Wall of Stone
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

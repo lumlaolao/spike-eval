@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 240 - The later effect wins the God
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Iroas, God of Victory, a Plains enchanted with two Wild Growths and a Mountain enchanted with a Wild Growth, and have Starfield of Nyx and Lightning Bolt in hand. The opponent is at 4 life. Reduce the opponent to 0 life this turn.
+Rule:rulesguru-36a386d145200408 | Iroas's "isn't a creature" and Starfield of Nyx's "is a creature" both apply in the type layer in timestamp order (CR 613.1d, 613.7): the later Starfield makes Iroas a creature, with base power and toughness equal to its mana value, 4 (CR 613.4b)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Starfield of Nyx;Lightning Bolt
+p0battlefield=Iroas, God of Victory;Plains|Id:1;Mountain|Id:2;Wild Growth|AttachedTo:1;Wild Growth|AttachedTo:1;Wild Growth|AttachedTo:2
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
