@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 224 - Once each turn beats Norn
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control Elesh Norn, Mother of Machines, Welcoming Vampire and an Island, and have Memnite and Opt in hand. End the turn having drawn exactly two cards (three cards left in your library).
+Rule:ask-a-magic-judge-9be164f6f13f9861 | Elesh Norn makes an ability trigger an additional time (CR 603.2d), but an ability that "triggers only once each turn" cannot trigger more often (CR 603.2h): Memnite draws one card, so Opt is needed for the second
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Memnite;Opt
+p0battlefield=Elesh Norn, Mother of Machines;Welcoming Vampire;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Library * = 3
