@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Deathtouch is for creatures
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Typhoid Rats (1/1 deathtouch), Grizzly Bears (2/2) and an untapped Mountain, and have Lightning Bolt in hand. The opponent is at 20 life, controls no creatures and controls Jace Beleren with 4 loyalty. End the turn with Jace Beleren in the opponent's graveyard and the opponent at exactly 18 life.
+Rule:authored-deathtouch-planeswalker | Deathtouch destroys only creatures dealt damage by it (CR 702.2b); damage to a planeswalker just removes that many loyalty counters (CR 120.3c): the Rats take 1 loyalty from Jace, so Bolt must finish Jace while the Bears hit the opponent for 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Lightning Bolt
+p0battlefield=Typhoid Rats;Grizzly Bears;Mountain
+p0library=Mountain;Mountain;Mountain
+p1life=20
+p1battlefield=Jace Beleren|Counters:LOYALTY=4
+p1library=Island;Island;Island
+[acceptance]
+count p1 Graveyard "Jace Beleren" = 1
+life p1 = 18

@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Tapped blockers still hit
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:You are at 5 life. The opponent's Ancient Brontodon (9/9) is attacking you. You control three Raging Goblins (1/1) and Gray Ogre (2/2), no lands, and have Stoke the Flames (convoke, 4 damage to any target) in hand. End the turn with Ancient Brontodon in the opponent's graveyard and yourself at 5 life.
+Rule:authored-tapped-blockers | Tapping a creature that has already been declared as a blocker does not remove it from combat or stop its combat damage (CR 506.4b): block with all four, then convoke Stoke the Flames tapping the blockers; 4 + 5 combat damage kills the 9/9, while casting Stoke before blocks leaves no untapped blocker
+[state]
+turn=1
+activeplayer=p1
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=5
+p0hand=Stoke the Flames
+p0battlefield=Raging Goblin;Raging Goblin;Raging Goblin;Gray Ogre
+p0library=Mountain;Mountain;Mountain
+p1life=20
+p1battlefield=Ancient Brontodon|Attacking|Tapped
+p1library=Forest;Forest;Forest
+[acceptance]
+count p1 Graveyard "Ancient Brontodon" = 1
+life p0 = 5

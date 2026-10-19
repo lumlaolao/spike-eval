@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot 256 - Undying sees the counter it lost
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:You control Strangleroot Geist with a +1/+1 counter on it and four Swamps, and have Black Sun's Zenith and Disfigure in hand. The opponent controls Grizzly Bears and Llanowar Elves. End the turn with both opponent's creatures in the graveyard and Strangleroot Geist on your battlefield.
+Rule:rulesguru-ce162ad32993d27e | Annihilating +1/+1 and -1/-1 counters and dying of 0 toughness happen in the same state-based check, and the dies trigger looks back at the creature with its +1/+1 counter (CR 704.5f, 704.5q, 704.8, 702.93a): a Geist killed by -1/-1 counters does not return, one only shrunk by them loses its counter and lives
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Black Sun's Zenith;Disfigure
+p0battlefield=Strangleroot Geist|Counters:P1P1=1;Swamp;Swamp;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Grizzly Bears;Llanowar Elves
+p1library=Forest;Forest;Forest
+[acceptance]
+count p1 Graveyard "Grizzly Bears" = 1
+count p1 Graveyard "Llanowar Elves" = 1
+count p0 Battlefield "Strangleroot Geist" = 1

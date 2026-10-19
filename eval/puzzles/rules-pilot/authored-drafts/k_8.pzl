@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - First strike beats deathtouch
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You are at 2 life. The opponent's Youthful Knight (2/1 first strike) and Grizzly Bears (2/2) are attacking you. You control Typhoid Rats (1/1 deathtouch) and Horned Turtle (1/4). End the turn with no creatures on the opponent's battlefield.
+Rule:authored-first-strike-deathtouch | Only first strikers deal damage in the first-strike combat damage step (CR 510.4, 702.7b), and a blocker destroyed there deals no damage (CR 510.1d): Typhoid Rats blocking the Knight dies before its deathtouch matters, so the Turtle must block the Knight and the Rats the Bears
+[state]
+turn=1
+activeplayer=p1
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=2
+p0battlefield=Typhoid Rats;Horned Turtle
+p0library=Island;Island;Island
+p1life=20
+p1battlefield=Youthful Knight|Attacking|Tapped;Grizzly Bears|Attacking|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Battlefield * = 0
+life p0 = 2

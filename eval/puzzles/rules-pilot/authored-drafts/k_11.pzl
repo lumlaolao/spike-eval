@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - Protection can block
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You are at 2 life. The opponent's Hill Giant (3/3, red) and Grizzly Bears (2/2, green) are attacking you. You control Kor Firewalker (2/2, protection from red) and Horned Turtle (1/4). End the turn with both your creatures on the battlefield.
+Rule:authored-protection-blocker | Protection restricts which creatures can block an attacker that has it (CR 702.16f), not what a creature with protection may block, and prevents damage from sources of the quality (CR 702.16e): Kor Firewalker blocks the red Hill Giant and takes nothing, while blocking the Bears trades
+[state]
+turn=1
+activeplayer=p1
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=2
+p0battlefield=Horned Turtle;Kor Firewalker
+p0library=Plains;Plains;Plains
+p1life=20
+p1battlefield=Hill Giant|Attacking|Tapped;Grizzly Bears|Attacking|Tapped
+p1library=Forest;Forest;Forest
+[acceptance]
+count p0 Battlefield "Kor Firewalker" = 1
+count p0 Battlefield "Horned Turtle" = 1
+life p0 = 2

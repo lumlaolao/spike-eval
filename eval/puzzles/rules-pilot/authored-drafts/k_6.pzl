@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot NNN - Every exalted counts
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Sublime Archangel (4/3 flying, exalted; other creatures you control have exalted) and three Memnites (1/1). The opponent is at 8 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-exalted-instances | Each instance of exalted triggers separately when a creature attacks alone (CR 702.83a-b), including the instances Sublime Archangel grants and its own: the Archangel attacking alone gets +4/+4 and deals 8, while attacking with everything deals 7
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Memnite;Memnite;Memnite;Sublime Archangel
+p0library=Plains;Plains;Plains
+p1life=8
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
