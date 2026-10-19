@@ -220,6 +220,37 @@ def choose_ai_line(rows):
             "actions": best.get("actions", []), "log_sha256": best.get("log_sha256")}
 
 
+SEARCH_LINE_BUDGET = 600   # the rules-pilot gate's budget (scripts/puzzle-gate/gate10.sh)
+
+
+def search_env(budget):
+    """A proof against every opponent reply, with no uniqueness search (that is the gate's, not the line's)."""
+    return {"CONTROLLER_B": "search", "PZL_SEARCH_BUDGET": str(budget), "PZL_UNIQUE_BUDGET": "0",
+            "GAME_CAP_MS": "60000"}
+
+
+def choose_search_line(row):
+    """A rules puzzle's reference line from a search row: proven against every reply, its acceptance state held."""
+    if not row or row.get("status") != "proven" or row.get("acceptance") != "accepted" or not row.get("line"):
+        return None
+    return {"arm": "search", "seed": row.get("seed", 1), "budget": row.get("search_budget", SEARCH_LINE_BUDGET),
+            "line": row["line"], "solver_actions": row.get("solver_actions")}
+
+
+def check_search_replay(line, row):
+    """Problems with proving a search line again (empty = it verifies): proven, accepted, on the same line."""
+    if row is None:
+        return ["no replay row"]
+    p = []
+    if row.get("status") != "proven":
+        p.append("replay status %s, not proven" % row.get("status"))
+    if row.get("acceptance") != "accepted":
+        p.append("acceptance %s" % row.get("acceptance"))
+    if row.get("line") != line.get("line"):
+        p.append("proved on another line: %s" % row.get("line"))
+    return p
+
+
 def check_replay(line, row):
     """Problems with a script-arm replay of `line` (empty = the line verifies)."""
     if row is None:
@@ -294,6 +325,9 @@ def baseline_puzzle(build, rec, out_root, rollouts, random_base, search, arms):
             line = choose_line(run_arm(build, pzl, "random", seeds, out_root / pid / "search"))
         if line is None:
             line = choose_ai_line(ai_rows)
+        if line is None and (rec.get("source") or {}).get("kind") == "rules":
+            rows = run_arm(build, pzl, "search", "1", out_root / pid / "prove", search_env(SEARCH_LINE_BUDGET))
+            line = choose_search_line(rows[-1] if rows else None)
         if line is not None:
             rec["reference_line"] = line
     rec = verify_puzzle(build, rec, out_root)
@@ -312,11 +346,14 @@ def verify_puzzle(build, rec, out_root):
     out = Path(out_root) / rec["id"] / "verify"
     if line.get("arm") == "ai":
         rows = run_arm(build, pf.pzl_path(rec), "ai", str(line["seed"]), out)
+    elif line.get("arm") == "search":
+        rows = run_arm(build, pf.pzl_path(rec), "search", str(line["seed"]), out, search_env(line["budget"]))
     else:
         tape = Path(tempfile.mkdtemp(prefix="pzl-tape-")) / "tape.txt"
         tape.write_text(line["tape"])
         rows = run_arm(build, pf.pzl_path(rec), "script", str(line["seed"]), out, {"PZL_TAPE": str(tape)})
-    problems = check_replay(line, rows[0] if rows else None)
+    check = check_search_replay if line.get("arm") == "search" else check_replay
+    problems = check(line, rows[0] if rows else None)
     engine = (REPO / "FORGE_COMMIT").read_text().strip() if (REPO / "FORGE_COMMIT").is_file() else "unknown"
     ver = {"status": "verified" if not problems else "failed", "engine_sha": engine, "date": stamp,
            "replay_log_sha256": rows[0].get("log_sha256") if rows else None}
@@ -332,9 +369,11 @@ def proof_from_row(row, opponent, engine_sha, date):
         return None
     keep = ("search_replays", "search_budget", "search_lines_per_point", "opponent_choice_points",
             "opponent_branches_beaten", "search_drift", "line", "solver_actions", "actions", "log_sha256",
-            "duration_ms", "seed", "refutation_line", "refutation_opponent_log")
+            "duration_ms", "seed", "refutation_line", "refutation_opponent_log", "search_exhausted",
+            "acceptance", "acceptance_failed")
     proof = {"status": row.get("status"), "opponent": opponent, "engine_sha": engine_sha, "date": date}
-    proof.update({k: row[k] for k in keep if row.get(k) not in (None, "")})
+    proof.update({k: row[k] for k in row
+                  if (k in keep or k.startswith("uniqueness")) and row.get(k) not in (None, "")})
     return proof
 
 

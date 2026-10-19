@@ -215,12 +215,54 @@ class BaselineDecisionTest(unittest.TestCase):
         proof = pb.proof_from_row(row, "search", "abc", "2026-10-18")
         self.assertEqual((proof["status"], proof["opponent"], proof["line"]), ("proven", "search", "Solver:2:1"))
         self.assertNotIn("search_drift", proof)          # empty fields are left out
+        # pr-review of PR #268: the proof kept no verdict of the rules puzzles' acceptance or uniqueness search.
+        verdicts = {"search_exhausted": True, "acceptance": "accepted", "acceptance_failed": ["life p1 = 0"],
+                    "uniqueness": "unique", "uniqueness_deviations": 4, "uniqueness_exhausted": 4}
+        kept = pb.proof_from_row(dict(row, **verdicts), "search", "abc", "2026-10-18")
+        self.assertEqual({k: kept.get(k) for k in verdicts}, verdicts)
         self.assertIsNone(pb.proof_from_row(None, "search", "abc", "2026-10-18"))
         rec_ = rec("p1", tempfile.mkdtemp())
         self.assertEqual(pf.validate_puzzle(dict(rec_, proof=proof), check_files=False), [])
         for bad in ({"status": "solved", "opponent": "search"}, {"status": "proven", "opponent": "human"},
                     {"status": "proven", "opponent": "search", "solver_actions": 3}):
             self.assertTrue(pf.validate_puzzle(dict(rec_, proof=bad), check_files=False), bad)
+
+    def test_a_proven_search_is_a_rules_puzzles_line_when_random_and_the_ai_never_solve(self):
+        # Most rules puzzles take a line random play and Forge's AI never find; the search proof is the line.
+        row = {"status": "proven", "acceptance": "accepted", "line": "Solver:3:1 Opponent:2:0", "seed": 1,
+               "solver_actions": 2, "search_budget": 600}
+        line = pb.choose_search_line(row)
+        self.assertEqual((line["arm"], line["seed"], line["line"], line["budget"]), ("search", 1, row["line"], 600))
+        self.assertTrue(pf.has_line(line))
+        self.assertFalse(pf.has_line(dict(line, budget=None)))      # a search line is replayed by re-proving
+        for bad in ({"status": "not_found"}, {"acceptance": "rejected"}, {"line": ""}):
+            self.assertIsNone(pb.choose_search_line(dict(row, **bad)), bad)
+        self.assertEqual(pb.check_search_replay(line, row), [])
+        self.assertTrue(pb.check_search_replay(line, None))
+        for bad in ({"status": "not_found"}, {"acceptance": "rejected"}, {"line": "Solver:3:2"}):
+            self.assertTrue(pb.check_search_replay(line, dict(row, **bad)), bad)
+
+    def test_rules_candidates_are_the_converted_rows_with_their_files_and_questions(self):
+        repo = Path(tempfile.mkdtemp())
+        d = repo / "eval/puzzles/rules-pilot"
+        d.mkdir(parents=True)
+        for pid in ("RP_001", "RP_002"):
+            (d / (pid + ".pzl")).write_text(pzl("Survive", 3, pid), encoding="utf-8")
+        rows = [{"puzzle": "RP_001", "question_id": "q1", "rule": "CR 1", "result": "converted",
+                 "proof": {"status": "proven"}, "uniqueness": {"verdict": "unique"}},
+                {"puzzle": "RP_002", "question_id": "q2", "rule": "CR 2", "result": "multiple_review"},
+                {"puzzle": None, "question_id": "q3", "result": "dropped"}]
+        (d / "manifest.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+        m, skipped = pf.rules_candidates(d / "manifest.jsonl", "rules", "1", "abc", repo=repo)
+        self.assertEqual([r["id"] for r in m["puzzles"]], ["rules-RP_001"])
+        r = m["puzzles"][0]
+        self.assertEqual((r["pzl"], r["status"], r["goal"]), ("eval/puzzles/rules-pilot/RP_001.pzl", "candidate",
+                                                              {"engine_goal": "Survive", "turns": 3}))
+        self.assertEqual((r["source"]["kind"], r["source"]["question_id"]), ("rules", "q1"))
+        self.assertEqual(r["pzl_sha256"], pf.sha256_file(d / "RP_001.pzl"))
+        self.assertEqual(pf.pzl_path(r, repo), d / "RP_001.pzl")
+        self.assertEqual(pf.validate_puzzle(dict(r, status="candidate"), check_files=False), [])
+        self.assertEqual(skipped, [])
 
     def test_tier_and_status(self):
         self.assertEqual(pb.tier_for(0.75, 9), 1)

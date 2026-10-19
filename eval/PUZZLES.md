@@ -133,6 +133,21 @@ were, "unique" is exhaustive rather than "not found within the budget". `uniquen
 counts other solving lines an opponent reply beat (not solutions). Smoke checks: `eval/puzzles/rules-pilot/
 RP_SMOKE.pzl` (unique) and `RP_SMOKE2.pzl` (multiple).
 
+### The rules suite
+
+The converted rules puzzles (`eval/puzzles/rules-pilot/manifest.jsonl`, `result: converted`) are built the same way:
+
+```bash
+python3 eval/puzzle_format.py rules-candidates --suite rules --out runs/puzzles/rules-candidates.json
+python3 eval/puzzle_baselines.py run --suite runs/puzzles/rules-candidates.json --rollouts 50 -j 2 --write runs/puzzles/rules-measured.json
+python3 eval/puzzle_format.py freeze runs/puzzles/rules-measured.json --out eval/suites/puzzles-rules-v1.json
+```
+
+A rules puzzle is solved when its acceptance state holds, so the arms and the scorer need nothing new. Its reference
+line may also be its search proof (`arm: search`): when neither a random rollout nor Forge's AI solves it, the search
+proves it again at the gate's budget (`SEARCH_LINE_BUDGET`, opponent `search`, no uniqueness search), and the
+verification proves it once more and must reach the same line, proven and accepted.
+
 ## Running a model
 
 ```bash
