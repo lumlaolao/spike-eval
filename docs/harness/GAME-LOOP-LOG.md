@@ -950,3 +950,10 @@ prover's classes were not rebuilt under it.
 - PUZZLE  T10-T12 the seat cast Lava Dart's flashback three times, sacrificing three of its four Mountains (opponent
   20 -> 5 with Guttersnipe), and never cast a spell again; it had weighed this on T11 ("take the Reef hit rather than
   sacrifice a Mountain") and then did it on T12.
+
+### g32  2026-10-19  seed 4132  Pioneer Dimir Kaito (seat) vs Pauper Madness Burn (Forge AI)  WON T18  $0.04  harness-epoch-63
+Sheet clean: 70 model decisions (all smart), 9 forced picks, TAKEN 0, LOST 0, SKIP 0, plan holds 0 of 9,
+ai_tier_count=0, 95 calls, 13 min; the first game on epoch 63.
+- checked  TOOL empty x1 (T3): `simulate` asked during an Overgrown-style "pay 2 life" replacement, which is not a
+  priority menu; the harness said so and the seat answered the decision. Not a defect.
+- checked  LOG exception x1: the provider's chunked-transfer error again (g31), retried by the bridge.
