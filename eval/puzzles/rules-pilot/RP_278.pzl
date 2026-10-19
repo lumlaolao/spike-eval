@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 278 - The Stage copies no ice
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Thespian's Stage and Dark Depths (ten ice counters), with {C}{C} in your mana pool. End the turn with a Marit Lage token on your battlefield.
+Rule:rulesguru-b997eeeccd8ef425 | A copy effect copies no counters (CR 707.2): Thespian's Stage copying Dark Depths has no ice counters, so its state trigger triggers; under the legend rule you keep the Stage (CR 704.5j), and the trigger then sacrifices it for Marit Lage (CR 603.8)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0manapool=C C
+p0battlefield=Thespian's Stage;Dark Depths|Counters:ICE=10
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+tokens p0 Battlefield "Marit Lage" = 1

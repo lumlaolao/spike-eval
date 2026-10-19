@@ -1,0 +1,3 @@
+search {"status": "proven", "acceptance": "accepted", "acceptance_failed": [], "line": "Solver:3:1", "search_replays": 1, "opponent_branches_beaten": 0, "actions": ["COMBAT: Solver assigned Death's Shadow (6) to block Synchronous Sliver (10)."], "search_drift": null, "uniqueness": "unique", "uniqueness_deviations": 2, "uniqueness_exhausted": 2, "uniqueness_replays": 3, "uniqueness_unproven_alternatives": 0}
+pass {"status": "failed", "acceptance": "rejected", "acceptance_failed": ["life p0 = 8 (was 5)"], "line": null, "search_replays": null, "opponent_branches_beaten": null, "actions": null, "search_drift": null}
+secs 31

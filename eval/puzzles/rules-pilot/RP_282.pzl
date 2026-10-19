@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 282 - Monstrous only once
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:You control Unbound Flourishing and Polukranos, World Eater, with thirteen {G} in your mana pool. The opponent controls Colossal Dreadmaw (6/6). End the turn with Colossal Dreadmaw in the opponent's graveyard and exactly six +1/+1 counters on Polukranos.
+Rule:rulesguru-edfbfe3a62b1dfb3 | Unbound Flourishing copies the monstrosity ability, but a permanent that is already monstrous can't become monstrous again (CR 701.37a-b): the copy gives X counters and one X-damage trigger, the original nothing; X = 6, not 3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0manapool=G G G G G G G G G G G G G
+p0battlefield=Unbound Flourishing;Polukranos, World Eater
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Colossal Dreadmaw
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Colossal Dreadmaw" = 1
+counters p0 Battlefield "Polukranos, World Eater" P1P1 = 6

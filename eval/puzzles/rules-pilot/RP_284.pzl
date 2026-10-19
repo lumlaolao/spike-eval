@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 284 - The Shadow grows with the damage
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is the opponent's turn. You are at 11 life and control Death's Shadow (2/2 at 11 life). Two Synchronous Slivers (3/3) are attacking you. End the turn at 8 life with Death's Shadow on your battlefield.
+Rule:rulesguru-b4828341be2b41c7 | All combat damage is dealt at once (CR 510.2) and lethal damage is checked only afterwards as a state-based action (CR 704.5g): blocking one Sliver drops you to 8, so Death's Shadow is a 5/5 with 3 damage when it is checked, and survives
+[state]
+turn=1
+activeplayer=p1
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=11
+p0battlefield=Death's Shadow
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Synchronous Sliver|Attacking;Synchronous Sliver|Attacking
+p1library=Plains;Plains;Plains
+[acceptance]
+life p0 = 8
+count p0 Battlefield "Death's Shadow" = 1
