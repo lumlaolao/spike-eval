@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 190 - Wait for their turn
+Goal:Survive
+Turns:2
+Difficulty:Medium
+Description:You control Yomiji, Who Bars the Way, Raff Capashen, Ship's Mage (with a coin counter from the opponent's Athreos, Shroud-Veiled) and three Swamps, and have Murder in hand. It is your second main phase; the opponent's turn follows. End the opponent's turn with Raff Capashen in your hand.
+Rule:ask-a-magic-judge-e7d7bc19fdb9185e | Simultaneous triggers go on the stack in APNAP order (CR 603.3b, 101.4): on the opponent's turn their Athreos trigger goes on first, so your Yomiji trigger resolves first and returns Raff to your hand
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Murder
+p0battlefield=Yomiji, Who Bars the Way|SummonSick;Raff Capashen, Ship's Mage|SummonSick|Counters:COIN=1;Swamp;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Athreos, Shroud-Veiled
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Hand "Raff Capashen, Ship's Mage" = 1

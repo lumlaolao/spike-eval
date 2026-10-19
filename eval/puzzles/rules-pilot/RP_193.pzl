@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 193 - The later Confiscate wins
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You took the opponent's Quakestrider Ceratops with your Confiscate; the opponent then put their own Confiscate on it. You have two Plains and Disenchant in hand. End the turn in control of Quakestrider Ceratops.
+Rule:cranial-insertion-91849e6cfd638199 | Control-changing effects apply in timestamp order in layer 2 (CR 613.2, 613.7): the opponent's later Confiscate wins, and destroying it returns control to you
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Disenchant
+p0battlefield=Confiscate|AttachedTo:1;Plains;Plains
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Quakestrider Ceratops|Id:1|SummonSick;Confiscate|AttachedTo:1
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Quakestrider Ceratops" = 1

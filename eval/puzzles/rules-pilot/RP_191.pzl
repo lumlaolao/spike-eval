@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 191 - Dream Halls from the graveyard
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Oskar, Rubbish Reclaimer, Dream Halls and two Mountains, and have three Flame Rifts in hand. The opponent is at 12 life. Win this turn.
+Rule:ask-a-magic-judge-6b2859abaa9ddd24 | Dream Halls' alternative cost applies wherever a spell is cast from (CR 118.9, 601.2b), so a card Oskar lets you cast from your graveyard can itself be paid for by discarding
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Flame Rift;Flame Rift;Flame Rift
+p0battlefield=Oskar, Rubbish Reclaimer|SummonSick;Dream Halls;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=12
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

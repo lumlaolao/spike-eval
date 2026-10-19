@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 194 - An artifact creature is a creature spell
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control Eshki Dragonclaw, a Forest and an Island, and have Ornithopter, Grizzly Bears and Opt in hand. It is your first main phase. End the turn with two +1/+1 counters on Eshki Dragonclaw.
+Rule:cranial-insertion-2d24db6175393663 | A creature spell is never a noncreature spell, whatever its other types (CR 205.2, 302.1): Ornithopter and Grizzly Bears are two creature spells, so Eshki needs Ornithopter with Opt
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Ornithopter;Grizzly Bears;Opt
+p0battlefield=Eshki Dragonclaw|SummonSick;Forest;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+counters p0 Battlefield "Eshki Dragonclaw" P1P1 = 2

@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 189 - Frogify outlasts the mutation
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control Vulpikeet enchanted by the opponent's Frogify, Grizzly Bears and three Forests, and have Gemrazer in hand. The opponent controls Mind Stone. End the turn with Frogify in the opponent's graveyard and Gemrazer on top of your merged creature.
+Rule:ask-a-magic-judge-afa748ad51f3974a | Mutating is a layer 1 copy effect, and Frogify's ability loss applies later in layer 6 whatever the timestamps (CR 721.2, 613.1): Gemrazer mutated onto the Frogified Vulpikeet has no mutate trigger
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Gemrazer
+p0battlefield=Vulpikeet|Id:1|SummonSick;Grizzly Bears|SummonSick;Forest;Forest;Forest
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Frogify|AttachedTo:1;Mind Stone
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Frogify" = 1
+count p0 Battlefield "Gemrazer" = 1

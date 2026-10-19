@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 197 - Free is not forced to be paid
+Goal:Survive
+Turns:2
+Difficulty:Medium
+Description:It is your upkeep. You control Omen Machine and two Mountains and have Lava Spike in hand; the top card of your library is Terminus. The opponent controls Sphere of Resistance and is at 3 life. Win this turn.
+Rule:rulesguru-ea0b3972db8a758d | Casting without paying the mana cost still adds Sphere of Resistance's {1} (CR 118.9d, 601.2f), and a player is never required to activate mana abilities to pay a cost (CR 118.3c, 601.2g): decline Terminus's tax and keep both Mountains for Lava Spike
+[state]
+turn=2
+activeplayer=p0
+activephase=UPKEEP
+p0life=20
+p0hand=Lava Spike
+p0battlefield=Omen Machine;Mountain;Mountain
+p0library=Terminus;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Sphere of Resistance
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 196 - The Aura that became a land
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:Your Craw Wurm is enchanted by the opponent's Kenrith's Transformation. You control three Forests and have Song of the Dryads in hand. The opponent is at 6 life and controls no creatures. It is your first main phase. Win this turn.
+Rule:rulesguru-a3bbe033e7a9d2b0 | An Aura that becomes a non-Aura land is no longer attached legally and is unattached as a state-based action (CR 205.1a, 704.5m-n): Song of the Dryads on Kenrith's Transformation returns Craw Wurm to a 6/4
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Song of the Dryads
+p0battlefield=Craw Wurm|Id:1;Forest;Forest;Forest
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1battlefield=Kenrith's Transformation|AttachedTo:1
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

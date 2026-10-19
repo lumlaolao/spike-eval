@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 200 - A cake is a Food
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control Carrot Cake and two Swamps, your graveyard is empty, and you have Feed the Cycle in hand. The opponent controls Serra Angel. End the turn with Serra Angel in the opponent's graveyard.
+Rule:wizards-of-the-coast-release-notes-a4e86f2281d039e5 | "A Food" means any Food artifact, token or not (CR 205.3g): sacrificing Carrot Cake forages, so Feed the Cycle costs only {1}{B}
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Feed the Cycle
+p0battlefield=Carrot Cake;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Serra Angel
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Serra Angel" = 1
