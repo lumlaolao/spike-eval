@@ -70,7 +70,8 @@ and the pass arm is `rejected`; a pass that wins means the puzzle is trivial.
 
 Running when this was written: `runs/puzzles/prove-all-e64-b200` (368 candidates from `forge-candidates`, budget
 200, `-j 2`, epoch 64; launcher `/tmp/puzzle-scratch/prove64.sh`, then `prove64-pass2.sh` runs budget 1500 over the
-not_found ids by itself). A new container has neither: regenerate the candidates and start it again. `prove` has no resume and
+not_found ids by itself). Stopped on request at 25 of 368 (4 proven: MTGP_02, MTGP_06, MTGP_08,
+PC_020216; the rest not found at budget 200). A new container has neither: regenerate the candidates and start it again. `prove` has no resume and
 writes `--write` after each puzzle. Then a second pass at budget 1500 over the not_found ids (`--ids`). Not found at
 budget 200 means nothing yet: most Forge puzzles need longer lines. `runs/puzzles/` is git-ignored.
 
