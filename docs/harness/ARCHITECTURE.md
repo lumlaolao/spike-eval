@@ -98,6 +98,11 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - A `simulate` preview copies the game with Forge's GameCopier, which threw on a card no copied zone holds (a prepared
   card's spell, Enroot), in the preview's copy and in the simulator's own internal ones. GameCopier is patched to skip
   such a card (epoch 58, ENGINE-PATCHES.md).
+- A card may pay for its own ability (Mishra's Factory tapping itself for its {1} animate): Forge AI's mana chooser
+  skipped an ability's own card, and a manland already animated this turn, as a taste (epoch 59, ENGINE-PATCHES.md).
+- Under a block requirement the zero-model arms take a legal block set from the engine's check (each blocker one
+  attacker or none, up to 4096 combinations) instead of keeping an illegal draw; the prover's search arm draws once
+  among the legal sets (epoch 59, rules pilot RP_185).
 - A block set is checked as a whole, by the engine's `CombatUtil.validateBlocks`: requirements ("all creatures able
   to block it do so") and restrictions (menace). Forge runs that check only for its own GUI, so before epoch 52 any
   block set the seat or an arm declared stood. The `answer` call is corrected in the same conversation; a text reply

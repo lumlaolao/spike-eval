@@ -302,8 +302,11 @@ public final class LlmSpikeGui {
      *  shielded blockers (rules pilot RP_156-RP_160).
      *  Epoch 58 (2026-10-18): a preview no longer fails on a prepared card (Enroot) in any copy, the simulator's internal
      *  ones included: an engine patch to GameCopier (runs/loop/g23), lookahead-preview-v14.
+     *  Epoch 59 (2026-10-19, rules puzzle batch 6): a card may pay for its own ability (Mishra's Factory tapping itself
+     *  for its animate; Forge AI's mana chooser skipped it), an engine patch; the arms take a legal block set under a
+     *  block requirement instead of keeping an illegal one after 64 draws.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-58";
+    static final String HARNESS_EPOCH = "harness-epoch-59";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -3365,6 +3368,35 @@ public final class LlmSpikeGui {
             finally { for (Card[] pr : pairs) combat.removeBlockAssignment(pr[1], pr[0]); }
         }
 
+        /** Every block set the engine accepts (CombatUtil.validateBlocks) where each blocker blocks one attacker or none,
+         *  or null when there are more than {@link #MAX_BLOCK_SETS} combinations to try. An arm that cannot draw a legal
+         *  set under a block requirement takes one of these (rules pilot RP_185: ten creatures that must block a Lure). */
+        static List<List<Card[]>> legalBlockSets(Combat combat, Player defender, List<Card> blockers, List<Card> attackers) {
+            List<List<Card>> options = new ArrayList<>();
+            long combos = 1;
+            for (Card b : blockers) {
+                List<Card> o = new ArrayList<>();
+                o.add(null);
+                for (Card a : attackers) if (CombatUtil.canBlock(a, b, combat)) o.add(a);
+                options.add(o);
+                combos *= o.size();
+                if (combos > MAX_BLOCK_SETS) return null;
+            }
+            List<List<Card[]>> out = new ArrayList<>();
+            int[] idx = new int[blockers.size()];
+            for (long n = 0; n < combos; n++) {
+                List<Card[]> pairs = new ArrayList<>();
+                for (int i = 0; i < blockers.size(); i++) {
+                    Card a = options.get(i).get(idx[i]);
+                    if (a != null) pairs.add(new Card[] {blockers.get(i), a});
+                }
+                if (blocksError(combat, defender, pairs) == null) out.add(pairs);
+                for (int i = 0; i < idx.length; i++) { if (++idx[i] < options.get(i).size()) break; idx[i] = 0; }
+            }
+            return out;
+        }
+        static final int MAX_BLOCK_SETS = 4096;
+
         /** Blocks the seat declared that the engine objects to are removed and the seat is asked once more with the
          *  reason; a second illegal set is logged and left as no blocks. */
         private void illegalBlocks(Player defender, Combat combat, String err) {
@@ -3395,8 +3427,18 @@ public final class LlmSpikeGui {
                 // "student choice" was never a choice at all.
                 final Integer shadowBlk = shadowBlockers(defender, combat, blockers.size());
                 if (rnd != null) { // random arm: each legal blocker blocks a random attacker or not, 50/50
-                    // A draw the engine objects to (menace, a block requirement) is drawn again; a legal first draw
-                    // leaves the arm's stream as it was.
+                    // The prover picks among the legal block sets, one draw for the whole set (each set is one line).
+                    if (rnd instanceof PuzzleArms.Search) {
+                        List<List<Card[]>> legal = legalBlockSets(combat, defender, new ArrayList<>(blockers), attackers);
+                        if (legal != null && !legal.isEmpty()) {
+                            List<Card[]> pick = legal.get(rnd.nextInt(legal.size()));
+                            for (Card[] pr : pick) combat.addBlocker(pr[1], pr[0]);
+                            auto("blockers(search)->" + pick.size() + " of " + legal.size() + " legal sets");
+                            return;
+                        }
+                    }
+                    // A draw the engine objects to (menace, a block requirement) is drawn again, and after a few, a
+                    // legal set is taken from the engine's own check; a legal first draw leaves the arm's stream as it was.
                     for (int draw = 0; ; draw++) {
                         List<Card[]> pairs = new ArrayList<>();
                         for (Card b : blockers) {
@@ -3405,6 +3447,10 @@ public final class LlmSpikeGui {
                             if (CombatUtil.canBlock(a, b, combat)) pairs.add(new Card[] {b, a});
                         }
                         String err = blocksError(combat, defender, pairs);
+                        if (err != null && draw >= 3) {
+                            List<List<Card[]>> legal = legalBlockSets(combat, defender, new ArrayList<>(blockers), attackers);
+                            if (legal != null && !legal.isEmpty()) { pairs = legal.get(rnd.nextInt(legal.size())); err = null; }
+                        }
                         if (err == null || draw >= 63) {
                             for (Card[] pr : pairs) combat.addBlocker(pr[1], pr[0]);
                             if (err != null) p("[BLOCK-INVALID] arm: no legal block set in 64 draws (" + err + ")");

@@ -55,7 +55,9 @@ public class ComputerUtilMana {
     public static java.util.function.Predicate<Player> HARNESS_SEAT_CHOOSES_ANY_COLOR = p -> false;
     /** HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): which players may pay with a source whose tap damage would be
      *  lethal (City of Brass at 1 life). Forge's AI skips such a source; tapping it is legal, and with Angel's Grace or
-     *  an answer above the trigger it is the line. Set by PlayerControllerLLM for its seats; false for Forge's AI. */
+     *  an answer above the trigger it is the line. Set by PlayerControllerLLM for its seats; false for Forge's AI.
+     *  The same predicate marks a harness seat for the other payment tastes lifted below (its own card as a source, a
+     *  manland animated this turn): it names a harness seat, whose payments follow the rules only. */
     public static java.util.function.Predicate<Player> HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE = p -> false;
 
     private final static boolean DEBUG_MANA_PAYMENT = false;
@@ -352,7 +354,9 @@ public class ComputerUtilMana {
 
         for (final SpellAbility ma : maList) {
             // this rarely seems like a good idea
-            if (ma.getHostCard() == saHost) {
+            // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): a taste, not a rule; a harness seat may pay with the
+            // ability's own card (Mishra's Factory tapping itself for its {1} animate, rules pilot RP_175).
+            if (ma.getHostCard() == saHost && !HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE.test(ai)) {
                 continue;
             }
 
@@ -376,7 +380,7 @@ public class ComputerUtilMana {
 
                 // If a manland was previously animated this turn, do not tap it to animate another manland
                 if (saHost.isLand() && ma.getHostCard().isLand()
-                        && ai.getController().isAI()
+                        && ai.getController().isAI() && !HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE.test(ai) // HARNESS PATCH: AI taste
                         && AnimateAi.isAnimatedThisTurn(ai, ma.getHostCard())) {
                     continue;
                 }

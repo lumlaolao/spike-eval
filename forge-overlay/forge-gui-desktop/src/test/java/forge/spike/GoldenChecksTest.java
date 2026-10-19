@@ -2248,6 +2248,43 @@ public class GoldenChecksTest {
         Assert.assertFalse(asks.get(0).contains("--PERMANENTS"), "no divider on the menu:\n" + asks.get(0));
     }
 
+    /** Rules pilot RP_175 (2026-10-19): Mishra's Factory's "{1}: becomes a 2/2" was never offered when the Factory's own
+     *  mana was the only source; Forge AI's mana chooser skips an ability's own card ("this rarely seems like a good
+     *  idea"). Tapping it to pay is legal (owner: a legal action is never hidden). */
+    @Test
+    public void aCardMayPayForItsOwnAbility() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        card("Mishra's Factory", me, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1");
+        seat(g, model, model).chooseSpellAbilityToPlay();
+        String ask = PromptFidelityTest.promptWith(model, "You have priority");
+        Assert.assertTrue(ask.contains("ACTIVATE Mishra's Factory") && ask.contains("Assembly-Worker"),
+                "the animate ability is on the menu:\n" + ask);
+    }
+
+    /** Rules pilot RP_185 (2026-10-19): with a block requirement, the random and search arms redrew up to 64 times and
+     *  then kept an illegal block set (most draws break "all creatures able to block it do so"). A failed draw now takes
+     *  a legal block set from the engine's own check. Ten creatures must all block Prized Unicorn. */
+    @Test
+    public void anArmUnderABlockRequirementDeclaresALegalBlock() {
+        Game g = bareGame(PhaseType.COMBAT_DECLARE_BLOCKERS);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        List<Card> mine = new ArrayList<>();
+        for (int i = 0; i < 10; i++) mine.add(card("Grizzly Bears", me, ZoneType.Battlefield));
+        Card unicorn = card("Prized Unicorn", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1");
+        LlmSpikeGui.PlayerControllerLLM ctrl = new LlmSpikeGui.PlayerControllerLLM(g, me,
+                new forge.ai.LobbyPlayerAi("Seat", null), "Seat", "", model, model, "random");
+        me.dangerouslySetController(ctrl);
+        Combat combat = new Combat(rival);
+        combat.addAttacker(unicorn, me);
+        g.getAction().checkStaticAbilities();
+        ctrl.declareBlockers(me, combat);
+        Assert.assertNull(forge.game.combat.CombatUtil.validateBlocks(combat, me), "the block set is legal");
+        Assert.assertEquals(combat.getBlockers(unicorn).size(), 10, "every Bear blocks the Unicorn");
+    }
+
     /** Rules pilot RP_007 (2026-10-18): the engine checks a block's requirements and restrictions only for its own
      *  GUI (InputBlock calls CombatUtil.validateBlocks), so a menace attacker blocked by one creature stood. An
      *  illegal block set goes back to the seat with the engine's reason. */
