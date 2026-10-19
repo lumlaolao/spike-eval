@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - The umbra outranks Anger
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control Expedition Envoy enchanted with Snake Umbra and three Mountains, and have Anger of the Gods and Lightning Bolt in hand. The opponent controls two Hill Giants. End the turn with both Hill Giants in exile and Expedition Envoy still on your battlefield.
+Rule:rulesguru-a149dbd33b18e5ea | Umbra armor replaces the destruction before Anger of the Gods's exile replacement can apply to the move it contains (CR 616.1g, 702.89a): Snake Umbra is destroyed and Expedition Envoy stays
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Anger of the Gods;Lightning Bolt
+p0battlefield=Expedition Envoy|Id:1;Snake Umbra|AttachedTo:1;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Hill Giant;Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Exile "Hill Giant" = 2
+count p0 Battlefield "Expedition Envoy" = 1

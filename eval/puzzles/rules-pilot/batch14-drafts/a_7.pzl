@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - A Moon saves the Saga
+Goal:Survive
+Turns:3
+Difficulty:Medium
+Description:You control Urza's Saga with two lore counters and three Mountains, and have Magus of the Moon in hand. End your next turn (turn 3) with Urza's Saga still on the battlefield.
+Rule:rulesguru-6517cfe8637a7da0 | Under Magus of the Moon Urza's Saga is a Mountain with no chapter abilities (CR 305.7): it gets no more lore counters and is not sacrificed, since only a Saga with chapter abilities is (CR 714.3b, 714.4)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Magus of the Moon
+p0battlefield=Urza's Saga|Counters:LORE=2;Mountain;Mountain;Mountain
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Urza's Saga" = 1
