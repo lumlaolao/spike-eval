@@ -1,0 +1,3 @@
+search {"status": "proven", "acceptance": "accepted", "acceptance_failed": [], "line": "Solver:4:1 Solver:5:0", "search_replays": 15, "opponent_branches_beaten": 0, "actions": ["LAND: Solver played Rugged Highlands (1)", "STACK_ADD: Solver cast Kalonian Tusker"], "search_drift": null, "uniqueness": "unique", "uniqueness_deviations": 7, "uniqueness_exhausted": 7, "uniqueness_replays": 32, "uniqueness_unproven_alternatives": 0}
+pass {"status": "failed", "acceptance": "rejected", "acceptance_failed": ["count p0 Battlefield \"Kalonian Tusker\" = 1 (was 0)"], "line": null, "search_replays": null, "opponent_branches_beaten": null, "actions": null, "search_drift": null}
+secs 166
