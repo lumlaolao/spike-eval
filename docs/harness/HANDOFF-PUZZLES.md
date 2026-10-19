@@ -36,8 +36,8 @@ Details: `docs/harness/ARCHITECTURE.md`, `docs/harness/ENGINE-PATCHES.md`, last 
 
 ## Track 1: the rules backlog
 
-**Done.** `eval/puzzles/rules-pilot/manifest.jsonl` has 996 rows, one per triage question: 199 converted, 10 Forge
-disagreements, 8 multiple-review, 779 dropped with a reason, no harness bug. Batch 10 re-gated RP_197, RP_198, RP_207,
+**Done.** `eval/puzzles/rules-pilot/manifest.jsonl` has 996 rows, one per triage question: 204 converted, 10 Forge
+disagreements, 8 multiple-review, 774 dropped with a reason, no harness bug. Batch 10 re-gated RP_197, RP_198, RP_207,
 RP_209 and added RP_214 to RP_217; batch 11 rowed the 74 maybes and 221 no's. What is left is new questions, or
 boards for drops whose reason a harness change removes. Known reasons to drop: replacement- and cost-order questions
 (Forge never offers the order), a card Forge lacks, near-duplicates (name the puzzle), legality questions (the engine
@@ -71,9 +71,9 @@ and the pass arm is `rejected`; a pass that wins means the puzzle is trivial.
 
 ## Track 2: Forge built-in puzzles
 
-Running when this was written: `runs/puzzles/prove-all-e64-b200` (368 candidates from `forge-candidates`, budget
-200, `-j 2`, epoch 64; launcher `/tmp/puzzle-scratch/prove64.sh`, then `prove64-pass2.sh` runs budget 1500 over the
-not_found ids by itself). Stopped on request at 25 of 368 (4 proven: MTGP_02, MTGP_06, MTGP_08,
+Last run: `python3 eval/puzzle_baselines.py prove --suite runs/puzzles/candidates.json --budget 200 -j 2` (368
+candidates from `forge-candidates`, epoch 64, out `runs/puzzles/prove-all-e64-b200`; the run directory was not kept).
+Stopped on request at 25 of 368 (4 proven: MTGP_02, MTGP_06, MTGP_08,
 PC_020216; the rest not found at budget 200). A new container has neither: regenerate the candidates and start it again. `prove` has no resume and
 writes `--write` after each puzzle. Then a second pass at budget 1500 over the not_found ids (`--ids`). Not found at
 budget 200 means nothing yet: most Forge puzzles need longer lines. `runs/puzzles/` is git-ignored.
@@ -82,10 +82,8 @@ budget 200 means nothing yet: most Forge puzzles need longer lines. `runs/puzzle
 
 g30 to g33 are logged (`docs/harness/GAME-LOOP-LOG.md`). Games run from a copy of the checkout built for them
 (`/root/forge-games`, `--forge-home /root/forge-games`, `/tmp/forge_cp.txt` with its module classes first), so a
-rebuild never swaps classes under the prover. Next: g34 on a deck and seed not used yet (seeds 4101-4133 are used). `scripts/puzzle-gate/waitg.sh NN`
-waits for a game in `$SCRATCH/live/gNN` (pgrep with a bracketed pattern so it can't match itself).
+rebuild never swaps classes under the prover. Next: g34 on a deck and seed not used yet (seeds 4101-4133 are used).
 
 ## Then
 
-Open the PR for this branch (`pr-format`, `pr-review`, `simplify`, `standards`, `scripts/pr_merge.sh`) when
-batch 10 and g30 are in.
+The order of work is `docs/harness/WORK-PLAN.md`, "The plan (owner, 2026-10-19)".

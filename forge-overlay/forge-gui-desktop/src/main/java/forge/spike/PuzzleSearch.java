@@ -253,9 +253,10 @@ final class PuzzleSearch {
             if (ro.drift != null) { drift = ro.drift; return null; }
             if (!startsWith(ro.steps, prefix)) { drift = "rollout left its prefix"; return null; }
             update(ro);
-            terminal.add(key(ro.steps, ro.steps.size()));
-            if (ro.solved) solves.put(key(ro.steps, ro.steps.size()), ro);
-            if (ro.solved && !tried.contains(key(ro.steps, ro.steps.size()))
+            String k = key(ro.steps, ro.steps.size());
+            terminal.add(k);
+            if (ro.solved) solves.put(k, ro);
+            if (ro.solved && !tried.contains(k)
                     && (avoid == null || !avoid.equals(fingerprint(ro)))) return ro.steps;
             if (exhausted(prefix)) return null;
         }
@@ -285,11 +286,11 @@ final class PuzzleSearch {
     private List<Step> select(List<Step> prefix) {
         List<Step> path = new ArrayList<>(prefix);
         while (true) {
-            Node n = tree.get(key(path, path.size()));
+            String here = key(path, path.size());
+            Node n = tree.get(here);
             if (n == null) return path;
             int pick = -1;
             List<Integer> untried = new ArrayList<>();
-            String here = key(path, path.size());
             boolean[] done = new boolean[n.bound];
             for (int v = 0; v < n.bound; v++) done[v] = exhausted(here + new Step(n.seat, n.bound, v) + " ");
             for (int v = 0; v < n.bound; v++) if (n.visits[v] == 0 && !done[v]) untried.add(v);

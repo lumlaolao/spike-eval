@@ -62,7 +62,7 @@ import forge.util.MyRandom;
  *   CONTROLLER_A=search  prove the puzzle with {@link PuzzleSearch} instead of one rollout per seed. With
  *                        CONTROLLER_B=search every opponent choice must be beaten; with ai, the Forge AI's.
  *   PZL_SEARCH_BUDGET=N  rollouts the search may play (default 2000); PZL_SEARCH_LINES=N winning lines
- *                        tried per choice point before giving up on it (default 4)
+ *                        tried per choice point before giving up on it (default 32)
  *   SMART_MODEL_A / FAST_MODEL_A / GAME_SEED / EVAL_OUT / GAME_CAP_MS as usual.
  *
  * Run: PUZZLE=PS_MSH1 CONTROLLER_A=random bash run-llm-headless.sh
@@ -652,7 +652,7 @@ public final class LlmSpikePuzzle {
             logLines.add("INFORMATION: (log unavailable: " + e + ")");
         }
         Played pl = new Played();
-        pl.game = game; pl.solverSeat = solverSeat; pl.status = status; pl.solved = solved; pl.turns = turns;
+        pl.game = game; pl.status = status; pl.solved = solved; pl.turns = turns;
         pl.winCond = winCond; pl.durMs = durMs; pl.goalInstalled = goalInstalled[0]; pl.goalOracle = goalOracle[0];
         pl.solverLoss = solverLoss; pl.oppLoss = oppLoss; pl.solverLossSpell = solverLossSpell;
         pl.oppLossSpell = oppLossSpell; pl.tainted = tainted; pl.logLines = logLines; pl.healthy = !worker.isAlive();
@@ -670,7 +670,7 @@ public final class LlmSpikePuzzle {
 
     /** What one rollout did, read off the finished game. */
     static final class Played {
-        Game game; LobbyPlayer solverSeat;
+        Game game;
         String status, winCond = "?", solverLoss, oppLoss, solverLossSpell, oppLossSpell;
         boolean solved, tainted, goalInstalled, healthy;
         /** Null without an [acceptance] section; else the conditions that did not hold (empty: accepted). */
@@ -690,9 +690,6 @@ public final class LlmSpikePuzzle {
                            long capMs, int rollout, boolean keepTape) throws Exception {
         Played pl = playOnce(file, id, sections, ctlA, ctlB, smartA, fastA, seed, capMs, rollout, bounded, false);
         final Game game = pl.game;
-        final LobbyPlayer solverSeat = pl.solverSeat;
-        final boolean[] goalInstalled = {pl.goalInstalled};
-        final String[] goalOracle = {pl.goalOracle};
         boolean capped = "invalid".equals(pl.status);
         boolean solved = pl.solved;
         int turns = pl.turns;
@@ -711,7 +708,7 @@ public final class LlmSpikePuzzle {
                 + "  (turns=" + turns + ", " + winCond + ", " + (durMs / 1000) + "s)");
         System.out.println("loss   : solver=" + solverLoss + (solverLossSpell.isEmpty() ? "" : "/" + solverLossSpell)
                 + "  opponent=" + oppLoss + (oppLossSpell.isEmpty() ? "" : "/" + oppLossSpell));
-        if (!goalInstalled[0] && !capped)
+        if (!pl.goalInstalled && !capped)
             System.out.println("WARNING: no 'Puzzle Goal' card in the solver's command zone -- the turn "
                     + "limit was NOT enforced, so this result is not a score.");
         if (!bounded)
@@ -760,7 +757,7 @@ public final class LlmSpikePuzzle {
         }
         if (keepTape || solved) extra.put("actions", actions);
         writeRow(id, file, status, solved, turns, winCond, durMs, seed, ctlA, ctlB,
-                smartA, goalInstalled[0], goalOracle[0], goal, extra);
+                smartA, pl.goalInstalled, pl.goalOracle, goal, extra);
         return pl.healthy;
     }
 

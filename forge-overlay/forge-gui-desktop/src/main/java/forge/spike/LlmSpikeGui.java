@@ -3331,13 +3331,13 @@ public final class LlmSpikeGui {
             return options.get(0);
         }
 
+        /** The card the seat just agreed to play when the engine asked "Do you want to play X?" (a Play effect). */
+        private Card playConfirmed;
+
         /** A spell cast by an effect (cascade, suspend, Dreadhorde Arcanist, "you may cast it"): whether
          *  to cast it when it is optional, then X, modes and targets, all the seat's. The inherited version
          *  asked Forge AI whether to cast it and let doTrigger-style AI logic target it (Rift Bolt off
          *  suspend got an AI target). */
-        /** The card the seat just agreed to play when the engine asked "Do you want to play X?" (a Play effect). */
-        private Card playConfirmed;
-
         @Override
         public boolean playSaFromPlayEffect(SpellAbility tgtSA) {
             clearLast();
@@ -8475,10 +8475,6 @@ public final class LlmSpikeGui {
             return -1;
         }
 
-        /** Pure trample-split math used by assignCombatDamage's single-blocker/trample menu: how much
-         *  of `damageDealt` is lethal-to-the-blocker vs. tramples over to the defender. `killDamage` is the
-         *  rule's lethal damage ({@link #lethalDamage}); it may exceed damageDealt, and then nothing tramples over.
-         *  Returns {lethal, trampleOver}. */
         /** Lethal damage for assigning combat damage (CR 702.19b, 510.1c): the blocker's toughness (or what Forge's
          *  getLethal says, e.g. power under Zilortha) minus damage already marked and assigned, and 1 at most when the
          *  attacker has deathtouch (CR 702.2c). Whether the damage would kill (indestructible, protection, a shield
@@ -8488,6 +8484,10 @@ public final class LlmSpikeGui {
             return attacker != null && attacker.hasKeyword(Keyword.DEATHTOUCH) ? Math.min(l, 1) : l;
         }
 
+        /** Pure trample-split math used by assignCombatDamage's single-blocker/trample menu: how much
+         *  of `damageDealt` is lethal-to-the-blocker vs. tramples over to the defender. `killDamage` is the
+         *  rule's lethal damage ({@link #lethalDamage}); it may exceed damageDealt, and then nothing tramples over.
+         *  Returns {lethal, trampleOver}. */
         static int[] trampleSplit(int damageDealt, int killDamage) {
             int lethal = Math.min(Math.max(damageDealt, 0), Math.max(killDamage, 0));
             int trampleOver = damageDealt - lethal;
@@ -8505,13 +8505,6 @@ public final class LlmSpikeGui {
             }
         }
 
-        /** Enumerate the play menu exactly as {@link #chooseSpellAbilityToPlay} builds it — castable,
-         *  affordable, legally-targetable non-land/non-mana spells (every one), plus distinct
-         *  playable lands by name (capped at 4, only on the player's own main phase). Factored out of
-         *  the LLM seat's play method so the ai-teacher seat builds the byte-identical option list; the
-         *  LLM method calls this in place, so its output is unchanged. Read-only w.r.t. real game state
-         *  (the only mutation, {@code setActivatingPlayer} inside the target-legality probe, mirrors the
-         *  original inline code). */
         /** The faithful menu (every land, every mana ability that floats) for a model seat and for the puzzle prover:
          *  a prover with a smaller menu than the model's misses lines, and calls a puzzle unique that has a second
          *  solution (rules pilot RP_017: City of Brass tapped before Angel's Grace was never on the search arm's menu).
@@ -8520,6 +8513,13 @@ public final class LlmSpikeGui {
             return modelSeat || arm instanceof PuzzleArms.Search;
         }
 
+        /** Enumerate the play menu exactly as {@link #chooseSpellAbilityToPlay} builds it — castable,
+         *  affordable, legally-targetable non-land/non-mana spells (every one), plus distinct
+         *  playable lands by name (capped at 4, only on the player's own main phase). Factored out of
+         *  the LLM seat's play method so the ai-teacher seat builds the byte-identical option list; the
+         *  LLM method calls this in place, so its output is unchanged. Read-only w.r.t. real game state
+         *  (the only mutation, {@code setActivatingPlayer} inside the target-legality probe, mirrors the
+         *  original inline code). */
         static PlayOptions enumeratePlayOptions(Player me, boolean ownMain) {
             return enumeratePlayOptions(me, ownMain, false);
         }
