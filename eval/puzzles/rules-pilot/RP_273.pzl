@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot 273 - Protection does not stop self-damage
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:The opponent controls Enemy of the Guildpact (protection from multicolored) and Hill Giant and is at 20 life. You have Solar Blaze and Shock in hand and R R R W W floating. End the turn with both creatures in the opponent's graveyard and the opponent at 18 life.
+Rule:rulesguru-8571a604b60ff704 | Solar Blaze makes each creature deal damage to itself; the source is the creature, not the multicolored spell, so protection from multicolored prevents nothing (CR 702.16b, 702.16e) and Enemy of the Guildpact dies: Shock goes to the opponent
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Solar Blaze;Shock
+p0manapool=R R R W W
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Enemy of the Guildpact;Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Enemy of the Guildpact" = 1
+count p1 Graveyard "Hill Giant" = 1
+life p1 = 18

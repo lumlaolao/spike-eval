@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 276 - Deny your own Decay
+Goal:Survive
+Turns:2
+Difficulty:Medium
+Description:You have Abrupt Decay and Arcane Denial in hand and B G U U floating. The opponent controls Grizzly Bears. Your library has six cards. By the end of the opponent's next turn, have Grizzly Bears in the opponent's graveyard and exactly three cards drawn (three cards left in your library).
+Rule:rulesguru-32775457a0d4300a | A spell that can't be countered is unaffected by a counter, but the counterspell still resolves and does everything else it can (CR 101.3, 608.2b): Arcane Denial on your own Abrupt Decay leaves Decay on the stack and gives you its draws at the next upkeep
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Abrupt Decay;Arcane Denial
+p0manapool=B G U U
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Grizzly Bears" = 1
+count p0 Library * = 3
