@@ -1,0 +1,22 @@
+[metadata]
+Name:Rules pilot 262 - The last creature exiled
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control Strionic Resonator and have Duplicant and Fling in hand, with ten red mana floating. The opponent is at 3 life and controls Canyon Minotaur and Grizzly Bears. End the turn with both of the opponent's creatures in exile and the opponent at 0 life or less.
+Rule:rulesguru-0b1c6e43049db59a | A copied triggered ability resolves before the original (CR 405.2, 707.10), and Duplicant takes the power and toughness of the last creature card exiled with it: copy Duplicant's imprint trigger with Strionic Resonator, aim the copy at Grizzly Bears and the original at Canyon Minotaur, so Duplicant is 3/3 and Fling deals 3
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Duplicant;Fling
+p0battlefield=Strionic Resonator
+p0manapool=R R R R R R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Canyon Minotaur;Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Exile * = 2
+life p1 <= 0
