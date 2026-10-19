@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - The returning Armor needs no target
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Mist Leopard and a tapped Hill Giant enchanted by your Ethereal Armor, and have Flicker of Fate in hand with two white mana floating. The opponent is at 4 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:rulesguru-651bbb13ca640110 | An Aura put onto the battlefield other than by resolving does not target what it enchants (CR 303.4f), so shroud does not stop it: flicker Ethereal Armor and attach it to Mist Leopard, which attacks as a 4/3 for lethal
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Flicker of Fate
+p0battlefield=Mist Leopard;Hill Giant|Id:5|Tapped;Ethereal Armor|AttachedTo:5
+p0manapool=W W
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
