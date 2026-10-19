@@ -1,0 +1,3 @@
+search {"status": "proven", "acceptance": "accepted", "acceptance_failed": [], "line": "Solver:4:0 Solver:2:1 Solver:3:1", "search_replays": 21, "opponent_branches_beaten": 0, "actions": ["STACK_ADD: Solver cast Bump in the Night targeting [Opponent]", "STACK_ADD: Solver activated Deathrite Shaman targeting [Bump in the Night (1)]"], "search_drift": null, "uniqueness": "unique", "uniqueness_deviations": 6, "uniqueness_exhausted": 6, "uniqueness_replays": 66, "uniqueness_unproven_alternatives": 0}
+pass {"status": "failed", "acceptance": "rejected", "acceptance_failed": ["life p1 <= 0 (was 4)"], "line": null, "search_replays": null, "opponent_branches_beaten": null, "actions": null, "search_drift": null}
+secs 71
