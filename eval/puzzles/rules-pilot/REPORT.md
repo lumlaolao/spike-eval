@@ -396,3 +396,60 @@ The damage-division rebuilds (RP_156-RP_160) exposed that the epoch-56 amounts a
 estimate (ComputerUtilCombat.getEnoughDamageToKill), which counts indestructible, protection, shields and doublers.
 Epoch 57 uses the rule (CR 702.19b: toughness minus marked damage, 1 with deathtouch; power under Zilortha), and all
 five are proven unique with the do-nothing arm rejected (`lethalDamageForAssignmentIsTheRulesNotWhatKills`).
+
+# Batch 6: one hundred "maybe" questions (RP_163 to RP_188)
+
+Source: `triage.jsonl` questions with `convert == "maybe"` (all have acceptance and misread filled in), screened for a
+solver choice the rule decides, no reliance on an opponent action, two players and no randomness. 26 boards were
+built and 74 questions were dropped with a reason in each row's `note`. 100 rows in `manifest.jsonl` (now 311). Build:
+epoch 58 (`epoch58-build.txt`, re-read before every JVM; the prover rules are epoch 57's). Gate as before: search arm
+(budget 600, cap 60 s), then the pass arm. No JVM started while HOLD existed (every `.starts` line says `hold=N`).
+
+## Counts
+
+| result | n | puzzles |
+|---|---|---|
+| converted | 23 | 163-176, 178, 180-184, 186-188 |
+| Forge disagreement | 2 | 177, 179 |
+| harness bug (block requirements) | 1 | 185 |
+| dropped (no board) | 74 | see each row's `note` |
+
+The pass arm was rejected on all 26 boards. Uniqueness was exhaustive on 14 of the 23 conversions; weakest RP_183
+(5/26), RP_165 (4/12) and RP_173 (4/13). About 50 more maybe questions were screened and judged unbuildable for the
+same reasons (opponent action, no solver choice, replacement order) but left without a row to keep the batch at 100.
+Skipped without a row as rule-level near-duplicates: X on the stack (RP_070), all targets illegal (RP_094), LKI power
+(RP_015), copies not cast (RP_067), CR 614.12 enters-with checks (RP_001, RP_136), your own trigger order (RP_002).
+
+## Forge disagreements
+
+- **RP_177** (Possessed Portal and Underrealm Lich): CR 616.1 lets the drawing player choose which replacement
+  applies. Forge never asks (no `replacement-order` prompt in 600 rollouts) and always applies the Lich, so the
+  choice is not the solver's. Unlike RP_077, one of the two effects is a `Prevent$ True` replacement.
+- **RP_179** (Snapcaster Mage under Yixlid Jailer): CR 613.7 applies the two layer-6 effects in timestamp order, so
+  the later flashback stays. Forge removes it: Lightning Bolt is never offered after Snapcaster targets it (0 casts,
+  129 rollouts, exhausted). The control `rp6v/RP_179nj` without the Jailer is proven and unique.
+
+## Harness and prover findings
+
+1. **Block requirements are met by rejection sampling, which the search arm cannot prove through** (RP_185, Lure).
+   `declareBlockers` (random-arm branch) redraws a block set up to 64 times; every redraw is new `nextBoolean`/`nextInt`
+   draws, which the search arm records as opponent choice points, and after 64 failures the illegal set is kept
+   (`[BLOCK-INVALID] arm: no legal block set in 64 draws`, `blockers(random)->1 (draw 64)` in
+   `rp6/old/RP_185-four-search`). The prover therefore has to beat every redraw sequence, one of which ends in an
+   illegal partial block. The winning line (the Foundations 1-1-1 split, then Pyroclasm) is offered and solves, but
+   the search is not_found at 600 rollouts (and at 2100). Fix: enumerate the legal block sets for the arm.
+2. **A creature land's activation is not offered when its own mana is the only source** (RP_175 v1): after playing
+   Mishra's Factory with no other land, the {1} animate was never on the menu (no decision at all after the land
+   play). With a Wastes added, the second activation paid by the Factory itself was offered. RP_175 ships with
+   Treetop Village and two Forests.
+3. **Turn 1 has no draw for the starting player**, so draw-step puzzles must start on turn 2 with `Turns:2` (RP_177 and
+   RP_178 v1 drew nothing).
+4. Process: when RP_185 was re-queued, both lanes and a diagnostic JVM ran together for about 20 seconds (three JVMs);
+   the stale run and the diagnostic were killed and RP_185 was gated on the remaining clean run.
+
+## Board fixes during the gate
+
+- RP_180: the pass arm solved v1 (its default discard is the first card in hand, the Baloth); Colossal Dreadmaw now
+  comes first.
+- RP_173: the misread order (return the Angel with its trigger on the stack) was checked with the random arm (seeds 1
+  and 3 in `rp6/RP_173-rand`): no prompt, life stays 20. Forge agrees with the judge.
