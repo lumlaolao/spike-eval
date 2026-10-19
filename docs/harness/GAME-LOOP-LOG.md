@@ -890,3 +890,11 @@ failing state did not recur, so the GameCopier patch was not exercised live).
 ### g25  2026-10-18  seed 4125  Legacy Elves (seat) vs Goblins (Forge AI)  WON T10  $0.05  harness-epoch-58
 Sheet clean: 55 model decisions, 5 forced picks (2 single targets, 3 damage-assigns to a lone non-trample blocker),
 TAKEN 0, LOST 0, SKIP 0, TOOL 10 of 10 served (simulate 10), ai_tier_count=0, 8 min. Second clean game on epoch 58.
+
+### g26  2026-10-19  seed 4126  Miracles (seat) vs Legacy Hogaak (Forge AI)  WON T28  $0.32  harness-epoch-58
+Sheet clean: 269 model decisions, 20 forced picks (11 Counterbalance reveals of the one top card, 4 identical trigger
+pairs, 2 single targets, a cost it could not pay), TAKEN 0, LOST 0, SKIP 0, TOOL 37 of 37 served (inspect 11,
+simulate 25, memory_search 1), ai_tier_count=0, 39 min: the longest and most expensive game of the run, a control
+mirror of patience, still inside the $0.40 budget. Third clean game in a row on epoch 58 (g24-g26).
+- checked  plan_audit HOLD-VIOLATION T20 Counterbalance: the clause holds "the known top sequence", Counterbalance only
+  named inside its parenthesis; a matcher artefact, model-chosen.
