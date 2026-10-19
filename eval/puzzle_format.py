@@ -23,6 +23,7 @@ REPO = Path(__file__).resolve().parent.parent
 
 PUZZLE_SCHEMA = "puzzle.v1"
 SUITE_SCHEMA = "puzzle-suite.v1"
+PROOF_STATUSES = ("proven", "not_found", "drift", "unscoreable")
 
 # Held-out share, fixed by the design (EVAL-DESIGN.md S3.4, scoring-design S3.5).
 HELDOUT_FRACTION = 0.30
@@ -246,7 +247,7 @@ def validate_puzzle(rec, repo=REPO, check_files=True):
             p.append("%s: baseline %s is not {solved, n, rate=solved/n}" % (pid, arm))
     proof = rec.get("proof")
     if proof is not None and (not isinstance(proof, dict)
-                              or proof.get("status") not in ("proven", "not_found", "drift", "unscoreable")
+                              or proof.get("status") not in PROOF_STATUSES
                               or proof.get("opponent") not in ("search", "ai")):
         p.append("%s: proof is not {status: proven|not_found|drift|unscoreable, opponent: search|ai}" % pid)
     elif proof and proof.get("status") == "proven" and not proof.get("line") and proof.get("solver_actions"):

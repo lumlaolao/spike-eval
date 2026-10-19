@@ -325,8 +325,6 @@ def verify_puzzle(build, rec, out_root):
     return dict(rec, verification=ver)
 
 
-PROOF_STATUSES = ("proven", "not_found", "drift", "unscoreable")
-
 
 def proof_from_row(row, opponent, engine_sha, date):
     """The record's `proof` from the search runner's one result row (None when the run wrote none)."""
@@ -344,8 +342,7 @@ def prove_puzzle(build, rec, out_root, budget, opponent, seed=1):
     out = Path(out_root) / rec["id"] / ("prove-%s" % opponent)
     env = {"PUZZLE": str(pf.pzl_path(rec).resolve()), "CONTROLLER_A": "search", "CONTROLLER_B": opponent,
            "PZL_SEEDS": str(seed), "GAME_CAP_MS": "60000", "PZL_SEARCH_BUDGET": str(budget)}
-    if (out / "puzzle-results.jsonl").exists():
-        (out / "puzzle-results.jsonl").unlink()
+    (out / "puzzle-results.jsonl").unlink(missing_ok=True)
     build.run(env, out, timeout_s=max(3600, budget * 10))
     rows = read_results(out)
     engine = (REPO / "FORGE_COMMIT").read_text().strip() if (REPO / "FORGE_COMMIT").is_file() else "unknown"
