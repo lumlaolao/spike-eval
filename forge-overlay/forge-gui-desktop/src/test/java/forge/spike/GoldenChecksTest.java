@@ -2573,6 +2573,46 @@ public class GoldenChecksTest {
         Assert.assertTrue(model.asked("Split 2"), PromptFidelityTest.decisions(model));
     }
 
+    /** Each target of a divided spell gets at least one (CR 601.2d): the split [2 0] was accepted, so "Fire at the
+     *  opponent and Iona" dealt all 2 to the opponent (rules pilot batch 12, rp10/V_iona-search). */
+    @Test
+    public void aDividedSplitGivesEachTargetAtLeastOne() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card fb = card("Forked Bolt", me, ZoneType.Hand);
+        Card lions = card("Savannah Lions", rival, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1")
+                .on("Choose TARGETS", picks("Savannah Lions", "Grizzly Bears"))
+                .on("Split 2", p -> "ALLOC: 2, 0");
+        SpellAbility sa = spell(fb, me);
+        Assert.assertTrue(seat(g, model, model).chooseTargetsFor(sa));
+        Assert.assertEquals(sa.getDividedValue(lions), Integer.valueOf(1), "a target was given 0");
+        Assert.assertEquals(sa.getDividedValue(bears), Integer.valueOf(1), "a target was given 0");
+        Assert.assertTrue(model.asked("at least 1 each"), "the split question does not state the rule");
+    }
+
+    /** More targets than the divided total can never each get one: Rolling Thunder for X=2 among three picks fell back
+     *  to [1 1 0]. A divided spell takes at most as many targets as its total (review of epoch 64). */
+    @Test
+    public void aDividedSpellTakesNoMoreTargetsThanItsTotal() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card rt = card("Rolling Thunder", me, ZoneType.Hand);
+        card("Savannah Lions", rival, ZoneType.Battlefield);
+        card("Grizzly Bears", rival, ZoneType.Battlefield);
+        card("Hill Giant", rival, ZoneType.Battlefield);
+        Script model = new Script("CHOICE: 1")
+                .on("Choose TARGETS", picks("Savannah Lions", "Grizzly Bears", "Hill Giant"))
+                .on("Split 2", p -> "ALLOC: 1, 1");
+        SpellAbility sa = spell(rt, me);
+        sa.setXManaCostPaid(2);
+        Assert.assertTrue(seat(g, model, model).chooseTargetsFor(sa));
+        Assert.assertTrue(sa.getTargets().size() <= 2, "three targets for 2 damage: " + sa.getTargets());
+        for (forge.game.GameObject t : sa.getTargets())
+            Assert.assertTrue(sa.getDividedValue(t) != null && sa.getDividedValue(t) >= 1, "a target got 0: " + t);
+    }
+
     /** Thoughtseize-style: which card the opponent discards is the model's. */
     @Test
     public void whatTheOpponentDiscardsIsTheModels() {

@@ -315,8 +315,10 @@ public final class LlmSpikeGui {
      *  Epoch 63 (2026-10-19, rules pilot batch 10): a play a static forbids (Pithing Needle, Null Rod, Gaddock Teeg) is
      *  not on the menu; the engine's canPlay() leaves those statics to checkRestrictions, which the menu never asked
      *  (Endbringer's ping under a Needle naming it was offered and played, RP_207).
+     *  Epoch 64 (2026-10-19, rules pilot batch 12): each target of a divided spell gets at least 1 (CR 601.2d); the split
+     *  [2 0] was taken, so Fire at two targets dealt all 2 to one.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-63";
+    static final String HARNESS_EPOCH = "harness-epoch-64";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats
@@ -2148,6 +2150,11 @@ public final class LlmSpikeGui {
             return decideAllocation(b, question, labels, total, null);
         }
 
+        /** Each target of a divided spell or ability gets at least one (CR 601.2d); the split [2 0] was accepted, so
+         *  Fire at two targets dealt all 2 to one (rules pilot batch 12). Combat damage may give a creature 0. */
+        static final java.util.function.Function<List<Integer>, String> EACH_TARGET_AT_LEAST_ONE = a ->
+                a.stream().anyMatch(v -> v < 1) ? "each chosen target must get at least 1 (CR 601.2d)." : null;
+
         /** {@code rule}: the reason an allocation is not legal, or null (a trampler's lethal-first rule); an answer it
          *  refuses is corrected in the conversation, or asked again with the reason. */
         private List<Integer> decideAllocation(LLMBridge b, String question, List<String> labels, int total,
@@ -2158,7 +2165,12 @@ public final class LlmSpikeGui {
                 // The prover branches over the splits: each amount but the last drawn from what is left.
                 List<Integer> out = new ArrayList<>();
                 int left = total;
-                for (int i = 0; i < n - 1; i++) { int v = rnd.nextInt(left + 1); out.add(v); left -= v; }
+                int least = rule == EACH_TARGET_AT_LEAST_ONE ? 1 : 0;
+                for (int i = 0; i < n - 1; i++) {
+                    int most = left - least * (n - 1 - i);   // leave the targets after this one their minimum
+                    int v = least + rnd.nextInt(Math.max(0, most - least) + 1);
+                    out.add(v); left -= v;
+                }
                 out.add(left);
                 return rule == null || rule.apply(out) == null ? out : null;
             }
@@ -4291,6 +4303,14 @@ public final class LlmSpikeGui {
             int max = sa.getMaxTargets();
             boolean divided = sa.isDividedAsYouChoose();
                 int lo = Math.max(divided ? 1 : 0, min), hi = Math.min(Math.max(max, 1), cands.size());
+                // Each target of a divided spell gets at least 1 (CR 601.2d), so it has at most as many targets as
+                // its total: Rolling Thunder for X=2 among three picks fell back to [1 1 0].
+                int dividedTotal = 0;
+                if (divided) {
+                    try { dividedTotal = forge.game.ability.AbilityUtils.calculateAmount(
+                            sa.getHostCard(), sa.getParam("DividedAsYouChoose"), sa); } catch (Exception ignore) { }
+                    if (dividedTotal > 0) hi = Math.max(lo, Math.min(hi, dividedTotal));
+                }
                 // Strive adds its cost for each target beyond the first: as many targets as the cast can pay for.
                 Cost strive = keywordCost(sa, "Strive:");
                 String striveNote = "";
@@ -4324,6 +4344,8 @@ public final class LlmSpikeGui {
                 // Read only now: before clearTargets() a fresh divided spell's total is null, so the
                 // split was never asked and the targets had no allocation (GoldenChecksTest).
                 int divideTotal = divided && sa.getDividedValue() != null ? sa.getDividedValue() : 0;
+                if (divided && dividedTotal > 0 && tp.size() > Math.max(lo, dividedTotal))
+                    tp = new ArrayList<>(tp.subList(0, Math.max(lo, dividedTotal)));
                 for (int i : tp) sa.getTargets().add(cands.get(i));
                 if (min > 0 && sa.getTargets().size() < min) return firstLegalTargets(sa, "targets(multi,short)"); // safety net
                 StringBuilder split = new StringBuilder();
@@ -4331,7 +4353,8 @@ public final class LlmSpikeGui {
                     List<String> tl = new ArrayList<>();
                     for (int i : tp) tl.add(labels.get(i));
                     List<Integer> alloc = decideAllocation(bridgeFor("targets"), "Split " + divideTotal
-                            + " for " + labelOf(sa) + " among the chosen targets, in order.", tl, divideTotal);
+                            + " for " + labelOf(sa) + " among the chosen targets, in order, at least 1 each.", tl,
+                            divideTotal, EACH_TARGET_AT_LEAST_ONE);
                     if (alloc == null || alloc.size() != tp.size()
                             || alloc.stream().mapToInt(Integer::intValue).sum() != divideTotal)
                         alloc = evenSplit(divideTotal, tp.size());
@@ -4480,7 +4503,8 @@ public final class LlmSpikeGui {
                         List<String> tl = new ArrayList<>();
                         for (forge.game.GameObject ge : sa.getTargets()) tl.add(targetLabel(ge));
                         List<Integer> alloc = decideAllocation(bridgeFor("target"), "Split " + dt + " for "
-                                + labelOf(sa) + " among the chosen targets, in order.", tl, dt);
+                                + labelOf(sa) + " among the chosen targets, in order, at least 1 each.", tl, dt,
+                                EACH_TARGET_AT_LEAST_ONE);
                         if (alloc == null || alloc.size() != tl.size()
                                 || alloc.stream().mapToInt(Integer::intValue).sum() != dt)
                             alloc = evenSplit(dt, tl.size());

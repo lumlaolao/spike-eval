@@ -92,7 +92,9 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   that tramples over before every blocker has lethal goes back with the reason; an unusable answer cascades
   lethal-first in the given order. Before epoch 56 the seat named only an order with that cascade, so "all six on the
   second blocker" or "lethal plus one, trample the rest" were never on offer. The legacy rules (orderCombatants true)
-  keep the declared order. The prover's search arm branches over the splits. "Lethal" is the rule's (CR 702.19b:
+  keep the declared order. The prover's search arm branches over the splits. A divided spell's or ability's
+  split gives each chosen target at least 1 (CR 601.2d), so it takes at most as many targets as its total; before
+  epoch 64 a model or prover split of [2 0] was taken, and Rolling Thunder for 2 could aim at three targets. "Lethal" is the rule's (CR 702.19b:
   toughness minus damage marked, 1 with deathtouch, power under Zilortha), not what would kill: epoch 57 replaced
   Forge AI's estimate, which counted indestructible, protection, shields and doublers.
 - A `simulate` preview copies the game with Forge's GameCopier, which threw on a card no copied zone holds (a prepared

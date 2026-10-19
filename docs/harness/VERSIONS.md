@@ -6,7 +6,7 @@ Versions are not in the model's prompt: the model gains nothing from them, and a
 
 | stamp | value | game line | a change means |
 |---|---|---|---|
-| `LlmSpikeGui.HARNESS_EPOCH` | `harness-epoch-63` | `harness_epoch` | the interface the model plays through, as one number: any change to what the seat is asked or shown, or to how its answer is carried out. Results pool only within one epoch. |
+| `LlmSpikeGui.HARNESS_EPOCH` | `harness-epoch-64` | `harness_epoch` | the interface the model plays through, as one number: any change to what the seat is asked or shown, or to how its answer is carried out. Results pool only within one epoch. |
 | `SeatObservation.VERSION` | `observation-faithful-v41` | `observation_version` | the faithful state the seat reads: the blocks, their labels and their order. |
 | `AnswerTool.VERSION` | `answer-tool-v11` | `answer_tool_version` | the `answer` and `set_plan` functions and their validation. |
 | `NativeTools.VERSION` | `seat-tools-v11` | `native_tools_version` | the lookup tools' definitions (inspect, search, read, simulate). |
