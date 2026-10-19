@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 214 - On top it is face up
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control a face-down Gathan Raiders (morph: discard a card) and three Forests, and have Gemrazer in hand. The opponent controls Ornithopter. End the turn with Ornithopter in the opponent's graveyard.
+Rule:ask-a-magic-judge-bca208985e5e4958 | The top card of a merged permanent decides whether it is face up (CR 729.2e): Gemrazer mutated over the face-down creature is a face-up Gemrazer and its mutate trigger happens; mutated under, the permanent stays a face-down 2/2 with no abilities
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Gemrazer
+p0battlefield=Gathan Raiders|FaceDown;Forest;Forest;Forest
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Ornithopter
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Ornithopter" = 1
