@@ -100,6 +100,8 @@ issue, not harness").** Whether something is offered is the engine's legality, n
   such a card (epoch 58, ENGINE-PATCHES.md).
 - A card may pay for its own ability (Mishra's Factory tapping itself for its {1} animate): Forge AI's mana chooser
   skipped an ability's own card, and a manland already animated this turn, as a taste (epoch 59, ENGINE-PATCHES.md).
+  Not when both the ability and the mana ability tap the card (Rishadan Port cannot pay its own {1}; epoch 60,
+  runs/loop/g27).
 - Under a block requirement the zero-model arms take a legal block set from the engine's check (each blocker one
   attacker or none, up to 4096 combinations) instead of keeping an illegal draw; the prover's search arm draws once
   among the legal sets (epoch 59, rules pilot RP_185).

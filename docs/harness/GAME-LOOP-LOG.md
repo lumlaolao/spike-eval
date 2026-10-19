@@ -898,3 +898,13 @@ simulate 25, memory_search 1), ai_tier_count=0, 39 min: the longest and most exp
 mirror of patience, still inside the $0.40 budget. Third clean game in a row on epoch 58 (g24-g26).
 - checked  plan_audit HOLD-VIOLATION T20 Counterbalance: the clause holds "the known top sequence", Counterbalance only
   named inside its parenthesis; a matcher artefact, model-chosen.
+
+### g27  2026-10-19  seed 4127  Lands (seat) vs Modern Urzatron (Forge AI)  lost T26  $0.13  harness-epoch-59
+127 model decisions, 15 forced picks, TAKEN 0, LOST 0, SKIP 0, TOOL 12 of 14 served, ai_tier_count=0, 20 min.
+- FIXED  T18 "ACTIVATE Rishadan Port [{1}, {T}: Tap target land.]" offered with Port the only untapped source; the two
+  simulate calls on it came back "preview unavailable" and the engine logged "Didn't find what to pay". Epoch 59's
+  self-pay patch let Port tap for the {1} its own {T} cost needs. A card pays for its own ability now only when the
+  two do not both tap it (epoch 60). Test: GoldenChecksTest.aCardThatMustTapForItsAbilityCannotAlsoTapForItsMana,
+  watched failing without the fix.
+- checked  plan_audit HOLD-VIOLATION T7 and T9 Wasteland: the plan recovers Wasteland with Life from the Loam next
+  turn, which presumes it is sacrificed now; model-chosen, a matcher artefact.

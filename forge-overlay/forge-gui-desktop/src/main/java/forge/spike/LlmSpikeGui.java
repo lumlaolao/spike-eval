@@ -305,8 +305,10 @@ public final class LlmSpikeGui {
      *  Epoch 59 (2026-10-19, rules puzzle batch 6): a card may pay for its own ability (Mishra's Factory tapping itself
      *  for its animate; Forge AI's mana chooser skipped it), an engine patch; the arms take a legal block set under a
      *  block requirement instead of keeping an illegal one after 64 draws.
+     *  Epoch 60 (2026-10-19, runs/loop/g27): a card pays for its own ability only when the two do not both tap it;
+     *  epoch 59 offered Rishadan Port's tap ability with Port as the only source, and the activation failed.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-59";
+    static final String HARNESS_EPOCH = "harness-epoch-60";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats

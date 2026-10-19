@@ -2263,6 +2263,22 @@ public class GoldenChecksTest {
                 "the animate ability is on the menu:\n" + ask);
     }
 
+    /** runs/loop/g27 T18 (2026-10-19): after epoch 59 let a card pay for its own ability, Rishadan Port's "{1}, {T}: Tap
+     *  target land" was offered with Port as the only source; Port cannot tap for mana and tap as the cost, so the cast
+     *  failed ("Didn't find what to pay"). A card pays for its own ability only when the two do not both tap it. */
+    @Test
+    public void aCardThatMustTapForItsAbilityCannotAlsoTapForItsMana() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        card("Rishadan Port", me, ZoneType.Battlefield);
+        card("Island", rival, ZoneType.Battlefield);
+        card("Forest", me, ZoneType.Hand);   // a land drop on the menu, so the seat is asked; it pays for nothing
+        Script model = new Script("CHOICE: 1");
+        seat(g, model, model).chooseSpellAbilityToPlay();
+        String ask = PromptFidelityTest.promptWith(model, "You have priority");
+        Assert.assertFalse(ask.contains("Tap target land"), "Port's tap ability cannot be paid:\n" + ask);
+    }
+
     /** Rules pilot RP_185 (2026-10-19): with a block requirement, the random and search arms redrew up to 64 times and
      *  then kept an illegal block set (most draws break "all creatures able to block it do so"). A failed draw now takes
      *  a legal block set from the engine's own check. Ten creatures must all block Prized Unicorn. */

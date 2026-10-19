@@ -355,8 +355,11 @@ public class ComputerUtilMana {
         for (final SpellAbility ma : maList) {
             // this rarely seems like a good idea
             // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): a taste, not a rule; a harness seat may pay with the
-            // ability's own card (Mishra's Factory tapping itself for its {1} animate, rules pilot RP_175).
-            if (ma.getHostCard() == saHost && !HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE.test(ai)) {
+            // ability's own card (Mishra's Factory tapping itself for its {1} animate, rules pilot RP_175), but not
+            // when both the ability and the mana ability tap it (Rishadan Port, runs/loop/g27).
+            if (ma.getHostCard() == saHost && (!HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE.test(ai)
+                    || (sa.getPayCosts() != null && sa.getPayCosts().hasTapCost()
+                        && ma.getPayCosts().hasTapCost()))) {
                 continue;
             }
 
