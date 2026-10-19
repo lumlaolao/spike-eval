@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 219 - Painted blue pays for Snapback
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:You control Painter's Servant (blue chosen) and no lands, and have Snapback and Diary of Dreams in hand. The opponent controls Grizzly Bears. End the turn with Grizzly Bears in the opponent's hand.
+Rule:rulesguru-05f7019caf0bb1fe | Painter's Servant makes every card that is not on the battlefield the chosen colour (CR 105.3), so the colourless Diary of Dreams is a blue card and can be exiled for Snapback's alternative cost
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Snapback;Diary of Dreams
+p0battlefield=Painter's Servant|ChosenColor:blue
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Grizzly Bears
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Hand "Grizzly Bears" = 1

@@ -679,3 +679,33 @@ format; procedure questions (Karn's restart, companions, mulligans) have no posi
 
 No board was built in this batch, so nothing was gated; the rows were written from the triage and the converted
 puzzles (`verified_on` names epoch 63, the build in use).
+
+# Batch 12: legality and "unobservable" drops re-screened (RP_218 to RP_222)
+
+Batch 11 dropped 81 legality and 62 unobservable questions on their bucket's reason. That reason holds for a pure "can
+I do X" question, but not when a misread makes the solver skip a legal play or take a worse one. All 143 were read
+again with their source question and answer. Five have that shape and became boards; the rest keep their rows, since
+the misread either costs nothing (the right line stays open to a misreader: Gaddock Teeg and Conflagrate, a Treasure
+for escape, Goblin Engineer, Seal of the Guildpact) or leaves no trace in the state. Build: epoch 64
+(`epoch64-build.txt`); gate as before.
+
+## Counts
+
+| puzzle | triage | rule | uniqueness |
+|---|---|---|---|
+| RP_218 | L724 | suspending is not casting, so Rule of Law still allows Lightning Bolt | exhaustive 6/6 |
+| RP_219 | L716 | under Painter's Servant the colourless Diary of Dreams pays Snapback's "exile a blue card" | exhaustive 2/2 |
+| RP_220 | L979 | a noncreature artifact taps the turn it arrives (Mind Stone pays for Signal Pest) | exhaustive 6/6 |
+| RP_221 | L588 | Fire cast alone is red, so Iona naming blue does not stop it | exhaustive 10/10 |
+| RP_222 | L973 | a card can be suspended with no legal target for when it is cast | exhaustive 2/2 |
+
+Every board: search proven and accepted, pass arm rejected, Forge agreeing with the judge. `manifest.jsonl`: 204
+converted, 10 Forge disagreements, 8 multiple-review, 774 dropped.
+
+## Harness and prover findings
+
+1. **A divided spell's split could give a target 0** (RP_221, fixed in epoch 64). On epoch 63 RP_221 read "multiple":
+   Fire at the opponent and Iona was split `[2 0]` (`rp10/V_iona-search`), which CR 601.2d forbids (each target at
+   least 1; triage L489 is that rule). The seat's and the prover's splits now hold it, the question says so, and a
+   divided spell takes no more targets than its total (review: Rolling Thunder for 2 at three targets fell back to
+   `[1 1 0]`). On epoch 64 RP_221 is unique, exhaustive.
