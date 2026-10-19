@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 265 - Flash pays after the Ancient arrives
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control an Island and three Forests, and have Flash and Nyxbloom Ancient in hand. End the turn with Nyxbloom Ancient on the battlefield.
+Rule:rulesguru-1ceabce8bd692899 | A spell's instructions are followed in order (CR 608.2c): Flash puts Nyxbloom Ancient onto the battlefield before you choose whether to pay its mana cost reduced by {2}, so the Ancient already triples the mana of the two Forests left untapped, enough for {2}{G}{G}{G}
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Flash;Nyxbloom Ancient
+p0battlefield=Island;Forest;Forest;Forest
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Nyxbloom Ancient" = 1
