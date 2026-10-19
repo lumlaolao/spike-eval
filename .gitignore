@@ -53,3 +53,5 @@ data/cards/raw/
 # suite is committed under eval/suites/.
 runs/puzzles/
 runs/keyword-gauntlet/
+__pycache__/
+runs/harness-acceptance/

@@ -1,0 +1,95 @@
+Picked up JAVA_TOOL_OPTIONS: -Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts -Djavax.net.ssl.trustStoreType=JKS -Dhttps.proxyHost=127.0.0.1 -Dhttps.proxyPort=37571 -Dhttp.nonProxyHosts=localhost|127.0.0.1|::1|127.*|0.*|::|169.254.*|api.anthropic.com|api-staging.anthropic.com|api-pr-preview.anthropic.com|mcp-proxy.anthropic.com|mcp-proxy-staging.anthropic.com|registry.npmjs.org|jsr.io|npm.jsr.io|pypi.org|files.pythonhosted.org|index.crates.io|proxy.golang.org|host.docker.internal|10.*|172.16.*|172.17.*|172.18.*|172.19.*|172.20.*|172.21.*|172.22.*|172.23.*|172.24.*|172.25.*|172.26.*|172.27.*|172.28.*|172.29.*|172.30.*|172.31.*|192.168.*|100.64.0.0/10|*.svc.cluster.local|*.svc.cluster.local -Djdk.http.auth.tunneling.disabledSchemes= -Djdk.http.auth.proxying.disabledSchemes=
+[HEADLESS] initializing Forge model (no GUI)...
+Language 'en-US' loaded successfully.
+(ThreadUtil first call): Running with priority 5
+Read cards: 34086 files in 1 ms (25 parts) using thread pool
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+The card A-Alrund's Epiphany was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Baba Lysaga, Night Witch was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Divide by Zero was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Esika's Chariot was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Faceless Haven was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Fires of Invention was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Goldspan Dragon was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Hullbreaker Horror was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Kumano Faces Kakkazan was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Luminarch Aspirant was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Monster Manual was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Omnath, Locus of Creation was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-The Meathook Massacre was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card A-Unholy Heat was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Blinding Radiance was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Goblin Bruiser was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Ogre Painbringer was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Titanic Pelagosaur was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+The card Treetop Recluse was not assigned to any set. Adding it to UNKNOWN set... to fix see res/editions/ folder. 
+Upcoming set Marvel: Darkhold Destiny (MDD) dated in the future. All `upcoming` cards will be added to this set with unknown rarity.
+Read cards: 857 files in 0 ms (8 parts) using thread pool
+[SEED] 4132
+[EVAL] jsonl game-4132-1792438490913.jsonl
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/pioneer-dimir-kaito.plan
+[PLAN] sidecar -> /home/user/mtg-forge-llm-agent/eval/decks/pauper-madness-burn.plan
+[DECK] loaded 'Seat': 60 main, 15 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/pioneer-dimir-kaito.txt)
+[DECK] loaded 'ForgeAI': 60 main, 15 sideboard  (/home/user/mtg-forge-llm-agent/eval/decks/pauper-madness-burn.txt)
+[SEATS] A=Seat(llm,openrouter:openai/gpt-6-luna) B=ForgeAI(ai,opus)
+[Seat] [OBSERVATION] observation-faithful-v41 (profile v4-faithful/379d6b7b5b6a)
+[HEADLESS] game starting (cap=120min)
+[OPENROUTER Seat/smart] replied in 8336 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: 5/7 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 7921 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: MULLIGAN
+[OPENROUTER Seat/smart] replied in 8049 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan-bottom: Unholy Annex // Ritual Chamber
+[Seat] [ROUTER] mulligan: 1/6 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 5411 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: MULLIGAN
+[OPENROUTER Seat/smart] replied in 13174 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan-bottom: Otawara, Soaring City, Watery Grave
+[Seat] [ROUTER] mulligan: 3/5 lands -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 21163 ms with 1 tool call(s)
+[Seat] [ROUTER] mulligan: KEEP
+[Seat] [TALLY] smart=6 fast=0 auto=0 ai=0 textParses=0 avgSmart=10675ms avgFast=10675ms
+[Seat] [ROUTER] play(main): 0 castable + 3 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 17154 ms with 1 tool call(s)
+[Seat] [ROUTER] plan: GOAL: Use the turn-one black source to disrupt the opponent, then develop the Dimir tempo game. NEXT: Play Darkslick Shores untapped and cast Thoughtseize if offered; follow with evasive creatures and ninjutsu/value.
+[OPENROUTER Seat/smart] replied in 2697 ms with 1 tool call(s)
+[Seat] [ROUTER] lines: Thoughtseize + evasive attackers -> clear a blocker or key answer, then connect and enable Moon-Circuit Hacker/Kaito ninjutsu. Floodpits Drowner + Mutavault -> tap down a threat, then activate Drowner to shuffle it away.
+[Seat] [ROUTER] play: land Darkslick Shores
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[Seat] [TALLY] smart=8 fast=0 auto=1 ai=0 textParses=0 avgSmart=10488ms avgFast=10488ms
+[Seat] [ROUTER] play(main): 3 castable -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 4117 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 2365 ms with 1 tool call(s)
+[Seat] [ROUTER] target: opponent (ForgeAI) <- Thoughtseize @15 {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Seat] [ROUTER] play: casts Thoughtseize @15 {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Seat] [AUTO-LEGAL] color(forced)->first
+[OPENROUTER Seat/smart] replied in 27593 ms with 1 tool call(s)
+[Seat] [ROUTER] discard(strip ForgeAI): Fireblast
+Highway Robbery Did not have activator set in SpellAbilityRestriction.canPlay()
+Highway Robbery Did not have activator set in SpellAbilityRestriction.canPlay()
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+[Seat] [TALLY] smart=11 fast=0 auto=2 ai=0 textParses=0 avgSmart=10725ms avgFast=10725ms
+[Seat] [ROUTER] play(main): 2 castable + 3 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 10970 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Disrupt the burn/value plan, preserve life where possible, and develop the Dimir mana base for evasive threats. NEXT: Cast Thoughtseize using Darkslick Shores, take the most threatening Highway Robbery; then play Watery Grave tapped to avoid unnecessary life loss.
+[OPENROUTER Seat/smart] replied in 3820 ms with 1 tool call(s)
+[Seat] [ROUTER] profile: Red burn/value: Highway Robbery fuels card advantage and Fireblast is a major burst-damage threat; respect both while protecting life.
+[OPENROUTER Seat/smart] replied in 4378 ms with 1 tool call(s)
+[Seat] [ROUTER] target: opponent (ForgeAI) <- Thoughtseize @16 {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Seat] [ROUTER] play: casts Thoughtseize @16 {B} [Target player reveals their hand. You choose a nonland card from it. That player discards that card. You lose 2 life.]
+[Seat] [AUTO-LEGAL] color(forced)->first
+[OPENROUTER Seat/smart] replied in 6791 ms with 1 tool call(s)
+[Seat] [ROUTER] plan(revised): GOAL: Disrupt red burn/value while preserving life and develop mana for evasive threats. NEXT: Take Fireblast with Thoughtseize; then play Watery Grave tapped to avoid further life loss and continue building Dimir mana.
+[OPENROUTER Seat/smart] replied in 3909 ms with 1 tool call(s)
+[Seat] [ROUTER] discard(strip ForgeAI): Fireblast
+[Seat] [TALLY] smart=16 fast=0 auto=3 ai=0 textParses=0 avgSmart=9240ms avgFast=9240ms
+[Seat] [ROUTER] play(main): 0 castable + 3 land -> asking openai/gpt-6-luna...
+[OPENROUTER Seat/smart] replied in 12776 ms with 1 tool call(s)
+[Seat] [ROUTER] play: land Watery Grave
+[Seat] [AUTO-LEGAL] replacement-order(forced-only-legal)
+[OPENROUTER Seat/smart] replied in 10638 ms with 1 tool call(s)
+[OPENROUTER Seat/smart] replied in 2242 ms with 1 tool call(s)
+[Seat] [ROUTER] prevent-effect: declined Pay 2 life
+Mountain Did not have activator set in SpellAbilityRestriction.canPlay()
+[Seat] [TALLY] smart=19 fast=0 auto=4 ai=0 textParses=0 avgSmart=9131ms avgFast=9131ms
+[Seat] [ROUTER] play(main): 4 castable + 2 land -> asking openai/gpt-6-luna...
