@@ -317,8 +317,10 @@ public final class LlmSpikeGui {
      *  (Endbringer's ping under a Needle naming it was offered and played, RP_207).
      *  Epoch 64 (2026-10-19, rules pilot batch 12): each target of a divided spell gets at least 1 (CR 601.2d); the split
      *  [2 0] was taken, so Fire at two targets dealt all 2 to one.
+     *  Epoch 65 (2026-10-19, pr-review of PR #268): a source whose tap damage is lethal pays last for a harness seat,
+     *  not first; at 1 life with City of Brass and Llanowar Elves the payment plan tapped City for {1}.
      */
-    static final String HARNESS_EPOCH = "harness-epoch-64";
+    static final String HARNESS_EPOCH = "harness-epoch-65";
 
     static final class EvalLog {
         private static volatile java.io.PrintWriter out; // volatile: on() reads unsynchronized from both seats

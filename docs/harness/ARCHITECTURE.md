@@ -79,7 +79,7 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - A creature that can block more than one attacker may: its label says how many, and the `answer` schema allows it.
 - A spell whose targets are all "up to" is offered with nothing to target (Finale of Promise), and a mana source whose
   tap damage would be lethal still pays (City of Brass at 1 life; Forge's AI skips it, an engine patch lifts that for
-  harness seats). Both were found by the rules puzzle pilot (harness-epoch-52). So were these (epoch 53): an
+  harness seats), but last, after every safe source (epoch 65). Both were found by the rules puzzle pilot (harness-epoch-52). So were these (epoch 53): an
   activated ability's alternative cost is offered (Forge Anew: equip for {0}; the menu expanded alternative costs for
   spells only), and an "up to one" target with a single candidate is asked with "No target" offered.
 - Forge's static `AiCache` is cleared where Forge's AI clears it, at the seat's priority ask (epoch 54). It holds

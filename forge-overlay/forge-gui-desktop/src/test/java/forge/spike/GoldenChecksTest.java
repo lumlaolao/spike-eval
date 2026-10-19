@@ -188,6 +188,24 @@ public class GoldenChecksTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** pr-review of PR #268 (2026-10-19): the patch above lifted Forge's exclusion outright, so at 1 life with City of
+     *  Brass and Llanowar Elves the engine's payment plan tapped City (any-colour lands sort before creatures) and
+     *  the seat died paying {1}. A lethal source pays last for a harness seat: still there, never first. */
+    @Test
+    public void aSourceWhoseTapDamageIsLethalPaysLast() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        me.setLife(1, null);
+        Card city = card("City of Brass", me, ZoneType.Battlefield);
+        Card elves = card("Llanowar Elves", me, ZoneType.Battlefield);
+        elves.setSickness(false);
+        seat(g, new Script("CHOICE: 1"), new Script("CHOICE: 1"));
+        forge.game.card.CardCollection order = forge.ai.ComputerUtilMana.getAvailableManaSources(me, true);
+        Assert.assertTrue(order.contains(city), "City of Brass still pays: " + order);
+        Assert.assertTrue(order.indexOf(elves) >= 0 && order.indexOf(elves) < order.indexOf(city),
+                "the lethal source pays after the safe one: " + order);
+    }
+
     /** Rules pilot RP_006 (2026-10-18): Finale of Promise ("up to one target instant card and/or up to one target
      *  sorcery card") was never offered with nothing in the graveyard: the menu demanded at least one target. A spell
      *  whose targets are all "up to" is cast with none. */

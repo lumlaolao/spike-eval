@@ -699,7 +699,7 @@ else:
     if game.get("answer_tool") is not True: problems.append("answer_tool=%r not stamped"%game.get("answer_tool"))
     if game.get("answer_tool_version")!="answer-tool-v11": problems.append("answer_tool_version=%r (move this pin WITH AnswerTool.VERSION)"%game.get("answer_tool_version"))
     if game.get("answer_tool_seats")!="A/smart,A/fast": problems.append("answer_tool_seats=%r"%game.get("answer_tool_seats"))
-    if game.get("harness_epoch")!="harness-epoch-64": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-65": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
 dec=[r for r in rows if r.get("t")=="decision"]
 model=[r for r in dec if r.get("tier") in ("smart","fast")]
 via=collections.Counter(r.get("answer_via") for r in model)
@@ -792,7 +792,7 @@ if game is None: problems.append("no game row")
 else:
     if game.get("context_profile")!="v4-faithful": problems.append("context_profile=%s"%game.get("context_profile"))
     if game.get("memory_tools") is not True: problems.append("memory_tools not stamped")
-    if game.get("harness_epoch")!="harness-epoch-64": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-65": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
     facts.append("winner=%s turns=%s context_sha=%s"%(game.get("winner"),game.get("turns"),game.get("context_sha")))
 if ai_rows: problems.append("%d tier=ai rows"%ai_rows)
 if model_rows<5: problems.append("only %d model-tier rows"%model_rows)

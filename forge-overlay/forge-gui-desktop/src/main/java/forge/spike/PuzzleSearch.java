@@ -88,6 +88,9 @@ final class PuzzleSearch {
     private final Map<String, Boolean> proven = new HashMap<>();
     private int opponentBranches = 0;
     private List<Step> refutation = null;
+    /** A prove() call stopped at linesPerNode with lines under it unplayed: its FALSE is "none found", and nothing
+     *  above it may claim every line was played (pr-review of PR #268, 2026-10-19). */
+    private boolean gaveUp = false;
 
     private static final class Node {
         final String seat; final int bound;
@@ -112,6 +115,7 @@ final class PuzzleSearch {
         Result r = new Result();
         List<Step> main = new ArrayList<>();
         cap = budget;
+        gaveUp = false;
         Boolean ok = prove(new ArrayList<>(), main, null, true);
         r.replays = replays;
         r.drift = drift;
@@ -123,7 +127,7 @@ final class PuzzleSearch {
             for (Step s : main) if (!s.seat.equals(solverSeat) && s.bound > 1) r.opponentChoicePoints++;
         } else {
             r.refutation = refutation;
-            r.exhausted = exhausted(new ArrayList<>());
+            r.exhausted = !gaveUp && exhausted(new ArrayList<>());
         }
         return r;
     }
@@ -160,10 +164,14 @@ final class PuzzleSearch {
         u.deviations = devs.size();
         int end = replays + extra;
         int altsBefore = unprovenAlternatives;
+        int searchedOut = 0;   // deviations searched to FALSE without giving up anywhere
         for (int i = 0; i < devs.size() && replays < end && drift == null; i++) {
             cap = replays + Math.max(4, (end - replays) / (devs.size() - i));
             List<Step> found = new ArrayList<>();
-            if (Boolean.TRUE.equals(prove(devs.get(i), found, mainPrint, true))) {
+            gaveUp = false;
+            Boolean ok = prove(devs.get(i), found, mainPrint, true);
+            if (Boolean.FALSE.equals(ok) && !gaveUp && exhausted(devs.get(i))) searchedOut++;
+            if (Boolean.TRUE.equals(ok)) {
                 u.verdict = "multiple";
                 u.second = found;
                 u.mainPrint = mainPrint;
@@ -172,7 +180,7 @@ final class PuzzleSearch {
             }
         }
         if (drift != null) { u.verdict = "drift"; u.drift = drift; }
-        if ("unique".equals(u.verdict)) for (List<Step> d : devs) if (exhausted(d)) u.exhausted++;
+        if ("unique".equals(u.verdict)) u.exhausted = searchedOut;
         u.unprovenAlternatives = unprovenAlternatives - altsBefore;
         u.replays = replays - start;
         return u;
@@ -232,7 +240,9 @@ final class PuzzleSearch {
             }
             if (outOfBudget()) return null;
         }
-        return outOfBudget() ? null : Boolean.FALSE;
+        if (outOfBudget()) return null;
+        gaveUp = true;
+        return Boolean.FALSE;
     }
 
     /** A winning line through {@code prefix} not in {@code tried}, or null when {@code share} rollouts

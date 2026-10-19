@@ -246,7 +246,7 @@ public class PuzzleSearchTest {
     public void theSearchArmReachesEverySubsetOnceAndHonoursTheLimits() {
         // 4 options, 1..2 picks: C(4,1) + C(4,2) = 10 subsets, each by exactly one line of include draws.
         java.util.Set<List<Integer>> seen = new java.util.HashSet<>();
-        int lines = 0;
+        java.util.Map<List<Integer>, Integer> lines = new java.util.HashMap<>();   // subset -> lines reading all 4 draws
         for (int mask = 0; mask < 16; mask++) {
             List<Step> prefix = new ArrayList<>();
             for (int i = 0; i < 4; i++) prefix.add(new Step("Solver", 2, (mask >> i) & 1));
@@ -254,14 +254,17 @@ public class PuzzleSearchTest {
             try {
                 List<Integer> sub = PuzzleArms.subset(PuzzleArms.forMode("search", 1L, "Solver"), 4, 1, 2);
                 Assert.assertTrue(sub.size() >= 1 && sub.size() <= 2, String.valueOf(sub));
-                if (PuzzleArms.searchLine.drift == null
-                        && PuzzleArms.searchLine.taken.size() == prefix.size()) { seen.add(sub); lines++; }
-                else seen.add(sub);
+                if (PuzzleArms.searchLine.drift == null && PuzzleArms.searchLine.taken.size() == prefix.size())
+                    lines.merge(sub, 1, Integer::sum);
+                seen.add(sub);
             } finally {
                 PuzzleArms.searchLine = null;
             }
         }
         Assert.assertEquals(seen.size(), 10);
+        Assert.assertFalse(lines.isEmpty(), "no line read all four draws");
+        for (java.util.Map.Entry<List<Integer>, Integer> e : lines.entrySet())
+            Assert.assertEquals((int) e.getValue(), 1, "two full lines of draws reach " + e.getKey());
         Assert.assertNull(PuzzleArms.subset(PuzzleArms.forMode("search", 1L, "Solver"), 4, 3, 2));
     }
 

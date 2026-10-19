@@ -1558,9 +1558,7 @@ public class ComputerUtilMana {
         // 3. Use lands that produce any color many
         // 4. all other sources (creature, costs, drawback, etc.)
 
-        // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): a harness seat may tap a source whose damage is lethal.
-        final boolean canDieToTapDamage = ai.canLoseLife() && !ai.cantLoseForZeroOrLessLife()
-                && !HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE.test(ai);
+        final boolean canDieToTapDamage = ai.canLoseLife() && !ai.cantLoseForZeroOrLessLife();
         for (Card card : manaSources) {
             // exclude creature sources that will tap as a part of an attack declaration
             if (card.isCreature()) {
@@ -1588,6 +1586,9 @@ public class ComputerUtilMana {
                     }
                 }
                 if (dealsLethalOnTap) {
+                    // HARNESS PATCH (docs/harness/ENGINE-PATCHES.md): a harness seat may tap a source whose damage
+                    // is lethal (RP_017: Angel's Grace first), so it is kept, but it pays last, never before a safe one.
+                    if (HARNESS_SEAT_MAY_TAKE_LETHAL_TAP_DAMAGE.test(ai)) useLastManaSources.add(card);
                     continue;
                 }
             }
