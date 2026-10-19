@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot NNN - The Shaman is not tapped for mana
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:You control Mana Reflection, Deathrite Shaman and a Swamp, and have Bump in the Night and Lightning Blast in hand. The opponent is at 4 life, controls Wall of Wood and has a Plains in their graveyard. Reduce the opponent to 0 life this turn.
+Rule:rulesguru-048e0e7a45ee4b3c | Deathrite Shaman's first ability targets, so it is not a mana ability and activating it is not tapping it for mana (CR 106.12, 605.1a): Mana Reflection does not double it, so it makes one mana, not the two Lightning Blast would need; Bump in the Night, then the Shaman's drain exiling it, wins
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Bump in the Night;Lightning Blast
+p0battlefield=Mana Reflection;Deathrite Shaman;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1battlefield=Wall of Wood
+p1graveyard=Plains
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

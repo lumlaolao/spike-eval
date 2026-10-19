@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - The Moon comes later
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Prismatic Omen, a Mountain and four Simic Guildgates, and have Blood Moon and Accumulated Knowledge in hand. End the turn with Blood Moon on the battlefield and Accumulated Knowledge in your graveyard.
+Rule:rulesguru-c8f757e8da65af7a | Blood Moon and Prismatic Omen are not dependent on each other (CR 613.8a), so they apply in timestamp order (CR 613.7): a Blood Moon cast after the Omen makes the Guildgates only Mountains, so the blue spell must be cast before the Moon
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Blood Moon;Accumulated Knowledge
+p0battlefield=Prismatic Omen;Mountain;Simic Guildgate;Simic Guildgate;Simic Guildgate;Simic Guildgate
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+count p0 Battlefield "Blood Moon" = 1
+count p0 Graveyard "Accumulated Knowledge" = 1

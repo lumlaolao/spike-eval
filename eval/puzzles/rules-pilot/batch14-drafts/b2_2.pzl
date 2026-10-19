@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - The Snake leaves first
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You control Winding Constrictor, Elite Vanguard, two Swamps and a Forest, and have Cannibalize and Battlegrowth in hand. End the turn with exactly four +1/+1 counters on Elite Vanguard.
+Rule:rulesguru-42d471503ae16113 | A spell's instructions are followed in the order written (CR 608.2c): Cannibalize exiles Winding Constrictor before it puts the counters, so they get no extra counter; Battlegrowth must go first, while the Constrictor is still there (2 + 2 = 4)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Cannibalize;Battlegrowth
+p0battlefield=Winding Constrictor;Elite Vanguard;Swamp;Swamp;Forest
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+counters p0 Battlefield "Elite Vanguard" P1P1 = 4

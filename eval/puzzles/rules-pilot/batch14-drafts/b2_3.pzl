@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot NNN - The Crusade waits for the Conspiracy
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control Dralnu's Crusade, Garruk's Gorehorn and five Swamps, and have Conspiracy in hand. The opponent is at 8 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:rulesguru-3b6b4222b9855e6c | Dralnu's Crusade depends on Conspiracy, since Conspiracy changes what the Crusade applies to (CR 613.8a), so Conspiracy applies first whatever the timestamps (CR 613.8b): naming Goblin makes the Gorehorn a Goblin the Crusade pumps, an 8/4 attacker
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Conspiracy
+p0battlefield=Dralnu's Crusade;Garruk's Gorehorn;Swamp;Swamp;Swamp;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=8
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
