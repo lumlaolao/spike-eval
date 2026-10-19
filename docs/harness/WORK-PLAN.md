@@ -11,11 +11,13 @@ The deliverable is the benchmark's PUZ score. The 996 rules questions are all so
 774 dropped with a reason. Going back over the drops yields less each pass (batches 7-9: 14, 4, 3; batch 12: 5;
 batch 13: 6 of 8 gated drafts), so more passes are not the route to a larger suite. In order:
 
-1. **Land PR #268** (`feat/puzzle-search-prover`): update its description past epoch 63, run the full Java
-   suite on the head (not re-run since observation-faithful-v42), then `pr-review`, `simplify`, `standards`,
-   and `scripts/pr_merge.sh`. Nothing from batches 1-13 or epochs 52-64 is on `main` until it lands.
-2. **A first PUZ score** on the converted puzzles: `eval/puzzle_score.py` with GPT-6 Luna, its confidence
-   interval and the trivial baseline it beats. Paid: state the cost first and get the owner's go.
+1. ~~**Land PR #268**~~ (done 2026-10-19, merge e68c47d: batches 1-12, epochs 52-65, full acceptance 18/18;
+   the review's deferred LOWs are issue #269).
+2. **A first PUZ score** on the converted puzzles: build the rules suite (`eval/PUZZLES.md`, "The rules suite":
+   `rules-candidates`, baselines in 20-puzzle chunks, freeze), then `eval/puzzle_solve.py` with GPT-6 Luna and
+   `eval/puzzle_score.py`: its confidence interval and the trivial baseline it beats. Paid: state the cost first.
+   First chunk: random play solves 3 of the first 8 rules puzzles more than 20% of the time (RP_001 17/50,
+   RP_004 24/50), so they drop; the rest are active.
 3. **Decide whether the suite is big enough.** If not, find a new source of puzzles (for example the PUZZLE
    candidates in `GAME-LOOP-LOG.md`), not another pass over the dropped rules questions. The 11 ungated
    batch-13 drafts (`batch13-drafts/`) are finished only if cheap.
