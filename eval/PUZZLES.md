@@ -128,7 +128,8 @@ python3 eval/puzzle_baselines.py line --pzl eval/puzzles/hard/h_1.pzl [--script 
   after it; removing a line's only action plays the pass arm. A removal is replayed relaxed (`script:relaxed:<file>`):
   a decision the next line does not fit takes the do-nothing answer and the line keeps its place, so the rest is
   played as far as it goes. Only a game played out and lost counts as "fails"; a solve is "played" (the action is
-  not needed), and a drift, the cap, a deck-out or a lost play is "inconclusive". Against Forge's AI only, on the
+  not needed), and a drift, the cap, a deck-out, a lost play or a line that stalled with lines unplayed (a play
+  that can never fit again, as a source the removed action would have untapped) is "inconclusive". Against Forge's AI only, on the
   first seed. The record is `minimality.json` in the output directory.
 
 ## Rules puzzles: an acceptance state and one solution

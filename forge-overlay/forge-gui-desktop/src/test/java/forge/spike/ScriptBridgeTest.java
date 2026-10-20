@@ -233,15 +233,16 @@ public class ScriptBridgeTest {
         Assert.assertNull(b.drift);
     }
 
-    /** The minimality replays (pr-review of #278): a decision the next line does not fit takes the do-nothing answer and
-     *  the line keeps its place, so a removed attack, or a play waiting on a removed cast, is played out, not drifted. */
+    /** The minimality replays (pr-review of #278: a removed attack drifted, so a drift read as "necessary"): a decision
+     *  the next line does not fit takes the do-nothing answer and the line keeps its place, so a removed attack, or a
+     *  play waiting on a removed cast, is played out, not drifted. */
     @Test
     public void aRelaxedLineAnswersWhatItDoesNotFitWithTheDoNothingOption() {
         ScriptBridge b = script("cast Divination");
         b.relaxed = true;
         Assert.assertEquals(answer(b, ATTACK).getAsJsonArray("options").size(), 0, "no attack");
         Assert.assertNull(b.drift);
-        Assert.assertEquals((b.skipped), 1);
+        Assert.assertEquals(b.skipped, 1);
         Assert.assertEquals(b.unconsumed(), 1, "the line keeps its place");
         Assert.assertEquals(answer(b, PLAY_MAIN2).get("option").getAsInt(), 1, "and is played when its window comes");
         Assert.assertEquals(b.unconsumed(), 0);
@@ -250,7 +251,7 @@ public class ScriptBridgeTest {
     }
 
     /** Under the search opponent a reply can let the line win before its end; that solve is the line's. A drift, or a
-     *  play the line chose that did not happen, is not (pr-review of #278). */
+     *  play the line chose that did not happen, is not (pr-review of #278: such a solve was read as a refutation). */
     @Test
     public void aWrittenLineWinsUnderAReplyOnlyAsWritten() {
         ScriptBridge early = script("cast Divination", "cast Snakeform");

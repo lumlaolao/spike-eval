@@ -13,6 +13,7 @@ Every arm here is free: no model is called and nothing leaves the machine.
   python3 eval/puzzle_baselines.py verify --suite S.json [-j 4]
   python3 eval/puzzle_baselines.py prove  --suite S.json [--ids a,b] [--budget 2000] [-j 4] --write S.json
   python3 eval/puzzle_baselines.py line   --pzl P.pzl [--script L.txt] [--seeds 1..3] [--opponent search]
+                                          [--minimality]
 
 `run` measures every arm, takes the shortest solving random rollout as the reference line when the
 puzzle has none (searching further seeds with --search N if the baseline rollouts found none),
@@ -28,7 +29,10 @@ spent budget, never a claim that the puzzle is unsolvable.
 `line` plays a puzzle's written solution (its `[solution]` section, one line per decision in the words the seat is
 shown; ScriptBridge.java) through the model seat, and exits 0 only when every seed played the whole line, drifted
 nowhere and solved. That proves a line a person can write, however long, without a search finding it. With
-`--opponent search` the prover plays the line against every reply the engine offers (exit 0 when proven).
+`--opponent search` the prover plays the line against every reply the engine offers (exit 0 when proven). With
+`--minimality` each action is removed in turn (a relaxed replay, `script:relaxed:<file>`); exit 0 only when every
+removal is a game played out and lost. A drift, the cap, a deck-out or a stalled line is inconclusive, never
+"necessary": it cannot show an action is needed, only fail to.
 
 The Java side runs against an ISOLATED build: --build DIR holding classes/ and classpath.txt, as
 eval/harness_acceptance.sh writes them under runs/harness-acceptance/<stamp>/ (the newest one is the
@@ -436,7 +440,8 @@ def line_verdict(row):
             return "proven"
         if row.get("refutation_line"):
             how = ("drift: " + row["refutation_script_drift"]) if row.get("refutation_script_drift") \
-                else (row.get("refutation_status") or "lost")
+                else ("%d plays the line chose did not happen" % row["refutation_plays_not_made"]) \
+                if row.get("refutation_plays_not_made") else (row.get("refutation_status") or "lost")
             return "beaten by %s (%s)" % (row["refutation_line"], how)
         if row.get("script_drift"):
             return "drift: " + row["script_drift"]
@@ -520,7 +525,14 @@ def removal_verdict(row):
         return "inconclusive: drift: " + row["script_drift"]
     if row.get("plays_not_made"):
         return "inconclusive: %d plays the line chose did not happen" % row["plays_not_made"]
-    return "played" if row.get("status") == "solved" else "fails"
+    if row.get("status") == "solved":
+        return "played"
+    # A line that stalled behind a play that can never fit again (a source the removed action would have untapped)
+    # lost without playing the rest: that shows nothing about the action (pr-review of #278: h_0 without Lava Spike
+    # took 1 of 9 lines).
+    if row.get("script_unconsumed"):
+        return "inconclusive: stalled, %d lines unplayed" % row["script_unconsumed"]
+    return "fails"
 
 
 def minimality(build, pzl, script, out, seed):
@@ -550,10 +562,12 @@ def minimality(build, pzl, script, out, seed):
                 v = removal_verdict(rows[-1] if rows else None)
             else:  # the line without its only action is the do-nothing line: the pass arm
                 rows = run_arm(build, pzl, "pass", seed, d)
-                r0 = rows[-1] if rows else None
-                v = removal_verdict(dict(r0, script_drift="") if r0 else None)
+                v = removal_verdict(rows[-1] if rows else None)
             removed = [lines[i] for i in g]
-            rec["removals"].append({"removed": removed, "verdict": v})
+            r = rows[-1] if rows else {}
+            # What the relaxed replay passed over, so a reader can see which decisions took the do-nothing answer.
+            rec["removals"].append({"removed": removed, "verdict": v, "skipped": r.get("script_skipped"),
+                                    "unplayed": r.get("script_unconsumed")})
             if v == "played":
                 rec["unnecessary"].append(removed)
             elif v == "fails":

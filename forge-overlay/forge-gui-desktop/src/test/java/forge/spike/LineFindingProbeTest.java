@@ -299,7 +299,7 @@ public class LineFindingProbeTest {
     }
 
     /** The same board at 6 life: the Canopy leaves 5, the 4 life leaves 1, and Dismember is cast with both Phyrexian
-     *  symbols paid with life, each counted as the engine counts it (pr-review of #277, fourth round). */
+     *  symbols paid with life, each counted as the engine counts it (pr-review of #277: nothing tested this side). */
     @Test
     public void phyrexianLifeAfterALifeCostingSourceIsPaidWhenItLeavesLife() {
         Game g = bareGame(PhaseType.MAIN1);

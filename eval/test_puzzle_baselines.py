@@ -45,6 +45,8 @@ class WrittenLineTest(unittest.TestCase):
         self.assertEqual(pb.line_verdict(dict(beaten, refutation_status="failed")), "beaten by Opponent:2:1 (failed)")
         self.assertEqual(pb.line_verdict(dict(beaten, refutation_script_drift="line 4: x")),
                          "beaten by Opponent:2:1 (drift: line 4: x)")
+        self.assertEqual(pb.line_verdict(dict(beaten, refutation_status="solved", refutation_plays_not_made=1)),
+                         "beaten by Opponent:2:1 (1 plays the line chose did not happen)")
         self.assertEqual(pb.line_verdict(dict(beaten, refutation_line=None)), "not_found")
         # A main line that won before its end is still the proof; a drift or a lost play is not.
         self.assertEqual(pb.line_verdict(dict(proof, script_played=False, script_unconsumed=2)), "proven")
@@ -158,6 +160,9 @@ class MinimalityTest(unittest.TestCase):
         self.assertTrue(pb.removal_verdict(dict(ok, tainted_by_deckout=True)).startswith("inconclusive"))
         self.assertTrue(pb.removal_verdict(dict(ok, plays_not_made=1)).startswith("inconclusive"))
         self.assertTrue(pb.removal_verdict(None).startswith("inconclusive"))
+        stalled = dict(ok, script_unconsumed=8)
+        self.assertEqual(pb.removal_verdict(stalled), "inconclusive: stalled, 8 lines unplayed",
+                         "lost without playing the rest: nothing shown about the removed action")
 
     def test_the_lines_are_split_and_trimmed_as_the_java_reader_does(self):
         f = Path(tempfile.mkdtemp()) / "l.txt"
