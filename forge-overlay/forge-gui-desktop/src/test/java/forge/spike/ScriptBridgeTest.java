@@ -233,6 +233,38 @@ public class ScriptBridgeTest {
         Assert.assertNull(b.drift);
     }
 
+    /** The minimality replays (pr-review of #278): a decision the next line does not fit takes the do-nothing answer and
+     *  the line keeps its place, so a removed attack, or a play waiting on a removed cast, is played out, not drifted. */
+    @Test
+    public void aRelaxedLineAnswersWhatItDoesNotFitWithTheDoNothingOption() {
+        ScriptBridge b = script("cast Divination");
+        b.relaxed = true;
+        Assert.assertEquals(answer(b, ATTACK).getAsJsonArray("options").size(), 0, "no attack");
+        Assert.assertNull(b.drift);
+        Assert.assertEquals((b.skipped), 1);
+        Assert.assertEquals(b.unconsumed(), 1, "the line keeps its place");
+        Assert.assertEquals(answer(b, PLAY_MAIN2).get("option").getAsInt(), 1, "and is played when its window comes");
+        Assert.assertEquals(b.unconsumed(), 0);
+        Assert.assertEquals(b.report().get("script_skipped"), 1);
+        Assert.assertFalse(script("x").report().containsKey("script_skipped"), "a strict line writes no skip count");
+    }
+
+    /** Under the search opponent a reply can let the line win before its end; that solve is the line's. A drift, or a
+     *  play the line chose that did not happen, is not (pr-review of #278). */
+    @Test
+    public void aWrittenLineWinsUnderAReplyOnlyAsWritten() {
+        ScriptBridge early = script("cast Divination", "cast Snakeform");
+        answer(early, PLAY_MAIN2);
+        Assert.assertEquals(early.unconsumed(), 1);
+        Assert.assertTrue(LlmSpikePuzzle.wonAsWritten(true, early, 0), "won with a line to spare");
+        Assert.assertFalse(LlmSpikePuzzle.wonAsWritten(false, early, 0), "not solved");
+        Assert.assertFalse(LlmSpikePuzzle.wonAsWritten(true, early, 1), "a play it chose did not happen");
+        ScriptBridge drifted = script("Thing in Ice");
+        answer(drifted, TARGET);
+        Assert.assertFalse(LlmSpikePuzzle.wonAsWritten(true, drifted, 0), "drifted, then stumbled into the solve");
+        Assert.assertTrue(LlmSpikePuzzle.wonAsWritten(true, null, 0), "no written line: the solve alone");
+    }
+
     @Test
     public void aLineForAnotherStepAtAnotherDecisionDrifts() {
         ScriptBridge b = script("at COMBAT_DECLARE_BLOCKERS: Thing in the Ice");

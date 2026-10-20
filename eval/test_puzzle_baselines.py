@@ -40,8 +40,16 @@ class WrittenLineTest(unittest.TestCase):
                  "script_drift": "", "script_unconsumed": 0, "opponent_branches_beaten": 2}
         self.assertEqual(pb.line_verdict(proof), "proven")
         beaten = dict(proof, status="not_found", refutation_line="Opponent:2:1", script_played=None)
-        self.assertEqual(pb.line_verdict(beaten), "beaten by Opponent:2:1")
+        self.assertEqual(pb.line_verdict(beaten), "beaten by Opponent:2:1 (lost)")
+        # How the line fared under the refuting reply is said (pr-review of #278: a drift read like a loss).
+        self.assertEqual(pb.line_verdict(dict(beaten, refutation_status="failed")), "beaten by Opponent:2:1 (failed)")
+        self.assertEqual(pb.line_verdict(dict(beaten, refutation_script_drift="line 4: x")),
+                         "beaten by Opponent:2:1 (drift: line 4: x)")
         self.assertEqual(pb.line_verdict(dict(beaten, refutation_line=None)), "not_found")
+        # A main line that won before its end is still the proof; a drift or a lost play is not.
+        self.assertEqual(pb.line_verdict(dict(proof, script_played=False, script_unconsumed=2)), "proven")
+        self.assertNotEqual(pb.line_verdict(dict(proof, script_drift="line 2: y")), "proven")
+        self.assertNotEqual(pb.line_verdict(dict(proof, plays_not_made=1)), "proven")
         env = pb.line_env(Path("/x/h.pzl"), "search", budget=300)
         self.assertEqual((env["CONTROLLER_B"], env["PZL_SEARCH_BUDGET"]), ("search", "300"))
         self.assertNotIn("PZL_SEARCH_BUDGET", pb.line_env(Path("/x/h.pzl"), "ai"))
@@ -107,16 +115,21 @@ class MinimalityTest(unittest.TestCase):
         out = Path(tempfile.mkdtemp())
         pzl = out / "h.pzl"
         pzl.write_text("[metadata]\nName:h\n[state]\nturn=1\n[solution]\n" + "\n".join(self.LINES) + "\n")
-        runs = []
+        runs, relaxed = [], []
 
         class FakeBuild:
             def run(self, env, out_dir, timeout_s=None):
-                lines = open(env["SMART_MODEL_A"][len("script:"):]).read().split("\n")
+                spec = env["SMART_MODEL_A"][len("script:"):]
+                relaxed.append(spec.startswith("relaxed:"))
+                lines = open(spec[len("relaxed:"):] if relaxed[-1] else spec).read().split("\n")
                 lines = [l for l in lines if l and not l.startswith("[") and not l.startswith("Name") and l != "turn=1"]
                 runs.append(lines)
                 solved = "cast Lava Spike" in lines and "cast Fling" in lines   # Shock is spare
-                row = {"status": "solved" if solved else "failed", "seed": 1, "script_played": True, "script_drift": "",
-                       "script_unconsumed": 0, "script_actions": ["0", "2", "4"], "plays_not_made": 0}
+                # Without Lava Spike the replay hits the wall-clock cap: it shows nothing either way.
+                status = "invalid" if "cast Lava Spike" not in lines else "solved" if solved else "failed"
+                row = {"status": status, "seed": 1, "script_played": True, "script_drift": "",
+                       "script_unconsumed": 0, "script_actions": ["0", "2", "4"], "plays_not_made": 0,
+                       "script_lines": len(lines)}
                 Path(out_dir).mkdir(parents=True, exist_ok=True)
                 with open(Path(out_dir) / "puzzle-results.jsonl", "a") as f:
                     f.write(json.dumps(row) + "\n")
@@ -130,9 +143,27 @@ class MinimalityTest(unittest.TestCase):
         self.assertEqual(rc, 1, "an unnecessary action fails the check")
         self.assertEqual(len(runs), 4, "the whole line, then one run per action")
         self.assertEqual(runs[3], ["cast Lava Spike", "opponent", "cast Fling", "Goblin"])
+        self.assertEqual(relaxed, [False, True, True, True], "the removals are relaxed replays, the whole line is not")
         res = json.loads((out / "o" / "minimality.json").read_text())
-        self.assertEqual((res["actions"], res["necessary"]), (3, 2))
+        self.assertEqual((res["actions"], res["necessary"]), (3, 1), "only a game played out and lost shows need")
         self.assertEqual(res["unnecessary"], [["cast Shock", "opponent"]])
+        self.assertEqual(res["inconclusive"], [["cast Lava Spike", "opponent"]])
+
+    def test_only_a_game_played_out_and_lost_shows_an_action_is_needed(self):
+        ok = {"status": "failed", "script_drift": "", "plays_not_made": 0}
+        self.assertEqual(pb.removal_verdict(ok), "fails")
+        self.assertEqual(pb.removal_verdict(dict(ok, status="solved")), "played")
+        self.assertTrue(pb.removal_verdict(dict(ok, script_drift="line 3: z")).startswith("inconclusive: drift"))
+        self.assertTrue(pb.removal_verdict(dict(ok, status="invalid")).startswith("inconclusive"))
+        self.assertTrue(pb.removal_verdict(dict(ok, tainted_by_deckout=True)).startswith("inconclusive"))
+        self.assertTrue(pb.removal_verdict(dict(ok, plays_not_made=1)).startswith("inconclusive"))
+        self.assertTrue(pb.removal_verdict(None).startswith("inconclusive"))
+
+    def test_the_lines_are_split_and_trimmed_as_the_java_reader_does(self):
+        f = Path(tempfile.mkdtemp()) / "l.txt"
+        # A form feed is not a line break in Java's readAllLines; a non-breaking space is not trimmed by trim().
+        f.write_text("a\r\n\u00a0\nb\x0cc\n  # note\n\n d \n", encoding="utf-8")
+        self.assertEqual(pb.script_lines(f), ["a", "\u00a0", "b\x0cc", "d"])
 
 
 if __name__ == "__main__":

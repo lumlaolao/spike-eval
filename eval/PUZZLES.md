@@ -106,6 +106,8 @@ python3 eval/puzzle_baselines.py line --pzl eval/puzzles/hard/h_1.pzl [--script 
   `cast Lava Spike`, `opponent` (a target), `Desperate Ritual` (a splice pick), `Mountain; Mountain` (two picks),
   `Grizzly Bears -> Hill Giant` (a block), `none`, a number. A line names the option whose label starts with it;
   ` ... ` skips ahead in the label (`activate Tundra ... Add {U}`); `at [T2] PHASE: line` waits for that step.
+  The section is in the file the solver never reads; it is a public answer, so a held-out puzzle keeps its line out
+  of the public repository.
 - It is played by the model seat with `SMART_MODEL_A=script:<file>` (`ScriptBridge.java`) under the condition a
   paid run pins with the tools off, so the line meets the menus a model meets. A priority menu the next line does
   not fit is passed (the line waits); every other decision it does not fit is a drift, recorded on the row
@@ -118,13 +120,16 @@ python3 eval/puzzle_baselines.py line --pzl eval/puzzles/hard/h_1.pzl [--script 
   runs the prover with the written line as the solver (`CONTROLLER_A=llm` on a `script:` spec, `CONTROLLER_B=search`):
   every draw on the search line is the opponent's, so `proven` means this one fixed line beats every reply the
   engine offers, and `not_found` names the reply that beats it (`refutation_line`, RP_141 with one attacker: the
-  Persecutor blocks it). A reply under which the line drifts counts as beaten. Uniqueness is not searched (the
+  Persecutor blocks it; the verdict says whether the line lost or drifted under it). A reply under which the line
+  drifts counts as beaten; one under which it wins before its last line does not. Uniqueness is not searched (the
   line has no solver choice on the search line to vary).
-- `--minimality` replays the line with each action removed in turn, the rest as written, and exits 0 only when
-  every removal fails. An action is the line that opened it (a priority play, an attack, a block; the row's
-  `script_actions`) and the lines after it; removing a line's only action plays the pass arm. The record is
-  `minimality.json` in the output directory: the actions, how many are necessary, and each removal's verdict. The section is in the file the solver never reads;
-  it is a public answer, so a held-out puzzle keeps its line out of the public repository.
+- `--minimality` replays the line with each action removed in turn and exits 0 only when every removal fails. An
+  action is the line that opened it (a priority play, an attack, a block; the row's `script_actions`) and the lines
+  after it; removing a line's only action plays the pass arm. A removal is replayed relaxed (`script:relaxed:<file>`):
+  a decision the next line does not fit takes the do-nothing answer and the line keeps its place, so the rest is
+  played as far as it goes. Only a game played out and lost counts as "fails"; a solve is "played" (the action is
+  not needed), and a drift, the cap, a deck-out or a lost play is "inconclusive". Against Forge's AI only, on the
+  first seed. The record is `minimality.json` in the output directory.
 
 ## Rules puzzles: an acceptance state and one solution
 

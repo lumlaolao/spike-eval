@@ -5113,6 +5113,11 @@ public final class LlmSpikeGui {
             return paid;
         }
 
+        /** 2n life the seat may pay for Phyrexian symbols: payable, and never to 0 unless it cannot lose for it. */
+        private static boolean lifePayable(Player me, int n, boolean effect, SpellAbility sa) {
+            return me.canPayLife(2 * n, effect, sa) && (me.getLife() > 2 * n || me.cantLoseForZeroOrLessLife());
+        }
+
         /** Phyrexian mana is the seat's: how many Phyrexian symbols it pays with 2 life each. Forge's
          *  payment pays one with mana whenever a source can and with life only when none can
          *  (ComputerUtilMana.payManaCost, the saPayment == null branch), so it decided whether Dismember
@@ -5120,11 +5125,6 @@ public final class LlmSpikeGui {
          *  Phyrexian symbols as plain colours. Only splits the seat can pay are offered (the life, and the
          *  rest with mana by the engine's own test payment); with one, nothing is asked. Returns the cost the
          *  engine still pays; the life goes in {@code lifeDue}, which payManaCost pays once the mana is. */
-        /** 2n life the seat may pay for Phyrexian symbols: payable, and never to 0 unless it cannot lose for it. */
-        private static boolean lifePayable(Player me, int n, boolean effect, SpellAbility sa) {
-            return me.canPayLife(2 * n, effect, sa) && (me.getLife() > 2 * n || me.cantLoseForZeroOrLessLife());
-        }
-
         private forge.card.mana.ManaCost phyrexianByLife(forge.card.mana.ManaCost toPay, SpellAbility sa, boolean effect,
                                                          int[] lifeDue) {
             if (toPay == null || !toPay.hasPhyrexian() || toPay.countX() > 0 || sa == null || sa.isManaAbility()
@@ -10929,7 +10929,14 @@ public final class LlmSpikeGui {
             if (spec == null || spec.isEmpty())
                 throw new IllegalArgumentException("model spec required for " + label);
             // A written solution line played through the model seat (ScriptBridge): no model, nothing leaves.
-            if (spec.startsWith(ScriptBridge.PREFIX)) return ScriptBridge.fromFile(label, spec.substring(ScriptBridge.PREFIX.length()));
+            if (spec.startsWith(ScriptBridge.PREFIX)) {
+                // "script:relaxed:<file>" is a minimality replay (puzzle_baselines.py); the spec is the row's solver model.
+                String rest = spec.substring(ScriptBridge.PREFIX.length());
+                boolean relaxed = rest.startsWith(ScriptBridge.RELAXED);
+                ScriptBridge b = ScriptBridge.fromFile(label, relaxed ? rest.substring(ScriptBridge.RELAXED.length()) : rest);
+                b.relaxed = relaxed;
+                return b;
+            }
             if (spec.startsWith("openrouter:")) {
                 // Explicit egress consent: every OpenRouter call ships the full game snapshot
                 // (board, hand, deck plan) to a third-party API. Holding an API key is a
