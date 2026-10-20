@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 297 - Flanking spares flankers
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:You are at 2 life. The opponent's Benalish Cavalry (2/2, flanking) and Savannah Lions (2/1) are attacking you. You control Grizzly Bears (2/2) and Femeref Knight (2/2, flanking) and no lands. End the turn with no creatures on the opponent's battlefield.
+Rule:authored-flanking | Flanking triggers only when the creature becomes blocked by a creature without flanking, giving that blocker -1/-1 (CR 702.25a): Grizzly Bears blocking the Cavalry shrinks to 1/1 and deals 1, while Femeref Knight blocks it at full size and trades
+[state]
+turn=1
+activeplayer=p1
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=2
+p0battlefield=Grizzly Bears;Femeref Knight
+p0library=Plains;Plains;Plains
+p1life=20
+p1battlefield=Benalish Cavalry|Attacking|Tapped;Savannah Lions|Attacking|Tapped
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Battlefield * = 0
+life p0 = 2

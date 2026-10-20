@@ -1,0 +1,3 @@
+search {"status": "proven", "acceptance": "accepted", "acceptance_failed": [], "line": "Solver:9:5", "search_replays": 2, "opponent_branches_beaten": 0, "actions": ["COMBAT: Solver assigned Kor Firewalker (5) to block Hill Giant (9).", "COMBAT: Solver assigned Horned Turtle (4) to block Grizzly Bears (10)."], "search_drift": null, "uniqueness": "unique", "uniqueness_deviations": 8, "uniqueness_exhausted": 8, "uniqueness_replays": 13, "uniqueness_unproven_alternatives": 0}
+pass {"status": "failed", "acceptance": "rejected", "acceptance_failed": ["life p0 = 2 (was -3)"], "line": null, "search_replays": null, "opponent_branches_beaten": null, "actions": null, "search_drift": null}
+secs 177
