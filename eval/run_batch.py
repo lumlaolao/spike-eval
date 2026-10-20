@@ -1330,6 +1330,9 @@ def build_parser():
 def main(argv=None):
     ap = build_parser()
     args = ap.parse_args(argv)
+    if args.rules_tool and not args.memory_tools:
+        raise SystemExit("run_batch: --rules-tool needs --memory-tools: the seat offers the rules lookup only with "
+                         "the lookup tools on, so --rules-tool alone records rules_tool=1 for games that never had it")
     for kv in args.env or []:
         k = kv.split("=", 1)[0]
         if k in CONDITION_ENV_KEYS:

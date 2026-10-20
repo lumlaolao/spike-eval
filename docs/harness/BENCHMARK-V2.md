@@ -11,7 +11,8 @@ in our own sample v1 numbers.
 ## 1. Why v2
 
 Sample v1 (29 rules puzzles, k=5, GPT-6 Luna) measured 130/145 solved with tools off and 130/145 with them
-on, PUZ 0.81. That number cannot move, so it cannot rank models or show a harness change. The reasons are in
+on at epoch 66, PUZ 0.81; at epoch 67, with the brief no longer naming the trick, 119/145 off and 127/145 on. Near
+the ceiling either way, it cannot rank strong models or show a harness change. The reasons are in
 the data, not in the model:
 
 | Finding | Evidence | Consequence |
@@ -55,7 +56,7 @@ Audited today; each line is either already true (with where it is enforced) or p
 | The budget is recorded per attempt (prompt and completion tokens, tool calls, model ms) in the result row | **proposed** (the game JSONL has it; `pzl-result-v1` does not) | additive fields in `LlmSpikePuzzle`'s result row |
 | The grader is the engine: Forge's Puzzle Goal card plus `[acceptance]` on the final state; no judge, no text | true | `PuzzleAcceptance`, `Puzzle.addGoalEnforcement` |
 | A solve must beat every opponent reply: the proof is a strategy tree, and the opponent arm in a scored run is the Forge AI on a fixed seed | true for proven puzzles; **extend** by preferring puzzles with `opponent_choice_points >= 1` | `PuzzleSearch.prove`, `opponent_branches_beaten` |
-| Exploits are logged apart from correctness: `report_unclear_decision`, `[TEXT-PARSE]`, `LOST`, fallbacks, invalid answers each counted per attempt and shown next to the score | partly (tool-use.txt by hand) | **add** to `puzzle_score.py` as weight-0 metrics (Reward Hacking Benchmark: integrity beside correctness) |
+| Exploits are logged apart from correctness: `report_unclear_decision`, `[TEXT-PARSE]`, `LOST`, fallbacks, invalid answers each counted per attempt and shown next to the score | partly (`eval/puzzle_tool_use.py` counts lookups per condition) | **add** to `puzzle_score.py` as weight-0 metrics (Reward Hacking Benchmark: integrity beside correctness) |
 | Reproducibility stamp on every number: engine commit, suite sha, harness epoch and prompt versions, condition, model id and provider, date, k, seeds, temperature (provider default unless set) | mostly | **add** the model's served id and the request's generation parameters to the manifest |
 
 ## 4. Difficulty, measured

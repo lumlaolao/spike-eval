@@ -12,17 +12,13 @@ a new one is agreed, so the next session can pick up from it.
    `eval/puzzles/rules-pilot/manifest.jsonl`; RP_300, RP_402, RP_454 and RP_521 are near-duplicates kept but not
    counted), landed with harness-epoch-66 (PR #270). How they were made and the gate's lessons:
    [HANDOFF-PUZZLES.md](HANDOFF-PUZZLES.md).
-2. **Now: the benchmark on a sample.** GPT-6 Luna 5 times on each puzzle of a sample (owner, 2026-10-20; was about
-   10), with the tools on and with them off (the rules lookup above all): solve rate, which tools it calls (does it
-   look up the rules?), and time per puzzle, for each condition (for example: 60% solved with the rules lookup, 20%
-   without). That comparison is the point of the benchmark. Steps:
-   - the sample: `eval/puzzles/rules-pilot/benchmark-sample-v1.tsv` (36 open-split puzzles, seed 2026);
-   - free baselines on it (`eval/puzzle_baselines.py run --ids ...`), then freeze it as a suite;
-   - the paid run (`eval/puzzle_solve.py ... --k 5 --budget-usd X`, with and without `--rules-tool`): state the
-     cost first; the owner sets `OPENROUTER_ALLOW_EGRESS=1`.
+2. **Done: the benchmark on a sample** (PR #272): Luna 5 times on each of 29 frozen sample puzzles
+   (`eval/suites/puzzles-rules-sample-v1.json`), tools off and on, at epochs 66 and 67. Results and the paired
+   comparisons: [eval/puzzles/rules-pilot/benchmark-v1/REPORT.md](../../eval/puzzles/rules-pilot/benchmark-v1/REPORT.md).
 
 **Proposed next (2026-10-20, awaiting the owner): [BENCHMARK-V2.md](BENCHMARK-V2.md).** Sample v1
-saturated (130/145 with and without tools); v2 proposes measured difficulty tiers, a closed-book headline, the seat's
+saturated (130/145 with and without tools at epoch 66; 119/145 off and 127/145 on at epoch 67, once the brief stopped
+naming the trick); v2 proposes measured difficulty tiers, a closed-book headline, the seat's
 puzzle contract, the hard sources and the measurement protocol. Nothing in it is built until the owner reviews it.
 
 ## Open work, after the benchmark

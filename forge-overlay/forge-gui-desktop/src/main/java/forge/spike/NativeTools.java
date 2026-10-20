@@ -91,6 +91,25 @@ final class NativeTools {
         Turn(String content, String messageJson, List<Call> calls) {
             this.content = content; this.messageJson = messageJson; this.calls = calls;
         }
+        /** An assistant turn of only these calls, as a provider serves one: what a scripted or zero-model bridge returns
+         *  (ScriptBridge) and the tests' scripted models. */
+        static Turn ofCalls(List<Call> calls) {
+            JsonArray tcs = new JsonArray();
+            for (Call c : calls) {
+                JsonObject f = new JsonObject();
+                f.addProperty("name", c.name);
+                f.addProperty("arguments", c.arguments);
+                JsonObject tc = new JsonObject();
+                tc.addProperty("id", c.id);
+                tc.addProperty("type", "function");
+                tc.add("function", f);
+                tcs.add(tc);
+            }
+            JsonObject msg = new JsonObject();
+            msg.addProperty("role", "assistant");
+            msg.add("tool_calls", tcs);
+            return new Turn(null, msg.toString(), new ArrayList<>(calls));
+        }
         /** Never null for a turn that carried something: a tool-call turn is not a dead bridge. */
         String text() {
             if (calls.isEmpty()) return content;

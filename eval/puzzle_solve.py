@@ -99,6 +99,9 @@ def main(argv=None):
     ap.add_argument("--build", default=None)
     ap.add_argument("--forge", default=None)
     a = ap.parse_args(argv)
+    if a.rules_tool and not a.memory_tools:
+        raise SystemExit("--rules-tool needs --memory-tools: the seat offers the rules lookup only with the lookup "
+                         "tools on, so --rules-tool alone records RULES_TOOL=1 for puzzles that never had it")
 
     manifest = pf.load_suite(a.suite)
     problems = pf.validate_suite(manifest)
