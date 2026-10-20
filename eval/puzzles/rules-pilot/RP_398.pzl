@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 398 - Connive on the second spell
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Ledger Shredder (1/3 flying; whenever a player casts their second spell each turn, it connives) and have Ornithopter and Memnite in hand. Your library is all Colossal Dreadmaws. The opponent is at 2 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-connive-nonland-discard | Conniving draws a card, then discards one, and puts a +1/+1 counter on the creature if a nonland card was discarded (CR 701.50a): casting both free artifacts triggers the Shredder, which discards the drawn Dreadmaw and attacks as a 2/4; one spell gives no connive
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Ornithopter;Memnite
+p0battlefield=Ledger Shredder
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 402 - The Germ falls off
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Blood Artist (it came under your control this turn) and Grizzly Bears, and have Flayer Husk (living weapon; equipped creature gets +1/+1; equip {2}) in hand, with three colorless mana floating. The opponent is at 4 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-living-weapon-germ-dies | Moving an Equipment leaves the 0/0 Germ token with 0 toughness, so it dies as a state-based action (CR 702.92a, 704.5f) and triggers Blood Artist: cast Flayer Husk, equip it to the Bears (Germ dies, drain 1), and attack with the 3/2 Bears for 3; the summoning-sick Germ can't attack
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Flayer Husk
+p0battlefield=Blood Artist|SummonSick;Grizzly Bears
+p0manapool=C C C
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 401 - Aftermath from the graveyard
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You have Cut // Ribbons in hand (Cut {1}{R}: 4 damage to target creature; Ribbons {X}{B}{B}, aftermath: each opponent loses X life) with {R}{R}{B}{B}{B}{B} floating. The opponent is at 2 life and controls Hill Giant. Destroy the Hill Giant and reduce the opponent to 0 life this turn.
+Rule:authored-aftermath-graveyard-half | An aftermath half can be cast only from the graveyard (CR 702.127a): cast Cut on the Giant, then Ribbons from the graveyard with X=2; Ribbons can't be cast from hand
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Cut // Ribbons
+p0manapool=R R B B B B
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1battlefield=Hill Giant
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
+count p1 Graveyard "Hill Giant" = 1
