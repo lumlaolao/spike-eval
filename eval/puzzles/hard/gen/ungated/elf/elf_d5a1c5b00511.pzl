@@ -1,0 +1,80 @@
+[metadata]
+Name:elf_d5a1c5b00511
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control Heritage Druid, two Nettle Sentinels, Llanowar Elves and Elvish Mystic, all untapped and none of them summoning sick. Your hand is Wellwisher, Wirewood Elf, Norwood Ranger, Boreal Druid, Arbor Elf, Cylian Elf, Elvish Warrior, Elves of Deep Shadow, Craterhoof Behemoth, Treetop Warden and Elvish Scout. The opponent is at 91 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-elf | the exhaustive maximum is 91 damage in 12 steps: the Sentinels tapped by the Druid before each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with the Druid untapped
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Wellwisher;Wirewood Elf;Norwood Ranger;Boreal Druid;Arbor Elf;Cylian Elf;Elvish Warrior;Elves of Deep Shadow;Craterhoof Behemoth;Treetop Warden;Elvish Scout
+p0battlefield=Heritage Druid;Nettle Sentinel;Nettle Sentinel;Llanowar Elves;Elvish Mystic
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=91
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 12
+activate Llanowar Elves
+cast Elves of Deep Shadow
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Nettle Sentinel; Elves of Deep Shadow
+cast Elvish Warrior
+yes
+yes
+cast Arbor Elf
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Elvish Warrior; Arbor Elf
+cast Norwood Ranger
+yes
+yes
+cast Wirewood Elf
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Norwood Ranger; Wirewood Elf
+cast Wellwisher
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Nettle Sentinel; Wellwisher
+cast Treetop Warden
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Nettle Sentinel; Treetop Warden
+cast Elvish Scout
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Nettle Sentinel; Elvish Scout
+cast Boreal Druid
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Nettle Sentinel; Boreal Druid
+cast Cylian Elf
+yes
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Nettle Sentinel; Cylian Elf
+cast Craterhoof Behemoth
+yes
+yes
+Craterhoof Behemoth; Nettle Sentinel; Nettle Sentinel; Heritage Druid; Elvish Mystic
+[acceptance]
+life p1 <= 0

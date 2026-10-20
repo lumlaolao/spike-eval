@@ -1,0 +1,62 @@
+[metadata]
+Name:elf_8c1e189ed985
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control two Forests, Heritage Druid, one Nettle Sentinel and Fyndhorn Elves, all untapped and none of them summoning sick. Your hand is Cylian Elf, Treetop Warden, Willow Elf, Elvish Lyrist, Elvish Scout, Craterhoof Behemoth, Boreal Druid, Norwood Ranger, Wirewood Elf, Wellwisher, Llanowar Elves, Elvish Mystic and Elves of Deep Shadow. The opponent is at 35 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-elf | the exhaustive maximum is 35 damage in 12 steps: the Sentinels tapped by the Druid before each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with the Sentinels untapped
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Cylian Elf;Treetop Warden;Willow Elf;Elvish Lyrist;Elvish Scout;Craterhoof Behemoth;Boreal Druid;Norwood Ranger;Wirewood Elf;Wellwisher;Llanowar Elves;Elvish Mystic;Elves of Deep Shadow
+p0battlefield=Forest;Forest;Heritage Druid;Nettle Sentinel;Fyndhorn Elves
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=35
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 12
+activate Forest
+activate Forest
+cast Cylian Elf
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Fyndhorn Elves; Cylian Elf
+cast Elves of Deep Shadow
+yes
+cast Wirewood Elf
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Elves of Deep Shadow; Wirewood Elf
+cast Norwood Ranger
+yes
+cast Elvish Scout
+yes
+cast Boreal Druid
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Norwood Ranger; Elvish Scout
+cast Elvish Mystic
+yes
+cast Elvish Lyrist
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Boreal Druid; Elvish Mystic
+cast Willow Elf
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Elvish Lyrist; Willow Elf
+cast Llanowar Elves
+yes
+activate Heritage Druid
+cast Craterhoof Behemoth
+yes
+Craterhoof Behemoth; Nettle Sentinel
+[acceptance]
+life p1 <= 0

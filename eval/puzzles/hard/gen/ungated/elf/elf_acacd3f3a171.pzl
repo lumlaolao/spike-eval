@@ -1,0 +1,55 @@
+[metadata]
+Name:elf_acacd3f3a171
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control two Forests, Heritage Druid, one Nettle Sentinel and Llanowar Elves, all untapped and none of them summoning sick. Your hand is Elvish Lyrist, Elves of Deep Shadow, Wellwisher, Willow Elf, Craterhoof Behemoth, Treetop Warden, Elvish Scout, Norwood Ranger, Elvish Warrior, Boreal Druid and Elvish Mystic. The opponent is at 31 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-elf | the exhaustive maximum is 31 damage in 10 steps: the Sentinels tapped by the Druid before each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with the Sentinels untapped
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Elvish Lyrist;Elves of Deep Shadow;Wellwisher;Willow Elf;Craterhoof Behemoth;Treetop Warden;Elvish Scout;Norwood Ranger;Elvish Warrior;Boreal Druid;Elvish Mystic
+p0battlefield=Forest;Forest;Heritage Druid;Nettle Sentinel;Llanowar Elves
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=31
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 10
+activate Forest
+activate Forest
+cast Norwood Ranger
+yes
+cast Boreal Druid
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Norwood Ranger; Boreal Druid
+cast Wellwisher
+yes
+cast Elves of Deep Shadow
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Wellwisher; Elves of Deep Shadow
+cast Willow Elf
+yes
+cast Elvish Lyrist
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Willow Elf; Elvish Lyrist
+cast Elvish Mystic
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Llanowar Elves; Elvish Mystic
+cast Elvish Scout
+yes
+activate Heritage Druid
+cast Craterhoof Behemoth
+yes
+Craterhoof Behemoth; Nettle Sentinel
+[acceptance]
+life p1 <= 0

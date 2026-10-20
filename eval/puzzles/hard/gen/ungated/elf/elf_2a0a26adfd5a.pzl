@@ -1,0 +1,62 @@
+[metadata]
+Name:elf_2a0a26adfd5a
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control two Forests, Heritage Druid, one Nettle Sentinel and Llanowar Elves, all untapped and none of them summoning sick. Your hand is Elves of Deep Shadow, Cylian Elf, Wellwisher, Elvish Mystic, Boreal Druid, Elvish Lyrist, Elvish Scout, Fyndhorn Elves, Treetop Warden, Elvish Warrior, Wirewood Elf, Norwood Ranger, Craterhoof Behemoth and Willow Elf. The opponent is at 35 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-elf | the exhaustive maximum is 35 damage in 12 steps: the Sentinels tapped by the Druid before each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with the Sentinels untapped
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Elves of Deep Shadow;Cylian Elf;Wellwisher;Elvish Mystic;Boreal Druid;Elvish Lyrist;Elvish Scout;Fyndhorn Elves;Treetop Warden;Elvish Warrior;Wirewood Elf;Norwood Ranger;Craterhoof Behemoth;Willow Elf
+p0battlefield=Forest;Forest;Heritage Druid;Nettle Sentinel;Llanowar Elves
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=35
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 12
+activate Forest
+activate Forest
+cast Cylian Elf
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Llanowar Elves; Cylian Elf
+cast Elvish Warrior
+yes
+cast Fyndhorn Elves
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Elvish Warrior; Fyndhorn Elves
+cast Elvish Lyrist
+yes
+cast Boreal Druid
+yes
+cast Norwood Ranger
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Elvish Lyrist; Boreal Druid
+cast Elvish Scout
+yes
+cast Elvish Mystic
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Norwood Ranger; Elvish Scout
+cast Willow Elf
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Elvish Mystic; Willow Elf
+cast Elves of Deep Shadow
+yes
+activate Heritage Druid
+cast Craterhoof Behemoth
+yes
+Craterhoof Behemoth; Nettle Sentinel
+[acceptance]
+life p1 <= 0

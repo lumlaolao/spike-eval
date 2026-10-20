@@ -1,0 +1,59 @@
+[metadata]
+Name:drain_4d7006f06dae
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Bloodghast, Carrion Feeder, Zulaport Cutthroat and 3 untapped Swamps. Your hand is Reassembling Skeleton and Swamp. Your graveyard holds Gravecrawler. The opponent is at 7 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-drain | the exhaustive maximum is 7 drained in 12 steps: every death with every drainer still out, so the drainers die last; the Skeleton comes back for {1}{B} each time; Gravecrawler is cast again from the graveyard only while Carrion Feeder (a Zombie) is out; the land drop waits until Bloodghast is in the graveyard
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Reassembling Skeleton;Swamp
+p0battlefield=Bloodghast;Carrion Feeder;Zulaport Cutthroat;Swamp;Swamp;Swamp
+p0graveyard=Gravecrawler
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=7
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 12
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Bloodghast
+pass
+pass
+play land Swamp
+pass
+yes
+activate Carrion Feeder
+Bloodghast
+pass
+pass
+activate Carrion Feeder
+Gravecrawler
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Gravecrawler
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Gravecrawler
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Gravecrawler
+pass
+pass
+activate Carrion Feeder
+Carrion Feeder
+[acceptance]
+life p1 <= 0

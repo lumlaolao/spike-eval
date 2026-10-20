@@ -1,0 +1,54 @@
+[metadata]
+Name:elf_427ba3053c3e
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control one Forest, Heritage Druid, one Nettle Sentinel and Elvish Mystic, all untapped and none of them summoning sick. Your hand is Elves of Deep Shadow, Elvish Warrior, Craterhoof Behemoth, Arbor Elf, Fyndhorn Elves, Treetop Warden, Wellwisher, Willow Elf, Wirewood Elf, Cylian Elf, Elvish Scout, Boreal Druid, Llanowar Elves and Elvish Lyrist. The opponent is at 31 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-elf | the exhaustive maximum is 31 damage in 10 steps: the Sentinels tapped by the Druid before each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with the Sentinels untapped
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Elves of Deep Shadow;Elvish Warrior;Craterhoof Behemoth;Arbor Elf;Fyndhorn Elves;Treetop Warden;Wellwisher;Willow Elf;Wirewood Elf;Cylian Elf;Elvish Scout;Boreal Druid;Llanowar Elves;Elvish Lyrist
+p0battlefield=Forest;Heritage Druid;Nettle Sentinel;Elvish Mystic
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=31
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 10
+activate Forest
+cast Fyndhorn Elves
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Elvish Mystic; Fyndhorn Elves
+cast Boreal Druid
+yes
+cast Elvish Scout
+yes
+cast Elves of Deep Shadow
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Boreal Druid; Elvish Scout
+cast Arbor Elf
+yes
+cast Willow Elf
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Elves of Deep Shadow; Arbor Elf
+cast Elvish Lyrist
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Willow Elf; Elvish Lyrist
+cast Llanowar Elves
+yes
+activate Heritage Druid
+cast Craterhoof Behemoth
+yes
+Craterhoof Behemoth; Nettle Sentinel
+[acceptance]
+life p1 <= 0

@@ -1,0 +1,62 @@
+[metadata]
+Name:elf_227036975aba
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You are at 20 life and control two Forests, Heritage Druid, one Nettle Sentinel and Elvish Mystic, all untapped and none of them summoning sick. Your hand is Elvish Lyrist, Willow Elf, Elves of Deep Shadow, Wirewood Elf, Elvish Warrior, Elvish Scout, Craterhoof Behemoth, Boreal Druid, Llanowar Elves, Cylian Elf, Arbor Elf and Norwood Ranger. The opponent is at 35 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-elf | the exhaustive maximum is 35 damage in 12 steps: the Sentinels tapped by the Druid before each green spell untaps them, the cast elves the Druid's next fodder, Craterhoof last with the Sentinels untapped
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Elvish Lyrist;Willow Elf;Elves of Deep Shadow;Wirewood Elf;Elvish Warrior;Elvish Scout;Craterhoof Behemoth;Boreal Druid;Llanowar Elves;Cylian Elf;Arbor Elf;Norwood Ranger
+p0battlefield=Forest;Forest;Heritage Druid;Nettle Sentinel;Elvish Mystic
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=35
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 12
+activate Forest
+activate Forest
+cast Elvish Lyrist
+yes
+cast Arbor Elf
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Elvish Lyrist; Arbor Elf
+cast Boreal Druid
+yes
+cast Elves of Deep Shadow
+yes
+cast Norwood Ranger
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Boreal Druid; Elves of Deep Shadow
+cast Wirewood Elf
+yes
+cast Elvish Scout
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Norwood Ranger; Wirewood Elf
+cast Cylian Elf
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Elvish Scout; Cylian Elf
+cast Llanowar Elves
+yes
+pass
+activate Heritage Druid
+Nettle Sentinel; Elvish Mystic; Llanowar Elves
+cast Willow Elf
+yes
+activate Heritage Druid
+cast Craterhoof Behemoth
+yes
+Craterhoof Behemoth; Nettle Sentinel
+[acceptance]
+life p1 <= 0

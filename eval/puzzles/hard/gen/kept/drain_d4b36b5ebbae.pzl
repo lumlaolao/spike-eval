@@ -1,0 +1,81 @@
+[metadata]
+Name:drain_d4b36b5ebbae
+Goal:Survive
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You are at 20 life and control Blood Artist, Carrion Feeder, Cruel Celebrant, Gravecrawler, Reassembling Skeleton and 3 untapped Swamps. Your hand is Swamp. Your graveyard holds nothing. The opponent is at 15 life and controls nothing. Reduce the opponent to 0 life this turn.
+Rule:generated-drain | the exhaustive maximum is 15 drained in 13 steps: every death with every drainer still out, so the drainers die last; the Skeleton comes back for {1}{B} each time; Gravecrawler is cast again from the graveyard only while Carrion Feeder (a Zombie) is out
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Swamp
+p0battlefield=Blood Artist;Carrion Feeder;Cruel Celebrant;Gravecrawler;Reassembling Skeleton;Swamp;Swamp;Swamp
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=15
+p1library=Plains;Plains;Plains
+[solution]
+# steps: 13
+play land Swamp
+activate Carrion Feeder
+Gravecrawler
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Gravecrawler
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Gravecrawler
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Gravecrawler
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+cast Gravecrawler
+pass
+activate Carrion Feeder
+Gravecrawler
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+activate Carrion Feeder
+Reassembling Skeleton
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+activate Carrion Feeder
+Blood Artist
+Blood Artist; Cruel Celebrant
+opponent
+pass
+pass
+pass
+activate Carrion Feeder
+Carrion Feeder
+[acceptance]
+life p1 <= 0
