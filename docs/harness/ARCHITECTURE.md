@@ -238,15 +238,20 @@ model's plan text (the "plan-named" fallbacks went in harness-epoch-30, review M
     | [sick], [tapped] | `Card.isSick()` / `isTapped()` |
     | the shuffle after a Ponder order | the ability (`MayShuffle`, or a Shuffle effect), not the message wording |
     | X in the mode and target questions | the announced `getXManaCostPaid` of the spell |
-
-  - Every `canPayManaCost` a harness seat asks runs with the card's AI-only payment hints hidden
-    (`PlayerControllerLLM.seatCanPay`, `AI_PAYMENT_HINTS`, epoch 68). `AIPhyrexianPayment$ Never` tells Forge's
-    AI not to pay Gitaxian Probe's {U/P} with life; obeyed by the seat's check, Probe with no blue source was "(not
-    castable now)" and off the menu, and a cost payable only with life went to the AI's payment, which refused it.
-    The harness now pays a life-only Phyrexian cost itself (`phyrexianByLife`). Found by h_0's written line.
     | a card's name in a question | the engine's name, with an effect's engine id removed, its source's too when the source is an effect (one function, `safeName`; observation-faithful-v42, g33) |
     | a filter in a cost or a name ask ("another blue card", "three black creatures", "a nonland card") | the engine's filter (`Card.Blue+Other`) said in words (`filterParts`, `plainFilters`, `nameConstraint`), in every cost the seat reads and in the state's stack and history lines (`SeatObservation.redact`), under the faithful profile (legacy profiles keep the engine's text). Control and ownership ("creatures an opponent controls"), a chosen or shared name, and a bare filter (a plural) are said too. Any other condition is left out of a counted phrase ("a card"), reads "the creatures the card describes" in a bare one, and leaves a name ask to the card's own text. A creature type Forge pluralised with an "s" takes its own plural from Forge's type list (`typePlurals`: "Elfs" reads "Elves", g10) |
     | CAST THIS GAME, LANDS PLAYED | the engine's `GameEventSpellAbilityCast` / `GameEventLandPlayed` (a copy is not a cast), not the log line's wording |
+
+  - Every `canPayManaCost` a harness seat asks runs with the card's AI-only payment hints hidden
+    (`PlayerControllerLLM.seatCanPay`, `AI_PHYREXIAN_HINT`, epoch 68). `AIPhyrexianPayment$ Never` tells Forge's
+    AI not to pay Gitaxian Probe's {U/P} with life; obeyed by the seat's check, Probe with no blue source was "(not
+    castable now)" and off the menu, and a cost payable only with life went to the AI's payment, which refused it.
+    The same hint is hidden around Forge AI's cost check in an effect cast or a trigger (`ComputerUtil.playStack`).
+    The seat pays Phyrexian life itself (`phyrexianByLife` chooses the split, `payManaCost` pays the life): a split is
+    offered only when the engine can pay the rest with mana, one way to pay is taken without asking (a `tier=auto`
+    row), and the Phyrexian life is paid only after the mana. If a mana source's own life cost (Horizon Canopy) has
+    left too little, the Phyrexian life is not paid and the mana is refunded; that source's life is not. Found by
+    h_0's written line.
 
   - The one hint still worked out by the harness: "(need 1 more B)" compares the cost's coloured pips
     with the per-colour mana. It is shown only when the engine has already said the card cannot be
@@ -479,8 +484,12 @@ Limits: 16 calls an ask, 1,000 a game. These are loop guards, not rationing.
   model seat, the line sees the menus a model sees (floating mana, costly mana abilities, splice and alternative
   costs) and the engine checks every step. Unmatched priority menus pass and unmatched mana-untap asks are left to
   the engine, both counted; a result row's `script_played` is true only when every line was taken with no drift.
+  `puzzle_baselines.py line` reads the row (`eval/PUZZLES.md`, "Proving a written line"), including the seat's
+  `plays_not_made`: a play the line chose that did not happen voids it, and a row without the count is refused.
   The seat's two tiers share one bridge, so a script has one position. Against `CONTROLLER_B=search` the prover
   plays the line as the solver, so every branch it enumerates is an opponent reply the fixed line must beat.
+  `script:relaxed:<file>` (the minimality replays) answers a decision the line does not fit with the do-nothing
+  option instead of drifting.
 
 - The seed-42 floor and random mirrors are pinned canaries, at A/108/1824 and A/45/368.
 - *Why:* a score is meaningless without the trivial baseline it beats (the "88% lesson" in `CLAUDE.md`).

@@ -100,21 +100,23 @@ only for what search is good at: opponent replies, deviations and minimality.
    Tests: a scripted line reaches the acceptance state; a misspelt or reordered script drifts; a script that
    skips a needed action fails. This alone proves solvability of any line a person can write.
    **Done (2026-10-20):** a model spec `script:<file>` (`ScriptBridge.java`) instead of a new controller, so the line
-   plays the faithful seat's own menus; `puzzle_baselines.py line`; acceptance stage `lines`. h_1 is proven by its
-   16-line solution (`eval/puzzles/hard/h_1.pzl`). h_0's line needs Gitaxian Probe paid with life, which the
-   menu never offers (Forge's AI-only `AIPhyrexianPayment$ Never` hint decides castability): a harness defect,
-   fixed in PR #277 (harness-epoch-68).
+   plays the faithful seat's own menus; `puzzle_baselines.py line`; acceptance stage `lines`. h_1 is solved by its
+   16-line written solution against Forge's AI (`eval/puzzles/hard/h_1.pzl`; the `lines` stage, recorded in
+   ACCEPTANCE.md). h_0's line needs Gitaxian Probe paid with life, which the menu did not offer (Forge's AI-only
+   `AIPhyrexianPayment$ Never` hint decided castability): a harness defect, fixed in harness-epoch-68. h_0 is
+   solved by its 11-line written solution against Forge's AI (`eval/puzzles/hard/h_0.pzl`; the `lines` stage).
 2. **The prover from a line**: `PuzzleSearch.prove` already enumerates every opponent alternative along a
    winning line; run it from the script's line, so a long puzzle's adversarial proof costs only the opponent
    branches. The deviation search (`unique`) runs at each solver step with a stated budget and reports
    `unique-within-budget N`, never "unique".
    **Done for the proof (2026-10-20):** `puzzle_baselines.py line --opponent search` proves a fixed line against
-   every reply (h_0, h_1: no opponent choice; RP_141: 3 blocks, 2 beyond the main line). Not done: a line that must
-   answer a reply differently (one line per branch), and the deviation search from a written line.
+   every reply. Not done: a line that must answer a reply differently (one line per branch), and the deviation
+   search from a written line.
 3. **Minimality**: replay the script with each solver action removed in turn (the rest attempted as written);
    every removal must fail. Written to the record as `necessary_actions`.
-   **Done (2026-10-20):** `puzzle_baselines.py line --minimality` (`minimality.json`). A removal that drifts counts as
-   failing: the rest cannot be played as written without the action.
+   **Done (2026-10-20):** `puzzle_baselines.py line --minimality` (`minimality.json`). A removal is replayed relaxed
+   (a decision the line does not fit takes the do-nothing answer); only a game played out and lost shows the action
+   is needed; a drift, a capped game, or a line that stalled with lines unplayed is inconclusive (eval/PUZZLES.md).
 4. **The greedy-preview arm**: a zero-model policy over `PlayerLookahead`'s one-ply preview, taking the option
    whose preview lowers the opponent's life most (then the one that adds most power). The "depth 1" floor; it
    must fail on T3 and is reported with the other floors.

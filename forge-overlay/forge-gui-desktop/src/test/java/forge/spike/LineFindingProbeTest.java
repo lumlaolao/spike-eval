@@ -239,6 +239,114 @@ public class LineFindingProbeTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** A play a static forbids is not made, and a written line that chose it is void (pr-review of #276): Endbringer's
+     *  ping under Pithing Needle, handed to the play path as a stale menu would. */
+    @Test
+    public void aPlayAStaticForbidsIsCountedAsNotMade() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card endbringer = card("Endbringer", me, ZoneType.Battlefield);
+        endbringer.setSickness(false);
+        SpellAbility ping = null;
+        for (SpellAbility sa : endbringer.getSpellAbilities())
+            if (sa.isActivatedAbility() && !sa.isManaAbility() && sa.getPayCosts().getCostMana() == null) ping = sa;
+        Assert.assertNotNull(ping, "Endbringer's {T} ping");
+        ping.setActivatingPlayer(me);
+        ping.getTargets().add(rival);
+        card("Pithing Needle", rival, ZoneType.Battlefield).addNamedCard("Endbringer");
+        Recorder pass = new Recorder(PLAY);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, pass, pass);
+        final SpellAbility tap = ping;
+        String log = logOf(() -> ctrl.playChosenSpellAbility(tap));
+        Assert.assertTrue(log.contains("forbidden by a static"), log);
+        Assert.assertEquals(ctrl.playsNotMade(), 1);
+        Assert.assertEquals(g.getStack().size(), 0);
+    }
+
+    /** Life is not paid for a Phyrexian cost whose rest cannot be paid (pr-review of #277): Dismember {1}{B/P}{B/P} with
+     *  no land, handed to the play path as a stale menu would. The life went first and was not refunded. */
+    @Test
+    public void aPhyrexianCostWithAnUnpayableRestCostsNoLife() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        // A failed cast leaves the card in the Stack zone, as the engine routine does; this test is about the life.
+        card("Dismember", me, ZoneType.Hand);
+        SpellAbility cast = me.getCardsIn(ZoneType.Hand).getFirst().getFirstSpellAbility();
+        cast.setActivatingPlayer(me);
+        cast.getTargets().add(bears);
+        Recorder pass = new Recorder(PLAY);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, pass, pass);
+        int life = me.getLife();
+        logOf(() -> ctrl.playChosenSpellAbility(cast));
+        Assert.assertEquals(me.getLife(), life, "life paid for a cast that could not happen");
+        Assert.assertEquals(ctrl.playsNotMade(), 1);
+    }
+
+    /** Phyrexian life is paid after the mana (pr-review of #277): Dismember at 5 life with Horizon Canopy ("{T}, Pay 1
+     *  life") as the only land. Paid first, the 4 life left 1, the AI's source filter then refused the Canopy (it keeps
+     *  1 life), and the cast failed with the life gone. Mana first, the Canopy pays at 5; the 4 life would then leave
+     *  0 (the AI's own payment stops there too), so it is not paid and the mana is refunded (pr-review of #277). */
+    @Test
+    public void phyrexianLifeIsPaidAfterTheManaSoAFailedCastCostsNoLife() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        LlmSpikeGui.PlayerControllerLLM ctrl = canopyDismember(g, 5);
+        Assert.assertEquals(g.getStack().size(), 0, "cast at " + me.getLife() + " life");
+        Assert.assertEquals(me.getLife(), 4, "only the Canopy's own life is gone");
+        Assert.assertEquals(me.getManaPool().totalMana(), 1, "the Canopy's mana was refunded to the pool");
+        Assert.assertEquals(ctrl.playsNotMade(), 1);
+    }
+
+    /** The same board at 6 life: the Canopy leaves 5, the 4 life leaves 1, and Dismember is cast with both Phyrexian
+     *  symbols paid with life, each counted as the engine counts it (pr-review of #277: nothing tested this side). */
+    @Test
+    public void phyrexianLifeAfterALifeCostingSourceIsPaidWhenItLeavesLife() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        LlmSpikeGui.PlayerControllerLLM ctrl = canopyDismember(g, 6);
+        Assert.assertEquals(g.getStack().size(), 1, "not cast at " + me.getLife() + " life");
+        Assert.assertEquals(me.getLife(), 1);
+        Assert.assertEquals(me.getManaPool().totalMana(), 0);
+        // The engine adds 2 (the life) per symbol paid with life: two symbols read 4.
+        Assert.assertEquals(g.getStack().peekAbility().getSpendPhyrexianMana(), 4, "one count per symbol paid with life");
+        Assert.assertEquals(ctrl.playsNotMade(), 0);
+    }
+
+    /** Dismember {1}{B/P}{B/P} handed to the play path at {@code life} with Horizon Canopy ("{T}, Pay 1 life") the only land. */
+    private static LlmSpikeGui.PlayerControllerLLM canopyDismember(Game g, int life) {
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        me.setLife(life, null);
+        card("Horizon Canopy", me, ZoneType.Battlefield);
+        Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
+        card("Dismember", me, ZoneType.Hand);
+        SpellAbility cast = me.getCardsIn(ZoneType.Hand).getFirst().getFirstSpellAbility();
+        cast.setActivatingPlayer(me);
+        cast.getTargets().add(bears);
+        Recorder pass = new Recorder(PLAY);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, pass, pass);
+        logOf(() -> ctrl.playChosenSpellAbility(cast));
+        return ctrl;
+    }
+
+    /** A paid play the stack refuses for want of a target is not made (pr-review of #276): Murder with no creature on the
+     *  battlefield, handed to the play path as a stale menu would. MagicStack.add drops it ("failed to target"). */
+    @Test
+    public void aPaidPlayTheStackRefusesIsCountedAsNotMade() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        for (int i = 0; i < 3; i++) card("Swamp", me, ZoneType.Battlefield);
+        Card murder = card("Murder", me, ZoneType.Hand);
+        SpellAbility cast = murder.getFirstSpellAbility();
+        cast.setActivatingPlayer(me);
+        Recorder pass = new Recorder(PLAY);
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, pass, pass);
+        String log = logOf(() -> ctrl.playChosenSpellAbility(cast));
+        Assert.assertTrue(log.contains("the stack refused it"), log);
+        Assert.assertEquals(ctrl.playsNotMade(), 1);
+        Assert.assertEquals(g.getStack().size(), 0);
+    }
+
     /** A play that cannot be paid for is not a play, and the log must say so (the audited game logged a failed
      *  Bombardment as "casts Goblin Bombardment"). The seat picks Bombardment at the opponent; its only creature
      *  leaves before the payment, so nothing can be sacrificed. (Sacrificing the ability's own target is legal and
@@ -275,6 +383,8 @@ public class LineFindingProbeTest {
         Assert.assertTrue(log.contains("FAILED to pay for"), log);
         Assert.assertTrue(bombardment.isInZone(ZoneType.Battlefield));
         Assert.assertEquals(g.getStack().size(), 0, "a failed play reached the stack");
+        // A written line reads this count: the line chose the play, and the play never happened (pr-review, #276).
+        Assert.assertEquals(ctrl.playsNotMade(), 1, "the unpaid play is counted");
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 

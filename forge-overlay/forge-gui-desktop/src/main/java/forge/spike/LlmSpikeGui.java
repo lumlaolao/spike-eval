@@ -3444,10 +3444,17 @@ public final class LlmSpikeGui {
             forge.game.zone.Zone from = tgtSA.getHostCard() == null ? null : tgtSA.getHostCard().getZone();
             tgtSA = withOptionalCosts(tgtSA);   // a spell cast by an effect may still be kicked (CR 601.2b)
             announceX(tgtSA);
-            if (tgtSA.getApi() == ApiType.Charm && !forge.game.ability.effects.CharmEffect.makeChoices(tgtSA)) return false;
+            // From here the seat has chosen to cast it: a cast that then does not happen is counted (playsNotMade).
+            if (tgtSA.getApi() == ApiType.Charm && !forge.game.ability.effects.CharmEffect.makeChoices(tgtSA)) {
+                playsNotMade++;
+                return false;
+            }
             ensureTargetsSet(tgtSA);
-            boolean played = forge.ai.ComputerUtil.playStack(tgtSA, getPlayer(), getGame());
-            if (played) playSeen(tgtSA, from);
+            // playStack tests the cost with Forge AI's check (ComputerUtilCost.canPayCost), which obeys the AI-only payment
+            // hint: hidden, as for every check a harness seat asks (pr-review of #277: an effect-cast Gitaxian Probe).
+            final SpellAbility cast = tgtSA;
+            boolean played = seatCheck(cast, () -> forge.ai.ComputerUtil.playStack(cast, getPlayer(), getGame()));
+            if (played) playSeen(tgtSA, from); else playsNotMade++;
             return played;
         }
 
@@ -3688,6 +3695,7 @@ public final class LlmSpikeGui {
             // the seat's pricing and combat helpers read it too, so the seat clears it in the same place. Uncleared,
             // answers keyed by this game lasted the whole game and every finished game stayed reachable (prove-v3).
             forge.ai.AiCache.clear();
+            boolean chose = false;   // the seat picked a play: an error after this lost it
             try {
                 Player me = getPlayer();
                 PhaseHandler phh = me.getGame().getPhaseHandler();
@@ -4138,6 +4146,7 @@ public final class LlmSpikeGui {
                     return Lists.newArrayList(landPlays.get(li));
                 }
                 SpellAbility chosen = options.get(choice - 1);
+                chose = true;
                 // D4 shadow guard (MANDATORY): shadowPlay's AI eval (canPlaySa/canPlayWithSubs) may have set
                 // targets AND X on this SAME SA object *and its sub-abilities*; without a full-chain reset,
                 // ensureTargetsSet would see a sub-ability "already targeted" (see :1449 below) and skip it —
@@ -4160,6 +4169,7 @@ public final class LlmSpikeGui {
                 if (chosen.getApi() == ApiType.Charm) {
                     if (!forge.game.ability.effects.CharmEffect.makeChoices(chosen)) {
                         p("[ROUTER] play: no legal mode set for " + labelOf(chosen) + " -> PASS");
+                        playsNotMade++;
                         return PASS;
                     }
                     modesChosenFor = chosen;
@@ -4181,6 +4191,7 @@ public final class LlmSpikeGui {
                 return Lists.newArrayList(chosen);
             } catch (Exception e) {
                 p("[ROUTER] play: error " + e + " -> PASS");
+                if (chose) playsNotMade++;
                 return PASS;
             }
         }
@@ -4864,6 +4875,13 @@ public final class LlmSpikeGui {
             return new ArrayList<>();
         }
 
+        /** Plays the seat chose that did not happen, from the play menu or cast through an effect: forbidden by a static,
+         *  no legal modes, unpayable, refused by the stack for want of a target, a land drop the engine refused, or a pick
+         *  lost to an error in the play menu. A cancel is the seat's own choice and is not counted. A written line
+         *  (ScriptBridge) is void when any of its plays did not happen. */
+        private int playsNotMade = 0;
+        int playsNotMade() { return playsNotMade; }
+
         /** The play path for a cast or activation. The inherited implementation hands the ability to
          *  {@code ComputerUtil.handlePlayingSpellAbility}, which pays EVERY cost with a hard-coded
          *  {@code new AiCostDecision(...)} and never consults {@link #getCostDecisionMaker} — so Forge's
@@ -4887,8 +4905,12 @@ public final class LlmSpikeGui {
             modesChosenFor = null;
             if (!ours) {
                 forge.game.zone.Zone from = sa.getHostCard() == null ? null : sa.getHostCard().getZone();
+                int stackBefore = getGame().getStack().size();
                 boolean played = super.playChosenSpellAbility(sa);
-                if (played) playSeen(sa, from);
+                // The inherited routine returns true whatever happened: read what it did from the game.
+                boolean happened = sa.isLandAbility() ? sa.getHostCard() != null && sa.getHostCard().getZone() != from
+                        : getGame().getStack().size() > stackBefore;
+                if (happened) playSeen(sa, from); else playsNotMade++;
                 return played;
             }
 
@@ -4916,10 +4938,14 @@ public final class LlmSpikeGui {
             if (!sa.checkRestrictions(ai)) {
                 p("[ROUTER] play: " + labelOf(sa) + " is forbidden by a static -> nothing was played");
                 failedInWindow.add(chosenKey);
+                playsNotMade++;
                 forge.game.GameActionUtil.rollbackAbility(sa, hz, hzPos, new CostPayment(sa.getPayCosts(), sa), source);
                 return true;
             }
-            if (sa.getApi() == ApiType.Charm && !modesChosen && !forge.game.ability.effects.CharmEffect.makeChoices(sa)) return true;
+            if (sa.getApi() == ApiType.Charm && !modesChosen && !forge.game.ability.effects.CharmEffect.makeChoices(sa)) {
+                playsNotMade++;
+                return true;
+            }
 
             game.getStack().freezeStack(sa);
             final CostPayment pay = new CostPayment(sa.getPayCosts(), sa);
@@ -4929,7 +4955,14 @@ public final class LlmSpikeGui {
             if (observer != null && rnd == null && cancels < 2) decision.offerCancel();
             costCancelled = false;
             if (pay.payComputerCosts(decision)) {
+                // The stack refuses a play with no legal target left ("Couldn't add to stack, failed to target").
+                boolean reaches = sa.isCopied() || sa.isManaAbility() || game.getStack().hasLegalTargeting(sa);
                 game.getStack().addAndUnfreeze(sa);
+                if (!reaches) {
+                    p("[ROUTER] play: " + labelOf(sa) + " paid but has no legal target -> the stack refused it");
+                    playsNotMade++;
+                    return true;
+                }
                 playSeen(sa, hz);
                 if (sa.getSplicedCards() != null && !sa.getSplicedCards().isEmpty())
                     game.getAction().reveal(sa.getSplicedCards(), ai, true, "Computer reveals spliced cards from ");
@@ -4946,6 +4979,7 @@ public final class LlmSpikeGui {
             } else {
                 p("[ROUTER] play: FAILED to pay for " + labelOf(sa) + " -> nothing was played");
                 failedInWindow.add(chosenKey);
+                playsNotMade++;
             }
             costCancelled = false;
             sa.setSkip(true);
@@ -5000,8 +5034,9 @@ public final class LlmSpikeGui {
         public boolean payManaCost(forge.card.mana.ManaCost toPay, forge.game.cost.CostPartMana costPartMana,
                 SpellAbility sa, String prompt, forge.game.mana.ManaConversionMatrix matrix, boolean effect) {
             Set<Card> said = new HashSet<>();
+            int[] lifeDue = {0};   // Phyrexian symbols the seat pays with life, paid once the mana is (CR 601.2h)
             try {
-                toPay = phyrexianByLife(toPay, sa, effect);
+                toPay = phyrexianByLife(toPay, sa, effect, lifeDue);
             } catch (Exception e) {
                 p("[ROUTER] mana: phyrexian " + e + " -> engine");
             }
@@ -5041,6 +5076,23 @@ public final class LlmSpikeGui {
                     sa.setSkip(false);
                     paid = super.payManaCost(toPay, costPartMana, sa, prompt, matrix, effect);
                 }
+                // The life goes last: paid first, a source that costs life (Horizon Canopy) could then be refused by the
+                // engine's payment and the cast fail with the life gone, unrefunded (pr-review of #277). The offer's test
+                // again, as a source's own life cost may have left too little; then the mana goes back to the pool.
+                if (paid && lifeDue[0] > 0) {
+                    int n = lifeDue[0];
+                    Player me = getPlayer();
+                    if (lifePayable(me, n, effect, sa)) {
+                        me.payLife(2 * n, sa, effect);
+                        for (int i = 0; i < n; i++) sa.setSpendPhyrexianMana(true);   // once per symbol, as the engine does
+                        p("[ROUTER] mana: " + n + " Phyrexian paid with " + (2 * n) + " life for " + labelOf(sa));
+                    } else {
+                        new forge.game.mana.ManaRefundService(sa).refundManaPaid();
+                        p("[ROUTER] mana: " + (2 * n) + " life for the Phyrexian symbols can no longer be paid at "
+                                + me.getLife() + " life -> the mana is refunded, nothing is paid");
+                        paid = false;
+                    }
+                }
             } finally {
                 payingForReal = wasPaying;
                 payingCost = wasCost;
@@ -5061,14 +5113,20 @@ public final class LlmSpikeGui {
             return paid;
         }
 
+        /** 2n life the seat may pay for Phyrexian symbols: payable, and never to 0 unless it cannot lose for it. */
+        private static boolean lifePayable(Player me, int n, boolean effect, SpellAbility sa) {
+            return me.canPayLife(2 * n, effect, sa) && (me.getLife() > 2 * n || me.cantLoseForZeroOrLessLife());
+        }
+
         /** Phyrexian mana is the seat's: how many Phyrexian symbols it pays with 2 life each. Forge's
          *  payment pays one with mana whenever a source can and with life only when none can
          *  (ComputerUtilMana.payManaCost, the saPayment == null branch), so it decided whether Dismember
-         *  or Gitaxian Probe cost life. The seat pays the life here and hands the engine the rest, whose
-         *  Phyrexian symbols it then pays with mana. Only splits the seat can pay are offered (the life,
-         *  and the rest with mana by the engine's own test payment); with one, nothing is asked. Returns
-         *  the cost the engine still pays. */
-        private forge.card.mana.ManaCost phyrexianByLife(forge.card.mana.ManaCost toPay, SpellAbility sa, boolean effect) {
+         *  or Gitaxian Probe cost life. The seat chooses the split here and hands the engine the rest, its
+         *  Phyrexian symbols as plain colours. Only splits the seat can pay are offered (the life, and the
+         *  rest with mana by the engine's own test payment); with one, nothing is asked. Returns the cost the
+         *  engine still pays; the life goes in {@code lifeDue}, which payManaCost pays once the mana is. */
+        private forge.card.mana.ManaCost phyrexianByLife(forge.card.mana.ManaCost toPay, SpellAbility sa, boolean effect,
+                                                         int[] lifeDue) {
             if (toPay == null || !toPay.hasPhyrexian() || toPay.countX() > 0 || sa == null || sa.isManaAbility()
                     || "floor".equals(mode) || (!smartOk() && !fastOk())) return toPay;
             final Player me = getPlayer();
@@ -5076,33 +5134,36 @@ public final class LlmSpikeGui {
             List<Integer> lifeFor = new ArrayList<>();
             List<String> labels = new ArrayList<>();
             for (int n = 0; n <= k; n++) {
-                if (n > 0 && (!me.canPayLife(2 * n, effect, sa) || (me.getLife() <= 2 * n && !me.cantLoseForZeroOrLessLife()))) break;
-                if (n < k && ComputerUtilMana.getManaSourcesToPayCost(neededMana(withPhyrexian(toPay, n, true), sa, effect), sa, me, effect) == null) continue;
+                if (n > 0 && !lifePayable(me, n, effect, sa)) break;
+                // What is left after n life is paid by the engine with mana: a split it cannot finish is not offered
+                // (Dismember with no land would be a choice that can only fail).
+                forge.card.mana.ManaCost rest = withPhyrexian(toPay, n, true);
+                if (rest.getCMC() > 0 && ComputerUtilMana.getManaSourcesToPayCost(neededMana(rest, sa, effect), sa, me, effect) == null) continue;
                 lifeFor.add(n);
                 labels.add(n == 0 ? "pay every Phyrexian symbol with mana (no life)"
                         : "pay " + n + " Phyrexian symbol" + (n == 1 ? "" : "s") + " with " + (2 * n) + " life"
                           + (n < k ? ", the rest with mana" : ""));
             }
             if (lifeFor.isEmpty()) return toPay;
-            String what = sa.getHostCard() == null ? "this" : verbOf(sa) + " " + labelOf(sa);
             int n;
             if (lifeFor.size() == 1) {
-                // One way to pay. With mana the engine's payment takes it; with life it is paid here, because the
-                // engine's payment is Forge's AI and obeys AIPhyrexianPayment ("Never" on Gitaxian Probe, hard draft h_0).
+                // One way to pay. With mana the engine's payment takes it; with life the seat takes it (paid after the mana,
+                // in payManaCost), because the engine's payment is Forge's AI and obeys AIPhyrexianPayment ("Never" on
+                // Gitaxian Probe, hard draft h_0).
                 if (lifeFor.get(0) == 0) return toPay;
                 n = lifeFor.get(0);
+                auto("phyrexian(forced: payable only with life)->" + (2 * n) + " life" + srcOf(sa));
             } else {
+                String what = sa.getHostCard() == null ? "this" : verbOf(sa) + " " + labelOf(sa);
                 int c = decideOne(smartOk() ? smart : fast, "phyrexian", "MANA: you are paying " + toPay + " for " + what
                         + ". Each Phyrexian symbol is paid with one mana of its colour or with 2 life. You have "
                         + me.getLife() + " life. How do you pay?", labels, null);
                 if (c < 0 || c >= lifeFor.size()) { auto("phyrexian(unparsed)->engine"); return toPay; }
                 n = lifeFor.get(c);
             }
-            if (n == 0) return withPhyrexian(toPay, 0, true);
-            me.payLife(2 * n, sa, effect);
-            sa.setSpendPhyrexianMana(true);
-            p("[ROUTER] mana: " + n + " Phyrexian paid with " + (2 * n) + " life for " + what);
-            return withPhyrexian(toPay, n, false);
+            lifeDue[0] = n;   // payManaCost pays it after the mana
+            // The rest as plain colours, the cost the split was priced at: the engine cannot pay more of it with life.
+            return withPhyrexian(toPay, n, true);
         }
 
         /** {@code cost} without its first {@code byLife} Phyrexian symbols; with {@code restAsMana} the
@@ -5343,7 +5404,7 @@ public final class LlmSpikeGui {
         public void orderAndPlaySimultaneousSa(List<SpellAbility> activePlayerSAs) {
             for (final SpellAbility sa : orderSimultaneousSa(activePlayerSAs)) {
                 if (sa.isTrigger() && !sa.isCopied()) {
-                    if (prepareTrigger(sa)) forge.ai.ComputerUtil.playStack(sa, getPlayer(), getGame());
+                    if (prepareTrigger(sa)) seatCheck(sa, () -> forge.ai.ComputerUtil.playStack(sa, getPlayer(), getGame()));
                     else p("[ROUTER] trigger: " + safeName(sa.getHostCard()) + " has no legal target -> not put on the stack");
                 } else if (sa.isCopied() && sa.isSpell() && sa.isMayChooseNewTargets()
                         && seatTargetsCopies("llm".equals(mode) && rnd == null, rnd) && !sa.hasParam("TargetingPlayer")) {
@@ -8714,24 +8775,18 @@ public final class LlmSpikeGui {
             catch (Exception e) { return false; }
         }
 
-        /** Whether the engine allows paying {@code cost} now: its mana and every other part, by the engine's own tests
-         *  (the last line of ComputerUtilCost.canPayCost). The rest of that method is Forge AI's taste, not the rules: it
-         *  refused, half the time at random, a planeswalker ability that spends all its loyalty, refused ward costs and
-         *  casualty creatures it would not pay, and kept a tax it expects later. A legal option is the model's to take or
-         *  leave (owner, 2026-10-17: "if it's a legal action we don't disallow it"). */
         /** Card hints for Forge's AI that its payment check obeys: AIPhyrexianPayment ("Never" on Gitaxian Probe and
          *  Mental Misstep, "OnFatalDamage.N" on Gut Shot) refuses to pay Phyrexian mana with life. They are advice to
          *  the AI, not rules, so a harness seat's checks run with them hidden: with no blue source, Probe was "(not
          *  castable now)" and off the menu though 2 life pays it (hard draft h_0). Restored after every check. */
-        static final String[] AI_PAYMENT_HINTS = {"AIPhyrexianPayment"};
+        static final String AI_PHYREXIAN_HINT = "AIPhyrexianPayment";
 
-        /** {@code check} with {@code sa}'s AI payment hints hidden: whether a harness seat can pay, by the rules only. */
-        static boolean seatCheck(SpellAbility sa, java.util.function.BooleanSupplier check) {
-            Map<String, String> hidden = new java.util.HashMap<>();
-            for (String k : AI_PAYMENT_HINTS) if (sa != null && sa.hasParam(k)) hidden.put(k, sa.getParam(k));
-            for (String k : hidden.keySet()) sa.removeParam(k);
-            try { return check.getAsBoolean(); }
-            finally { for (Map.Entry<String, String> e : hidden.entrySet()) sa.putParam(e.getKey(), e.getValue()); }
+        /** {@code check} with {@code sa}'s AI payment hint hidden: whether a harness seat can pay, by the rules only. */
+        private static boolean seatCheck(SpellAbility sa, java.util.function.BooleanSupplier check) {
+            String hint = sa == null ? null : sa.getParam(AI_PHYREXIAN_HINT);
+            if (hint == null) return check.getAsBoolean();
+            sa.removeParam(AI_PHYREXIAN_HINT);
+            try { return check.getAsBoolean(); } finally { sa.putParam(AI_PHYREXIAN_HINT, hint); }
         }
         static boolean seatCanPay(SpellAbility sa, Player p, int extra, boolean effect) {
             return seatCheck(sa, () -> ComputerUtilMana.canPayManaCost(sa, p, extra, effect));
@@ -8743,6 +8798,11 @@ public final class LlmSpikeGui {
             return seatCheck(sa, () -> ComputerUtilMana.canPayManaCost(cost, sa, p, effect));
         }
 
+        /** Whether the engine allows paying {@code cost} now: its mana and every other part, by the engine's own tests
+         *  (the last line of ComputerUtilCost.canPayCost). The rest of that method is Forge AI's taste, not the rules: it
+         *  refused, half the time at random, a planeswalker ability that spends all its loyalty, refused ward costs and
+         *  casualty creatures it would not pay, and kept a tax it expects later. A legal option is the model's to take or
+         *  leave (owner, 2026-10-17: "if it's a legal action we don't disallow it"). */
         static boolean legallyPayable(Cost cost, SpellAbility sa, Player p, boolean effect) {
             if (sa.getActivatingPlayer() == null) sa.setActivatingPlayer(p);
             return seatCanPay(cost, sa, p, 0, effect)
@@ -10869,7 +10929,14 @@ public final class LlmSpikeGui {
             if (spec == null || spec.isEmpty())
                 throw new IllegalArgumentException("model spec required for " + label);
             // A written solution line played through the model seat (ScriptBridge): no model, nothing leaves.
-            if (spec.startsWith(ScriptBridge.PREFIX)) return ScriptBridge.fromFile(label, spec.substring(ScriptBridge.PREFIX.length()));
+            if (spec.startsWith(ScriptBridge.PREFIX)) {
+                // "script:relaxed:<file>" is a minimality replay (puzzle_baselines.py); the spec is the row's solver model.
+                String rest = spec.substring(ScriptBridge.PREFIX.length());
+                boolean relaxed = rest.startsWith(ScriptBridge.RELAXED);
+                ScriptBridge b = ScriptBridge.fromFile(label, relaxed ? rest.substring(ScriptBridge.RELAXED.length()) : rest);
+                b.relaxed = relaxed;
+                return b;
+            }
             // The greedy-preview floor: zero-model, the seat's own one-ply previews (GreedyBridge).
             if (spec.startsWith(GreedyBridge.PREFIX)) return new GreedyBridge(label);
             if (spec.startsWith("openrouter:")) {
