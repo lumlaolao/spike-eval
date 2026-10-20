@@ -1,5 +1,9 @@
 # stage2-local-v0 — multi-source SFT mix
 
+> **2026-10-20:** the training examples (`train.jsonl`, `valid.jsonl`) were removed with the rest of the training
+> setup; the repository is a benchmark now. This `meta.jsonl` stays: it records which seeds the corpus used, and
+> the held-out seed guard (`eval/seed_registry.py`, `eval/check_holdouts.py`) refuses them for evaluation.
+
 Built by `eval/make_sft_data.py` (Stage-2 multi-source mode). Mixes
 ai-log self-play teacher rows (win-filtered, canonical terse targets),
 prebuilt CoT/puzzle slices, and (optionally) Stage-1 winning

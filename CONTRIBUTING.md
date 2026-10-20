@@ -41,7 +41,8 @@ cd $FORGE_HOME && mvn -q -pl forge-gui-desktop -am install -o   # 3. build (inst
 ## What must never be committed
 
 - `secrets.env` (git-ignored) — the real `OPENROUTER_API_KEY` never enters history.
-- `datasets/` (~650 MB) and `runs/` (~490 MB) — regenerable artifacts, not history.
+- generated training data under `datasets/` (only each corpus's `meta.jsonl` and README are kept, as the
+  seed record the held-out guard reads) and new `runs/` output beyond the JSONL evidence a doc cites.
   Stage files explicitly; `git add -A` at the repo root is always wrong.
 - `*.mp4` recordings — archive out-of-band.
 - Anything under `models/` or `.venv-mlx/`.
