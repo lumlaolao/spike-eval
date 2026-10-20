@@ -8,7 +8,6 @@ import com.google.common.collect.Sets;
 
 import forge.ai.AiCardMemory;
 import forge.ai.AiCostDecision;
-import forge.ai.ComputerUtilMana;
 import forge.game.card.CardCollectionView;
 import forge.game.card.Card;
 import forge.game.card.CardCollection;
@@ -316,7 +315,7 @@ final class LlmCostDecision extends AiCostDecision {
      *  (Suppression Field: {2} more) gives it one, and the test payment computes the cost with raises
      *  (issue #110); with no mana to pay, the refreshed set is empty. */
     private Set<Card> manaSources() {
-        ComputerUtilMana.canPayManaCost(ability, player, 0, isEffect());
+        LlmSpikeGui.PlayerControllerLLM.seatCanPay(ability, player, 0, isEffect());
         Set<Card> reserved = AiCardMemory.getMemorySet(player, AiCardMemory.MemorySet.PAYS_TAP_COST);
         return reserved == null ? Collections.emptySet() : reserved;
     }

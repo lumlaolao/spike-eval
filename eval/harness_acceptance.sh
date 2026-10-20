@@ -702,7 +702,7 @@ else:
     if game.get("answer_tool") is not True: problems.append("answer_tool=%r not stamped"%game.get("answer_tool"))
     if game.get("answer_tool_version")!="answer-tool-v11": problems.append("answer_tool_version=%r (move this pin WITH AnswerTool.VERSION)"%game.get("answer_tool_version"))
     if game.get("answer_tool_seats")!="A/smart,A/fast": problems.append("answer_tool_seats=%r"%game.get("answer_tool_seats"))
-    if game.get("harness_epoch")!="harness-epoch-67": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-68": problems.append("harness_epoch=%r (move this pin WITH HARNESS_EPOCH)"%game.get("harness_epoch"))
 dec=[r for r in rows if r.get("t")=="decision"]
 model=[r for r in dec if r.get("tier") in ("smart","fast")]
 via=collections.Counter(r.get("answer_via") for r in model)
@@ -795,7 +795,7 @@ if game is None: problems.append("no game row")
 else:
     if game.get("context_profile")!="v4-faithful": problems.append("context_profile=%s"%game.get("context_profile"))
     if game.get("memory_tools") is not True: problems.append("memory_tools not stamped")
-    if game.get("harness_epoch")!="harness-epoch-67": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
+    if game.get("harness_epoch")!="harness-epoch-68": problems.append("harness_epoch=%s"%game.get("harness_epoch"))
     facts.append("winner=%s turns=%s context_sha=%s"%(game.get("winner"),game.get("turns"),game.get("context_sha")))
 if ai_rows: problems.append("%d tier=ai rows"%ai_rows)
 if model_rows<5: problems.append("only %d model-tier rows"%model_rows)
@@ -968,9 +968,10 @@ fi
 
 # ---------------------------------------------------------------- lines (written solutions)
 # A line a person wrote is proven by playing it, not by a search finding it (docs/harness/HARD-PUZZLES.md, section
-# 4). Fails if: the model seat on a script: spec does not play h_1's 16 lines to the acceptance state, or a line
-# naming no option on the menu is played anyway. The misspelt copy still solves after its drift (the do-nothing
-# sacrifice takes the first two Mountains), which is why the verdict reads the drift and not the solve.
+# 4). Fails if: the model seat on a script: spec does not play h_1's 16 lines or h_0's 11 to the acceptance state
+# (h_0 pays Gitaxian Probe with life, which the menu hid until epoch 68), or a line naming no option on the menu is
+# played anyway. The misspelt copy still solves after its drift (the do-nothing sacrifice takes the first two
+# Mountains), which is why the verdict reads the drift and not the solve.
 if has_stage lines; then
   if [ ! -f "$CLASSES/forge/spike/ScriptBridge.class" ]; then fail lines "no compiled classes"; else
     dir="$OUT/lines"; rm -rf "$dir"; mkdir -p "$dir"
@@ -979,10 +980,13 @@ if has_stage lines; then
         --forge "$FORGE" line --pzl eval/puzzles/hard/h_1.pzl --out-dir "$dir/played" ) >"$dir/played.log" 2>&1; GRC=$?
     ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY python3 eval/puzzle_baselines.py --build "$OUT" \
         --forge "$FORGE" line --pzl "$dir/h_1-typo.pzl" --out-dir "$dir/typo" ) >"$dir/typo.log" 2>&1; TRC=$?
-    if [ "$GRC" = 0 ] && grep -Eq "seed +[0-9]+ +played$" "$dir/played.log" && [ "$TRC" = 1 ] && grep -q "drift: " "$dir/typo.log"; then
-      pass lines "h_1 written line played and solved; the misspelt copy drifted (exit 1)"
+    ( cd "$REPO" && env -u OPENROUTER_ALLOW_EGRESS -u OPENROUTER_API_KEY python3 eval/puzzle_baselines.py --build "$OUT" \
+        --forge "$FORGE" line --pzl eval/puzzles/hard/h_0.pzl --out-dir "$dir/h_0" ) >"$dir/h_0.log" 2>&1; HRC=$?
+    if [ "$GRC" = 0 ] && grep -Eq "seed +[0-9]+ +played$" "$dir/played.log" && [ "$TRC" = 1 ] && grep -q "drift: " "$dir/typo.log" \
+        && [ "$HRC" = 0 ] && grep -Eq "seed +[0-9]+ +played$" "$dir/h_0.log"; then
+      pass lines "h_1 and h_0 written lines played and solved; the misspelt copy drifted (exit 1)"
     else
-      fail lines "written line rc=$GRC (want 0, played), misspelt rc=$TRC (want 1, a drift): see $dir"
+      fail lines "h_1 rc=$GRC (want 0, played), misspelt rc=$TRC (want 1, a drift), h_0 rc=$HRC (want 0): see $dir"
     fi
   fi
 fi
