@@ -371,6 +371,15 @@ def proven_pzl_text(rec):
     return None if rec.get("pzl_sha256") and pf.sha256_file(path) != rec["pzl_sha256"] else text
 
 
+def refuse_unproven(puzzles, what):
+    """Stop before any game when a record's pzl cannot be read or is not the file its pzl_sha256 names: the games
+    would measure, and the manifest record, another file (pr-review of #281)."""
+    bad = [r["id"] for r in puzzles if proven_pzl_text(r) is None]
+    if bad:
+        raise SystemExit("%d pzl file(s) unreadable or not the one recorded, nothing %s: %s"
+                         % (len(bad), what, ", ".join(bad[:5])))
+
+
 def apply_difficulty(rec):
     """The record's measured difficulty, its v2 tier and its skill tags (BENCHMARK-V2.md section 4), recomputed from
     its proof and its Forge AI rate; all three null without a proven proof or the recorded pzl (an empty board would
@@ -442,13 +451,14 @@ def prove_puzzle(build, rec, out_root, budget, opponent, seed=1, unique_budget=N
 
 
 def cmd_prove(a):
-    build = Build(a.build, a.forge)
     manifest = pf.load_suite(a.suite)
     if manifest.get("frozen") and not a.write:
         raise SystemExit("suite is frozen; a proof changes its records. Write to a new manifest with --write")
     ids = set(a.ids.split(",")) if a.ids else None
     out_root = Path(a.out_dir or REPO / "runs/puzzles" / ("%s-proofs" % manifest["suite"]))
     todo = [r for r in manifest["puzzles"] if ids is None or r["id"] in ids]
+    refuse_unproven(todo, "played")
+    build = Build(a.build, a.forge)
     manifest = dict(manifest, frozen=False, suite_sha256=None)
     target = Path(a.write or a.suite)
     done = {}
@@ -668,7 +678,6 @@ def cmd_line(a):
 
 
 def cmd_run(a):
-    build = Build(a.build, a.forge)
     manifest = pf.load_suite(a.suite)
     if manifest.get("frozen") and not a.write:
         raise SystemExit("suite is frozen; baselines change its hash. Write to a new manifest with --write")
@@ -676,6 +685,8 @@ def cmd_run(a):
     out_root = Path(a.out_dir or REPO / "runs/puzzles" / ("%s-baselines" % manifest["suite"]))
     arms = [x for x in a.arms.split(",") if x]
     todo = [r for r in manifest["puzzles"] if ids is None or r["id"] in ids]
+    refuse_unproven(todo, "played")
+    build = Build(a.build, a.forge)
 
     def work(rec):
         try:
@@ -716,10 +727,7 @@ def cmd_retier(a):
     manifest = pf.load_suite(a.suite)
     if manifest.get("frozen") and not a.write:
         raise SystemExit("suite is frozen; re-tiering changes its records. Write to a new manifest with --write")
-    unread = [r["id"] for r in manifest["puzzles"] if proven_pzl_text(r) is None]
-    if unread:
-        raise SystemExit("%d pzl file(s) unreadable or not the one proven, nothing written: %s"
-                         % (len(unread), ", ".join(unread[:5])))
+    refuse_unproven(manifest["puzzles"], "written")
     puzzles = [apply_difficulty(r) for r in manifest["puzzles"]]
     Path(a.write or a.suite).write_text(json.dumps(dict(manifest, puzzles=puzzles, frozen=False, suite_sha256=None),
                                                    indent=2) + "\n", encoding="utf-8")

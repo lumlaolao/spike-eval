@@ -140,8 +140,9 @@ final class GreedyBridge implements LLMBridge {
     private static final String[] OWN_ROWS = {ownRow(LlmSpikeGui.PlayerControllerLLM.CANCEL_LABEL),
             ownRow(LlmSpikeGui.PlayerControllerLLM.COST_CANCEL_LABEL)};
 
-    private static String ownRow(String label) {
-        return ScriptBridge.norm(label.substring(0, label.indexOf(':') + 1));
+    static String ownRow(String label) {
+        int colon = label.indexOf(':');
+        return ScriptBridge.norm(colon < 0 ? label : label.substring(0, colon + 1));
     }
 
     /** How much an option suits a play aimed at the opponent: the opponent or the opponent's card first, then a card

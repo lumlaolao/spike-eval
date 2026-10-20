@@ -201,6 +201,14 @@ public class GreedyBridgeTest {
         Assert.assertEquals(args(new GreedyBridge("x").chat(user(ask).toString(), TOOLS, true)).get("option").getAsInt(), 1);
     }
 
+    /** A label reworded without its colon keeps its whole text as the row to skip; an empty prefix would match every
+     *  option and the floor would never take a target (pr-review of #281). */
+    @Test
+    public void aCancelLabelWithoutAColonIsMatchedWhole() {
+        Assert.assertEquals(GreedyBridge.ownRow("CANCEL this play (pay nothing)"), "cancel this play (pay nothing)");
+        Assert.assertEquals(GreedyBridge.ownRow("CANCEL: do not take this action"), "cancel:");
+    }
+
     /** A chain (Arc Trail: a root and a sub-ability, one target ask each) gets the assumed targets in turn, and a name on
      *  both sides takes the opponent's copy. */
     @Test
