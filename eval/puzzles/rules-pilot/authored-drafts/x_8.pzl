@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - Indestructible is no shield from a sacrifice
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have Murder and Diabolic Edict in hand with three black mana floating. The opponent controls only Darksteel Myr (indestructible). End the turn with Darksteel Myr in the opponent's graveyard.
+Rule:authored-indestructible-sacrifice | Indestructible permanents can't be destroyed (CR 702.12b), but they can be sacrificed (CR 701.21a): Diabolic Edict makes the opponent sacrifice their only creature; Murder does nothing to it
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Murder;Diabolic Edict
+p0manapool=B B B
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Darksteel Myr
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Darksteel Myr" = 1
