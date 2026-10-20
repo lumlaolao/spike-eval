@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 392 - A new creature can saddle
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Quilled Charger (4/3, saddle 2; whenever it attacks while saddled, it gets +1/+2 and menace) and Grizzly Bears, which came under your control this turn (summoning sick). The opponent is at 5 life and controls an untapped Wall of Stone (0/8). Reduce the opponent to 0 life this turn.
+Rule:authored-saddle-summoning-sick | Saddle taps other creatures with total power N, at sorcery speed, and like crew it may tap a summoning-sick creature (CR 702.171a): saddle with the Bears, attack, and the Charger is a 5/5 with menace the lone Wall can't block
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Quilled Charger;Grizzly Bears|SummonSick
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1battlefield=Wall of Stone
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

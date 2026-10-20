@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 395 - Unmorph by discarding
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your declare attackers step and your face-down Gathan Raiders is attacking (a 2/2; morph - discard a card; hellbent - it gets +2/+2 while you have no cards in hand); you have Colossal Dreadmaw in hand. You have no mana. The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-morph-discard-cost | Turning a face-down permanent face up is a special action you may take whenever you have priority, by paying its morph cost (CR 702.37e, 116.2b), and that cost may be a non-mana cost: discard the Dreadmaw to turn Gathan Raiders face up, and with an empty hand the attacking 5/5 deals 5; left face down it deals only 2
+[state]
+turn=1
+activeplayer=p0
+activephase=COMBAT_DECLARE_ATTACKERS
+p0life=20
+p0hand=Colossal Dreadmaw
+p0battlefield=Gathan Raiders|FaceDown|Attacking|Tapped
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
