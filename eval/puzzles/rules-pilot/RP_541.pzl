@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 541 - Bolt, then escape the Bolt
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You control Underworld Breach (each nonland card in your graveyard has escape: its mana cost plus exiling three other cards from your graveyard). Your graveyard holds three Colossal Dreadmaws. You have Lightning Bolt in hand with two red mana floating. The opponent is at 6 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-escape-granted-recast | Escape lets you cast the card from your graveyard by paying its escape cost (CR 702.138a), here {R} and three other cards: Bolt for 3, then escape the Bolt exiling the three Dreadmaws for 3 more
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lightning Bolt
+p0battlefield=Underworld Breach
+p0graveyard=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=6
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

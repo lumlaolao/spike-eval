@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 546 - Devotion wakes Purphoros
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control Purphoros, God of the Forge (indestructible 6/5; not a creature while your devotion to red is less than 5; whenever another creature you control enters, 2 damage to each opponent) and a Murderous Redcap ({2}{B/R}{B/R}) that came under your control this turn. You have Mons's Goblin Raiders and Goblin Piker in hand with three red mana floating. The opponent is at 10 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-devotion-type-change-attack | Devotion is checked continuously (CR 700.5, 613.1d): the two Goblins enter for 2 damage each and raise devotion to red to 5, so Purphoros becomes a 6/5 creature; it has been under your control all turn, so it can attack for 6 (CR 302.6), 10 in total
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Mons's Goblin Raiders;Goblin Piker
+p0battlefield=Purphoros, God of the Forge;Murderous Redcap|SummonSick
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=10
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

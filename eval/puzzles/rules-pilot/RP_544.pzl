@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 544 - The Fanatic's damage doubles
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You control Gratuitous Violence (if a creature you control would deal damage, it deals double) and Mogg Fanatic, and have Fling in hand with two red mana floating. The opponent is at 2 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-ability-source-doubling | The source of Mogg Fanatic's damage is the Fanatic itself, using last-known information after it is sacrificed (CR 113.7a, 609.7, 608.2h), so Gratuitous Violence doubles it to 2; Fling's damage comes from Fling, a spell, and is not doubled
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Fling
+p0battlefield=Gratuitous Violence;Mogg Fanatic
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
