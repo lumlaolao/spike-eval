@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 321 - Surge needs a spell first
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Grizzly Bears and have Raging Goblin and Reckless Bushwhacker in hand, with three red mana floating. The opponent is at 7 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-surge-order | Surge can be paid only if you have cast another spell this turn (CR 702.117a): cast Raging Goblin, then Reckless Bushwhacker for its surge cost, so its trigger gives the Bears and the Goblin +1/+0 and haste: 3 + 2 + 2 = 7; Bushwhacker for its full cost leaves 4
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Raging Goblin;Reckless Bushwhacker
+p0battlefield=Grizzly Bears
+p0manapool=R R R
+p0library=Mountain;Mountain;Mountain
+p1life=7
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
