@@ -1,11 +1,16 @@
 """demo_cards: a card image is fetched once and then served from disk; a name Scryfall lacks is asked for once; an
 offline cache never touches the network. The fetcher is faked: no test reaches the network."""
+import contextlib
+import io
 import os
+import ssl
 import shutil
 import tempfile
 import threading
 import time
 import unittest
+from unittest import mock
+import urllib.error
 
 import demo_cards as dc
 
@@ -57,6 +62,16 @@ class CacheTest(unittest.TestCase):
         c.failed["mox ruby"] -= dc.RETRY_AFTER_S
         self.assertIsNotNone(c.get("Mox Ruby"))
 
+    def test_a_certificate_failure_says_how_to_fix_it_once(self):
+        def no_certs(name):
+            raise urllib.error.URLError(ssl.SSLCertVerificationError("unable to get local issuer certificate"))
+        c = dc.Cache(self.dir, fetch=no_certs)
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            self.assertIsNone(c.get("Tundra"))
+            self.assertIsNone(c.get("Black Lotus"))
+        self.assertEqual(err.getvalue().count("Install Certificates.command"), 1)
+
     def test_a_slow_fetch_holds_up_only_its_own_name(self):
         release = threading.Event()
 
@@ -80,6 +95,18 @@ class CacheTest(unittest.TestCase):
         c = dc.Cache(self.dir, fetch=lambda name: b"<html>proxy login</html>")
         self.assertIsNone(c.get("Tundra"))
         self.assertFalse(os.path.exists(c.path("Tundra")))
+
+    def test_prefetch_counts_network_failures_apart_from_names_scryfall_lacks(self):
+        game = os.path.join(HERE, "testdata", "demo", "g33-t5-upkeep.jsonl")
+
+        def down(name):
+            raise OSError("no route")
+        out = io.StringIO()
+        with mock.patch.object(dc, "http_fetch", down), contextlib.redirect_stdout(out):
+            dc.main(["prefetch", game, "--cache", self.dir])
+        line = out.getvalue()
+        self.assertIn("not fetched (network, retry later)", line)
+        self.assertNotIn("no image", line)
 
     def test_prefetch_names_are_the_objects_the_prompts_showed(self):
         names = dc.names_in_game(os.path.join(HERE, "testdata", "demo", "g33-t5-upkeep.jsonl"))

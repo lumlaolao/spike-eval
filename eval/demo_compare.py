@@ -25,12 +25,19 @@ import argparse
 import hashlib
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
 import time
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import puzzle_format  # noqa: E402  (forge_home: the checkout every eval tool finds)
+
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Homebrew's openjdk@17 on Apple Silicon and on Intel Macs (keg-only: not on PATH).
+BREW_JDKS = ("/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home",
+             "/usr/local/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home")
 SIBLINGS = os.path.dirname(REPO)  # the default worktree and build dirs sit beside the checkout
 DECKS = os.path.join(REPO, "eval", "demo", "decks.json")
 SPIKE = "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
@@ -75,18 +82,53 @@ def port_feed(tree, source=REPO):
     return changed
 
 
-def standin_home(home, classes, classpath, forge, java="java"):
-    """A Forge home whose run-llm-headless.sh runs `classes` against the real checkout (never written)."""
+def jdk():
+    """The JDK, in the order acceptance looks: JAVA_HOME, else Homebrew's openjdk@17 (macOS), else the javac on PATH
+    (Linux). None when there is no JDK at all."""
+    home = os.environ.get("JAVA_HOME")
+    if home and os.path.isfile(os.path.join(home, "bin", "javac")):
+        return home
+    for brew in BREW_JDKS:
+        if os.path.isdir(brew):
+            return brew
+    javac = shutil.which("javac")
+    return os.path.dirname(os.path.dirname(os.path.realpath(javac))) if javac else None
+
+
+def default_forge():
+    """$FORGE_HOME as given when it is set (a mistyped one should fail, not build against another checkout), else the
+    checkout every eval tool finds (puzzle_format.forge_home: ~/code/forge, /root/forge)."""
+    env = os.environ.get("FORGE_HOME")
+    return os.path.expanduser(os.path.expandvars(env)) if env else str(puzzle_format.forge_home())
+
+
+def jdk_tool(name):
+    home = jdk()
+    return os.path.join(home, "bin", name) if home else name
+
+
+def port_prices(tree, source=REPO):
+    """The current price list into an older tree: its run_batch refuses --budget-usd for a model its own list
+    lacks (GPT-6 Luna postdates e1324cfd). Pricing data only; nothing the seat sees."""
+    rel = os.path.join("eval", "pricing", "prices.json")
+    shutil.copyfile(os.path.join(source, rel), os.path.join(tree, rel))
+    return "prices.json"
+
+
+def standin_home(home, classes, classpath, forge, java):
+    """A Forge home whose run-llm-headless.sh runs `classes` against the real checkout (never written). Paths are
+    shell-quoted: a macOS home folder may hold a space."""
     os.makedirs(home, exist_ok=True)
     git = os.path.join(home, ".git")
     if not os.path.exists(git):
         os.symlink(os.path.join(forge, ".git"), git)
     script = os.path.join(home, "run-llm-headless.sh")
     with open(script, "w") as f:
-        f.write("#!/bin/bash\ncd %s\nexec %s --add-opens java.base/java.lang=ALL-UNNAMED -Xmx3g "
-                "-Dfile.encoding=UTF-8 -Djava.util.Arrays.useLegacyMergeSort=true -Dapple.awt.UIElement=true "
-                "-Djava.awt.headless=true -cp \"%s:$(cat %s)\" forge.spike.LlmSpikeHeadless\n"
-                % (os.path.join(forge, "forge-gui-desktop"), java, classes, classpath))
+        f.write("#!/bin/bash\ncd %s || exit 1\nCP=%s:\"$(cat %s)\"\nexec %s --add-opens java.base/java.lang=ALL-UNNAMED "
+                "-Xmx3g -Dfile.encoding=UTF-8 -Djava.util.Arrays.useLegacyMergeSort=true -Dapple.awt.UIElement=true "
+                "-Djava.awt.headless=true -cp \"$CP\" forge.spike.LlmSpikeHeadless\n"
+                % (shlex.quote(os.path.join(forge, "forge-gui-desktop")), shlex.quote(classes), shlex.quote(classpath),
+                   shlex.quote(java)))
     os.chmod(script, 0o755)
     return script
 
@@ -156,7 +198,7 @@ def pin_engine(tree, build, forge, paths):
     if files:
         with open(os.path.join(build, "classpath.txt")) as f:
             cp = os.path.join(build, "classes") + ":" + f.read().strip()
-        r = subprocess.run(["javac", "--release", "17", "-proc:none", "-nowarn", "-encoding", "UTF-8", "-cp", cp,
+        r = subprocess.run([jdk_tool("javac"), "--release", "17", "-proc:none", "-nowarn", "-encoding", "UTF-8", "-cp", cp,
                             "-d", os.path.join(build, "classes")] + files, capture_output=True, text=True)
         if r.returncode != 0:
             raise SystemExit("engine files did not compile:\n" + r.stderr[-2000:])
@@ -185,13 +227,16 @@ def compile_arm(tree, build, forge, worktree):
     in this tree's version (pin_engine); then a stand-in Forge home."""
     os.makedirs(build, exist_ok=True)
     env = dict(os.environ, STAGES="preflight classpath compile", OUT=build, FORGE_HOME=forge)
+    home = jdk()
+    if home:  # acceptance's own lookup misses Intel Homebrew and falls to macOS's /usr/bin/javac stub
+        env["JAVA_HOME"] = home
     r = subprocess.run(["bash", os.path.join(tree, "eval", "harness_acceptance.sh")], env=env, capture_output=True, text=True)
     print("\n".join(line for line in r.stdout.splitlines() if line.startswith(("PASS", "FAIL"))))
     if not os.path.isfile(os.path.join(build, "classes", "forge", "spike", "DemoFeed.class")):
         raise SystemExit("%s did not compile (see %s/javac.log)" % (tree, build))
     pin_engine(tree, build, forge, pinned_paths(worktree))
     print("stand-in home:", standin_home(os.path.join(build, "forge-home"), os.path.join(build, "classes"),
-                                         os.path.join(build, "classpath.txt"), forge))
+                                         os.path.join(build, "classpath.txt"), forge, jdk_tool("java")))
 
 
 def build_now(a):
@@ -201,6 +246,8 @@ def build_now(a):
 
 def build_then(a):
     tree, build = os.path.abspath(a.worktree), os.path.abspath(a.build)
+    if not os.path.exists(os.path.join(a.forge, ".git")):  # a directory, or a worktree's .git file
+        raise SystemExit("no Forge checkout at %s (set FORGE_HOME or pass --forge)" % a.forge)
     pin = subprocess.run(["git", "-C", a.forge, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     old = subprocess.run(["git", "-C", REPO, "show", "%s:FORGE_COMMIT" % a.commit], capture_output=True, text=True)
     old_pin = (old.stdout.split() or ["?"])[0] if old.returncode == 0 else "?"
@@ -209,7 +256,9 @@ def build_then(a):
                          % (a.commit, old_pin, pin))
     if not os.path.isdir(tree):
         subprocess.run(["git", "-C", REPO, "worktree", "add", "--detach", tree, a.commit], check=True)
-    print("ported:", ", ".join(port_feed(tree)))
+    if not os.path.isdir(os.path.join(tree, "eval", "pricing")):
+        raise SystemExit("%s has no eval/pricing: too old for a budgeted run" % a.commit)
+    print("ported:", ", ".join(port_feed(tree) + [port_prices(tree)]))
     compile_arm(tree, build, a.forge, a.worktree)
     return 0
 
@@ -288,6 +337,8 @@ def run(a):
         model = "openrouter:fake/demo-model"
     try:
         for name, (repo, _) in arms.items():
+            if a.arm not in ("both", name):
+                continue
             dest = os.path.join(out, name)
             if a.fake:
                 os.makedirs(dest, exist_ok=True)
@@ -295,7 +346,8 @@ def run(a):
                 run_env = dict(env, **direct_env(a.seed, deck_a, deck_b, model, dest, env["OPENROUTER_BASE_URL"]))
                 log = os.path.join(dest, "game-%d-0.log" % a.seed)
             else:
-                cmd = arm_command(repo, homes[name], a.seed, deck_a, deck_b, model, a.budget_usd / 2, dest)
+                cmd = arm_command(repo, homes[name], a.seed, deck_a, deck_b, model,
+                                  a.budget_usd / 2 if a.arm == "both" else a.budget_usd, dest)
                 run_env, log = env, None
             print("[%s]" % name, " ".join(cmd), flush=True)
             if not a.dry_run:
@@ -323,15 +375,17 @@ def main(argv=None):
     r.add_argument("--deck-a", required=True, help="the model's deck, a name from `decks`")
     r.add_argument("--deck-b", required=True, help="Forge AI's deck, a name from `decks`")
     r.add_argument("--model", default="openrouter:openai/gpt-6-luna")
-    r.add_argument("--budget-usd", type=float, help="for the pair: each arm gets half")
+    r.add_argument("--budget-usd", type=float, help="the pair's budget: each arm gets half; with --arm, that arm all")
     r.add_argument("--out", required=True)
     r.add_argument("--fake", action="store_true", help="both arms on the loopback fake model (free)")
-    r.add_argument("--dry-run", action="store_true", help="print the two commands only")
+    r.add_argument("--dry-run", action="store_true", help="print the commands only")
+    r.add_argument("--arm", choices=("both", "now", "then"), default="both",
+                   help="play one arm only (its budget is then the whole --budget-usd), e.g. to redo a failed arm")
     for p in (b, n, r):
         p.add_argument("--worktree", default=os.path.join(SIBLINGS, "harness-then"))
         p.add_argument("--build", default=os.path.join(SIBLINGS, "harness-then-build"))
         p.add_argument("--now-build", default=os.path.join(SIBLINGS, "harness-now-build"))
-        p.add_argument("--forge", default=os.path.expandvars(os.environ.get("FORGE_HOME", "/root/forge")))
+        p.add_argument("--forge", default=default_forge())
     a = ap.parse_args(argv)
     return {"build-then": build_then, "build-now": build_now, "run": run, "decks": decks}[a.cmd](a)
 
