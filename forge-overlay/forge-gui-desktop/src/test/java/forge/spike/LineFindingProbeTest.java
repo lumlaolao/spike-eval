@@ -350,6 +350,11 @@ public class LineFindingProbeTest {
         Assert.assertTrue(log.contains("the stack refused it"), log);
         Assert.assertEquals(ctrl.playsNotMade(), 1);
         Assert.assertEquals(g.getStack().size(), 0);
+        // Rolled back (harness-epoch-70): Murder is in hand again and its mana refunded, the Swamps untapped.
+        Assert.assertEquals(g.getCardState(murder).getZone().getZoneType(), ZoneType.Hand, "the refused cast's card");
+        Assert.assertTrue(g.getStackZone().isEmpty(), "a card left in the Stack zone with nothing on the stack");
+        Assert.assertEquals(me.getCardsIn(ZoneType.Battlefield).stream().filter(Card::isTapped).count(), 0L, "Swamps tapped");
+        Assert.assertEquals(me.getManaPool().totalMana(), 0);
     }
 
     /** A play that cannot be paid for is not a play, and the log must say so (the audited game logged a failed

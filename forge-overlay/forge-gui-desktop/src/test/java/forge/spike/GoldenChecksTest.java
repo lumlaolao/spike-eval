@@ -1077,6 +1077,61 @@ public class GoldenChecksTest {
         Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
     }
 
+    /** A cast cancelled at its cost goes back to the hand (harness-epoch-70): Village Rites (sacrifice a creature) from
+     *  hand, CANCEL at the sacrifice. The copied engine routine's recovery left the card in the Stack zone. */
+    @Test
+    public void aCastCancelledAtItsCostIsBackInHand() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0);
+        lands(me, "Swamp");
+        card("Grizzly Bears", me, ZoneType.Battlefield);
+        card("Hill Giant", me, ZoneType.Battlefield);
+        card("Swamp", me, ZoneType.Hand);
+        Card rites = card("Village Rites", me, ZoneType.Hand);
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("Village Rites"))
+                .on(LlmSpikeGui.PlayerControllerLLM.COST_CANCEL_LABEL, picks(LlmSpikeGui.PlayerControllerLLM.COST_CANCEL_LABEL));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "Village Rites offered");
+        ctrl.playChosenSpellAbility(r.get(0));
+        Assert.assertTrue(model.asked(LlmSpikeGui.PlayerControllerLLM.COST_CANCEL_LABEL), "the cost ask offered CANCEL");
+        Assert.assertEquals(g.getCardState(rites).getZone().getZoneType(), ZoneType.Hand, "the cancelled cast's card");
+        Assert.assertEquals(me.getCardsIn(ZoneType.Hand).indexOf(g.getCardState(rites)), 1, "at its old place in hand");
+        Assert.assertTrue(g.getStackZone().isEmpty(), "a card left in the Stack zone");
+        Assert.assertEquals(me.getCreaturesInPlay().size(), 2, "nothing sacrificed");
+        Assert.assertEquals(me.getManaPool().totalMana(), 0);
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
+    /** A rollback refunds only this play's mana (pr-review of harness-epoch-70): Siege-Gang Commander's "{1}{R},
+     *  Sacrifice a Goblin" activated and resolved, then activated again and cancelled at its sacrifice. The ability's
+     *  own object kept the first activation's mana (the stack took a copy), and the rollback put {1}{R} in the pool. */
+    @Test
+    public void aCancelledActivationRefundsNoEarlierMana() {
+        Game g = bareGame(PhaseType.MAIN1);
+        Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
+        lands(me, "Mountain", "Mountain", "Mountain", "Mountain");
+        card("Siege-Gang Commander", me, ZoneType.Battlefield);
+        card("Goblin Piker", me, ZoneType.Battlefield);
+        card("Goblin Piker", me, ZoneType.Battlefield);
+        int[] costAsks = {0};
+        Script model = new Script("CHOICE: 1").on("You have priority", choiceWith("ACTIVATE Siege-Gang Commander"))
+                .on("Choose the TARGET", choiceWith("Rival"))
+                .on(LlmSpikeGui.PlayerControllerLLM.COST_CANCEL_LABEL, p -> ++costAsks[0] == 1
+                        ? picks("Goblin Piker").apply(p) : picks(LlmSpikeGui.PlayerControllerLLM.COST_CANCEL_LABEL).apply(p));
+        LlmSpikeGui.PlayerControllerLLM ctrl = seat(g, model, model);
+        playAndResolve(ctrl, g, "Siege-Gang Commander's first activation");
+        Assert.assertEquals(rival.getLife(), 18, "the first activation resolved");
+        List<SpellAbility> r = ctrl.chooseSpellAbilityToPlay();
+        Assert.assertNotNull(r, "the second activation offered");
+        ctrl.playChosenSpellAbility(r.get(0));
+        Assert.assertEquals(costAsks[0], 2, "the second activation was cancelled at its sacrifice");
+        Assert.assertEquals(me.getManaPool().totalMana(), 0, "mana from the first activation refunded again");
+        Assert.assertEquals(me.getCardsIn(ZoneType.Battlefield).stream().filter(c -> c.isLand() && c.isTapped()).count(), 2L,
+                "the first activation's lands stay tapped");
+        Assert.assertEquals(ctrl.aiDelegationsCount(), 0);
+    }
+
     /** Strive adds its cost for each target beyond the first: Ajani's Presence ({W}, strive {2}{W}) with two Plains may
      *  take one target, with four two. */
     @Test

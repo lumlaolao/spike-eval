@@ -336,9 +336,10 @@ public final class LlmSpikeGui {
      *  harness. Probe with no blue source was "(not castable now)" and off the menu.
      *  Epoch 69 (2026-10-20, BENCHMARK-V2 phase 2): a Forge puzzle's brief starts at its goal line: no name, no
      *  difficulty label (the neutral brief). The rules puzzles lost theirs in epoch 67.
-     *  Epoch 70 (2026-10-20, LineFindingProbeTest): a play that fails to pay, or is cancelled at its cost, is rolled
-     *  back by the engine's own rollback: a cast from hand returns to the hand, paid costs are refunded and the stack
-     *  is unfrozen. The engine routine's recovery left the card in the Stack zone with nothing on the stack.
+     *  Epoch 70 (2026-10-20, LineFindingProbeTest): a play that fails to pay, is cancelled at its cost or is refused
+     *  by the stack for want of a target is rolled back by the engine's own rollback: a cast from hand returns to the
+     *  hand, the mana paid is refunded and the stack is unfrozen. The engine routine's recovery left the card in the
+     *  Stack zone with nothing on the stack.
      */
     static final String HARNESS_EPOCH = "harness-epoch-70";
 
@@ -4963,6 +4964,10 @@ public final class LlmSpikeGui {
             }
             if (!sa.isCopied()) { sa.resetPaidHash(); sa.setPaidLife(0); }
             sa = forge.game.GameActionUtil.addExtraKeywordCost(sa);
+            // As the human path does before paying (PlaySpellAbility.playAbility): an activated ability's own object keeps
+            // the mana of its last activation (the stack took a copy), which a rollback would otherwise refund again.
+            sa.clearManaPaid();
+            sa.getPayingManaAbilities().clear();
             // The engine routine's own check, once the card is on the stack (ComputerUtil.handlePlayingSpellAbility):
             // a static that forbids the play stops it here even if a menu missed it (rules pilot RP_207).
             if (!sa.checkRestrictions(ai)) {
@@ -4991,6 +4996,7 @@ public final class LlmSpikeGui {
                 if (!reaches) {
                     p("[ROUTER] play: " + labelOf(sa) + " paid but has no legal target -> the stack refused it");
                     playsNotMade++;
+                    forge.game.GameActionUtil.rollbackAbility(sa, castFrom, hzPos, pay, source);
                     return true;
                 }
                 playSeen(sa, hz);
@@ -5015,7 +5021,7 @@ public final class LlmSpikeGui {
             sa.setSkip(true);
             // The engine's own rollback, not the engine routine's recovery: that one moved the card back only when the
             // zone it was cast FROM was the Stack, so a failed cast from hand stayed in the Stack zone with nothing on
-            // the stack. This one puts the card back where it was, refunds what was paid and unfreezes the stack.
+            // the stack. This one puts the card back where it was, refunds the mana paid and unfreezes the stack.
             forge.game.GameActionUtil.rollbackAbility(sa, castFrom, hzPos, pay, source);
             return true;
         }

@@ -65,11 +65,12 @@ Evidence: acceptance preflight/classpath/compile/javatests/canary PASS at the ne
    the counts in `OWNERSHIP.md`).
 4b. **Re-diff the copied play routine.** `PlayerControllerLLM.playChosenSpellAbility` repeats the
    steps of `ComputerUtil.handlePlayingSpellAbility` so it can pay with `LlmCostDecision` (the engine
-   hard-codes `AiCostDecision` there). If upstream changed that method, port the change. One step differs on
-   purpose: a play that fails to pay is undone with `GameActionUtil.rollbackAbility` (the human path's rollback),
-   not the routine's recovery, which leaves a card cast from hand in the Stack zone (harness-epoch-70). The same holds
+   hard-codes `AiCostDecision` there). If upstream changed that method, port the change. The same holds
    for `PlayerControllerLLM.playNoStack`, a copy of `ComputerUtil.playNoStack` (effects and triggers
-   played without the stack).
+   played without the stack). Two steps of the play routine differ on purpose, both the human path's
+   (`PlaySpellAbility.playAbility`): the paying mana is cleared before the cost, and a play that does not
+   happen is undone with `GameActionUtil.rollbackAbility`, not the routine's recovery, which leaves a card
+   cast from hand in the Stack zone (harness-epoch-70).
    Every engine patch in `docs/harness/ENGINE-PATCHES.md` is re-diffed the same way, and its upstream
    sha256 recorded again (`eval/test_engine_patches.py` fails until it is).
 4c. **Re-check the copier workaround.** `PlayerLookahead.UncopiedEffects` reaches the private
