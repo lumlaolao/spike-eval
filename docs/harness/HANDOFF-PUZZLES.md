@@ -4,7 +4,7 @@ For a fresh session. Read `CLAUDE.md`, then `eval/PUZZLES.md` (the prover, accep
 `eval/puzzles/rules-pilot/REPORT.md` (batches 1 to 9), then this file.
 
 **Where it stands:** 526 converted rules puzzles, past the owner's 500 goal, landed with harness-epoch-66 (PR #270).
-The next step is the benchmark on a sample: `docs/harness/WORK-PLAN.md`, "The plan". The tracks below are how the
+The benchmark sample is done (PR #272); the next work is `docs/harness/BENCHMARK-V2.md`. The tracks below are how the
 suite was built and how to extend it.
 
 ## The owner's ask

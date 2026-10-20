@@ -8,6 +8,7 @@ decisions, not lookups), how many attempts called `rules_lookup`, and the median
 call; then the puzzles whose solve counts differ between the conditions. It reads the game JSONL
 (`context_tool` and `context_call` rows, which runs/ keeps and git does not) and the result rows.
 
+Exit 2 when a condition is missing or any attempt has no game log (its lookups cannot be counted).
 What it cannot say: whether a lookup helped, and it counts a solve as the result row's `solved` (a capped or
 deck-out solve is not filtered; `puzzle_score.py` scores those). Stdlib only.
 """
@@ -28,7 +29,7 @@ CONDITIONS = ("off", "on")
 def condition(dirpath):
     """{solved, attempts, per_puzzle {id: (c, k)}, lookups Counter, rules_attempts, call_secs []} for one condition."""
     out = {"solved": 0, "attempts": 0, "per_puzzle": {}, "lookups": collections.Counter(), "rules_attempts": 0,
-           "call_secs": []}
+           "call_secs": [], "games": 0}
     for d in sorted(glob.glob(os.path.join(dirpath, "*"))):
         rows = [json.loads(l) for f in glob.glob(d + "/puzzle-results.jsonl") for l in open(f) if l.strip()]
         c = sum(bool(r.get("solved")) for r in rows)
@@ -36,6 +37,7 @@ def condition(dirpath):
         out["solved"] += c
         out["attempts"] += len(rows)
         for g in sorted(glob.glob(d + "/game-*.jsonl")):
+            out["games"] += 1
             used = False
             for l in open(g):
                 r = json.loads(l)
@@ -51,12 +53,25 @@ def condition(dirpath):
 
 
 def report(root):
+    """The text, and whether it can be trusted: every attempt of both conditions has its game log."""
+    return report_checked(root)[0]
+
+
+def report_checked(root):
+    if not all(os.path.isdir(os.path.join(root, c)) for c in CONDITIONS):
+        return "no %s/ beside each other in %s" % ("/ and ".join(CONDITIONS), root), False
     by = {c: condition(os.path.join(root, c)) for c in CONDITIONS}
+    complete = all(by[c]["games"] >= by[c]["attempts"] > 0 for c in CONDITIONS)
     lines = []
     for c in CONDITIONS:
         x = by[c]
         lines.append("== %s: %d/%d attempts solved (%.0f%%), %d puzzles" % (
             c, x["solved"], x["attempts"], 100.0 * x["solved"] / max(x["attempts"], 1), len(x["per_puzzle"])))
+        if x["games"] < x["attempts"]:
+            # Without the logs a lookup count of zero would read as "none made" (pr-review of PR #272).
+            lines.append("   no game JSONL for %d of %d attempts: lookups not counted" % (
+                x["attempts"] - x["games"], x["attempts"]))
+            continue
         lines.append("   lookups: %s | attempts that called rules_lookup: %d" % (
             dict(x["lookups"].most_common()), x["rules_attempts"]))
         if x["call_secs"]:
@@ -67,14 +82,15 @@ def report(root):
     for p in sorted(off):
         if on.get(p) and off[p][0] != on[p][0]:
             lines.append("   %-14s %d/%d -> %d/%d" % (p, off[p][0], off[p][1], on[p][0], on[p][1]))
-    return "\n".join(lines)
+    return "\n".join(lines), complete
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("root", help="a run dir holding off/ and on/")
-    print(report(ap.parse_args(argv).root))
-    return 0
+    text, complete = report_checked(ap.parse_args(argv).root)
+    print(text)
+    return 0 if complete else 2
 
 
 if __name__ == "__main__":

@@ -74,7 +74,8 @@ once, isolated build `runs/puzzles/builds/e67`. Results: `results-e67/off/` and 
 | cost | $0.18 | $0.17 | $0.20 | $0.20 |
 
 Paired by puzzle (10,000 bootstrap resamples of the 29 puzzles, 95% interval), change in pass@1; written by
-`puzzle_score.py --paired-with` (puzzle ids sorted, seed 7; the last row with `--against`), for example, from the
+`puzzle_score.py --paired-with` (puzzle ids sorted, seed 7; the last row is `results/on --paired-with
+results-e67/on --against results/off results-e67/off`), for example, from the
 repository root with `D=eval/puzzles/rules-pilot/benchmark-v1`, `python3 eval/puzzle_score.py --suite
 eval/suites/puzzles-rules-sample-v1.json --split open --k 5 $D/results/off --paired-with $D/results-e67/off`:
 

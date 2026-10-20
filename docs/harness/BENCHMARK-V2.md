@@ -11,7 +11,8 @@ in our own sample v1 numbers.
 ## 1. Why v2
 
 Sample v1 (29 rules puzzles, k=5, GPT-6 Luna) measured 130/145 solved with tools off and 130/145 with them
-on, PUZ 0.81. That number cannot move, so it cannot rank models or show a harness change. The reasons are in
+on at epoch 66, PUZ 0.81; at epoch 67, with the brief no longer naming the trick, 119/145 off and 127/145 on. Near
+the ceiling either way, it cannot rank strong models or show a harness change. The reasons are in
 the data, not in the model:
 
 | Finding | Evidence | Consequence |

@@ -17,6 +17,13 @@ random, PASS and first-option policies) and a 95% bootstrap CI over puzzles. The
 k=1, where it is the solved share) also carry a Wilson interval: a bootstrap over puzzles reports 0 of 21 as
 [0, 0], a certainty it does not have, where Wilson gives 0 to 3.2.
 
+Paired mode (--paired-with B, and --against C D): two runs on the same puzzles of the same suite, split and k,
+compared puzzle by puzzle. It prints the mean per-puzzle pass@1 difference B - A (or the difference of differences
+(B - A) - (D - C)), its percentile bootstrap interval over puzzles (ids sorted, --paired-bootstrap resamples,
+--paired-seed) and its clustered normal interval. What it cannot say: it resamples puzzles only (the attempt
+noise is inside each per-puzzle rate), it does not correct for several comparisons, and result rows written
+before harness_epoch was stamped cannot be told apart by epoch.
+
 Refuses (exit 2) to: pool the open and held-out splits, mix suite versions or puzzle versions, mix
 solvers, score a puzzle with fewer than k attempts, or score an unscoreable row. Stdlib only.
 """
@@ -315,6 +322,12 @@ def paired(rep_a, rep_b, base=None, n_boot=10000, seed=7):
             "difference_of_differences": bool(base)}
 
 
+def signed(x):
+    """A difference to three places with its sign; one that rounds to zero prints +0.000, never -0.000."""
+    x = round(x, 3)
+    return "%+.3f" % (0.0 if x == 0 else x)
+
+
 def _fmt(x):
     return "-" if x is None else ("%.3f" % x if isinstance(x, float) else str(x))
 
@@ -366,6 +379,8 @@ def main(argv=None):
                     help="also score these results (same suite, split, k) and print B minus A, puzzle by puzzle")
     ap.add_argument("--against", nargs=2, default=None, metavar=("C", "D"),
                     help="with --paired-with: the difference of differences (B - A) - (D - C); C and D are dirs")
+    ap.add_argument("--paired-bootstrap", type=int, default=10000, help="resamples for the paired interval")
+    ap.add_argument("--paired-seed", type=int, default=7, help="RNG seed for the paired interval")
     ap.add_argument("results", nargs="+")
     a = ap.parse_args(argv)
     if a.k < 1:
@@ -385,14 +400,14 @@ def main(argv=None):
         try:
             other = lambda paths: score(manifest, load_rows(paths), a.split, a.k, a.solver, a.bootstrap, a.seed, ids)  # noqa: E731
             base = (other([a.against[0]]), other([a.against[1]])) if a.against else None
-            rep["paired"] = paired(rep, other(a.paired_with), base, n_boot=10000, seed=7)
+            rep["paired"] = paired(rep, other(a.paired_with), base, n_boot=a.paired_bootstrap, seed=a.paired_seed)
         except Refused as e:
             print("REFUSED: %s" % e, file=sys.stderr)
             return 2
         c = rep["paired"]
-        print("  paired %-30s %+.3f  95%% CI %s  clustered %s  (%d puzzles, ids sorted, 10000 resamples, seed 7)"
-              % ("(B - A) - (D - C)" if c["difference_of_differences"] else "B - A", c["mean"] + 0.0, _ci(c["ci95"]),
-                 _ci(c["ci95_clustered"]), c["n_puzzles"]))
+        print("  paired %-30s %s  95%% CI %s  clustered %s  (%d puzzles, ids sorted, %d resamples, seed %d)"
+              % ("(B - A) - (D - C)" if c["difference_of_differences"] else "B - A", signed(c["mean"]), _ci(c["ci95"]),
+                 _ci(c["ci95_clustered"]), c["n_puzzles"], a.paired_bootstrap, a.paired_seed))
     if a.json:
         Path(a.json).write_text(json.dumps(rep, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return 0
