@@ -35,7 +35,7 @@ import forge.game.zone.ZoneType;
 final class DemoFeed {
     static final String VERSION = "demo-feed-v1";
 
-    private static DemoFeed active;
+    private static volatile DemoFeed active;  // read unlocked by beforeDecisionRow (the EvalLog writer)
 
     private final Game game;
     private final File gameFile;
@@ -87,8 +87,47 @@ final class DemoFeed {
         if (active != null) { active.over = true; active.out.close(); active = null; }
     }
 
+    /** Called by EvalLog just before it writes a decision row: the seat hands out handles while it renders a prompt,
+     *  with no game event between that render and the row, so the map is written here, at the row's offset. */
+    static void beforeDecisionRow() {
+        DemoFeed f = active;
+        if (f == null) return;
+        try {
+            f.handlesRow();
+        } catch (Throwable t) {
+            // The screen loses this frame; the game goes on.
+        }
+    }
+
+    private synchronized void handlesRow() {
+        if (over) return;
+        JsonObject hm = grownHandles();
+        if (hm.size() == 0) return;
+        JsonObject row = new JsonObject();
+        row.addProperty("t", "feed_handles");
+        row.add("handles", hm);
+        row.addProperty("seq", seq++);
+        row.addProperty("jsonl_offset", gameFile.length());
+        out.println(row.toString());
+    }
+
+    /** Each seat's handle -> engine id map that grew since it was last written. */
+    private JsonObject grownHandles() {
+        JsonObject hm = new JsonObject();
+        for (Map.Entry<String, SeatObservation> e : observers.entrySet()) {
+            Map<Integer, Integer> m = e.getValue().handleMap();
+            Integer sent = handlesSent.get(e.getKey());
+            if (sent != null && sent == m.size()) continue;
+            handlesSent.put(e.getKey(), m.size());
+            JsonObject one = new JsonObject();
+            for (Map.Entry<Integer, Integer> h : m.entrySet()) one.addProperty(String.valueOf(h.getKey()), h.getValue());
+            hm.add(e.getKey(), one);
+        }
+        return hm;
+    }
+
     @Subscribe
-    public void on(GameEvent e) {
+    public synchronized void on(GameEvent e) {
         try {
             if (over) return;
             snapshot(e instanceof GameEventGameOutcome);
@@ -148,17 +187,8 @@ final class DemoFeed {
         String body = row.toString();
         if (!force && body.equals(last)) return;
         last = body;
-        for (Map.Entry<String, SeatObservation> e : observers.entrySet()) {
-            Map<Integer, Integer> m = e.getValue().handleMap();
-            Integer sent = handlesSent.get(e.getKey());
-            if (sent != null && sent == m.size()) continue;
-            handlesSent.put(e.getKey(), m.size());
-            JsonObject hm = row.has("handles") ? row.getAsJsonObject("handles") : new JsonObject();
-            JsonObject one = new JsonObject();
-            for (Map.Entry<Integer, Integer> h : m.entrySet()) one.addProperty(String.valueOf(h.getKey()), h.getValue());
-            hm.add(e.getKey(), one);
-            row.add("handles", hm);
-        }
+        JsonObject hm = grownHandles();
+        if (hm.size() > 0) row.add("handles", hm);
         row.addProperty("seq", seq++);
         row.addProperty("jsonl_offset", gameFile.length());
         out.println(row.toString());

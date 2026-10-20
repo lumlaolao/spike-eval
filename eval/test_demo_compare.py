@@ -8,7 +8,7 @@ import unittest
 import demo_compare as dc
 
 OBS = "class SeatObservation {\n" + dc.OBS_ANCHOR + "}\n"
-GUI = "class LlmSpikeGui {\n" + dc.CTRL_ANCHOR + "}\n"
+GUI = "class LlmSpikeGui {\n" + dc.CTRL_ANCHOR + dc.WRITE_ANCHOR + "}\n"
 
 
 class PortTest(unittest.TestCase):
@@ -28,12 +28,23 @@ class PortTest(unittest.TestCase):
             return f.read()
 
     def test_the_feed_and_its_two_hooks_are_ported_once(self):
-        self.assertEqual(dc.port_feed(self.tree), ["DemoFeed.java", "SeatObservation.java", "LlmSpikeGui.java"])
+        self.assertEqual(dc.port_feed(self.tree), ["DemoFeed.java", "SeatObservation.java", "LlmSpikeGui.java", "LlmSpikeGui.java"])
         self.assertIn("Map<Integer, Integer> handleMap()", self.read("SeatObservation.java"))
         self.assertIn("DemoFeed.attach(game, seat, observer);", self.read("LlmSpikeGui.java"))
         self.assertTrue(os.path.isfile(os.path.join(self.spike, "DemoFeed.java")))
         self.assertEqual(dc.port_feed(self.tree), ["DemoFeed.java"])  # a second port adds nothing
         self.assertEqual(self.read("LlmSpikeGui.java").count("DemoFeed.attach"), 1)
+        self.assertEqual(self.read("LlmSpikeGui.java").count("DemoFeed.beforeDecisionRow"), 1)
+
+    def test_the_ported_decision_hook_is_the_current_one(self):
+        with open(os.path.join(dc.REPO, dc.SPIKE, "LlmSpikeGui.java")) as f:
+            self.assertIn(dc.WRITE_HOOK, f.read())
+
+    def test_the_ported_handle_map_is_the_current_one(self):
+        with open(os.path.join(dc.REPO, dc.SPIKE, "SeatObservation.java")) as f:
+            current = f.read()
+        sig = "Map<Integer, Integer> handleMap() {"
+        self.assertIn(sig + dc.OBS_HOOK.split(sig, 1)[1], current)
 
     def test_a_tree_without_the_anchor_is_refused_not_guessed(self):
         with open(os.path.join(self.spike, "LlmSpikeGui.java"), "w") as f:
@@ -47,7 +58,7 @@ class ArmTest(unittest.TestCase):
         cmd = dc.arm_command("/r", "/home", 4201, "/a.txt", "/b.txt", "openrouter:x/y", 0.4, "/out")
         flat = " ".join(cmd)
         for part in ("--seeds 4201", "--budget-usd 0.4", "--forge-home /home", "--controller-a llm",
-                     "--controller-b ai", "--smart-a openrouter:x/y", "--fast-a openrouter:x/y", "--env DEMO_FEED=1",
+                     "--controller-b ai", "--context-profile v4-faithful", "--smart-a openrouter:x/y", "--fast-a openrouter:x/y", "--env DEMO_FEED=1",
                      "--exploratory", "--out /out"):
             self.assertIn(part, flat)
 

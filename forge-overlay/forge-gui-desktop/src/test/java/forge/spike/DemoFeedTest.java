@@ -46,6 +46,8 @@ public class DemoFeedTest {
 
     /** One fixed game: the seat holds Lightning Bolt, the rival holds Counterspell (hidden from the seat). The seat
      *  is asked, a card moves (a zone-change event the feed answers), and the seat is asked again. */
+    private static int boltId;
+
     private static List<String> play(boolean feed, Path dir) throws Exception {
         LlmSpikeGui.EvalLog.closeForTest();
         DemoFeed.closeForTest();
@@ -54,7 +56,7 @@ public class DemoFeedTest {
             Game g = LineFindingProbeTest.bareGame(PhaseType.MAIN1);
             Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
             LineFindingProbeTest.card("Mountain", me, ZoneType.Battlefield);
-            LineFindingProbeTest.card("Lightning Bolt", me, ZoneType.Hand);
+            boltId = LineFindingProbeTest.card("Lightning Bolt", me, ZoneType.Hand).getId();
             LineFindingProbeTest.card("Counterspell", rival, ZoneType.Hand);
             Card bears = LineFindingProbeTest.card("Grizzly Bears", rival, ZoneType.Library);
             LineFindingProbeTest.Recorder model = new LineFindingProbeTest.Recorder("CHOICE: 99");
@@ -81,8 +83,20 @@ public class DemoFeedTest {
         String rows = new String(Files.readAllBytes(feed));
         Assert.assertTrue(rows.contains("\"name\":\"Counterspell\""), "the rival's hidden hand is on the feed: " + rows);
         Assert.assertTrue(rows.contains("\"name\":\"Grizzly Bears\""), "the moved card is on the feed: " + rows);
-        Assert.assertTrue(rows.contains("\"handles\":{\"Seat\":{"), "the seat's handle map is on the feed: " + rows);
-        Assert.assertTrue(rows.contains("\"jsonl_offset\":"), rows);
+        // The prompt that first showed the Bolt is followed by a decision row; the feed maps the Bolt's handle at
+        // or before that row's offset, so the decision's highlights reach it (no game event comes in between).
+        Path game = null;
+        for (Path p : Files.newDirectoryStream(dir)) if (p.getFileName().toString().startsWith("game-")) game = p;
+        String jsonl = new String(Files.readAllBytes(game));
+        long decisionAt = jsonl.substring(0, jsonl.indexOf("{\"t\":\"decision\"")).getBytes().length;
+        boolean mapped = false;
+        for (String line : rows.split("\n")) {
+            com.google.gson.JsonObject r = com.google.gson.JsonParser.parseString(line).getAsJsonObject();
+            if (!r.has("handles") || r.get("jsonl_offset").getAsLong() > decisionAt) continue;
+            for (java.util.Map.Entry<String, com.google.gson.JsonElement> h : r.getAsJsonObject("handles").getAsJsonObject("Seat").entrySet())
+                if (h.getValue().getAsInt() == boltId) mapped = true;
+        }
+        Assert.assertTrue(mapped, "the Bolt's handle is mapped by the first decision row (at " + decisionAt + "): " + rows);
     }
 
     @Test

@@ -365,7 +365,11 @@ public final class LlmSpikeGui {
                 System.out.println("[EVAL] jsonl " + file.getName());
             } catch (Exception e) { System.out.println("[EVAL] log init failed: " + e); }
         }
-        static synchronized void write(String json) { if (out != null) out.println(json); }
+        static synchronized void write(String json) {
+            if (out == null) return;
+            if (json.startsWith("{\"t\":\"decision\"")) DemoFeed.beforeDecisionRow();  // display only (DEMO_FEED)
+            out.println(json);
+        }
         static boolean on() { return out != null; }
         /** The file currently being written (null if EVAL_OUT unset). LlmSpikeFork's check mode reads
          *  this back after the game ends to compare the replayed decision stream against FORK_SOURCE. */

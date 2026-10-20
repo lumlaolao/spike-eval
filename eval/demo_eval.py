@@ -4,13 +4,12 @@
   python3 eval/demo_eval.py --acceptance /tmp/acc-<sha>            # print the report the page shows (JSON)
   python3 eval/demo_server.py --game runs/loop/g33 --acceptance /tmp/acc-<sha>   # then open /eval.html
 
-Three blocks, each read, never typed in:
+Two blocks, read from a scorer or a summary line; the one typed-in number is the per-game cost range from CLAUDE.md:
   1. The acceptance gate: every stage of one harness_acceptance.sh run (its OUT dir's summary.txt), with the two
      zero-model canaries checked against their pins (the canary stages fail when a pin moves).
   2. The headline scores (CLAUDE.md, "The benchmark"), each next to its floors. PUZ is computed here by
      puzzle_score.score from the recorded benchmark-v1 results; STR-AI and STR-HELDOUT are shown as not yet run,
-     with the panel's size and the cost of running it (CLAUDE.md, "Cost of paid runs"), until a panel root is given.
-  3. Nothing else: no number on the page comes from anywhere but a scorer or a summary line.
+     with the panel's size and the cost of running it at CLAUDE.md's per-game range ("Cost of paid runs"), until a panel root is given.
 Stdlib only.
 """
 import argparse
@@ -21,6 +20,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import panel_score  # noqa: E402
 import puzzle_format as pf  # noqa: E402
 import puzzle_score as ps  # noqa: E402
 
@@ -69,13 +69,10 @@ def puz():
 
 
 def panel_plan(panel):
-    with open(PANELS) as f:
-        p = json.load(f)
-    spec = p["panels"][panel]
-    lo, hi = (int(x) for x in spec["seeds"].split(".."))
-    games = len(spec["cells"]) * (hi - lo + 1) * (2 if spec.get("pairs") else 1)
-    return {"panel": panel, "cells": len(spec["cells"]), "games": games,
-            "cost_usd": [round(games * c, 2) for c in GAME_COST_USD], "seeds": spec["seeds"]}
+    spec, _, _ = panel_score.load_panel(PANELS, panel)
+    games = len(spec["cells"]) * len(panel_score.parse_seed_spec(spec["seeds"])) * (2 if spec.get("pairs") else 1)
+    return {"panel": panel, "cells": len(spec["cells"]), "games": games, "seeds": spec["seeds"],
+            "cost_usd": [round(games * c, 2) for c in GAME_COST_USD], "game_cost_usd": list(GAME_COST_USD)}
 
 
 def report(acceptance_dir=None):

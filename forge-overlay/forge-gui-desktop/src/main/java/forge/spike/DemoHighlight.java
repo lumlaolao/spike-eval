@@ -51,18 +51,18 @@ final class DemoHighlight {
     static void watch(HostedMatch hosted, String path) {
         Thread t = new Thread(() -> {
             File f = new File(path);
-            long seen = -1;
+            String seen = null;  // the file's content last applied: mtime can be one second coarse
             List<CardView> shown = new ArrayList<>();
             while (true) {
                 try {
                     Thread.sleep(250);
-                    long m = f.lastModified();
-                    if (m == 0 || m == seen) continue;
-                    seen = m;
+                    if (!f.isFile()) continue;
+                    String m = new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8);
+                    if (m.equals(seen)) continue;
                     IGuiGame gui = spectator;
                     Game game = hosted.getGame();
-                    if (gui == null || game == null) continue;
-                    JsonObject o = JsonParser.parseString(new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8)).getAsJsonObject();
+                    if (gui == null || game == null) continue;  // not yet: try this file again next tick
+                    JsonObject o = JsonParser.parseString(m).getAsJsonObject();
                     List<CardView> next = new ArrayList<>();
                     JsonArray ids = o.has("ids") ? o.getAsJsonArray("ids") : new JsonArray();
                     for (JsonElement e : ids) {
@@ -75,6 +75,7 @@ final class DemoHighlight {
                     repaint.addAll(next);
                     if (!repaint.isEmpty()) gui.updateCards(repaint);
                     shown = next;
+                    seen = m;
                 } catch (InterruptedException e) {
                     return;
                 } catch (Throwable ignore) {

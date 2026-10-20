@@ -177,8 +177,7 @@ class Pane {
     if (!st) { el.innerHTML = `<p class="engine-note">${this.waitingForFile ? "No game file yet." : "No board yet (no prompt recorded before this decision)."}</p>`; return; }
     const stale = d.state_from !== d.i ? `<p class="engine-note">forced pick (no prompt): the board shown is the seat's last prompt.</p>` : "";
     const opp = st.players.filter(p => p.kind === "OPP"), you = st.players.filter(p => p.kind === "YOU");
-    this.feed = d.feed || null;
-    if (this.feed) {
+    if (d.feed) {
       const fps = feedPlayers(d, st);
       el.innerHTML = `<p class="engine-note">board: engine truth from the audience feed; the seat's own view is its prompt (below the trace)</p>` +
         fps.filter(p => p.kind === "OPP").map(p => this.playerHtml(p, hl)).join("") + this.middleHtml(st, hl) +
@@ -225,8 +224,8 @@ class Pane {
     const title = [o.name, o.was != null ? `@${o.handle} (was @${o.was}: a zone change made a new object)` : o.handle != null ? `@${o.handle}` : "",
       (o.notes || []).join("; "), h ? `${KIND_LABEL[h.kind] || h.kind}: ${h.evidence || ""}` : "",
       h && h.engine && h.kind !== "engine" ? `engine: ${h.engine}` : ""].filter(Boolean).join("\n");
-    // The image is Scryfall's printed card; everything the game changed (P/T, tags, counters) is in the caption
-    // under it, never drawn over the card (its credit line stays visible). No image: the text tile.
+    // The image is Scryfall's printed card. With the audience feed, Forge-style chips (P/T, damage, counters, combat,
+    // sickness) sit on its corners; everything else the game changed is in the caption under it. No image: the text tile.
     // Forge's own panel puts the current P/T over the printed box: green above the printed value, red below or damaged.
     let ptChip = "";
     if (o.pt && o.base_pt) {
@@ -431,6 +430,7 @@ const app = {
     $("#prev").onclick = () => this.step(-1);
     $("#next").onclick = () => this.step(1);
     $("#play").onclick = () => this.toggle();
+    $("#logonly").onclick = () => { document.body.classList.toggle("logonly"); this.toHash(); };
     $("#turn").onchange = ev => {
       const t = +ev.target.value, p = this.panes[0];
       const n = p.decisions.findIndex(d => d.turn >= t);
@@ -461,9 +461,11 @@ const app = {
   },
   toHash() {
     const p = this.panes[0];
-    if (p) history.replaceState(null, "", `#d=${p.cur + 1}`);
+    if (p) history.replaceState(null, "", `#d=${p.cur + 1}${document.body.classList.contains("logonly") ? "&log" : ""}`);
   },
   fromHash() {
+    // &log: the log-only layout, for a browser beside Forge's own match window (which draws the board).
+    document.body.classList.toggle("logonly", /(^|[#&])log(&|$)/.test(location.hash));
     const m = /d=(\d+)/.exec(location.hash);
     if (m && this.panes[0]) this.panes[0].cur = Math.max(0, Math.min(+m[1] - 1, this.panes[0].decisions.length - 1));
   },

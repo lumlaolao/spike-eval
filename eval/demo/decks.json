@@ -1,4 +1,5 @@
 {
+  "version": "demo-decks-v1",
   "_note": "The demo's fixed deck sets (docs/harness/DEMO.md): decks that make real decisions for the model's seat, against Forge AI decks it pilots well. Each name is eval/decks/<name>.txt.",
   "agent": {
     "vintage-esper-control": "Vintage control: counters, removal, card selection",

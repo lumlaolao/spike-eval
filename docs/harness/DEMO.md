@@ -57,13 +57,17 @@ DEMO_FEED=1 DEMO_HIGHLIGHT_FILE=/tmp/demo-hl.json EVAL_OUT=runs/demo/live bash $
 After each decision the server writes the engine ids of that decision's highlighted cards (the same ones the
 browser marks); `DemoHighlight.java` polls the file and gives those cards Forge's own highlight frame. It is display
 only: it never reads or writes anything the seat reads. Put the Forge window and the browser side by side: the
-window is the board, the browser is the agent's log, plan and highlights. On a fresh Forge home, Forge may open a
+window is the board, the browser is the agent's log, plan and highlights. The **log only** button (or `&log` in the URL, e.g. `#d=37&log`) hides the page's board so the
+log and plan get the width. On a fresh Forge home, Forge may open a
 bug-report dialog at start-up (a default gauntlet file it cannot load); click Discard once.
 
 ## Side by side: the current harness against a real older one
 
 `eval/demo_compare.py` plays the same model, seed and decks against Forge's AI twice: on this checkout and on an
-older commit of the harness on the same engine pin (refused otherwise). The decks come from the fixed sets in
+older commit of the harness on the same engine pin (refused otherwise). Each arm runs its own engine patches: build-then and build-now
+compile, into each arm's isolated classes, that tree's overlay copy of every engine file either tree patches, or the
+stock source when it has none (listed in the build's `engine-patches.txt`), so neither inherits what `install.sh`
+last put in the checkout. Both arms play the faithful profile (`--context-profile v4-faithful`). The decks come from the fixed sets in
 `eval/demo/decks.json` (`demo_compare.py decks` lists them): control and storm decks for the model, aggro decks for
 Forge's AI.
 
@@ -75,7 +79,7 @@ python3 eval/demo_compare.py run --seed 4201 --deck-a vintage-esper-control --de
 python3 eval/demo_server.py --game runs/demo/pair-4201/now --game runs/demo/pair-4201/then
 ```
 
-A paid pair (`--model openrouter:openai/gpt-6-luna --budget-usd 0.40`, about $0.05 to $0.30) needs the owner's
+A paid pair (`--model openrouter:openai/gpt-6-luna --budget-usd 0.40`, split between the two arms; two one-tier games at CLAUDE.md's $0.02 to $0.05 each) needs the owner's
 egress consent. In the viewer, the two panes step in lockstep by turn and phase, and the **first divergence** button
 jumps both to the first decision where the games part: the same question answered differently, or (if the
 engine asked different questions) the point where they had already parted. Viewer-local `@handles` are ignored when
@@ -89,11 +93,11 @@ python3 eval/demo_server.py --game runs/loop/g33 --acceptance /tmp/acc-<sha>    
 # open http://127.0.0.1:8765/eval.html  (also linked from the viewer's top bar)
 ```
 
-`demo_eval.py` builds the page from files on disk: every stage of that acceptance run (its `summary.txt`, the
-canaries checked against their pins), PUZ computed by `puzzle_score.score` from the recorded Luna runs in
+`demo_eval.py` builds the page from files on disk: every stage of that acceptance run as its `summary.txt` reports
+it (the canary stages themselves fail when a pin moves), PUZ computed by `puzzle_score.score` from the recorded Luna runs in
 `eval/puzzles/rules-pilot/benchmark-v1/` (each condition's headline, 95% interval and floors, as a forest plot), and
 STR-AI and STR-HELDOUT shown as not yet run, with the mirror panel's size (16 cells, 1600 games) and its cost ($32 to
-$80). No number on the page is typed in.
+$80, at CLAUDE.md's $0.02 to $0.05 a game). Every other number on the page is read from a scorer or a summary.
 
 ## A walkthrough (about ten minutes)
 
@@ -112,7 +116,7 @@ Fallback: everything in steps 1 to 4 is a recording and works offline once the i
 | Pane | Source |
 |---|---|
 | board, life, counters, stack, combat, FACTS | the decision row's `prompt` (`demo_state.parse_prompt`); a row with no prompt (`tier: auto`) shows the seat's last prompt and says so |
-| card images | Scryfall's printed card by exact name (`demo_cards.py`, cached in `~/.cache/mtg-forge-demo/cards`); what the game changed (P/T, tags, counters, `@handle`) is in the caption under the image, never drawn on it; a token or unknown name keeps its text tile |
+| card images | Scryfall's printed card by exact name (`demo_cards.py`, cached in `~/.cache/mtg-forge-demo/cards`); what the game changed (P/T, tags, counters, `@handle`) is in the caption under the image; with the audience feed, P/T, damage, counter and combat chips sit on the card's corners as in Forge's own panel; a token or unknown name keeps its text tile |
 | a row the model was not asked | labelled by `match_review.classify_auto`: forced (one legal choice), TAKEN or LOST (the harness decided: a defect), or other; a `tier: ai` row is Forge's AI choosing for the seat, an `ai=0` breach |
 | opponent's hand | with the audience feed, the real cards in a labelled audience-only box; without it, face-down tiles, as the seat saw it |
 | decision text and options, the chosen one marked | the decision row (`options`, `choice`, `picks`) and the `answer` call |

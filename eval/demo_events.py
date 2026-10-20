@@ -65,7 +65,6 @@ class Builder:
         self.pending = {}       # seat -> list of calls (each with its tools) since that seat's last decision
         self.last_state = {}    # seat -> index of the last decision event with a parsed state
         self.plans = {}         # seat -> its latest set_plan arguments
-        self.start = None       # byte offset of the row being added (Reader sets it)
         self.feed_at = None     # offset -> the audience feed's snapshot written before it (Reader sets it)
         self.handles_at = None  # (offset, seat) -> engine id -> handle, from the feed (Reader sets it)
         self.game = None
@@ -75,7 +74,6 @@ class Builder:
         return self.pending.setdefault(seat, [])
 
     def add(self, row, start=None):
-        self.start = start
         t = row.get("t")
         seat = row.get("seat")
         if t == "context_call":
@@ -96,7 +94,7 @@ class Builder:
             target["tools"].append({"name": name, "args": args, "result": row.get("result") or "",
                                     "request": row.get("request") or ""})
         elif t == "decision":
-            self._decision(row)
+            self._decision(row, start)
         elif t == "window":
             # One event per row, never changed after it is sent: a live client fetches only new events, so a merged
             # marker would keep its first count. The viewer collapses runs of them for display.
@@ -106,7 +104,7 @@ class Builder:
             self.game = summarize_game(row)
             self.events.append(dict(self.game, kind="game", i=len(self.events)))
 
-    def _decision(self, row):
+    def _decision(self, row, start=None):
         seat = row.get("seat")
         calls = self.pending.pop(seat, [])
         tools = [tool for c in calls for tool in c["tools"]]
@@ -134,9 +132,9 @@ class Builder:
         }
         # The engine-truth snapshot (DemoFeed) written before this row: what was really in both hands when the seat
         # was asked. Audience only: nothing of it reaches the seat or the highlights.
-        ev["feed"] = self.feed_at(self.start) if self.feed_at and self.start is not None else None
+        ev["feed"] = self.feed_at(start) if self.feed_at and start is not None else None
         # engine id -> this seat's @handle at that moment, so the seat's highlights land on the true cards.
-        ev["feed_handles"] = self.handles_at(self.start, seat) if self.handles_at and self.start is not None else None
+        ev["feed_handles"] = self.handles_at(start, seat) if self.handles_at and start is not None else None
         if state:
             self.last_state[seat] = len(self.events)
         if ev["plan"]:
@@ -186,8 +184,10 @@ class Reader:
 
     def feed_at(self, offset):
         """The last feed snapshot written while the game JSONL was at most `offset` bytes long."""
-        i = self._index_at(offset)
-        return self.feed.rows[i] if i >= 0 else None
+        for i in range(self._index_at(offset), -1, -1):
+            if "players" in self.feed.rows[i]:  # a handles-only row carries no board
+                return self.feed.rows[i]
+        return None
 
     def handles_at(self, offset, seat):
         """engine id -> @handle for `seat` as of that snapshot. The feed writes a seat's map only when it grows."""
@@ -198,12 +198,13 @@ class Reader:
         return None
 
     def poll(self):
-        """Parse every complete line appended since the last poll; return the number of new events. The feed is read
-        first: a decision row is written after every feed row that precedes it."""
+        """Parse every complete line appended since the last poll; return the number of new events. The game file is
+        read before the feed: every feed row a game row follows was written before it, so it is already on disk."""
+        lines = list(read_lines(self.path, self))
         if self.feed:
             self.feed.poll()
         before = len(self.builder.events)
-        for line, at in read_lines(self.path, self):
+        for line, at in lines:
             try:
                 self.builder.add(json.loads(line.decode("utf-8")), at)
             except ValueError:

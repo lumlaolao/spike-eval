@@ -196,6 +196,43 @@ class FeedTest(unittest.TestCase):
             self.assertEqual(d1["feed"]["players"][0]["hand"], [{"name": "Bolt"}])
             self.assertEqual(d2["feed_handles"], {"40": 1})  # carried from the last row that wrote A's map
 
+    def test_the_handles_row_written_at_a_decision_maps_its_new_cards_and_carries_no_board(self):
+        with tempfile.TemporaryDirectory() as d:
+            game, feed = os.path.join(d, "game-7-1.jsonl"), os.path.join(d, "feed-7-1.jsonl")
+            with open(game, "w") as f:
+                f.write(json.dumps({"t": "decision", "seat": "A", "turn": 1, "type": "play", "choice": 0,
+                                    "options": ["x"]}) + "\n")
+            snaps = [{"t": "feed", "seq": 0, "jsonl_offset": 0, "players": [{"name": "B"}], "handles": {"A": {"1": 40}}},
+                     {"t": "feed_handles", "seq": 1, "jsonl_offset": 0, "handles": {"A": {"1": 40, "2": 41}}}]
+            with open(feed, "w") as f:
+                f.write("".join(json.dumps(s) + "\n" for s in snaps))
+            (ev,) = [e for e in de.load(game).events if e["kind"] == "decision"]
+            self.assertEqual(ev["feed"]["seq"], 0)                   # the board, not the handles-only row
+            self.assertEqual(ev["feed_handles"], {"40": 1, "41": 2})  # the card first shown in this prompt
+
+    def test_a_live_poll_never_gives_a_decision_a_board_older_than_its_row(self):
+        with tempfile.TemporaryDirectory() as d:
+            game, feed = os.path.join(d, "game-7-1.jsonl"), os.path.join(d, "feed-7-1.jsonl")
+            open(game, "w").close()
+            with open(feed, "w") as f:
+                f.write(json.dumps({"t": "feed", "seq": 0, "jsonl_offset": 0, "players": []}) + "\n")
+            r = de.Reader(game)
+            real = r.feed.poll
+
+            def late_rows():  # a feed row and its decision row land just after the feed was read
+                real()
+                with open(feed, "a") as f:
+                    f.write(json.dumps({"t": "feed", "seq": 1, "jsonl_offset": 0, "players": []}) + "\n")
+                with open(game, "a") as f:
+                    f.write(json.dumps({"t": "decision", "seat": "A", "turn": 1, "type": "play", "choice": 0,
+                                        "options": ["x"]}) + "\n")
+            r.feed.poll = late_rows
+            r.poll()
+            r.feed.poll = real
+            r.poll()
+            (ev,) = [e for e in r.events if e["kind"] == "decision"]
+            self.assertEqual(ev["feed"]["seq"], 1)
+
     def test_without_a_feed_file_a_decision_has_no_feed(self):
         (ev,) = decisions(events("g33-simulate.jsonl"))
         self.assertIsNone(ev["feed"])

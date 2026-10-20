@@ -30,6 +30,7 @@ import sys
 import time
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SIBLINGS = os.path.dirname(REPO)  # the default worktree and build dirs sit beside the checkout
 DECKS = os.path.join(REPO, "eval", "demo", "decks.json")
 SPIKE = "forge-overlay/forge-gui-desktop/src/main/java/forge/spike"
 OBS_ANCHOR = "    Player viewer() { return viewer; }\n"
@@ -43,15 +44,23 @@ OBS_HOOK = OBS_ANCHOR + """
 """
 CTRL_ANCHOR = "            if (observer != null && MEMORY_TOOLS) contextMemory.setInspector(observer::inspect);\n"
 CTRL_HOOK = CTRL_ANCHOR + "            DemoFeed.attach(game, seat, observer);  // display-only, ported by demo_compare.py\n"
+WRITE_ANCHOR = "        static synchronized void write(String json) { if (out != null) out.println(json); }\n"
+WRITE_HOOK = """        static synchronized void write(String json) {
+            if (out == null) return;
+            if (json.startsWith("{\\"t\\":\\"decision\\"")) DemoFeed.beforeDecisionRow();  // display only (DEMO_FEED)
+            out.println(json);
+        }
+"""
 
 
 def port_feed(tree, source=REPO):
-    """Copy DemoFeed into an older overlay and add its two hooks; idempotent. Returns the files changed."""
+    """Copy DemoFeed into an older overlay and add its three hooks; idempotent. Returns the hooks' files changed."""
     spike = os.path.join(tree, SPIKE)
     changed = []
     shutil.copyfile(os.path.join(source, SPIKE, "DemoFeed.java"), os.path.join(spike, "DemoFeed.java"))
     changed.append("DemoFeed.java")
-    for name, anchor, hook in (("SeatObservation.java", OBS_ANCHOR, OBS_HOOK), ("LlmSpikeGui.java", CTRL_ANCHOR, CTRL_HOOK)):
+    for name, anchor, hook in (("SeatObservation.java", OBS_ANCHOR, OBS_HOOK), ("LlmSpikeGui.java", CTRL_ANCHOR, CTRL_HOOK),
+                               ("LlmSpikeGui.java", WRITE_ANCHOR, WRITE_HOOK)):
         path = os.path.join(spike, name)
         with open(path, encoding="utf-8") as f:
             text = f.read()
@@ -81,24 +90,72 @@ def standin_home(home, classes, classpath, forge, java="java"):
     return script
 
 
-def arm_command(repo, forge_home, seed, deck_a, deck_b, model, budget, out, answer_tool=True):
+def arm_command(repo, forge_home, seed, deck_a, deck_b, model, budget, out):
     """One arm's run_batch.py command: the llm seat on `model` against Forge's AI, with the audience feed on."""
-    cmd = [sys.executable, os.path.join(repo, "eval", "run_batch.py"), "--seeds", str(seed), "--exploratory",
+    return [sys.executable, os.path.join(repo, "eval", "run_batch.py"), "--seeds", str(seed), "--exploratory",
            "--jobs", "1", "--budget-usd", "%g" % budget, "--forge-home", forge_home,
            "--deck-a", deck_a, "--deck-b", deck_b, "--controller-a", "llm", "--controller-b", "ai",
-           "--smart-a", model, "--fast-a", model, "--memory-tools", "--lookahead",
+           "--smart-a", model, "--fast-a", model, "--memory-tools", "--lookahead", "--context-profile", "v4-faithful",
            "--env", "DEMO_FEED=1", "--out", out]
-    return cmd
+
+
+def engine_patches(tree):
+    """The engine patch sources in a tree's overlay (every main source outside the harness package)."""
+    root = os.path.join(tree, "forge-overlay")
+    out = []
+    for d, _, files in os.walk(root):
+        for f in files:
+            rel = os.path.relpath(os.path.join(d, f), root)
+            if f.endswith(".java") and "/src/main/java/" in rel and "/forge/spike/" not in rel:
+                out.append(rel)
+    return sorted(out)
+
+
+def pin_engine(tree, build, forge, paths):
+    """Compile, into this arm's classes (first on its classpath), its own version of every engine file either arm
+    patches: the tree's overlay copy, or the pinned engine's stock source when the tree has no patch for it. The
+    checkout holds whatever install.sh last installed, so neither arm may inherit it. Returns {path: origin}."""
+    src = os.path.join(build, "engine-src")
+    shutil.rmtree(src, ignore_errors=True)
+    origin, files = {}, []
+    for rel in paths:
+        dest = os.path.join(src, rel)
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        mine = os.path.join(tree, "forge-overlay", rel)
+        if os.path.isfile(mine):
+            shutil.copyfile(mine, dest)
+            origin[rel] = "overlay"
+        else:
+            stock = subprocess.run(["git", "-C", forge, "show", "HEAD:" + rel], capture_output=True)
+            if stock.returncode != 0:
+                raise SystemExit("no stock source for %s in %s" % (rel, forge))
+            with open(dest, "wb") as f:
+                f.write(stock.stdout)
+            origin[rel] = "stock"
+        files.append(dest)
+    if files:
+        with open(os.path.join(build, "classpath.txt")) as f:
+            cp = os.path.join(build, "classes") + ":" + f.read().strip()
+        r = subprocess.run(["javac", "-nowarn", "-encoding", "UTF-8", "-cp", cp, "-d", os.path.join(build, "classes")]
+                           + files, capture_output=True, text=True)
+        if r.returncode != 0:
+            raise SystemExit("engine files did not compile:\n" + r.stderr[-2000:])
+    with open(os.path.join(build, "engine-patches.txt"), "w") as f:
+        f.write("".join("%s\t%s\n" % (origin[p], p) for p in sorted(origin)))
+    print("engine files:", ", ".join("%s (%s)" % (os.path.basename(p), origin[p]) for p in sorted(origin)) or "none")
+    return origin
 
 
 def compile_arm(tree, build, forge):
-    """That tree's own acceptance script compiles its overlay into build/classes; then a stand-in Forge home."""
+    """That tree's own acceptance script compiles its overlay into build/classes; then both arms' engine patches,
+    in this tree's version (pin_engine); then a stand-in Forge home."""
     os.makedirs(build, exist_ok=True)
     env = dict(os.environ, STAGES="preflight classpath compile", OUT=build, FORGE_HOME=forge)
     r = subprocess.run(["bash", os.path.join(tree, "eval", "harness_acceptance.sh")], env=env, capture_output=True, text=True)
     print("\n".join(line for line in r.stdout.splitlines() if line.startswith(("PASS", "FAIL"))))
     if not os.path.isfile(os.path.join(build, "classes", "forge", "spike", "DemoFeed.class")):
         raise SystemExit("%s did not compile (see %s/javac.log)" % (tree, build))
+    pin_engine(tree, build, forge, sorted(set(engine_patches(REPO)) | set(engine_patches(tree))))
     print("stand-in home:", standin_home(os.path.join(build, "forge-home"), os.path.join(build, "classes"),
                                          os.path.join(build, "classpath.txt"), forge))
 
@@ -112,9 +169,10 @@ def build_then(a):
     tree, build = os.path.abspath(a.worktree), os.path.abspath(a.build)
     pin = subprocess.run(["git", "-C", a.forge, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     old = subprocess.run(["git", "-C", REPO, "show", "%s:FORGE_COMMIT" % a.commit], capture_output=True, text=True)
-    if old.returncode != 0 or old.stdout.split()[0] != pin:
+    old_pin = (old.stdout.split() or ["?"])[0] if old.returncode == 0 else "?"
+    if old_pin != pin:
         raise SystemExit("refusing: %s pins engine %s, the checkout is at %s; the pair would compare harness AND engine"
-                         % (a.commit, old.stdout.split()[0] if old.stdout else "?", pin))
+                         % (a.commit, old_pin, pin))
     if not os.path.isdir(tree):
         subprocess.run(["git", "-C", REPO, "worktree", "add", "--detach", tree, a.commit], check=True)
     print("ported:", ", ".join(port_feed(tree)))
@@ -135,6 +193,8 @@ def direct_env(seed, deck_a, deck_b, model, out, base_url):
 def deck_sets(path=DECKS):
     with open(path) as f:
         d = json.load(f)
+    if d.get("version") != "demo-decks-v1":
+        raise SystemExit("%s: unknown version %r" % (path, d.get("version")))
     return d["agent"], d["forge_ai"]
 
 
@@ -185,6 +245,9 @@ def run(a):
                         port = line.split()[1]
             if port:
                 break
+        if not port:
+            fake.terminate()
+            raise SystemExit("the fake model server never reported its port (see %s)" % log)
         env.pop("OPENROUTER_ALLOW_EGRESS", None)
         env["OPENROUTER_BASE_URL"] = "http://127.0.0.1:%s/v1" % port
         model = "openrouter:fake/demo-model"
@@ -198,13 +261,15 @@ def run(a):
                 run_env = dict(env, **direct_env(a.seed, deck_a, deck_b, model, dest, env["OPENROUTER_BASE_URL"]))
                 log = os.path.join(dest, "game-%d-0.log" % a.seed)
             else:
-                cmd = arm_command(repo, homes[name], a.seed, deck_a, deck_b, model, a.budget_usd, dest)
+                cmd = arm_command(repo, homes[name], a.seed, deck_a, deck_b, model, a.budget_usd / 2, dest)
                 run_env, log = env, None
             print("[%s]" % name, " ".join(cmd), flush=True)
             if not a.dry_run:
-                with open(log, "w") if log else open(os.devnull, "w") as f:
-                    subprocess.run(cmd, env=run_env, cwd=repo, check=False, stdout=f if log else None,
-                                   stderr=subprocess.STDOUT if log else None)
+                if log:
+                    with open(log, "w") as f:
+                        subprocess.run(cmd, env=run_env, cwd=repo, check=False, stdout=f, stderr=subprocess.STDOUT)
+                else:
+                    subprocess.run(cmd, env=run_env, cwd=repo, check=False)
     finally:
         if fake:
             fake.terminate()
@@ -224,19 +289,17 @@ def main(argv=None):
     r.add_argument("--deck-a", required=True, help="the model's deck, a name from `decks`")
     r.add_argument("--deck-b", required=True, help="Forge AI's deck, a name from `decks`")
     r.add_argument("--model", default="openrouter:openai/gpt-6-luna")
-    r.add_argument("--budget-usd", type=float)
+    r.add_argument("--budget-usd", type=float, help="for the pair: each arm gets half")
     r.add_argument("--out", required=True)
     r.add_argument("--fake", action="store_true", help="both arms on the loopback fake model (free)")
     r.add_argument("--dry-run", action="store_true", help="print the two commands only")
     for p in (b, n, r):
-        p.add_argument("--worktree", default="/home/user/harness-then")
-        p.add_argument("--build", default="/home/user/harness-then-build")
-        p.add_argument("--now-build", default="/home/user/harness-now-build")
+        p.add_argument("--worktree", default=os.path.join(SIBLINGS, "harness-then"))
+        p.add_argument("--build", default=os.path.join(SIBLINGS, "harness-then-build"))
+        p.add_argument("--now-build", default=os.path.join(SIBLINGS, "harness-now-build"))
         p.add_argument("--forge", default=os.path.expandvars(os.environ.get("FORGE_HOME", "/root/forge")))
     a = ap.parse_args(argv)
-    if a.cmd == "decks":
-        return decks(a)
-    return {"build-then": build_then, "build-now": build_now, "run": run}[a.cmd](a)
+    return {"build-then": build_then, "build-now": build_now, "run": run, "decks": decks}[a.cmd](a)
 
 
 if __name__ == "__main__":

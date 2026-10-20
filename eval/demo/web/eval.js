@@ -9,6 +9,7 @@ const KEY = new Set(["canary-floor", "canary-random", "gaming", "javatests", "su
 
 function headCard(h) {
   if (h.status === "recorded") {
+    // The headline card shows the latest condition (the list's last run); the forest below shows them all.
     const best = h.result.runs[h.result.runs.length - 1];
     const fl = best ? best.headline.floors : {};
     return `<div class="head"><h3>${esc(h.key)} <span class="status recorded">recorded</span></h3>
@@ -23,7 +24,7 @@ function headCard(h) {
     <p class="what">${esc(h.what)}</p>
     <div class="big">&mdash;</div>
     ${p ? `<p class="what">plan: ${esc(p.panel)} panel, ${esc(p.cells)} cells, ${esc(p.games)} games (seeds ${esc(p.seeds)}, both seat orders)</p>
-    <p class="what">expected cost $${esc(p.cost_usd[0])} to $${esc(p.cost_usd[1])} at $0.02 to $0.05 a Luna game</p>` : ""}
+    <p class="what">expected cost $${esc(p.cost_usd[0])} to $${esc(p.cost_usd[1])} at $${esc(p.game_cost_usd[0])} to $${esc(p.game_cost_usd[1])} a Luna game</p>` : ""}
     <p class="floor">floor: ${esc(h.floor)}</p></div>`;
 }
 
@@ -60,7 +61,8 @@ fetch("api/eval").then(r => r.json()).then(r => {
   const p = r.headlines.find(h => h.key === "PUZ");
   if (p && p.result.runs.length) { $("#puz-title").hidden = false; $("#puz").innerHTML = forest(p.result); }
   const a = r.acceptance;
-  $("#gate-lede").textContent = a ? `${a.passed} of ${a.total} stages passed in ${a.out}: compile, every test, ` +
-    `the zero-model canaries at their pins, and free fake-model games of every decision path.` : "";
+  const notPassed = a ? a.stages.filter(s => s.status !== "PASS").map(s => `${s.stage} ${s.status}`) : [];
+  $("#gate-lede").textContent = a ? `${a.passed} of ${a.total} stages passed in ${a.out}` +
+    (notPassed.length ? `; not passed: ${notPassed.join(", ")}.` : ". Each line says what the stage proved.") : "";
   $("#gate").innerHTML = gate(a);
 }).catch(e => { $("#heads").innerHTML = `<p class="lede">could not load the report: ${esc(e)}</p>`; });

@@ -9,8 +9,8 @@ Then open http://127.0.0.1:8765/. Stdlib only, no engine: replay needs only the 
 for the [TALLY] line). Card images come from the demo_cards.py cache (filled by `python3 eval/demo_cards.py prefetch
 <run>`); only with --fetch-images does the server send a missing card's name to api.scryfall.com and write the image
 into that cache. A live pane re-reads its file on every request, so the page follows a game a JVM is writing
-(EVAL_OUT rows are autoflushed per line). The server never writes into a run and never talks to the JVM, so it cannot
-change what the seat sees or decides.
+(EVAL_OUT rows are autoflushed per line). The server writes nothing the seat reads, so it cannot change what the seat
+sees or decides; with --highlight-file it writes one display-only file that the Forge window's DemoHighlight polls.
 
 What it cannot show: what the JSONL does not hold (the system prompt, library order, and the opponent's hidden hand
 unless the game was played with the audience feed, DEMO_FEED=1).

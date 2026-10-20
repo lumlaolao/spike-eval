@@ -570,7 +570,7 @@ lists for six formats (Legacy, Modern, Pioneer, Standard, Pauper, Vintage; `eval
   map) to `feed-<seed>-<ms>.jsonl` beside the game JSONL, with the JSONL's length at that moment so the viewer can
   put each snapshot between the decision rows it fell between. It renders no prompt and calls no seat, so the seat's
   prompts are byte-identical with it on and off (`DemoFeedTest`); no version stamp covers it for that reason. It is
-  off unless set, and `run_batch.py` passes it only as an exploratory `--env DEMO_FEED=1`, recorded in the manifest.
+  off unless set; `run_batch.py` passes it as `--env DEMO_FEED=1`, recorded in the manifest (not a condition key).
   *Why:* the audience should see both hands; the seat never may, and the JSONL holds only what the seat saw.
 - **The Forge window's highlights (`DemoHighlight.java`, `DEMO_HIGHLIGHT_FILE`)** give the cards of the latest
   decision's highlights (written by `demo_server.py --highlight-file`) Forge's own highlight frame in the spectator
