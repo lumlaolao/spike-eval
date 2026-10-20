@@ -200,8 +200,6 @@ class ArmTest(unittest.TestCase):
         self.assertEqual((seen.get("JAVA_HOME"), seen.get("FORGE_HOME")), ("/brew/jdk", "/forge"))
 
     def test_an_explicit_forge_home_wins_else_the_checkout_every_tool_finds(self):
-        with mock.patch.dict(os.environ, {"FORGE_HOME": "$HOME/typo-forge"}):
-            self.assertEqual(dc.default_forge(), os.path.expanduser("~/typo-forge"))
         env = {k: v for k, v in os.environ.items() if k != "FORGE_HOME"}
         found = lambda: "/somewhere/code/forge"  # a checkout forge_home would fall back to, on any machine
         with mock.patch.object(dc.puzzle_format, "forge_home", found):

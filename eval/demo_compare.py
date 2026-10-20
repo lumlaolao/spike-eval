@@ -238,7 +238,7 @@ def build_now(a):
 
 def build_then(a):
     tree, build = os.path.abspath(a.worktree), os.path.abspath(a.build)
-    if not os.path.isdir(os.path.join(a.forge, ".git")):
+    if not os.path.exists(os.path.join(a.forge, ".git")):  # a directory, or a worktree's .git file
         raise SystemExit("no Forge checkout at %s (set FORGE_HOME or pass --forge)" % a.forge)
     pin = subprocess.run(["git", "-C", a.forge, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     old = subprocess.run(["git", "-C", REPO, "show", "%s:FORGE_COMMIT" % a.commit], capture_output=True, text=True)
