@@ -30,7 +30,7 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
- * Engine probes for the "own-card line" failures audited in docs/harness/ARCHITECTURE-REVIEW.md.
+ * Engine probes for the "own-card line" failures audited in docs/harness/history/ARCHITECTURE-REVIEW.md.
  * Each drives the LIVE controller against a real engine position and records every prompt the
  * model is shown, so "who decided this, and what were they told" is an observation, not a guess.
  */
@@ -126,7 +126,7 @@ public class LineFindingProbeTest {
 
     /** Goblin Bombardment ("Sacrifice a creature: 1 damage to any target"): the MODEL chooses which
      *  creature pays the cost. Before this was routed, Forge's AI chose (it took Memnite) and no
-     *  question was asked — LineFindingProbe A in docs/harness/ARCHITECTURE-REVIEW.md. */
+     *  question was asked — LineFindingProbe A in docs/harness/history/ARCHITECTURE-REVIEW.md. */
     @Test
     public void sacrificeOutletCostIsChosenByTheModel() {
         Game g = bareGame(PhaseType.MAIN1);

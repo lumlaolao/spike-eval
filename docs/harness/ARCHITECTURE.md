@@ -115,7 +115,8 @@ issue, not harness").** Whether something is offered is the engine's legality, n
 - A cast an effect makes "if able" that still costs mana (Sphere of Resistance on Omen Machine's free spell) asks
   whether to pay: no player is made to activate a mana ability (CR 605.3a), and unpaid the spell is not cast. An
   optional cast the engine has just confirmed ("Do you want to play X?", suspend) is not asked a second time (epoch
-  62, RP_197, RP_209).
+  62, RP_197, RP_209; the `playConfirmed` change is in commit b0258d6, titled `data(rules-pilot)`, not in the
+  epoch-62 fix commit 343c0b6).
 - Puzzles: while the board is put down, the arms take the first option and draw nothing, and the .pzl's `NamedCard`
   is set exactly afterwards (GameState adds it to the name chosen during setup; RP_207).
 - A play is on the menu only if the engine's `canPlay()` and `checkRestrictions` both allow it. `canPlay()` leaves out

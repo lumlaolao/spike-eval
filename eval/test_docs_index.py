@@ -9,9 +9,16 @@ DOCS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
 class DocsIndexTest(unittest.TestCase):
     def test_every_document_is_listed(self):
         index = open(os.path.join(DOCS, "INDEX.md"), encoding="utf-8").read()
-        listed = set(re.findall(r"[\w.-]+\.(?:md|tsv)", index))
+        listed = set(re.findall(r"[\w/.-]+\.(?:md|tsv)", index))
         here = {f for f in os.listdir(DOCS) if f.endswith((".md", ".tsv"))}
+        here |= {"history/" + f for f in os.listdir(os.path.join(DOCS, "history")) if f.endswith(".md")}
         self.assertEqual(sorted(here - listed), [], "add these to docs/harness/INDEX.md (current or historical)")
+
+    def test_every_listed_document_exists(self):
+        index = open(os.path.join(DOCS, "INDEX.md"), encoding="utf-8").read()
+        listed = set(re.findall(r"[\w/.-]+\.(?:md|tsv)", index))
+        gone = sorted(f for f in listed if not os.path.isfile(os.path.join(DOCS, f)))
+        self.assertEqual(gone, [], "INDEX.md names documents that are not there (moved to history/?)")
 
     def test_the_agent_entry_points_exist(self):
         root = os.path.dirname(os.path.dirname(DOCS))

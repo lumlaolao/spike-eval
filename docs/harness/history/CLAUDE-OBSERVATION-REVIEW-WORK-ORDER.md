@@ -2,7 +2,7 @@
 
 Implement focused observation correctness repairs and tests. User approved source/tests/harness docs to Claude subscription; no secrets, credentials, datasets, real game logs or personal files. Preserve all staged/unstaged work. Read PLAYER-HARNESS.md, COMPLETION-GATES.md, current SeatObservation.java and SeatObservationTest.java.
 
-Own ONLY SeatObservation.java, SeatObservationTest.java and new docs/harness/OBSERVATION-REVIEW.md. Another Claude edits LlmSpikeGui controller routing and its ownership tests. Do not edit their files; describe required integration separately.
+Own ONLY SeatObservation.java, SeatObservationTest.java and new docs/harness/history/OBSERVATION-REVIEW.md. Another Claude edits LlmSpikeGui controller routing and its ownership tests. Do not edit their files; describe required integration separately.
 
 Independent review found suspicious defects requiring actual tests:
 1. hiddenFaceNames scans hidden identities and redactHiddenFaces replaces those names globally in narration. If a public spell shares a name with an opponent's hidden morph, changing the hidden morph's identity can change PUBLIC history text and thereby leak hidden information or erase true evidence. Prove with paired-world public-history fixture and repair by event/object permission rather than hidden-name dictionary substitution. Include historical events captured after the source changes zone/face; permissions must reflect evidence time, not only current state. Avoid hiding public evidence to obtain invariance.

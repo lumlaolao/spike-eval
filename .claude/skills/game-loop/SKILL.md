@@ -105,7 +105,7 @@ the seat, open its decision rows in the JSONL (`prompt`, `options`, `raw_reply`)
    into certain death every turn, a land never played, a pass with mana up and a full hand. Trace
    each to its row. Most turn out to be 1-5.
 
-Ground a rules claim in the engine (`~/code/forge`, card scripts under
+Ground a rules claim in the engine (`$FORGE_HOME`, card scripts under
 `forge-gui/res/cardsfolder/`), never in memory of how a card works.
 
 ## 4. Fix what the harness got wrong
@@ -119,8 +119,9 @@ One defect at a time, smallest first:
    bump the version that covers it (`docs/STANDARDS.md` section 4).
 3. If a script missed it, teach the script: `match_review.py`, `tool_audit.py`, or an acceptance
    stage. The loop gets faster every time the sheet catches what you had to read for.
-4. With no game running: `FORGE_HOME=~/code/forge bash install.sh`, then
-   `cd ~/code/forge && mvn -q -pl forge-gui-desktop -am install -o -DskipTests` (check its exit
+4. With no game running (`$FORGE_HOME` is the Forge checkout: `/root/forge` in the cloud, `~/code/forge` on
+   the Mac): `FORGE_HOME=$FORGE_HOME bash install.sh`, then
+   `cd $FORGE_HOME && mvn -q -pl forge-gui-desktop -am install -o -DskipTests` (check its exit
    code), then `bash eval/harness_acceptance.sh`. A canary that moved because an automatic path
    changed on purpose is re-pinned with a dated reason; never to make a run pass.
 5. Commit with `pr-format`. Land the batch of fixes through a PR and the gate when a natural stop
