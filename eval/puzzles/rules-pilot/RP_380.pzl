@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 380 - The ninja swaps in unblocked
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Memnite (1/1) and two untapped Islands, and have Ninja of the Deep Hours (2/2; costs {3}{U}; ninjutsu {1}{U}) in hand. The opponent is at 2 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-ninjutsu-unblocked | Ninjutsu returns an unblocked attacker to hand and puts the Ninja onto the battlefield tapped and attacking (CR 702.49a-c): attack with Memnite, ninjutsu after blockers, and the 2/2 Ninja deals 2; it was never declared as an attacker and needs no haste
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Ninja of the Deep Hours
+p0battlefield=Memnite;Island;Island
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
