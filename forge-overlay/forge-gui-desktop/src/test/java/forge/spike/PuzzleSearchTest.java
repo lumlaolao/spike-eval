@@ -239,6 +239,10 @@ public class PuzzleSearchTest {
                 LlmSpikeGui.PlayerControllerLLM.choiceKey("choice", "Fiend Artisan (5/5) [Opponent's Battlefield]"));
         Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.choiceKey("choice", "Grizzly Bears (2/-3)@41 #2"), "choice: Grizzly Bears");
         Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.choiceKey(null, "Hill Giant (3/3)[tapped]"), "choice: Hill Giant");
+        // authored k_13 (2026-10-20): the same attack on Jace Beleren before and after a Bolt read "[loyalty 4]" and
+        // "[loyalty 1]"; a planeswalker's current loyalty is its size, not a choice
+        Assert.assertEquals(LlmSpikeGui.PlayerControllerLLM.choiceKey("attack-target", "Jace Beleren[loyalty 1] [Opponent's Battlefield]"),
+                LlmSpikeGui.PlayerControllerLLM.choiceKey("attack-target", "Jace Beleren[loyalty 4] [Opponent's Battlefield]"));
     }
 
     @Test

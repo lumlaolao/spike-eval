@@ -1932,11 +1932,13 @@ public final class LlmSpikeGui {
         }
 
         /** A solver choice as the uniqueness search compares it: handles, repeat markers, tapped/sick marks, the
-         *  object's current size (negative too: Fiend Artisan (-1/1), batch 14d2) and counters dropped (RP_127). */
+         *  object's current size (negative too: Fiend Artisan (-1/1), batch 14d2), a planeswalker's loyalty and counters
+         *  dropped (RP_127). */
         static String choiceKey(String type, String label) {
             return (type == null ? "choice" : type) + ": " + label.replaceAll(" ?@\\d+", "")
                     .replaceAll(" #\\d+(?=[,\\]]|$)", "").replaceAll("\\[(un)?tapped\\]|\\[sick\\]", "")
-                    .replaceAll(" ?\\(-?\\d+/-?\\d+\\)", "").replaceAll("\\[[^\\]]* x\\d+\\]", "");
+                    .replaceAll(" ?\\(-?\\d+/-?\\d+\\)", "").replaceAll(" ?\\[loyalty -?\\d+\\]", "")
+                    .replaceAll("\\[[^\\]]* x\\d+\\]", "");
         }
 
         /** Choices that make no second solution on their own (rules puzzle batch 3: 18 correct puzzles were called
