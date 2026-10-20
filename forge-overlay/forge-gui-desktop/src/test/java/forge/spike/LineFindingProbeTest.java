@@ -270,9 +270,8 @@ public class LineFindingProbeTest {
         Game g = bareGame(PhaseType.MAIN1);
         Player me = g.getPlayers().get(0), rival = g.getPlayers().get(1);
         Card bears = card("Grizzly Bears", rival, ZoneType.Battlefield);
-        // A failed cast leaves the card in the Stack zone, as the engine routine does; this test is about the life.
-        card("Dismember", me, ZoneType.Hand);
-        SpellAbility cast = me.getCardsIn(ZoneType.Hand).getFirst().getFirstSpellAbility();
+        Card dismember = card("Dismember", me, ZoneType.Hand);
+        SpellAbility cast = dismember.getFirstSpellAbility();
         cast.setActivatingPlayer(me);
         cast.getTargets().add(bears);
         Recorder pass = new Recorder(PLAY);
@@ -281,6 +280,12 @@ public class LineFindingProbeTest {
         logOf(() -> ctrl.playChosenSpellAbility(cast));
         Assert.assertEquals(me.getLife(), life, "life paid for a cast that could not happen");
         Assert.assertEquals(ctrl.playsNotMade(), 1);
+        // The failed cast is rolled back: the card is in hand again, not left in the Stack zone with nothing on the
+        // stack (the engine routine's recovery tested the zone it came from, Hand, for Stack and never moved it).
+        Assert.assertEquals(g.getCardState(dismember).getZone().getZoneType(), ZoneType.Hand, "the failed cast's card");
+        Assert.assertEquals(me.getCardsIn(ZoneType.Hand).size(), 1);
+        Assert.assertTrue(g.getStackZone().isEmpty(), "a card left in the Stack zone with nothing on the stack");
+        Assert.assertFalse(g.getStack().isFrozen(), "the stack's freeze flag stays set");
     }
 
     /** Phyrexian life is paid after the mana (pr-review of #277): Dismember at 5 life with Horizon Canopy ("{T}, Pay 1
@@ -345,6 +350,11 @@ public class LineFindingProbeTest {
         Assert.assertTrue(log.contains("the stack refused it"), log);
         Assert.assertEquals(ctrl.playsNotMade(), 1);
         Assert.assertEquals(g.getStack().size(), 0);
+        // Rolled back (harness-epoch-70): Murder is in hand again and its mana refunded, the Swamps untapped.
+        Assert.assertEquals(g.getCardState(murder).getZone().getZoneType(), ZoneType.Hand, "the refused cast's card");
+        Assert.assertTrue(g.getStackZone().isEmpty(), "a card left in the Stack zone with nothing on the stack");
+        Assert.assertEquals(me.getCardsIn(ZoneType.Battlefield).stream().filter(Card::isTapped).count(), 0L, "Swamps tapped");
+        Assert.assertEquals(me.getManaPool().totalMana(), 0);
     }
 
     /** A play that cannot be paid for is not a play, and the log must say so (the audited game logged a failed
