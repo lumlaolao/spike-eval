@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 406 - Energy carries over
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You have three energy counters and Harnessed Lightning (you get three energy, then pay any amount of energy to deal that much damage to target creature) in hand with two red mana floating. The opponent is at 20 life and controls Colossal Dreadmaw (6/6). Destroy the Dreadmaw this turn.
+Rule:authored-energy-player-counters | Energy counters are counters on a player and stay until spent (CR 122.1, 107.14): with the three you have plus three from Harnessed Lightning, pay six for 6 damage
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Harnessed Lightning
+p0counters=ENERGY=3
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Colossal Dreadmaw
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Colossal Dreadmaw" = 1
