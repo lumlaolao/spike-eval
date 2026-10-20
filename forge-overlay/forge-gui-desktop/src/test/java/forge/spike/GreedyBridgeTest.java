@@ -15,6 +15,7 @@ import org.testng.annotations.Test;
 public class GreedyBridgeTest {
 
     private static final String MENU = "== Turn 1 MAIN1 (active: Solver | priority: you) ==\n\n"
+            + "STACK (engine, top first): (empty)\n"
             + "DECISION: You have priority (MAIN1, your main phase). Choose ONE action:\n"
             + "  1) CAST Dark Ritual @1 {B} [Add {B}{B}{B}.]\n"
             + "  2) CAST Lava Spike @2 {R} [Lava Spike deals 3 damage to target player or planeswalker.]\n"
@@ -66,11 +67,13 @@ public class GreedyBridgeTest {
     @Test
     public void withSomethingOnTheStackItPasses() {
         GreedyBridge g = new GreedyBridge("Solver/smart");
-        String busy = MENU.replace("DECISION:", "STACK (engine, top first): 1 not yet resolved: Lava Spike @2\nDECISION:");
+        String busy = MENU.replace("STACK (engine, top first): (empty)", "STACK (engine, top first): 1 not yet resolved: Lava Spike @2");
         NativeTools.Turn t = g.chat(user(busy).toString(), TOOLS, true);
         Assert.assertEquals(args(t).get("option").getAsInt(), 4, "no previews, a pass");
-        String empty = MENU.replace("DECISION:", "STACK (engine, top first): (empty)\nDECISION:");
-        Assert.assertEquals(g.chat(user(empty).toString(), TOOLS, true).calls.get(0).name, NativeTools.SIMULATE);
+        Assert.assertEquals(g.chat(user(MENU).toString(), TOOLS, true).calls.get(0).name, NativeTools.SIMULATE);
+        // Without the faithful profile's STACK line the stack is not known to be empty: it passes (pr-review of #279).
+        String legacy = MENU.replace("STACK (engine, top first): (empty)\n", "");
+        Assert.assertEquals(args(new GreedyBridge("x").chat(user(legacy).toString(), TOOLS, true)).get("option").getAsInt(), 4);
     }
 
     /** The target is the one the chosen play's preview assumed, and the floor never cancels its own play (pr-review of
@@ -86,6 +89,8 @@ public class GreedyBridgeTest {
                 + "  3) CANCEL: do not take this action; go back to the action menu\n"
                 + "ANSWER: call `answer` with `option`: one number from the list.";
         Assert.assertEquals(args(g.chat(user(target).toString(), TOOLS, true)).get("option").getAsInt(), 2, "the assumed target");
+        // The preview's target is for that ask only: the next target ask has no assumption.
+        Assert.assertEquals(args(g.chat(user(target).toString(), TOOLS, true)).get("option").getAsInt(), 1);
         String other = target.replace("Thermo-Alchemist 0/3 @5", "Llanowar Elves 1/1 @5");
         Assert.assertEquals(args(new GreedyBridge("x").chat(user(other).toString(), TOOLS, true)).get("option").getAsInt(), 1,
                 "no assumption: the first option that is not CANCEL");
@@ -122,6 +127,31 @@ public class GreedyBridgeTest {
                 + "ANSWER: call `answer` with `options`: the numbers you pick, between 0 and 2 (an empty list for none).";
         Assert.assertEquals(args(g.chat(user(attack).toString(), TOOLS, true)).getAsJsonArray("options").toString(), "[1,2]",
                 "every creature that can attack does");
+    }
+
+    /** Only a target ask is answered toward the opponent; a tax, a "you may" or a cast from an effect keeps the
+     *  do-nothing answer (pr-review of #279: "never CANCEL" on every single pick paid every tax). */
+    @Test
+    public void aQuestionThatIsNotATargetKeepsTheDoNothingAnswer() {
+        String tax = "== Turn 1 COMBAT_DECLARE_ATTACKERS (active: Solver | priority: you) ==\n\nDECISION: Pay {1} to attack with "
+                + "Goblin Electromancer?\nOptions:\n  1) Pay {1}\n  2) Do not pay\n"
+                + "ANSWER: call `answer` with `option`: one number from the list.";
+        Assert.assertEquals(args(new GreedyBridge("x").chat(user(tax).toString(), TOOLS, true)).get("option").getAsInt(), 2);
+    }
+
+    /** A two-target play takes both targets its preview assumed, not the first two candidates. */
+    @Test
+    public void aMultiTargetAskTakesEveryTargetThePreviewAssumed() {
+        GreedyBridge g = new GreedyBridge("Solver/smart");
+        NativeTools.Turn previews = g.chat(user(MENU).toString(), TOOLS, true);
+        g.chat(afterPreviews(MENU, previews, "cast Dark Ritual: Opponent no change",
+                "cast Lava Spike [assuming target: Opponent, Grizzly Bears]: you graveyard 0 -> 1; Opponent life 11 -> 9").toString(),
+                TOOLS, true);
+        String two = "== Turn 1 MAIN1 (active: Solver | priority: you) ==\n\nDECISION: Choose TARGETS for Arc Trail @2\n"
+                + "Choose between 2 and 2 of these (by number):\n  1) you (Solver)\n  2) Thermo-Alchemist 0/3 @5 [Battlefield, yours]\n"
+                + "  3) opponent (Opponent)\n  4) Grizzly Bears 2/2 @7 [Battlefield, Opponent]\n"
+                + "ANSWER: call `answer` with `options`: the numbers you pick, between 2 and 2 (an empty list for none).";
+        Assert.assertEquals(args(g.chat(user(two).toString(), TOOLS, true)).getAsJsonArray("options").toString(), "[3,4]");
     }
 
     @Test

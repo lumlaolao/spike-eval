@@ -334,6 +334,8 @@ def baseline_puzzle(build, rec, out_root, rollouts, random_base, search, arms):
             ai_rows = rows
         s = summarize(rows, seeds)
         base[arm] = {k: v for k, v in s.items() if v or k in ("solved", "n", "rate", "seeds")}
+        if arm == "greedy":
+            base[arm]["condition"] = greedy_condition()
     rec = dict(rec, baselines=base)
     if not pf.has_line(rec.get("reference_line")):
         line = choose_line(random_rows)
@@ -429,6 +431,16 @@ def cmd_prove(a):
                 r["id"], p.get("status"), p.get("search_replays"), p.get("opponent_choice_points"),
                 p.get("opponent_branches_beaten"), p.get("solver_actions")), flush=True)
     return 0
+
+
+def greedy_condition():
+    """What a greedy rate was measured under: the arm reads the seat's prompt (the STACK line, previews), so its rate
+    moves with the interface. The pinned env and the source's stamps, stored beside the rate; a floor and a model run
+    compare only within one harness epoch (pr-review/standards of #279)."""
+    import versions  # eval/versions.py: the stamps, read from the overlay source
+    stamps = {field: value for _, value, field, _ in versions.read_stamps()}
+    return {"env": greedy_env(), "harness_epoch": stamps.get("harness_epoch"),
+            "observation_version": stamps.get("observation_version"), "lookahead_version": stamps.get("lookahead_version")}
 
 
 def greedy_env():

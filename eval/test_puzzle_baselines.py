@@ -191,7 +191,9 @@ class GreedyArmTest(unittest.TestCase):
         self.assertEqual(seen["MEMORY_TOOLS"], "0")
         self.assertFalse(any(k.startswith("OPENROUTER") for k in seen if k != "OPENROUTER_BASE_URL"))
         self.assertIn("greedy", pb.DEFAULT_SEEDS)
-        self.assertIn("greedy", pb.pf.BASELINE_ARMS)
+        cond = pb.greedy_condition()
+        self.assertEqual(cond["env"]["SMART_MODEL_A"], "greedy:")
+        self.assertTrue(str(cond["harness_epoch"]).startswith("harness-epoch-"), cond)
 
 
 if __name__ == "__main__":

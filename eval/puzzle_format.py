@@ -247,6 +247,9 @@ def validate_puzzle(rec, repo=REPO, check_files=True):
             p.append("%s: unknown baseline arm %r" % (pid, arm))
         elif not _rate_ok(base[arm]):
             p.append("%s: baseline %s is not {solved, n, rate=solved/n}" % (pid, arm))
+        elif arm == "greedy" and not (base[arm].get("condition") or {}).get("harness_epoch"):
+            # The greedy floor reads the seat's prompt: its rate means something only with the epoch it ran under.
+            p.append("%s: greedy baseline without its condition (harness_epoch)" % pid)
     proof = rec.get("proof")
     if proof is not None and (not isinstance(proof, dict)
                               or proof.get("status") not in PROOF_STATUSES
