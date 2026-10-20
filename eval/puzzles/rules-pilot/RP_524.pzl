@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 524 - Fling the Geist before combat
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Strangleroot Geist (2/1 haste, undying) with no counters and have Fling in hand with two red mana floating (it empties when the phase ends). The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-undying-returns-hasty | Undying returns the creature as a new object with a +1/+1 counter (CR 702.93a, 400.7), and its printed haste lets it attack at once: Fling the Geist for 2, it returns as a 3/2 and attacks for 3; attacking first deals 2 and the floating mana is gone before Fling can follow (CR 106.4)
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Fling
+p0battlefield=Strangleroot Geist
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

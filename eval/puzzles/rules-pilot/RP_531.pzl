@@ -1,0 +1,19 @@
+[metadata]
+Name:Rules pilot 531 - Guttersnipe first
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your second main phase. You have Guttersnipe (whenever you cast an instant or sorcery spell, it deals 2 damage to each opponent) and two Shocks in hand, with five red mana floating. The opponent is at 8 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-cast-trigger-source-first | A cast trigger works only if its source is on the battlefield when the spell is cast (CR 603.2, 603.6): cast Guttersnipe first, then each Shock deals 2 plus Guttersnipe's 2, 8 in total; a Shock cast before Guttersnipe gets no trigger
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Guttersnipe;Shock;Shock
+p0manapool=R R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=8
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
