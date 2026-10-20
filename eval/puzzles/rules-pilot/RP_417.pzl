@@ -1,0 +1,18 @@
+[metadata]
+Name:Rules pilot 417 - Chandra's plus one
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Chandra, Torch of Defiance with 4 loyalty (+1: exile the top card of your library; you may cast it; if you don't, 2 damage to each opponent). Your library is all Colossal Dreadmaws and you have no mana. The opponent is at 2 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-loyalty-plus-damage | A loyalty ability's cost is adding or removing loyalty, activated once per turn at sorcery speed (CR 606.3-4): +1 exiles a Dreadmaw you can't cast, so Chandra deals 2 to each opponent
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0battlefield=Chandra, Torch of Defiance|Counters:LOYALTY=4
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=2
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

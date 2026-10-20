@@ -1,0 +1,21 @@
+[metadata]
+Name:Rules pilot 413 - Deathtouch on a ping
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Prodigal Pyromancer ({T}: 1 damage to any target) and have Basilisk Collar (equipped creature has deathtouch and lifelink; equip {2}) in hand with three colorless mana floating. The opponent is at 20 life and controls Colossal Dreadmaw (6/6). Destroy the Dreadmaw this turn.
+Rule:authored-deathtouch-noncombat-ping | Deathtouch applies to any damage the source deals, not only combat damage (CR 702.2b-c): cast and equip the Collar on the Pyromancer, then its 1-damage ping destroys the 6/6
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Basilisk Collar
+p0battlefield=Prodigal Pyromancer
+p0manapool=C C C
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1battlefield=Colossal Dreadmaw
+p1library=Plains;Plains;Plains
+[acceptance]
+count p1 Graveyard "Colossal Dreadmaw" = 1
