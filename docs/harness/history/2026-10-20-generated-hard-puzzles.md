@@ -27,10 +27,13 @@ words the seat is shown. The opponent's life is set to exactly what the best lin
 | storm | every spell cast before Grapeshot | rituals in a payable order (Seething Song needs three open, Rites back to back), burn before Grapeshot |
 | splice | Arcane spells, pings | which Arcane spell carries Desperate Ritual or Glacial Ray; the line is the exhaustive-search best and must beat every unspliced line |
 | red | all of the above, plus Lava Dart's flashback, Goblin Electromancer, Kiln Fiend | the searched best line; kept only when a plain player (ping, then the biggest spell, never splice, Grapeshot last) falls short |
+| fling | every instant or sorcery before Fling, each one growing Kiln Fiend and the prowess creatures | Fling after combat deals the attacker's power a second time, but the pool empties when the first main phase ends: a Mountain and a ritual are held for the second; kept only when the searched best beats every line that casts it all before combat and every line that pays Fling only with held Mountains |
 
 What the engine taught the written lines: a choice with one legal answer gets no line; a splice is asked only
 for cards the seat could pay; two of the seat's triggers at once are an order question; a Grapeshot copy is
-logged as a cast, so each solution states its real step count (`# steps: N`).
+logged as a cast, so each solution states its real step count (`# steps: N`). A written line casts each card the
+moment it is castable, so an instant goes on the stack over a ritual that has not resolved and taps a Mountain
+the line meant to hold: the fling search plays the stack the way the line does.
 
 A combat puzzle whose answer depends on the opponent's blocks cannot be a fixed line, so those stay with the
 search prover and are not in this set.
@@ -104,3 +107,14 @@ Subagent branches (drain/elf, fling): see their pushed notes (added below when t
   opponent at 1 to 3, no mana left unused. Elf boards with one Sentinel repeat a few life totals (31, 35, 47).
 - Landing: merge the three branches (feat/hard-gen, -engines, -more) into one PR; all touch eval/puzzle_gen.py
   and eval/test_puzzle_gen.py, so expect conflicts. Full gate with acceptance.
+
+## Where the fling family stands (2026-10-20, stopped at the owner's wrap-up)
+
+- 60 boards from `--family fling --count 60 --seed 1`. All 60 written lines played as written and solved in
+  the engine (10 to 12 steps); none drifted, so no generator fix was needed after the stack-aware search.
+- The floors stage was stopped after 6 boards to wrap up: 5 finished every floor and are kept (random 0/20,
+  PASS, first, greedy and Forge's AI each 0/4); the sixth (`fling_23e615214cc3`) had every floor but the AI
+  at 0, and kept in an earlier six-board run with the old description wording. No board was dropped by a floor.
+- Next: re-run `gen_gate.py` on the 54 boards without floors (about 2.5 minutes a board at `-j 1`). 50 of
+  the 60 lines open the second main phase with Rite of Flame; for variety, weight the draw away from two Rites
+  or add a second finisher (Temur Battle Rage before combat, then Fling).
