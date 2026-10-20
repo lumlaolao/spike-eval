@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 547 - Goryo's Kokusho attacks, then dies
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your first main phase. You control a Swamp and three Mountains, untapped, and no creatures. Your graveyard holds Kokusho, the Evening Star. You have Goryo's Vengeance (return target legendary creature card from your graveyard; it gains haste; exile it at the next end step) and Fling in hand. The opponent is at 15 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-reanimate-attack-then-sacrifice | A creature returned with haste can attack, and a creature sacrificed before the end step dies normally and triggers its dies ability (CR 603.10a): Goryo's Kokusho, attack for 5, then Fling it for 5 and its trigger drains 5; Fling before combat totals 10
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Goryo's Vengeance;Fling
+p0battlefield=Swamp;Mountain;Mountain;Mountain
+p0graveyard=Kokusho, the Evening Star
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=15
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
