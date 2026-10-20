@@ -16,7 +16,8 @@ tools off and on, to see whether the rules lookup changes the solve rate.
   (`inspect`, the memory tools, `rules_lookup`). Each game log of the on arm shows `[RULES] rules-tool-v1 wired
   (3163 rules, 741 terms, effective September 25, 2026)`.
 - Results: `results/off/` and `results/on/` here (each puzzle's `puzzle-results.jsonl` and `batch-manifest.json`);
-  the game JSONL was in `runs/puzzles/bench-v1/` (git-ignored). Tool counts: `tool-use.txt`.
+  the game JSONL was in `runs/puzzles/bench-v1/` (git-ignored). Tool counts: `tool-use.txt`, written by
+  `python3 eval/puzzles/rules-pilot/benchmark-v1/tool_use.py runs/puzzles/bench-v1`.
 
 ## Results
 
@@ -39,18 +40,15 @@ Floors (`puzzle_score.py`): pass@1 random 0.088, PASS 0.000, first option 0.207;
    (and `inspect` 40 times). So this sample cannot measure what the rules lookup is worth: the two arms differ
    only in tools Luna did not use for rules.
 2. **The sample is near Luna's ceiling.** 90% of attempts solve, and 26 of 29 puzzles are solved in both arms.
-   The puzzles where the arms differ (RP_017 2/5 vs 0/5, RP_098 4/5 vs 5/5, RP_443 1/5 vs 2/5, RP_477 0/5 vs 3/5,
-   RP_529 5/5 vs 2/5) had no rules lookup in either arm: that spread is run-to-run noise (the opponent AI's and the
+   The five puzzles where the arms differ (`tool-use.txt`) had no rules lookup in either arm: that spread is run-to-run noise (the opponent AI's and the
    model's own randomness), up to 3 solves in 5 on one puzzle.
 3. **Found on the way:** `--rules-tool` without `--memory-tools` recorded `RULES_TOOL=1` but never offered the tool
-   (the pilot, `runs/puzzles/bench-pilot/on`). The launchers now refuse that combination (this PR).
-
-4. **Found on the way, open:** the seat is told Forge's goal line (`Puzzle.getGoalDescription`: name, `Difficulty`,
+   (the pilot, `runs/puzzles/bench-pilot/on`). The launchers now refuse that combination (PR #272).
+4. **Found on the way (fixed by epoch 67, below):** the seat is told Forge's goal line (`Puzzle.getGoalDescription`: name, `Difficulty`,
    `Goal`, turn limit, description). 148 of the 526 converted puzzles say `Goal:Survive` (the turn bound, `eval/PUZZLES.md`)
    while their acceptance and description ask for the opponent at 0 life, so the prompt reads "Goal: Survive" above
    "Reduce the opponent to 0 life". In this sample Luna still solved 90%; RP_443 drew the one `report_unclear_decision`
-   (it misread which creatures could attack, not the goal). Fixing it changes what the seat sees: a version bump and a
-   re-run of this sample (about $0.40, 45 minutes).
+   (it misread which creatures could attack, not the goal).
 
 Next, to make the comparison mean something: harder puzzles (tier 3 and the puzzles Luna fails here), and a look at
 why Luna does not reach for the lookup (the tool description, or a prompt that tells it when a rule decides the
@@ -75,14 +73,16 @@ once, isolated build `runs/puzzles/builds/e67`. Results: `results-e67/off/` and 
 | other lookups | none offered | none offered | `inspect` 40, unclear 1 | `inspect` 47, unclear 2 |
 | cost | $0.18 | $0.17 | $0.20 | $0.20 |
 
-Paired by puzzle (10,000 bootstrap resamples of the 29 puzzles, 95% interval), change in pass@1:
+Paired by puzzle (10,000 bootstrap resamples of the 29 puzzles, 95% interval), change in pass@1; written by
+`python3 eval/puzzles/rules-pilot/benchmark-v1/paired.py eval/puzzles/rules-pilot/benchmark-v1`:
 
 | comparison | mean | interval |
 |---|---|---|
 | off, epoch 67 minus epoch 66 | -0.076 | [-0.145, -0.021] |
-| on, epoch 67 minus epoch 66 | -0.021 | [-0.062, 0.021] |
+| on, epoch 67 minus epoch 66 | -0.021 | [-0.069, 0.021] |
 | epoch 67, on minus off | +0.055 | [0.007, 0.110] |
 | epoch 66, on minus off | 0.000 | [-0.069, 0.069] |
+| on drop minus off drop | +0.055 | [0.000, 0.124] |
 
 What it says:
 
@@ -90,11 +90,11 @@ What it says:
    excludes zero. The largest drop is RP_243 (5/5 to 2/5 off, 5/5 to 3/5 on), whose name states its trick: every
    failed attempt but one let Awoken Horror's transform trigger bounce Grizzly Bears. RP_151 ("Count the snow first") and
    RP_385 ("The copy keeps haste, not counters") fell too. The earlier 130/145 overstated what Luna can do.
-2. **With the tools on, the drop is mostly gone,** and on minus off is now positive. Luna still made 0 rules
+2. **With the tools on, the drop is smaller, but not separably so:** the on arm's drop minus the off arm's is
+   +0.055 [0.000, 0.124]. On minus off is now positive. Luna still made 0 rules
    lookups; the difference is in `inspect` (47 calls) and the arm's own noise. Three puzzles flip 2 or more solves
    in 5 between runs with nothing changed, so one sample of 29 does not separate these from noise well: the "on
-   minus off" interval barely clears zero and is one of four comparisons made here.
-3. The Goal-line finding above (item 4) is fixed by epoch 67. The two `report_unclear_decision` calls came from
-   RP_385 and RP_443.
+   minus off" interval barely clears zero and is one of five comparisons made here.
+3. The two `report_unclear_decision` calls came from RP_385 and RP_443.
 
 Next is `docs/harness/BENCHMARK-V2.md`: measured tiers and harder puzzles, since 24 of 29 still solve with no tools.

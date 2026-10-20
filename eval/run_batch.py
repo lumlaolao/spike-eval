@@ -1330,8 +1330,7 @@ def build_parser():
 def main(argv=None):
     ap = build_parser()
     args = ap.parse_args(argv)
-    if getattr(args, "rules_tool", False) and not getattr(args, "memory_tools", False):
-        # The seat wires the rules lookup only with MEMORY_TOOLS=1: alone, the flag is recorded and never offered.
+    if args.rules_tool and not args.memory_tools:
         raise SystemExit("run_batch: --rules-tool needs --memory-tools: the seat offers the rules lookup only with "
                          "the lookup tools on, so --rules-tool alone records rules_tool=1 for games that never had it")
     for kv in args.env or []:
