@@ -284,12 +284,15 @@ class DivergenceTest(unittest.TestCase):
         older = ["ACTIVATE Mutavault @4 [{1}: Mutavault becomes a 2/2]", "PASS"]
         dv = de.divergence([dec(1, newer, [0])], [dec(1, older, [0])])  # tap for mana against animate
         self.assertEqual(dv["reason"], "same spot, different menus, different answer")
-        both_animate = de.divergence([dec(1, newer, [1]), dec(2, self.MENU, [0])], [dec(1, older, [0]), dec(2, self.MENU, [1])])
+        both_animate = de.divergence([dec(1, newer, [1]), dec(2, self.MENU, [0])],
+                                     [dec(1, older, [0]), dec(2, self.MENU, [1])])
         self.assertEqual((both_animate["a"], both_animate["menus_differ_from"]), (1, 0))
 
     def test_one_of_two_identical_copies_is_the_same_answer_across_different_menus(self):
-        newer = ["ACTIVATE Mountain @2 [{T}: Add {R}.]", "PLAY LAND Mountain @5", "PLAY LAND Mountain @6", "PASS"]
-        older = ["PLAY LAND Mountain @3", "PLAY LAND Mountain @4", "PASS"]
+        # The two versions word the copies' notes differently, so only the name, unambiguous in each menu, matches.
+        newer = ["ACTIVATE Mountain @2 [{T}: Add {R}.]", "PLAY LAND Mountain @5 [Hand, yours]",
+                 "PLAY LAND Mountain @6 [Hand, yours]", "PASS"]
+        older = ["PLAY LAND Mountain @3 [Hand]", "PLAY LAND Mountain @4 [Hand]", "PASS"]
         dv = de.divergence([dec(1, newer, [2]), dec(2, self.MENU, [0])], [dec(1, older, [0]), dec(2, self.MENU, [1])])
         self.assertEqual((dv["a"], dv["menus_differ_from"]), (1, 0))  # the scan went on to the real divergence
 

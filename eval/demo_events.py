@@ -314,7 +314,8 @@ def divergence(a, b):
     chosen = lambda d: [o for c, o in enumerate(d.get("options") or []) if c in (d.get("chosen") or [])]
     picked = lambda d: sorted(_norm(o) for o in chosen(d))
     # A pick whose text, notes stripped, names options its notes tell apart (two abilities of one card, your Bears and
-    # theirs) cannot be matched that way across different menus. Interchangeable copies (two Mountains) can.
+    # theirs) cannot be matched that way across different menus: it must match with its notes, word for word, so an
+    # older version's rewording of them reads as a divergence. Interchangeable copies (two Mountains) can.
     ambiguous = lambda d: any(len({bare(o) for o in d.get("options") or [] if _norm(o) == p}) > 1 for p in picked(d))
     menus_from = None
     for n, (x, y) in enumerate(zip(da, db)):

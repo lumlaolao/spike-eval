@@ -85,8 +85,9 @@ egress consent. In the viewer, the two panes step in lockstep by turn and phase,
 jumps both to the first decision the two harnesses answer differently (`demo_events.divergence`): the same menu
 answered with a different option, a different option taken where the harnesses list different menus, or different
 spots (the games had already parted). Where the menus differ but both took the same option, the scan goes on and the
-button's tooltip notes where the menus first differed; a pick whose name, notes stripped, the notes tell apart
-(two abilities of one card) must match with its notes, while one of two identical copies matches either. Against e1324cfd they differ from the first main phase: the
+button's tooltip notes where the menus first differed. A pick only its notes tell apart (two abilities of one card)
+must match with its notes word for word, so a reworded note reads as a divergence; one of two identical copies
+matches either. Against e1324cfd they differ from the first main phase: the
 current harness lists mana abilities and that commit does not. The rehearsal in the block above (after build-now and
 build-then, written to `runs/demo/pair-rehearsal`) parts at decision 5, turn 1: the current harness taps Mox Ruby, an
 option that commit never lists, and that commit plays Urza's Saga. Menus are compared without what
