@@ -40,7 +40,7 @@ lists `roms/test/` (the open accuracy suites: armwrestler, fuzzarm, jsmolka, des
 corpus") as "Force-added to git", and only `roms/commercial/` as "Never checked in (copyrighted)". Replays are
 `<frame> <keys_hex>` input logs; reference frames and per-replay thresholds are precomputed. GBA Eval withholds the
 corpus at the container, not by secrecy: the graded ROMs sit in a public repository, but the agent's container holds
-only the dev ROMs and has no internet.
+only the dev ROMs and no internet beyond an egress allowlist (quickstart/README.md).
 
 **How grading works.** `overall = 0.60 x replay + 0.20 x procedural + 0.20 x audio`. Replays: "Real gameplay with
 button presses — end-to-end behavior under input" (README), frames compared against Mesen2 with per-replay thresholds;
@@ -49,7 +49,7 @@ self-checking ROMs", weighted inside the section (cpu 0.35, memory 0.15, compreh
 halt_irq 0.10). Audio: "Per-frame log-mel spectral distance vs Mesen2", half PSG and half game audio. The config notes
 that adding ROMs to a subsystem "improves measurement precision without shifting other subsystems' weights". The
 harness has a `lockstep/` component, candidate and reference stepped together. The GBA is deterministic (no clock, no
-analog input), so one input log has one correct output.
+analog input), so the graded runs are deterministic: a fixed ROM and input log under a deterministic reference.
 
 **Why they think it measures capability.** The README: "we hope it gives a concrete sense of what we mean when we talk
 about environments and grading"; Mechanize's essays call for replication tasks where "either the generated
@@ -62,7 +62,7 @@ CPU, memory, timers, DMA, audio), not one bit.
 **Episodes.** 24 hours a model, checkpoints every 15 minutes with score trajectories, tokens and wall clock recorded;
 attempt repositories published with commit histories and chat transcripts. Scores: GPT-5.5 0.532; Claude Opus 4.8 0.709
 (passed GPT-5.5's 24-hour score "in under an hour"); Claude Fable 5 0.745 (gameplay 91.5%, audio 44.5%; passed Opus 4.8
-in under two hours). From the gbaeval.com leaderboard, not fetched here: Claude Opus 5 0.796; several open-weight
+in under two hours). From the gbaeval.com leaderboard (`results/leaderboard.json`): Claude Opus 5 0.796; several open-weight
 models near zero; Grok Build 0.1 "hard-codes the exact example ROMs to fake passing in its CPU implementation" and
 scored 0.024: the dev ROMs are not the graded ROMs, so the hack bought nothing.
 
@@ -109,7 +109,7 @@ scored 0.024: the dev ROMs are not the graded ROMs, so the hack bought nothing.
   reference service, withhold the surface instances and the lines, and generate the hidden set fresh.
 - **Nothing to copy inside the container.** GBA Eval keeps the agent off the internet and the oracle's source out of
   reach; its corpus is public and absent only from the container. We must keep our own code and history (249 merged
-  PRs with the fix for every defect in their bodies) out of the container the same way, and the public repository
+  PRs, 248 into main, their bodies describing the fixes) out of the container the same way, and the public repository
   stays the contamination risk for any model trained after today, as GBA Eval's public corpus is for its own.
 - **Partial credit as a profile.** Their leaderboard reads 91.5% gameplay against 44.5% audio for one model; ours
   should read per hook family and per context, so "maps combat but not costs" is a sentence the score can say.
@@ -178,8 +178,8 @@ amounts, order), never by the candidate's label, and records it; over the wire i
   2026-10-20) holds 79,691 decision rows, counted as every `"t":"decision"` row of every `*.jsonl` under it (`play`
   69%, `target` 7%, `attackers` 4%, then `counter-type`, `replacement-order`, `sacrifice`, `mana-sources`,
   `choose-entity`, `cleanup-discard`, `damage-assign` at 1 to 2% each, a tail of forty-plus types under 1%). The rows
-  pool every epoch they were played at, and some carry type names that predate `OWNED` (`choose-entity`,
-  `replacement-order`, `announce-x`, `combat-cost`, `discard-cost`, `return-cost`) and must be mapped onto it first.
+  pool every epoch they were played at, and some carry type names that predate `OWNED` (including `choose-entity`,
+  `replacement-order`, `announce-x`, `combat-cost`, `discard-cost`, `return-cost`, `static-order`, `exile-cost`) and must be mapped onto it first.
   Contexts are weighted from the same rows (`play:alt:*`, `play:opt:*`, cost kinds). A floor weight keeps rare
   surfaces worth mapping; weights and instances are versioned apart (section 2).
 - **Score** = Σ weight x (five checks pass) / Σ weight over the hidden instances, reported per hook family and per
@@ -256,18 +256,21 @@ overlay):
 
 GBA Eval fits a day because an emulator has one spec and one output; our week was 716 commits on main and 131 merged
 PRs, #139 to #284 (since 2026-10-15, counted from the GitHub REST API by paging `commits?since=` and closed `pulls`,
-at main 5778367), over three months of earlier work, and sessions of tens of millions of tokens against
-Mechanize's 100k to 500k ([their own estimate](https://www.mechanize.work/blog/cheap-rl-tasks-will-waste-compute)). So:
+at main 5778367), over three months of earlier work, and sessions of tens of millions of tokens, inside the range GBA Eval's own
+runs used (`tokens_used` in leaderboard.json: 5.68M to 2.35B; Opus 5 8.71M, Fable 5 41.7M, Opus 4.8 57.1M, GPT-5.5
+240.9M) and far above the 100k to 500k Mechanize gives as a generic per-task average
+([their own estimate](https://www.mechanize.work/blog/cheap-rl-tasks-will-waste-compute)). So:
 
-- **Milestone starts**, from our history (epochs 26 to 70 in five days, 2026-10-16 to 2026-10-20: the clone's first
-  commit is at epoch 26 and epoch 30 landed on 2026-10-16; ownership 13 to 0, `surfaces` 69 to 89): M0 a
+- **Milestone starts**, from our history (epochs from the low single digits to 70 in six days, 2026-10-15 to
+  2026-10-20: epoch 4 by 2026-10-15T04:06Z, read from the GitHub REST API; the 13 unproven hooks of
+  REVIEW-2026-10-16 S3 to 0, `surfaces` 69 to 89): M0 a
   floor-vs-AI game writes rows; M1 an HTTP seat answers priority, attack, block and target surfaces and `garbage` never
   beats floor; M2 engine-side `ai=0` and no silent drop over the gauntlet; M3 tool-call answers only; M4 `AskContract`
   and invariance on every request; **M5 the surface suite**; M6 lookups and previews; M7 lines; M8 the eval layer; M9
   the paid play score. Each start is the commit that first passed gate k, tagged by epoch; each gate a frozen subset
   of the suite with a dense per-cell sub-score from the first commit (GBA Eval's 15-minute checkpoints).
 - **PR replays** (SWE-Gym, [arXiv 2412.21139](https://arxiv.org/abs/2412.21139v1)): 249 merged PRs as candidates;
-  today's #280, #282, #283 and #284 took 40 minutes to five and a half hours each, first commit to merge (GitHub
+  today's #280, #282, #283 and #284 took 40 minutes to just over five hours each, first commit to merge (GitHub
   REST). **Synthetic defects** (SWE-smith, [arXiv 2504.21798](https://arxiv.org/pdf/2504.21798)): mutate `PlayerControllerLLM`, `LlmCostDecision`,
   `AnswerTool`, keep the mutants a surface catches.
 - **Pilot**: (1) build the generator and measure *our own* harness on a first suite of about 2,000 instances across
@@ -302,8 +305,8 @@ Mechanize's 100k to 500k ([their own estimate](https://www.mechanize.work/blog/c
   [quickstart](https://github.com/mechanize-work/gba-eval/tree/main/quickstart); [gbaeval.com](https://gbaeval.com/) and its
   [blog index](https://gbaeval.com/blog) (posts: "Grok Build 0.1 (unsuccessfully) reward-hacks GBA Eval", "How gameplay
   replay scoring works", "What replay scores look like", "Iterating on the grading strategy", "How the environment is
-  designed"; the posts render client-side and could not be fetched here); [Epoch AI listing](https://epoch.ai/benchmarks/gbaeval);
-  [Mechanize announcement post](https://x.com/MechanizeWork/status/2061469838292496717) (via search; not fetched directly);
+  designed"); [Epoch AI listing](https://epoch.ai/benchmarks/gbaeval);
+  [Mechanize announcement post](https://x.com/MechanizeWork/status/2061469838292496717);
   [AlphaSignal write-up](https://alphasignal.ai/news/anthropic-s-claude-fable-5-beats-the-hardest-coding-benchmark-in-under);
   [rl-list vendor entry](https://www.rl-list.com/vendors/mechanize).
 - Mechanize essays: [The upcoming GPT-3 moment for RL](https://www.mechanize.work/blog/the-upcoming-gpt-3-moment-for-rl/);
