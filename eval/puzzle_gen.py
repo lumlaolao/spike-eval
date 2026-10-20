@@ -210,7 +210,115 @@ def storm_board(rng):
             "text": lambda name: pzl_text(name, desc, rule, state, solution, ["life p1 <= 0"])}
 
 
-FAMILIES = {"ping": ping_board, "storm": storm_board}
+# Splice family: (generic, red, mana added, damage, arcane, target kind, splice cost or None, splice mana, splice
+# damage). Every one is an instant or sorcery, so each untaps Thermo-Alchemist.
+SPLICE_CARDS = {
+    "Lava Spike": (0, 1, 0, 3, True, "player", None, 0, 0),
+    "Glacial Ray": (1, 1, 0, 2, True, "any", 2, 0, 2),
+    "Desperate Ritual": (1, 1, 3, 0, True, "none", 2, 3, 0),
+    "Lightning Bolt": (0, 1, 0, 3, False, "any", None, 0, 0),
+    "Shock": (0, 1, 0, 2, False, "any", None, 0, 0),
+}
+
+
+def splice_best(hand, mana, alchemist):
+    """The most damage the hand can deal, and one line that deals it, by exhaustive search over a model of the
+    board: all mana red and paid from the pool (lands are only more pool); an Arcane spell may carry any of the
+    splice cards still in hand (each paid again and kept); a ping before each spell while Thermo-Alchemist is
+    untapped. Returns (damage, steps, line) with line a list of (spell, splices) and None for a ping, or the best
+    without splicing when allow_splice is False."""
+    from functools import lru_cache
+
+    @lru_cache(maxsize=None)
+    def go(hand, mana, untapped, allow):
+        best = (0, 0, ())
+        if untapped and alchemist:
+            d, st, ln = go(hand, mana, False, allow)
+            best = max(best, (d + 1, st + 1, (None,) + ln), key=lambda x: (x[0], -x[1]))
+        for i, s in enumerate(sorted(set(hand))):
+            rest = list(hand)
+            rest.remove(s)
+            g, r, add, dmg, arcane, _, _, _, _ = SPLICE_CARDS[s]
+            options = [()]
+            if arcane and allow:
+                splicers = sorted(set(x for x in rest if SPLICE_CARDS[x][6] is not None))
+                options = [tuple(c for j, c in enumerate(splicers) if m >> j & 1) for m in range(1 << len(splicers))]
+            for sp in options:
+                cost = g + r + sum(SPLICE_CARDS[x][6] for x in sp)
+                if cost > mana:
+                    continue
+                gain = add + sum(SPLICE_CARDS[x][7] for x in sp)
+                hit = dmg + sum(SPLICE_CARDS[x][8] for x in sp)
+                d, st, ln = go(tuple(sorted(rest)), mana - cost + gain, True, allow)
+                best = max(best, (d + hit, st + 1, ((s, sp),) + ln), key=lambda x: (x[0], -x[1]))
+        return best
+    with_splice = go(tuple(sorted(hand)), mana, True, True)
+    without = go(tuple(sorted(hand)), mana, True, False)
+    return with_splice, without
+
+
+def splice_board(rng):
+    """Arcane spells carry the splice cards still in hand: Desperate Ritual spliced pays 2 and adds 3, Glacial Ray
+    spliced pays 2 and deals 2 more, and both stay in hand to be spliced again or cast. Which spell carries what,
+    and when the carriers run out, is the puzzle; Thermo-Alchemist pings before each spell. Kept only when the best
+    line splices and beats every line that does not."""
+    mountains = rng.choice([1, 2, 2, 3])
+    hand = [rng.choice(["Desperate Ritual", "Desperate Ritual", "Glacial Ray"])]
+    hand += [rng.choice(sorted(SPLICE_CARDS)) for _ in range(rng.choice([4, 5, 5, 6]))]
+    alchemist = rng.random() < 0.75
+    (dmg, steps, line), (plain, _, _) = splice_best(hand, mountains, alchemist)
+    if not any(sp for x in line if x for sp in [x[1]]) or plain >= dmg:
+        return None
+    if not MIN_ACTIONS <= steps <= MAX_ACTIONS:
+        return None
+    unused = list(hand)
+    for x in line:
+        if x:
+            unused.remove(x[0])
+    if unused:
+        return None                    # every card is spent on the best line: no spare card to make it easier
+    solution = ["# steps: %d" % steps]
+    held, mana = list(hand), mountains
+    for x in line:
+        if x is None:
+            solution.append("activate Thermo-Alchemist")
+            continue
+        spell, sp = x
+        held.remove(spell)
+        solution.append("cast " + spell)
+        g, r, add = SPLICE_CARDS[spell][:3]
+        kind = SPLICE_CARDS[spell][5]
+        if kind in ("any", "player"):
+            solution.append("opponent")
+        # The engine asks only for the splice cards it could pay on top of the spell (splice_3d44093cf0dc: an
+        # unaffordable splice is no question at all).
+        offered = [c for c in set(held) if SPLICE_CARDS[c][6] is not None and SPLICE_CARDS[c][6] <= mana - g - r]
+        mana += add - g - r + sum(SPLICE_CARDS[c][7] - SPLICE_CARDS[c][6] for c in sp)
+        if SPLICE_CARDS[spell][4] and offered:
+            solution.append("; ".join(sp) if sp else "none")
+            if sp:
+                # After a splice the whole spell's targets are chosen again (h_1): the carrier's, then each
+                # spliced card's that has one.
+                solution += ["opponent"] * ((kind in ("any", "player")) + sum(SPLICE_CARDS[c][5] == "any"
+                                                                              for c in sp))
+    creatures = ["Thermo-Alchemist"] if alchemist else []
+    battlefield = creatures + ["Mountain"] * mountains
+    rng.shuffle(hand)
+    desc = ("It is your second main phase. You are at 20 life and control %s%s untapped Mountain%s. Your hand is %s. "
+            "The opponent is at %d life and controls nothing. Reduce the opponent to 0 life this turn."
+            % ("Thermo-Alchemist and " if alchemist else "", ["", "one", "two", "three"][mountains],
+               "" if mountains == 1 else "s", _join(hand), dmg))
+    rule = ("generated-splice | the best line deals %d by splicing; without splicing at most %d" % (dmg, plain))
+    state = [("turn", 1), ("activeplayer", "p0"), ("activephase", "MAIN2"), ("p0life", 20),
+             ("p0hand", ";".join(hand)), ("p0battlefield", ";".join(battlefield)),
+             ("p0library", "Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw"),
+             ("p1life", dmg), ("p1library", "Plains;Plains;Plains")]
+    return {"family": "splice", "actions": steps, "life": dmg, "hand": sorted(hand),
+            "battlefield": sorted(battlefield), "phase": "MAIN2",
+            "text": lambda name: pzl_text(name, desc, rule, state, solution, ["life p1 <= 0"])}
+
+
+FAMILIES = {"ping": ping_board, "storm": storm_board, "splice": splice_board}
 
 
 def board_key(b):
