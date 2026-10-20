@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 372 - Exert as it attacks
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You have Ahn-Crop Crasher (3/2 haste; you may exert it as it attacks: when you do, target creature can't block this turn) in hand with three red mana floating. The opponent is at 3 life and controls an untapped Wall of Stone (0/8). Reduce the opponent to 0 life this turn.
+Rule:authored-exert-cant-block | Exert is a choice made as the creature is declared as an attacker, and its reflexive trigger resolves before blockers are declared (CR 701.43a, 508.1, 603.12): exert the hasty Crasher targeting Wall of Stone so the Wall can't block and 3 damage lands; attacking without exerting is blocked by the Wall
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Ahn-Crop Crasher
+p0manapool=R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Wall of Stone
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
