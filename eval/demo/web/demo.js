@@ -41,6 +41,35 @@ window.noImage = img => {
   fetch(img.src).then(r => { if (r.headers.get("X-Image-Miss") === "1") NO_IMAGE.add(name); }).catch(() => {});
 };
 
+// With the audience feed, the board is drawn from engine truth (DemoFeed): every zone of both players with what Forge's
+// own card panel shows (current and printed P/T, damage, counters, tapped, sick, attacking, blocking). The seat's
+// counters it alone knows (mana pool, land drop) still come from its prompt; its @handles are mapped onto the cards.
+function feedPlayers(d, st) {
+  const f = d.feed, ids = d.feed_handles || {}, combat = f.combat || [];
+  const attacking = new Set(combat.map(a => a.id)), blocking = new Set(combat.flatMap(a => a.blockers));
+  const card = (c, zone) => ({
+    name: c.name, handle: ids[c.id] != null ? ids[c.id] : null, pt: c.pt || null, base_pt: c.base_pt || null,
+    damage: c.damage || 0, counters: c.counters || null, zone,
+    tags: [c.tapped ? "tapped" : null, c.sick ? "sick" : null, attacking.has(c.id) ? "attacking" : null,
+      blocking.has(c.id) ? "blocking" : null, c.token ? "token" : null, c.face_down ? "face down" : null].filter(Boolean),
+    notes: [], feed: true,
+  });
+  return (f.players || []).map(fp => {
+    const mine = fp.name === d.seat;
+    const fromPrompt = ((st && st.players) || []).find(p => p.name === fp.name) || {};
+    const bf = fp.battlefield || [];
+    return {
+      kind: mine ? "YOU" : "OPP", name: fp.name, audienceHand: !mine,
+      counters: Object.assign({}, fromPrompt.counters || {}, {life: fp.life, poison: fp.poison + "/10", library: fp.library,
+        graveyard: (fp.graveyard || []).length, exile: (fp.exile || []).length}),
+      hand_hidden: fromPrompt.hand_hidden, lines: fromPrompt.lines || {},
+      zones: {hand: (fp.hand || []).map(c => card(c, "hand")), board: bf.filter(c => !c.land).map(c => card(c, "board")),
+        lands: bf.filter(c => c.land).map(c => card(c, "lands")), graveyard: (fp.graveyard || []).map(c => card(c, "graveyard")),
+        exile: (fp.exile || []).map(c => card(c, "exile"))},
+    };
+  });
+}
+
 class Pane {
   constructor(i, info, root) {
     this.i = i; this.info = info; this.events = []; this.cur = 0; this.filter = "all"; this.done = false; this.gen = null;
@@ -148,6 +177,13 @@ class Pane {
     const stale = d.state_from !== d.i ? `<p class="engine-note">forced pick (no prompt): the board shown is the seat's last prompt.</p>` : "";
     const opp = st.players.filter(p => p.kind === "OPP"), you = st.players.filter(p => p.kind === "YOU");
     this.feed = d.feed || null;
+    if (this.feed) {
+      const fps = feedPlayers(d, st);
+      el.innerHTML = `<p class="engine-note">board: engine truth from the audience feed; the seat's own view is its prompt (below the trace)</p>` +
+        fps.filter(p => p.kind === "OPP").map(p => this.playerHtml(p, hl)).join("") + this.middleHtml(st, hl) +
+        fps.filter(p => p.kind === "YOU").map(p => this.playerHtml(p, hl)).join("") + this.legendHtml(hl);
+      return;
+    }
     el.innerHTML = stale + opp.map(p => this.playerHtml(p, hl)).join("") + this.middleHtml(st, hl) +
       you.map(p => this.playerHtml(p, hl)).join("") + this.legendHtml(hl);
   }
@@ -159,11 +195,11 @@ class Pane {
     const zones = [];
     // With the audience feed (DEMO_FEED), the opponent's real hand: engine truth the seat never sees, drawn in a
     // style of its own and labelled so, never as the seat's knowledge.
-    const truth = p.kind === "OPP" && this.feed ? (this.feed.players || []).find(f => f.name === p.name) : null;
-    if (truth) {
+    if (p.audienceHand) {
+      const hand = p.zones.hand;
       zones.push(`<div class="zone z-hand audience"><span class="zlabel">hand</span>` +
-        (truth.hand.length ? truth.hand.map(c => this.cardHtml({name: c.name, pt: c.pt, tags: []}, {})).join("") : `<span class="empty">empty</span>`) +
-        `<span class="aud-note">audience view (engine truth): the seat sees only "${esc(p.hand_hidden || truth.hand.length + " cards")}"</span></div>`);
+        (hand.length ? hand.map(c => this.cardHtml(c, {})).join("") : `<span class="empty">empty</span>`) +
+        `<span class="aud-note">audience view (engine truth): the seat sees only "${esc(p.hand_hidden || hand.length + " cards")}"</span></div>`);
     } else if (p.kind === "OPP" && p.hand_hidden != null) {
       const n = parseInt(p.hand_hidden, 10) || 0;
       zones.push(this.zoneHtml("hand", Array.from({length: Math.min(n, 12)}, () => `<div class="card back" title="hidden from the seat"></div>`).join("") +
@@ -171,7 +207,7 @@ class Pane {
     }
     for (const z of ["hand", "board", "lands", "graveyard", "exile"]) {
       const objs = (p.zones || {})[z] || [];
-      if (z === "hand" && p.kind === "OPP" && !objs.length) continue;
+      if (z === "hand" && p.kind === "OPP" && (!objs.length || p.audienceHand)) continue;
       zones.push(this.zoneHtml(z, objs.length ? objs.map(o => this.cardHtml(o, hl)).join("") : `<span class="empty">none</span>`));
     }
     const mana = (p.lines || {})["mana available"];
@@ -190,7 +226,20 @@ class Pane {
       h && h.engine && h.kind !== "engine" ? `engine: ${h.engine}` : ""].filter(Boolean).join("\n");
     // The image is Scryfall's printed card; everything the game changed (P/T, tags, counters) is in the caption
     // under it, never drawn over the card (its credit line stays visible). No image: the text tile.
+    // Forge's own panel puts the current P/T over the printed box: green above the printed value, red below or damaged.
+    let ptChip = "";
+    if (o.pt && o.base_pt) {
+      const [p, t] = o.pt.split("/").map(Number), [bp, bt] = o.base_pt.split("/").map(Number);
+      const mood = o.damage || p < bp || t < bt ? "down" : p > bp || t > bt ? "up" : "";
+      ptChip = `<span class="ptchip ${mood}" title="printed ${esc(o.base_pt)}${o.damage ? ", " + o.damage + " damage" : ""}">${esc(o.pt)}</span>`;
+    }
+    const chips = [o.damage ? `<span class="chip dmg">${esc(o.damage)} dmg</span>` : "",
+      o.counters ? `<span class="chip ctr">${esc(o.counters)}</span>` : "",
+      tags.includes("attacking") ? `<span class="chip atk">attacking</span>` : "",
+      tags.includes("blocking") ? `<span class="chip blk">blocking</span>` : "",
+      tags.includes("sick") ? `<span class="chip sick">summoning sick</span>` : ""].join("");
     return `<div class="${cls}" title="${esc(title)}" data-name="${esc(o.name)}">${h ? `<span class="badge">${esc(KIND_LABEL[h.kind] || h.kind)}</span>` : ""}` +
+      ptChip + (chips ? `<span class="chips">${chips}</span>` : "") +
       `<span class="art"><img src="${cardImg(o.name)}" alt="" loading="lazy" onerror="noImage(this)"></span>` +
       `<div class="nm">${esc(o.name)}</div><div class="meta">${o.cost ? `<span class="cost">${esc(o.cost)}</span>` : ""}${o.pt ? `<b>${esc(o.pt)}</b>` : ""}` +
       `${o.handle != null ? `<span class="h">@${esc(o.handle)}</span>` : ""}</div>` +

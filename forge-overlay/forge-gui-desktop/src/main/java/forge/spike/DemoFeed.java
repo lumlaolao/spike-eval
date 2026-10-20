@@ -173,10 +173,15 @@ final class DemoFeed {
             if (c.isTapped()) o.addProperty("tapped", true);
             if (c.isFaceDown()) o.addProperty("face_down", true);
             if (c.isToken()) o.addProperty("token", true);
+            if (c.isLand()) o.addProperty("land", true);
             if (c.isCreature()) {
+                // What Forge's own card panel draws: the current P/T against the printed one, damage, sickness.
                 o.addProperty("pt", c.getNetPower() + "/" + c.getNetToughness());
+                o.addProperty("base_pt", c.getBasePower() + "/" + c.getBaseToughness());
+                if (c.getDamage() > 0) o.addProperty("damage", c.getDamage());
                 if (c.isSick()) o.addProperty("sick", true);
             }
+            if (c.getAttachedTo() != null) o.addProperty("attached_to", c.getAttachedTo().getId());
             StringBuilder ct = new StringBuilder();
             for (CounterType t : c.getCounters().elementSet()) {
                 if (ct.length() > 0) ct.append(", ");

@@ -114,6 +114,22 @@ class ReplayTest(unittest.TestCase):
             shutil.rmtree(cache_dir)
 
 
+class HighlightFileTest(unittest.TestCase):
+    def test_the_forge_window_gets_the_latest_decisions_highlighted_engine_ids(self):
+        ev = {"kind": "decision", "n": 3, "seat": "A", "turn": 2, "feed_handles": {"101": 17, "102": 20, "103": 25},
+              "highlights": {"17": {"kind": "looked"}, "20": {"kind": "chosen"}, "25": {"kind": "engine"},
+                             "99": {"kind": "planned"}}}
+        self.assertEqual(srv.highlight_ids(ev), [101, 102])  # not the engine frame; a handle with no card is skipped
+        d = tempfile.mkdtemp()
+        try:
+            path = os.path.join(d, "hl.json")
+            srv.write_highlights(path, [dict(ev, n=2, feed_handles={}), ev, {"kind": "window"}])
+            with open(path) as f:
+                self.assertEqual(json.load(f), {"decision": 3, "seat": "A", "turn": 2, "ids": [101, 102]})
+        finally:
+            shutil.rmtree(d)
+
+
 class SummaryTest(unittest.TestCase):
     def test_a_summary_built_while_the_game_ended_is_not_kept(self):
         d = tempfile.mkdtemp()

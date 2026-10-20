@@ -67,6 +67,7 @@ class Builder:
         self.plans = {}         # seat -> its latest set_plan arguments
         self.start = None       # byte offset of the row being added (Reader sets it)
         self.feed_at = None     # offset -> the audience feed's snapshot written before it (Reader sets it)
+        self.handles_at = None  # (offset, seat) -> engine id -> handle, from the feed (Reader sets it)
         self.game = None
         self.decisions = 0
 
@@ -134,6 +135,8 @@ class Builder:
         # The engine-truth snapshot (DemoFeed) written before this row: what was really in both hands when the seat
         # was asked. Audience only: nothing of it reaches the seat or the highlights.
         ev["feed"] = self.feed_at(self.start) if self.feed_at and self.start is not None else None
+        # engine id -> this seat's @handle at that moment, so the seat's highlights land on the true cards.
+        ev["feed_handles"] = self.handles_at(self.start, seat) if self.handles_at and self.start is not None else None
         if state:
             self.last_state[seat] = len(self.events)
         if ev["plan"]:
@@ -168,9 +171,9 @@ class Reader:
         d, name = os.path.split(path)
         self.feed = Lines(os.path.join(d, "feed-" + name[len("game-"):])) if name.startswith("game-") else None
         self.builder.feed_at = self.feed_at
+        self.builder.handles_at = self.handles_at
 
-    def feed_at(self, offset):
-        """The last feed snapshot written while the game JSONL was at most `offset` bytes long."""
+    def _index_at(self, offset):
         rows = self.feed.rows if self.feed else []
         lo, hi = 0, len(rows)
         while lo < hi:
@@ -179,7 +182,20 @@ class Reader:
                 lo = mid + 1
             else:
                 hi = mid
-        return rows[lo - 1] if lo else None
+        return lo - 1
+
+    def feed_at(self, offset):
+        """The last feed snapshot written while the game JSONL was at most `offset` bytes long."""
+        i = self._index_at(offset)
+        return self.feed.rows[i] if i >= 0 else None
+
+    def handles_at(self, offset, seat):
+        """engine id -> @handle for `seat` as of that snapshot. The feed writes a seat's map only when it grows."""
+        for i in range(self._index_at(offset), -1, -1):
+            m = (self.feed.rows[i].get("handles") or {}).get(seat)
+            if m is not None:
+                return {str(eid): int(h) for h, eid in m.items()}
+        return None
 
     def poll(self):
         """Parse every complete line appended since the last poll; return the number of new events. The feed is read

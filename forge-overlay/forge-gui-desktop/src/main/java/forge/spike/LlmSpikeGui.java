@@ -11340,7 +11340,8 @@ public final class LlmSpikeGui {
         // exit — where the surrounding catch(Exception) cannot catch an ExceptionInInitializerError
         // and an automated driver waiting on the exit line would hang instead of seeing the error.
         ContextProfile.fromEnv();
-        GuiBase.setInterface(new GuiDesktop());
+        // DEMO_HIGHLIGHT_FILE (display only): remember the spectator window so DemoHighlight can frame cards on it.
+        GuiBase.setInterface(DemoHighlight.file() != null ? DemoHighlight.capturingGui() : new GuiDesktop());
         Singletons.initializeOnce(true);
         Singletons.getControl().initialize();
         new Thread(() -> {
@@ -11375,6 +11376,7 @@ public final class LlmSpikeGui {
         final HostedMatch hosted = GuiBase.getInterface().hostMatch();
         hosted.startMatch(rules, EnumSet.of(GameType.Constructed), players, (RegisteredPlayer) null, null);
         System.out.println("[LLM-SEAM] match started (games-per-match=" + gpm + "). Watch the Forge window.");
+        if (DemoHighlight.file() != null) DemoHighlight.watch(hosted, DemoHighlight.file());
 
         // Tournament / automation: with AUTO_EXIT=1, watch the match and when it ends emit the identity-keyed
         // game-summary line (same one headless writes), give the recorder a beat to capture the final board,

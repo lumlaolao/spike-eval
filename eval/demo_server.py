@@ -35,9 +35,10 @@ WAIT_S = 20.0
 class Pane:
     """One game: a run directory or .jsonl (replay), or a directory a JVM is writing into (live)."""
 
-    def __init__(self, path, live=False):
+    def __init__(self, path, live=False, highlight_file=None):
         self.path = path
         self.live = live
+        self.highlight_file = highlight_file  # live: where the Forge window's highlights are written
         self.reader = None
         self.log = None
         self.gen = 0            # moves when a live pane switches to a newer game file: the client starts over
@@ -59,7 +60,8 @@ class Pane:
                     self.log = log
             if self.reader is not None:
                 was_done = self.done
-                self.reader.poll()
+                if self.reader.poll() and self.highlight_file:
+                    write_highlights(self.highlight_file, self.reader.events)
                 if self.done and not was_done:
                     self._summary = None
 
@@ -90,6 +92,25 @@ class Pane:
             if (self.gen, self.done) == key:
                 self._summary = built
         return built
+
+
+def highlight_ids(ev):
+    """Engine card ids of the objects a decision highlights (not the engine's own frame), through the feed's handle
+    map. Without the audience feed there is no map, and no id."""
+    by_handle = {str(h): int(eid) for eid, h in (ev.get("feed_handles") or {}).items()}
+    return sorted(by_handle[h] for h, v in (ev.get("highlights") or {}).items()
+                  if v.get("kind") != "engine" and h in by_handle)
+
+
+def write_highlights(path, events):
+    """The latest decision's highlights for DemoHighlight (the Forge window). Written whole, then renamed."""
+    ev = next((e for e in reversed(events) if e.get("kind") == "decision"), None)
+    if ev is None:
+        return
+    tmp = path + ".part"
+    with open(tmp, "w") as f:
+        json.dump({"decision": ev["n"], "seat": ev["seat"], "turn": ev["turn"], "ids": highlight_ids(ev)}, f)
+    os.replace(tmp, path)
 
 
 def build_summary(pane):
@@ -205,16 +226,27 @@ def main(argv=None):
     ap.add_argument("--port", type=int, default=8765)
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--image-cache", default=demo_cards.DEFAULT_CACHE, help="card images (demo_cards.py prefetch fills it)")
+    ap.add_argument("--highlight-file", help="live: write the latest decision's highlighted card ids here for the "
+                    "Forge window (the JVM reads it with DEMO_HIGHLIGHT_FILE set to the same path)")
     ap.add_argument("--fetch-images", action="store_true",
                     help="fetch a card image missing from the cache from Scryfall (default: serve the cache only)")
     a = ap.parse_args(argv)
-    panes = [Pane(p) for p in a.game] + [Pane(p, live=True) for p in a.live]
+    panes = [Pane(p) for p in a.game] + [Pane(p, live=True, highlight_file=a.highlight_file) for p in a.live]
     if not panes:
         ap.error("give at least one --game or --live")
     for p in panes:
         if not p.live and p.reader is None:
             ap.error("no game-*.jsonl in %s" % p.path)
     srv = make_server(panes, a.port, a.host, demo_cards.Cache(a.image_cache, offline=not a.fetch_images))
+    if a.highlight_file:
+        # The Forge window's highlights follow the game whether or not a browser is polling.
+        def follow():
+            while True:
+                for p in panes:
+                    if p.highlight_file:
+                        p.refresh()
+                time.sleep(0.25)
+        threading.Thread(target=follow, daemon=True).start()
     print("DEMO http://%s:%d/  (%s)" % (a.host, srv.server_address[1], ", ".join(p.path for p in panes)), flush=True)
     try:
         srv.serve_forever()

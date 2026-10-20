@@ -185,7 +185,8 @@ class FeedTest(unittest.TestCase):
             with open(game, "w") as f:
                 f.write("".join(lines))
             second = len(lines[0])  # the byte offset where the second decision row starts
-            snaps = [{"t": "feed", "seq": 0, "jsonl_offset": 0, "players": [{"name": "B", "hand": [{"name": "Bolt"}]}]},
+            snaps = [{"t": "feed", "seq": 0, "jsonl_offset": 0, "players": [{"name": "B", "hand": [{"name": "Bolt"}]}],
+                      "handles": {"A": {"1": 40}}},
                      {"t": "feed", "seq": 1, "jsonl_offset": second, "players": [{"name": "B", "hand": []}]},
                      {"t": "feed", "seq": 2, "jsonl_offset": second + 5, "players": []}]
             with open(feed, "w") as f:
@@ -193,6 +194,7 @@ class FeedTest(unittest.TestCase):
             d1, d2 = [e for e in de.load(game).events if e["kind"] == "decision"]
             self.assertEqual((d1["feed"]["seq"], d2["feed"]["seq"]), (0, 1))
             self.assertEqual(d1["feed"]["players"][0]["hand"], [{"name": "Bolt"}])
+            self.assertEqual(d2["feed_handles"], {"40": 1})  # carried from the last row that wrote A's map
 
     def test_without_a_feed_file_a_decision_has_no_feed(self):
         (ev,) = decisions(events("g33-simulate.jsonl"))

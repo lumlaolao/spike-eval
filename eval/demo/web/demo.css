@@ -161,3 +161,19 @@ pre { white-space: pre-wrap; word-break: break-word; background: var(--code); pa
 .zone.audience { border: 2px dashed #b8860b; border-radius: 8px; padding: 4px; background: rgba(184, 134, 11, .08); }
 .zone.audience .card { opacity: .92; }
 .aud-note { width: 100%; font-size: 11px; color: #8a6508; font-weight: 600; margin-left: 76px; }
+
+/* Card states as Forge's own panel draws them, from the audience feed. */
+.ptchip { position: absolute; right: 4px; z-index: 2; background: #fffdf5; color: #111; border: 1px solid #333;
+  border-radius: 4px; font: 700 12px/1.2 var(--sans); padding: 0 4px; top: calc(var(--w, 112px) * 680 / 488 - 22px); }
+.card.tapped .ptchip { top: calc(var(--w, 112px) - 22px); }
+.card.noimg .ptchip { position: static; display: inline-block; margin-top: 2px; }
+.ptchip.up { background: #d9f7d9; color: #0b5d0b; border-color: #0b5d0b; }
+.ptchip.down { background: #fde0de; color: #9b1c12; border-color: #9b1c12; }
+.chips { position: absolute; left: 3px; top: 18px; z-index: 2; display: flex; flex-direction: column; gap: 2px; }
+.card.noimg .chips { position: static; flex-direction: row; flex-wrap: wrap; }
+.chip { font: 700 9px/1.3 var(--sans); padding: 0 4px; border-radius: 3px; color: #fff; background: #444; opacity: .93; }
+.chip.dmg { background: #b3261e; }
+.chip.ctr { background: #5b3fa0; }
+.chip.atk { background: #c25e00; }
+.chip.blk { background: #1f5fa8; }
+.chip.sick { background: #6b6b6b; }
