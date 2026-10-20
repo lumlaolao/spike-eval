@@ -294,7 +294,8 @@ battlefield (a suspended card's time counters, an adventure, foretold, plotted).
 A puzzle replaces the role with `<puzzle>`: the author's goal and what the solver is told. For a Forge puzzle that is
 Forge's description (name, difficulty, goal, turn limit, text); a rules puzzle (an `[acceptance]` section) gets only its
 turn limit and description (`LlmSpikePuzzle.seatBrief`, epoch 67), because its Forge goal is just the turn bound
-(148 of the 526 say `Goal:Survive` with the acceptance `life p1 <= 0`) and its name states the rule it tests. The
+(148 of the 526 converted puzzles in `eval/puzzles/rules-pilot/manifest.jsonl` say `Goal:Survive` and have `life p1 <= 0`
+in their `[acceptance]` section, 2026-10-20) and its name states the rule it tests. The
 Puzzle Goal card, which `inspect` reads, carries the same brief (`tellGoalCard`), and Forge's HumanControl warning
 stays in front of it. A result row's `goal_oracle` is that card's text as the seat sees it.
 
