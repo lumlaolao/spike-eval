@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 428 - Take the Angel away
+Goal:Win
+Turns:1
+Difficulty:Hard
+Description:It is your second main phase. You have Lightning Bolt and Act of Treason in hand, with four red mana floating. The opponent is at 3 life and controls an untapped Platinum Angel ("You can't lose the game and your opponents can't win the game"). Win the game this turn.
+Rule:authored-platinum-angel-control | Platinum Angel protects only its controller (CR 109.5, 104.3): Bolt the opponent to 0 and they don't lose while they control it, but once Act of Treason gives you control of the Angel the opponent loses at the next state-based action check (CR 704.5a); either spell alone does not win
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN2
+p0life=20
+p0hand=Lightning Bolt;Act of Treason
+p0manapool=R R R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=3
+p1battlefield=Platinum Angel
+p1library=Plains;Plains;Plains
+[acceptance]
+winner p0

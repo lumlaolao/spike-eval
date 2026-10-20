@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 430 - The frog keeps its counters
+Goal:Win
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Wall of Stone (0/8 defender) with three +1/+1 counters and have Turn to Frog in hand with two blue mana floating. The opponent is at 4 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-set-pt-then-counters | Turn to Frog removes all abilities (layer 6, so defender is gone) and sets base power and toughness 1/1 (layer 7b), and the +1/+1 counters still apply afterwards in layer 7c (CR 613.4b-c): the 4/4 Frog attacks for 4
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Turn to Frog
+p0battlefield=Wall of Stone|Counters:P1P1=3
+p0manapool=U U
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=4
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0

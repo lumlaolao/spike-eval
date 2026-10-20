@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot 424 - Kicked Bushwhacker hastens itself
+Goal:Survive
+Turns:1
+Difficulty:Easy
+Description:It is your first main phase. You control Grizzly Bears and have Goblin Bushwhacker (1/1; kicker {R}: when it enters, if kicked, creatures you control get +1/+0 and haste) in hand with two red mana floating. The opponent is at 5 life and controls no creatures. Reduce the opponent to 0 life this turn.
+Rule:authored-kicker-bushwhacker-self | Kicker is an optional additional cost, and the kicked enters trigger affects every creature you control, the Bushwhacker included (CR 702.33a, 603.4): kicked, it is a 2/1 with haste beside 3/2 Bears for 5; unkicked, only the Bears attack for 2
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Goblin Bushwhacker
+p0battlefield=Grizzly Bears
+p0manapool=R R
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=5
+p1library=Plains;Plains;Plains
+[acceptance]
+life p1 <= 0
