@@ -173,7 +173,8 @@ public final class LlmSpikePuzzle {
         return intOr(sectionValue(sections.get("metadata"), "Turns", "1"), 1);
     }
 
-    /** The solver's brief ({@link #seatBrief}), set where its seat's prompt is built. */
+    /** The solver's brief ({@link #seatBrief}), stored in LlmSpikeGui.puzzleBrief: call it before the solver's seat
+     *  is built, whose system prompt reads it. */
     static String briefSolver(Map<String, List<String>> sections, Puzzle puzzle) {
         String brief = seatBrief(sections, puzzle.getGoalDescription());
         LlmSpikeGui.puzzleBrief = brief;
@@ -181,12 +182,13 @@ public final class LlmSpikePuzzle {
     }
 
     /** Every rollout's start hook, on the game thread: the board (choices made while it is put down are the
-     *  .pzl's), the named cards Forge's setup drops, and the brief on the Puzzle Goal card. */
-    static void applyBoard(Game game, Puzzle puzzle, String brief) {
+     *  .pzl's), the named cards Forge's setup drops, and on the Puzzle Goal card the brief the solver's prompt
+     *  reads (LlmSpikeGui.puzzleBrief, set by {@link #briefSolver}), so the two cannot differ. */
+    static void applyBoard(Game game, Puzzle puzzle) {
         PuzzleArms.SETUP = true;
         try { puzzle.applyToGame(game); } finally { PuzzleArms.SETUP = false; }
         restoreNamedCards(puzzle);
-        tellGoalCard(game, brief);
+        tellGoalCard(game, LlmSpikeGui.puzzleBrief);
     }
 
     /** Forge writes its whole goal description on the Puzzle Goal card, which `inspect` reads: the card gets the
@@ -560,8 +562,7 @@ public final class LlmSpikePuzzle {
 
         // Empty decks and a zero-card opening hand: the [state] section IS the board. Anything drawn
         // here would be a card the puzzle author never put in the position.
-        // The solver is told the goal as the author wrote it, before its seat (and prompt) is built.
-        final String brief = briefSolver(sections, puzzle);
+        briefSolver(sections, puzzle);
         LobbyPlayer solverSeat = LlmSpikeGui.seatFor(ctlA, "Solver", "", smartA, fastA);
         LobbyPlayer oppSeat = "ai".equals(ctlB) ? new LobbyPlayerAi("Opponent", null)
                 : LlmSpikeGui.seatFor(ctlB, "Opponent", "", smartA, fastA);
@@ -595,7 +596,7 @@ public final class LlmSpikePuzzle {
         Thread worker = new Thread(() -> {
             try {
                 match.startGame(game, () -> {
-                    applyBoard(game, puzzle, brief);
+                    applyBoard(game, puzzle);
                     // Choices made while the board is put down (Roaming Throne's type) are the puzzle's, not a play.
                     PuzzleArms.Line setupLine = PuzzleArms.searchLine;
                     if (setupLine != null) setupLine.clearChoices();

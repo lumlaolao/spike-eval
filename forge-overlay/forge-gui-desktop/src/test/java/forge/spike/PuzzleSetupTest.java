@@ -44,8 +44,10 @@ public class PuzzleSetupTest {
         return new File(rules).getAbsoluteFile().getParentFile().getParentFile().getParentFile();
     }
 
+    /** Both statics the runner sets: a brief left behind turns every later test's system prompt into a puzzle's
+     *  (SeatObservationTest's non-puzzle framing failed after this class, pr-review of PR #273). */
     @AfterMethod
-    public void clearSolverSeat() { LlmSpikeGui.puzzleSolverSeat = null; }
+    public void clearSolverSeat() { LlmSpikeGui.puzzleSolverSeat = null; LlmSpikeGui.puzzleBrief = null; }
 
     @BeforeClass
     public void initializeModel() {
@@ -76,7 +78,8 @@ public class PuzzleSetupTest {
         Throwable[] thrown = {null};
         Thread t = new Thread(() -> {
             try {
-                LlmSpikePuzzle.applyBoard(game, puzzle, LlmSpikePuzzle.briefSolver(sections, puzzle));
+                LlmSpikePuzzle.briefSolver(sections, puzzle);
+                LlmSpikePuzzle.applyBoard(game, puzzle);
             } catch (Throwable e) {
                 thrown[0] = e;
             }
@@ -101,6 +104,22 @@ public class PuzzleSetupTest {
         for (String hidden : new String[] {"Survive", "Difficulty", "Bolster picks"})
             Assert.assertFalse(text.contains(hidden), hidden + " is on the goal card: " + text);
         Assert.assertEquals(LlmSpikeGui.puzzleBrief, text, "the <puzzle> block and the card say one thing");
+    }
+
+    /** Forge's HumanControl warning is the one line of its header a rules puzzle keeps: the solver then decides for
+     *  the opponent too, and must be told (pr-review of PR #273). Forge's own text, so a change to it shows here. */
+    @Test
+    public void aHumanControlledRulesPuzzleKeepsForgesWarning() throws Exception {
+        Map<String, List<String>> s = FileSection.parseSections(FileUtil.readFile(new File(REPO,
+                "eval/puzzles/rules-pilot/RP_443.pzl")));
+        s.get("metadata").add("HumanControl:True");
+        String forge = new Puzzle(s, "RP_443", false).getGoalDescription();
+        String brief = LlmSpikePuzzle.seatBrief(s, forge);
+        Assert.assertTrue(forge.contains("making all decisions for your opponent"), forge);
+        Assert.assertTrue(brief.startsWith(forge.substring(0, forge.indexOf("Rules pilot 443"))), brief);
+        Assert.assertTrue(brief.contains("Reduce the opponent to 0 life this turn."), brief);
+        for (String hidden : new String[] {"Survive", "Difficulty", "Bolster picks"})
+            Assert.assertFalse(brief.contains(hidden), hidden + " reached the seat: " + brief);
     }
 
     private static Card onBattlefield(Player p, String name) {

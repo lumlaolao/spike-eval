@@ -508,9 +508,9 @@ public final class LlmSpikeGui {
      *  Null outside puzzle mode, so every non-puzzle run is byte-identical to before. */
     static volatile LobbyPlayer puzzleSolverSeat = null;
 
-    /** PZL axis: the puzzle's goal as its author wrote it (Forge's goal description: goal, turn limit,
-     *  and what the solver is told, such as the top cards of the library), stated in the solver's system
-     *  prompt in place of "win the game". Null outside puzzle mode. */
+    /** PZL axis: the solver's brief ({@link LlmSpikePuzzle#seatBrief}: a Forge puzzle's goal description, a rules
+     *  puzzle's turn limit and description), stated in the solver's system prompt in place of "win the game". Null
+     *  outside puzzle mode. */
     static volatile String puzzleBrief = null;
 
     /** True only for the seat {@link #puzzleSolverSeat} names. Identity comparison, not name

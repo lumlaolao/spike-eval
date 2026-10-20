@@ -24,8 +24,8 @@ model identifiers in commits. Skip acceptance and the gauntlets unless asked (ow
 
 ## State of the code
 
-harness-epoch-66 (`docs/harness/VERSIONS.md` has every stamp). The epochs made on the puzzle branches, newest first:
-66, an attack the engine refuses is asked once more with the reason, then made legal, and the prover targets copies
+harness-epoch-67 (`docs/harness/VERSIONS.md` has every stamp). The epochs made on the puzzle branches, newest first:
+67, a rules puzzle's brief and Puzzle Goal card carry only its description and turn limit (PR #273); 66, an attack the engine refuses is asked once more with the reason, then made legal, and the prover targets copies
 as the model seat does (x_0, z_4); 65, a source whose tap damage is lethal pays last for a harness seat (City of
 Brass after Llanowar Elves); 64, a divided split gives each target at least 1 (RP_221); 63, a play a static forbids
 (Pithing Needle, Null Rod, Gaddock Teeg) is not on the menu (RP_207); 60 to 62, Port-style tap costs, stack-targeting
