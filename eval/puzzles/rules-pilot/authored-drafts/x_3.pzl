@@ -1,0 +1,20 @@
+[metadata]
+Name:Rules pilot NNN - One loyalty ability a turn
+Goal:Survive
+Turns:1
+Difficulty:Medium
+Description:It is your first main phase. You control Ajani Goldmane with 5 loyalty, and have Steady Progress in hand with three blue mana floating. End the turn with an Avatar token on your battlefield.
+Rule:authored-loyalty-once-per-turn | A player may activate a loyalty ability of a planeswalker only once each turn, at sorcery speed (CR 606.3), and its loyalty cost must be payable (CR 606.4): proliferate Ajani to 6 first, then activate -6; using +1 first spends the turn's activation
+[state]
+turn=1
+activeplayer=p0
+activephase=MAIN1
+p0life=20
+p0hand=Steady Progress
+p0battlefield=Ajani Goldmane|Counters:LOYALTY=5
+p0manapool=U U U
+p0library=Colossal Dreadmaw;Colossal Dreadmaw;Colossal Dreadmaw
+p1life=20
+p1library=Plains;Plains;Plains
+[acceptance]
+tokens p0 Battlefield * = 1
