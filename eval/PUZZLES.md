@@ -165,7 +165,8 @@ python3 eval/puzzle_score.py --suite eval/suites/puzzles-forge-builtin-v1.json -
   in the opponent AI's and the engine's random choices.
 - The seat is the one the games use:
   - the faithful profile, with the answer tool;
-  - no lookup tools unless `--memory-tools` or `--rules-tool` is given;
+  - no lookup tools unless `--memory-tools` is given, and the rules lookup only with `--memory-tools --rules-tool`
+    (`--rules-tool` alone is refused: the seat would not offer it);
   - no harness shortcuts;
   - every setting pinned explicitly and written to each puzzle's `batch-manifest.json`.
 - The system prompt states the puzzle as its author wrote it (goal, turn limit and anything the solver
